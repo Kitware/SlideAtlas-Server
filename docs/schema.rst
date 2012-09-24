@@ -1,14 +1,21 @@
 Database Schema version s0.3 corresponds to v2.0rc2
 ===================================================
 
+.. role:: optionalfield
+
+.. role:: indexedfield
+
+.. role:: sparsefield
+
+
 TODO: Change the colors 
 
 Color codes
 ~~~~~~~~~~~
 
-- optional field
-- indexed field
-- optional sparse indexed field
+- optional :optionalfield:`field`
+- indexed :indexedfield:`field`
+- optional :sparsefield:`sparse indexed field`
 
 Login database (always named "slideatlas")
 ==========================================
