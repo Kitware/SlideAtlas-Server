@@ -1,0 +1,10 @@
+pymongo
+flask
+flask-bootstrap
+flask-mongoengine
+
+#For documentation
+sphinx
+
+# Not used yet
+#flask-WTF

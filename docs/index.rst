@@ -11,8 +11,15 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: slideatlas
-  :members:
+
+:doc:`web-interface`
+
+
+:doc:`schema`
+
+
+:doc:`common-utilities`   
+
  
 Indices and tables
 ==================
