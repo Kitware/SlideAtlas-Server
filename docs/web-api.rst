@@ -4,6 +4,10 @@ Planned Web Interface
 
 Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
 
+Following set of slides is a very good `Link read <http://lanyrd.com/2012/europython/srzpf/>`_  before discussing this 
+
+
+
 Authentication (login) operations
 ---------------------------------
 
