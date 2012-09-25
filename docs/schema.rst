@@ -18,8 +18,10 @@ Color codes
 - indexed :indexedfield:`field`
 - optional :sparsefield:`sparse indexed field`
 
-Login database (always named "slideatlas")
-==========================================
+.. _admindb-label:
+
+Administrative database (always named "slideatlas")
+===================================================
 
 'users' collection
 ~~~~~~~~~~~~~~~~~~

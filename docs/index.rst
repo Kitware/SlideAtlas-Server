@@ -11,15 +11,24 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+:doc:`schema`
+
 :doc:`admin-rights`
 
 :doc:`web-api`
 
 :doc:`web-interface`
 
-:doc:`schema`
-
 :doc:`common-utilities`   
+
+.. toctree::
+   
+   schema
+   admin-rights
+   web-api
+   web-interface
+   common-utilities
+
 
 Indices and tables
 ==================

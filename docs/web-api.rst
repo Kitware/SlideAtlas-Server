@@ -1,6 +1,8 @@
 
-Defining web interface
-======================
+Planned Web Interface
+=====================
+
+Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
 
 Authentication (login) operations
 ---------------------------------
