@@ -1,0 +1,58 @@
+
+
+body {
+    background-color: #BCD2EE;
+}
+
+.container {
+    width:1210px;
+    height:700px;
+    margin-right:auto;
+    margin-left:auto;
+    background-color:#ffffff;
+}
+
+.viewer {
+    width:900px;
+    height:100%;
+    overflow:hidden;
+    float:left;
+    z-index:20;
+    position:relative;
+}
+
+.form {
+    width:300px;
+    height:100%;
+    overflow-y:scroll;
+    float:right;
+    background-color:#0198e1;
+}
+
+td {
+    background-color:white;
+}
+
+#annotbuttons {
+    z-index:10;
+    height:40px;
+    top: 650px;
+    left: 10px;
+    position:absolute;
+}
+
+#zoombuttons {
+    z-index:10;
+    height:45px;
+    top: 630px;
+    left: 860px;
+    position:absolute;
+}
+
+#rotatebuttons {
+    z-index:10;
+    height:45px;
+    top: 645px;
+    left: 430px;
+    position:absolute;
+}
