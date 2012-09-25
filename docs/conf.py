@@ -12,7 +12,7 @@
 # serve to show the default.
 
 import sys, os
-sys.path.append(os.path.abspath(os.path.dirname(__file__)+ "/.."))
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + "/.."))
 
 #print sys.path
 
@@ -87,6 +87,8 @@ include_patterns = ['../']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+todo_include_todos = True
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []

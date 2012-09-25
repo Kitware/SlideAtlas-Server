@@ -8,7 +8,8 @@ Database Schema version s0.3 corresponds to v2.0rc2
 .. role:: sparsefield
 
 
-TODO: Change the colors 
+.. todo:: 
+   Complete the color coding
 
 Color codes
 ~~~~~~~~~~~
@@ -24,10 +25,10 @@ Login database (always named "slideatlas")
 ~~~~~~~~~~~~~~~~~~
 
 - **'\_id'**: ObjectId
-- **'type'**: indexed[2] str ("passwd", "facebook", "google")
-- **'name'**: indexed[2] unique str
+- **'type'**: :indexedfield:`indexed[2] str ("passwd", "facebook", "google")`
+- **'name'**: :indexedfield:`indexed[2] unique str`
 - **'label'**: str
-- **'passwd'**: str (required if 'type' == "passwd")
+- **'passwd'**:  :optionalfield:`str (required if 'type' == "passwd")`
 - **'rules'**: array[n]
 
    -  ObjectId (pointer to 'rules' document)

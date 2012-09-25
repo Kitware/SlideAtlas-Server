@@ -6,7 +6,6 @@ Bootstrap(app)
 
 app.config['BOOTSTRAP_USE_MINIFIED'] = False
 
-
 @app.route("/")
 @app.route('/<name>')
 def hello(name=None):
