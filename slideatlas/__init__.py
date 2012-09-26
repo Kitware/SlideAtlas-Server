@@ -46,16 +46,43 @@ def sessions(name=None):
         return redirect(url_for('login'))
 
     # See if the user is requesting any session id
-    sessid = request.args.get('sess', None)
+    sessid = request.args.get('sessid', None)
     if sessid:
         # Find and return a single session
-        asession = {}
+        asession = {   'sessid' : 1234,
+                                 'label' : 'Sessions1 label',
+                                             }
+
         return render_template('session.html', session=asession, name=name)
 
     else:
         # Find and return a list of session names / ids
         sessionlist = []
+
+        sessionlist.append({'rule':'Rule1 label',
+            'sessions' :[
+                                { 'sessid' : 1234,
+                                  'label' : 'Sessions1 label',
+                                  'images' : False },
+
+                                { 'sessid' : 1234,
+                                  'label' : 'Sessions2 label',
+                                  'canadmin' : True},
+                                  ]
+            })
         # Array of dictionaries
+
+        sessionlist.append({'rule':'Rule2 label',
+            'sessions' :[
+                                { 'sessid' : 1234,
+                                  'label' : 'Rule2 Sessions1 label',
+                                  'images' : True },
+
+                                { 'sessid' : 1234,
+                                  'label' : 'Rule 2 Sessions2 label',
+                                  'canadmin' : False},
+                                  ]
+            })
 
         return render_template('sessionlist.html', sessions=sessionlist, name=name)
 
