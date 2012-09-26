@@ -112,7 +112,6 @@ image data/pyramid collection (named *ObjectId*)
 
 'bookmarks' collection
 ~~~~~~~~~~~~~~~~~~~~~~
-
 - **'\_id'**: ObjectId
 - **'img'**: ObjectId (pointer to document in 'images' collection)
 - **'title'**: str
