@@ -17,6 +17,11 @@ from .views import login
 login.oid.init_app(app)
 app.register_blueprint(login.mod)
 
+from .views import tile
+app.register_blueprint(tile.mod)
+
+from .views import webgl_viewer
+app.register_blueprint(webgl_viewer.mod)
 
 @app.before_request
 def before_request():
