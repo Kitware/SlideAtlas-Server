@@ -1,22 +1,15 @@
 <!DOCTYPE html>
 
-
 <html> 
- 
+
 <head> 
-
-
 <title>Connectome Viewer</title> 
 
 <link rel="stylesheet" type="text/css" href="viewer.css" />
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"> 
 
-<!--
-<link type="text/css" href="theme/ui.all.css" rel="Stylesheet" />	
-<link type="text/css" href="theme_interiorNavigation/ui.all.css" rel="Stylesheet" />	
-<script type="text/javascript" src="jquery-ui-personalized-1.6rc6.js"></script>
--->
+<!-- TODO: use common jquery for entire project avoiding duplication-->
 
 <link type="text/css" href="jquery/jquery-ui-1.8.22.custom.css" rel="stylesheet" />
 <script type="text/javascript" src="jquery/jquery-1.7.2.min.js"></script>
@@ -30,7 +23,6 @@
 
 <script type="text/javascript" src="static/init.js"></script>
 <script type="text/javascript" src="static/camera.js"></script>
-
 
 <!-- Actor for tile -->
 <script type="text/javascript" src="static/tile.js"></script>
@@ -80,53 +72,30 @@ shape has visibility and
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
 <script type="text/javascript" src="static/eventManager.js"></script>
 
-
-<!-- 
-
-   Obsolete, Was Used to convert widgets to points
-
-   <script type="text/javascript" src="annotation.js">
-
-</script> -->
-
-
 <?php
-$qid = $_GET['id'];
+$image_id = $_GET['id'];
 
-if(!isset($qid))
+if(!isset($image_id))
 	{
-	$qid = '5059f458d416e22e33000001';
+	$image_id = '4e6ec90183ff8d11c8000001';
 	}
 
 $m = new Mongo();
 $d = $m->selectDb("demo");
-$c = $d->selectCollection("questions");
 
-$mongo_question = $c->findOne(array('qid'=>new MongoId($qid)));
 $image_collection = $d->selectCollection("images");
-$mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_question['imageid'])));
+$mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)));
 
 ?>
 
 
 <script type="text/javascript">
-  var QUESTION = <?php echo json_encode($mongo_question);?>;
+//  var QUESTION = <?php echo json_encode($mongo_question);?>;
   var IMAGE = <?php echo json_encode($mongo_image);?>;
   // These globals are used in the viewer javascript.  I need to get rid of them.	
   var origin = IMAGE.origin;
   var spacing = IMAGE.spacing;
-  // Could there be a problem with body not loaded yet?
-  //$('body').data('ID', QUESTION.imageid);
-</script>
 
-<script type="text/javascript">
-  var QUESTION = <?php echo json_encode($mongo_question);?>;
-  var IMAGE = <?php echo json_encode($mongo_image);?>;
-  // These globals are used in the viewer javascript.  I need to get rid of them.	
-  var origin = IMAGE.origin;
-  var spacing = IMAGE.spacing;
-  // Could there be a problem with body not loaded yet?
-  //$('body').data('ID', QUESTION.imageid);
 </script>
 
 <script id="shader-poly-fs" type="x-shader/x-fragment">
@@ -205,18 +174,20 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_quest
   var VIEWER1;
 
   function initViews() {
-    var source1 = new Cache("tile.php?image="+QUESTION.imageid+"&name=");
+    var source1 = new Cache("tile.php?image=" + IMAGE["_id"]["$id"] + "&name=");
     VIEWER1 = new Viewer([0,0, CANVAS.width,CANVAS.height], source1);    
     
     // This may not be used anymore.
     VIEWER1.AnnotationCallback = function(widget) {
-      //alert("Annotation Callback is being used.");
+      alert("Annotation Callback is being used.");
       var json = widget.Serialize();
-      $.post("saveannotation.php?id="+QUESTION.qid.$id, {widget:json}, function(){
-        saveConstants();
-      });
+      
+      // $.post("saveannotation.php?id="+QUESTION.qid.$id, {widget:json}, function(){
+        // saveConstants();
+      // });
+    
     }
-    var cam = QUESTION.cam;
+    var cam = null;
     if(cam){
       VIEWER1.MainView.Camera.Height = parseFloat(cam.height);
       VIEWER1.MainView.Camera.FocalPoint[0] = parseFloat(cam.fp[0]);
@@ -229,11 +200,13 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_quest
     }
     
     EVENT_MANAGER.AddViewer(VIEWER1);
-    if(QUESTION.annotations != undefined){
-      for(var i=0; i < QUESTION.annotations.length; i++) {
-        VIEWER1.LoadWidget(QUESTION.annotations[i]);
-      }
-    }  
+    
+    // TODO: Add annotations later
+    // if(QUESTION.annotations != undefined){
+      // for(var i=0; i < QUESTION.annotations.length; i++) {
+        // VIEWER1.LoadWidget(QUESTION.annotations[i]);
+      // }
+    // }  
   }
 
   function draw() {
@@ -393,10 +366,10 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_quest
     }
   }
   
-  function savequestion() {
-      saveConstants();
-      //window.location = "lessonmaker.php";
-  }
+  // function savequestion() {
+      // saveConstants();
+      // //window.location = "lessonmaker.php";
+  // }
   
   function zoomIn() {
     VIEWER1.AnimateZoom(0.5);
@@ -467,33 +440,22 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_quest
     return 0;
   }
     
-  function addanswer() {
-    var numAnswers = $('.answer').length;
-    var liststring = '<tr><td>'+(numAnswers+1)+': <input type="text" class="answer" /></td><td><input type="radio" name="correct" /></td></tr>';
-    $('#choicelist').append(liststring); 
-    saveConstants();
-  }
-    
-    function savequestion() {
-        saveConstants();
-        //window.location = "lessonmaker.php";
-    }
     $(document).ready(function() {
-        if (QUESTION.choices) {
-            document.getElementById("qtext").innerHTML = QUESTION.qtext;
-            document.getElementById("title").innerHTML = QUESTION.title;
-            for (var i = 0; i < QUESTION.choices.length; ++i) {
-                var liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" /></td></tr>';
-                if(QUESTION.correct == (i+'')){
-                    liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-                }
-                $('#choicelist').append(liststring);    
-            }
-        }
-        else {
-            var liststring = '<tr><td>1: <input type="text" class="answer" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-            $('#choicelist').append(liststring);
-        }
+        // if (QUESTION.choices) {
+            // document.getElementById("qtext").innerHTML = QUESTION.qtext;
+            // document.getElementById("title").innerHTML = QUESTION.title;
+            // for (var i = 0; i < QUESTION.choices.length; ++i) {
+                // var liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" /></td></tr>';
+                // if(QUESTION.correct == (i+'')){
+                    // liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
+                // }
+                // $('#choicelist').append(liststring);    
+            // }
+        // }
+        // else {
+            // var liststring = '<tr><td>1: <input type="text" class="answer" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
+            // $('#choicelist').append(liststring);
+        // }
 
       $("#text-properties-dialog").dialog({
           autoOpen:false,
@@ -636,20 +598,6 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($mongo_quest
         </tr>
       </table>
     </div>
-    <div class="form ui-widget-content" >
-      Title:<br />
-      <textarea id="title" ></textarea><br />
-      Question:<br />
-      <textarea id="qtext" ></textarea><br /><br />
-      <button id="addanswer" onclick="addanswer();" >Add Answer Choice</button><br />
-      <button id="savequestion" onclick="savequestion();" >Save Question</button><br />
-      <table id="choicelist" class="ui-widget-content" style="width:100%" >
-        <tr>
-          <td>Answers:</td><td>Correct?</td>
-        </tr>
-      </table>
-    </div>
-  </div>
     
   <div id="text-properties-dialog" title="Text Annotation Editor" >
     <form>
