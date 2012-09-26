@@ -5,6 +5,7 @@ from bson import ObjectId
 
 mod = Blueprint('tile', __name__)
 
+@mod.route('/tile')
 @mod.route('/tile/<img>/<name>')
 def tile(img='4e695114587718175c000006', name='t.jpg'):
     """    

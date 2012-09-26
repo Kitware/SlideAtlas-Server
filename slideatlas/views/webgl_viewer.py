@@ -3,6 +3,7 @@ from pymongo import Connection
 from bson import ObjectId
 mod = Blueprint('webgl-viewer', __name__)
 
+
 @mod.route('/glview')
 def glview():
     """    
@@ -15,9 +16,9 @@ def glview():
         imgid = '4e695114587718175c000006'
 
     # Connect with 
-    conn = Connection("ayodhya:27017")
+    conn = Connection("ayodhya:27017", tz_aware=False)
 
     colImage = conn["demo"]["images"]
     docImage = colImage.find_one({'_id':ObjectId(imgid)})
 
-    return render_template('webgl-viewer/webgl-viewer.html', img=docImage)
+    return render_template('webgl-viewer/viewertest.html', img=docImage)
