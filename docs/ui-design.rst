@@ -1,4 +1,14 @@
 
+
+Modular development
+-------------------
+
+Flask blueprints are used for modular development. 
+`Link Flask Website <https://github.com/mitsuhiko/flask/tree/website/>`_  is used as a reference for creating multiple views 
+as blueprints thereby keeping their code and templates isolated facilitating modular development and not crowding a single file'
+
+
+`Link read <http://lanyrd.com/2012/europython/srzpf/>`_
 Navigation bar
 --------------
 
