@@ -1,4 +1,4 @@
-from flask import Flask, render_template, escape, g, request, redirect, session
+from flask import Flask, render_template, escape, g, request, redirect, session, url_for
 from flask.ext.bootstrap import Bootstrap
 from flaskext.openid import OpenID
 
@@ -14,28 +14,49 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 
 @app.route("/")
-@app.route('/<name>')
-def hello(name=None):
+@app.route('/home/<name>')
+def home(name=None):
     """
     All routes get redirected here 
     - / Says Hello <name>
     - /<name> Says Hello <name>
     """
-    return render_template('hello.html', name=name)
+    if 'user' in session:
+        name = session["user"]["name"]
+        email = session["user"]["email"]
+        return render_template('hello.html', name=name, email=email)
+#        return render_template('hello.html')
+    else:
+        return render_template('hello.html', name=name)
 
 @app.before_request
 def before_request():
-    g.user = None
+    g.logged_in = False
+    print "Session is here ..", session
+
+    # Find out if any openid information in the sesssion 
     if 'openid' in session:
-        g.user = session['name']
+        g.logged_in = True
+        #g.user = session['user']
+#        return
+    print "I am here .. in before request"
 
 
 @app.after_request
 def after_request(response):
-#    session.remove()
+    session.pop('openid', None)
     return response
 
-
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    """Does the login via OpenID. Has to call into `oid.try_login`
+    to start the OpenID machinery.
+    """
+    # if we are already logged in, go back to were we came from
+    g.logged_in = False
+    session.pop('user', None)
+    session.pop('openid', None)
+    return redirect(url_for('home'))
 
 @app.route('/login', methods=['GET', 'POST'])
 @oid.loginhandler
@@ -44,7 +65,7 @@ def login():
     to start the OpenID machinery.
     """
     # if we are already logged in, go back to were we came from
-    if g.user is not None:
+    if g.logged_in == True:
         app.logger.info('logged-in: ' + oid.get_next_url())
         return redirect(oid.get_next_url())
     if request.method == 'POST' or request.method == 'GET':
@@ -54,7 +75,6 @@ def login():
             app.logger.info('logging-in: ' + oid.get_next_url())
             return oid.try_login(openid, ask_for=['email', 'fullname',
                                                   'nickname'])
-    print "I am here "
     app.logger.info('not-logged-in: ' + oid.get_next_url())
     return render_template('login.html', next=oid.get_next_url(),
                            error=oid.fetch_error())
@@ -69,8 +89,12 @@ def create_or_login(resp):
     """
     session['openid'] = resp.identity_url
     name = resp.fullname or resp.nickname
-    email = resp.email
-    return render_template('hello.html', name=name, email=email)
+
+    session['user'] = {'url': resp.identity_url,
+                         'name': name,
+                         'email': resp.email}
+
+    return redirect(url_for('home'))
 
 
 
