@@ -1,29 +1,10 @@
-{% extends "bootstrap_responsive.html" %}
+{% extends "base.html" %}
 
-{% block body_content %}
-<div class="navbar navbar-inverse navbar-fixed-top">
-  <div class="navbar-inner">
-    <div class="container">
-      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </a>
-      <a class="brand" href="#">Project name</a>
-      <div class="nav-collapse collapse">
-        <ul class="nav">
-          <li class="active"><a href="#">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-      </div> 
-    </div>
-  </div>
-</div>
+{% block body_content %}    
+{{ super() }}
 
-    
 {% if name %}
-  <h1>Hello {{ name }}!</h1>
+  <h1>Hello {{ name }} !</h1>
 {% else %}
   <h1>Hello World!</h1>
 {% endif %}
@@ -33,6 +14,5 @@
 {% else %}
   <h2> No email </h2>
 {% endif %}
-
 
 {% endblock %}

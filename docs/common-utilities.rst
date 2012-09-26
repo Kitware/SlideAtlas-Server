@@ -66,6 +66,9 @@ Python lists support all these features, but we want more functionality that is
 Typical operation for access administration
 -------------------------------------------
 
+First use case
+~~~~~~~~~~~~~~
+
 - User logs in
 - Get the user information
 - Have the list of rules
@@ -78,11 +81,16 @@ Typical operation for access administration
       - Prepare for render
 - Render
 
+Second use case
+~~~~~~~~~~~~~~~
+
 - User clicks on admin link on a session
    - Verify that user can admin that session
    - Get a list of attachments 
    - Get a list of images
    
+Third use case
+~~~~~~~~~~~~~~
    
 - User clicks on admin link on a session access
    - Verify that user can admin that session

@@ -8,5 +8,5 @@ sphinx
 
 # Not used yet
 flask-openid
-openid-mongodb
+#openid-mongodb
 #flask-WTF

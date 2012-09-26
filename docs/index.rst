@@ -13,6 +13,8 @@ Contents:
 
 :doc:`schema`
 
+:doc:`ui-design`
+
 :doc:`admin-rights`
 
 :doc:`web-api`
@@ -28,7 +30,7 @@ Contents:
    web-api
    web-interface
    common-utilities
-
+   ui-design
 
 Indices and tables
 ==================

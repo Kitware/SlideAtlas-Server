@@ -26,9 +26,9 @@ Authentication (login) operations
 Session management
 ------------------
 
-- / session
-   - &id=<id>
-   - / getlist 
+- / sessions
+   - &sess=<id>
+   - /  Gets a list of all sessions  for the logged in user can see 
 
 - Main image view with annotation management
    - &id=<id>
