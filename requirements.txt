@@ -7,4 +7,6 @@ flask-mongoengine
 sphinx
 
 # Not used yet
+flask-openid
+openid-mongodb
 #flask-WTF
