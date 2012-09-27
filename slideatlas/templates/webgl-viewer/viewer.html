@@ -1,42 +1,43 @@
-<!DOCTYPE html>
+{% extends '/base.html'  %}
 
-<html> 
+{% block head %}
 
-<head> 
+{{ super() }} 
+
 <title>Connectome Viewer</title> 
 
-<link rel="stylesheet" type="text/css" href="viewer.css" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='webgl_viewer/viewer.css')}}" />
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"> 
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
-<link type="text/css" href="jquery/jquery-ui-1.8.22.custom.css" rel="stylesheet" />
-<script type="text/javascript" src="jquery/jquery-1.7.2.min.js"></script>
-<script type="text/javascript" src="jquery/jquery-ui-1.8.22.custom.min.js"></script>
+<link type="text/css" href="{{ url_for('static', filename='webgl_viewer/jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-1.7.2.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
 
 <!-- used some objects, matrix as an array  --> 
-<script type="text/javascript" src="static/glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/glMatrix-0.9.5.min.js') }}"></script>
 
 <!-- Perspective camera etc. May be ready to remove --> 
-<script type="text/javascript" src="static/webgl-utils.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/webgl-utils.js') }}"></script>
 
-<script type="text/javascript" src="static/init.js"></script>
-<script type="text/javascript" src="static/camera.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/init.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/camera.js') }}"></script>
 
 <!-- Actor for tile -->
-<script type="text/javascript" src="static/tile.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/tile.js') }}"></script>
 
 <!-- Source and cache for the viewer
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
-<script type="text/javascript" src="static/cache.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/cache.js') }}"></script>
 
 <!-- Single view, view interacts with the cache -->
-<script type="text/javascript" src="static/view.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/view.js') }}"></script>
 
 <!-- Has two views -->
-<script type="text/javascript" src="static/viewer.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/viewer.js') }}"></script>
 
 <!-- Widgets 
 
@@ -47,10 +48,10 @@ Widgets have serialize method which creates an object
 
 -->
 
-<script type="text/javascript" src="static/arrowWidget.js"></script>
-<script type="text/javascript" src="static/circleWidget.js"></script>
-<script type="text/javascript" src="static/textWidget.js"></script>
-<script type="text/javascript" src="static/polylineWidget.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/arrowWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/circleWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/textWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/polylineWidget.js') }}"></script>
 
 <!-- Shapes starting with superclass 
 
@@ -59,42 +60,24 @@ shape has visibility and
 
 -->
 
-<script type="text/javascript" src="static/shape.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/shape.js') }}"></script>
 
-<script type="text/javascript" src="static/crossHairs.js"></script>
-<script type="text/javascript" src="static/arrow.js"></script>
-<script type="text/javascript" src="static/circle.js"></script>
-<script type="text/javascript" src="static/polyline.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/crossHairs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/arrow.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/circle.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/polyline.js') }}"></script>
 
 <!-- Text uses texture map and not superclass shape, shares same API -->
-<script type="text/javascript" src="static/text.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/text.js') }}"></script>
 
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
-<script type="text/javascript" src="static/eventManager.js"></script>
-
-<?php
-$image_id = $_GET['id'];
-
-if(!isset($image_id))
-	{
-	$image_id = '4e6ec90183ff8d11c8000001';
-	}
-
-$m = new Mongo();
-$d = $m->selectDb("demo");
-
-$image_collection = $d->selectCollection("images");
-$mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)));
-
-?>
-
+<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/eventManager.js') }}"></script>
 
 <script type="text/javascript">
 //  var QUESTION = <?php echo json_encode($mongo_question);?>;
-  var IMAGE = <?php echo json_encode($mongo_image);?>;
   // These globals are used in the viewer javascript.  I need to get rid of them.	
-  var origin = IMAGE.origin;
-  var spacing = IMAGE.spacing;
+  var origin = {{img.origin}};
+  var spacing = {{img.spacing}};
 
 </script>
 
@@ -174,7 +157,7 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)))
   var VIEWER1;
 
   function initViews() {
-    var source1 = new Cache("tile.php?image=" + IMAGE["_id"]["$id"] + "&name=");
+    var source1 = new Cache("/tile/" + "{{img.collection}}" + "/");
     VIEWER1 = new Viewer([0,0, CANVAS.width,CANVAS.height], source1);    
     
     // This may not be used anymore.
@@ -556,26 +539,34 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)))
  
 </script> 
  
- 
-</head> 
- 
-<body onload="webGLStart();">
+{% endblock %}
+
+{% block bodytags %}
+{{ super() }} 
+onload="webGLStart();"
+
+{% endblock %}
+
+
+{% block body_content %}
+{{ super() }} 
+
   <div class="container ui-widget" >
     <div class="viewer ui-widget-content" >
       <canvas id="viewer-canvas" style="border: none;" width="900" height="700"></canvas> 
       <table border="1" id="annotbuttons">
         <tr>
           <td>
-            <img src="static/Arrow.gif" height="25" id="arrow" type="button" onclick="NewArrow();" />
+            <img src="{{ url_for('static', filename='webgl_viewer/Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
           </td>
           <td>
-            <img src="static/Circle.gif" height="25" id="arrow" type="button" onclick="NewCircle();" />
+            <img src="{{ url_for('static', filename='webgl_viewer/Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
           </td>
           <td>
-            <img src="static/FreeForm.gif" height="25" id="text" type="button" onclick="NewPolyline();" />
+            <img src="{{ url_for('static', filename='webgl_viewer/FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
           </td>
           <td>
-            <img src="static/Text.gif" height="25" id="text" type="button" onclick="NewText();" />
+            <img src="{{ url_for('static', filename='webgl_viewer/Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
           </td>
         </tr>
       </table>
@@ -590,10 +581,10 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)))
       <table border="1" id="rotatebuttons" >
         <tr>
           <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="static/rotateLeft.jpg" height="25" />
+            <img src="{{ url_for('static', filename='webgl_viewer/rotateLeft.jpg')}}" height="25" />
           </td>
           <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="static/rotateRight.jpg" height="25" />
+            <img src="{{ url_for('static', filename='webgl_viewer/rotateRight.jpg') }}" height="25" />
           </td>
         </tr>
       </table>
@@ -637,7 +628,4 @@ $mongo_image = $image_collection->findOne(array('_id'=> new MongoId($image_id)))
       </fieldset>
     </form>      
   </div>
-
- </body> 
- 
-</html> 
+{% endblock %}

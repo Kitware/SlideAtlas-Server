@@ -21,4 +21,9 @@ def glview():
     colImage = conn["demo"]["images"]
     docImage = colImage.find_one({'_id':ObjectId(imgid)})
 
-    return render_template('webgl-viewer/viewertest.html', img=docImage)
+    img = {}
+    img["collection"] = str(docImage["_id"])
+    img["origin"] = str(docImage["origin"])
+    img["spacing"] = str(docImage["spacing"])
+
+    return render_template('webgl-viewer/viewer.html', img=img)
