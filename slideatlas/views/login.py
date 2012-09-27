@@ -1,5 +1,5 @@
 
-from flask import Blueprint, current_app, redirect, render_template, request, session
+from flask import Blueprint, current_app, redirect, render_template, request, session, flash
 from flaskext.openid import OpenID
 
 from .. import digitalpath
@@ -69,7 +69,8 @@ def do_user_login(user):
         'label': user.label,
         }
     session['last_activity'] = user.last_login
-
-    return redirect('/session-index')
+    
+    flash('You were successfully logged in','success')
+    return redirect('/home')
 
 

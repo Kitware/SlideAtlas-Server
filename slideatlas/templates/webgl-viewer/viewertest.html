@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block body_content %}    
+{{ super() }}
+
+  <h1>Image viewer !</h1>
+
+{{ img|pprint(1) }}
+
+{% endblock %}

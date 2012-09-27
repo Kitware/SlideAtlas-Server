@@ -1,4 +1,4 @@
-from flask import Flask, render_template, escape, g, request, redirect, session, url_for
+from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
 
 from flask.ext.bootstrap import Bootstrap
 
@@ -17,6 +17,11 @@ from .views import login
 login.oid.init_app(app)
 app.register_blueprint(login.mod)
 
+from .views import tile
+app.register_blueprint(tile.mod)
+
+from .views import webgl_viewer
+app.register_blueprint(webgl_viewer.mod)
 
 @app.before_request
 def before_request():
@@ -46,12 +51,12 @@ def sessions(name=None):
     - /sessions?sess=10239094124  searches for the session id 
     """
     if 'user' in session:
-        name = session["user"]["name"]
-        email = session["user"]["email"]
+        name = session["user"]["label"]
     else:
         # Send the user back to login page
         # with some message
-        return redirect(url_for('login'))
+        flash("You must be logged in to see that resource", "error")
+        return redirect(url_for('login.login'))
 
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
@@ -112,5 +117,16 @@ def logout():
     session.pop('user', None)
     session.pop('openid', None)
     return redirect(url_for('home'))
+
+
+@app.route('/home')
+@app.route('/home/<name>')
+def home(name=None):
+    """
+    All routes get redirected here 
+    - / Says Hello <name>
+    - /<name> Says Hello <name>
+    """
+    return render_template('hello.html', name=name)
 
 
