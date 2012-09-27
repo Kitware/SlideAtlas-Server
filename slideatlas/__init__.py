@@ -1,4 +1,4 @@
-from flask import Flask, render_template, escape, g, request, redirect, session, url_for
+from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
 
 from flask.ext.bootstrap import Bootstrap
 
@@ -55,6 +55,7 @@ def sessions(name=None):
     else:
         # Send the user back to login page
         # with some message
+        flash("You must be logged in to see that resource", "error")
         return redirect(url_for('login.login'))
 
     # See if the user is requesting any session id
