@@ -51,12 +51,11 @@ def sessions(name=None):
     - /sessions?sess=10239094124  searches for the session id 
     """
     if 'user' in session:
-        name = session["user"]["name"]
-        email = session["user"]["email"]
+        name = session["user"]["label"]
     else:
         # Send the user back to login page
         # with some message
-        return redirect(url_for('login'))
+        return redirect(url_for('login.login'))
 
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
