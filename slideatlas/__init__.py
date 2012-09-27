@@ -120,13 +120,22 @@ def logout():
 
 
 @app.route('/home')
-@app.route('/home/<name>')
-def home(name=None):
+def home():
     """
     All routes get redirected here 
     - / Says Hello <name>
     - /<name> Says Hello <name>
+    
     """
+    if 'user' in session:
+        name = session["user"]["label"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        name = 'World'
+
+    
     return render_template('hello.html', name=name)
 
 
