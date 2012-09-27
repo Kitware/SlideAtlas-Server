@@ -19,6 +19,8 @@ body {
     float:left;
     z-index:20;
     position:relative;
+    -moz-user-select : none;
+    -webkit-user-select : none;
 }
 
 
