@@ -70,6 +70,6 @@ def do_user_login(user):
         }
     session['last_activity'] = user.last_login
 
-    return redirect('/session-index')
+    return redirect('/home')
 
 

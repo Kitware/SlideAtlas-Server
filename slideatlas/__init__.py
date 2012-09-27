@@ -119,3 +119,14 @@ def logout():
     return redirect(url_for('home'))
 
 
+@app.route('/home')
+@app.route('/home/<name>')
+def home(name=None):
+    """
+    All routes get redirected here 
+    - / Says Hello <name>
+    - /<name> Says Hello <name>
+    """
+    return render_template('hello.html', name=name)
+
+
