@@ -1,5 +1,5 @@
 
-
+/*
 body {
     background-color: #BCD2EE;
 }
@@ -11,15 +11,16 @@ body {
     margin-left:auto;
     background-color:#ffffff;
 }
-
+*/
 .viewer {
-    width:900px;
+    width:100%;
     height:100%;
     overflow:hidden;
     float:left;
     z-index:20;
     position:relative;
 }
+
 
 .form {
     width:300px;

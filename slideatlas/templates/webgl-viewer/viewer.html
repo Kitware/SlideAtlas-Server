@@ -551,9 +551,9 @@ onload="webGLStart();"
 {% block body_content %}
 {{ super() }} 
 
-  <div class="container ui-widget" >
+  <div class="viewer container-fluid ui-widget" style="height:900px;" >
     <div class="viewer ui-widget-content" >
-      <canvas id="viewer-canvas" style="border: none;" width="900" height="700"></canvas> 
+      <canvas  id="viewer-canvas" style="border: none" width="900" height="700"></canvas> 
       <table border="1" id="annotbuttons">
         <tr>
           <td>
@@ -629,3 +629,5 @@ onload="webGLStart();"
     </form>      
   </div>
 {% endblock %}
+{%- block bootstrap_js_bottom %}
+{%- endblock %}
