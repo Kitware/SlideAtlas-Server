@@ -1,7 +1,7 @@
 from flask import Blueprint, Response
 
 from pymongo import Connection
-from bson import ObjectId
+
 
 mod = Blueprint('tile', __name__)
 
