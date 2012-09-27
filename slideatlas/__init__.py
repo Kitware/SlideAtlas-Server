@@ -5,10 +5,11 @@ from flask_bootstrap import Bootstrap
 import model
 
 import digitalpath
+import sys, os
 
+sys.path.append(os.path.dirname(__file__))
 app = Flask(__name__)
 Bootstrap(app)
-
 
 app.config['BOOTSTRAP_USE_MINIFIED'] = False
 # set the secret key.  keep this really secret:
@@ -36,7 +37,7 @@ def before_request():
 
     g.logged_in = False
 
-    # Find out if any openid information in the sesssion 
+    # Find out if any openid information in the sesssion
     if 'openid' in session:
         g.logged_in = True
         #g.user = session['user']
@@ -65,10 +66,10 @@ def logout():
 @app.route('/home')
 def home():
     """
-    All routes get redirected here 
+    All routes get redirected here
     - / Says Hello <name>
     - /<name> Says Hello <name>
-    
+
     """
     if 'user' in session:
         name = session["user"]["label"]
@@ -78,7 +79,7 @@ def home():
         flash("You are not logged in..", "info")
         name = 'World'
 
-    
+
     return render_template('hello.html', name=name)
 
 
