@@ -1,8 +1,26 @@
 {% extends "base.html" %}
 
-{% block body_content %}    
+{% block body_content %}
 {{ super() }}
 
-  <h1>Displaying a single session for {{ name}} !</h1>
+  <h1>Displaying a session list for {{ name}} !</h1>
 
+    {{ data }}
+
+
+ {% for arule in sessions %}
+    <h2> {{ arule.rule }}</h2>
+    <table class="table table-bordered table-hover" >
+        {% for asession in arule.sessions %}
+            <tr> <td><a href="sessions" class="lead">{{ asession.label}}</td>
+                {% if asession.canadmin %}
+                  <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
+                {% else %}
+                {% endif %}
+            </tr>
+         {% endfor %}
+    </table>
+ <br>
+
+ {% endfor %}
 {% endblock %}
