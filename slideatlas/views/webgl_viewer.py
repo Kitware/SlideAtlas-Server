@@ -13,12 +13,12 @@ def glview():
     # See if the user is requesting any session id
     imgid = request.args.get('imgid', None)
     if not imgid:
-        imgid = '4e695114587718175c000006'
+        imgid = '4f2808554834a30ccc000001'
 
     # Connect with 
-    conn = Connection("ayodhya:27017", tz_aware=False)
+    conn = Connection("slide-atlas.org:27017", tz_aware=False)
 
-    colImage = conn["demo"]["images"]
+    colImage = conn["bev1"]["images"]
     docImage = colImage.find_one({'_id':ObjectId(imgid)})
 
     img = {}
