@@ -7,20 +7,30 @@
 
     {{ data }}
 
-
- {% for arule in sessions %}
-    <h2> {{ arule.rule }}</h2>
+    <h2> Attachments </h2>
     <table class="table table-bordered table-hover" >
-        {% for asession in arule.sessions %}
-            <tr> <td><a href="sessions" class="lead">{{ asession.label}}</td>
-                {% if asession.canadmin %}
+        {% for animage in data.attachments %}
+            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
+                {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
                 {% else %}
                 {% endif %}
             </tr>
          {% endfor %}
     </table>
- <br>
+    
+    </br>
+    
+    <h2> Images </h2>
+    <table class="table table-bordered table-hover" >
+        {% for animage in data.images %}
+            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
+                {% if animage.label %}
+                  <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
+                {% else %}
+                {% endif %}
+            </tr>
+         {% endfor %}
+    </table>
 
- {% endfor %}
 {% endblock %}
