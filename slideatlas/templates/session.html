@@ -25,8 +25,8 @@
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
             <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
-                {% if animage.label %}
-                  <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
+                {% if animage.name %}
+                  <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/thumb.jpg" width=100px></td>
                 {% else %}
                 {% endif %}
             </tr>

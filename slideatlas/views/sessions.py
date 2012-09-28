@@ -30,7 +30,7 @@ def sessions():
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
     ajax = request.args.get('ajax', None)
-    next = request.args.get('next', 0)
+    next = int(request.args.get('next', 0))
 
 
     if sessid:
@@ -42,14 +42,14 @@ def sessions():
         #db.sessions.find({}, {) // skip 20, limit 10
         db = conn["bev1"]
         coll = db["sessions"]
-        asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [0, 10] }, '_id' : 0})
+        asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
 
         # iterate through the session objects
         images = []
 
         for animage in asession['images']:
             images.append(db["images"].find_one({'_id' : ObjectId(animage["ref"])}, {'_id' : 0}))
-
+            images[-1]['id'] = str(animage["ref"])
         print images
 
         attachments = []
@@ -66,7 +66,7 @@ def sessions():
                  'session' : asession,
                  'images' : images,
                  'attachments' :attachments,
-                 'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE + 1)
+                 'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE)
                  }
 
         if ajax:

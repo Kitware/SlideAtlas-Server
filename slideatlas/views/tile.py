@@ -12,9 +12,9 @@ def tile(img='4e695114587718175c000006', name='t.jpg'):
     - /tile/4e695114587718175c000006/t.jpg  searches and returns the image
     """
     # Connect with 
-    conn = Connection("ayodhya:27017")
+    conn = Connection("slide-atlas.org:27017")
 
-    colImage = conn["demo"][img]
+    colImage = conn["bev1"][img]
     docImage = colImage.find_one({'name':name})
     return Response(str(docImage['file']), mimetype="image/jpg")
 
