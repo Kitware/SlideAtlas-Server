@@ -1,4 +1,4 @@
-from flask import Blueprint, Response
+from flask import Blueprint, Response, abort
 
 from pymongo import Connection
 
@@ -16,5 +16,7 @@ def tile(img='4e695114587718175c000006', name='t.jpg'):
 
     colImage = conn["bev1"][img]
     docImage = colImage.find_one({'name':name})
-    return Response(str(docImage['file']), mimetype="image/jpg")
+    if docImage == None:
+        abort(403)
+    return Response(str(docImage['file']), mimetype="image/jpeg")
 
