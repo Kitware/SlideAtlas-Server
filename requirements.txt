@@ -10,3 +10,5 @@ sphinx
 flask-openid
 #openid-mongodb
 #flask-WTF
+# Optionally tornado for production server run
+tornado
