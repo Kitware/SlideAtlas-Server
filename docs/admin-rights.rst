@@ -34,3 +34,35 @@ No admin
 --------
 
 - Currently only view access
+
+
+Additional Notes
+================
+
+Uploading files
+---------------
+
+Upload is currently performed using a desktop application. Anyone can download or share this application  But for security only downloading the application will not be enough, and every upload should require username and password.
+
+DB administrators own the database, so they can create a user which is in turn used for uploading.
+
+For now only DB administrators are able to upload content to their database. 
+
+Managing MongoDB users
+~~~~~~~~~~~~~~~~~~~~~~
+
+Upload access (in the application) is managed per db in mongodb.
+
+Using web interface , DB administrators request for a new license. 
+License creation page does following 
+
+- Makes sure the user is authorized to create a license
+- Creates a random username and passoword for mongodb database
+- Creates a license string by encrypting the username and password together
+- Once generated the license can be revoked in web interface
+
+The upload utility is able to process the license file to log into the database to perform upload operation.
+This key can be shared with any one who they want to give upload access. 
+
+First step uploader utility
+===========================
