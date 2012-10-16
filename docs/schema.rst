@@ -8,7 +8,7 @@ Database Schema version s0.3 corresponds to v2.0rc2
 .. role:: sparsefield
 
 
-.. todo:: 
+.. todo::
    Complete the color coding
 
 Color codes
@@ -59,6 +59,11 @@ Administrative database (always named "slideatlas")
 - **'host'**: str (*hostname* or *hostname:port*)
 - **'dbname'**: str (name of a data database)
 - **'copyright'**: str
+- **'users'**: (Proposed for admin interface) List of the following structure
+
+      - **'created\_by'**: ObjectId(pointer to users database)
+      - **'created\_at'**: Time
+      - **'valid\_until'**: Time
 
 Data database ("bev1", etc.)
 ============================
@@ -81,7 +86,7 @@ image data/pyramid collection (named *ObjectId*)
 - **'copyright'**: str
 - **'levels'**: int
 - **'spacing'**: array[3]
-  
+
    - float (x / y / z nanometers/pixel or "1.0" if unknown)
 
 - **'dimension'**: array[3] (size of non-padded region of base layer)
@@ -107,7 +112,7 @@ image data/pyramid collection (named *ObjectId*)
 - **'label'**: str
 - **'startup\_view'**: ObjectId
 - **'bookmarks'**: array[n]
-   
+
    -  ObjectId (pointer to 'bookmarks' document)
 
 'bookmarks' collection
@@ -117,14 +122,14 @@ image data/pyramid collection (named *ObjectId*)
 - **'title'**: str
 - **'details'**: str
 - **'center'**: array[3]
-   
+
    -  float (x / y / z pixel coords)
 
 - **'zoom'**: int ("0" is lowest-resolution)
 - **'rotation'**: float (right-handed in degrees)
 - **'lens'**: float (not used, but comes from NDPA annotations)
 - **'annotation'**: object
-    
+
    - **'type'**: str
    - **'displayname'**: str (not used, but comes from NDPA annotations)
    - **'color'**: str (6 digit hex)
@@ -133,7 +138,7 @@ image data/pyramid collection (named *ObjectId*)
    - **'closed'**: int (exists if 'type' == "freehand"; not used, but comes from NDPA annotations)
    - **'specialtype'**: str (exists if 'type' == "freehand"; not used, but comes from NDPA annotations)
    - **'points'**: array[n] (n == 2 if 'type' == 'pointer'; n == 1 if 'type' == 'circle') array[3]
-   
+
       -  float (x / y / z pixel coords)
 
 'attachments' GridFS
@@ -148,7 +153,7 @@ image data/pyramid collection (named *ObjectId*)
 - **'\_id'**: ObjectId
 - **'label'**: str
 - **'views'**: array[n]
-  
+
    - object
 
       - **'ref'**: ObjectId (pointer to document in 'views' collection)
@@ -158,7 +163,7 @@ image data/pyramid collection (named *ObjectId*)
 - **'attachments'**: array[n]
 
    - object
-   
+
       - **'ref'**: ObjectId (pointer to file in 'attachments' GridFS)
       - **'pos'**: int
       - **'hide'**: bool
