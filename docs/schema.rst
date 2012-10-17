@@ -97,7 +97,7 @@ image data/pyramid collection (named *ObjectId*)
 
    -  int/float (x / y / z world coords)
 
-- **'thumb'**: binary (JPEG thumbnail)
+- **'thumb'**: binary (JPEG thumbnail) (Not implemented )
 - **'extents'**: array[6] (deprecated)
 
    -  int (x / y / z start / end pixel coords)

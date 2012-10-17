@@ -71,4 +71,12 @@ Create and test a utility to create random mongodb user
 The utility accepts an authenticated connection to the specified database
 and creates a random username password and returns the dictionary containing them.
 
-This list should also be added to the databases record in the schema 
+This list should also be added to the databases record in the schema
+====================================================================
+Assuming only one (or two) users are going to upload images.
+
+Create a username-database pair
+
+`Link Reference <http://www.laurentluce.com/posts/python-and-cryptography-with-pycrypto/#a_3>`_ for public key encryption 
+
+
