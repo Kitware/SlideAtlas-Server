@@ -3,14 +3,19 @@
 {% block body_content %}
 {{ super() }}
 
+  <div class="container">
+  <div class="row">
   <h1>Displaying a session list for {{ name}} !</h1>
 
+    
     {# data #}
     {%if data.attachments|length %}
     <h2> Attachments </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.attachments %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
+            <tr> 
+                <td><a href="sessions" class="lead"> {{ animage.name}} </a> 
+                    </td>
                 {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
                 {% else %}
@@ -21,12 +26,13 @@
     {%endif %}
 
     </br>
-
+    
     {%if data.images|length %}
     <h2> Images </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.label}}</td>
+            <tr> <td><a href="sessions" class="lead">{{ animage.label}}</a> </td>
+                    <td align="right"><button type="button" class="btn" align="right" > edit </button> </td>
                 {% if animage.label %}
                   <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/t.jpg" width=100px></td>
                 {% else %}
@@ -35,5 +41,7 @@
          {% endfor %}
     </table>
     {% endif %}
+</div>
+</div>
 
 {% endblock %}
