@@ -42,7 +42,7 @@ else:
 conn.register([model.Database])
 db = conn[DBNAME]
 
-insert_BIDMC_KAWAI(db)
+#insert_BIDMC_KAWAI(db)
 
 docs = db.databases.find()
 
