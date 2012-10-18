@@ -66,3 +66,9 @@ This key can be shared with any one who they want to give upload access.
 
 First step uploader utility
 ===========================
+
+Create and test a utility to create random mongodb user 
+The utility accepts an authenticated connection to the specified database
+and creates a random username password and returns the dictionary containing them.
+
+This list should also be added to the databases record in the schema 

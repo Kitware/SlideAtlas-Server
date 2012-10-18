@@ -1,13 +1,14 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request
-from pymongo import Connection
+from flask import Blueprint, render_template, request
 from bson import ObjectId
+from slideatlas.connections import slconn as conn
+
 mod = Blueprint('webgl-viewer', __name__)
 
 
 @mod.route('/glview')
 def glview():
-    """    
-    - /glview?imgid=10239094124  searches for the session id 
+    """
+    - /glview?imgid=10239094124  searches for the session id
     """
 
     # See if the user is requesting any session id
@@ -15,8 +16,7 @@ def glview():
     if not imgid:
         imgid = '4f2808554834a30ccc000001'
 
-    # Connect with 
-    conn = Connection("slide-atlas.org:27017", tz_aware=False)
+
 
     colImage = conn["bev1"]["images"]
     docImage = colImage.find_one({'_id':ObjectId(imgid)})
