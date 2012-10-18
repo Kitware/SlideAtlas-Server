@@ -1,9 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, flash, url_for, jsonify
-
-from mongokit import Connection
 from slideatlas.model import Image, Session
 from bson.objectid import ObjectId
-from celery.backends.mongodb import pymongo
+from slideatlas.connections import slconn as conn
 
 from gridfs import GridFS
 
@@ -36,7 +34,7 @@ def sessions():
     if sessid:
         # Find and return a single session
         print sessid
-        conn = Connection("slide-atlas.org")
+
         conn.register([Image, Session])
 
         #db.sessions.find({}, {) // skip 20, limit 10
@@ -50,6 +48,8 @@ def sessions():
         for animage in asession['images']:
             images.append(db["images"].find_one({'_id' : ObjectId(animage["ref"])}, {'_id' : 0}))
             images[-1]['id'] = str(animage["ref"])
+            del images[-1]['thumb']
+
         print images
 
         attachments = []

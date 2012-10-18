@@ -5,7 +5,7 @@
 
   <h1>Displaying a session list for {{ name}} !</h1>
 
-    {{ data }}
+    {# data #}
 
     <h2> Attachments </h2>
     <table class="table table-bordered table-hover" >
@@ -18,9 +18,9 @@
             </tr>
          {% endfor %}
     </table>
-    
+
     </br>
-    
+
     <h2> Images </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
