@@ -53,13 +53,14 @@ def sessions():
         print images
 
         attachments = []
-        gfs = GridFS(db, "attachments")
-        for anattach in asession['attachments']:
-            fileobj = gfs.get(anattach["ref"])
-            attachments.append({'name': fileobj.name})
+        if asession.has_key("attachments"):
+            gfs = GridFS(db, "attachments")
+            for anattach in asession['attachments']:
+                fileobj = gfs.get(anattach["ref"])
+                attachments.append({'name': fileobj.name})
+            del asession["attachments"]
 
         del asession["images"]
-        del asession["attachments"]
 
         data = {
                  'success': 1,
