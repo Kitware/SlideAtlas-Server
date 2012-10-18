@@ -45,12 +45,17 @@ def sessions():
         # iterate through the session objects
         images = []
 
-        for animage in asession['images']:
-            images.append(db["images"].find_one({'_id' : ObjectId(animage["ref"])}, {'_id' : 0}))
-            images[-1]['id'] = str(animage["ref"])
-            del images[-1]['thumb']
+        if asession.has_key("views"):
+            for aview in asession['views']:
+                viewobj = db["views"].find_one({"_id" : aview["ref"]})
+                images.append(db["images"].find_one({'_id' : ObjectId(viewobj["img"])}, {'_id' : 0}))
+                images[-1]['id'] = str(viewobj["img"])
+                # Delete thumbnail if present
+                if images[-1].has_key("thumb"):
+                    del images[-1]['thumb']
 
-        print images
+        for animage in images:
+            print animage['label']
 
         attachments = []
         if asession.has_key("attachments"):

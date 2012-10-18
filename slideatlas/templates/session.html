@@ -22,16 +22,18 @@
 
     </br>
 
+    {%if data.images|length %}
     <h2> Images </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
-                {% if animage.name %}
-                  <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/thumb.jpg" width=100px></td>
+            <tr> <td><a href="sessions" class="lead">{{ animage.label}}</td>
+                {% if animage.label %}
+                  <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/t.jpg" width=100px></td>
                 {% else %}
                 {% endif %}
             </tr>
          {% endfor %}
     </table>
+    {% endif %}
 
 {% endblock %}
