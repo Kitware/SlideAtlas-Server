@@ -43,19 +43,20 @@ def sessions():
         asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
 
         # iterate through the session objects
-        images = []
+        images = {}
 
         if asession.has_key("views"):
             for aview in asession['views']:
                 viewobj = db["views"].find_one({"_id" : aview["ref"]})
-                images.append(db["images"].find_one({'_id' : ObjectId(viewobj["img"])}, {'_id' : 0}))
-                images[-1]['id'] = str(viewobj["img"])
-                # Delete thumbnail if present
-                if images[-1].has_key("thumb"):
-                    del images[-1]['thumb']
+                imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])}, {'_id' : 0})
+                if imgobj.has_key("thumb"):
+                    del imgobj['thumb']
 
-        for animage in images:
-            print animage['label']
+                images[str(viewobj["img"])] = imgobj
+                # Delete thumbnail if present
+
+        for animageid in images.keys():
+            print images[animageid]['label']
 
         attachments = []
         if asession.has_key("attachments"):

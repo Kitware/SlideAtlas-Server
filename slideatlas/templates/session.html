@@ -28,13 +28,17 @@
     </br>
 
     {%if data.images|length %}
-    <h2> Images </h2>
+    <h2> {{ data.images|length }} Images </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.label}}</a> </td>
-                    <td align="right"><a href="{{animage.id}}" type="button" class="btn imageitem" imageid="{{animage.id}}"}> edit </button> </td>
-                {% if animage.label %}
-                  <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/t.jpg" width=100px></td>
+            <!-- script> alert("{{data.images[animage]}}"); </script  -->
+            <tr>
+                <td><a href="sessions" class="lead">{{ data.images[animage].label}}</a> </td>
+                <td align="right">
+                    <a href="{{animage}}" type="button" class="btn imageitem" imageid="{{animage}}"}> edit </button>
+                </td>
+                {% if data.images[animage].label %}
+                  <td> <img src="{{url_for('tile.tile')}}/{{animage}}/t.jpg" width=100px></td>
                 {% else %}
                 {% endif %}
             </tr>
@@ -52,13 +56,18 @@
   <script type="text/javascript" src="https://raw.github.com/makeusabrew/bootbox/v2.4.2/bootbox.min.js"></script>
 
     <script>
+
+        var imagelist = {{ data.images|tojson|safe }};
+
         $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');
+            var image = imagelist[id]
+
             e.preventDefault();
-            bootbox.prompt("What is your favourite JS library?", "Cancel", "OK", function(result) {
+            bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result) {
                 console.log("Result: "+result);
-               }, id);
+               }, image["label"]);
             });
     </script>
 {% endblock %}
