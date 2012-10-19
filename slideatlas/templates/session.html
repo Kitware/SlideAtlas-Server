@@ -78,9 +78,9 @@
                     // parameters
                     data:
                         {
-                        "id" : id,
-                        "label" : result,
-                        "collection" : "images"
+                        "_id" : id,
+                        "fields" :  JSON.stringify( { "label" : result}),
+                        "collection" : "images",
                         },
 
                     // The type of data that is getting returned.
@@ -101,9 +101,9 @@
 
                     success: function( strData )
                         {
-                        ShowStatus( "AJAX - success()" );
+                        alert( "AJAX - success()" );
                         // Load the content in to the page.
-                        alert( strData );
+                        alert( JSON.stringify(strData));
                         // Refresh the label
                         }
                     });

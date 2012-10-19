@@ -30,6 +30,10 @@ app.register_blueprint(webgl_viewer.mod)
 from .views import sessions
 app.register_blueprint(sessions.mod)
 
+from .views  import db_operations
+app.register_blueprint(db_operations.mod)
+
+
 @app.before_request
 def before_request():
 
