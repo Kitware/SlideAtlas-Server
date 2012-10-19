@@ -56,7 +56,6 @@
   <script type="text/javascript" src="https://raw.github.com/makeusabrew/bootbox/v2.4.2/bootbox.min.js"></script>
 
     <script>
-
         var imagelist = {{ data.images|tojson|safe }};
 
         $(".imageitem").click(function (e)
@@ -65,9 +64,50 @@
             var image = imagelist[id]
 
             e.preventDefault();
-            bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result) {
-                console.log("Result: "+result);
-               }, image["label"]);
+            bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result)
+                {
+                // Launch AJAX request.
+                $.ajax(
+                    {
+                    // The link we are accessing.
+                    url: "modify",
+
+                    // The type of request.
+                    type: "get",
+
+                    // parameters
+                    data:
+                        {
+                        "id" : id,
+                        "label" : result
+                        },
+
+                    // The type of data that is getting returned.
+                    dataType: "json",
+
+                    error: function()
+                        {
+                        // Flash an error message
+                        alert( "AJAX - error()" );
+                        },
+
+                        // complete: function()
+                        // {
+                        // // Show the status and
+                        // alert( "AJAX - complete()" );
+                        // // Refresh the label
+                        // },
+
+                    success: function( strData )
+                        {
+                        ShowStatus( "AJAX - success()" );
+                        // Load the content in to the page.
+                        alert( strData );
+                        // Refresh the label
+                        }
+                    });
+                },
+                image["label"]);
             });
     </script>
 {% endblock %}
