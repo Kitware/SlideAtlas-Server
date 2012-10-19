@@ -7,14 +7,14 @@
   <div class="row">
   <h1>Displaying a session list for {{ name}} !</h1>
 
-    
+
     {# data #}
     {%if data.attachments|length %}
     <h2> Attachments </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.attachments %}
-            <tr> 
-                <td><a href="sessions" class="lead"> {{ animage.name}} </a> 
+            <tr>
+                <td><a href="sessions" class="lead"> {{ animage.name}} </a>
                     </td>
                 {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
@@ -26,7 +26,7 @@
     {%endif %}
 
     </br>
-    
+
     {%if data.images|length %}
     <h2> Images </h2>
     <table class="table table-bordered table-hover" >
@@ -50,17 +50,15 @@
 {% block bootstrap_js_bottom %}
     {{ super() }}
   <script type="text/javascript" src="https://raw.github.com/makeusabrew/bootbox/v2.4.2/bootbox.min.js"></script>
-      
+
     <script>
-        $(".imageitem").click(function () 
+        $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');
-            alert(id);
-            bootbox.alert("Hello " + id + "world!", function() 
-                {
-                console.log("Alert Callback");
-                });
-            return(false);
+            e.preventDefault();
+            bootbox.prompt("What is your favourite JS library?", "Cancel", "OK", function(result) {
+                console.log("Result: "+result);
+               }, id);
             });
     </script>
 {% endblock %}
