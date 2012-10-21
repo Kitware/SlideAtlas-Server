@@ -32,8 +32,8 @@ def login_passwd():
 
 @mod.route('/login.facebook')
 def login_facebook():
-    # NYI
-    return redirect('/index')
+    flash('Not implemented yet', 'error')
+    return redirect('/home')
 
 
 @mod.route('/login.google')
@@ -69,8 +69,8 @@ def do_user_login(user):
         'label': user.label,
         }
     session['last_activity'] = user.last_login
-    
-    flash('You were successfully logged in','success')
+
+    flash('You were successfully logged in', 'success')
     return redirect('/home')
 
 
