@@ -5,10 +5,8 @@ class RefList(Document):
     structure = {
         'ref' : ObjectId,
         'pos' : float,
-        'hide' : bool,
-        'label' : basestring
+        'hide' : bool
         }
-
     required_fields = [ 'ref', 'pos']
 
 
@@ -18,9 +16,10 @@ class Session(Document):
         'name' : basestring,
         'label' : basestring,
         'images' : [RefList],
-        'attachments' : [RefList]
+        'attachments' : [RefList],
+        'views' : [RefList]
         }
-    
+
     required_fields = [ 'name']
 
 

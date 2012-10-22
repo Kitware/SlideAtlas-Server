@@ -37,7 +37,7 @@ app.register_blueprint(db_operations.mod)
 @app.before_request
 def before_request():
 
-    digitalpath.init_admin_db('zomm', 'slideatlas_test')
+    #digitalpath.init_admin_db('zomm', 'slideatlas_test')
 
     g.logged_in = False
 
@@ -76,14 +76,16 @@ def home():
 
     """
     if 'user' in session:
-        name = session["user"]["label"]
+        print session["user"]
+        label = session["user"]["label"]
+        email = session["user"]["email"]
     else:
         # Send the user back to login page
         # with some message
         flash("You are not logged in..", "info")
-        name = 'World'
+        label = 'World'
+        email = None
 
-
-    return render_template('hello.html', name=name)
+    return render_template('hello.html', name=label, email=email)
 
 

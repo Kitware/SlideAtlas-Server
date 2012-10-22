@@ -1,8 +1,10 @@
 from flask import Blueprint, Response, abort, jsonify, request
 from slideatlas.connections import slconn as conn
+import mongokit
 import json
 from bson import ObjectId
 mod = Blueprint('db_operations', __name__)
+from slideatlas.model import Image
 
 @mod.route('/modify')
 def modify():
@@ -21,12 +23,14 @@ def modify():
 
     try :
         col = conn["bev1"][collection]
-        rec = col.find_one({"_id" : ObjectId(id)})
+        rec = col.Image.one({"_id" : ObjectId(id)})
         if rec == None:
             raise 1
     except :
         data = {"error" : 1, "message" : "Unable to locate record"}
         return jsonify(data)
+
+    # Make sure the obtained record has the field we want to modify and validate
     print "yay"
     data = fields
     return jsonify(data)

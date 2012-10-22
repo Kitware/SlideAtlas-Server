@@ -6,8 +6,10 @@ flask-mongoengine
 #For documentation
 sphinx
 
-# Not used yet
+# For google login
 flask-openid
+# For facebook login
+flask-oauth
 #openid-mongodb
 #flask-WTF
 # Optionally tornado for production server run

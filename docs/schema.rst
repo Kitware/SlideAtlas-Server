@@ -28,8 +28,8 @@ Administrative database (always named "slideatlas")
 
 - **'\_id'**: ObjectId
 - **'type'**: :indexedfield:`indexed[2] str ("passwd", "facebook", "google")`
-- **'name'**: :indexedfield:`indexed[2] unique str`
-- **'label'**: str
+- **'name'**: :indexedfield:`indexed[2] unique str` Email 
+- **'label'**: :str: Name
 - **'passwd'**:  :optionalfield:`str (required if 'type' == "passwd")`
 - **'rules'**: array[n]
 
