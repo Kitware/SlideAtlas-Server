@@ -111,6 +111,7 @@ def login_google(oid_response=None):
             userdoc.save()
             #flash('New user account created', 'info')
         else:
+            pass
             #flash('Account exists', 'info')
 
         return do_user_login(userdoc)
@@ -125,7 +126,8 @@ def do_user_login(user):
 
     session['user'] = {
         'id': user["_id"],
-        'label': user["label"]
+        'label': user["label"],
+        'email' : user["name"]
         }
     session['last_activity'] = user["last_login"]
 
