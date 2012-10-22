@@ -37,7 +37,7 @@ app.register_blueprint(db_operations.mod)
 @app.before_request
 def before_request():
 
-    digitalpath.init_admin_db('zomm', 'slideatlas_test')
+    #digitalpath.init_admin_db('zomm', 'slideatlas_test')
 
     g.logged_in = False
 
@@ -82,7 +82,6 @@ def home():
         # with some message
         flash("You are not logged in..", "info")
         name = 'World'
-
 
     return render_template('hello.html', name=name)
 

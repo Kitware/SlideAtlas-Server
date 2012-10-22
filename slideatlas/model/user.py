@@ -12,3 +12,5 @@ class User(mongokit.Document):
         'last_login' : datetime.datetime
         }
     required_fields = ['type', 'name', 'label', 'rules', 'last_login']
+
+

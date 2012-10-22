@@ -103,7 +103,9 @@ def login_google(oid_response=None):
 
 
 def do_user_login(user):
-
+    """
+    Accepts a Mongokit document
+    """
     user.update_last_login()
 
     session['user'] = {

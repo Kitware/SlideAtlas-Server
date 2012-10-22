@@ -1,4 +1,5 @@
 from  mongokit import Document, IS
+from bson import Binary
 
 class StartupView(Document):
     structure = {
@@ -16,7 +17,7 @@ class Annotation(Document):
         'color' : basestring,
         'points' : [int]
         }
-    required_fields = [ 'type' ,'displayname' , 'color', 'points' ]
+    required_fields = [ 'type' , 'displayname' , 'color', 'points' ]
 
 class PointerAnnotation(Annotation):
     structure = {'type' : IS(u'pointer')}
@@ -28,7 +29,7 @@ class CircleAnnotation(Annotation):
         'radius' : int
         }
     required_fields = ['radius']
-    
+
 class Bookmark(Document):
     structure = {
         'title' : basestring,
@@ -43,16 +44,21 @@ class Bookmark(Document):
 
 
 class Image(Document):
+    use_schemaless = True
     structure = {
         'name' : basestring,
-        # label : deprecated
-        'origin' : [int],
+        'filename' : basestring,
+        'label' : basestring,
+        'hide':bool, # Optional
+        'origin' : [float],
         'dimension' : [int],
-        'spacing' : [int],
+        'spacing' : [float],
+        'thumb' : Binary,
         'startup_view' : StartupView,
         'bookmarks' : [Bookmark] # Not required, but mongoengine won't allow a "required" ListField to be an empty list
          }
 
-    required_fields = ['name', 'origin', 'dimension', 'spacing']
+#    required_fields = ['filename', 'label', 'origin', 'dimension', 'spacing']
+    required_fields = ['filename']
 
 
