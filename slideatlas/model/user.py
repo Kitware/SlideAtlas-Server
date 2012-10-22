@@ -14,5 +14,4 @@ class User(mongokit.Document):
     required_fields = ['type', 'name', 'label', 'rules', 'last_login']
 
     def update_last_login(self):
-        self.__dict__["last_login"] = datetime.datetime.utcnow()
-
+        self["last_login"] = datetime.datetime.utcnow()

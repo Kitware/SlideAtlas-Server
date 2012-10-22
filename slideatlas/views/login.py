@@ -109,9 +109,9 @@ def login_google(oid_response=None):
             userdoc["name"] = oid_response.email
             userdoc["label"] = oid_response.fullname
             userdoc.save()
-            flash('New user account created', 'info')
+            #flash('New user account created', 'info')
         else:
-            flash('Account exists', 'info')
+            #flash('Account exists', 'info')
 
         return do_user_login(userdoc)
 
@@ -120,6 +120,8 @@ def do_user_login(user):
     Accepts a Mongokit document
     """
     user.update_last_login()
+    user.save()
+    #flash(str(user))
 
     session['user'] = {
         'id': user["_id"],
