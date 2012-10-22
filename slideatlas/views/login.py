@@ -4,6 +4,8 @@ from flaskext.openid import OpenID
 from flask_oauth import OAuth
 
 from .. import digitalpath
+from slideatlas import model
+from connections import slconn as conn
 
 mod = Blueprint('login', __name__)
 oid = OpenID()
@@ -88,19 +90,30 @@ def login_google(oid_response=None):
 
     if oid.fetch_error():
         print "OID Error"
-        return redirect('/index')
+        return redirect('/home')
     elif not oid_response:
         return oid.try_login(GOOGLE_IDENTITY_URL, ask_for=['email', 'fullname']) # 'nickname'
     else:
-        user = digitalpath.GoogleUser.objects.get_or_create(
-            name=oid_response.email,
-            defaults={
-                'name': oid_response.email,
-                'label': oid_response.fullname
-                }
-            )[0]
-        return do_user_login(user)
+        # Check if the user exists 
+        conn.register([model.User])
+        dbobj = conn["slideatlasv2"]
+        userdoc = dbobj["users"].User.fetch_one(
+                                {'type' : 'google',
+                                'name' : oid_response.email
+                                })
 
+        if userdoc == None:
+            # Not found, create one 
+            userdoc = dbobj["users"].User()
+            userdoc["'type"] = 'google'
+            userdoc["name"] = oid_response.email
+            userdoc["label"] = oid_response.fullname
+            userdoc.save()
+            flash('New user account created', 'info')
+        else:
+            flash('Account exists', 'info')
+
+        return do_user_login(userdoc)
 
 def do_user_login(user):
     """
@@ -109,10 +122,10 @@ def do_user_login(user):
     user.update_last_login()
 
     session['user'] = {
-        'id': user.id,
-        'label': user.label,
+        'id': user["_id"],
+        'label': user["label"]
         }
-    session['last_activity'] = user.last_login
+    session['last_activity'] = user["last_login"]
 
     flash('You were successfully logged in', 'success')
     return redirect('/home')
