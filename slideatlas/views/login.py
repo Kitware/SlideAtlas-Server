@@ -66,15 +66,28 @@ def facebook_authorized(resp=None):
 
     session['oauth_token'] = (resp['access_token'], '')
     me = facebook.get('/me')
-    session['user'] = {
-        'id': "Not_yet",
-        'label': me.data['name'],
-        'facebook_id': me.data['id']
-        }
-    flash('Logged in as id=%s name=%s redirect=%s' % \
-          (me.data['id'], me.data['name'], request.args.get('next')), "success")
 
-    return redirect(url_for('home'))
+    # Check if the user exists 
+    conn.register([model.User])
+    dbobj = conn["slideatlasv2"]
+    userdoc = dbobj["users"].User.fetch_one(
+                            {'type' : 'facebook',
+                            'name' : me.data['email']
+                            })
+
+    if userdoc == None:
+        # Not found, create one 
+        userdoc = dbobj["users"].User()
+        userdoc["'type"] = 'facebook'
+        userdoc["name"] = me.data['email']
+        userdoc["label"] = me.data['name']
+        userdoc.save()
+        flash('New facebook user account created', 'info')
+    else:
+        pass
+        flash('Facebook account exists', 'info')
+
+    return do_user_login(userdoc)
 
 @facebook.tokengetter
 def get_facebook_oauth_token():
@@ -120,6 +133,7 @@ def do_user_login(user):
     """
     Accepts a Mongokit document
     """
+
     user.update_last_login()
     user.save()
     #flash(str(user))
