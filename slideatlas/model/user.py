@@ -4,6 +4,7 @@ from bson import ObjectId
 import rule
 
 class User(mongokit.Document):
+    use_schemaless = True
     structure = {
         'type' : basestring,
         'name' : basestring, # is email

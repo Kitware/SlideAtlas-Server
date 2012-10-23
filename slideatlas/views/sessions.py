@@ -132,13 +132,15 @@ def sessions():
                                             'sessdb': str(dbobj["_id"])
                                             }
                     sessions.append(thissession)
-            rule["sessions"] = sessions
 
             # if db administrator
             if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
                 # Update the administrative 
-                pass
+                for asession in sessions:
+                    flash(asession["label"] , "success")
+                    asession["canadmin"] = True
 
+            rule["sessions"] = sessions
             sessionlist.append(rule)
 
 #        sessionlist.append({'rule':'Rule1 label',
