@@ -1,10 +1,12 @@
 from flask import Blueprint, Response, abort, jsonify, request
 from slideatlas.connections import slconn as conn
+from connections import  admindb
 import mongokit
 import json
 from bson import ObjectId
 mod = Blueprint('db_operations', __name__)
-from slideatlas.model import Image
+from slideatlas import model
+
 
 @mod.route('/modify')
 def modify():
@@ -15,23 +17,29 @@ def modify():
     id = request.args.get('_id', None)
     collection = request.args.get('collection', None)
     fields = json.loads(request.args.get('fields', "{}"))
+    db = request.args.get('db', None)
 
     # If not enough information return error
-    if id == None or collection == None :
-        data = {"error" : 1, "message" : "id and collection both required"}
+    if id == None or collection == None  or db == None:
+        data = {"error" : 1, "message" : "_id, collection and database are all required"}
         return jsonify(data)
 
-    try :
-        col = conn["bev1"][collection]
-        rec = col.Image.one({"_id" : ObjectId(id)})
-        if rec == None:
-            raise 1
-    except :
+    conn.register([model.Database])
+    admindb2 = conn["slideatlasv2"]
+    dbobj = admindb2["databases"].find_one({"_id" : ObjectId(db)})
+
+    col = conn[dbobj["dbname"]][collection]
+    rec = col.find_one({ "_id" : ObjectId(id) })
+    if rec == None:
         data = {"error" : 1, "message" : "Unable to locate record"}
         return jsonify(data)
 
+    for akey in fields:
+        if akey in rec:
+            rec[akey] = fields[akey]
+
     # Make sure the obtained record has the field we want to modify and validate
-    print "yay"
-    data = fields
+    del rec["_id"]
+    data = {'success': 1, 'id' : id, 'fields' : fields}
     return jsonify(data)
 

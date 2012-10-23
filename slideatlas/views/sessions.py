@@ -105,13 +105,15 @@ def sessions():
                 attachments.append({'name': fileobj.name})
             del asession["attachments"]
 
-        del asession["images"]
+        if asession.has_key("images"):
+            del asession["images"]
 
         data = {
                  'success': 1,
                  'session' : asession,
                  'images' : images,
                  'attachments' :attachments,
+                 'db' : sessdb,
                  'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE)
                  }
 

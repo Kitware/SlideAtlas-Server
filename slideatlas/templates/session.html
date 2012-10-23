@@ -33,9 +33,9 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr>
-                <td><a href="glview?db={{animage.db}}&img={{animage.img}}" class="lead">{{ animage.label}}</a> </td>
+                <td><a href="glview?db={{animage.db}}&img={{animage.img}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
                 <td align="right">
-                    <a href="{{animage.label}}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                    <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                 </td>
                 {% if animage.label %}
                   <td> <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></td>
@@ -61,11 +61,23 @@
         $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');
-            var image = imagelist[id]
+            // Locate the image 
+            var image = {}
+            
+            for (var i=0; i < imagelist.length; i++) {
+              if(id == imagelist[i]["img"])
+                {
+                image = imagelist[i]
+                }
+            };  
 
             e.preventDefault();
             bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result)
                 {
+                if (result == null) 
+                    {
+                    return;
+                    }
                 // Launch AJAX request.
                 $.ajax(
                     {
@@ -81,6 +93,7 @@
                         "_id" : id,
                         "fields" :  JSON.stringify( { "label" : result}),
                         "collection" : "images",
+                        "db" : "{{data.db}}"
                         },
 
                     // The type of data that is getting returned.
@@ -99,12 +112,32 @@
                         // // Refresh the label
                         // },
 
-                    success: function( strData )
+                    success: function(data)
                         {
-                        alert( "AJAX - success()" );
+                        //  alert( "AJAX - success()" );
                         // Load the content in to the page.
-                        alert( JSON.stringify(strData));
-                        // Refresh the label
+                        if( "error" in data)
+                            {
+                            alert(JSON.stringify(data));
+                            }
+                        if('success' in data)
+                            {
+                            // alert("sucess"+ JSON.stringify(data));
+                            // Update the label in DOM
+                            // find anchor tags with specified image id which are not buttons
+                            $("a:not(.btn)[imageid=" + data["id"] + "]").html(data["fields"]["label"])
+
+                            // Update the information in the image list 
+                            var image = {}
+                            
+                            for (var i=0; i < imagelist.length; i++) 
+                                {
+                                if(data["id"] == imagelist[i]["img"])
+                                    {
+                                    imagelist[i]["label"] = data["fields"]["label"]
+                                    }
+                                }  
+                            }
                         }
                     });
                 },
