@@ -38,7 +38,7 @@ def modify():
 
     for akey in fields:
         if akey in rec:
-            col.update({"_id" : rec["_id"]}, { akey : fields[akey] })
+            col.update({"_id" : rec["_id"]}, { "$set" : { akey : fields[akey] } })
             updated = True
 
     # Make sure the obtained record has the field we want to modify and validate
