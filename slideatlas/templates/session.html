@@ -33,12 +33,12 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr>
-                <td><a href="sessions" class="lead">{{ data.images[animage].label}}</a> </td>
+                <td><a href="sessions" class="lead">{{ animage.label}}</a> </td>
                 <td align="right">
-                    <a href="{{animage}}" type="button" class="btn imageitem" imageid="{{animage}}"}> edit </button>
+                    <a href="{{animage.label}}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                 </td>
-                {% if data.images[animage].label %}
-                  <td> <img src="{{url_for('tile.tile')}}/{{animage}}/t.jpg" width=100px></td>
+                {% if animage.label %}
+                  <td> <img src="{{url_for('tile.tile')}}&db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></td>
                 {% else %}
                 {% endif %}
             </tr>

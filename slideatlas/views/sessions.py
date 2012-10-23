@@ -27,10 +27,7 @@ def sessions():
     if 'user' in session:
         name = session['user']['label']
         id = session['user']['id']
-
-
         userobj = admindb["users"].User.fetch_one({"_id":  ObjectId(id)})
-
 #        #db.sessions.find({}, {) // skip 20, limit 10
 #        coll = db["sessions"]
 #        asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
@@ -45,20 +42,42 @@ def sessions():
     # This code gets executed only if the user information is available
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
+    sessdb = request.args.get('sessdb', None)
     ajax = request.args.get('ajax', None)
     next = int(request.args.get('next', 0))
 
-    if sessid:
-        # Find and return a single session
+    if sessid and sessdb:
+        # Find and return image list from single session
         # Make sure user has access to that session
+        access = False
+        dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
 
-        #db.sessions.find({}, {) // skip 20, limit 10
-        db = conn["bev1"]
+        #TODO: make sure the connection to host is available
+        db = conn[dbobj["dbname"]]
+
+        # From rules pertaining to current user 
+        for arule in userobj["rules"]:
+            ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+            if str(ruleobj["db"]) == sessdb:
+                    if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
+                        access = True
+                    elif 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
+                        access = True
+                    elif len(ruleobj["can_see"]) > 0:
+                        for asession in ruleobj["can_see"]:
+                            if str(asession) == sessid:
+                                access = True
+
+        # Confirm that the user has access
+        if access == False :
+            flash("Unauthorized access", "error")
+            return redirect("/home")
+
         coll = db["sessions"]
         asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
 
         # iterate through the session objects
-        images = {}
+        images = []
 
         if asession.has_key("views"):
             for aview in asession['views']:
@@ -67,11 +86,16 @@ def sessions():
                 if imgobj.has_key("thumb"):
                     del imgobj['thumb']
 
-                images[str(viewobj["img"])] = imgobj
-                # Delete thumbnail if present
+                animage = {}
+                animage['db'] = str(dbobj["_id"])
+                animage["img"] = str(viewobj["img"])
+                animage["label"] = imgobj["label"]
 
-        for animageid in images.keys():
-            print images[animageid]['label']
+
+                images.append(animage)
+
+#        for animageid in images.keys():
+#            print images[animageid]['label']
 
         attachments = []
         if asession.has_key("attachments"):
@@ -137,7 +161,7 @@ def sessions():
             if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
                 # Update the administrative 
                 for asession in sessions:
-                    flash(asession["label"] , "success")
+                    #flash("Admin session: " + asession["label"] , "success")
                     asession["canadmin"] = True
 
             rule["sessions"] = sessions
