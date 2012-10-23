@@ -32,8 +32,8 @@ var GL;
 function initGL(canvas) {
     try {
         GL = canvas.getContext("experimental-webgl");
-        GL.viewportWidth = canvas.width;
-        GL.viewportHeight = canvas.height;
+        GL.viewportWidth = canvas.clientWidth;
+        GL.viewportHeight = canvas.clientHeight;
     } catch (e) {
     }
     if (!GL) {

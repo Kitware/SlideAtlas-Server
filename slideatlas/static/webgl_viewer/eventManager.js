@@ -68,7 +68,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     yOffset -= body[0].scrollTop;
   
     this.MouseX = event.clientX-xOffset;
-    this.MouseY = this.Canvas.height - (event.clientY-yOffset);
+    this.MouseY = this.Canvas.clientHeight - (event.clientY-yOffset);
   }
 }
 
