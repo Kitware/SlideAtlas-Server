@@ -34,16 +34,17 @@ def login():
 
 @mod.route('/login.passwd', methods=['POST'])
 def login_passwd():
-    try:
-        user = digitalpath.PasswordUser.objects.get(
-            name=request.form['username']
-            )
-    except digitalpath.PasswordUser.DoesNotExist:
-        print 'nonexistant username'
-        return redirect('/index')
-    if user.passwd != request.form['passwd']:
-        print 'wrong password'
-        return redirect('/index')
+    # Try to find the user 
+    conn.register([model.User])
+    admindb = conn["slideatlasv2"]
+
+    user = admindb["users"].User.find_one({"name" : request.form['username']})
+    if user == None:
+        flash('User not found ' + request.form['username'], "error")
+        return redirect('/home')
+    if user["passwd"] != request.form['passwd']:
+        flash('Authentication', "error")
+        return redirect('/home')
     else:
         return do_user_login(user)
 
