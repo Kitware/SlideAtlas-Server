@@ -32,7 +32,7 @@
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
-            <tr>
+            <tr imageid="{{animage.img}}">
                 <td><a href="glview?db={{animage.db}}&img={{animage.img}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
                 <td align="right">
                     <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
@@ -126,6 +126,7 @@
                             // Update the label in DOM
                             // find anchor tags with specified image id which are not buttons
                             $("a:not(.btn)[imageid=" + data["id"] + "]").html(data["fields"]["label"])
+                            $("tr[imageid=" + data["id"] + "]").addClass("warning")
 
                             // Update the information in the image list 
                             var image = {}
