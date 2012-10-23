@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request
 from bson import ObjectId
 from slideatlas.connections import slconn as conn
+from slideatlas import model
 
 mod = Blueprint('webgl-viewer', __name__)
 
@@ -12,13 +13,22 @@ def glview():
     """
 
     # See if the user is requesting any session id
-    imgid = request.args.get('imgid', None)
+    imgid = request.args.get('img', None)
+    db = request.args.get('db', None)
+
     if not imgid:
         imgid = '4f2808554834a30ccc000001'
 
+    if not db:
+        db = '5074589002e31023d4292d83'
 
+    conn.register([model.Database])
+    admindb = conn["slideatlasv2"]
+    dbobj = admindb["databases"].find_one({"_id" : ObjectId(db)})
+    print dbobj
+    imgdb = conn[dbobj['dbname']]
 
-    colImage = conn["bev1"]["images"]
+    colImage = imgdb["images"]
     docImage = colImage.find_one({'_id':ObjectId(imgid)})
 
     img = {}
@@ -26,4 +36,4 @@ def glview():
     img["origin"] = str(docImage["origin"])
     img["spacing"] = str(docImage["spacing"])
 
-    return render_template('webgl-viewer/viewer.html', img=img)
+    return render_template('webgl-viewer/viewer.html', img=img, db=db)
