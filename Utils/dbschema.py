@@ -73,6 +73,45 @@ def grant_KAWAI1(dbobj):
     print "2 User found: ", userdoc
     userdoc.save()
 
+def grant_KAWAI1torisa(dbobj):
+    # Find a database 
+    dbdoc = dbobj["databases"].Database.fetch_one({'dbname':"kawai1"})
+    print "Database found: ", dbdoc["_id"]
+
+    # Find the a session
+    conn = dbobj.connection
+    dbkawai = conn["kawai1"]
+    sessiondoc = dbkawai["sessions"].Session.find_one({'name':"oct2012"})
+    print "Session found: ", sessiondoc["_id"]
+
+#    # Following commented block adds the rule
+#    # Create a rule
+#    ruledoc = dbobj.rules.Rule()
+#    # Gives admin access and all sessions view access
+#    ruledoc["label"] = 'Risa Kawai'
+#    ruledoc["db"] = ObjectId('507f34a902e31010bcdb1367')
+#    ruledoc['can_see'] = [ ObjectId('507f3c295877180e04e98f0d'), ]
+#    ruledoc['can_see_all'] = True
+#    ruledoc['db_admin'] = True
+#
+#    ruledoc.validate()
+#    ruledoc.save()
+#    print "Rule Added: ", ruledoc["_id"]
+# ObjectId('5085afee02e3100e64ab9a8c')
+
+    ruledoc = dbobj["rules"].Rule.fetch_one({'label':"Risa Kawai"})
+    print "Rule found: ", ruledoc["_id"]
+
+    # Find a user
+    userdoc = dbobj["users"].User.fetch_one({'name':"risa.kawai@gmail.com"})
+
+    # Append the rule
+    userdoc["rules"].append(ObjectId('5085afee02e3100e64ab9a8c'))
+    userdoc.validate()
+    print "1 User found: ", userdoc
+    userdoc.save()
+
+
 # Authenticate 
 conn = mongokit.Connection(HOST)
 admindb = conn["admin"]
@@ -93,5 +132,6 @@ db = conn[DBNAME]
 # Grant kawai1 access to dhanannjay.deo@kitware.com 
 # and stephen.turney@gmail.com
 #grant_KAWAI1(db)
+grant_KAWAI1torisa(db)
 
 print "Done"
