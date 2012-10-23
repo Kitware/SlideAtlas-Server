@@ -115,11 +115,12 @@ def sessions():
             sessions = []
 
             if 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
-                flash("All" + ruleobj["label"], "success")
+                #flash("All" + ruleobj["label"], "success")
                 # Gets access to see / admin all sessions in this DB
                 for sessionobj in db["sessions"].Session.find():
                     thissession = {'sessid' : str(sessionobj["_id"]),
-                                            'label' : sessionobj["label"]
+                                            'label' : sessionobj["label"],
+                                            'sessdb': str(dbobj["_id"])
                                             }
                     sessions.append(thissession)
             elif len(ruleobj["can_see"]) > 0:
@@ -127,7 +128,8 @@ def sessions():
                 for asession in ruleobj["can_see"]:
                     sessionobj = db["sessions"].Session.find_one({"_id" : asession})
                     thissession = {'sessid' : str(sessionobj["_id"]),
-                                            'label' : sessionobj["label"]
+                                            'label' : sessionobj["label"],
+                                            'sessdb': str(dbobj["_id"])
                                             }
                     sessions.append(thissession)
             rule["sessions"] = sessions
