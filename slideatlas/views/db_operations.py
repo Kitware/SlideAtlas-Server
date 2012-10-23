@@ -34,12 +34,14 @@ def modify():
         data = {"error" : 1, "message" : "Unable to locate record"}
         return jsonify(data)
 
+    updated = False
+
     for akey in fields:
         if akey in rec:
-            rec[akey] = fields[akey]
+            col.update({"_id" : rec["_id"]}, { akey : fields[akey] })
+            updated = True
 
     # Make sure the obtained record has the field we want to modify and validate
-    del rec["_id"]
-    data = {'success': 1, 'id' : id, 'fields' : fields}
+        data = {'success': 1, 'id' : id, 'fields' : fields}
     return jsonify(data)
 
