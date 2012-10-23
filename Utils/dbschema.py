@@ -12,6 +12,11 @@ HOST = "slide-atlas.org"
 #HOST = "ayodhya"
 DBNAME = 'slideatlasv2'
 
+def grant_Malignant_Melanoma(dbobj):
+    ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})
+    print "Rule found: ", ruledoc["_id"]
+    dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : ObjectId("4ec4504824c1bf4b93009bdd")}})
+    print "Access should be granted"
 
 def insert_BIDMC_KAWAI(dbobj):
     dbdoc = dbobj.databases.Database()
@@ -132,6 +137,10 @@ db = conn[DBNAME]
 # Grant kawai1 access to dhanannjay.deo@kitware.com 
 # and stephen.turney@gmail.com
 #grant_KAWAI1(db)
-grant_KAWAI1torisa(db)
+# grant_KAWAI1torisa(db)
 
+grant_Malignant_Melanoma(db)
+
+
+#4ec4504824c1bf4b93009bdd
 print "Done"
