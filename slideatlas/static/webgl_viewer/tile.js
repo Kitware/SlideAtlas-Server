@@ -12,7 +12,7 @@ LoadTileCallback.prototype.HandleLoadedTexture = function () {
     this.Tile.HandleLoadedTexture(this.Cache);
 }
 
-// If we cannot load a tile, we need to inform the cache so it can start 
+// If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
 LoadTileCallback.prototype.HandleErrorTexture = function () {
     this.Cache.LoadQueueError(this.Tile);
@@ -46,7 +46,7 @@ function Tile(x, y, z, level, name, cache) {
   this.X = x;
   this.Y = y;
   this.Level = level;
-  this.Children = []; 
+  this.Children = [];
   this.Parent = null;
   this.LoadState = 0;
   var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << level);
@@ -56,7 +56,7 @@ function Tile(x, y, z, level, name, cache) {
   this.Matrix[5] = yScale;
   this.Matrix[12] = x * xScale;
   this.Matrix[13] = y * yScale;
-  this.Matrix[14] = z * cache.RootSpacing[2] -(0.001 * this.Level);
+  this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
   this.Matrix[15] = 1.0;
   this.Name = name;
   this.Texture = null;
@@ -69,41 +69,41 @@ Tile.prototype.destructor=function()
 {
     --NUM_TILES;
     if (this.Texture) {
-	GL.deleteTexture(this.Texture);
+    GL.deleteTexture(this.Texture);
     }
     this.Texture = null;
     delete this.Matrix;
     this.Matrix = null;
     if (this.Image) {
-	delete this.Image;
-	this.Image = 0;
+    delete this.Image;
+    this.Image = 0;
     }
     for (var i = 0; i < 4; ++i) {
-	if (this.Children[i] != null) {
-	    this.Children[i].destructor();
-	    this.Children[i] = null;
-	}
+    if (this.Children[i] != null) {
+        this.Children[i].destructor();
+        this.Children[i] = null;
+    }
     }
 }
 
 
 // This starts the loading of the tile.
-// Loading is asynchronous, so the tile will not 
+// Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
   if (this.Texture != null) {
     return;
   }
 
-  var imageSrc = cache.GetSource() + this.Name + ".jpg"; 
+  var imageSrc = cache.GetSource() + this.Name + ".jpg";
 
   this.Texture = GL.createTexture();
   // Reusing the image caused problems.
   //if (this.Image == null) {
     this.Image = new Image();
     var callback = new LoadTileCallback(this, cache);
-    this.Image.onload = GetLoadTextureFunction(callback); 
-    this.Image.onerror = GetErrorTextureFunction(callback); 
+    this.Image.onload = GetLoadTextureFunction(callback);
+    this.Image.onerror = GetErrorTextureFunction(callback);
   //}
   // This starts the loading.
   this.Image.src = imageSrc;
@@ -114,14 +114,14 @@ Tile.prototype.Draw = function (program) {
     // Load state 0 is: Not loaded and not scheduled to be loaded yet.
     // Load state 1 is: not loaded but in the load queue.
     if ( this.LoadState != 3) {
-	// The tile is not available.
-	// render the lower resolution tile as a place holder.
-	if (this.Parent) {
-	    this.Parent.Draw(program);
-	}
-	// Keep rendering until all nodes are available.
-	eventuallyRender();
-	return;
+    // The tile is not available.
+    // render the lower resolution tile as a place holder.
+    if (this.Parent) {
+        this.Parent.Draw(program);
+    }
+    // Keep rendering until all nodes are available.
+    eventuallyRender();
+    return;
     }
     // Texture
     GL.activeTexture(GL.TEXTURE0);

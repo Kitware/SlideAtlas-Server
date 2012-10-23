@@ -3,14 +3,19 @@
 {% block body_content %}
 {{ super() }}
 
+  <div class="container">
+  <div class="row">
   <h1>Displaying a session list for {{ name}} !</h1>
 
-    {# data #}
 
+    {# data #}
+    {%if data.attachments|length %}
     <h2> Attachments </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.attachments %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
+            <tr>
+                <td><a href="sessions" class="lead"> {{ animage.name}} </a>
+                    </td>
                 {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
                 {% else %}
@@ -18,19 +23,92 @@
             </tr>
          {% endfor %}
     </table>
+    {%endif %}
 
     </br>
 
-    <h2> Images </h2>
+    {%if data.images|length %}
+    <h2> {{ data.images|length }} Images </h2>
     <table class="table table-bordered table-hover" >
         {% for animage in data.images %}
-            <tr> <td><a href="sessions" class="lead">{{ animage.name}}</td>
-                {% if animage.name %}
-                  <td> <img src="{{url_for('tile.tile')}}/{{animage.id}}/thumb.jpg" width=100px></td>
+            <!-- script> alert("{{data.images[animage]}}"); </script  -->
+            <tr>
+                <td><a href="glview?db={{animage.db}}&img={{animage.img}}" class="lead">{{ animage.label}}</a> </td>
+                <td align="right">
+                    <a href="{{animage.label}}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                </td>
+                {% if animage.label %}
+                  <td> <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></td>
                 {% else %}
                 {% endif %}
             </tr>
          {% endfor %}
     </table>
+    {% endif %}
+</div>
+</div>
 
+{% endblock %}
+
+
+{% block bootstrap_js_bottom %}
+    {{ super() }}
+  <script type="text/javascript" src="https://raw.github.com/makeusabrew/bootbox/v2.4.2/bootbox.min.js"></script>
+
+    <script>
+        var imagelist = {{ data.images|tojson|safe }};
+
+        $(".imageitem").click(function (e)
+            {
+            var id = $(this).attr('imageid');
+            var image = imagelist[id]
+
+            e.preventDefault();
+            bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result)
+                {
+                // Launch AJAX request.
+                $.ajax(
+                    {
+                    // The link we are accessing.
+                    url: "modify",
+
+                    // The type of request.
+                    type: "get",
+
+                    // parameters
+                    data:
+                        {
+                        "_id" : id,
+                        "fields" :  JSON.stringify( { "label" : result}),
+                        "collection" : "images",
+                        },
+
+                    // The type of data that is getting returned.
+                    dataType: "json",
+
+                    error: function()
+                        {
+                        // Flash an error message
+                        alert( "AJAX - error()" );
+                        },
+
+                        // complete: function()
+                        // {
+                        // // Show the status and
+                        // alert( "AJAX - complete()" );
+                        // // Refresh the label
+                        // },
+
+                    success: function( strData )
+                        {
+                        alert( "AJAX - success()" );
+                        // Load the content in to the page.
+                        alert( JSON.stringify(strData));
+                        // Refresh the label
+                        }
+                    });
+                },
+                image["label"]);
+            });
+    </script>
 {% endblock %}
