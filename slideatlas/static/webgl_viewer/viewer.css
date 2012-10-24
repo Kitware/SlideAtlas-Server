@@ -31,6 +31,9 @@ body {
     position : absolute;
     width : auto;
     height : auto;
+    -webkit-user-select: none; // webkit (safari, chrome) browsers
+    -moz-user-select: none; // mozilla browsers
+    -khtml-user-select: none; // webkit (konqueror) browsers
     }
 
 .fillin {
