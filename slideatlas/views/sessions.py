@@ -19,7 +19,7 @@ def sessions():
     """
     rules = []
 
-    # Compile the rules 
+    # Compile the rules
     conn.register([Image, Session, User, Rule, Database])
     admindb = conn["slideatlasv2"]
 
@@ -55,7 +55,7 @@ def sessions():
         #TODO: make sure the connection to host is available
         db = conn[dbobj["dbname"]]
 
-        # From rules pertaining to current user 
+        # From rules pertaining to current user
         for arule in userobj["rules"]:
             ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
             if str(ruleobj["db"]) == sessdb:
@@ -105,7 +105,7 @@ def sessions():
                 attachments.append({'name': fileobj.name})
             del asession["attachments"]
 
-        if asession.has_key("images"):
+        if 'images' in asession:
             del asession["images"]
 
         data = {
@@ -126,14 +126,14 @@ def sessions():
         # Compile a list of session names / ids
         sessionlist = []
 
-        # From rules pertaining to current user 
+        # From rules pertaining to current user
         for arule in userobj["rules"]:
             rule = {}
             ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
             #flash(str(ruleobj), 'success')
             rule["rule"] = ruleobj["label"]
 
-            # Find the db pertaining to this rule 
+            # Find the db pertaining to this rule
             dbobj = admindb["databases"].Database.find_one({"_id" : ruleobj["db"]})
 
             # TODO: initiate new connection if required with this database
@@ -161,7 +161,7 @@ def sessions():
 
             # if db administrator
             if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
-                # Update the administrative 
+                # Update the administrative
                 for asession in sessions:
                     #flash("Admin session: " + asession["label"] , "success")
                     asession["canadmin"] = True

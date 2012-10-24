@@ -2,13 +2,13 @@
 
 {% block head %}
 
-{{ super() }} 
+{{ super() }}
 
-<title>Connectome Viewer</title> 
+<title>Connectome Viewer</title>
 
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='webgl_viewer/viewer.css')}}" />
 
-<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"> 
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
@@ -16,10 +16,10 @@
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-1.7.2.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
 
-<!-- used some objects, matrix as an array  --> 
+<!-- used some objects, matrix as an array  -->
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/glMatrix-0.9.5.min.js') }}"></script>
 
-<!-- Perspective camera etc. May be ready to remove --> 
+<!-- Perspective camera etc. May be ready to remove -->
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/webgl-utils.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/init.js') }}"></script>
@@ -39,9 +39,9 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <!-- Has two views -->
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/viewer.js') }}"></script>
 
-<!-- Widgets 
+<!-- Widgets
 
-Different widgets haev show dialog method, 
+Different widgets haev show dialog method,
 hardcoded to the divs
 
 Widgets have serialize method which creates an object
@@ -53,10 +53,10 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/polylineWidget.js') }}"></script>
 
-<!-- Shapes starting with superclass 
+<!-- Shapes starting with superclass
 
 Viewer contains shape list
-shape has visibility and 
+shape has visibility and
 
 -->
 
@@ -75,7 +75,7 @@ shape has visibility and
 
 <script type="text/javascript">
 //  var QUESTION = <?php echo json_encode($mongo_question);?>;
-  // These globals are used in the viewer javascript.  I need to get rid of them.	
+  // These globals are used in the viewer javascript.  I need to get rid of them.
   var origin = {{img.origin}};
   var spacing = {{img.spacing}};
 
@@ -97,19 +97,19 @@ shape has visibility and
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
 </script>
-<script id="shader-tile-fs" type="x-shader/x-fragment"> 
+<script id="shader-tile-fs" type="x-shader/x-fragment">
   #ifdef GL_ES
   precision highp float;
   #endif
 
   uniform sampler2D uSampler;
   varying vec2 vTextureCoord;
- 
+
   void main(void) {
     gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
   }
-</script>  
-<script id="shader-tile-vs" type="x-shader/x-vertex"> 
+</script>
+<script id="shader-tile-vs" type="x-shader/x-vertex">
   attribute vec3 aVertexPosition;
   attribute vec2 aTextureCoord;
 
@@ -122,7 +122,7 @@ shape has visibility and
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
     vTextureCoord = aTextureCoord;
   }
-</script> 
+</script>
 <script id="shader-text-fs" type="x-shader/x-fragment">
   precision mediump float;
 
@@ -149,8 +149,8 @@ shape has visibility and
     vTextureCoord = aTextureCoord;
   }
 </script>
-<script type="text/javascript"> 
- 
+<script type="text/javascript">
+
 
   var CANVAS;
   var EVENT_MANAGER;
@@ -158,17 +158,17 @@ shape has visibility and
 
   function initViews() {
     var source1 = new Cache("/tile?img={{img.collection}}&db={{db}}&name=");
-    VIEWER1 = new Viewer([0,0, CANVAS.width,CANVAS.height], source1);    
-    
+    VIEWER1 = new Viewer([0,0, CANVAS.clientWidth,CANVAS.clientHeight], source1);
+
     // This may not be used anymore.
     VIEWER1.AnnotationCallback = function(widget) {
       alert("Annotation Callback is being used.");
       var json = widget.Serialize();
-      
+
       // $.post("saveannotation.php?id="+QUESTION.qid.$id, {widget:json}, function(){
         // saveConstants();
       // });
-    
+
     }
     var cam = null;
     if(cam){
@@ -181,22 +181,22 @@ shape has visibility and
       VIEWER1.MainView.Camera.ComputeMatrix();
       VIEWER1.OverView.Camera.ComputeMatrix();
     }
-    
+
     EVENT_MANAGER.AddViewer(VIEWER1);
-    
+
     // TODO: Add annotations later
     // if(QUESTION.annotations != undefined){
       // for(var i=0; i < QUESTION.annotations.length; i++) {
         // VIEWER1.LoadWidget(QUESTION.annotations[i]);
       // }
-    // }  
+    // }
   }
 
   function draw() {
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     // This just changes the camera based on the current time.
     VIEWER1.Animate();
-    VIEWER1.Draw();	
+    VIEWER1.Draw();
   }
 
 
@@ -212,7 +212,7 @@ shape has visibility and
       e.stopPropagation();
     return false;
   }
- 
+
   function webGLStart() {
     CANVAS = document.getElementById("viewer-canvas");
     initGL(CANVAS);
@@ -233,7 +233,7 @@ shape has visibility and
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
-    
+
     eventuallyRender();
   }
 
@@ -254,7 +254,7 @@ shape has visibility and
     // When the text button is pressed, create the widget.
     VIEWER1.ActiveWidget = new PolylineWidget(VIEWER1, true);
   }
-  
+
   function NewText() {
     // Just open the dialog, and let it take over.
     // The text is created when the apply button is pressed.
@@ -270,7 +270,7 @@ shape has visibility and
     // The text is created when the apply button is pressed.
     $("#text-properties-dialog").dialog("open");
   }
-      
+
   function TextPropertyDialogApply() {
     var string = document.getElementById("textwidgetcontent").value;
     if (string == "") {
@@ -337,7 +337,7 @@ shape has visibility and
       widget.SetActive(false);
     }
   }
-  
+
   function WidgetPropertyDialogDelete() {
     var widget = VIEWER1.ActiveWidget;
     if (widget != null) {
@@ -348,63 +348,63 @@ shape has visibility and
       eventuallyRender();
     }
   }
-  
+
   // function savequestion() {
       // saveConstants();
       // //window.location = "lessonmaker.php";
   // }
-  
+
   function zoomIn() {
     VIEWER1.AnimateZoom(0.5);
   }
-  
+
   function zoomOut() {
     VIEWER1.AnimateZoom(2.0);
   }
-  
+
   function rotateRight() {
     VIEWER1.AnimateRoll(-12.0); // degrees
   }
-  
+
   function rotateLeft() {
     VIEWER1.AnimateRoll(12.0); // degrees
   }
-  
+
     //********************************************************
-    
+
   function saveConstants() {
     var questionchoices = [];
     var questiontext = document.getElementById("qtext").value;
     var questiontitle = document.getElementById("title").value;
-    
+
     var numAnswers = $('.answer').length;
 
     for(var i=0; i < numAnswers; i++){
       questionchoices[i] = $('.answer')[i].value;
     }
-    
+
     var qid = QUESTION.qid.$id;
     var cam = VIEWER1.MainView.Camera;
     var camValues = {'roll':cam.Roll, 'fp':cam.FocalPoint, 'height':cam.Height};
-    
+
     var correct = findChecked();
-    
+
     correct = correct + '';
-    
+
     var annots = [];
-    
+
     for(var i=0; i < VIEWER1.WidgetList.length; i++){
       annots.push(VIEWER1.WidgetList[i].Serialize());
     }
     if(annots.length == 0){
         annots = 0;
     }
-    
+
     $.post("setquestion.php", {qid: qid, qtitle:questiontitle, qtext: questiontext, choices: questionchoices, cam: camValues, corr: correct, annotations:annots}, function(cs){
         //alert(cs);
     });
   }
-  
+
   function findChecked(){
     var span = document.getElementById("choicelist");
     var inputs = span.getElementsByTagName("input");
@@ -419,10 +419,10 @@ shape has visibility and
         return i;
       }
     }
-    
+
     return 0;
   }
-    
+
     $(document).ready(function() {
         // if (QUESTION.choices) {
             // document.getElementById("qtext").innerHTML = QUESTION.qtext;
@@ -432,7 +432,7 @@ shape has visibility and
                 // if(QUESTION.correct == (i+'')){
                     // liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
                 // }
-                // $('#choicelist').append(liststring);    
+                // $('#choicelist').append(liststring);
             // }
         // }
         // else {
@@ -461,9 +461,9 @@ shape has visibility and
                   $(this).dialog("close");
               }
               $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-          }   
+          }
       });
-      
+
       $("#arrow-properties-dialog").dialog({
           autoOpen:false,
           height:280,
@@ -485,7 +485,7 @@ shape has visibility and
                   $(this).dialog("close");
               }
               //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-          }   
+          }
       });
 
     $("#circle-properties-dialog").dialog({
@@ -509,7 +509,7 @@ shape has visibility and
           $(this).dialog("close");
         }
         //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-      }   
+      }
     });
 
     $("#polyline-properties-dialog").dialog({
@@ -532,28 +532,28 @@ shape has visibility and
           WidgetPropertyDialogCancel();
           $(this).dialog("close");
         }
-      }   
+      }
     });
 
   });
- 
-</script> 
- 
+
+</script>
+
 {% endblock %}
 
 {% block bodytags %}
-{{ super() }} 
-onload="webGLStart();"
-
+{{ super() }}
 {% endblock %}
 
 
 {% block body_content %}
-{{ super() }} 
+{{ super() }}
 
-  <div class="viewer container-fluid ui-widget" style="height:900px;" >
-    <div class="viewer ui-widget-content" >
-      <canvas  id="viewer-canvas" style="border: none" width="900" height="700"></canvas> 
+  <div class="container ui-widget ui-widget-content fill" >
+  <canvas  id="viewer-canvas" class="fillin nodoubleclick"> </canvas>
+ </div>
+
+ <div class="ui-widget" style="visibility:hidden">
       <table border="1" id="annotbuttons">
         <tr>
           <td>
@@ -588,46 +588,67 @@ onload="webGLStart();"
           </td>
         </tr>
       </table>
+
+      <div id="text-properties-dialog" title="Text Annotation Editor" >
+        <form>
+          <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+          <input type="checkbox" id="TextMarker" checked /> Marker </input>
+        </form>
+      </div>
+
+      <div id="circle-properties-dialog" title="Circle Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and center and radius entries (thickness too) -->
+            Color(#rrggbb):<input id="circlecolor" ></input></br>
+            Line Width:<input id="circlelinewidth" ></input></br>
+            <p id="circlearea"></p>
+          </fieldset>
+        </form>
+      </div>
+
+      <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
+            Color(#rrggbb):<input id="polylinecolor" ></input></br>
+            Line Width:<input id="polylinewidth" ></input>
+          </fieldset>
+        </form>
+      </div>
+
+      <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
+            Color(#rrggbb):<input id="arrowcolor" ></input>
+            <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
+            <p id="ArrowLength"></p>
+          </fieldset>
+        </form>
+      </div>
+</div>
+
+
+  <div class="navbar navbar-inverse navbar-fixed-bottom">
+    <div class="navbar-inner ">
+      <div class="container">
+        <div class="nav-collapse collapse">
+          <ul class="nav">
+            <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-left </a></li>
+            <li> <a class="span2 nodoubleclick" onclick="rotateLeft();" ">Rotate-left </a></li>
+          </ul>
+        </div>
+      </div>
     </div>
-    
-  <div id="text-properties-dialog" title="Text Annotation Editor" >
-    <form>
-      <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
-      <input type="checkbox" id="TextMarker" checked /> Marker </input>
-    </form>
-  </div>
-  
-  <div id="circle-properties-dialog" title="Circle Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-        Color(#rrggbb):<input id="circlecolor" ></input></br>
-        Line Width:<input id="circlelinewidth" ></input></br>
-        <p id="circlearea"></p>
-      </fieldset>
-    </form>
   </div>
 
-  <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-        Color(#rrggbb):<input id="polylinecolor" ></input></br>
-        Line Width:<input id="polylinewidth" ></input>
-      </fieldset>
-    </form>
-  </div>
-
-  <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-        Color(#rrggbb):<input id="arrowcolor" ></input>
-        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
-        <p id="ArrowLength"></p>
-      </fieldset>
-    </form>      
-  </div>
 {% endblock %}
 {%- block bootstrap_js_bottom %}
+{{ super() }}
+
+<script>
+    webGLStart();
+
+</script>
 {%- endblock %}

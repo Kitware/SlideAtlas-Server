@@ -21,7 +21,7 @@ var tileCellBuffer;
 // I can not test multiple canvases until I modularize the canvas
 // and get rid of these globals.
 var GL;
- 
+
 
 
 
@@ -31,9 +31,18 @@ var GL;
 
 function initGL(canvas) {
     try {
-        GL = canvas.getContext("experimental-webgl");
-        GL.viewportWidth = canvas.width;
-        GL.viewportHeight = canvas.height;
+        canvas.width =  canvas.clientWidth;
+        canvas.height= canvas.clientHeight;
+
+        canvas.style.width =  canvas.clientWidth + "px";
+        canvas.style.height= canvas.clientHeight+ "px";
+        GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        GL.viewportWidth = canvas.clientWidth;
+        GL.viewportHeight = canvas.clientHeight;
+
+        canvas.width =  canvas.clientWidth;
+        canvas.height= canvas.clientHeight;
+
     } catch (e) {
     }
     if (!GL) {
@@ -51,7 +60,7 @@ function getShader(gl, id) {
     if (!shaderScript) {
         return null;
     }
-    
+
     var str = "";
     var k = shaderScript.firstChild;
     while (k) {
@@ -60,7 +69,7 @@ function getShader(gl, id) {
         }
         k = k.nextSibling;
     }
-    
+
     var shader;
     if (shaderScript.type == "x-shader/x-fragment") {
         shader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -69,39 +78,39 @@ function getShader(gl, id) {
     } else {
         return null;
     }
-    
+
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
-    
+
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         alert(gl.getShaderInfoLog(shader));
         return null;
     }
-    
+
     return shader;
 }
 
 
- 
+
 function initShaderPrograms() {
     polyProgram = createProgram("shader-poly-fs", "shader-poly-vs");
     polyProgram.colorUniform = GL.getUniformLocation(polyProgram, "uColor");
 
     imageProgram = createProgram("shader-tile-fs", "shader-tile-vs");
     // Texture coordinate attribute and texture image uniform
-    imageProgram.textureCoordAttribute 
+    imageProgram.textureCoordAttribute
         = GL.getAttribLocation(imageProgram,"aTextureCoord");
-    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute); 
-    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");    
+    GL.enableVertexAttribArray(imageProgram.textureCoordAttribute);
+    imageProgram.samplerUniform = GL.getUniformLocation(imageProgram, "uSampler");
 
 
 
     textProgram = createProgram("shader-text-fs", "shader-text-vs");
-    textProgram.textureCoordAttribute 
-    	= GL.getAttribLocation(textProgram, "aTextureCoord");
-    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);    
-    textProgram.samplerUniform 
-    	= GL.getUniformLocation(textProgram, "uSampler");
+    textProgram.textureCoordAttribute
+        = GL.getAttribLocation(textProgram, "aTextureCoord");
+    GL.enableVertexAttribArray(textProgram.textureCoordAttribute);
+    textProgram.samplerUniform
+        = GL.getUniformLocation(textProgram, "uSampler");
     textProgram.colorUniform = GL.getUniformLocation(textProgram, "uColor");
 }
 
@@ -109,27 +118,27 @@ function initShaderPrograms() {
 function createProgram(fragmentShaderID, vertexShaderID) {
     var fragmentShader = getShader(GL, fragmentShaderID);
     var vertexShader = getShader(GL, vertexShaderID);
-    
+
     var program = GL.createProgram();
     GL.attachShader(program, vertexShader);
     GL.attachShader(program, fragmentShader);
     GL.linkProgram(program);
-    
+
     if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
         alert("Could not initialise shaders");
     }
-    
+
     program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
     GL.enableVertexAttribArray(program.vertexPositionAttribute);
-    
+
     // Camera matrix
     program.pMatrixUniform = GL.getUniformLocation(program, "uPMatrix");
     // Model matrix
     program.mvMatrixUniform = GL.getUniformLocation(program, "uMVMatrix");
-    
+
     return program;
 }
- 
+
 function initOutlineBuffers() {
     // Outline Square
     vertices = [
@@ -168,54 +177,54 @@ function initOutlineBuffers() {
 function initImageTileBuffers() {
     var vertexPositionData = [];
     var textureCoordData = [];
-    
+
     // Make 4 points
     textureCoordData.push(0.0);
     textureCoordData.push(0.0);
     vertexPositionData.push(0.0);
     vertexPositionData.push(0.0);
     vertexPositionData.push(0.0);
-    
+
     textureCoordData.push(1.0);
     textureCoordData.push(0.0);
     vertexPositionData.push(1.0);
     vertexPositionData.push(0.0);
     vertexPositionData.push(0.0);
-    
+
     textureCoordData.push(0.0);
     textureCoordData.push(1.0);
     vertexPositionData.push(0.0);
     vertexPositionData.push(1.0);
     vertexPositionData.push(0.0);
-    
+
     textureCoordData.push(1.0);
     textureCoordData.push(1.0);
     vertexPositionData.push(1.0);
     vertexPositionData.push(1.0);
     vertexPositionData.push(0.0);
-    
+
     // Now create the cell.
     var cellData = [];
     cellData.push(0);
     cellData.push(1);
     cellData.push(2);
-    
+
     cellData.push(2);
     cellData.push(1);
     cellData.push(3);
-    
+
     tileVertexTextureCoordBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
     GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
     tileVertexTextureCoordBuffer.itemSize = 2;
     tileVertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
-    
+
     tileVertexPositionBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
     GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
     tileVertexPositionBuffer.itemSize = 3;
     tileVertexPositionBuffer.numItems = vertexPositionData.length / 3;
-    
+
     tileCellBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
     GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
@@ -230,8 +239,8 @@ function initImageTileBuffers() {
 var RENDER_PENDING = false;
 function eventuallyRender() {
     if (! RENDER_PENDING) {
-	RENDER_PENDING = true;
-	requestAnimFrame(tick);
+    RENDER_PENDING = true;
+    requestAnimFrame(tick);
     }
 }
 
@@ -239,6 +248,6 @@ function tick() {
     RENDER_PENDING = false;
     draw();
 }
- 
+
 
 
