@@ -1,6 +1,6 @@
 
 from flask import Blueprint, current_app, redirect, render_template, request, session, flash, url_for
-from flaskext.openid import OpenID
+from flask_openid import OpenID
 from flask_oauth import OAuth
 
 from .. import digitalpath

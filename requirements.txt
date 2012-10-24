@@ -2,6 +2,7 @@ pymongo
 flask
 flask-bootstrap
 flask-mongoengine
+mongokit
 
 #For documentation
 sphinx
