@@ -23,20 +23,39 @@ body {
     -webkit-user-select : none;
 }
 */
-.fill { 
-/*    min-height: 100%;*/
+.fill {
+    top : 40px;
+    bottom : 40px;
+    left : 0;
+    right : 0;
+    position : absolute;
+    width : auto;
+    height : auto;
+    }
+
+.fillin {
     height: 100%;
-/*    min-width: 100%;*/
     width: 100%;
 }
+
+
+html, body, canvas {
+        height: 100%;
+        width: 100%;
+}
+
+
+.navbar {
+    margin-bottom: 0;
+}
 ​
-.form {
+/*.form {
     width:300px;
     height:100%;
     overflow-y:scroll;
     float:right;
     background-color:#0198e1;
-}
+}*/
 
 td {
     background-color:white;
