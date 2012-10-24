@@ -3,7 +3,7 @@
 
 // I need to implement 3d widgets.
 // When we create a drawing item (arrow) the arrow will follow the mouse until
-// the first mouse press which will set the tip position.  
+// the first mouse press which will set the tip position.
 // If the mouse moves while the button is pressed, the tail of the arrow
 // will follow the mouse position.  Button release will set the tail.
 
@@ -66,7 +66,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     var body = document.getElementsByTagName("body");
     xOffset -= body[0].scrollLeft;
     yOffset -= body[0].scrollTop;
-  
+
     this.MouseX = event.clientX-xOffset;
     this.MouseY = this.Canvas.clientHeight - (event.clientY-yOffset);
   }
@@ -74,11 +74,11 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
 
 EventManager.prototype.HandleMouseDown = function(event) {
   this.LastMouseX = this.MouseX;
-  this.LastMouseY = this.MouseY;  
-  
+  this.LastMouseY = this.MouseY;
+
   this.SetMousePositionFromEvent(event);
   this.MouseDown = true;
-  
+
   this.ChooseViewer();
   if (this.CurrentViewer) {
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
@@ -98,12 +98,12 @@ EventManager.prototype.HandleMouseUp = function(event) {
 
 // Forward even to view.
 EventManager.prototype.HandleMouseMove = function(event) {
-  this.LastMouseX = this.MouseX;  
+  this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
   this.SetMousePositionFromEvent(event);
   this.MouseDeltaX = this.MouseX - this.LastMouseX;
   this.MouseDeltaY = this.MouseY - this.LastMouseY;
-  
+
   this.ChooseViewer();
   if (this.CurrentViewer) {
     this.CurrentViewer.HandleMouseMove(this);
@@ -112,7 +112,7 @@ EventManager.prototype.HandleMouseMove = function(event) {
 
 EventManager.prototype.HandleMouseWheel = function(event) {
   this.SetMousePositionFromEvent(event);
-  
+  event.preventDefault();
   this.ChooseViewer();
   if (this.CurrentViewer) {
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
@@ -122,7 +122,7 @@ EventManager.prototype.HandleMouseWheel = function(event) {
 
 //------------- Keys ---------------
 
-EventManager.prototype.HandleKeyDown = function(event) { 
+EventManager.prototype.HandleKeyDown = function(event) {
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = true;
