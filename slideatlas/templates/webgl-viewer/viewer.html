@@ -550,7 +550,7 @@ shape has visibility and
 {{ super() }}
 
   <div class="container ui-widget ui-widget-content fill" >
-  <canvas  id="viewer-canvas" class="fillin"> </canvas>
+  <canvas  id="viewer-canvas" class="fillin nodoubleclick"> </canvas>
  </div>
 
  <div class="ui-widget" style="visibility:hidden">
@@ -635,8 +635,8 @@ shape has visibility and
       <div class="container">
         <div class="nav-collapse collapse">
           <ul class="nav">
-            <li> <a class="span2 offset4"> Rotate-left </a></li>
-            <li> <a class="span2 ">Rotate-left</a></li>
+            <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-left </a></li>
+            <li> <a class="span2 nodoubleclick" onclick="rotateLeft();" ">Rotate-left </a></li>
           </ul>
         </div>
       </div>

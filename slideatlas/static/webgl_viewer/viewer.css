@@ -31,9 +31,6 @@ body {
     position : absolute;
     width : auto;
     height : auto;
-    -webkit-user-select: none; // webkit (safari, chrome) browsers
-    -moz-user-select: none; // mozilla browsers
-    -khtml-user-select: none; // webkit (konqueror) browsers
     }
 
 .fillin {
@@ -41,6 +38,11 @@ body {
     width: 100%;
 }
 
+.nodoubleclick {
+    -webkit-user-select: none;  /* webkit (safari, chrome) browsers */
+    -moz-user-select: none; /* mozilla browsers  */
+    -khtml-user-select: none; /* webkit (konqueror) browsers */
+}
 
 html, body, canvas {
         height: 100%;
@@ -52,7 +54,8 @@ html, body, canvas {
     margin-bottom: 0;
 }
 ​
-/*.form {
+
+/* .form {
     width:300px;
     height:100%;
     overflow-y:scroll;
