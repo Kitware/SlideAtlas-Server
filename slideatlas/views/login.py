@@ -32,7 +32,7 @@ def login():
     return render_template('login.html')
 
 
-@mod.route('/login.passwd', methods=['POST'])
+@mod.route('/login.passwd')
 def login_passwd():
     # Try to find the user 
     conn.register([model.User])
