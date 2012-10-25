@@ -1,5 +1,6 @@
 import os
 import subprocess
+import signal
 
 def kill_flask():
     try:
@@ -7,10 +8,14 @@ def kill_flask():
     except subprocess.CalledProcessError as e:
         print "No one listening at port 8080"
         assert e.returncode == 1
-        
+        return
+
     processid = lines.split()[10]
-    print processid
-    
+    try:
+        os.kill(int(processid), signal.SIGKILL)
+        print "Killed ", processid
+    except:
+        print "Found ", processid, " but could not kill"
+
 if __name__ == "__main__":
     kill_flask()
-    
