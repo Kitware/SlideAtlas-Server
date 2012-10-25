@@ -32,9 +32,9 @@ def login():
     return render_template('login.html')
 
 
-@mod.route('/login.passwd')
+@mod.route('/login.passwd',methods=['GET', 'POST'])
 def login_passwd():
-    # Try to find the user 
+    # Try to find the user
     conn.register([model.User])
     admindb = conn["slideatlasv2"]
 
@@ -68,7 +68,7 @@ def facebook_authorized(resp=None):
     session['oauth_token'] = (resp['access_token'], '')
     me = facebook.get('/me')
 
-    # Check if the user exists 
+    # Check if the user exists
     conn.register([model.User])
     dbobj = conn["slideatlasv2"]
     userdoc = dbobj["users"].User.fetch_one(
@@ -77,7 +77,7 @@ def facebook_authorized(resp=None):
                             })
 
     if userdoc == None:
-        # Not found, create one 
+        # Not found, create one
         userdoc = dbobj["users"].User()
         userdoc["'type"] = 'facebook'
         userdoc["name"] = me.data['email']
@@ -108,7 +108,7 @@ def login_google(oid_response=None):
     elif not oid_response:
         return oid.try_login(GOOGLE_IDENTITY_URL, ask_for=['email', 'fullname']) # 'nickname'
     else:
-        # Check if the user exists 
+        # Check if the user exists
         conn.register([model.User])
         dbobj = conn["slideatlasv2"]
         userdoc = dbobj["users"].User.fetch_one(
@@ -117,7 +117,7 @@ def login_google(oid_response=None):
                                 })
 
         if userdoc == None:
-            # Not found, create one 
+            # Not found, create one
             userdoc = dbobj["users"].User()
             userdoc["'type"] = 'google'
             userdoc["name"] = oid_response.email
