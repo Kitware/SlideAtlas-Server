@@ -7,7 +7,6 @@ Database Schema version s0.3 corresponds to v2.0rc2
 
 .. role:: sparsefield
 
-
 .. todo::
    Complete the color coding
 
@@ -36,6 +35,7 @@ Administrative database (always named "slideatlas")
    -  ObjectId (pointer to 'rules' document)
 
 - **'last\_login'**: DateTime
+- **'first\_login'**: DateTime
 
 'rules' collection
 ~~~~~~~~~~~~~~~~~~

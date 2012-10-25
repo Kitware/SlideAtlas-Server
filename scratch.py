@@ -8,8 +8,8 @@ from slideatlas.connections import slconn
 
 slconn.register([model.User, model.Database])
 
-recs = slconn["slideatlasv2"]["users"].find()
-#recs = slconn["slideatlasv2"]["users"].User.fetch({'type':'facebook'})
+#recs = slconn["slideatlasv2"]["users"].find()
+recs = slconn["slideatlasv2"]["users"].User.fetch({'type':'facebook'})
 #recs = slconn["slideatlasv2"]["databases"].Database.fetch()
 
 if recs != None:
@@ -20,7 +20,3 @@ if recs != None:
 #            for key in arec:
 #                print key, " " , arec[key]
 
-userdoc = slconn["slideatlasv2"]["users"].User()
-print userdoc
-userdoc.update_last_login()
-print userdoc
