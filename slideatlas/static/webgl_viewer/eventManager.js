@@ -81,6 +81,7 @@ EventManager.prototype.HandleMouseDown = function(event) {
 
   this.ChooseViewer();
   if (this.CurrentViewer) {
+	  event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
     this.CurrentViewer.HandleMouseDown(this);
   }
@@ -112,9 +113,9 @@ EventManager.prototype.HandleMouseMove = function(event) {
 
 EventManager.prototype.HandleMouseWheel = function(event) {
   this.SetMousePositionFromEvent(event);
-  event.preventDefault();
   this.ChooseViewer();
   if (this.CurrentViewer) {
+	  event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
     this.CurrentViewer.HandleMouseWheel(this);
   }
