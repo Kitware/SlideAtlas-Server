@@ -4,7 +4,6 @@ from flask_bootstrap import Bootstrap
 
 import model
 
-import digitalpath
 import sys, os
 
 sys.path.append(os.path.dirname(__file__))

@@ -3,7 +3,6 @@ from flask import Blueprint, current_app, redirect, render_template, request, se
 from flask_openid import OpenID
 from flask_oauth import OAuth
 
-from .. import digitalpath
 from slideatlas import model
 from connections import slconn as conn
 

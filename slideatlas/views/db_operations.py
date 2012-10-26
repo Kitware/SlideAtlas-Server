@@ -11,13 +11,14 @@ from slideatlas import model
 @mod.route('/modify')
 def modify():
     """
-    Locates a record based on ID and modifies a particular field to new value 
+    Locates a record based on ID and modifies a particular field to new value
     """
-    # Get the parameters 
+    # Get the parameters
     id = request.args.get('_id', None)
     collection = request.args.get('collection', None)
     fields = json.loads(request.args.get('fields', "{}"))
     db = request.args.get('db', None)
+
 
     # If not enough information return error
     if id == None or collection == None  or db == None:
