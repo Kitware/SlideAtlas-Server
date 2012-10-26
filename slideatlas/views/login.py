@@ -57,7 +57,6 @@ def login_facebook():
 @mod.route('/facebook_authorized')
 @facebook.authorized_handler
 def facebook_authorized(resp=None):
-    print resp
     if resp is None:
         flash('Facebook Access denied: reason=%s error=%s' % (
             request.args['error_reason'],
@@ -103,7 +102,7 @@ def login_google(oid_response=None):
     GOOGLE_IDENTITY_URL = 'https://www.google.com/accounts/o8/id'
 
     if oid.fetch_error():
-        print "OID Error"
+        flash("OpenID Error")
         return redirect('/home')
     elif not oid_response:
         return oid.try_login(GOOGLE_IDENTITY_URL, ask_for=['email', 'fullname']) # 'nickname'
