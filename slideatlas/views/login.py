@@ -77,7 +77,7 @@ def facebook_authorized(resp=None):
     if userdoc == None:
         # Not found, create one
         userdoc = dbobj["users"].User()
-        userdoc["'type"] = 'facebook'
+        userdoc["type"] = 'facebook'
         userdoc["name"] = me.data['email']
         userdoc["label"] = me.data['name']
         userdoc.save()
@@ -117,7 +117,7 @@ def login_google(oid_response=None):
         if userdoc == None:
             # Not found, create one
             userdoc = dbobj["users"].User()
-            userdoc["'type"] = 'google'
+            userdoc["type"] = 'google'
             userdoc["name"] = oid_response.email
             userdoc["label"] = oid_response.fullname
             userdoc.save()
