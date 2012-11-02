@@ -1,0 +1,30 @@
+{% extends '/base.html'  %}
+
+{% block body_content %}
+{{ super() }}
+<input id="fileupload" type="file" name="files[]" data-url="server/php/" multiple>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+{% endblock %}
+
+{% block bootstrap_js_bottom %}
+{{ super() }}
+<script src="{{url_for("upload.static", filename="js/vendor/jquery.ui.widget.js")}}"></script>
+<script src="{{url_for("upload.static", filename="js/jquery.iframe-transport.js")}}"></script>
+<script src="{{url_for("upload.static", filename="js/jquery.fileupload.js")}}"></script>
+
+<script>
+$(function () {
+    $('#fileupload').fileupload({
+        dataType: 'json',
+        done: function (e, data) {
+            $.each(data.result, function (index, file) {
+                $('<p/>').text(file.name).appendTo(document.body);
+            });
+        }
+    });
+});
+</script>
+
+{% endblock %}

@@ -3,3 +3,4 @@
 *.pyc
 .*
 docs/build
+docs/docs

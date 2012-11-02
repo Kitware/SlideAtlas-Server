@@ -32,6 +32,10 @@ app.register_blueprint(sessions.mod)
 from .views  import db_operations
 app.register_blueprint(db_operations.mod)
 
+import jqueryupload
+app.register_blueprint(jqueryupload.mod)
+
+
 
 @app.before_request
 def before_request():
