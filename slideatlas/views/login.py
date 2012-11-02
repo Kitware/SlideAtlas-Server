@@ -1,5 +1,5 @@
 
-from flask import Blueprint, current_app, redirect, render_template, request, session, flash, url_for
+from flask import Blueprint, redirect, render_template, request, session, flash, url_for
 from flask_openid import OpenID
 from flask_oauth import OAuth
 
