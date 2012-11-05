@@ -11,6 +11,8 @@ app = Flask(__name__)
 Bootstrap(app)
 
 app.config['BOOTSTRAP_USE_MINIFIED'] = False
+app.config['UPLOAD_FOLDER'] = "d:/docs"
+
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
@@ -34,8 +36,6 @@ app.register_blueprint(db_operations.mod)
 
 import jqueryupload
 app.register_blueprint(jqueryupload.mod)
-
-
 
 @app.before_request
 def before_request():
