@@ -40,6 +40,27 @@ def rename_and_grant_session8(dbobj):
     dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
+def rename_and_grant_session12(dbobj):
+    """
+    Getting admindb object
+    """
+    sessionid = ObjectId("4ed62213114d971078000000")
+
+    conn = dbobj.connection
+    db = conn["bev1"]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "Before Session Label: ", sessionobj["label"]
+
+    newname = "Non-Infectious Vesicobullous and Vesiculopustular Diseases"
+    db["sessions"].update({"_id" : sessionid}, {"$set" : { "label" : newname}})
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "After Session: ", sessionobj
+
+    ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})
+    print "Rule found: ", ruledoc["_id"]
+    dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+    print "Access should be granted"
+
 
 def insert_BIDMC_KAWAI(dbobj):
     dbdoc = dbobj.databases.Database()
@@ -165,6 +186,7 @@ db = conn[DBNAME]
 #grant_Malignant_Melanoma(db)
 
 #rename_and_grant_session8(db)
+rename_and_grant_session12(db)
 
 #4ec4504824c1bf4b93009bdd
 print "Done"
