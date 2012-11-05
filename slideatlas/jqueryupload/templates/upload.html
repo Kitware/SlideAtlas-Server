@@ -1,5 +1,15 @@
 {% extends '/base.html'  %}
+{% block head %}
+{{ super() }}
 
+<style> 
+.bar {
+    height: 18px;
+    background: green;
+}
+</style>
+
+{% endblock %}
 {% block body_content %}
 {{ super() }}
 
@@ -8,6 +18,10 @@
 <input id="fileupload" type="file" name="files[]" data-url="upload" multiple>
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+<div id="progress">
+    <div class="bar" style="width: 0%;"></div>
+</div>
 
 {% endblock %}
 
@@ -25,6 +39,13 @@ $(function () {
             $.each(data.result, function (index, file) {
                 $('<p/>').text(file.name).appendTo(document.body);
             });
+        },
+        progressall: function (e, data) {
+            var progress = parseInt(data.loaded / data.total * 100, 10);
+            $('#progress .bar').css(
+                'width',
+                progress + '%'
+            );
         }
     });
 });
