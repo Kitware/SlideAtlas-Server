@@ -18,6 +18,25 @@ def grant_Malignant_Melanoma(dbobj):
     dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : ObjectId("4ec4504824c1bf4b93009bdd")}})
     print "Access should be granted"
 
+def bidmc1_path_residents_rule(dbobj):
+    # Find database bidmc1
+    dbdoc = dbobj.databases.Database.find_one({"label" : "BIDMC Pathology"})
+    print  "Database found:", dbdoc["_id"]
+
+    # Find rule for bidmc1 and path residents facebook group
+    ruleobj = dbobj.rules.Rule.find_one({"_id" : ObjectId("50996df502e310124846530f")})
+#    ruleobj['label'] = 'Pathology Residents and Fellows BIDMC'
+#    ruleobj.save()
+    print  "Rule found:", ruleobj["_id"]
+
+#    For facebook group 365400966808177"
+#    stud_rule = dbobj.rules.Rule()
+#    stud_rule['label'] = 'bidmc1_facebook_365400966808177"'
+#    stud_rule['db'] = dbdoc["_id"]
+#    stud_rule['can_see'] = [ObjectId("5097ee1758771814549fbd10")]
+#    stud_rule['can_see_all'] = False
+#    stud_rule["facebook_id"] = "365400966808177"
+
 
 def rename_and_grant_session8(dbobj):
     """
@@ -51,16 +70,63 @@ def rename_and_grant_session12(dbobj):
     sessionobj = db["sessions"].find_one({"_id" : sessionid})
     print "Before Session Label: ", sessionobj["label"]
 
-    newname = "Non-Infectious Vesicobullous and Vesiculopustular Diseases"
+    newname = "Non-Infectious Vesiculobullous and Vesiculopustular Diseases"
     db["sessions"].update({"_id" : sessionid}, {"$set" : { "label" : newname}})
     sessionobj = db["sessions"].find_one({"_id" : sessionid})
     print "After Session: ", sessionobj
 
+    return
     ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})
     print "Rule found: ", ruledoc["_id"]
     dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
+def bidmc1_rules(dbobj):
+    # find the database 
+    dbdoc = dbobj.databases.Database.find_one({"label" : "BIDMC Pathology"})
+    print  "Database found:", dbdoc["_id"]
+
+    # For student password users
+    stud_rule = dbobj.rules.Rule()
+    stud_rule['label'] = 'all_bidmc1'
+    stud_rule['db'] = dbdoc["_id"]
+    stud_rule['can_see'] = []
+    stud_rule['can_see_all'] = True
+    stud_rule.save()
+    print "Student Rule: ", stud_rule["_id"]
+
+    # For admin password users
+    admin_rule = dbobj.rules.Rule()
+    admin_rule['label'] = 'all_bidmc1'
+    admin_rule['db'] = dbdoc["_id"]
+    admin_rule['can_see'] = []
+    admin_rule['can_see_all'] = True
+    admin_rule['db_admin'] = True
+    admin_rule.save()
+    print "Admin Rule: ", admin_rule["_id"]
+
+def bidmc1_create_users(dbobj):
+#    Connection Authenticated ..
+#    Database found: 507f34a902e31010bcdb1366
+#    Student Rule:  50982f4c02e31023c02eb22d
+#    Admin Rule:  50982f4c02e31023c02eb22e
+#    Done
+
+    stud_usr = dbobj.users.User()
+    stud_usr["name"] = 'all_bidmc1'
+    stud_usr["type"] = 'passwd'
+    stud_usr["passwd"] = 'surgpath'
+    stud_usr["label"] = 'BIDMC Pathology'
+    stud_usr["rules"] = [ ObjectId("50982f4c02e31023c02eb22d") ]
+    stud_usr.save()
+
+    admin_usr = dbobj.users.User()
+    admin_usr["name"] = 'all_bidmc1_admin'
+    admin_usr["type"] = 'passwd'
+    admin_usr["passwd"] = 'surgpath12'
+    admin_usr["label"] = 'Admin @ BIDMC Pathology'
+    admin_usr["rules"] = [ ObjectId("50982f4c02e31023c02eb22e")]
+    admin_usr.save()
 
 def insert_BIDMC_KAWAI(dbobj):
     dbdoc = dbobj.databases.Database()
@@ -186,7 +252,13 @@ db = conn[DBNAME]
 #grant_Malignant_Melanoma(db)
 
 #rename_and_grant_session8(db)
-rename_and_grant_session12(db)
+#rename_and_grant_session12(db)
 
-#4ec4504824c1bf4b93009bdd
+#add_bidmc1_affiliation(db)
+#bidmc1_rules(db)
+#bidmc1_create_users(db)
+
+#grant_surgical_slide_november(db)
+#bidmc1_path_residents_rule(db)
+
 print "Done"
