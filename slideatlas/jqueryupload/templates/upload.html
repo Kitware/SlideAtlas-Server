@@ -1,0 +1,53 @@
+{% extends '/base.html'  %}
+{% block head %}
+{{ super() }}
+
+<style> 
+.bar {
+    height: 18px;
+    background: green;
+}
+</style>
+
+{% endblock %}
+{% block body_content %}
+{{ super() }}
+
+<h1> Select the file to upload </h1>
+</br>
+<input id="fileupload" type="file" name="files[]" data-url="" multiple>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+<div id="progress">
+    <div class="bar" style="width: 0%;"></div>
+</div>
+
+{% endblock %}
+
+{% block bootstrap_js_bottom %}
+{{ super() }}
+<script src="{{url_for("upload.static", filename="js/vendor/jquery.ui.widget.js")}}"></script>
+<script src="{{url_for("upload.static", filename="js/jquery.fileupload.js")}}"></script>
+
+<script>
+$(function () {
+    $('#fileupload').fileupload({
+        dataType: 'json',
+        done: function (e, data) {
+            $.each(data.result, function (index, file) {
+                $('<p/>').text(file.name).appendTo(document.body);
+            });
+        },
+        progressall: function (e, data) {
+            var progress = parseInt(data.loaded / data.total * 100, 10);
+            $('#progress .bar').css(
+                'width',
+                progress + '%'
+            );
+        }
+    });
+});
+</script>
+
+{% endblock %}
