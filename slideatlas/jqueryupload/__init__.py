@@ -7,10 +7,10 @@ import os
 mod = Blueprint('upload', __name__,
                 template_folder="templates",
                 static_folder="static",
-                url_prefix="/jqueryupload"
+                url_prefix="/upload"
                 )
 
-@mod.route('/upload', methods=["GET", "POST"])
+@mod.route('', methods=["GET", "POST"])
 def upload():
     """
     - /tile/4e695114587718175c000006/t.jpg  searches and returns the image
