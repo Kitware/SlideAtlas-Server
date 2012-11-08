@@ -6,38 +6,38 @@
 
 <title>Connectome Viewer</title>
 
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='webgl_viewer/viewer.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('glviewer.static', filename='viewer.css')}}" />
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
-<link type="text/css" href="{{ url_for('static', filename='webgl_viewer/jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-1.7.2.min.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
+<link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
 
 <!-- used some objects, matrix as an array  -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/glMatrix-0.9.5.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
 
 <!-- Perspective camera etc. May be ready to remove -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/webgl-utils.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/init.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/camera.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
 
 <!-- Actor for tile -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/tile.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
 
 <!-- Source and cache for the viewer
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/cache.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
 
 <!-- Single view, view interacts with the cache -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/view.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
 
 <!-- Has two views -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/viewer.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
 
 <!-- Widgets
 
@@ -48,10 +48,10 @@ Widgets have serialize method which creates an object
 
 -->
 
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/arrowWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/circleWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/textWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/polylineWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
 
 <!-- Shapes starting with superclass
 
@@ -60,18 +60,18 @@ shape has visibility and
 
 -->
 
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/shape.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
 
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/crossHairs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/arrow.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/circle.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/polyline.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrow.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circle.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
 
 <!-- Text uses texture map and not superclass shape, shares same API -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/text.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='text.js') }}"></script>
 
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
-<script type="text/javascript" src="{{ url_for('static', filename='webgl_viewer/eventManager.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <script type="text/javascript">
 //  var QUESTION = <?php echo json_encode($mongo_question);?>;
@@ -557,16 +557,16 @@ shape has visibility and
       <table border="1" id="annotbuttons">
         <tr>
           <td>
-            <img src="{{ url_for('static', filename='webgl_viewer/Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
+            <img src="{{ url_for('glviewer.static', filename='Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
           </td>
           <td>
-            <img src="{{ url_for('static', filename='webgl_viewer/Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
+            <img src="{{ url_for('glviewer.static', filename='Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
           </td>
           <td>
-            <img src="{{ url_for('static', filename='webgl_viewer/FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
+            <img src="{{ url_for('glviewer.static', filename='FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
           </td>
           <td>
-            <img src="{{ url_for('static', filename='webgl_viewer/Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
+            <img src="{{ url_for('glviewer.static', filename='Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
           </td>
         </tr>
       </table>
@@ -581,10 +581,10 @@ shape has visibility and
       <table border="1" id="rotatebuttons" >
         <tr>
           <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('static', filename='webgl_viewer/rotateLeft.jpg')}}" height="25" />
+            <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
           </td>
           <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('static', filename='webgl_viewer/rotateRight.jpg') }}" height="25" />
+            <img src="{{ url_for('glviewer.static', filename='rotateRight.jpg') }}" height="25" />
           </td>
         </tr>
       </table>
