@@ -11,8 +11,8 @@ oid = OpenID()
 oauth = OAuth()
 
 # Facebook key redirecting to localhost:8080
-FACEBOOK_APP_ID = '458796434162322'
-FACEBOOK_APP_SECRET = '32cce59abab133519ccc51470c8b32f4'
+FACEBOOK_APP_ID = '119067998250051'
+FACEBOOK_APP_SECRET = 'a59f02dfa257a385273f22ed061257e4'
 
 facebook = oauth.remote_app('facebook',
     base_url='https://graph.facebook.com/',
@@ -31,7 +31,7 @@ def login():
     return render_template('login.html')
 
 
-@mod.route('/login.passwd',methods=['GET', 'POST'])
+@mod.route('/login.passwd', methods=['GET', 'POST'])
 def login_passwd():
     # Try to find the user
     conn.register([model.User])
