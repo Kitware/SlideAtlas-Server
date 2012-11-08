@@ -25,8 +25,8 @@ app.register_blueprint(login.mod)
 from .views import tile
 app.register_blueprint(tile.mod)
 
-from .views import webgl_viewer
-app.register_blueprint(webgl_viewer.mod)
+import glviewer
+app.register_blueprint(glviewer.mod)
 
 from .views import sessions
 app.register_blueprint(sessions.mod)

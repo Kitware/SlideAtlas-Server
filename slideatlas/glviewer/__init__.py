@@ -1,12 +1,15 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, url_for
 from bson import ObjectId
 from slideatlas.connections import slconn as conn
 from slideatlas import model
 
-mod = Blueprint('webgl-viewer', __name__)
+mod = Blueprint('glviewer', __name__,
+                template_folder="templates",
+                static_folder="static",
+                url_prefix="/webgl-viewer"
+                )
 
-
-@mod.route('/glview')
+@mod.route('')
 def glview():
     """
     - /glview?imgid=10239094124  searches for the session id
@@ -36,4 +39,4 @@ def glview():
     img["origin"] = str(docImage["origin"])
     img["spacing"] = str(docImage["spacing"])
 
-    return render_template('webgl-viewer/viewer.html', img=img, db=db)
+    return render_template('viewer.html', img=img, db=db)
