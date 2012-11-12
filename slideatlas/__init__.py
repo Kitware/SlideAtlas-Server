@@ -79,7 +79,7 @@ def home():
 
     """
     if 'user' in session:
-        print session["user"]
+        #        print session["user"]
         label = session["user"]["label"]
         email = session["user"]["email"]
     else:

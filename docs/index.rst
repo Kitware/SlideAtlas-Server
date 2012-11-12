@@ -21,7 +21,9 @@ Contents:
 
 :doc:`web-interface`
 
-:doc:`common-utilities`   
+:doc:`common-utilities`
+
+:doc:`testing`
 
 .. toctree::
    
