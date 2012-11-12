@@ -29,6 +29,8 @@ def modify():
     admindb2 = conn["slideatlasv2"]
     dbobj = admindb2["databases"].find_one({"_id" : ObjectId(db)})
 
+    # TODO: Make sure that the caller has access rights for modification 
+
     col = conn[dbobj["dbname"]][collection]
     rec = col.find_one({ "_id" : ObjectId(id) })
     if rec == None:

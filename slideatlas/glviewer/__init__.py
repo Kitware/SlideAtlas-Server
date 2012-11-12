@@ -28,7 +28,6 @@ def glview():
     conn.register([model.Database])
     admindb = conn["slideatlasv2"]
     dbobj = admindb["databases"].find_one({"_id" : ObjectId(db)})
-    print dbobj
     imgdb = conn[dbobj['dbname']]
 
     colImage = imgdb["images"]
