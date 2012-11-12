@@ -2,6 +2,7 @@
 
 {% block body_content %}
 {{ super() }}
+<div class="container">
 
   <h1>Displaying a session list for {{ name}} !</h1>
 
@@ -22,4 +23,6 @@
  <br>
 
  {% endfor %}
+</div>
+
 {% endblock %}

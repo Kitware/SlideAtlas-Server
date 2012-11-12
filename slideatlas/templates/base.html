@@ -27,6 +27,7 @@
   </div>
 </div>
 
+<div class="container">
 
 {% with errors = get_flashed_messages(category_filter=["error"]) %}
 {% if errors %}
@@ -41,7 +42,6 @@
 </div>
 {% endif %}
 {% endwith %}
-
 
 {% with msgs = get_flashed_messages(category_filter=["success"]) %}
 {% if msgs %}
@@ -71,6 +71,7 @@
 {% endif %}
 {% endwith %}
 
-
+</div>
 
 {% endblock %}
+
