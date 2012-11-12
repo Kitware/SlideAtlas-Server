@@ -4,12 +4,14 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 import unittest, time, re
 
+BASE_URL = "http://127.0.0.1:8080/"
+
 class ExternalTests(unittest.TestCase):
     def setUp(self):
         self.driver = webdriver.Chrome('c:\eclipse\chromedriver.exe')
         self.driver.maximize_window()
-        self.driver.implicitly_wait(3000)
-        self.base_url = "http://127.0.0.1:8080/"
+        self.driver.implicitly_wait(30)
+        self.base_url = BASE_URL
         self.verificationErrors = []
 
     def test_login_and_glview(self):
@@ -24,7 +26,10 @@ class ExternalTests(unittest.TestCase):
         driver.find_element_by_link_text("sessions").click()
         driver.find_element_by_link_text("Fungi, Protozoa and Parasites").click()
         driver.find_element_by_link_text("3394 - 2010-10-06 14.12.18.ndpi").click()
+
         driver.save_screenshot('glview.png')
+        # Compare the image
+
 
     def is_element_present(self, how, what):
         try: self.driver.find_element(by=how, value=what)
