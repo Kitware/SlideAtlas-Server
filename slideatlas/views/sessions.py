@@ -48,7 +48,7 @@ def sessions():
 
     if sessid and sessdb:
         # Find and return image list from single session
-        # Make sure user has access to that session
+        # TODO: Refactor this into a function 
         access = False
         dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
 
