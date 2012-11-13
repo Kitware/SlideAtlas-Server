@@ -17,15 +17,19 @@ class ExternalTests(unittest.TestCase):
     def test_login_and_glview(self):
         driver = self.driver
         driver.get(self.base_url + "/logout")
+        # Login
         driver.find_element_by_link_text("login").click()
         driver.find_element_by_id("username").clear()
         driver.find_element_by_id("username").send_keys("all_bev1_admin")
         driver.find_element_by_id("passwd").clear()
         driver.find_element_by_id("passwd").send_keys("MAmanage")
         driver.find_element_by_css_selector("button[type=\"submit\"]").click()
+        # Select the image 
         driver.find_element_by_link_text("sessions").click()
         driver.find_element_by_link_text("Fungi, Protozoa and Parasites").click()
         driver.find_element_by_link_text("3394 - 2010-10-06 14.12.18.ndpi").click()
+
+        # Select the image 
 
         driver.save_screenshot('glview.png')
         # Compare the image
