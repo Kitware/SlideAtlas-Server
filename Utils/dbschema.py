@@ -81,6 +81,28 @@ def rename_and_grant_session12(dbobj):
     dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
+def rename_and_grant_session10(dbobj):
+    """
+    Getting admindb object
+    """
+    sessionid = ObjectId("4ec4504824c1bf4b93009be0")
+
+    conn = dbobj.connection
+    db = conn["bev1"]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "Before Session Label: ", sessionobj["label"]
+
+    newname = "Vascular Tumors"
+    db["sessions"].update({"_id" : sessionid}, {"$set" : { "label" : newname}})
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "After Session: ", sessionobj
+
+    ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})
+    print "Rule found: ", ruledoc["_id"]
+    dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+    print "Access should be granted"
+
+
 def bidmc1_rules(dbobj):
     # find the database 
     dbdoc = dbobj.databases.Database.find_one({"label" : "BIDMC Pathology"})
@@ -253,6 +275,7 @@ db = conn[DBNAME]
 
 #rename_and_grant_session8(db)
 #rename_and_grant_session12(db)
+rename_and_grant_session10(db)
 
 #add_bidmc1_affiliation(db)
 #bidmc1_rules(db)
