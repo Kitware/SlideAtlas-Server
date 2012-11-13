@@ -15,14 +15,14 @@ def attachments():
     - /tile/4e695114587718175c000006/t.jpg  searches and returns the image
     """
     # Get variables
-    db = request.args.get('db', None)
+    db = request.args.get('sessdb', None)
     attachid = request.args.get('attachid', None)
     sessid = request.args.get('sessid', None)
     cmd = request.args.get('cmd', "get")
 
     if cmd == "get":
         if(db == None or attachid == None or sessid == None):
-            flash('db, attachid and sessid must all be set', "error")
+            flash('sessdb, attachid and sessid must all be set', "error")
             return redirect('/home')
             pass
 

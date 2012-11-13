@@ -14,7 +14,7 @@
     <table class="table table-bordered table-hover" >
         {% for animage in data.attachments %}
             <tr>
-                <td><a href="sessions" class="lead"> {{ animage.name}} </a>
+                <td><a href="attachment?sessdb={{data.db}}&sessid={{data.sessid}}&attachid={{animage.id}}" class="lead"> {{ animage.name}} </a>
                     </td>
                 {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>

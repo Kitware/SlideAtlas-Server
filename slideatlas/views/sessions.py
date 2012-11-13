@@ -102,7 +102,7 @@ def sessions():
             gfs = GridFS(db, "attachments")
             for anattach in asession['attachments']:
                 fileobj = gfs.get(anattach["ref"])
-                attachments.append({'name': fileobj.name})
+                attachments.append({'name': fileobj.name, 'id' : anattach["ref"]})
             del asession["attachments"]
 
         if 'images' in asession:
@@ -114,6 +114,7 @@ def sessions():
                  'images' : images,
                  'attachments' :attachments,
                  'db' : sessdb,
+                 'sessid' : sessid,
                  'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE)
                  }
 
