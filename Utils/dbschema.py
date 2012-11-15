@@ -248,6 +248,67 @@ def grant_KAWAI1torisa(dbobj):
     print "1 User found: ", userdoc
     userdoc.save()
 
+def del_mrxs_11(db):
+    sessid = ObjectId("5097ee1758771814549fbd10")
+    viewid = ObjectId("5097fb1f58771822a4dc9411")
+    imgid = ObjectId("5097fb1f58771822a4dc940f")
+
+    conn = db.connection
+    datadb = conn["bidmc1"]
+    sessobj = datadb["sessions"].find_one({"_id" : sessid})
+    print "Deleting from: ", sessobj["_id"]
+
+    # Delete the reference from views 
+    views = sessobj['views']
+
+    found = False
+    for viewobj in views:
+        if viewobj['ref'] == viewid:
+            # Remove this reference and this image
+            found = True
+            viewindex = views.index(viewobj)
+
+    if found == True:
+        print "Before: ", views
+        print "Remove view reference: ", views[viewindex]
+        del views[viewindex]
+        print "After: ", views
+
+    # Find the images object 
+    imgobj = datadb["images"].find_one({"_id" : imgid})
+    print "To delete image:", imgobj["_id"]
+
+    # Find the views object 
+    viewobj = datadb["views"].find_one({"_id" : viewid})
+    print "To delete view:", viewobj["_id"]
+
+    print "Removed reference to view"
+    datadb['sessions'].update({'_id': sessobj['_id']}, {'$set':{'views': views}})
+#
+    print "Removed view"
+    datadb['views'].remove({'_id': viewobj['_id']})
+
+    print "Removed image"
+    datadb['images'].remove({'_id': imgobj['_id']})
+
+    print "Removed image collection"
+    datadb.drop_collection(str(imgid))
+
+    print "Done"
+
+def del_empty_session(db):
+    sessid = ObjectId("5069bc295877181cd8000000")
+
+    conn = db.connection
+    datadb = conn["bidmc1"]
+    sessobj = datadb["sessions"].find_one({"_id" : sessid})
+    print "To delete session: ", sessobj["_id"]
+
+    print "Removed session: "
+    datadb['sessions'].remove({'_id': sessobj['_id']})
+
+    print "Done"
+
 
 # Authenticate
 conn = mongokit.Connection(HOST)
@@ -275,8 +336,9 @@ db = conn[DBNAME]
 
 #rename_and_grant_session8(db)
 #rename_and_grant_session12(db)
-rename_and_grant_session10(db)
-
+#rename_and_grant_session10(db)
+#del_mrxs_11(db)
+del_empty_session(db)
 #add_bidmc1_affiliation(db)
 #bidmc1_rules(db)
 #bidmc1_create_users(db)
