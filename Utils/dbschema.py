@@ -248,6 +248,34 @@ def grant_KAWAI1torisa(dbobj):
     print "1 User found: ", userdoc
     userdoc.save()
 
+def grant_KAWAI1toKo(dbobj):
+#    # Find a database
+#    dbdoc = dbobj["databases"].Database.fetch_one({'dbname':"kawai1"})
+#    print "Database found: ", dbdoc["_id"]
+
+    # Find the a session
+    conn = dbobj.connection
+    dbkawai = conn["kawai1"]
+    sessiondoc = dbkawai["sessions"].Session.find_one({'name':"oct2012"})
+    print "Session found: ", sessiondoc["_id"]
+
+    ruledoc = dbobj["rules"].Rule.fetch_one({'label':"Risa Kawai"})
+    print "Rule found: ", ruledoc["_id"]
+
+    print ruledoc
+
+    # Find a user
+    userdoc = dbobj["users"].User.find_one({'name':"crabchicken@gmail.com"})
+    print userdoc
+
+    # Append the rule
+    userdoc["rules"].append(ObjectId('5085afee02e3100e64ab9a8c'))
+    userdoc.validate()
+    print "1 User found: ", userdoc
+    #userdoc.save()
+    print "Access should be granted"
+
+
 def del_mrxs_11(db):
     sessid = ObjectId("5097ee1758771814549fbd10")
     viewid = ObjectId("5097fb1f58771822a4dc9411")
@@ -330,7 +358,6 @@ db = conn[DBNAME]
 # Grant kawai1 access to dhanannjay.deo@kitware.com
 # and stephen.turney@gmail.com
 #grant_KAWAI1(db)
-# grant_KAWAI1torisa(db)
 
 #grant_Malignant_Melanoma(db)
 
@@ -338,10 +365,12 @@ db = conn[DBNAME]
 #rename_and_grant_session12(db)
 #rename_and_grant_session10(db)
 #del_mrxs_11(db)
-del_empty_session(db)
+#del_empty_session(db)
 #add_bidmc1_affiliation(db)
 #bidmc1_rules(db)
 #bidmc1_create_users(db)
+# grant_KAWAI1torisa(db)
+#grant_KAWAI1toKo(db)
 
 #grant_surgical_slide_november(db)
 #bidmc1_path_residents_rule(db)
