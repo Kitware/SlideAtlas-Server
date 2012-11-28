@@ -48,3 +48,8 @@ def modify():
         data = {'success': 1, 'id' : id, 'fields' : fields}
     return jsonify(data)
 
+def fix():
+    """
+    For procedural commands processing over sessions or images or etc
+    """
+    pass
