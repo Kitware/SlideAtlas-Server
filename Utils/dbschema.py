@@ -103,6 +103,29 @@ def rename_and_grant_session10(dbobj):
     print "Access should be granted"
 
 
+def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="bev1", str_group_id="231408953605826"):
+    """
+    Generic function to rename and grant session
+    gets  
+    """
+    sessionid = ObjectId(str_session_id)
+
+    conn = admindbobj.connection
+    db = conn[str_db]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "Before Session Label: ", sessionobj["label"]
+
+    db["sessions"].update({"_id" : sessionid}, {"$set" : { "label" : str_newlabel}})
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "After Session Label: ", sessionobj["label"]
+
+    ruledoc = admindbobj["rules"].Rule.find_one({'facebook_id':str_group_id})
+    print "Rule found: ", ruledoc["_id"]
+    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+    print "Access should be granted"
+
+
+
 def bidmc1_rules(dbobj):
     # find the database 
     dbdoc = dbobj.databases.Database.find_one({"label" : "BIDMC Pathology"})
@@ -374,5 +397,9 @@ db = conn[DBNAME]
 
 #grant_surgical_slide_november(db)
 #bidmc1_path_residents_rule(db)
+
+rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
+
+
 
 print "Done"
