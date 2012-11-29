@@ -23,14 +23,17 @@ def sessions():
     conn.register([Image, Session, User, Rule, Database])
     admindb = conn["slideatlasv2"]
 
+
     # Assert the user is logged in
     if 'user' in session:
         name = session['user']['label']
         id = session['user']['id']
-        userobj = admindb["users"].User.fetch_one({"_id":  ObjectId(id)})
-#        #db.sessions.find({}, {) // skip 20, limit 10
-#        coll = db["sessions"]
-#        asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
+        userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
+        if userobj == None:
+            # If the user is not found then something wrong 
+            # Redirect the user to home with error message 
+            flash("Invalid login", "error")
+            return redirect(url_for('login.login'))
 
     else:
         # Send the user back to login page
@@ -56,18 +59,20 @@ def sessions():
         db = conn[dbobj["dbname"]]
 
         # From rules pertaining to current user
-        for arule in userobj["rules"]:
-            ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
-            if str(ruleobj["db"]) == sessdb:
-                    if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
-                        access = True
-                    elif 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
-                        access = True
-                    elif len(ruleobj["can_see"]) > 0:
-                        for asession in ruleobj["can_see"]:
-                            if str(asession) == sessid:
-                                access = True
-
+        try:
+            for arule in userobj["rules"]:
+                ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+                if str(ruleobj["db"]) == sessdb:
+                        if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
+                            access = True
+                        elif 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
+                            access = True
+                        elif len(ruleobj["can_see"]) > 0:
+                            for asession in ruleobj["can_see"]:
+                                if str(asession) == sessid:
+                                    access = True
+        except:
+            pass
         # Confirm that the user has access
         if access == False :
             flash("Unauthorized access", "error")
@@ -128,47 +133,49 @@ def sessions():
         sessionlist = []
 
         # From rules pertaining to current user
-        for arule in userobj["rules"]:
-            rule = {}
-            ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
-            #flash(str(ruleobj), 'success')
-            rule["rule"] = ruleobj["label"]
+        if "rules" in userobj:
+            for arule in userobj["rules"]:
+                rule = {}
+                ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+                #flash(str(ruleobj), 'success')
+                rule["rule"] = ruleobj["label"]
 
-            # Find the db pertaining to this rule
-            dbobj = admindb["databases"].Database.find_one({"_id" : ruleobj["db"]})
+                # Find the db pertaining to this rule
+                dbobj = admindb["databases"].Database.find_one({"_id" : ruleobj["db"]})
 
-            # TODO: initiate new connection if required with this database
-            db = conn[dbobj["dbname"]]
-            sessions = []
+                # TODO: initiate new connection if required with this database
+                db = conn[dbobj["dbname"]]
+                sessions = []
 
-            if 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
-                #flash("All" + ruleobj["label"], "success")
-                # Gets access to see / admin all sessions in this DB
-                for sessionobj in db["sessions"].Session.find():
-                    thissession = {'sessid' : str(sessionobj["_id"]),
-                                            'label' : sessionobj["label"],
-                                            'sessdb': str(dbobj["_id"])
-                                            }
-                    sessions.append(thissession)
-            elif len(ruleobj["can_see"]) > 0:
-                # Gets access to a limited number of sessions
-                for asession in ruleobj["can_see"]:
-                    sessionobj = db["sessions"].Session.find_one({"_id" : asession})
-                    thissession = {'sessid' : str(sessionobj["_id"]),
-                                            'label' : sessionobj["label"],
-                                            'sessdb': str(dbobj["_id"])
-                                            }
-                    sessions.append(thissession)
+                if 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
+                    #flash("All" + ruleobj["label"], "success")
+                    # Gets access to see / admin all sessions in this DB
+                    for sessionobj in db["sessions"].Session.find():
+                        thissession = {'sessid' : str(sessionobj["_id"]),
+                                                'label' : sessionobj["label"],
+                                                'sessdb': str(dbobj["_id"])
+                                                }
+                        sessions.append(thissession)
+                elif len(ruleobj["can_see"]) > 0:
+                    # Gets access to a limited number of sessions
+                    for asession in ruleobj["can_see"]:
+                        sessionobj = db["sessions"].Session.find_one({"_id" : asession})
+                        thissession = {'sessid' : str(sessionobj["_id"]),
+                                                'label' : sessionobj["label"],
+                                                'sessdb': str(dbobj["_id"])
+                                                }
+                        sessions.append(thissession)
 
-            # if db administrator
-            if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
-                # Update the administrative
-                for asession in sessions:
-                    #flash("Admin session: " + asession["label"] , "success")
-                    asession["canadmin"] = True
+                # if db administrator
+                if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
+                    # Update the administrative
+                    for asession in sessions:
+                        #flash("Admin session: " + asession["label"] , "success")
+                        asession["canadmin"] = True
 
-            rule["sessions"] = sessions
-            sessionlist.append(rule)
+                rule["sessions"] = sessions
+                sessionlist.append(rule)
+            # End of for loop over rules
 
 #        sessionlist.append({'rule':'Rule1 label',
 #            'sessions' :[
