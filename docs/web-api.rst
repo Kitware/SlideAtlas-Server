@@ -1,6 +1,6 @@
 
-Planned Web Interface
-=====================
+Web API
+=======
 
 Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
 
@@ -8,11 +8,11 @@ Following set of slides is a very good `Link read <http://lanyrd.com/2012/europy
 
 
 Steps of securing web API
-=========================
+-------------------------
 http://www.infoq.com/news/2010/01/rest-api-authentication-schemes
 
 Uploader features
------------------
+~~~~~~~~~~~~~~~~~
 
 - Point to a folder and queue the uploader
 - Upload as soon as they are available
@@ -20,7 +20,7 @@ Uploader features
 
 
 Authentication (login) operations
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - / Home page
 
@@ -35,7 +35,7 @@ Authentication (login) operations
 
 
 Session management
-------------------
+~~~~~~~~~~~~~~~~~~
 
 - / sessions
    - &sess=<id>
@@ -46,7 +46,7 @@ Session management
    - &db=<db>
 
 Access management
------------------
+~~~~~~~~~~~~~~~~~
 
 - / get
    - &id=<id> Get specifc user

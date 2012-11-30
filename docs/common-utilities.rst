@@ -1,5 +1,6 @@
-Common Utilities
-----------------
+
+Common Patterns
+===============
 
 .. todo::
    Add documentation about common module here 
@@ -107,9 +108,8 @@ Third use case
       - prepare for render
    - Render
 
-
 Access determination
-====================
+--------------------
 
 When user requests a particular action, whether it be displaying a certain
 information or manipulating some information in the database, the previlges

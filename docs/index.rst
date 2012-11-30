@@ -6,33 +6,18 @@
 Welcome to SlideAtlas's documentation!
 ======================================
 
-Contents:
-
 .. toctree::
-   :maxdepth: 2
-
-:doc:`schema`
-
-:doc:`ui-design`
-
-:doc:`admin-rights`
-
-:doc:`web-api`
-
-:doc:`web-interface`
-
-:doc:`common-utilities`
-
-:doc:`testing`
-
-.. toctree::
-   
+   :titlesonly:
+      
+   get-started
    schema
    admin-rights
    web-api
    web-interface
    common-utilities
    ui-design
+   testing
+   
 
 Indices and tables
 ==================

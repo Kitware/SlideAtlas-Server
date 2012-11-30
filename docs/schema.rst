@@ -20,14 +20,14 @@ Color codes
 .. _admindb-label:
 
 Administrative database (always named "slideatlas")
-===================================================
+---------------------------------------------------
 
 'users' collection
 ~~~~~~~~~~~~~~~~~~
 
 - **'\_id'**: ObjectId
 - **'type'**: :indexedfield:`indexed[2] str ("passwd", "facebook", "google")`
-- **'name'**: :indexedfield:`indexed[2] unique str` Email 
+- **'name'**: :indexedfield:`indexed[2] unique str` Email
 - **'label'**: :str: Name
 - **'passwd'**:  :optionalfield:`str (required if 'type' == "passwd")`
 - **'rules'**: array[n]
@@ -66,7 +66,7 @@ Administrative database (always named "slideatlas")
       - **'valid\_until'**: Time
 
 Data database ("bev1", etc.)
-============================
+----------------------------
 
 
 image data/pyramid collection (named *ObjectId*)
