@@ -361,6 +361,19 @@ def del_empty_session(db):
     print "Done"
 
 
+def get_number_of_all_images(dbobj):
+    dbs = ["bev1", "paul3", "bidmc1", "kawai1", "edu1", "jnk1", "wusmneuro1", "bidmcpath1"]
+
+    sum = 0
+
+    for str_db in dbs:
+        db = dbobj.connection[str_db]
+        count = db["images"].find().count()
+        sum = sum + count
+        print str_db, count
+
+    print "Total number of images: ", sum
+
 # Authenticate
 conn = mongokit.Connection(HOST)
 admindb = conn["admin"]
@@ -398,8 +411,8 @@ db = conn[DBNAME]
 #grant_surgical_slide_november(db)
 #bidmc1_path_residents_rule(db)
 
-rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
-
+#rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
+get_number_of_all_images(db)
 
 
 print "Done"

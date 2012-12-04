@@ -1,6 +1,6 @@
 
-Web API
-=======
+Web API (just notes till now)
+=============================
 
 Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
 
@@ -16,8 +16,6 @@ Uploader features
 
 - Point to a folder and queue the uploader
 - Upload as soon as they are available
-
-
 
 Authentication (login) operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
