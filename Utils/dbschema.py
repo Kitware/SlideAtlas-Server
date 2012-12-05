@@ -412,7 +412,8 @@ db = conn[DBNAME]
 #bidmc1_path_residents_rule(db)
 
 #rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
-get_number_of_all_images(db)
+#get_number_of_all_images(db)
+rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009bdf", str_newlabel="Metabolic Disease of the Skin")
 
 
 print "Done"
