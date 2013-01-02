@@ -413,7 +413,9 @@ db = conn[DBNAME]
 
 #rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
 #get_number_of_all_images(db)
-rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009bdf", str_newlabel="Metabolic Disease of the Skin")
+#rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009bdf", str_newlabel="Metabolic Disease of the Skin")
+#rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009be1", str_newlabel="Non-Infectious & Palisading Granulomas")
+rename_and_grant_session(db, str_session_id="4f0cd073ad2f654736000000", str_newlabel="More Unknowns")
 
 
 print "Done"
