@@ -17,13 +17,13 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "d:/docs"
 
 # Connection settings for local demo database for testing (VM) 
-slconn = mongokit.Connection("127.0.0.1:27018", tz_aware=False, auto_start_request=False)
-admindb = slconn["admin"]
+#slconn = mongokit.Connection("127.0.0.1:27018", tz_aware=False, auto_start_request=False)
+#admindb = slconn["admin"]
 
 ## Connection settings for live slide atlas  
-#slconn = mongokit.Connection("slide-atlas.org:27017", tz_aware=False, auto_start_request = False)
-#admindb = slconn["admin"]
-#admindb.authenticate("slideatlasweb", "2%PwRaam4Kw")
+slconn = mongokit.Connection("slide-atlas.org:27017", tz_aware=False, auto_start_request=False)
+admindb = slconn["admin"]
+admindb.authenticate("slideatlasweb", "2%PwRaam4Kw")
 
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
