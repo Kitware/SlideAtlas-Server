@@ -86,11 +86,11 @@ if __name__ == '__main__':
 		# Try opening the database	
 		conn = pymongo.Connection(args.mongodb)
 		admindb = conn["admin"]
-		admindb.authenticate("slideatlasweb","2%PwRaam4Kw")
+		admindb.authenticate("slideatlasweb", "2%PwRaam4Kw")
 		mongodb = conn[args.db]
 
 	except:
-		error_exit("Error opening " + args.db + " at "+ args.mongodb)
+		error_exit("Error opening " + args.db + " at " + args.mongodb)
 
 	if args.verbose:
 		print "Parsed Arguments - "
@@ -114,9 +114,15 @@ if __name__ == '__main__':
 	sessions = []
 
 	if args.session == 'all':
+		print "Only session specific image removal supported"
+		sys.exit(0)
+		# TODO: First find all views 
+		views = []
+
 		for asession in mongodb['sessions'].find():
 			print asession.keys()
-			for aref in asession['images']:
+			# TODO: Look in views not in sessions 
+			for aref in asession['views']:
 				if aref['ref'] == image['_id']:
 					print "  Listed in session:  ", asession['name']
 					sessions.append(asession)
@@ -136,22 +142,25 @@ if __name__ == '__main__':
 		if resp == 'y' or resp == 'Y':
 			for asession in sessions:
 				print "Deleting from : ", asession['_id']
-				images = asession['images']
+				# TODO: delete the corresponding view
+				views = asession['views']
 				found = False
-				for animage in images:
-					if animage['ref'] == image['_id']:
+				for aview in views:
+					viewobj = get_object_in_collection(mongodb["views"], aview["ref"])
+					if viewobj['img'] == image['_id']:
 						# Remove this reference and this image
 						found = True
-						index = images.index(animage)
-						col_to_del = str(images[index]['ref'])
-						del images[index]
+						index = views.index(aview)
+						col_to_del = str(views[index]['ref'])
+						print "Image ", col_to_del, " set for deletion"
+						# TODO: Delete actual image 
+						del views[index]
 						# Delete the image collection
 						mongodb.drop_collection(col_to_del)
 
 				# Done processing image list in a session  
 				if found:
-					mongodb['sessions'].update({'_id': asession['_id']}, {'$set':{'images': images}})
-					pass
+					mongodb['sessions'].update({'_id': asession['_id']}, {'$set':{'views': views}})
 				else:
 					error_exit("Unexpected behavior")
 
