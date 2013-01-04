@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, session, redirect, flash, url_for, jsonify
 from slideatlas.model import Image, Session, Rule, User, Database
 from bson.objectid import ObjectId
-from slideatlas.connections import slconn as conn
+from slideatlas import slconn as conn
 
 from gridfs import GridFS
 from bson import ObjectId

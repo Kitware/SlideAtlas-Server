@@ -21,9 +21,9 @@ slconn = mongokit.Connection("127.0.0.1:27018", tz_aware=False, auto_start_reque
 admindb = slconn["admin"]
 
 ## Connection settings for live slide atlas  
-#slconn = mongokit.Connection("slide-atlas.org:27017", tz_aware=False, auto_start_request = False)
+#slconn = mongokit.Connection("slide-atlas.org:27017", tz_aware=False, auto_start_request=False)
 #admindb = slconn["admin"]
-#admindb.authenticate("slideatlasweb", "2%PwRaam4Kw")
+#.authenticate("slideatlasweb", "2%PwRaam4Kw")
 
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'

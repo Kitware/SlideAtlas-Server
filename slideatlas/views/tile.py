@@ -1,5 +1,5 @@
 from flask import Blueprint, Response, abort, request, session
-from slideatlas.connections import slconn as conn
+from slideatlas import slconn as conn
 from bson import ObjectId
 from slideatlas import model
 

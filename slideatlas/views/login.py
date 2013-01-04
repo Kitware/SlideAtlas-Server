@@ -4,7 +4,7 @@ from flask_openid import OpenID
 from flask_oauth import OAuth
 
 from slideatlas import model
-from connections import slconn as conn
+from slideatlas  import slconn as conn
 
 mod = Blueprint('login', __name__)
 oid = OpenID()

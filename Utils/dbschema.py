@@ -124,6 +124,52 @@ def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="b
     admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
+def grant_session(admindbobj, str_session_id, str_db, str_group_id):
+    """
+    Generic function to rename and grant session
+    gets  
+    """
+    sessionid = ObjectId(str_session_id)
+
+    conn = admindbobj.connection
+    db = conn[str_db]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "Session Label: ", sessionobj["label"]
+    print "Session: ", sessionobj
+
+    dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
+    print dbdoc
+
+    ruledoc = admindbobj["rules"].Rule.find_one({'facebook_id':str_group_id, "db" : dbdoc["_id"]})
+    print "Rule found: ", ruledoc["_id"]
+    print "Rule: ", ruledoc
+
+    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+    print "Access should be granted"
+
+def revoke_session(admindbobj, str_session_id, str_db, str_group_id):
+    """
+    Generic function to rename and grant session
+    gets  
+    """
+    sessionid = ObjectId(str_session_id)
+
+    conn = admindbobj.connection
+    db = conn[str_db]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+    print "Session: ", sessionobj
+
+    dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
+    print dbdoc
+
+    ruledoc = admindbobj["rules"].Rule.find_one({'facebook_id':str_group_id, "db" : dbdoc["_id"]})
+    print "Rule found: ", ruledoc["_id"]
+    print "Rule: ", ruledoc
+
+    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$pull" : {"can_see" : sessionid}})
+    print "Access should be revoked"
+
+
 
 
 def bidmc1_rules(dbobj):
@@ -361,6 +407,19 @@ def del_empty_session(db):
     print "Done"
 
 
+def get_number_of_all_images(dbobj):
+    dbs = ["bev1", "paul3", "bidmc1", "kawai1", "edu1", "jnk1", "wusmneuro1", "bidmcpath1"]
+
+    sum = 0
+
+    for str_db in dbs:
+        db = dbobj.connection[str_db]
+        count = db["images"].find().count()
+        sum = sum + count
+        print str_db, count
+
+    print "Total number of images: ", sum
+
 # Authenticate
 conn = mongokit.Connection(HOST)
 admindb = conn["admin"]
@@ -398,8 +457,15 @@ db = conn[DBNAME]
 #grant_surgical_slide_november(db)
 #bidmc1_path_residents_rule(db)
 
-rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
-
+#rename_and_grant_session(db, str_session_id="4ee92b6483ff8d1cf8000000", str_newlabel="Histiocytoses and non-lymphoid infiltrates")
+#get_number_of_all_images(db)
+#rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009bdf", str_newlabel="Metabolic Disease of the Skin")
+#rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009be1", str_newlabel="Non-Infectious & Palisading Granulomas")
+#rename_and_grant_session(db, str_session_id="4f0cd073ad2f654736000000", str_newlabel="More Unknowns")
+#grant_session(db, "50e5b46358771825c0cd5f39" , str_db="bidmc1", str_group_id="365400966808177")
+#grant_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bidmc1", str_group_id="365400966808177")
+revoke_session(db, "50e5b46358771825c0cd5f39" , str_db="bev1", str_group_id="365400966808177")
+revoke_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bev1", str_group_id="365400966808177")
 
 
 print "Done"
