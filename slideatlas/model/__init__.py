@@ -3,7 +3,7 @@ from session import *
 from rule import *
 from user import *
 from database import *
-from attachments import *
+#from attachments import *
 
 # Verify access previledges
 SEE_SESSION = 1

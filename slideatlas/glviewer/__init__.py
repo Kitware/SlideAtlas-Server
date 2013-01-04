@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, url_for
 from bson import ObjectId
-from slideatlas.connections import slconn as conn
+from slideatlas import slconn as conn
 from slideatlas import model
 
 mod = Blueprint('glviewer', __name__,

@@ -4,7 +4,7 @@
 ADMIN_DB = "mongodb://127.0.0.1:27017/slideatlas"
 
 from slideatlas import model
-from slideatlas.connections import slconn
+from slideatlas import slconn
 
 slconn.register([model.User, model.Database])
 

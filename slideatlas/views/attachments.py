@@ -1,6 +1,6 @@
 
 from flask import Blueprint, Response, abort, request, session, flash, redirect, send_file, current_app
-from slideatlas.connections import slconn as conn
+from slideatlas import slconn as conn
 from bson import ObjectId
 from slideatlas import model
 from werkzeug.wsgi import wrap_file

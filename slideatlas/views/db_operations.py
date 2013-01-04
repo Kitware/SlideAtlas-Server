@@ -1,6 +1,5 @@
 from flask import Blueprint, Response, abort, jsonify, request
-from slideatlas.connections import slconn as conn
-from connections import  admindb
+from slideatlas import slconn as conn, admindb
 import mongokit
 import json
 from bson import ObjectId
