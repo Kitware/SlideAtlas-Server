@@ -4,5 +4,6 @@
 .*
 docs/build
 docs/docs
-testing/glview.png
+testing/*.png
 testing/*.log
+
