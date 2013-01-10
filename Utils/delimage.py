@@ -86,7 +86,7 @@ if __name__ == '__main__':
 		# Try opening the database	
 		conn = pymongo.Connection(args.mongodb)
 		admindb = conn["admin"]
-		admindb.authenticate("slideatlasweb", "2%PwRaam4Kw")
+		admindb.authenticate("slideatlasweb", "2&PwRaam4Kw")
 		mongodb = conn[args.db]
 
 	except:
@@ -109,7 +109,9 @@ if __name__ == '__main__':
 		error_exit("Image not found: " + args.image)
 
 	print "\nImage found: ", image['_id']
-	print "  Name: ", image['name']
+	print image
+
+	#print "  Name: ", image['name']
 
 	sessions = []
 
@@ -157,6 +159,7 @@ if __name__ == '__main__':
 						del views[index]
 						# Delete the image collection
 						mongodb.drop_collection(col_to_del)
+						# Remove the viewobj from views collection
 
 				# Done processing image list in a session  
 				if found:
