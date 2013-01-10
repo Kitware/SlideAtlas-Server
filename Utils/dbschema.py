@@ -424,7 +424,7 @@ def get_number_of_all_images(dbobj):
 conn = mongokit.Connection(HOST)
 admindb = conn["admin"]
 
-if admindb.authenticate("slideatlasweb", "2%PwRaam4Kw") == 0:
+if admindb.authenticate("slideatlasweb", "2&PwRaam4Kw") == 0:
     print "Cannot authenticate"
     sys.exit(0)
 else:
@@ -461,11 +461,12 @@ db = conn[DBNAME]
 #get_number_of_all_images(db)
 #rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009bdf", str_newlabel="Metabolic Disease of the Skin")
 #rename_and_grant_session(db, str_session_id="4ec4504824c1bf4b93009be1", str_newlabel="Non-Infectious & Palisading Granulomas")
-#rename_and_grant_session(db, str_session_id="4f0cd073ad2f654736000000", str_newlabel="More Unknowns")
 #grant_session(db, "50e5b46358771825c0cd5f39" , str_db="bidmc1", str_group_id="365400966808177")
 #grant_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bidmc1", str_group_id="365400966808177")
-revoke_session(db, "50e5b46358771825c0cd5f39" , str_db="bev1", str_group_id="365400966808177")
-revoke_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bev1", str_group_id="365400966808177")
+#revoke_session(db, "50e5b46358771825c0cd5f39" , str_db="bev1", str_group_id="365400966808177")
+#revoke_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bev1", str_group_id="365400966808177")
+
+rename_and_grant_session(db, str_session_id="4f050f0aad2f6502cf000000", str_newlabel="Panniculitis")
 
 
 print "Done"
