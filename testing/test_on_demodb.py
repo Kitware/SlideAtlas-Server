@@ -29,6 +29,7 @@ class DemoTests(unittest.TestCase):
         driver.find_element_by_link_text("4815 - 2010-10-06 16.32.21.ndpi").click()
 
         driver.save_screenshot('demo_glview.png')
+        print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"
 
         self.failUnless(imagecompare("demo_glview.png", "imgs/demo_glview.png") < 10.0)
 
