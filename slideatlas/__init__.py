@@ -1,4 +1,5 @@
 from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
+from celery import Celery
 
 from flask_bootstrap import Bootstrap
 import mongokit
@@ -11,6 +12,7 @@ import sys, os
 # Create App
 sys.path.append(os.path.dirname(__file__))
 app = Flask(__name__)
+celery = Celery(broker="mongodb://127.0.0.1/slideatlas-tasks", backend="mongodb://127.0.0.1/slideatlas-tasks")
 
 # Configure here teh path to put downloaded folders 
 # (should be big and with write access to web server user)
