@@ -1,6 +1,7 @@
 # include from top level
 import sys
 sys.path.append("..")
+from subprocess import call
 
 from slideatlas import model
 
@@ -80,6 +81,32 @@ def rename_and_grant_session12(dbobj):
     print "Rule found: ", ruledoc["_id"]
     dbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
+
+def dump_a_session(dbobj, str_session_id):
+    """
+    Using mongodump to export images in a session from hardcoded database 
+    on slideatlas
+    """
+    sessionid = ObjectId("4ed62213114d971078000000")
+
+    # Create a meta collection connecting to temp db
+
+    conn = dbobj.connection
+    db = conn["bev1"]
+    sessionobj = db["sessions"].find_one({"_id" : ObjectId(str_session_id)})
+
+#    for aviewid in sessionobj["views"]:
+#        viewobj = db["views"].find_one({"_id" : aviewid["ref"]})
+#        imgobj = db["images"].find_one({"_id" : viewobj["img"]})
+#        print "Processing ", imgobj["filename"]
+#        db["claw"].insert(imgobj)
+#        params = [ "mongodump", "-h", "slide-atlas.org", "-u", "claw", "-p", "claw123", "-d", "bev1", "-c", str(imgobj["_id"]) ]
+#        print params
+#        call(params)
+    params = [ "mongodump", "-h", "slide-atlas.org", "-u", "claw", "-p", "claw123", "-d", "bev1", "-c", "claw"]
+    call(params)
+
+    print "done"
 
 def rename_and_grant_session10(dbobj):
     """
@@ -466,7 +493,8 @@ db = conn[DBNAME]
 #revoke_session(db, "50e5b46358771825c0cd5f39" , str_db="bev1", str_group_id="365400966808177")
 #revoke_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bev1", str_group_id="365400966808177")
 
-rename_and_grant_session(db, str_session_id="4f050f0aad2f6502cf000000", str_newlabel="Panniculitis")
-
+#dump_a_session(db, "4ec4504824c1bf4b93009bd5")
+rename_and_grant_session(db, str_session_id="4f172b6c114d976e99000000", str_newlabel="Tumors of Epidermal Appendages")
+rename_and_grant_session(db, str_session_id="4f0dd159ad2f65a90c000000", str_newlabel="Yet more unkowns")
 
 print "Done"
