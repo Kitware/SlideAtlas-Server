@@ -6,4 +6,5 @@ docs/build
 docs/docs
 testing/*.png
 testing/*.log
+testing/Testing
 
