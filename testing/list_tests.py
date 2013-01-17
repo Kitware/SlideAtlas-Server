@@ -1,7 +1,11 @@
 import unittest
 
 loader = unittest.TestLoader()
-suite = loader.discover(".")
+suite = loader.discover("unit")
+
+loader = unittest.TestLoader()
+suite.addTests(loader.discover("regression"))
+
 for atest in suite:
     tests = atest._tests
     if len(tests):
