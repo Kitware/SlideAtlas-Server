@@ -27,3 +27,8 @@ Two colum layout will be useful for assembly of sessions.
 
 Two lists and one can accept drag and drops
 
+Reordering lists
+----------------
+
+- `Link To achieve this with jquery UI and bootstrap and with rails <http://benw.me/posts/sortable-bootstrap-tables/>`_
+- `Link Demo using jquery UI <http://eli.eliandlyndi.com/2011/12/18/jui-sortable-bootstrap-perf-problem/>`_
