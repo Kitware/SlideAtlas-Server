@@ -1,9 +1,11 @@
 Gettting started
 ================
 
+.. include:: ../README.rst
+    
 Setting up Database
 -------------------
-A good place to start is setup mongodb, and restore demo database from backups
+A good place to start  is setup mongodb, and restore demo database from backups
 
 The database schema keeps evolving and the restored database might not work out of box,
 though DJ will take care that the most recent database is backed up.

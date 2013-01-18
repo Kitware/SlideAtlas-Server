@@ -8,7 +8,7 @@ Welcome to SlideAtlas's documentation!
 
 .. toctree::
    :titlesonly:
-      
+
    get-started
    schema
    admin-rights

@@ -1,18 +1,45 @@
-DigitalPath Whole Slide Atlas
-=============================
+To install dependencies
+-----------------------
 
-Detailed documentation can be built using sphinx 
+Requires python 2.7x, pip is useful for instlling all dependencies at once.
 
-cd docs
-make html 
+To install dependencies mentioned in **requirements.txt**
 
-After installing the required python modules mentioned in **requirements.txt** 
-to run 
+.. code-block:: none
 
->>python run.py
+   $ pip install -r requirements.txt --upgrade
+   
 
-This will start a webserver using variables in **config.py** 
- 
+To build documentation
+----------------------
+Detailed documentation can be built using sphinx
+
+.. code-block:: none
+
+   $ cd docs
+   $ make html 
+
+To test
+-------
+
+CMake is required for testing.
+
+.. code-block:: none
+
+   $ cd testing
+   $ ctest -S ctest_driver.cmake
+
+
+To run
+------
+
+.. code-block:: none
+
+   $ python run.py
+
+
+This will start a webserver using variables in **config.py**
+
 
 
 
