@@ -59,7 +59,6 @@ It is not included in the source repository and needs to be included in the path
 And example test -  test_on_demodb tests typical webgl image view and compares the obtained screenshot with the expected.
 This test will currently  fail if the screen resolution changes from monitor to monitor. In future the test will accomodate image resize.
 
-
 Internal testing
 ----------------
 
@@ -69,9 +68,4 @@ In future, needs to be done for each request
 Uploading screenshots to the cdash
 
 `Link Upload Images to Cdash <http://public.kitware.com/pipermail/cdash/2011-June/000995.html>`_
-
-Adding new tets
----------------
-
-
 
