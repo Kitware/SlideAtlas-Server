@@ -494,7 +494,8 @@ db = conn[DBNAME]
 #revoke_session(db, "50e5c6e358771825c0cd5f4c" , str_db="bev1", str_group_id="365400966808177")
 
 #dump_a_session(db, "4ec4504824c1bf4b93009bd5")
-rename_and_grant_session(db, str_session_id="4f172b6c114d976e99000000", str_newlabel="Tumors of Epidermal Appendages")
-rename_and_grant_session(db, str_session_id="4f0dd159ad2f65a90c000000", str_newlabel="Yet more unkowns")
+#rename_and_grant_session(db, str_session_id="4f172b6c114d976e99000000", str_newlabel="Tumors of Epidermal Appendages")
+#rename_and_grant_session(db, str_session_id="4f0dd159ad2f65a90c000000", str_newlabel="Yet more unkowns")
+grant_session(db, "500b93934834a30f18000000" , str_db="bev1", str_group_id="365400966808177")
 
 print "Done"
