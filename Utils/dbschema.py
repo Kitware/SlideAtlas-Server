@@ -496,6 +496,9 @@ db = conn[DBNAME]
 #dump_a_session(db, "4ec4504824c1bf4b93009bd5")
 #rename_and_grant_session(db, str_session_id="4f172b6c114d976e99000000", str_newlabel="Tumors of Epidermal Appendages")
 #rename_and_grant_session(db, str_session_id="4f0dd159ad2f65a90c000000", str_newlabel="Yet more unkowns")
-grant_session(db, "500b93934834a30f18000000" , str_db="bev1", str_group_id="365400966808177")
+#grant_session(db, "500b93934834a30f18000000" , str_db="bev1", str_group_id="365400966808177")
+#rename_and_grant_session(db, str_session_id="4f1f64714834a30390000000", str_newlabel="Connective Tissue Diseases")
+#rename_and_grant_session(db, str_session_id="4f4c6f7e4834a30698000000", str_newlabel="Tumors of Fibrous Tissue")
+
 
 print "Done"

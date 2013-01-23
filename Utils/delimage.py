@@ -3,6 +3,7 @@
 # (please reuse if possible)
 # adds or delets images from sessions 
 # The image must already exist
+# Todo Checks whether view is listed in multiple sessions, but not whether images are listed that way
 
 import pymongo
 import sys
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 		error_exit("Image not found: " + args.image)
 
 	print "\nImage found: ", image['_id']
-	print image
+	print image["filename"]
 
 	#print "  Name: ", image['name']
 
@@ -147,6 +148,7 @@ if __name__ == '__main__':
 				# TODO: delete the corresponding view
 				views = asession['views']
 				found = False
+				viewids_to_delete = []
 				for aview in views:
 					viewobj = get_object_in_collection(mongodb["views"], aview["ref"])
 					if viewobj['img'] == image['_id']:
@@ -155,7 +157,8 @@ if __name__ == '__main__':
 						index = views.index(aview)
 						col_to_del = str(views[index]['ref'])
 						print "Image ", col_to_del, " set for deletion"
-						# TODO: Delete actual image 
+						viewids_to_delete.append(viewobj["_id"])
+						# Delete the entry in session
 						del views[index]
 						# Delete the image collection
 						mongodb.drop_collection(col_to_del)
@@ -164,6 +167,10 @@ if __name__ == '__main__':
 				# Done processing image list in a session  
 				if found:
 					mongodb['sessions'].update({'_id': asession['_id']}, {'$set':{'views': views}})
+					print "ViewIds", viewids_to_delete, " set for deletion"
+					for aviewid in viewids_to_delete:
+							# Delete the view 
+							mongodb["views"].remove({"_id" : aviewid})
 				else:
 					error_exit("Unexpected behavior")
 
