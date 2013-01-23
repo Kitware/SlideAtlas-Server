@@ -7,37 +7,36 @@ import sys
 import os
 from subprocess import call
 import argparse
+import datetime
+import os
 
 debug = False
 
-def dump_meta_collections(db, root_path):
+def dump_meta_collections(args, db, root_path):
 	"""
 	from supplied database object, dumps all the collections that do not start with a number (objectId)
 	"""
+	newpath = root_path + "/" + datetime.datetime.now().strftime('metabackup_%H_%M_%S_%d_%m_%Y')
+	# Create a folder with current date and time
+	if os.path.exists(newpath):
+		print "[Error] Time folder exists"
+		sys.exit(0)
+	else:
+		os.makedirs(newpath)
 	cols = db.collection_names()
-	cols.reverse()
 	num = len(cols)
-	print num
 	count = 0
 
 	for acol in cols:
 		backup = True
-		print acol,
 
 		# If the collection is image collection
 		if acol[0] == '4' or acol[0] == '5':
-			if os.path.exists(acol + ".bson"):
-				print "Already exists"
-				backup = False
-			else:
-				if not only_meta:
-					backup = True
-				else:
-					backup = False
+			print "Skipping ", acol
+		else:
+			params = [ "mongodump", "-h", "slide-atlas.org", "-u", "claw", "-p", "claw123", "-d", "bev1", "-c", acol, "-o", newpath]
+			call(params)
 
-		if backup:
-			print " ",
-			call(["mongodump", "--host", mongo, "-d", database, "-c", acol, "-o", ".."])
 		count = count + 1
 		print "Done .." + str(count) + "/" + str(num)
 
@@ -45,6 +44,8 @@ if __name__ == "__main__":
 	#want command line argument
 	parser = argparse.ArgumentParser(description='Utility to dumps all the collections that do not start with a number (objectId)')
 	parser.add_argument('db' , help='Database instance from which to read')
+	parser.add_argument('-r', '--root' , help='The root path of where to backup', default=".")
+
 	parser.add_argument("-m", "--mongo" , help='MongoDB Server from which to read', default="slide-atlas.org")
 	# In future accept license as the argument
 	parser.add_argument('-u', '--admin-user', help='admin user (for MongoDB)', default='')
@@ -53,7 +54,6 @@ if __name__ == "__main__":
 	parser.add_argument('-n', '--no-op', help='Dry run, no updates to the destination database (default:%(default)s)', default=False, action='store_true')
 	parser.add_argument('-d', '--debug', help='Print more output useful for debugging (default:%(default)s)', default=False, action='store_true')
 	parser.add_argument('-a', '--all', help='Process all databases (Not implemented now) (default:%(default)s)', default=False, action='store_true')
-
 
 	args = parser.parse_args()
 
@@ -72,3 +72,5 @@ if __name__ == "__main__":
 	except:
 		print 'Cound not Connect ..'
 		sys.exit(0)
+
+	dump_meta_collections(args, db, args.root)
