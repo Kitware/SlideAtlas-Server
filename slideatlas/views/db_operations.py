@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, abort, jsonify, request
+from flask import Blueprint, Response, abort, jsonify, request, current_app
 from slideatlas import slconn as conn, admindb
 import mongokit
 import json
@@ -25,7 +25,7 @@ def modify():
         return jsonify(data)
 
     conn.register([model.Database])
-    admindb2 = conn["slideatlasv2"]
+    admindb2 = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb2["databases"].find_one({"_id" : ObjectId(db)})
 
     # TODO: Make sure that the caller has access rights for modification 

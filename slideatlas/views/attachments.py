@@ -1,6 +1,7 @@
 
 from flask import Blueprint, Response, abort, request, session, flash, redirect, send_file, current_app
 from slideatlas import slconn as conn
+
 from bson import ObjectId
 from slideatlas import model
 from werkzeug.wsgi import wrap_file
@@ -29,7 +30,7 @@ def attachments():
 
     # TODO: Can we store this information in the session information (or a database information)
     conn.register([model.Database])
-    admindb = conn["slideatlasv2"]
+    admindb = conn[app.config["CONFIGDB"]]
     try:
         dbid = ObjectId(db)
     except:

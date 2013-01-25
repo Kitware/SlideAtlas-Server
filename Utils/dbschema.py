@@ -1,17 +1,18 @@
-# include from top level
+# include top level PYTHONPATH 
 import sys
 sys.path.append("..")
-from subprocess import call
 
+from subprocess import call
 from slideatlas import model
+from slideatlas import site_local as site
+
+HOST = site.MONGO_SERVER
+CONFIGDB = site.CONFIGDB
 
 import mongokit
 from bson import ObjectId
 
 # Add a database
-HOST = "slide-atlas.org"
-#HOST = "ayodhya"
-DBNAME = 'slideatlasv2'
 
 def grant_Malignant_Melanoma(dbobj):
     ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, session, redirect, flash, url_for, jsonify
+from flask import Blueprint, request, render_template, session, redirect, flash, url_for, jsonify, current_app
 from slideatlas.model import Image, Session, Rule, User, Database
 from bson.objectid import ObjectId
 from slideatlas import slconn as conn
@@ -21,7 +21,7 @@ def sessions():
 
     # Compile the rules
     conn.register([Image, Session, User, Rule, Database])
-    admindb = conn["slideatlasv2"]
+    admindb = conn[current_app.config["CONFIGDB"]]
 
 
     # Assert the user is logged in
