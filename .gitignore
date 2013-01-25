@@ -8,3 +8,4 @@ testing/*.png
 testing/*.log
 testing/Testing
 
+slideatlas/site_slideatlas.py
