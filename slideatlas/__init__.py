@@ -4,8 +4,6 @@ from celery import Celery
 from flask_bootstrap import Bootstrap
 import mongokit
 
-import site_local as site
-
 import model
 import sys, os
 
@@ -28,9 +26,6 @@ if  app.config["LOGIN_REQUIRED"]:
 
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
-
-
-print app.config["MONGO_SERVER"]
 
 app.config['BOOTSTRAP_USE_MINIFIED'] = False
 

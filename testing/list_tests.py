@@ -1,4 +1,5 @@
 import unittest
+DEBUG = False
 
 def list_tests_from(path):
     loader = unittest.TestLoader()
@@ -7,6 +8,8 @@ def list_tests_from(path):
         tests = atest._tests
         if len(tests):
             for atest in tests:
+                if DEBUG:
+                    print atest
                 for btest in atest._tests:
                     btestname = btest.__str__().split()
                     print path + "." + btestname[1][1:-1] + "." + btestname[0]
