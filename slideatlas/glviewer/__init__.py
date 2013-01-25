@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, url_for
+from flask import Blueprint, render_template, request, url_for, current_app
 from bson import ObjectId
 from slideatlas import slconn as conn
 from slideatlas import model
@@ -26,7 +26,7 @@ def glview():
         db = '5074589002e31023d4292d83'
 
     conn.register([model.Database])
-    admindb = conn["slideatlasv2"]
+    admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].find_one({"_id" : ObjectId(db)})
     imgdb = conn[dbobj['dbname']]
 

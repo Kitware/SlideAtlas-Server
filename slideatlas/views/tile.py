@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, abort, request, session
+from flask import Blueprint, Response, abort, request, session, current_app
 from slideatlas import slconn as conn
 from bson import ObjectId
 from slideatlas import model
@@ -19,7 +19,7 @@ def tile():
         abort(403)
 
     conn.register([model.Database])
-    admindb = conn["slideatlasv2"]
+    admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].find_one({"_id" : ObjectId(db)})
     imgdb = conn[dbobj['dbname']]
     colImage = imgdb[img]

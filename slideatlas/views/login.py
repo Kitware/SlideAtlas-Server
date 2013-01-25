@@ -1,5 +1,5 @@
 
-from flask import Blueprint, redirect, render_template, request, session, flash, url_for
+from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
 from flask_openid import OpenID
 from flask_oauth import OAuth
 
@@ -35,7 +35,7 @@ def login():
 def login_passwd():
     # Try to find the user
     conn.register([model.User])
-    admindb = conn["slideatlasv2"]
+    admindb = conn[current_app.config["CONFIGDB"]]
 
     user = admindb["users"].User.find_one({"name" : request.form['username']})
     if user == None:
@@ -68,7 +68,7 @@ def facebook_authorized(resp=None):
 
     # Check if the user exists
     conn.register([model.User])
-    dbobj = conn["slideatlasv2"]
+    dbobj = conn[current_app.config["CONFIGDB"]]
     userdoc = dbobj["users"].User.fetch_one(
                             {'type' : 'facebook',
                             'name' : me.data['email']
@@ -108,7 +108,7 @@ def login_google(oid_response=None):
     else:
         # Check if the user exists
         conn.register([model.User])
-        dbobj = conn["slideatlasv2"]
+        dbobj = conn[current_app.config["CONFIGDB"]]
         userdoc = dbobj["users"].User.fetch_one(
                                 {'type' : 'google',
                                 'name' : oid_response.email

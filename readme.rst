@@ -37,8 +37,7 @@ To run
 
    $ python run.py
 
-
-This will start a webserver using variables in **config.py**
+This will start a webserver if the mongo database server is correctly configured in some configuration file similar to **site_local.py**.
 
 
 
