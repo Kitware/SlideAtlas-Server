@@ -1,5 +1,6 @@
 from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
 from celery import Celery
+from version import get_git_name
 
 from flask_bootstrap import Bootstrap
 import mongokit
@@ -105,9 +106,9 @@ def home():
         # Send the user back to login page
         # with some message
         flash("You are not logged in..", "info")
-        label = 'World'
+        label = None
         email = None
 
-    return render_template('hello.html', name=label, email=email)
+    return render_template('home.html', name=label, email=email, git=get_git_name())
 
 
