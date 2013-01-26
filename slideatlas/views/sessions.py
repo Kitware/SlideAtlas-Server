@@ -1,7 +1,8 @@
-from flask import Blueprint, request, render_template, session, redirect, flash, url_for, jsonify, current_app
+from flask import Blueprint, request, render_template, session, redirect, flash, url_for, current_app
 from slideatlas.model import Image, Session, Rule, User, Database
 from bson.objectid import ObjectId
 from slideatlas import slconn as conn
+from slideatlas.common_utils import jsonify
 
 from gridfs import GridFS
 from bson import ObjectId
@@ -46,7 +47,7 @@ def sessions():
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
     sessdb = request.args.get('sessdb', None)
-    ajax = request.args.get('ajax', None)
+    ajax = request.args.get('json', None)
     next = int(request.args.get('next', 0))
 
     if sessid and sessdb:
@@ -201,5 +202,7 @@ def sessions():
 #                                  'canadmin' : False},
 #                                  ]
 #            })
-
-        return render_template('sessionlist.html', sessions=sessionlist, name=name)
+        if ajax:
+            return jsonify(sessions=sessionlist, name=name, ajax=1)
+        else:
+            return render_template('sessionlist.html', sessions=sessionlist, name=name)

@@ -111,4 +111,3 @@ def home():
 
     return render_template('home.html', name=label, email=email, git=get_git_name())
 
-
