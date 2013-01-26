@@ -49,21 +49,15 @@ def logparse(dbname):
                                         "users" : [ [], set([]) ],
                                         "time": alog["time"]
                                         }
-            daily[time]["images"][0].append([alog["img_id"], ])
-            daily[time]["users"][0].append([str(alog["user"]["_id"]), ])
+
+            daily[time]["images"][0].append(alog["img_id"],)
+            daily[time]["users"][0].append(str(alog["user"]["_id"]),)
+
             daily[time]["images"][1].update([alog["img_id"], ])
-            daily[time]["users"][1].update([str(alog["user"]["_id"]), ])
+            daily[time]["users"][1].update([str(alog["user"]["_id"])],)
 
         # split time into days
     daylist = daily.keys()
-
-    print daylist
-
-    for aday in sorted(daylist):
-        a = daily[aday]
-        print a["time"].strftime("%a"), aday, ":"
-        print  "    ", "images:", len(a["images"][0]), len(a["images"][1])
-        print  "    ", "users:", len(a["users"][0]), len(a["users"][1])
 
     result["unique_users"] = len(users)
     result["unique_images"] = len(images)
@@ -71,6 +65,17 @@ def logparse(dbname):
     print "Result - "
     for akey in result:
         print "    ", akey, ", ", result[akey]
+
+    print
+    print "Daily Result - "
+    for aday in sorted(daylist):
+        a = daily[aday]
+        print "  ", a["time"].strftime("%a"), aday, ":"
+        print  "    ", "images: (total: ", len(a["images"][0]), ", unique: ", len(a["images"][1]), ")"
+        print  "    ", "users: (unique: ", len(a["users"][1]), ")"
+#        print a["images"]
+#        print a["users"]
+
 
     return result
 
