@@ -3,6 +3,10 @@
 {# note: All site templates extend from this. This is for common functionality of thepages
     
 #}
+{% block head %}
+{{ super() }} 
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+{% endblock %}
 
 {% block body_content %}
 <div class="navbar navbar-inverse navbar-fixed-top">
