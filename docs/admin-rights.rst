@@ -18,7 +18,7 @@ DB Admin
 - Create new sessions
 - By default admin them
 - Grant admin access
-- session to
+- Create and revoke database licenses (see below)
 
 Session Admin
 ~~~~~~~~~~~~~
@@ -34,12 +34,13 @@ Session Admin
 No admin
 ~~~~~~~~
 
-
 - Currently only view access
 
 
 Additional Notes
 ----------------
+
+Currently considering only db_admin, and no admin access rights are implemented for simplicity.
 
 Uploading files
 ~~~~~~~~~~~~~~~
@@ -76,8 +77,11 @@ This list should also be added to the databases record in the schema
 --------------------------------------------------------------------
 Assuming only one (or two) users are going to upload images.
 
-Create a username-database pair
+Database specific username, database pairs are created. Database admin can create / list revoke them.
 
-`Link Reference <http://www.laurentluce.com/posts/python-and-cryptography-with-pycrypto/#a_3>`_ for public key encryption
+Reference for cryptographic encryption to secure these is using `public key encryption <http://www.laurentluce.com/posts/python-and-cryptography-with-pycrypto/#a_3>`_
+
+TODO: Add tests for testing license.
 
 
+For operation on each DB

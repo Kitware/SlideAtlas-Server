@@ -3,7 +3,7 @@ To install dependencies
 
 Requires python 2.7x, and pip.
 
-Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows`_ on windows
+Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows
 Also please make sure that the python and scritps ("c:/python27/Scripts") are in PATH environment variable.
 
 To install dependencies mentioned in **requirements.txt**
