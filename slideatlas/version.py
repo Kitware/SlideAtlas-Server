@@ -3,7 +3,7 @@ from subprocess import check_output
 def get_git_name():
     out = ''
     try:
-        params = ["git", "describe", "--tags"]
+        params = ["git", "describe", "--tags", "--always"]
         out = check_output(params)
     except:
         # Support for particular case when running on windows 
