@@ -169,3 +169,22 @@ image data/pyramid collection (named *ObjectId*)
       - **'hide'**: bool
       - **'label'**: str
 
+
+'log' collection
+~~~~~~~~~~~~~~~~
+
+- **'\_id'**: ObjectId
+- **time** : ISODate("2013-01-07T22:18:07.222Z"),
+- **time_str** : str  "Mon, 7 Jan 2013 17:18:07",
+- **db_id** : ObjectId,
+- **db_name** : str "bev1",
+- **sess_id** : ObjectId,
+- **view_id** : ObjectId,
+- **img_id** : ObjectId,
+- **image_label** : str,
+- **ip**:str ("127.0.0.1" etc)
+- **user** : Object
+
+      - **\_id** : ObjectId,
+      - **label** : str
+      - **auth** : str("admin", "student" etc)
