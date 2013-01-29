@@ -15,3 +15,5 @@ flask-oauth
 #flask-WTF
 # Optionally tornado for production server run
 tornado
+celery
+
