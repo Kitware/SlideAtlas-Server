@@ -20,8 +20,9 @@ Uploader features
 Authentication (login) operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- / Home page
+- A user session can be created by either sending an json request or by logging into page which sends out a json request to the api.
 
+- / Home page
    - login form
    - Information on what this site is about
 
@@ -32,21 +33,62 @@ Authentication (login) operations
    - &type=password
 
 
-Session management
+Session and images
 ~~~~~~~~~~~~~~~~~~
 
-- / sessions
-   - &sess=<id>
+-  sessions/<sessid>
+   - &rename=<new-label>
+
+
+- /sessions/<sessid>
+   - &grant=<new-label>
+
    - /  Gets a list of all sessions  for the logged in user can see
 
+Viewing image
+~~~~~~~~~~~~~
 - Main image view with annotation management
-   - &id=<id>
-   - &db=<db>
 
-Access management
+- /glviewer/<viewid>
+   - ?viewid=<viewid>
+   - &dbid = <dbid>
+
+   /olviewer?viewid=<viewid>
+   - ?viewid=<viewid>
+   - &dbid = <dbid>
+
+TODO: Probably the img appears only in one database, and so dbid could be resolved internally / stored in viewid
+
+Versioing
+~~~~~~~~~
+
+- Implement in a blueprint so that the url-prefix makes it easy to rename
+- Do some validation in individual case, determine what the user should be able to query and then use common helper
+   python routines to get the data
+
+
+Generic resources
 ~~~~~~~~~~~~~~~~~
 
-- / get
+- Getting the information, here "user" is used, and can be replaced by any generic resource
+   - user
+   - session
+   - view
+
+Session
+-------
+
+GET (Get the information)
+- /user/<userid>
+   - &id=<id> Get specifc user
+
+PUT (Update the information)
+- /user/<userid>
+   - &id=<id> Get specifc user
+
+
+POST
+- /user/<userid>
    - &id=<id> Get specifc user
 
 - / getlist
