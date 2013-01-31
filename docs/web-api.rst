@@ -20,16 +20,22 @@ Rest API design thoughts
 
 Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface
 
-Two kinds of API, those in image database, and those in administrative database
-Those in imagedb require a id to database in each request
+Two kinds API for two kinds of database types. those in image database, and those in administrative database
+Those in image database require a database id (to locate the database) in each request
+
+A common decorator to check the access
+post and put operations require admin access to the database
+
 
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+To read user has read access to session. It is easiest at this point to put can_see / can_admin information
+in the cookie session, other alternatives are to evaluate that information every time
+
 - Insert items
 
    - attachments
-
          - Upload a new file:
                   PUT /<dbid>/sessions/<sessid>/attachments
          - Insert an already existing attachments
@@ -63,6 +69,8 @@ Administrative database
 - All queries return empty list when used with GET or 403
 - Resources will return 40X depending on the error
 - There could be a generic API for
+
+Administrative access is required to any queries dealing directly with administrative database
 
 - GET
 

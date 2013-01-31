@@ -1,8 +1,6 @@
 import mongokit
 from bson import ObjectId
 
-import database
-
 class Rule(mongokit.Document):
     structure = {
         'label' : basestring,

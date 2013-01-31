@@ -12,7 +12,56 @@ CONFIGDB = site.CONFIGDB
 import mongokit
 from bson import ObjectId
 
+# Authenticate
+conn = mongokit.Connection(HOST)
+if site.LOGIN_REQUIRED:
+    admindb = conn["admin"]
+
+    if admindb.authenticate("slideatlasweb", "2&PwRaam4Kw") == 0:
+        print "Cannot authenticate"
+        sys.exit(0)
+    else:
+        print "Connection Authenticated .."
+
+# List all databases
+conn.register([model.Database, model.Rule, model.User, model.Session])
+
 # Add a database
+def add_new_admin_rule_to_demo():
+    # Create a rule
+    conn.register([model.Database, model.Rule, model.User, model.Session])
+    db = conn[site.CONFIGDB]
+    arule = db["rules"].Rule()
+    arule["db"] = ObjectId("507619bb0a3ee10434ae0827")
+    arule["label"] = "DJ Adminstrator"
+    arule["can_see_all"] = True
+    arule["db_admin"] = True
+    arule.validate()
+    arule.save()
+    print arule
+
+# Add a database
+def add_admin_rule_toDJ():
+    # Find a user with google and email address
+    conn.register([model.Database, model.Rule, model.User, model.Session])
+    db = conn[site.CONFIGDB]
+    user = db["users"].User.find_one({"name" : "dhandeo@gmail.com", "type" : "google"})
+    print "Found User: ", user
+
+    # Find rule 
+    rule = db["rules"].find_one({"_id": ObjectId('510b0327d63647b2cd3cef1a')})
+    print 'Found Rule: ', rule["_id"]
+
+    user["rules"].append(rule["_id"])
+    user.validate()
+    user.save()
+    print user
+
+#    db["users"].update({"name" : "dhandeo@gmail.com", "type" : "google"})
+#    print "Found User: ", user["_id"]
+
+
+
 
 def grant_Malignant_Melanoma(dbobj):
     ruledoc = dbobj["rules"].Rule.find_one({'facebook_id':"231408953605826"})
@@ -448,20 +497,6 @@ def get_number_of_all_images(dbobj):
 
     print "Total number of images: ", sum
 
-# Authenticate
-conn = mongokit.Connection(HOST)
-admindb = conn["admin"]
-
-if admindb.authenticate("slideatlasweb", "2&PwRaam4Kw") == 0:
-    print "Cannot authenticate"
-    sys.exit(0)
-else:
-    print "Connection Authenticated .."
-
-# List all databases
-conn.register([model.Database, model.Rule, model.User, model.Session])
-db = conn[DBNAME]
-
 # Add bidmc1 and kawai1 databases
 #insert_BIDMC_KAWAI(db)
 
@@ -500,6 +535,7 @@ db = conn[DBNAME]
 #grant_session(db, "500b93934834a30f18000000" , str_db="bev1", str_group_id="365400966808177")
 #rename_and_grant_session(db, str_session_id="4f1f64714834a30390000000", str_newlabel="Connective Tissue Diseases")
 #rename_and_grant_session(db, str_session_id="4f4c6f7e4834a30698000000", str_newlabel="Tumors of Fibrous Tissue")
-
-
+#add_new_admin_rule_to_demo()
+#add_admin_rule_toDJ()
+#add_new_admin_to_demo()
 print "Done"
