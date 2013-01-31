@@ -34,5 +34,13 @@ class APIv1_Tests(unittest.TestCase):
             rv = self.app.get(aurl)
             assert rv.status_code == 404
 
+    def testLogin(self):
+        """ Any URL should not return without logging in
+        """
+        pass
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

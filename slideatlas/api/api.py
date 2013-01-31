@@ -19,6 +19,8 @@ mod = Blueprint('api', __name__,
 
 # The url valid for databases, rules and users with supported queries
 class AdminDBAPI(MethodView):
+    decorators = [common_utils.user_required]
+
     def get(self, restype, resid):
         if resid == None:
             return "You want alist of %s" % (restype)
