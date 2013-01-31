@@ -4,7 +4,7 @@ sys.path.append("..")
 from slideatlas.version import get_git_name
 import unittest
 
-class ImageComparisonTests(unittest.TestCase):
+class MiscTests(unittest.TestCase):
     def testSamelargeImage(self):
         out = get_git_name()
         # make sure it contains a .
