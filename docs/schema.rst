@@ -50,6 +50,7 @@ Administrative database (always named "slideatlas")
    -  ObjectId (pointer to 'sessions' document, within a data database)
 
 - **'can\_see\_all'**: bool (effectively populates 'can\_see' with all available sessions)
+- **site\_admin'** : tag for super administrator if true
 
 'databases' collection
 ~~~~~~~~~~~~~~~~~~~~~~

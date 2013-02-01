@@ -40,6 +40,18 @@ def add_new_admin_rule_to_demo():
     arule.save()
     print arule
 
+def modify_rule_to_site_admin():
+    conn.register([model.Database, model.Rule, model.User, model.Session])
+    db = conn[site.CONFIGDB]
+    # Find rule 
+    rule = db["rules"].Rule.find_one({"_id": ObjectId('510b0327d63647b2cd3cef1a')})
+    print 'Found Rule: ', rule["_id"]
+    rule["site_admin"] = True
+    rule.validate()
+    rule.save()
+    print rule
+
+
 # Add a database
 def add_admin_rule_toDJ():
     # Find a user with google and email address
@@ -538,4 +550,5 @@ def get_number_of_all_images(dbobj):
 #add_new_admin_rule_to_demo()
 #add_admin_rule_toDJ()
 #add_new_admin_to_demo()
+#modify_rule_to_site_admin()
 print "Done"
