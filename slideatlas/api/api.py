@@ -80,8 +80,8 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 # Specially for session
 
 # For a list of sessions 
-@mod.route('/<regex("[a-f0-9]{24}"):dbid>'
-                        '/sessions', defaults={"resid" : None, "restype" : None, "sessid" : None})
+mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
+                                '/sessions', view_func=DataSessionItemsAPI.as_view("show_session_list"), defaults={"resid" : None, "restype" : None, "sessid" : None})
 
 # For a particular session (May not be needed)
 @mod.route('/<regex("[a-f0-9]{24}"):dbid>'

@@ -73,6 +73,18 @@ def add_admin_rule_toDJ():
 #    print "Found User: ", user["_id"]
 
 
+def create_admin_user():
+    # Find a user with google and email address
+    conn.register([model.Database, model.Rule, model.User, model.Session])
+    db = conn[site.CONFIGDB]
+    auser = db["users"].User()
+    auser["name"] = "demo_admin"
+    auser["passwd"] = "2.0TB"
+    auser["label"] = "Slide Atlas Administration Demonstration"
+    auser["type"] = "passwd"
+    auser["rules"] = [ObjectId('510b0327d63647b2cd3cef1a') ]
+    auser.validate()
+    auser.save()
 
 
 def grant_Malignant_Melanoma(dbobj):
@@ -551,4 +563,7 @@ def get_number_of_all_images(dbobj):
 #add_admin_rule_toDJ()
 #add_new_admin_to_demo()
 #modify_rule_to_site_admin()
+
+#create_admin_user()
+
 print "Done"

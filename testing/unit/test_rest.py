@@ -10,10 +10,16 @@ class APIv1_Tests(unittest.TestCase):
         self.app1.testing = True
         self.app = self.app1.test_client()
 
-    def login(self):
+    def login_viewer(self):
         return self.app.post('/login.passwd', data=dict(
             username="all_demo",
             passwd=""
+        ), follow_redirects=True)
+
+    def login_admin(self):
+        return self.app.post('/login.passwd', data=dict(
+            username="demo_admin",
+            passwd="2.0TB"
         ), follow_redirects=True)
 
     def logout(self):
@@ -47,18 +53,38 @@ class APIv1_Tests(unittest.TestCase):
     def testLoginWithUser(self):
         """ Any URL should not return without logging in
         """
-        # aurl = "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83"
-        aurl = "/apiv1/databases/5074589002e31023d4292d83"
+        user_url = "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/views"
+        admin_url = "/apiv1/databases/5074589002e31023d4292d83"
 
         # expact 401
-        rv = self.app.get(aurl)
-        print "Before login: ", rv.status_code, " ", aurl
+        rv = self.app.get(user_url)
+        print "Before login: ", rv.status_code, " ", user_url
+        assert rv.status_code == 401
+
+        rv = self.app.get(admin_url)
+        print "Before login: ", rv.status_code, " ", admin_url
+        assert rv.status_code == 401
+
+        self.login_viewer()
+        # expact 200
+        rv = self.app.get(user_url)
+        print "After user login login : ", rv.status_code, " ", user_url
+        assert rv.status_code == 200
+
+        self.logout()
+
+        rv = self.app.get(admin_url)
+        print "After user login login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 401
 
         # expact 200
-        self.login()
-        rv = self.app.get(aurl)
-        print "After login : ", rv.status_code, " ", aurl
+        self.login_admin()
+        rv = self.app.get(user_url)
+        print "After user login login : ", rv.status_code, " ", user_url
+        assert rv.status_code == 200
+
+        rv = self.app.get(admin_url)
+        print "After user login login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 200
 
 if __name__ == "__main__":
