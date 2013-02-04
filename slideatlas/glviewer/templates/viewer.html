@@ -78,6 +78,9 @@ shape has visibility and
   // These globals are used in the viewer javascript.  I need to get rid of them.
   var origin = {{img.origin}};
   var spacing = {{img.spacing}};
+  var center = {{img.center}};
+  var zoom = {{img.zoom}};
+  var rotation = {{img.rotation}};
 
 </script>
 
@@ -150,14 +153,12 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
-
-
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
 
   function initViews() {
-    var source1 = new Cache("/tile?img={{img.collection}}&db={{db}}&name=");
+    var source1 = new Cache("/tile?img={{img.collection}}&db={{img.db}}&name=");
     VIEWER1 = new Viewer([0,0, CANVAS.clientWidth,CANVAS.clientHeight], source1);
 
     // This may not be used anymore.
@@ -171,6 +172,7 @@ shape has visibility and
 
     }
     var cam = null;
+    // The old php way:
     if(cam){
       VIEWER1.MainView.Camera.Height = parseFloat(cam.height);
       VIEWER1.MainView.Camera.FocalPoint[0] = parseFloat(cam.fp[0]);
@@ -181,7 +183,11 @@ shape has visibility and
       VIEWER1.MainView.Camera.ComputeMatrix();
       VIEWER1.OverView.Camera.ComputeMatrix();
     }
-
+    // Compute the height from the zoom.
+    var height = CANVAS.clientHeight << zoom;
+    VIEWER1.SetStartupView(center,rotation,height);
+    
+    
     EVENT_MANAGER.AddViewer(VIEWER1);
 
     // TODO: Add annotations later

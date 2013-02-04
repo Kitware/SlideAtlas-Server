@@ -33,7 +33,7 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                <td><a href="webgl-viewer?db={{animage.db}}&img={{animage.img}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
+                <td><a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
                 <td align="right">
                     <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                 </td>

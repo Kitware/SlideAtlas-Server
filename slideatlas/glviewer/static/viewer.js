@@ -49,10 +49,32 @@ Viewer.prototype.GetViewport = function() {
 }
 
 
+
+// This is used to set the default camera so the complexities 
+// of the target and overview are hidden.
+Viewer.prototype.SetStartupView = function(center, rotation, height) {
+    this.MainView.Camera.Height = height;
+    this.ZoomTarget = height;    
+
+    this.MainView.Camera.FocalPoint[0] = center[0];
+    this.MainView.Camera.FocalPoint[1] = center[1];
+    //this.MainView.Camera.FocalPoint[2] = center[2];
+    this.TranslateTarget[0] = center[0];
+    this.TranslateTarget[1] = center[1];
+    
+    this.MainView.Camera.Roll = rotation;
+    this.OverView.Camera.Roll = rotation;
+    this.RollTarget = rotation;
+
+    this.MainView.Camera.ComputeMatrix();
+    this.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
+}
+
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
   this.ZoomTarget = this.MainView.Camera.Height * factor;
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
   factor = this.ZoomTarget / this.MainView.Camera.Height; // Actual factor after limit.

@@ -96,7 +96,7 @@ def sessions():
                 animage['db'] = str(dbobj["_id"])
                 animage["img"] = str(viewobj["img"])
                 animage["label"] = imgobj["label"]
-
+                animage["view"] = str(aview["ref"])
 
                 images.append(animage)
 
