@@ -2,13 +2,13 @@ var TIME_STAMP = 0;
 
 
 // Source is the directory that contains the tile files.
-function Cache(source) {
+function Cache(source, numLevels) {
     // For debugging
     //this.PendingTiles = [];
     this.Source = source;
 
     this.TileDimensions = [256, 256];
-    this.RootSpacing = [128.0, 128.0, 10.0];
+    this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
     this.NumberOfSections = 1;
     // For pruning the cache
     this.NumberOfTiles = 0;

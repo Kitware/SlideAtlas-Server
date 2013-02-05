@@ -42,6 +42,8 @@ Viewer.prototype.SetViewport = function(viewport) {
                       viewport[1] + viewport[3]*0.8,
                       viewport[2]*0.18, viewport[3]*0.18];
   this.OverView.SetViewport(overViewport);
+  this.MainView.Camera.ComputeMatrix();
+  this.OverView.Camera.ComputeMatrix();
 }
 
 Viewer.prototype.GetViewport = function() {

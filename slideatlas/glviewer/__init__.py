@@ -53,6 +53,8 @@ def glview():
     img["collection"] = str(docImage["_id"])
     img["origin"] = str(docImage["origin"])
     img["spacing"] = str(docImage["spacing"])
+    img["levels"] = str(docImage["levels"])
+    img["dimension"] = str(docImage["dimension"])
     img["db"] = dbid
     img["center"] = str(docBookmark["center"])
     img["zoom"] = str(docBookmark["zoom"])
