@@ -37,7 +37,6 @@ class AdminDBAPI(MethodView):
         elif restype == 'users':
             # Posting to users means typically adding new rules to users
             return "You want to add database"
-
         pass
 
     def delete(self, restype, resid):
@@ -51,23 +50,18 @@ class AdminDBAPI(MethodView):
         # update some information
         pass
 
-
-
 # The url valid for databases, rules and users with supported queries
 class DatabaseAPI(AdminDBAPI):
-    decorators = [common_utils.user_required]
-
-    def get(self, restype, resid):
+    @common_utils.site_admin_required
+    def get(self, resid):
         if resid == None:
-            return "You want alist of %s" % (restype)
+            return "You want a list of databases"
         else:
-            if restype == "attachments":
-                return "You want %s, %s" % (restype, resid)
-            else:
-                return "You want %s, %s" % (restype, resid)
+            return "You want database %s" % (resid)
 
+    @common_utils.site_admin_required
     def post(self, restype):
-        # create a new user
+        # post requires admin access
         if restype == "rules":
                 return "You want to post rule"
         elif restype == 'databases':
@@ -75,22 +69,13 @@ class DatabaseAPI(AdminDBAPI):
         elif restype == 'users':
             # Posting to users means typically adding new rules to users
             return "You want to add database"
-
         pass
 
-    def delete(self, restype, resid):
-        # Verify the access
-        # Remove one instance
-        # and remove the given resource
-        # Not implemented right now
-        pass
+mod.add_url_rule('/databases', defaults={"resid" : None}, view_func=DatabaseAPI.as_view("show_database_list"))
+mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"))
 
-    def put(self, restype, resid):
-        # update some information
-        pass
-
-mod.add_url_rule('/<regex("(databases|users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"))
-mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))
+mod.add_url_rule('/<regex("(users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"))
+mod.add_url_rule('/<regex("(users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))
 
 
 # The url valid for databases, rules and users with supported queries
@@ -113,6 +98,13 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
                                 '/<regex("(attachments|views)"):restype>', view_func=DataSessionItemsAPI.as_view("show_session_item_list"), defaults={"resid" : None})
 
+# For a list of resources within session
+mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
+                                '/sessions'
+                                '/<regex("[a-f0-9]{24}"):sessid>'
+                                '/<regex("(attachments|views)"):restype>'
+                                '/<regex("[a-f0-9]{24}"):ressid>', view_func=DataSessionItemsAPI.as_view("show_session_item"))
+
 # Specially for session
 
 # For a list of sessions
@@ -123,6 +115,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 @mod.route('/<regex("[a-f0-9]{24}"):dbid>'
                         '/sessions'
                         '/<regex("[a-f0-9]{24}"):sessid>', defaults={"resid" : None, "restype" : None})
+@common_utils.user_required
 
 # For a list of resources within session
 #@mod.route('/<regex("[a-f0-9]{24}"):dbid>'
@@ -130,12 +123,12 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 #                        '/<regex("[a-f0-9]{24}"):sessid>'
 #                        '/<regex("(attachments|views)"):restype>', defaults={"resid" : None})
 
-# For a particular resource within session
-@mod.route('/<regex("[a-f0-9]{24}"):dbid>'
-                        '/sessions'
-                        '/<regex("[a-f0-9]{24}"):sessid>'
-                        '/<regex("(attachments|views)"):restype>'
-                        '/<regex("[a-f0-9]{24}"):resid>')
+## For a particular resource within session
+#@mod.route('/<regex("[a-f0-9]{24}"):dbid>'
+#                        '/sessions'
+#                        '/<regex("[a-f0-9]{24}"):sessid>'
+#                        '/<regex("(attachments|views)"):restype>'
+#                        '/<regex("[a-f0-9]{24}"):resid>')
 
 def session_object_request(dbid, sessid, restype, resid):
     """

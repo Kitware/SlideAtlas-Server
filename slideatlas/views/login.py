@@ -3,6 +3,8 @@ from flask import Blueprint, redirect, render_template, request, session, flash,
 from flask_openid import OpenID
 from flask_oauth import OAuth
 
+from slideatlas.common_utils import DBAccess
+
 from slideatlas import model
 from slideatlas  import slconn as conn
 
@@ -128,29 +130,56 @@ def login_google(oid_response=None):
 
         return do_user_login(userdoc)
 
+
+
 def do_user_login(user):
     """
     Accepts a Mongokit document
     """
-
+    conn.register([model.Rule])
+    admindb = conn[current_app.config["CONFIGDB"]]
     user.update_last_login()
     user.save()
-    #flash(str(user))
 
     session['user'] = {
         'id': user["_id"],
         'label': user["label"],
-        'email' : user["name"]
+        'email' : user["name"],
         }
+    session['site_admin'] = False
     session['last_activity'] = user["last_login"]
-
     # Also add the rules information to the session
     # Loop over the rules
-
+    accesses = { }
     for arule in user["rules"]:
-        ruleobj =
+        ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+        if ruleobj == None:
+            flash("Rule not found !! " + str(arule), "error")
+            continue
 
-    flash('You were successfully logged in', 'success')
+        # Create empty DBAccess for that db
+        if not str(ruleobj["db"]) in accesses.keys():
+            accesses[str(ruleobj["db"])] = DBAccess()
+
+        if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
+            accesses[str(ruleobj["db"])].db_admin = True
+        if 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
+            accesses[str(ruleobj["db"])].can_see_all = True
+        if len(ruleobj["can_see"]) > 0:
+            accesses[str(ruleobj["db"])].can_see.append(ruleobj["can_see"])
+        if 'site_admin' in ruleobj and ruleobj["site_admin"] == True:
+            session["site_admin"] = True
+
+    # Insert that information in the session
+    # In future, session may contain only session it, 
+    # and this could get into database
+    session["accesses"] = accesses
+
+#    For debugging
+#    for adb in accesses.keys():
+#        flash(adb + ": " + str(accesses[adb]), "info")
+#
+#    flash("Site admin : " + str(session["site_admin"]), "info")
+
+    flash('You were successfully logged in. ', 'success')
     return redirect('/home')
-
-

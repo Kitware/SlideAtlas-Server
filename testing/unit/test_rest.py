@@ -38,27 +38,31 @@ class APIv1_Tests(unittest.TestCase):
                                     "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/attachments/5074589002e31023d4292d83",
                                     "/apiv1/users/5074589002e31023d4292d83",
                                     "/apiv1/databases",
+                                    "/apiv1/databases/507619bb0a3ee10434ae0827",
                                     "/apiv1/rules/5074589002e31023d4292d83"]
 
         urls_to_fail = ["/apiv1/somethingelse"]
+        self.logout()
 
         for aurl in urls_to_pass:
             print "Testing: ",
             rv = self.app.get(aurl)
             print rv.status_code, " ", aurl
-            assert rv.status_code != 404
+            self.failUnless(rv.status_code == 401, aurl)
 
         # Now test for urls that should not pass
         for aurl in urls_to_fail:
             print "Testing failure of: ", aurl
             rv = self.app.get(aurl)
-            assert rv.status_code == 404
+            self.failUnless(rv.status_code == 404, aurl)
 
     def testLoginWithUser(self):
         """ Any URL should not return without logging in
         """
         user_url = "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/views"
         admin_url = "/apiv1/databases/5074589002e31023d4292d83"
+
+        self.logout()
 
         # expact 401
         rv = self.app.get(user_url)
@@ -69,26 +73,25 @@ class APIv1_Tests(unittest.TestCase):
         print "Before login: ", rv.status_code, " ", admin_url
         assert rv.status_code == 401
 
+        # Sign in for user access
         self.login_viewer()
-        # expact 200
+
         rv = self.app.get(user_url)
-        print "After user login login : ", rv.status_code, " ", user_url
+        print "After user login : ", rv.status_code, " ", user_url
         assert rv.status_code == 200
 
-        self.logout()
-
         rv = self.app.get(admin_url)
-        print "After user login login : ", rv.status_code, " ", admin_url
+        print "After user login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 401
 
-        # expact 200
+        # Sign in for admin access
         self.login_admin()
         rv = self.app.get(user_url)
-        print "After user login login : ", rv.status_code, " ", user_url
+        print "After admin login : ", rv.status_code, " ", user_url
         assert rv.status_code == 200
 
         rv = self.app.get(admin_url)
-        print "After user login login : ", rv.status_code, " ", admin_url
+        print "After admin login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 200
 
 if __name__ == "__main__":

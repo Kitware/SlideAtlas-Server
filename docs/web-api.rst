@@ -110,6 +110,9 @@ Authentication (login) operations
    - &type=openid
    - &type=password
 
+Few access rights are calculated at the time of login. Hence if the access rights are
+calculated while the user is logged in the user must logout and login again to see the effect.
+
 
 Session and images
 ~~~~~~~~~~~~~~~~~~
