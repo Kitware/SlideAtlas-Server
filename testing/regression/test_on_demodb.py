@@ -11,7 +11,7 @@ from time import sleep
 
 class DemoTests(unittest.TestCase):
     def setUp(self):
-#        self.driver = webdriver.Chrome('c:\eclipse\chromedriver.exe')
+#        self.driver = webdriver.Chrome()
         self.driver = webdriver.Firefox()
         self.driver.maximize_window()
         self.driver.implicitly_wait(10)
