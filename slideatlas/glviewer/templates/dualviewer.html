@@ -237,7 +237,58 @@ shape has visibility and
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
+    
+    
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'opacity': '0.6',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'width': '200px',
+        'height': '24px',
+        'top' : '10px',
+        'left' : '65%',
+        'z-index': '2',
+        'text-align': 'center',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'diagnosis').text("Diagnosis").click(function(){
+         $('#diagnoses').fadeToggle();});
 
+
+    
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'opacity': '0.6',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'width': '200px',
+        'top' : '35px',
+        'left' : '65%',
+        'z-index': '2',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'diagnoses');
+    $('<ol>').appendTo('#diagnoses').attr('id', 'selectable');
+    $('<li>').appendTo('#selectable').text('Worry Wart');
+    $('<li>').appendTo('#selectable').text('Bad Rash');
+    $('<li>').appendTo('#selectable').text('Simple Simon');    
+
+    $( "#selectable" ).selectable({
+      stop: function() {
+        $('#diagnosis').text($('.ui-selected').text());
+        $('#diagnoses').fadeOut();
+        $( ".ui-selected", this ).each(function() {
+          var li = $( "#selectable li" );
+          var t = li.text();
+          var index = $( "#selectable li" ).index( this );
+          //$('#diagnosis').text();
+          //$('#diagnosis').text(" #" + ( index + 1 ) );
+        });
+      }
+    });
+    
+    
     eventuallyRender();
   }
 
@@ -544,6 +595,13 @@ shape has visibility and
 </script>
 
 
+<style>
+#feedback { font-size: 1.4em; }
+#selectable .ui-selecting { background: #FECA40; }
+#selectable .ui-selected { background: #F39814; color: white; }
+#selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#selectable li { padding: 3px; height: 18px; width: 100%}
+</style>
 
 
 <canvas id="gltest" style="display:none" ></canvas>

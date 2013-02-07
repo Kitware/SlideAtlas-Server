@@ -67,7 +67,7 @@ def glview():
 @mod.route('/dual')
 def glviewdual():
     """
-    - /glview/dual?sessid=10239094124&db=507619bb0a3ee10434ae0827
+    - /webgl-viewer/dual?db=507619bb0a3ee10434ae0827&sessid=4ecbbc6d0e6f7d7a56000000
     """
 
     # See if the user is requesting any session id
