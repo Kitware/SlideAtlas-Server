@@ -10,6 +10,7 @@ function View (viewport, cache) {
     this.Viewport = viewport;
     this.Camera = new Camera(viewport[2], viewport[3]);
     this.Tiles = [];
+    this.OutlineColor = [0,0.5,0]; 
     this.OutlineMatrix = mat4.create();
     this.OutlineCamMatrix = mat4.create();
 }
@@ -74,21 +75,21 @@ View.prototype.DrawOutline = function(backgroundFlag) {
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
     if (backgroundFlag) {
-	// White background fill
-	this.OutlineCamMatrix[14] = viewBackZ; // back plane
-	GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-	GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-	GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-	GL.vertexAttribPointer(program.vertexPositionAttribute, 
-			       squarePositionBuffer.itemSize, 
-			       GL.FLOAT, false, 0, 0);
-	GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+        // White background fill
+        this.OutlineCamMatrix[14] = viewBackZ; // back plane
+        GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+        GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
+        GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+        GL.vertexAttribPointer(program.vertexPositionAttribute, 
+                       squarePositionBuffer.itemSize, 
+                       GL.FLOAT, false, 0, 0);
+        GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
     }
 
     // outline
     this.OutlineCamMatrix[14] = viewFrontZ; // force in front
     GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-    GL.uniform3f(program.colorUniform, 1.0, 0.0, 0.0);
+    GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
     GL.vertexAttribPointer(program.vertexPositionAttribute, 
 			   squareOutlinePositionBuffer.itemSize, 

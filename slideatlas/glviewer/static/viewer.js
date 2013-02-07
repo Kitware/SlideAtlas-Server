@@ -13,6 +13,7 @@ function Viewer (viewport, cache) {
   this.TranslateTarget = [0.0,0.0];
   
   this.MainView = new View(viewport, cache);
+  this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
   var overViewport = [viewport[0] + viewport[2]*0.8, 
@@ -94,7 +95,7 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
 
 Viewer.prototype.AnimateZoom = function(factor) {
   this.ZoomTarget = this.MainView.Camera.Height * factor;
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
 
@@ -136,19 +137,19 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
 Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
     case "arrow":
-      var arrow = new ArrowWidget(VIEWER1, false);
+      var arrow = new ArrowWidget(this, false);
       arrow.Load(obj);  
       break;
     case "text":
-      var text = new TextWidget(VIEWER1, "");
+      var text = new TextWidget(this, "");
       text.Load(obj);
       break;
     case "circle":
-      var circle = new CircleWidget(VIEWER1, false);
+      var circle = new CircleWidget(this, false);
       circle.Load(obj);
       break;
     case "polyline":
-      var pl = new PolylineWidget(VIEWER1, false);
+      var pl = new PolylineWidget(this, false);
       pl.Load(obj);
       break;
   }
@@ -431,7 +432,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
   }
 
   // Artificial limit (fixme).
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
 

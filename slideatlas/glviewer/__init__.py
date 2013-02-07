@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, url_for, current_app
+from flask import Blueprint, render_template, request, url_for, current_app, make_response
+
 from bson import ObjectId
 from slideatlas import slconn as conn
 from slideatlas import model
@@ -12,7 +13,7 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 def glview():
     """
-    - /glview?imgid=10239094124  searches for the session id
+    - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
 
     # See if the user is requesting any session id
@@ -61,3 +62,47 @@ def glview():
     img["rotation"] = str(docBookmark["rotation"])
 
     return render_template('viewer.html', img=img)
+
+    
+@mod.route('/dual')
+def glviewdual():
+    """
+    - /glview/dual?sessid=10239094124&db=507619bb0a3ee10434ae0827
+    """
+
+    # See if the user is requesting any session id
+    sessid = request.args.get('sessid', None)
+    # this is the same as the sessions db in the sessions page.
+    dbid = request.args.get('db', None)
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    
+    coll = db["sessions"]
+    asession = coll.find_one({'_id' : ObjectId(sessid)} )
+    
+    # if asession.has_key("views"):
+    #        for aview in asession['views']:
+    aview = asession['views'][0]
+    viewobj = db["views"].find_one({"_id" : aview["ref"]})
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    
+    # ???? conn.register([model.Database])
+
+    # Get the startup camera (bookmark)
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+
+    img = {}
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    img["dimension"] = str(imgobj["dimension"])
+    img["db"] = dbid
+    img["center"] = str(bookmarkobj["center"])
+    img["zoom"] = str(bookmarkobj["zoom"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+
+    return make_response(render_template('dualviewer.html', img=img))

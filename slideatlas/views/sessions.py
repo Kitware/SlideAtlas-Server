@@ -16,7 +16,7 @@ mod = Blueprint('session', __name__)
 def sessions():
     """
     - /sessions  With no argument displays list of sessions accessible to current user
-    - /sessions?sess=10239094124  searches for the session id
+    - /sessions?sessid=10239094124  searches for the session id
     """
     rules = []
 
