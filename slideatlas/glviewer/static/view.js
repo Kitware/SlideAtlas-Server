@@ -15,6 +15,10 @@ function View (viewport, cache) {
     this.OutlineCamMatrix = mat4.create();
 }
 
+View.prototype.SetCache = function(cache) {
+    this.Cache = cache;
+}
+
 View.prototype.SetViewport = function(viewport) {
     this.Viewport = viewport;
     this.Camera.ViewportWidth = viewport[2];

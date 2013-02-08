@@ -36,6 +36,12 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 }
 
+// Change the source / cache after a viewer has been created.
+Viewer.prototype.SetCache = function(cache) {
+  this.MainView.SetCache(cache);
+  this.OverView.SetCache(cache);
+}
+
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
   this.MainView.SetViewport(viewport);
@@ -51,11 +57,25 @@ Viewer.prototype.GetViewport = function() {
   return this.MainView.Viewport;
 }
 
+// For the overview and maybe reset camera in the future.
+Viewer.prototype.SetDimensions = function(dims) {
+    this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
+    this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
+    var height = dims[1];
+    // See if the view is constrained by the width.
+    var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+    if (height2 > height) {
+      height = height2;
+    }
+    this.OverView.Camera.Height = height;
 
+    this.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
+}
 
 // This is used to set the default camera so the complexities 
 // of the target and overview are hidden.
-Viewer.prototype.SetStartupView = function(center, rotation, height) {
+Viewer.prototype.SetCamera = function(center, rotation, height) {
     this.MainView.Camera.Height = height;
     this.ZoomTarget = height;    
 
@@ -65,6 +85,7 @@ Viewer.prototype.SetStartupView = function(center, rotation, height) {
     this.TranslateTarget[0] = center[0];
     this.TranslateTarget[1] = center[1];
     
+    rotation = rotation * 3.14159265359 / 180.0;
     this.MainView.Camera.Roll = rotation;
     this.OverView.Camera.Roll = rotation;
     this.RollTarget = rotation;
@@ -73,6 +94,7 @@ Viewer.prototype.SetStartupView = function(center, rotation, height) {
     this.OverView.Camera.ComputeMatrix();
     eventuallyRender();
 }
+
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
@@ -183,6 +205,10 @@ Viewer.prototype.DegToRad = function(degrees) {
 
 
 Viewer.prototype.Draw = function() {
+  if ( ! this.MainView.Cache) {
+    return;
+  }
+
   // Should the camera have the viewport in them?
   // The do not currently hav a viewport.
 

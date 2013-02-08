@@ -67,21 +67,6 @@ shape has visibility and
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
-<script type="text/javascript">
-//  var QUESTION = <?php echo json_encode($mongo_question);?>;
-  // These globals are used in the viewer javascript.  I need to get rid of them.
-  var dimension = {{img.dimension}};
-  var LEVELS = {{img.levels}};
-  var origin = {{img.origin}};
-  origin[1] = -origin[1];
-  var spacing = {{img.spacing}};
-  var center = {{img.center}};
-  var zoom = {{img.zoom}};
-  var rotation = {{img.rotation}};
-  rotation = rotation * 3.14159265359 / 180.0;
-  
-</script>
-
 <script id="shader-poly-fs" type="x-shader/x-fragment">
   precision mediump float;
   uniform vec3 uColor;
@@ -151,10 +136,45 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var ARGS;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
   var VIEWER2;
+
+  // sets the global variable ARGS
+  function getArgs() {
+    ARGS = {};
+    ARGS.Viewer1 = {};
+    ARGS.Viewer1.db = "{{question.viewer1.db}}";
+    ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
+    ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
+    ARGS.Viewer1.levels = {{question.viewer1.levels}};
+    ARGS.Viewer1.origin = {{question.viewer1.origin}};
+    //ARGS.View1.origin[1] = ARGS.View1.-origin[1];
+    ARGS.Viewer1.spacing = {{question.viewer1.spacing}};
+    ARGS.Viewer1.center = {{question.viewer1.center}};
+    ARGS.Viewer1.zoom = {{question.viewer1.zoom}};
+    ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    // Now for the optional views for Viewer2
+    // Convert python structure into javascript.
+    ARGS.Options = [];
+    {% for option in question.options %}
+        var view = {};
+        view.label = "{{option.label}}";
+        view.db = "{{option.db}}";
+        view.collection = "{{option.collection}}";
+        view.origin = {{option.origin}};
+        view.spacing = {{option.spacing}};
+        view.levels = {{option.levels}};
+        view.dimensions = {{option.dimension}};
+        view.center = {{option.center}};
+        view.zoom = {{option.zoom}};
+        view.rotation = {{option.rotation}};
+        ARGS.Options.push(view);
+    {% endfor %}    
+  }
+  
 
   
   function handleResize() {
@@ -175,15 +195,15 @@ shape has visibility and
   };
 
   function initViews() {
-    var source1 = new Cache("/tile?img={{img.collection}}&db={{img.db}}&name=", LEVELS);
+    var source1 = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source1);
+    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
 
     // Compute the height from the zoom.
-    var height = CANVAS.clientHeight << zoom;
-    VIEWER1.SetStartupView(center,rotation,height);
-    VIEWER2.SetStartupView(center,rotation,height);
+    var height = CANVAS.clientHeight << ARGS.Viewer1.zoom;
+    VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
+    VIEWER1.SetCamera(ARGS.Viewer1.center, ARGS.Viewer1.rotation, height);
     
     EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
@@ -212,6 +232,23 @@ shape has visibility and
     return false;
   }
 
+  
+  function changeOption(index) {
+    // Create a new source for the viewer.
+    var option = ARGS.Options[index];
+    var source = new Cache("/tile?img="+option.collection+"&db="+option.db+"&name=", option.levels);
+    VIEWER2.SetCache(source);
+    var height = CANVAS.clientHeight << option.zoom;
+    VIEWER2.SetCamera(option.center, option.rotation, height);
+    VIEWER2.SetDimensions(option.dimensions);
+
+    $('.viewer2').show();
+
+    eventuallyRender();
+  }
+  
+
+  
   function webGLStart() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
@@ -219,6 +256,9 @@ shape has visibility and
         return; // WHat to do?  Function provides the alert.
     }
 
+    // Setup the arguements in javascript globals.
+    getArgs();
+    
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initViews();
@@ -236,44 +276,95 @@ shape has visibility and
 
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;
-    
-    
+    document.oncontextmenu = cancelContextMenu;         
+         
+
+    // Place the zoom in / out buttons.
+    // Todo: Make the button become more opaque when pressed.
+    // Associate with viewer (How???).
+    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '60px',
+        'left' : '46%',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}").click(function(){
+             VIEWER1.AnimateZoom(0.5);});
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '5px',
+        'left' : '46%',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
+             VIEWER1.AnimateZoom(2.0);});
+
+    // Place the zoom in / out buttons. For the second viewer
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '60px',
+        'left' : '96%',
+        'z-index': '2'
+    }).attr('class', 'viewer2').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}").click(function(){
+             VIEWER2.AnimateZoom(0.5);});
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '5px',
+        'left' : '96%',
+        'z-index': '2'
+    }).attr('class', 'viewer2').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
+             VIEWER2.AnimateZoom(2.0);});
+    $('.viewer2').hide();
+             
+
+
+
+    // Create the menu to select slides for the second view.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'opacity': '0.6',
         'border-radius': '5px',
         'position': 'absolute',
-        'width': '200px',
         'height': '24px',
         'top' : '10px',
-        'left' : '65%',
+        'left' : '53%',
+        'width': '35%',
         'z-index': '2',
         'text-align': 'center',
         'color': '#303030',
         'font-size': '20px'
     }).attr('id', 'diagnosis').text("Diagnosis").click(function(){
          $('#diagnoses').fadeToggle();});
-
-
     
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'opacity': '0.6',
         'border-radius': '5px',
         'position': 'absolute',
-        'width': '200px',
         'top' : '35px',
-        'left' : '65%',
+        'left' : '53%',
+        'width': '35%',
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'
     }).attr('id', 'diagnoses');
-    $('<ol>').appendTo('#diagnoses').attr('id', 'selectable');
-    $('<li>').appendTo('#selectable').text('Worry Wart');
-    $('<li>').appendTo('#selectable').text('Bad Rash');
-    $('<li>').appendTo('#selectable').text('Simple Simon');    
-
+    
+    $('<ol>').appendTo('#diagnoses').attr('id', 'selectable').css({'width': '100%'});
+    for (i in ARGS.Options) {
+        $('<li>').appendTo('#selectable').text(ARGS.Options[i].label);
+    }
+    
     $( "#selectable" ).selectable({
       stop: function() {
         $('#diagnosis').text($('.ui-selected').text());
@@ -282,6 +373,7 @@ shape has visibility and
           var li = $( "#selectable li" );
           var t = li.text();
           var index = $( "#selectable li" ).index( this );
+          changeOption(index);
           //$('#diagnosis').text();
           //$('#diagnosis').text(" #" + ( index + 1 ) );
         });
@@ -479,21 +571,6 @@ shape has visibility and
   }
 
     $(document).ready(function() {
-        // if (QUESTION.choices) {
-            // document.getElementById("qtext").innerHTML = QUESTION.qtext;
-            // document.getElementById("title").innerHTML = QUESTION.title;
-            // for (var i = 0; i < QUESTION.choices.length; ++i) {
-                // var liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" /></td></tr>';
-                // if(QUESTION.correct == (i+'')){
-                    // liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-                // }
-                // $('#choicelist').append(liststring);
-            // }
-        // }
-        // else {
-            // var liststring = '<tr><td>1: <input type="text" class="answer" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-            // $('#choicelist').append(liststring);
-        // }
 
       $("#text-properties-dialog").dialog({
           autoOpen:false,
@@ -683,20 +760,6 @@ shape has visibility and
           </fieldset>
         </form>
       </div>
-    </div>
-
-
-    <div class="navbar navbar-inverse navbar-fixed-bottom">
-        <div class="navbar-inner ">
-          <div class="container">
-            <div class="nav-collapse collapse">
-              <ul class="nav">
-                <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-left </a></li>
-                <li> <a class="span2 nodoubleclick" onclick="rotateLeft();" ">Rotate-left </a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
     </div>
 
 <script>

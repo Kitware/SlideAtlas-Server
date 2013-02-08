@@ -88,21 +88,50 @@ def glviewdual():
     aview = asession['views'][0]
     viewobj = db["views"].find_one({"_id" : aview["ref"]})
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    
-    # ???? conn.register([model.Database])
-
-    # Get the startup camera (bookmark)
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+    
 
+    # use the first view for the left panel.
     img = {}
+    img["db"] = dbid
     img["collection"] = str(imgobj["_id"])
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
     img["dimension"] = str(imgobj["dimension"])
-    img["db"] = dbid
     img["center"] = str(bookmarkobj["center"])
     img["zoom"] = str(bookmarkobj["zoom"])
     img["rotation"] = str(bookmarkobj["rotation"])
 
-    return make_response(render_template('dualviewer.html', img=img))
+    question = {}
+    question["viewer1"] = img;
+    # now create a list of options.
+    options = []
+    
+    # iterate through the session objects
+    asession = db["sessions"].find_one({'_id' : ObjectId(sessid)});
+    for aview in asession['views']:
+        viewobj = db["views"].find_one({"_id" : aview["ref"]})
+        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+        #
+        img = {}
+        img["collection"] = str(imgobj["_id"])
+        img["origin"] = str(imgobj["origin"])
+        img["spacing"] = str(imgobj["spacing"])
+        img["levels"] = str(imgobj["levels"])
+        img["dimension"] = str(imgobj["dimension"])
+        img["db"] = dbid
+        img["center"] = str(bookmarkobj["center"])
+        img["zoom"] = str(bookmarkobj["zoom"])
+        img["rotation"] = str(bookmarkobj["rotation"])
+        img["label"] = imgobj["label"]
+        #
+        options.append(img)
+    question["options"] = options;       
+    
+    return make_response(render_template('dualviewer.html', question=question))
+
+    
+    
+    

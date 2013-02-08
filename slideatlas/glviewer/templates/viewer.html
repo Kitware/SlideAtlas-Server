@@ -84,7 +84,6 @@ shape has visibility and
   var center = {{img.center}};
   var zoom = {{img.zoom}};
   var rotation = {{img.rotation}};
-  rotation = rotation * 3.14159265359 / 180.0;
   
 </script>
 
@@ -202,7 +201,7 @@ shape has visibility and
     }
     // Compute the height from the zoom.
     var height = CANVAS.clientHeight << zoom;
-    VIEWER1.SetStartupView(center,rotation,height);
+    VIEWER1.SetCamera(center,rotation,height);
     
     
     EVENT_MANAGER.AddViewer(VIEWER1);
