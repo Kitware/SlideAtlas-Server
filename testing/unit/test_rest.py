@@ -94,5 +94,8 @@ class APIv1_Tests(unittest.TestCase):
         print "After admin login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 200
 
+    def testPostToDatabase(self):
+
+
 if __name__ == "__main__":
     unittest.main()
