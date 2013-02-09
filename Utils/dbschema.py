@@ -4,7 +4,7 @@ sys.path.append("..")
 
 from subprocess import call
 from slideatlas import model
-from slideatlas import site_local as site
+from slideatlas import site_slideatlas as site
 
 HOST = site.MONGO_SERVER
 CONFIGDB = site.CONFIGDB
@@ -22,6 +22,7 @@ if site.LOGIN_REQUIRED:
         sys.exit(0)
     else:
         print "Connection Authenticated .."
+
 
 # List all databases
 conn.register([model.Database, model.Rule, model.User, model.Session])
@@ -563,6 +564,9 @@ def get_number_of_all_images(dbobj):
 #add_admin_rule_toDJ()
 #add_new_admin_to_demo()
 #modify_rule_to_site_admin()
+
+db = conn[site.CONFIGDB]
+grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
 
 #create_admin_user()
 
