@@ -63,7 +63,7 @@ def glview():
 
     return render_template('viewer.html', img=img)
 
-    
+
 @mod.route('/dual')
 def glviewdual():
     """
@@ -128,6 +128,71 @@ def glviewdual():
         img["label"] = imgobj["label"]
         #
         options.append(img)
+    question["options"] = options;       
+    
+    return make_response(render_template('dualviewer.html', question=question))
+
+
+
+@mod.route('/comparison')
+def glcomparison():
+    """
+    - /webgl-viewer/comparison?db=507619bb0a3ee10434ae0827&viewid=5074528302e3100db8429cb4
+    """
+
+    # Comparison is a modified view.
+    viewid = request.args.get('viewid', None)
+    # this is the same as the sessions db in the sessions page.
+    dbid = request.args.get('db', None)
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+
+    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+    
+
+    # The base view is for the left panel
+    img = {}
+    img["db"] = dbid
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    img["dimension"] = str(imgobj["dimension"])
+    img["center"] = str(bookmarkobj["center"])
+    img["zoom"] = str(bookmarkobj["zoom"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+
+    question = {}
+    question["viewer1"] = img;
+    
+    # now create a list of options.
+    options = []
+    
+    # I am embedding views in the options array rather than referencing object ids.
+    if 'options' in imgobj:
+        for viewobj in imgobj["options"]:
+            #viewobj = db["views"].find_one({"_id" : aview["ref"]})
+            imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+            bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+            #
+            img = {}
+            img["collection"] = str(imgobj["_id"])
+            img["origin"] = str(imgobj["origin"])
+            img["spacing"] = str(imgobj["spacing"])
+            img["levels"] = str(imgobj["levels"])
+            img["dimension"] = str(imgobj["dimension"])
+            img["db"] = dbid
+            img["center"] = str(bookmarkobj["center"])
+            img["zoom"] = str(bookmarkobj["zoom"])
+            img["rotation"] = str(bookmarkobj["rotation"])
+            img["label"] = imgobj["label"]
+            #
+            options.append(img)
     question["options"] = options;       
     
     return make_response(render_template('dualviewer.html', question=question))
