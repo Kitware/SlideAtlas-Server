@@ -144,6 +144,12 @@ def do_user_login(user):
         }
     session['last_activity'] = user["last_login"]
 
+    # Also add the rules information to the session
+    # Loop over the rules
+
+    for arule in user["rules"]:
+        ruleobj =
+
     flash('You were successfully logged in', 'success')
     return redirect('/home')
 

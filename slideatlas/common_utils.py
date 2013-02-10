@@ -23,7 +23,7 @@ def jsonify(*args, **kwargs):
     return Response(json.dumps(dict(*args, **kwargs), cls=MongoJsonEncoder), mimetype='application/json')
 
 
-# Decorator for urls that require login 
+# Decorator for urls that require login
 def user_required(f):
     """Checks whether user is logged in or raises error 401."""
     def decorator(*args, **kwargs):
@@ -31,3 +31,13 @@ def user_required(f):
             abort(401)
         return f(*args, **kwargs)
     return decorator
+
+# Decorator for urls that require login
+def admin_user_required(f):
+    """Checks whether an site administrator user is logged in or raises error 401."""
+    def decorator(*args, **kwargs):
+        if not 'user' in session:
+            abort(401)
+        return f(*args, **kwargs)
+    return decorator
+
