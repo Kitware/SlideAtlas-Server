@@ -95,7 +95,7 @@ class APIv1_Tests(unittest.TestCase):
         assert rv.status_code == 200
 
     def testPostToDatabase(self):
-
+        pass
 
 if __name__ == "__main__":
     unittest.main()
