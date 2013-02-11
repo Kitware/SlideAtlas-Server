@@ -95,7 +95,7 @@ class APIv1_Tests(unittest.TestCase):
 
         rv = self.app.get(admin_url)
         print "After admin login : ", rv.status_code, " ", admin_url
-        assert rv.status_code == 204
+        assert rv.status_code == 405
 
     def testDatabaseInfo(self):
         """
@@ -133,6 +133,7 @@ class APIv1_Tests(unittest.TestCase):
     def parseResponse(self, url, postdata=None):
         if postdata != None:
             rv = self.app.post(url,
+                               # String conversion required, as the test client ifnores content_type and assumes it is a file 
                                data=json.dumps(postdata),
                               content_type='application/json')
         else:
@@ -145,7 +146,9 @@ class APIv1_Tests(unittest.TestCase):
         except:
             self.fail("Response not valid json")
 
-        self.failIf(obj.has_key("error"), "Response contains some error")
+        if "error" in obj:
+            self.fail("Response retuns error : %s" % obj["error"])
+
         return obj
 
     def testPostToDatabase(self):

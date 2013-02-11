@@ -72,21 +72,25 @@ class DatabaseAPI(AdminDBAPI):
             if obj :
                 return jsonify(obj)
             else:
-                return Response("", status=204)
+                return Response("", status=405)
 
     @common_utils.site_admin_required
     def post(self, resid=None):
         # post requires admin access
 
-        conn.register([Database])
+        # Parse the data in json format 
         data = request.json
-        print "Hello", data, type(data)
 
+        # Unknown request if no parameters 
         if data == None:
             abort(400)
 
+        # Only insert command is supported
         if not data.has_key("insert"):
             abort(400)
+
+        # Create the database object from the supplied parameters  
+        conn.register([Database])
         try:
             newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database()
             newdb["label"] = data["insert"]["label"]
@@ -94,10 +98,12 @@ class DatabaseAPI(AdminDBAPI):
             newdb["dbname"] = data["insert"]["dbname"]
             newdb["copyright"] = data["insert"]["copyright"]
             newdb.validate()
-        except:
-            return Response(status=204)
+            newdb.save()
+        except Exception as inst:
+            # If valid database object cannot be constructed it is invalid request 
+            return Response("{\"error\" : %s}" % str(inst), status=405)
 
-        return Response("{}")
+        return jsonify(newdb)
 
 #        if restype == 'databases':
 #                return "You want to add database"
