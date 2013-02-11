@@ -117,7 +117,7 @@ class APIv1_Tests(unittest.TestCase):
 
     def testDatabasePost(self):
         """
-        Test if the server returns database information correctly
+        Adding the new database to 
         """
         # Sign in for admin access
         self.login_admin()
@@ -128,17 +128,33 @@ class APIv1_Tests(unittest.TestCase):
                               "copyright" : "All rights reserved by DJ 2013"}
                             )
 
-        obj = self.parseResponse("/apiv1/databases", newdb)
+        obj = self.parseResponse("/apiv1/databases", newdb, method="post")
 
-    def parseResponse(self, url, postdata=None):
-        if postdata != None:
-            rv = self.app.post(url,
-                               # String conversion required, as the test client ifnores content_type and assumes it is a file 
-                               data=json.dumps(postdata),
-                              content_type='application/json')
-        else:
-            #get 
+        obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]))
+
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+
+        # Now test if the database record can be deleted 
+        obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
+
+        # This will fail
+        rv = self.app.get("/apiv1/databases/" + str(obj["_id"]))
+        print "Status : ", rv.status_code
+        print "data :" , rv.data
+
+    def parseResponse(self, url, postdata=None, method="get"):
+        if method == "get":
             rv = self.app.get(url)
+        elif method == "post":
+            rv = self.app.post(url,
+                           # String conversion required, as the test client ifnores content_type and assumes it is a file 
+                           data=json.dumps(postdata),
+                          content_type='application/json')
+        elif method == "delete":
+            rv = self.app.delete(url)
+        else:
+            raise("method not supported")
+
         self.failUnless(rv.status_code == 200, "Http request did not return OK, status: %d" % rv.status_code)
 
         try:

@@ -33,18 +33,18 @@ class AdminDBAPI(MethodView):
             else:
                 return "You want %s, %s" % (restype, resid)
 
-#    def post(self, restype):
-#        # create a new user
-#        if restype == "rules":
-#                return "You want to post rule"
-#        elif restype == 'databases':
-#                return "You want to add database"
-#        elif restype == 'users':
-#            # Posting to users means typically adding new rules to users
-#            return "You want to add database"
-#        pass
+    def post(self, restype):
+        # create a new user
+        if restype == "rules":
+                return "You want to post rule"
+        elif restype == 'databases':
+                return "You want to add database"
+        elif restype == 'users':
+            # Posting to users means typically adding new rules to users
+            return "You want to add database"
+        pass
 
-    def delete(self, restype, resid):
+    def delete(self, resid):
         # Verify the access
         # Remove one instance
         # and remove the given resource
@@ -73,6 +73,12 @@ class DatabaseAPI(AdminDBAPI):
                 return jsonify(obj)
             else:
                 return Response("", status=405)
+
+    @common_utils.site_admin_required
+    def delete(self, resid):
+        print "Am I getting called ?"
+        print "#####################"
+        return Response("{}", status=200)
 
     @common_utils.site_admin_required
     def post(self, resid=None):
@@ -115,7 +121,7 @@ class DatabaseAPI(AdminDBAPI):
 #        pass
 
 mod.add_url_rule('/databases', defaults={"resid" : None}, view_func=DatabaseAPI.as_view("show_database_list"), methods=['get', 'post'])
-mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['get'])
+mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['get', 'DELETE'])
 
 mod.add_url_rule('/<regex("(users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"))
 mod.add_url_rule('/<regex("(users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))
