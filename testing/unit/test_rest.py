@@ -1,5 +1,6 @@
 import sys
 from json import loads
+import json
 sys.path.append("../..")
 sys.path.append("..")
 import slideatlas
@@ -22,10 +23,11 @@ class APIv1_Tests(unittest.TestCase):
     def login_admin(self):
         # Posts admin access 
         # TODO: this should use site configuration
-        return self.app.post('/login.passwd', data=dict(
+        data = dict(
             username="demo_admin",
             passwd="2.0TB"
-        ), follow_redirects=True)
+        )
+        return self.app.post('/login.passwd', data=data , follow_redirects=True)
 
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
@@ -119,17 +121,24 @@ class APIv1_Tests(unittest.TestCase):
         """
         # Sign in for admin access
         self.login_admin()
-        obj = self.parseResponse("/apiv1/databases")
-        self.failUnless(obj.has_key("databases"), "No database in the results")
+        newdb = dict(insert={
+                              "label" : "Database for DJ",
+                              "host" : "127.0.0.1",
+                              "dbname" : "dj1",
+                              "copyright" : "All rights reserved by DJ 2013"}
+                            )
 
-    def parseResponse(self, url, post=None):
-        if post != None:
-            #
-            rv = self.app.post(url, data=post)
+        obj = self.parseResponse("/apiv1/databases", newdb)
+
+    def parseResponse(self, url, postdata=None):
+        if postdata != None:
+            rv = self.app.post(url,
+                               data=json.dumps(postdata),
+                              content_type='application/json')
         else:
             #get 
             rv = self.app.get(url)
-        self.failUnless(rv.status_code == 200, "Http request did not return OK (200)")
+        self.failUnless(rv.status_code == 200, "Http request did not return OK, status: %d" % rv.status_code)
 
         try:
             obj = loads(rv.data)
