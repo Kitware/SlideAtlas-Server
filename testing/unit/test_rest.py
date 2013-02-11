@@ -1,4 +1,5 @@
 import sys
+from json import loads
 sys.path.append("../..")
 sys.path.append("..")
 import slideatlas
@@ -93,6 +94,24 @@ class APIv1_Tests(unittest.TestCase):
         rv = self.app.get(admin_url)
         print "After admin login : ", rv.status_code, " ", admin_url
         assert rv.status_code == 200
+
+    def testDatabaseInfo(self):
+        # Sign in for admin access
+        self.login_admin()
+        obj = self.parseResponse("/apiv1/databases")
+        self.failUnless(obj.has_key("databases"), "No database in the results")
+
+    def parseResponse(self, url):
+        rv = self.app.get(url)
+        self.failUnless(rv.status_code == 200, "Http request did not return OK (200)")
+
+        try:
+            obj = loads(rv.data)
+        except:
+            self.fail("Response not valid json")
+
+        self.failIf(obj.has_key("error"), "Response contains some error")
+        return obj
 
     def testPostToDatabase(self):
         pass
