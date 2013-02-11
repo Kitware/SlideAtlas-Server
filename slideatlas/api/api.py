@@ -3,7 +3,7 @@ rest api for administrative interface
 refer to documentation
 """
 
-from flask import Blueprint, render_template, request, url_for, current_app, Response
+from flask import Blueprint, render_template, request, url_for, current_app, Response, abort
 from flask.views import MethodView
 from bson import ObjectId
 from slideatlas import slconn as conn
@@ -64,11 +64,14 @@ class DatabaseAPI(AdminDBAPI):
             print adbobj
             dbobjarray.append(adbobj)
 
-
         if resid == None:
             return jsonify({'databases':dbobjarray})
         else:
-            return "You want database %s" % (resid)
+            obj = conn[current_app.config["CONFIGDB"]]["databases"].find_one({"_id" : ObjectId(resid)})
+            if obj :
+                return jsonify(obj)
+            else:
+                return Response("", status=204)
 
     @common_utils.site_admin_required
     def post(self, restype):

@@ -93,16 +93,42 @@ class APIv1_Tests(unittest.TestCase):
 
         rv = self.app.get(admin_url)
         print "After admin login : ", rv.status_code, " ", admin_url
-        assert rv.status_code == 200
+        assert rv.status_code == 204
 
     def testDatabaseInfo(self):
+        """
+        Test if the server returns database information correctly
+        """
         # Sign in for admin access
         self.login_admin()
         obj = self.parseResponse("/apiv1/databases")
         self.failUnless(obj.has_key("databases"), "No database in the results")
 
-    def parseResponse(self, url):
-        rv = self.app.get(url)
+        # Now test a particular DB
+        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+
+        # Bound to fail 
+        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+
+
+    def testDatabasePost(self):
+        """
+        Test if the server returns database information correctly
+        """
+        # Sign in for admin access
+        self.login_admin()
+        obj = self.parseResponse("/apiv1/databases")
+        self.failUnless(obj.has_key("databases"), "No database in the results")
+
+    def parseResponse(self, url, post=None):
+        if post != None:
+            #
+            rv = self.app.post(url, data=post)
+        else:
+            #get 
+            rv = self.app.get(url)
         self.failUnless(rv.status_code == 200, "Http request did not return OK (200)")
 
         try:
