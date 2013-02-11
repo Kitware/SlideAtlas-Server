@@ -12,7 +12,9 @@ from slideatlas import common_utils
 from celery.platforms import resource
 
 mod = Blueprint('api', __name__,
-                url_prefix="/apiv1"
+                url_prefix="/apiv1",
+                template_folder="templates",
+                static_folder="static",
                 )
 
 # The url valid for databases, rules and users with supported queries

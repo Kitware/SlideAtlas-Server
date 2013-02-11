@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block body_content %}
+  {{ super() }}
+  <div class="container">
+  <div class="row">
+    <h2> List of databases </h2>
+     <div ng-controller="DBListCtrl">
+        <ul class="unstyled">
+            <li ng-repeat="adb in databases">
+            {% raw %} 
+            {{ adb.dbname}}
+            {% endraw %} 
+            </li>
+        </ul>
+  </div>
+  </div>
+
+    <script src="/static/js/jquery-1.9.1.min.js"></script>
+    <script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
+    <script src="/static/js/angular.min.js"></script>
+    <script src="/static/js/angular-resource.min.js"></script>
+    <script src="static/app.js"></script>
+    <script>
+        angular.element(document).ready(function() {
+            angular.bootstrap(document);
+        });
+    </script>
+
+{% endblock %}
