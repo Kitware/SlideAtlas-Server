@@ -7,9 +7,11 @@ from flask import Blueprint, render_template, request, url_for, current_app, Res
 from flask.views import MethodView
 from bson import ObjectId
 from slideatlas import slconn as conn
+from slideatlas import admindb
 from slideatlas import model
 from slideatlas import common_utils
 from celery.platforms import resource
+from slideatlas.common_utils import jsonify
 
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -56,8 +58,15 @@ class AdminDBAPI(MethodView):
 class DatabaseAPI(AdminDBAPI):
     @common_utils.site_admin_required
     def get(self, resid):
+        dbobjs = conn[current_app.config["CONFIGDB"]]["databases"].find()
+        dbobjarray = list()
+        for adbobj in dbobjs:
+            print adbobj
+            dbobjarray.append(adbobj)
+
+
         if resid == None:
-            return "You want a list of databases"
+            return jsonify({'databases':dbobjarray})
         else:
             return "You want database %s" % (resid)
 
