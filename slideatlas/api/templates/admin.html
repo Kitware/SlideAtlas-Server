@@ -2,18 +2,9 @@
 
 {% block body_content %}
   {{ super() }}
-  <div class="container">
+  <div ng-app="adminapi" class="container">
   <div class="row">
-    <h2> List of databases </h2>
-     <div ng-controller="DBListCtrl">
-        <ul class="unstyled">
-            <li ng-repeat="adb in databases">
-            {% raw %} 
-            {{ adb.dbname}}
-            {% endraw %} 
-            </li>
-        </ul>
-  </div>
+  <ng-view> </ng-view>
   </div>
 
     <script src="/static/js/jquery-1.9.1.min.js"></script>
