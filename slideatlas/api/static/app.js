@@ -6,10 +6,22 @@
      function ($routeProvider) {
         $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
         $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
+        $routeProvider.when("/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
     })
+
+function DBEditCtrl($scope, $location, $routeParams)
+    {
+        $scope.database = $scope.databases[$routeParams.idx]
+        $scope.save = function () {
+            $location.path("/") 
+            }
+    }
+
 
 function DBNewCtrl($scope, $location)
     {
+         $scope.database = {"host" : "127.0.0.1"}
+         
         $scope.save = function () {
             $location.path("/") 
             }
@@ -18,7 +30,7 @@ function DBNewCtrl($scope, $location)
 
 function DBListCtrl($scope)
     {
-    $scope. databases = [ 
+    $scope.databases = [ 
         {
             "_id" : "5074589002e31023d4292d83",
             "copyright" : "Copyright &copy; 2011-12, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.",
