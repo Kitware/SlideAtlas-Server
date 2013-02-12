@@ -7,7 +7,7 @@
                 <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="adb in databases" >
+            <tr ng-repeat ="adb in result.databases" >
                 <td>{{ adb.dbname }} </td>
                 <td>{{ adb.host }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>

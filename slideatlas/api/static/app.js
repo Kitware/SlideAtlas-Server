@@ -2,16 +2,25 @@
  * @author dhanannjay.deo
  */
  
- angular.module('adminapi',[]).config(
+ angular.module('adminapi',["ngResource" ]).
+    config(
      function ($routeProvider) {
         $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
         $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
-    })
-
+        $routeProvider.otherwise({ redirectTo: "/"});
+    });
+   
+   /* 
+   factory('Database', function($resource) {
+    return $resource('databases/:dbid', {dbid:'@_id'}, {
+        query: {method:'GET', isArray:false}
+        });       
+    });
+*/
 function DBEditCtrl($scope, $location, $routeParams)
     {
-        $scope.database = $scope.databases[$routeParams.idx]
+        $scope.database = $scope.result.databases[$routeParams.idx]
         $scope.save = function () {
             $location.path("/") 
             }
@@ -28,8 +37,12 @@ function DBNewCtrl($scope, $location)
     }
  
 
-function DBListCtrl($scope)
+function DBListCtrl($scope, $resource)
     {
+    //$scope.db2 = Database.query();
+    var dbs = $resource("/apiv1/databases",{},false);
+    $scope.result = dbs.get()
+/*
     $scope.databases = [ 
         {
             "_id" : "5074589002e31023d4292d83",
@@ -86,4 +99,5 @@ function DBListCtrl($scope)
             ]
     }
     ];
-}
+    */ 
+    }
