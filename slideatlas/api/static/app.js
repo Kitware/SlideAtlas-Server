@@ -4,10 +4,18 @@
  
  angular.module('adminapi',[]).config(
      function ($routeProvider) {
-        $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"})
-        $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbedit.html"})
+        $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
+        $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
     })
+
+function DBNewCtrl($scope, $location)
+    {
+        $scope.save = function () {
+            $location.path("/") 
+            }
+    }
  
+
 function DBListCtrl($scope)
     {
     $scope. databases = [ 
