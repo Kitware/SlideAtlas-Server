@@ -76,9 +76,13 @@ class DatabaseAPI(AdminDBAPI):
 
     @common_utils.site_admin_required
     def delete(self, resid):
-        print "Am I getting called ?"
-        print "#####################"
-        return Response("{}", status=200)
+        obj = conn[current_app.config["CONFIGDB"]]["databases"].find_one({"_id" : ObjectId(resid)})
+        if obj :
+            conn[current_app.config["CONFIGDB"]]["databases"].remove({"_id" : obj["_id"]})
+            return Response("{}", status=200)
+        else:
+            # Invalid request if the object is not found
+            return Response("{\"error\" : \"Id Not found \"} ", status=405)
 
     @common_utils.site_admin_required
     def post(self, resid=None):

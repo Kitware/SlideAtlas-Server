@@ -137,10 +137,9 @@ class APIv1_Tests(unittest.TestCase):
         # Now test if the database record can be deleted 
         obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
 
-        # This will fail
+        # This should fail
         rv = self.app.get("/apiv1/databases/" + str(obj["_id"]))
-        print "Status : ", rv.status_code
-        print "data :" , rv.data
+        self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
 
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
