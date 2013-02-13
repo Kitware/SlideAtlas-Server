@@ -2,7 +2,7 @@
  * @author dhanannjay.deo
  */
  
- angular.module('adminapi',["ngResource" ]).
+ var app = angular.module('adminapi',["ngResource" ]).
     config(
      function ($routeProvider) {
         $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
@@ -10,38 +10,60 @@
         $routeProvider.when("/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
         $routeProvider.otherwise({ redirectTo: "/"});
     });
-   
-   /* 
-   factory('Database', function($resource) {
-    return $resource('databases/:dbid', {dbid:'@_id'}, {
-        query: {method:'GET', isArray:false}
-        });       
+
+// app.factory('Database', function($resource) {
+//     return $resource('databases/:dbid', {dbid:'@_id'}, 
+//               {
+//                 list: { method: "GET", params: {} },
+//                 get: { method: "GET", params: { id: 0 } },                            
+//                 update: { method: "PUT", params : {id : 0}},
+//                 create: { method: "POST", params: { content: "", order: 0, done: false } }
+//               });
+//     });
+
+app.factory('Database', function($resource) {
+    return $resource('databases/:dbid', {dbid:'@_id'}, 
+                 {
+            query: { method: 'GET', params: {}, isArray: false },
+            save:{ method: 'PUT'}
+              });
     });
-*/
-function DBEditCtrl($scope, $location, $routeParams)
+
+app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database)
     {
-        $scope.database = $scope.result.databases[$routeParams.idx]
+        // Locate the object
+        var db = $scope.result.databases[$routeParams.idx] 
+        
+        $scope.database = Database.get({dbid:db._id})
+        
         $scope.save = function () {
-            $location.path("/") 
+            if($scope.database._id != ""){
+                $scope.database.$save()
             }
-    }
+            else {
+                $scope.database.$update({dbId:$scope.database._id})
+                $location.path("/") 
+            }
+        }
+    });
 
 
-function DBNewCtrl($scope, $location)
+app.controller("DBNewCtrl", function ($scope, $location)
     {
          $scope.database = {"host" : "127.0.0.1"}
          
         $scope.save = function () {
             $location.path("/") 
             }
-    }
+    });
  
 
-function DBListCtrl($scope, $resource)
+app.controller("DBListCtrl", function ($scope, Database)
     {
-    //$scope.db2 = Database.query();
-    var dbs = $resource("/apiv1/databases",{},false);
-    $scope.result = dbs.get()
+    $scope.result = Database.query();
+    
+    // var dbs = $resource("/apiv1/databases",{},false);
+    // $scope.result = dbs.get()
 /*
     $scope.databases = [ 
         {
@@ -100,4 +122,4 @@ function DBListCtrl($scope, $resource)
     }
     ];
     */ 
-    }
+    });
