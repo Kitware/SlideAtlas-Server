@@ -115,6 +115,49 @@ class DatabaseAPI(AdminDBAPI):
 
         return jsonify(newdb)
 
+    @common_utils.site_admin_required
+    def put(self, resid):
+        # put requires admin access
+
+        # Get json supplied 
+        data = request.json
+
+        # Check for valid parameters 
+        # Check if no parameters 
+        if data == None:
+            return Response("{\"error\" : \"No parameters ? \"}", status=405)
+
+        # See if id matches the resource being modified
+        try:
+            if data["_id"] != resid:
+                raise 1
+        except:
+                return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
+
+        # Try to see if the data can create valid object 
+        conn.register([Database])
+
+        # The object should exist
+        dbobj = conn[current_app.config["CONFIGDB"]]["databases"].Database.find_one({"_id" : ObjectId(resid)})
+
+        # Unknown request if no parameters 
+        if dbobj == None:
+            return Response("{\"error\" : \"Resource _id: %s  doesnot exist\"}" % (resid), status=403)
+
+        # Create the database object from the supplied parameters  
+        try:
+            dbobj["label"] = data["label"]
+            dbobj["host"] = data["host"]
+            dbobj["dbname"] = data["dbname"]
+            dbobj["copyright"] = data["copyright"]
+            dbobj.validate()
+            dbobj.save()
+        except Exception as inst:
+            # If valid database object cannot be constructed it is invalid request 
+            return Response("{\"error\" : %s}" % str(inst), status=405)
+
+        return jsonify(dbobj)
+
 #        if restype == 'databases':
 #                return "You want to add database"
 #        elif restype == "rules":
@@ -125,7 +168,7 @@ class DatabaseAPI(AdminDBAPI):
 #        pass
 
 mod.add_url_rule('/databases', defaults={"resid" : None}, view_func=DatabaseAPI.as_view("show_database_list"), methods=['get', 'post'])
-mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['get', 'DELETE'])
+mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['get', 'DELETE', 'put'])
 
 mod.add_url_rule('/<regex("(users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"))
 mod.add_url_rule('/<regex("(users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))

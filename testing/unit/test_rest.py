@@ -130,9 +130,17 @@ class APIv1_Tests(unittest.TestCase):
 
         obj = self.parseResponse("/apiv1/databases", newdb, method="post")
 
+        # Query it back and check 
         obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]))
-
         self.failUnlessEqual(obj['_id'], obj2["_id"])
+
+        obj2["label"] = "Modified"
+
+        obj3 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]), obj2, method="put")
+
+        # Query it back and check if the label if actually modified
+        obj4 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]))
+        self.failUnlessEqual(obj2["label"], obj4["label"])
 
         # Now test if the database record can be deleted 
         obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
@@ -144,17 +152,25 @@ class APIv1_Tests(unittest.TestCase):
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
             rv = self.app.get(url)
+
         elif method == "post":
             rv = self.app.post(url,
                            # String conversion required, as the test client ifnores content_type and assumes it is a file 
                            data=json.dumps(postdata),
                           content_type='application/json')
+
+        elif method == "put":
+            rv = self.app.put(url,
+                           # String conversion required, as the test client ifnores content_type and assumes it is a file 
+                           data=json.dumps(postdata),
+                          content_type='application/json')
+
         elif method == "delete":
             rv = self.app.delete(url)
         else:
             raise("method not supported")
 
-        self.failUnless(rv.status_code == 200, "Http request did not return OK, status: %d" % rv.status_code)
+        self.failUnless(rv.status_code == 200, "Http request did not return OK, status: %d, it returned: %s" % (rv.status_code, rv.data))
 
         try:
             obj = loads(rv.data)
@@ -166,7 +182,7 @@ class APIv1_Tests(unittest.TestCase):
 
         return obj
 
-    def testPostToDatabase(self):
+    def testDatabasePut(self):
         pass
 
 if __name__ == "__main__":
