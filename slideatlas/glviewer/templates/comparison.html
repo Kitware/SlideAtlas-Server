@@ -2,6 +2,12 @@
 
 <title>Connectome Viewer</title>
 
+
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+
+
+
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
@@ -34,7 +40,7 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
 
 <!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewEditMenu.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
 
 
 
@@ -142,6 +148,7 @@ shape has visibility and
 </script>
 <script type="text/javascript">
   var ARGS;
+  var EDIT = true;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -149,17 +156,19 @@ shape has visibility and
 
   // sets the global variable ARGS
   function getArgs() {
+
+    // TODO: Try to copy the object in one command!!!
     ARGS = {};
     ARGS.Viewer1 = {};
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
+    ARGS.Viewer1.viewid = "{{question.viewer1.viewid}}";
     ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
     ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
-    //ARGS.View1.origin[1] = ARGS.View1.-origin[1];
     ARGS.Viewer1.spacing = {{question.viewer1.spacing}};
     ARGS.Viewer1.center = {{question.viewer1.center}};
-    ARGS.Viewer1.zoom = {{question.viewer1.zoom}};
+    ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
     ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
     // Now for the optional views for Viewer2
     // Convert python structure into javascript.
@@ -168,17 +177,25 @@ shape has visibility and
         var view = {};
         view.label = "{{option.label}}";
         view.db = "{{option.db}}";
-        view.collection = "{{option.collection}}";
+        view.img = "{{option.img}}";
+        view.center = {{option.center}};
+        view.viewHeight = {{option.viewHeight}};
+        view.rotation = {{option.rotation}};
+        ARGS.Options.push(view);
+    {% endfor %}    
+    ARGS.OptionInfo = [];
+    {% for option in question.optionInfo %}
+        var view = {};
         view.origin = {{option.origin}};
         view.spacing = {{option.spacing}};
         view.levels = {{option.levels}};
         view.dimensions = {{option.dimension}};
-        view.center = {{option.center}};
-        view.zoom = {{option.zoom}};
-        view.rotation = {{option.rotation}};
-        ARGS.Options.push(view);
+        ARGS.OptionInfo.push(view);
     {% endfor %}    
   }
+ 
+  
+  
   
   function handleResize() {
     if (GL) {
@@ -203,10 +220,10 @@ shape has visibility and
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
 
-    // Compute the height from the zoom.
-    var height = CANVAS.clientHeight << ARGS.Viewer1.zoom;
     VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
-    VIEWER1.SetCamera(ARGS.Viewer1.center, ARGS.Viewer1.rotation, height);
+    VIEWER1.SetCamera(ARGS.Viewer1.center, 
+                      ARGS.Viewer1.rotation, 
+                      ARGS.Viewer1.viewHeight);
     
     EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
@@ -225,8 +242,8 @@ shape has visibility and
   function handleMouseDown(event) { 
     // Left single click shows edit menu.
     // TODO: supress menu on double click.
-    if (event.which == 3) {
-        ShowDualViewMenu(event.clientX, event.clientY);
+    if (EDIT && event.which == 3) {
+        ShowComparisonEditMenu(event.clientX, event.clientY);
     }
     EVENT_MANAGER.HandleMouseDown(event);
   }
@@ -234,7 +251,11 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {EVENT_MANAGER.HandleKeyDown(event);}
-  function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
+  function handleKeyUp(event) {
+        if (event.keyCode == 69) { // 'e'
+            EDIT = ! EDIT;
+        }
+        EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
     if (e && e.stopPropagation)
@@ -242,20 +263,6 @@ shape has visibility and
     return false;
   }
 
-  
-  function changeOption(index) {
-    // Create a new source for the viewer.
-    var option = ARGS.Options[index];
-    var source = new Cache("/tile?img="+option.collection+"&db="+option.db+"&name=", option.levels);
-    VIEWER2.SetCache(source);
-    var height = CANVAS.clientHeight << option.zoom;
-    VIEWER2.SetCamera(option.center, option.rotation, height);
-    VIEWER2.SetDimensions(option.dimensions);
-
-    $('.viewer2').show();
-
-    eventuallyRender();
-  }
   
 
   
@@ -289,7 +296,7 @@ shape has visibility and
     document.oncontextmenu = cancelContextMenu;         
 
     // Create the edit menu.
-    InitDualViewEditMenu();
+    InitComparisonEditMenus();
 
 
     // Place the zoom in / out buttons.
@@ -373,26 +380,23 @@ shape has visibility and
         'font-size': '20px'
     }).attr('id', 'diagnoses');
     
-    $('<ol>').appendTo('#diagnoses').attr('id', 'selectable').css({'width': '100%'});
+    $('<ol>').appendTo('#diagnoses').attr('id', 'optionMenu').css({'width': '100%'});
     for (i in ARGS.Options) {
-        $('<li>').appendTo('#selectable').text(ARGS.Options[i].label);
+        $('<li>').appendTo('#optionMenu').text(ARGS.Options[i].label).css({'border-radius': '5px'});
     }
     
-    $( "#selectable" ).selectable({
+    $( "#optionMenu" ).selectable({
       stop: function() {
         $('#diagnosis').text($('.ui-selected').text());
         $('#diagnoses').fadeOut();
         $( ".ui-selected", this ).each(function() {
-          var li = $( "#selectable li" );
+          var li = $( "#optionMenu li" );
           var t = li.text();
-          var index = $( "#selectable li" ).index( this );
+          var index = $( "#optionMenu li" ).index( this );
           changeOption(index);
-          //$('#diagnosis').text();
-          //$('#diagnosis').text(" #" + ( index + 1 ) );
         });
       }
-    });
-    
+    });    
     
     eventuallyRender();
   }
@@ -687,10 +691,10 @@ shape has visibility and
 
 <style>
 #feedback { font-size: 1.4em; }
-#selectable .ui-selecting { background: #FECA40; }
-#selectable .ui-selected { background: #F39814; color: white; }
-#selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
-#selectable li { padding: 3px; height: 18px; width: 100%}
+#optionMenu .ui-selecting { background: #FECA40; }
+#optionMenu .ui-selected { background: #F39814; color: white; }
+#optionMenu { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#optionMenu li { padding: 3px; height: 18px; width: 100%}
 </style>
 
 

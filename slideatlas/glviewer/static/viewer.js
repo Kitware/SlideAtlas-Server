@@ -95,6 +95,10 @@ Viewer.prototype.SetCamera = function(center, rotation, height) {
     eventuallyRender();
 }
 
+Viewer.prototype.GetCamera = function() {
+    return this.MainView.Camera;
+}
+
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {

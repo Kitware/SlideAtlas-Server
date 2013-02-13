@@ -33,9 +33,6 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <!-- Has two views -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
 
-<!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewEditMenu.js') }}"></script>
-
 
 
 <!-- Widgets
@@ -222,14 +219,7 @@ shape has visibility and
   }
 
 
-  function handleMouseDown(event) { 
-    // Left single click shows edit menu.
-    // TODO: supress menu on double click.
-    if (event.which == 3) {
-        ShowDualView(event.clientX, event.clientY);
-    }
-    EVENT_MANAGER.HandleMouseDown(event);
-  }
+  function handleMouseDown(event) {EVENT_MANAGER.HandleMouseDown(event);}
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}

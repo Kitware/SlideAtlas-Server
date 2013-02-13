@@ -76,14 +76,21 @@ shape has visibility and
 <script type="text/javascript">
 //  var QUESTION = <?php echo json_encode($mongo_question);?>;
   // These globals are used in the viewer javascript.  I need to get rid of them.
-  var dimension = {{img.dimension}};
+  var DBID = "{{img.dbid}}";
+  var VIEWID = "{{img.viewid}}";
+  var DIMENSION = {{img.dimension}};
   var LEVELS = {{img.levels}};
   var origin = {{img.origin}};
   origin[1] = -origin[1];
   var spacing = {{img.spacing}};
   var center = {{img.center}};
-  var zoom = {{img.zoom}};
-  var rotation = {{img.rotation}};
+  var rotation = {{img.rotation}};  
+  {% if img.zoom is defined %}
+    var zoom = {{img.zoom}};
+  {% endif %}
+  {% if img.viewHeight is defined %}
+    var viewHeight = {{img.viewHeight}};
+  {% endif %}
   
 </script>
 
@@ -199,8 +206,15 @@ shape has visibility and
       VIEWER1.MainView.Camera.ComputeMatrix();
       VIEWER1.OverView.Camera.ComputeMatrix();
     }
-    // Compute the height from the zoom.
-    var height = CANVAS.clientHeight << zoom;
+    // I want to eliminate zoom and replace it with view height.
+    var height = 10000;
+    if (typeof VIEW_HEIGHT != 'undefined') {
+        height = VIEW_HEIGHT;
+    } else if (typeof ZOOM != 'undefined') {
+        // Compute the height from the zoom.
+        height = CANVAS.clientHeight << zoom;
+    }
+    VIEWER1.SetDimensions(DIMENSION);
     VIEWER1.SetCamera(center,rotation,height);
     
     
@@ -226,7 +240,16 @@ shape has visibility and
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
-  function handleKeyDown(event) {EVENT_MANAGER.HandleKeyDown(event);}
+  function handleKeyDown(event) {
+    // hack to convert a normal view to a comparison view.
+    if (event.keyCode == 67) { // c
+        $.get("http://localhost:8080/webgl-viewer/comparison-convert?db="+DBID+"&view="+VIEWID,
+          function(data,status){
+              alert(data + " is now a comparison");
+          });
+    }
+    EVENT_MANAGER.HandleKeyDown(event);
+  }
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
@@ -466,7 +489,7 @@ shape has visibility and
             // var liststring = '<tr><td>1: <input type="text" class="answer" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
             // $('#choicelist').append(liststring);
         // }
-
+/*
       $("#text-properties-dialog").dialog({
           autoOpen:false,
           height:250,
@@ -561,7 +584,7 @@ shape has visibility and
         }
       }
     });
-
+*/
   });
 
 </script>

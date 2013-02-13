@@ -33,7 +33,12 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                <td><a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
+                <td>
+                {% if animage.comparison %}
+                    <a href="webgl-viewer/comparison?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
+                {% else %}
+                    <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
+                {% endif %}
                 <td align="right">
                     <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                 </td>

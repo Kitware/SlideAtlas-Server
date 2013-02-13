@@ -1,8 +1,8 @@
 //==============================================================================
 // Create and manage the menu to edit dual views.
 
-function InitDualViewEditMenu() {
-    // Create the menu to select slides for the second view.    
+function InitComparisonEditMenus() {
+    // Create the menu of edit options.    
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-radius': '5px',
@@ -12,91 +12,97 @@ function InitDualViewEditMenu() {
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'
-    }).attr('id', 'dualViewEditMenu').hide();
+    }).attr('id', 'comparisonEditMenu').hide();
     
-    $('<ol>').appendTo('#dualViewEditMenu')
-             .attr('id', 'dualViewEditMenuOrderedList')
+    $('<ol>').appendTo('#comparisonEditMenu')
+             .attr('id', 'comparisonEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("new question")
-             .click(function(){EditDualNewQuestion();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("copy question")
-             .click(function(){EditDualCopyQuestion();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("delete question")
-             .click(function(){EditDualDeleteQuestion();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("set slide")
-             .click(function(){EditDualSetSlide();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("save left view")
-             .click(function(){EditDualSaveLeftView();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
+    $('<li>').appendTo('#comparisonEditSelector')
              .text("add diagnosis")
-             .click(function(){EditDualAddDiagnosis();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("delete diagnosis")
-             .click(function(){EditDeleteDiagnosis();});
-    $('<li>').appendTo('#dualViewEditMenuOrderedList')
-             .text("save diagnosis view")
-             .click(function(){EditDualSaveDiagnosisView();});
+             .click(function(){ComparisonAddDiagnosis();});
+    $('<li>').appendTo('#comparisonEditSelector')
+             .text("save left view")
+             .click(function(){ComparisonSaveLeftView();});
+
+
+    // Create a selection list of sessions.   
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'top' : '35px',
+        'left' : '35px',
+        'width' : '500px',
+        'height' : '500px',
+        'z-index': '2',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'sessionMenu').hide();
+
+
+    // Create a selector for views.   
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'top' : '35px',
+        'left' : '35px',
+        'width' : '500px',
+        'height' : '500px',
+        'z-index': '2',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'viewMenu').hide();
+
+
+    // Get info from the databse to fillout the the rest of the view menu.
+    $.get("http://localhost:8080/sessions?json=true",function(data,status){
+        if (status == "success") {
+            InitSessionMenu(data);
+        }
+    });        
+}
+
+function InitSessionMenu(data) {
+    $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
+    for (i in data.sessions) {
+        var group = data.sessions[i];
+        $('<li>').appendTo('#sessionMenuSelector').css({'font-weight':'bold'}).text(group.rule);
+        for (j in group.sessions) {
+            session = group.sessions[j];
+            $('<li>').appendTo('#sessionMenuSelector').text(session.label);
+        }
+    }
     
 }
-
-function ShowDualViewMenu(x, y) {
-    $('#dualViewEditMenu').css({'top': y, 'left':x}).show();
-}
-
-
-
-
-
-
-
-
-function EditDualSaveLeftView() {
-    $('#dualViewEditMenu').hide();
     
     
     
-    
-    
-    alert("EditDualSaveSlideView");
+
+
+
+
+
+
+function ComparisonAddDiagnosis() {
+    $('#comparisonEditMenu').hide();
+    $('#sessionMenu').show();
+}
+
+function ComparisonSaveLeftView() {
+   alert("Preston is writing this"); 
+   $('#comparisonEditMenu').hide();
 }
 
 
 
 
-function EditDualNewQuestion() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualNewQuestion");
+
+
+
+function ShowComparisonEditMenu(x, y) {
+    $('#comparisonEditMenu').css({'top': y, 'left':x}).show();
 }
-function EditDualCopyQuestion() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualCopyQuestion");
-}
-function EditDualDeleteQuestion() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualDeleteQuestion");
-}
-function EditDualDeleteQuestion() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualDeleteQuestion");
-}
-function EditDualSetSlide() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualSetSlide");
-}
-function EditDualAddDiagnosis() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualAddDiagnosis");
-}
-function EditDeleteDiagnosis() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDeleteDiagnosis");
-}
-function EditDualSaveDiagnosisView() {
-    $('#dualViewEditMenu').hide();
-    alert("EditDualSaveDiagnosisView");
-}
+
+
+

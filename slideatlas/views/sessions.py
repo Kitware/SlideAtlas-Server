@@ -97,6 +97,9 @@ def sessions():
                 animage["img"] = str(viewobj["img"])
                 animage["label"] = imgobj["label"]
                 animage["view"] = str(aview["ref"])
+                if "type" in viewobj:
+                    if viewobj["type"] == "comparison":
+                        animage["comparison"] = 1
 
                 images.append(animage)
 
