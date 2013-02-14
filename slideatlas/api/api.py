@@ -13,7 +13,7 @@ from slideatlas import common_utils
 from celery.platforms import resource
 from slideatlas.common_utils import jsonify
 from slideatlas.model.database import Database
-
+from slideatlas.common_utils import site_admin_required
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
                 template_folder="templates",
@@ -242,6 +242,7 @@ def session_object_request(dbid, sessid, restype, resid):
 
 # Render admin template
 @mod.route('/admin')
+@site_admin_required(True)
 def admin_main():
     """
     Single page application with uses this rest API to interactively do tasks

@@ -7,7 +7,7 @@ except ImportError:
         raise ImportError
 import datetime
 from bson.objectid import ObjectId
-from flask import Response, session, abort
+from flask import Response, session, abort, flash, redirect
 
 class MongoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -44,11 +44,18 @@ class DBAccess(object):
 
 
 # Decorator for urls that require login
-def site_admin_required(f):
+def site_admin_required(page=False):
     """Checks whether an site administrator user is logged in or raises error 401."""
-    def decorator(*args, **kwargs):
-        if not ('site_admin' in session and session['site_admin'] == True):
-            abort(401)
-        return f(*args, **kwargs)
-    return decorator
+    def real_decorator(function):
+        def decorator(*args, **kwargs):
+            if not ('site_admin' in session and session['site_admin'] == True):
+                if page:
+                    flash("You do not have administrative previleges", "error")
+                    return redirect("/home")
+                else:
+                    abort(401)
+            else:
+                return function(*args, **kwargs)
+        return decorator
+    return real_decorator
 
