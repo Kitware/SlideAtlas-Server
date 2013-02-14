@@ -102,8 +102,8 @@ def logout():
     """
     # if we are already logged in, go back to were we came from
     g.logged_in = False
-    session.pop('user', None)
-    session.pop('openid', None)
+    session.clear()
+
     return redirect(url_for('home'))
 
 
@@ -127,5 +127,5 @@ def home():
         label = None
         email = None
 
-    return render_template('home.html', name=label, email=email, git=get_git_name())
+    return render_template('home.html', name=label, email=email, git=get_git_name(), session=session.__repr__())
 

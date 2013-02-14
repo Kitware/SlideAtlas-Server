@@ -5,7 +5,7 @@ from flask_oauth import OAuth
 
 from slideatlas.common_utils import DBAccess
 
-from slideatlas import model
+from slideatlas import model, app
 from slideatlas  import slconn as conn
 
 mod = Blueprint('login', __name__)
@@ -13,16 +13,14 @@ oid = OpenID()
 oauth = OAuth()
 
 # Facebook key redirecting to localhost:8080
-FACEBOOK_APP_ID = '119067998250051'
-FACEBOOK_APP_SECRET = 'a59f02dfa257a385273f22ed061257e4'
 
 facebook = oauth.remote_app('facebook',
     base_url='https://graph.facebook.com/',
     request_token_url=None,
     access_token_url='/oauth/access_token',
     authorize_url='https://www.facebook.com/dialog/oauth',
-    consumer_key=FACEBOOK_APP_ID,
-    consumer_secret=FACEBOOK_APP_SECRET,
+    consumer_key=app.config['FACEBOOK_APP_ID'],
+    consumer_secret=app.config['FACEBOOK_APP_SECRET'],
     request_token_params={'scope': 'email'}
 )
 
@@ -174,7 +172,6 @@ def do_user_login(user):
     # Insert that information in the session
     # In future, session may contain only session it, 
     # and this could get into database
-    session["accesses"] = accesses
 
 #    For debugging
 #    for adb in accesses.keys():
