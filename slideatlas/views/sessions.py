@@ -16,7 +16,7 @@ mod = Blueprint('session', __name__)
 def sessions():
     """
     - /sessions  With no argument displays list of sessions accessible to current user
-    - /sessions?sess=10239094124  searches for the session id
+    - /sessions?sessid=10239094124  searches for the session id
     """
     rules = []
 
@@ -96,7 +96,10 @@ def sessions():
                 animage['db'] = str(dbobj["_id"])
                 animage["img"] = str(viewobj["img"])
                 animage["label"] = imgobj["label"]
-
+                animage["view"] = str(aview["ref"])
+                if "type" in viewobj:
+                    if viewobj["type"] == "comparison":
+                        animage["comparison"] = 1
 
                 images.append(animage)
 

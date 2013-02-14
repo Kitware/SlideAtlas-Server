@@ -13,6 +13,7 @@ function Viewer (viewport, cache) {
   this.TranslateTarget = [0.0,0.0];
   
   this.MainView = new View(viewport, cache);
+  this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
   var overViewport = [viewport[0] + viewport[2]*0.8, 
@@ -26,6 +27,7 @@ function Viewer (viewport, cache) {
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
 
+  this.ShapeVisibility = true;
   this.AnnotationList = []; // Remove this.
   this.ShapeList = [];
   this.WidgetList = [];
@@ -35,6 +37,12 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 }
 
+// Change the source / cache after a viewer has been created.
+Viewer.prototype.SetCache = function(cache) {
+  this.MainView.SetCache(cache);
+  this.OverView.SetCache(cache);
+}
+
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
   this.MainView.SetViewport(viewport);
@@ -42,17 +50,61 @@ Viewer.prototype.SetViewport = function(viewport) {
                       viewport[1] + viewport[3]*0.8,
                       viewport[2]*0.18, viewport[3]*0.18];
   this.OverView.SetViewport(overViewport);
+  this.MainView.Camera.ComputeMatrix();
+  this.OverView.Camera.ComputeMatrix();
 }
 
 Viewer.prototype.GetViewport = function() {
   return this.MainView.Viewport;
 }
 
+// For the overview and maybe reset camera in the future.
+Viewer.prototype.SetDimensions = function(dims) {
+    this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
+    this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
+    var height = dims[1];
+    // See if the view is constrained by the width.
+    var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+    if (height2 > height) {
+      height = height2;
+    }
+    this.OverView.Camera.Height = height;
+
+    this.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
+}
+
+// This is used to set the default camera so the complexities 
+// of the target and overview are hidden.
+Viewer.prototype.SetCamera = function(center, rotation, height) {
+    this.MainView.Camera.Height = height;
+    this.ZoomTarget = height;    
+
+    this.MainView.Camera.FocalPoint[0] = center[0];
+    this.MainView.Camera.FocalPoint[1] = center[1];
+    //this.MainView.Camera.FocalPoint[2] = center[2];
+    this.TranslateTarget[0] = center[0];
+    this.TranslateTarget[1] = center[1];
+    
+    rotation = rotation * 3.14159265359 / 180.0;
+    this.MainView.Camera.Roll = rotation;
+    this.OverView.Camera.Roll = rotation;
+    this.RollTarget = rotation;
+
+    this.MainView.Camera.ComputeMatrix();
+    this.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
+}
+
+Viewer.prototype.GetCamera = function() {
+    return this.MainView.Camera;
+}
+
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
   this.ZoomTarget = this.MainView.Camera.Height * factor;
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
   factor = this.ZoomTarget / this.MainView.Camera.Height; // Actual factor after limit.
@@ -70,7 +122,7 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
 
 Viewer.prototype.AnimateZoom = function(factor) {
   this.ZoomTarget = this.MainView.Camera.Height * factor;
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
 
@@ -112,19 +164,19 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
 Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
     case "arrow":
-      var arrow = new ArrowWidget(VIEWER1, false);
+      var arrow = new ArrowWidget(this, false);
       arrow.Load(obj);  
       break;
     case "text":
-      var text = new TextWidget(VIEWER1, "");
+      var text = new TextWidget(this, "");
       text.Load(obj);
       break;
     case "circle":
-      var circle = new CircleWidget(VIEWER1, false);
+      var circle = new CircleWidget(this, false);
       circle.Load(obj);
       break;
     case "polyline":
-      var pl = new PolylineWidget(VIEWER1, false);
+      var pl = new PolylineWidget(this, false);
       pl.Load(obj);
       break;
   }
@@ -158,6 +210,10 @@ Viewer.prototype.DegToRad = function(degrees) {
 
 
 Viewer.prototype.Draw = function() {
+  if ( ! this.MainView.Cache) {
+    return;
+  }
+
   // Should the camera have the viewport in them?
   // The do not currently hav a viewport.
 
@@ -172,12 +228,14 @@ Viewer.prototype.Draw = function() {
   this.OverView.DrawTiles();
   this.MainView.DrawTiles();
 
-  for(i=0; i<this.AnnotationList.length; i++){
-    this.AnnotationList[i].Draw(this);
-  }
-
-  for(i=0; i<this.ShapeList.length; i++){
-    this.ShapeList[i].Draw(this.MainView);
+  // Obsolete
+  //for(i=0; i<this.AnnotationList.length; i++){
+  //  this.AnnotationList[i].Draw(this);
+  //}
+  if (this.ShapeVisibility) {
+      for(i=0; i<this.ShapeList.length; i++){
+        this.ShapeList[i].Draw(this.MainView);
+      }
   }
 }
 
@@ -368,6 +426,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // GLOBAL views will go away when views handle this.
     this.MainView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
     this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
+    this.RollTarget = this.MainView.Camera.Roll;
   } else if (zoom) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
     this.MainView.Camera.Height *= (1.0 + (dy* 5.0));
@@ -407,7 +466,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
   }
 
   // Artificial limit (fixme).
-  if (VIEWER1.ZoomTarget < 0.9 / (1 << 5)) {
+  if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
 

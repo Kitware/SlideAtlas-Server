@@ -206,6 +206,8 @@ TextWidget.prototype.HandleMouseDown = function(event) {
 TextWidget.prototype.HandleMouseUp = function(event) {
   if (this.State == TEXT_WIDGET_DRAG || this.State == TEXT_WIDGET_DRAG_TEXT) {
     this.State = TEXT_WIDGET_ACTIVE;
+    // TODO: We need some callback to generalize to more than comparison views.
+    ComparisonSaveAnnotations();
     }
   
   if (this.State == TEXT_WIDGET_ACTIVE && event.SystemEvent.which == 3) {

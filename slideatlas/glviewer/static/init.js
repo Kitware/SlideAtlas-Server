@@ -28,30 +28,49 @@ var GL;
 
 // WebGL Initialization
 
-
-function initGL(canvas) {
+function doesBrowserSupportWebGL(canvas) {
     try {
-        canvas.width =  canvas.clientWidth;
-        canvas.height= canvas.clientHeight;
-
-        canvas.style.width =  canvas.clientWidth + "px";
-        canvas.style.height= canvas.clientHeight+ "px";
         GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        GL.viewportWidth = canvas.clientWidth;
-        GL.viewportHeight = canvas.clientHeight;
-
-        canvas.width =  canvas.clientWidth;
-        canvas.height= canvas.clientHeight;
-
     } catch (e) {
     }
     if (!GL) {
         alert("Could not initialise WebGL, sorry :-(");
+        return false;
     }
+   return true;
 }
 
 
+function initGL() {
+    // Add a new canvas.
+    $('<canvas>').appendTo('body').css({
+        'position': 'absolute',
+        'width': '100%',
+        'height': '100%',
+        'top' : '0px',
+        'left' : '0px',
+        'z-index': '1'
+    }).attr('id', 'viewer'); // class='fillin nodoubleclick'
+    CANVAS = $('#viewer')[0];
+    //this.canvas.onselectstart = function() {return false;};
+    //this.canvas.onmousedown = function() {return false;};
+    GL = CANVAS.getContext("webgl") || CANVAS.getContext("experimental-webgl");
+    
+    $(window).resize(function() {
+        // Update what you need in your webgl code to use the full size of the canvas again...
+        handleResize();
+    }).trigger('resize');
 
+    //canvas.width  = canvas.clientWidth;
+    //canvas.height = canvas.clientHeight;
+    //canvas.style.width =  canvas.clientWidth + "px";
+    //canvas.style.height= canvas.clientHeight+ "px";
+    //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    //GL.viewportWidth = canvas.clientWidth;
+    //GL.viewportHeight = canvas.clientHeight;
+    //canvas.width =  canvas.clientWidth;
+    //canvas.height= canvas.clientHeight;
+}
 
 
 
