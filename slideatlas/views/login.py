@@ -165,8 +165,9 @@ def do_user_login(user):
             accesses[str(ruleobj["db"])].db_admin = True
         if 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
             accesses[str(ruleobj["db"])].can_see_all = True
-        if len(ruleobj["can_see"]) > 0:
-            accesses[str(ruleobj["db"])].can_see.append(ruleobj["can_see"])
+        if 'can_see' in ruleobj:
+            if len(ruleobj["can_see"]) > 0:
+                accesses[str(ruleobj["db"])].can_see.append(ruleobj["can_see"])
         if 'site_admin' in ruleobj and ruleobj["site_admin"] == True:
             session["site_admin"] = True
 

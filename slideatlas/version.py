@@ -11,7 +11,7 @@ def get_git_name():
     except:
         # Support for particular case when running on windows 
         os.chdir(newdir)
-        params = ["C:/PortableGit-1.7.11/git", "describe", "--tags"]
+        params = ["C:/PortableGit-1.7.11/bin/git.exe", "describe", "--tags"]
         out = check_output(params)
         os.chdir(curdir)
 
