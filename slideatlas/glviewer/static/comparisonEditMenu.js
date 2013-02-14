@@ -26,6 +26,8 @@ function getCookie(c_name)
 }
 
 
+
+
 function ShowComparisonEditMenu(x, y) {
     $('#comparisonEditMenu').css({'top': y, 'left':x}).show();
 }
@@ -62,6 +64,12 @@ function InitComparisonEditMenus() {
     $('<li>').appendTo(comparisonEditSelector)
              .text("save right view")
              .click(function(){ComparisonSaveRightView();});
+    $('<li>').appendTo(comparisonEditSelector)
+             .text("save left view")
+             .click(function(){ComparisonSaveLeftView();});
+    $('<li>').appendTo(comparisonEditSelector)
+             .text("new annotaton")
+             .click(function(){ComparisonNewAnnotation();});
     $('<li>').appendTo(comparisonEditSelector)
              .text("copy options")
              .click(function(){ComparisonCopyOptions();});
@@ -178,7 +186,9 @@ function AddComparisonOption(option) {
     var index = ARGS.Options.length;
     // Add a new option.
     var view = {};
-    view.label = option.label;
+    
+    view.label = option.label.replace(/&#39;/g,"'");
+
     view.db = option.db;
     view.img = option.img;
     view.center = option.center;
@@ -203,20 +213,30 @@ function AddComparisonOption(option) {
     changeOption(index);
     
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 }
 
-function SaveOptions() {
+function ComparisonSave(operation) {
   $.ajax({
     type: "post",
     url: "http://localhost:8080/webgl-viewer/comparison-save",
-    data: {"input" :  JSON.stringify( ARGS )},
+    data: {"input" :  JSON.stringify( ARGS ),
+           "operation" : operation},
     success: function(data,status){
-       alert(data + "\nStatus: " + status);
+       //alert(data + "\nStatus: " + status);
        },
     error: function() { alert( "AJAX - error()" ); },
     });
  }
+
+function ComparisonSaveAnnotations() {
+    ARGS.Viewer1.annotations = [];
+    for (i in VIEWER1.WidgetList) {
+        widget = VIEWER1.WidgetList[i];
+        ARGS.Viewer1.annotations.push(widget.Serialize());
+    }
+    ComparisonSave("view");
+}
 
 // Set the current option / diagnosis.
 function changeOption(index) {
@@ -294,7 +314,7 @@ function ComparisonDeleteDiagnosis() {
     changeOption(-1);
     
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 }
 
 function ComparisonEditDiagnosisLabel() {
@@ -308,7 +328,7 @@ function ComparisonEditDiagnosisLabel() {
     $('#comparisonDialog').dialog();
     
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 }
 function ComparisonEditDiagnosisLabelSubmit() {
     if (VIEWER2.OptionIndex == undefined) { // check should not be necessary here.
@@ -327,7 +347,7 @@ function ComparisonEditDiagnosisLabelSubmit() {
     $('#comparisonDialog').dialog( "close" );    
 
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 }
 
 
@@ -347,8 +367,23 @@ function ComparisonSaveRightView() {
     $('#comparisonEditMenu').hide();
     
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 }
+
+
+function ComparisonSaveLeftView() {
+    var cam = VIEWER1.GetCamera();
+    ARGS.Viewer1.viewHeight = cam.Height;
+    // Copy values not pointer reference.
+    ARGS.Viewer1.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
+    ARGS.Viewer1.rotation = 180 * cam.Roll / 3.14159265;
+    
+    $('#comparisonEditMenu').hide();
+    
+    // Save the new options in mongo
+    ComparisonSave("view");
+}
+
 
 // Use cookies as a clipboard for copy and paste.
 function ComparisonCopyOptions() {
@@ -378,14 +413,18 @@ function ComparisonPasteOptions() {
     }
 
     // Save the new options in mongo
-    SaveOptions();
+    ComparisonSave("options");
 
     $('#comparisonEditMenu').hide();
-
 }
 
 
-
+function ComparisonNewAnnotation() {
+   // The text is created when the apply button is pressed.
+   $("#text-properties-dialog").dialog("open");
+    
+   $('#comparisonEditMenu').hide();
+}
 
 
 

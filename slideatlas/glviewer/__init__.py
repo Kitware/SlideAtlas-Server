@@ -1,8 +1,9 @@
 import mongokit
-import json
 from bson import ObjectId
-from flask import Blueprint, Response, abort, jsonify, request, render_template, url_for, current_app, make_response
+from flask import Blueprint, Response, abort, request, render_template, url_for, current_app, make_response
 from slideatlas import slconn as conn, admindb, model
+import json
+from slideatlas.common_utils import jsonify
 
 
 
@@ -164,7 +165,11 @@ def glcomparison():
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
     
-
+    # I cannot figure out how to pass a string with newlines  and quotes
+    #annotationsStr = json.dumps(viewobj["annotations"])
+    #annotationsStr = annotationsStr.replace("&#34;","'")
+    #annotationsStr = annotationsStr.replace("\n","\\n")
+    
     # The base view is for the left panel
     img = {}
     img["db"] = dbid
@@ -181,6 +186,14 @@ def glcomparison():
     if 'viewHeight' in bookmarkobj:
         img["viewHeight"] = str(bookmarkobj["viewHeight"])
 
+    # record the bookmarks as annotation.
+    annotations = []
+    for annotation in viewobj["annotations"]:
+        if annotation["type"] == "text" :
+            annotation["string"] = annotation["string"].replace("\n","\\n")
+            annotations.append(annotation)
+    img["annotations"] = annotations;    
+    
     question = {}
     question["viewer1"] = img;
     
@@ -217,7 +230,7 @@ def glcomparison():
             optionImages.append(optionImage)
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
-    
+        
     return make_response(render_template('comparison.html', question=question))
 
 
@@ -272,6 +285,7 @@ def glcomparisonoption():
 @mod.route('/comparison-save',  methods=['GET', 'POST'])
 def glcomparisonsave():
     inputStr = request.form['input']  # for post
+    operation = request.form['operation']  # for post
     #inputStr = request.args.get('input', "{}") # for get
 
     inputObj = json.loads(inputStr)
@@ -283,10 +297,35 @@ def glcomparisonsave():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
     
-    db["views"].update({"_id" : ObjectId(viewid) }, 
-                                 { "$set" : { "options" : optionArray } })
+    if operation == "options" :
+        db["views"].update({"_id" : ObjectId(viewid) },
+                                     { "$set" : { "options" : optionArray } })
+
+    if operation == "view" :
+        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        bookmarkid = viewobj["startup_view"]
+        
+        # Save the annotations
+        db["views"].update({"_id" : ObjectId(viewid) }, 
+                                     { "$set" : { "annotations" : inputObj["Viewer1"]["annotations"] } })
+       
+        # Save the startup view / bookmark
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
+
+                                     # may or may not work
+        #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+        #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
+        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
+        #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
+        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj) 
     
-    return viewid
+    
+    return operation
     
 
 

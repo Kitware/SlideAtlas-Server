@@ -22,6 +22,9 @@
 <!-- Perspective camera etc. May be ready to remove -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
+<!-- Edit menu, right click -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
+
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
 
@@ -38,9 +41,6 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 
 <!-- Has two views -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
-
-<!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
 
 
 
@@ -148,7 +148,8 @@ shape has visibility and
 </script>
 <script type="text/javascript">
   var ARGS;
-  var EDIT = true;
+  var ARG_ANNOTATIONS;
+  var EDIT = false;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -156,7 +157,7 @@ shape has visibility and
 
   // sets the global variable ARGS
   function getArgs() {
-
+    
     // TODO: Try to copy the object in one command!!!
     ARGS = {};
     ARGS.Viewer1 = {};
@@ -170,6 +171,17 @@ shape has visibility and
     ARGS.Viewer1.center = {{question.viewer1.center}};
     ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
     ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    // Copy the annotations for the view.
+    ARGS.Viewer1.annotations = [];
+    {% for annotation in question.viewer1.annotations %}
+        var a = {};
+        a.label = "{{ annotation.string}}";
+        a.color = {{ annotation.color }};
+        a.offset = {{ annotation.offset }};
+        a.position = {{ annotation.position }};
+        ARGS.Viewer1.annotations.push(a);
+       {% endfor %}    
+    
     // Now for the optional views for Viewer2
     // Convert python structure into javascript.
     ARGS.Options = [];
@@ -238,7 +250,8 @@ shape has visibility and
     VIEWER2.Draw();
   }
 
-
+  var E_DOWN = false;
+  var D_DOWN = false;
   function handleMouseDown(event) { 
     // Left single click shows edit menu.
     // TODO: supress menu on double click.
@@ -250,11 +263,19 @@ shape has visibility and
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
-  function handleKeyDown(event) {EVENT_MANAGER.HandleKeyDown(event);}
-  function handleKeyUp(event) {
-        if (event.keyCode == 69) { // 'e'
-            EDIT = ! EDIT;
+  function handleKeyDown(event) {
+        if (event.keyCode == 68) { D_DOWN = true;}
+        if (event.keyCode == 69) { E_DOWN = true;}
+        if (D_DOWN && E_DOWN) {
+            EDIT = ! EDIT; 
+            alert("Edit: " + EDIT);
+            E_DOWN = false;
+            D_DOWN = false;
         }
+        EVENT_MANAGER.HandleKeyDown(event);}
+  function handleKeyUp(event) {
+        if (event.keyCode == 68) { D_DOWN = false;}
+        if (event.keyCode == 69) { E_DOWN = false;}
         EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
@@ -265,7 +286,21 @@ shape has visibility and
 
   
 
-  
+// Not used at the moment.
+function InitAnnotations(viewer, annotations)
+{
+    for (i in annotations) {
+        var annotation = annotations[i];
+        widget = new TextWidget(viewer, annotation.label);
+        var p1 = annotation.position;
+        var offset = annotation.offset;
+        widget.SetPosition(p1[0], p1[1]);
+        widget.SetTextOffset(offset[0], offset[1]);
+        widget.SetAnchorShapeVisibility(true);
+    }
+}
+
+
   function webGLStart() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
@@ -295,6 +330,9 @@ shape has visibility and
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;         
 
+    // Create the annotations for viewer1 
+    InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
+    
     // Create the edit menu.
     InitComparisonEditMenus();
 
@@ -453,6 +491,9 @@ shape has visibility and
       widget.SetActive(false);
     }
     widget.SetAnchorShapeVisibility(markerFlag);
+
+    ComparisonSaveAnnotations();
+    
     eventuallyRender();
   }
 
@@ -509,6 +550,7 @@ shape has visibility and
       // We need to remove an item from a list.
       // shape list and widget list.
       widget.RemoveFromViewer();
+      WidgetPropertyDialogDelete();
       eventuallyRender();
     }
   }

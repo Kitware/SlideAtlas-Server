@@ -235,22 +235,30 @@ shape has visibility and
     VIEWER1.Draw();
   }
 
-
+  var C_DOWN = false;
+  var O_DOWN = false;
   function handleMouseDown(event) {EVENT_MANAGER.HandleMouseDown(event);}
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
     // hack to convert a normal view to a comparison view.
-    if (event.keyCode == 67) { // c
+    if (event.keyCode == 67) { C_DOWN = true;}
+    if (event.keyCode == 79) { O_DOWN = true;}
+    if (C_DOWN && O_DOWN) {
         $.get("http://localhost:8080/webgl-viewer/comparison-convert?db="+DBID+"&view="+VIEWID,
           function(data,status){
               alert(data + " is now a comparison");
           });
+        C_DOWN = false;
+        O_DOWN = false;
     }
     EVENT_MANAGER.HandleKeyDown(event);
   }
-  function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
+  function handleKeyUp(event) {
+    if (event.keyCode == 67) { C_DOWN = false;}
+    if (event.keyCode == 79) { O_DOWN = false;}
+    EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
     if (e && e.stopPropagation)
