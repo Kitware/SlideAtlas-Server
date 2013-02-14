@@ -14,13 +14,13 @@ class DemoTests(unittest.TestCase):
 #        self.driver = webdriver.Chrome()
         self.driver = webdriver.Firefox()
         self.driver.maximize_window()
-        self.driver.implicitly_wait(10)
+        self.driver.implicitly_wait(100)
         self.base_url = "http://mongol:8080/"
         self.verificationErrors = []
 
     def test_demo_tests(self):
         driver = self.driver
-        driver.get("http://mongol:8080/home")
+        driver.get("http://mongol:8080/logout")
         driver.find_element_by_link_text("Home").click()
         driver.find_element_by_link_text("logout").click()
         driver.find_element_by_link_text("login").click()
@@ -37,7 +37,7 @@ class DemoTests(unittest.TestCase):
 
         print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"
 
-        self.failUnless(sameimage("demo_glview.png", "imgs/demo_glview.png"))
+        self.failUnless(sameimage("demo_glview.png", "imgs/demo_glview.png"), "Images not same, look at the difference score")
 
     def is_element_present(self, how, what):
         try: self.driver.find_element(by=how, value=what)
