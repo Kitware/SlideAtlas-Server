@@ -426,6 +426,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // GLOBAL views will go away when views handle this.
     this.MainView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
     this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
+    this.RollTarget = this.MainView.Camera.Roll;
   } else if (zoom) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
     this.MainView.Camera.Height *= (1.0 + (dy* 5.0));

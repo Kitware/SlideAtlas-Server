@@ -188,10 +188,11 @@ def glcomparison():
 
     # record the bookmarks as annotation.
     annotations = []
-    for annotation in viewobj["annotations"]:
-        if annotation["type"] == "text" :
-            annotation["string"] = annotation["string"].replace("\n","\\n")
-            annotations.append(annotation)
+    if 'annotations' in viewobj:
+        for annotation in viewobj["annotations"]:
+            if annotation["type"] == "text" :
+                annotation["string"] = annotation["string"].replace("\n","\\n")
+                annotations.append(annotation)
     img["annotations"] = annotations;    
     
     question = {}

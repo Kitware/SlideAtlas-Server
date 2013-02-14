@@ -116,7 +116,8 @@ function InitComparisonEditMenus() {
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
 
     // Get info from the databse to fillout the the rest of the view menu.
-    $.get("http://localhost:8080/sessions?json=true",function(data,status){
+    //$.get("http://localhost:8080/sessions?json=true",function(data,status){
+    $.get(SESSIONS_URL+"?json=true",function(data,status){
         if (status == "success") {
             InitSessionMenuAjax(data);
         } else { alert("ajax failed."); }
@@ -153,7 +154,8 @@ function InitSessionMenuAjax(data) {
     
 function ShowViewMenu(obj) {
     // Get info from the databse to fillout the the rest of the view menu.
-    $.get("http://localhost:8080/sessions?json=1&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
+    //$.get("http://localhost:8080/sessions?json=1&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
+    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
           function(data,status){
             if (status == "success") {
               ShowViewMenuAjax(data);
@@ -174,7 +176,8 @@ function ShowViewMenuAjax(data) {
 function ViewMenuCallback(obj) {
     // We need the information in view, image and bookmark (startup_view) object.
     //window.location = "http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
-    $.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
+    //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
+    $.get(COMPARISON_OPTION_URL+"?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
           function(data,status){
             if (status == "success") {
               AddComparisonOption(data);
@@ -218,10 +221,14 @@ function AddComparisonOption(option) {
     ComparisonSave("options");
 }
 
+//    url: "http://localhost:8080/webgl-viewer/comparison-save",
 function ComparisonSave(operation) {
+  if ( ! EDIT) {
+    return;
+  }
   $.ajax({
     type: "post",
-    url: "http://localhost:8080/webgl-viewer/comparison-save",
+    url: COMPARISON_SAVE_URL,
     data: {"input" :  JSON.stringify( ARGS ),
            "operation" : operation},
     success: function(data,status){

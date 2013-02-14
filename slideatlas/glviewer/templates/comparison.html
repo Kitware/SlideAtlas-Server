@@ -154,6 +154,11 @@ shape has visibility and
   var EVENT_MANAGER;
   var VIEWER1;
   var VIEWER2;
+  
+  var SESSIONS_URL  = "{{url_for('session.sessions')}}";
+  // I cannot get url_for to give me a path to comparison addresses
+  var COMPARISON_OPTION_URL  = "/webgl-viewer/comparison-option";
+  var COMPARISON_SAVE_URL  = "/webgl-viewer/comparison-save";
 
   // sets the global variable ARGS
   function getArgs() {
@@ -289,6 +294,24 @@ shape has visibility and
 // Not used at the moment.
 function InitAnnotations(viewer, annotations)
 {
+    if (annotations.length == 0) {
+        return;
+    }
+    
+    // Hack button to toggle annotation.
+    $('<button>').appendTo('body').css({
+        'opacity': '0.6',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'font-size': '30px',
+        'bottom' : '5px',
+        'left' : '5px',
+        'z-index': '2'})
+      .attr('id', 'annotationButton').text("A")
+      .click(function(){
+         ToggleAnnotationVisibility();});
+
     for (i in annotations) {
         var annotation = annotations[i];
         widget = new TextWidget(viewer, annotation.label);
@@ -301,7 +324,12 @@ function InitAnnotations(viewer, annotations)
 }
 
 function ToggleAnnotationVisibility() {
-    VIEWER1.ShapeVisibility = ! VIEWER1.ShapeVisibility;        
+    VIEWER1.ShapeVisibility = ! VIEWER1.ShapeVisibility;
+    if (VIEWER1.ShapeVisibility) {
+        $("#annotationButton").css({'opacity': '0.6'});
+    } else {
+        $("#annotationButton").css({'opacity': '0.2'});
+    }
     eventuallyRender();    
 }
 
@@ -340,21 +368,6 @@ function ToggleAnnotationVisibility() {
     // Create the edit menu.
     InitComparisonEditMenus();
     
-    
-    // Hack button to toggle annotation.
-    $('<button>').appendTo('body').css({
-        'opacity': '0.6',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'font-size': '30px',
-        'bottom' : '5px',
-        'left' : '5px',
-        'z-index': '2'})
-      .text("A")
-      .click(function(){
-         ToggleAnnotationVisibility();});
-
     
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
