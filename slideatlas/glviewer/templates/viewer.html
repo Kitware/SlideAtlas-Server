@@ -246,7 +246,7 @@ shape has visibility and
     if (event.keyCode == 67) { C_DOWN = true;}
     if (event.keyCode == 79) { O_DOWN = true;}
     if (C_DOWN && O_DOWN) {
-        $.get("http://localhost:8080/webgl-viewer/comparison-convert?db="+DBID+"&view="+VIEWID,
+        $.get("/webgl-viewer/comparison-convert?db="+DBID+"&view="+VIEWID,
           function(data,status){
               alert(data + " is now a comparison");
           });
