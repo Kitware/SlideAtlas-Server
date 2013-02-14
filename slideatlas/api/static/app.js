@@ -8,118 +8,96 @@
         $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
         $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
         $routeProvider.otherwise({ redirectTo: "/"});
     });
-
-// app.factory('Database', function($resource) {
-//     return $resource('databases/:dbid', {dbid:'@_id'}, 
-//               {
-//                 list: { method: "GET", params: {} },
-//                 get: { method: "GET", params: { id: 0 } },                            
-//                 update: { method: "PUT", params : {id : 0}},
-//                 create: { method: "POST", params: { content: "", order: 0, done: false } }
-//               });
-//     });
 
 app.factory('Database', function($resource) {
     return $resource('databases/:dbid', {dbid:'@_id'}, 
                  {
             query: { method: 'GET', params: {}, isArray: false },
-            save:{ method: 'PUT'}
+            update:{ method: 'PUT'}
               });
+  });
+  
+app.factory('Data', function() {
+    var methods = {};
+    
+    methods.databases ={}; 
+    
+    methods.getItem = function (idx) {
+        return this.databases[idx];
+    };
+    
+    methods.getList = function () {
+        return this.databases;
+    };
+
+    methods.setList = function (alist) {
+        this.databases = alist;
+    }
+    
+    return methods;
+              
     });
 
-app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database)
+app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database, Data)
     {
+        console.log("Refreshing edit")
         // Locate the object
-        var db = $scope.result.databases[$routeParams.idx] 
+        var dbs = Data.getList()
         
+        for(adb in dbs)
+        { console.log(dbs[adb]);}
+        
+        var db = Data.getItem($routeParams.idx);
+        console.log(db)
+
         $scope.database = Database.get({dbid:db._id})
         
         $scope.save = function () {
-            if($scope.database._id != ""){
-                $scope.database.$save()
-            }
-            else {
-                $scope.database.$update({dbId:$scope.database._id})
-                $location.path("/") 
-            }
+            $scope.database.$update({dbid:$scope.database._id}, function(data){
+                $location.path("#/");
+                }
+                ); 
         }
     });
 
 
-app.controller("DBNewCtrl", function ($scope, $location)
+app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
-         $scope.database = {"host" : "127.0.0.1"}
-         
+        // Start with a blank database
+        $scope.database = {"host" : "127.0.0.1"}
+
         $scope.save = function () {
-            $location.path("/") 
+            Database.save({'insert' : $scope.database}, function() {
+                $location.path("#/")
+            });
             }
     });
- 
 
-app.controller("DBListCtrl", function ($scope, Database)
+
+app.controller("DBListCtrl", function ($scope, Database, $location, Data)
     {
-    $scope.result = Database.query();
+    console.log("Refreshing DBListCtrl")
+        
+    Database.get({}, function(data) {
+        Data.setList(data.databases);
+        $scope.databases = Data.getList();
+        }
+    );
     
-    // var dbs = $resource("/apiv1/databases",{},false);
-    // $scope.result = dbs.get()
-/*
-    $scope.databases = [ 
+    $scope.delete = function(idx) 
         {
-            "_id" : "5074589002e31023d4292d83",
-            "copyright" : "Copyright &copy; 2011-12, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.",
-            "dbname" : "bev1",
-            "host" : "slide-atlas.org",
-            "label" : "Harvard Combined Dermatology Residency Training Program",
-            "users" : [
-                    {
-                            "username" : "DX0",
-                            "created_at" :  "2012-10-16T21:40:58.158Z",
-                            "db" : "bev1",
-                            "created_by" :  "507db8bf8af4a5e2a18d7081",
-                            "host" : "slide-atlas.org",
-                            "version" : 11,
-                            "password" : "6QUF7T"
-                    }
-            ]
-    },
-    {
-            "_id" : "507f34a902e31010bcdb1366",
-            "copyright" : "Copyright &copy 2011-2012, BIDMC Pathology. All rights reserved",
-            "dbname" : "bidmc1",
-            "host" : "slide-atlas.org",
-            "label" : "BIDMC Pathology",
-            "users" : [
-                    {
-                            "username" : "6KI",
-                            "created_at" :  "2012-10-17T22:49:35.450Z",
-                            "db" : "bidmc1",
-                            "created_by" :  "507db8bf8af4a5e2a18d7081",
-                            "host" : "slide-atlas.org",
-                            "version" : 11,
-                            "password" : "1ITNJU"
-                    }
-            ]
-    }, 
-    {
-            "_id" : "507f34a902e31010bcdb1367",
-            "copyright" : "Copyright &copy 2012, Risa Kawai. All rights reserved.",
-            "dbname" : "kawai1",
-            "host" : "slide-atlas.org",
-            "label" : "Risa Kawai",
-            "users" : [
-                    {
-                            "username" : "O7T",
-                            "created_at" :  "2012-10-17T22:49:56.882Z",
-                            "db" : "kawai1",
-                            "created_by" :  "507db8bf8af4a5e2a18d7081",
-                            "host" : "slide-atlas.org",
-                            "version" : 11,
-                            "password" : "OOE3YZ"
-                    }
-            ]
-    }
-    ];
-    */ 
+        // Locate the object
+        var db = Data.getItem(idx) 
+        console.log(db)
+        if (confirm("Remove database " + db.dbname + '?')) 
+            {
+            Database.delete({dbid:db._id}, function() {
+                $location.path("#/");
+                });
+            }
+        }
     });
+    

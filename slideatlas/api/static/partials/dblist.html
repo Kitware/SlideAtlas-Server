@@ -1,16 +1,19 @@
      <div ng-controller="DBListCtrl">
+         Total {{databases.length }}  
          <table class="table table-striped">
             <thead>
                 <tr>
                 <td><h4>Database name </h4></td>
                 <td><h4>Host</h4></td>
+                <td> </td>
                 <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="adb in result.databases" >
+            <tr ng-repeat ="adb in databases" >
                 <td>{{ adb.dbname }} </td>
                 <td>{{ adb.host }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
+                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
             </tr>
   </div>
     
