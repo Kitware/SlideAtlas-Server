@@ -27,6 +27,7 @@ function Viewer (viewport, cache) {
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
 
+  this.ShapeVisibility = true;
   this.AnnotationList = []; // Remove this.
   this.ShapeList = [];
   this.WidgetList = [];
@@ -227,12 +228,14 @@ Viewer.prototype.Draw = function() {
   this.OverView.DrawTiles();
   this.MainView.DrawTiles();
 
-  for(i=0; i<this.AnnotationList.length; i++){
-    this.AnnotationList[i].Draw(this);
-  }
-
-  for(i=0; i<this.ShapeList.length; i++){
-    this.ShapeList[i].Draw(this.MainView);
+  // Obsolete
+  //for(i=0; i<this.AnnotationList.length; i++){
+  //  this.AnnotationList[i].Draw(this);
+  //}
+  if (this.ShapeVisibility) {
+      for(i=0; i<this.ShapeList.length; i++){
+        this.ShapeList[i].Draw(this.MainView);
+      }
   }
 }
 

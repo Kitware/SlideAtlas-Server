@@ -87,7 +87,8 @@ function InitComparisonEditMenus() {
         'top' : '35px',
         'left' : '35px',
         'width' : '500px',
-        'height' : '500px',
+        'height' : '700px',
+        'overflow': 'auto',
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'
@@ -105,7 +106,8 @@ function InitComparisonEditMenus() {
         'top' : '135px',
         'left' : '135px',
         'width' : '500px',
-        'height' : '500px',
+        'height' : '700px',
+        'overflow': 'auto',
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'

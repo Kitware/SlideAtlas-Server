@@ -300,6 +300,10 @@ function InitAnnotations(viewer, annotations)
     }
 }
 
+function ToggleAnnotationVisibility() {
+    VIEWER1.ShapeVisibility = ! VIEWER1.ShapeVisibility;        
+    eventuallyRender();    
+}
 
   function webGLStart() {
     // Just to see if webgl is supported:
@@ -335,8 +339,23 @@ function InitAnnotations(viewer, annotations)
     
     // Create the edit menu.
     InitComparisonEditMenus();
+    
+    
+    // Hack button to toggle annotation.
+    $('<button>').appendTo('body').css({
+        'opacity': '0.6',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'font-size': '30px',
+        'bottom' : '5px',
+        'left' : '5px',
+        'z-index': '2'})
+      .text("A")
+      .click(function(){
+         ToggleAnnotationVisibility();});
 
-
+    
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
     // Associate with viewer (How???).
