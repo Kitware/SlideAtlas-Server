@@ -43,14 +43,21 @@ app.factory('Data', function() {
 
 app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database, Data)
     {
-        console.log("Refreshing edit")
+        // console.log("Refreshing edit")
         // Locate the object
         var dbs = Data.getList()
         
-        for(adb in dbs)
-        { console.log(dbs[adb]);}
+        // for(adb in dbs)
+        // { console.log(dbs[adb]);}
         
         var db = Data.getItem($routeParams.idx);
+        if(typeof db === 'undefined')
+            {
+            alert("Item not found for editing");
+            $location.path("#/") ;
+            return;
+            }
+
         console.log(db)
 
         $scope.database = Database.get({dbid:db._id})
@@ -79,7 +86,7 @@ app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
 
 app.controller("DBListCtrl", function ($scope, Database, $location, Data)
     {
-    console.log("Refreshing DBListCtrl")
+    // console.log("Refreshing DBListCtrl")
         
     Database.get({}, function(data) {
         Data.setList(data.databases);

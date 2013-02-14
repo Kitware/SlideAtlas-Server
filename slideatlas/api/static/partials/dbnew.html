@@ -1,12 +1,13 @@
+  <!-- For debug 
   List : {{databases | json}} <br/>
   Current : {{database | json}}
-  
-    
-    <form>
-         Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
-         Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
-         Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
-         Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+  -->
+   
+<form>
+     Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
+     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
+     Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
+     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
 
-         <button ng-click="save()" class="btn-primary"> Save </button>
-    </form>
+     <button ng-click="save()" class="btn-primary"> Save </button>
+</form>
