@@ -8,5 +8,5 @@ class Database(mongokit.Document):
         'copyright' : basestring
         }
 
-    required_fields = [     'label' , 'host', 'dbname', 'copyright']
+    required_fields = [ 'label' , 'host', 'dbname', 'copyright']
 

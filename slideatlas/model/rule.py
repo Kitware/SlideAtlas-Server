@@ -1,7 +1,7 @@
 import mongokit
 from bson import ObjectId
 
-import database
+# When site admin is true, all other fields are irrelevant
 
 class Rule(mongokit.Document):
     structure = {
@@ -10,7 +10,8 @@ class Rule(mongokit.Document):
         'facebook_id' : basestring,
         'can_see' : [ObjectId],
         'can_see_all' : bool,
-        'db_admin' : bool
+        'db_admin' : bool,
+        'site_admin': bool
     }
 
 required_fields = ['label', 'db']

@@ -20,37 +20,46 @@ Rest API design thoughts
 
 Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface
 
+Two kinds API for two kinds of database types. those in image database, and those in administrative database
+Those in image database require a database id (to locate the database) in each request
+
+A common decorator to check the access
+post and put operations require admin access to the database
+
+
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To read user has read access to session. It is easiest at this point to put can_see / can_admin information
+in the cookie session, other alternatives are to evaluate that information every time
 
 - Insert items
 
    - attachments
-
          - Upload a new file:
-                  PUT /sessions/<sessid>/attachments
-         - Insert an already existing attachment
-                  PUT /sessions/<sessid>/attachments/<attachmentid>
+                  PUT /<dbid>/sessions/<sessid>/attachments
+         - Insert an already existing attachments
+                  PUT /<dbid>/sessions/<sessid>/attachments/<attachmentid>
 
 - Get or Remove Items
 
     - Get a list
-      GET /sessions/<sessid>/attachments
-      GET /sessions/<sessid>/views
+      GET /<dbid>/sessions/<sessid>/attachments
+      GET /<dbid>/sessions/<sessid>/views
 
     - Get an item
-      GET /sessions/<sessid>/attachments/<attachid>
-      GET /sessions/<sessid>/views/<viewid>
+      GET /<dbid>/sessions/<sessid>/attachments/<attachid>
+      GET /<dbid>/sessions/<sessid>/views/<viewid>
 
 - Modify Items
    Items can be modified directly or indirectly
-      PATCH /sessions/<sessid>/attachments/<attachmentid>
+      PATCH /<dbid>/sessions/<sessid>/attachments/<attachmentid>
       { 'label' : "NEW_NAME"}
 
-      PATCH /sessions/<sessid>/views/<viewid>
+      PATCH /<dbid>/sessions/<sessid>/views/<viewid>
       { 'label' : "NEW_NAME"}
 
-      PATCH /views/<viewid>
+      PATCH /<dbid>/views/<viewid>
       { 'label' : "NEW_NAME"}
 
 Administrative database
@@ -60,6 +69,8 @@ Administrative database
 - All queries return empty list when used with GET or 403
 - Resources will return 40X depending on the error
 - There could be a generic API for
+
+Administrative access is required to any queries dealing directly with administrative database
 
 - GET
 
@@ -98,6 +109,9 @@ Authentication (login) operations
    - &type=facebook
    - &type=openid
    - &type=password
+
+Few access rights are calculated at the time of login. Hence if the access rights are
+calculated while the user is logged in the user must logout and login again to see the effect.
 
 
 Session and images

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block body_content %}
+  {{ super() }}
+  <div ng-app="adminapi" class="container">
+  <div class="row">
+  <!-- for debug
+  {% raw %}
+  <div ng-controller="DBListCtrl">
+  List : {{databases | json}}
+  </div>
+  {% endraw %}
+-->
+
+  <a href=""> <h2> Databases </h2> </a>
+
+  <ng-view> </ng-view>
+  </div>
+
+    <script src="/static/js/jquery-1.9.1.min.js"></script>
+    <script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
+    <script src="/static/js/angular.min.js"></script>
+    <script src="/static/js/angular-resource.min.js"></script>
+    <script src="static/app.js"></script>
+    <!--script>
+        angular.element(document).ready(function() {
+            angular.bootstrap(document);
+        });
+    </script-->
+
+{% endblock %}
