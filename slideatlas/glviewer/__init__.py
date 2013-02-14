@@ -31,10 +31,10 @@ def glview():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
     db = conn[dbobj["dbname"]]
-    
+
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    imgid = viewobj["img"]    
-    
+    imgid = viewobj["img"]
+
     if not imgid:
         imgid = '4f2808554834a30ccc000001'
 
@@ -55,7 +55,7 @@ def glview():
     bookmarkid = viewobj["startup_view"]
     colBookmark = imgdb["bookmarks"]
     docBookmark = colBookmark.find_one({'_id':ObjectId(bookmarkid)})
-    
+
     img = {}
     img["viewid"] = str(viewid)
     img["dbid"] = str(dbid)
@@ -63,7 +63,10 @@ def glview():
     img["origin"] = str(docImage["origin"])
     img["spacing"] = str(docImage["spacing"])
     img["levels"] = str(docImage["levels"])
-    img["dimension"] = str(docImage["dimension"])
+    if 'dimension' in docImage:
+        img["dimension"] = str(docImage["dimension"])
+    elif 'dimensions' in docImage:
+            img["dimension"] = str(docImage["dimensions"])
     img["db"] = dbid
     img["center"] = str(docBookmark["center"])
     img["rotation"] = str(docBookmark["rotation"])
@@ -90,17 +93,17 @@ def glviewdual():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
 
-    
+
     coll = db["sessions"]
-    asession = coll.find_one({'_id' : ObjectId(sessid)} )
-    
+    asession = coll.find_one({'_id' : ObjectId(sessid)})
+
     # if asession.has_key("views"):
     #        for aview in asession['views']:
     aview = asession['views'][0]
     viewobj = db["views"].find_one({"_id" : aview["ref"]})
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-    
+
 
     # use the first view for the left panel.
     img = {}
@@ -118,7 +121,7 @@ def glviewdual():
     question["viewer1"] = img;
     # now create a list of options.
     options = []
-    
+
     # iterate through the session objects
     asession = db["sessions"].find_one({'_id' : ObjectId(sessid)});
     for aview in asession['views']:
@@ -139,8 +142,8 @@ def glviewdual():
         img["label"] = imgobj["label"]
         #
         options.append(img)
-    question["options"] = options;       
-    
+    question["options"] = options;
+
     return make_response(render_template('dualviewer.html', question=question))
 
 
@@ -159,17 +162,17 @@ def glcomparison():
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-    
+
 
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-    
+
     # I cannot figure out how to pass a string with newlines  and quotes
     #annotationsStr = json.dumps(viewobj["annotations"])
     #annotationsStr = annotationsStr.replace("&#34;","'")
     #annotationsStr = annotationsStr.replace("\n","\\n")
-    
+
     # The base view is for the left panel
     img = {}
     img["db"] = dbid
@@ -191,19 +194,19 @@ def glcomparison():
     if 'annotations' in viewobj:
         for annotation in viewobj["annotations"]:
             if annotation["type"] == "text" :
-                annotation["string"] = annotation["string"].replace("\n","\\n")
+                annotation["string"] = annotation["string"].replace("\n", "\\n")
                 annotations.append(annotation)
-    img["annotations"] = annotations;    
-    
+    img["annotations"] = annotations;
+
     question = {}
     question["viewer1"] = img;
-    
+
     # now create a list of options.
     # this array will get saved back into the view
     optionViews = []
     # I am separating out the image information because we get it from the images
     optionImages = []
-    
+
     # I am embedding views in the options array rather than referencing object ids.
     if 'options' in viewobj:
         for viewobj in viewobj["options"]:
@@ -217,7 +220,7 @@ def glcomparison():
             optionView["rotation"] = str(viewobj["rotation"])
             optionViews.append(optionView)
 
-                
+
             # now for the info needed for display, but not put back into the database view object
             # get the option image database object to copy its info.
             imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
@@ -231,13 +234,13 @@ def glcomparison():
             optionImages.append(optionImage)
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
-        
+
     return make_response(render_template('comparison.html', question=question))
 
 
-    
-    
-    
+
+
+
 # returns json info needed to add a comparison to the view.
 # The startup view and annotations will be the default for the option.
 @mod.route('/comparison-option')
@@ -254,11 +257,11 @@ def glcomparisonoption():
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-    
+
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-    
+
     # The base view is for the left panel
     data = {
          'success': 1,
@@ -280,10 +283,10 @@ def glcomparisonoption():
 
     return jsonify(data)
 
-    
-    
+
+
 # Saves comparison view back into the database.
-@mod.route('/comparison-save',  methods=['GET', 'POST'])
+@mod.route('/comparison-save', methods=['GET', 'POST'])
 def glcomparisonsave():
     inputStr = request.form['input']  # for post
     operation = request.form['operation']  # for post
@@ -293,11 +296,11 @@ def glcomparisonsave():
     optionArray = inputObj["Options"]
     dbid = inputObj["Viewer1"]["db"]
     viewid = inputObj["Viewer1"]["viewid"]
-    
+
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-    
+
     if operation == "options" :
         db["views"].update({"_id" : ObjectId(viewid) },
                                      { "$set" : { "options" : optionArray } })
@@ -305,17 +308,17 @@ def glcomparisonsave():
     if operation == "view" :
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
         bookmarkid = viewobj["startup_view"]
-        
+
         # Save the annotations
-        db["views"].update({"_id" : ObjectId(viewid) }, 
+        db["views"].update({"_id" : ObjectId(viewid) },
                                      { "$set" : { "annotations" : inputObj["Viewer1"]["annotations"] } })
-       
+
         # Save the startup view / bookmark
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
                                      { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
                                      { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) }, 
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
                                      { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
 
                                      # may or may not work
@@ -324,10 +327,10 @@ def glcomparisonsave():
         #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
         #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
         #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj) 
-    
-    
+
+
     return operation
-    
+
 
 
 # Converts a view into a comparison.
@@ -335,15 +338,14 @@ def glcomparisonsave():
 def glcomparisonconvert():
     dbid = request.args.get('db', "") # for get
     viewid = request.args.get('view', "") # for get
-    
+
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-    
-    viewobj = db["views"].update({"_id" : ObjectId(viewid) }, 
+
+    viewobj = db["views"].update({"_id" : ObjectId(viewid) },
                                  { "$set" : { "type" : "comparison" } })
 
     return viewid
 
 
-    
