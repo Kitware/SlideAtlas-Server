@@ -181,7 +181,10 @@ def glcomparison():
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
-    img["dimension"] = str(imgobj["dimension"])
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
     img["center"] = str(bookmarkobj["center"])
     img["rotation"] = str(bookmarkobj["rotation"])
     if 'zoom' in bookmarkobj:
