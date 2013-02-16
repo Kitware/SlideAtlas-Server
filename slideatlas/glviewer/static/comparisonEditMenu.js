@@ -193,6 +193,7 @@ function AddComparisonOption(option) {
     var view = {};
     
     view.label = option.label.replace(/&#39;/g,"'");
+    view.label = option.label.replace(".ndpi","");
 
     view.db = option.db;
     view.img = option.img;
@@ -437,5 +438,16 @@ function ComparisonNewAnnotation() {
 }
 
 
+function SessionAdvance() {
+// I do not have the session id and it is hard to get!
+//    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
+//          function(data,status){
+//            if (status == "success") {
+//              ShowViewMenuAjax(data);
+//            } else { alert("ajax failed."); }
+//          });
+}
 
+function SessionAdvanceAjax() {
+}
 

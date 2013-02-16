@@ -37,7 +37,7 @@ function TextWidget (viewer, string) {
   this.Shape = new Text();
   this.Shape.String = string;
   this.Shape.UpdateBuffers(); // Needed to get the bounds.
-  this.Shape.Color = [0.0, 0.0, 0.0];
+  this.Shape.Color = [0.0, 0.0, 1.0];
   this.Shape.Anchor = [0.5*(this.Shape.PixelBounds[0]+this.Shape.PixelBounds[1]),
                       0.5*(this.Shape.PixelBounds[2]+this.Shape.PixelBounds[3])];
 
@@ -53,7 +53,7 @@ function TextWidget (viewer, string) {
   this.AnchorShape.UpdateBuffers();
   this.AnchorShape.Visibility = false;
   this.AnchorShape.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
-  this.AnchorShape.FillColor = [0,0,0];
+  this.AnchorShape.FillColor = [0,0,1];
   this.AnchorShape.OutlineColor = [1,1,1];
   this.AnchorShape.ZOffset = 0.2;
   this.AnchorShape.UpdateBuffers();
@@ -107,7 +107,7 @@ TextWidget.prototype.Load = function(obj) {
   this.Shape.String = obj.string;
   this.Shape.Color = [parseFloat(obj.color[0]),
                       parseFloat(obj.color[1]),
-                      parseFloat(obj.color[0])];
+                      parseFloat(obj.color[2])];
   this.Shape.Size = parseFloat(obj.size);
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?

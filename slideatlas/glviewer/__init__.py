@@ -5,7 +5,7 @@ from slideatlas import slconn as conn, admindb, model
 import json
 from slideatlas.common_utils import jsonify
 
-
+import pdb
 
 
 
@@ -307,12 +307,13 @@ def glcomparisonoption():
 # Saves comparison view back into the database.
 @mod.route('/comparison-save', methods=['GET', 'POST'])
 def glcomparisonsave():
+    #pdb.set_trace();
+
     inputStr = request.form['input']  # for post
     operation = request.form['operation']  # for post
     #inputStr = request.args.get('input', "{}") # for get
 
     inputObj = json.loads(inputStr)
-    optionArray = inputObj["Options"]
     dbid = inputObj["Viewer1"]["db"]
     viewid = inputObj["Viewer1"]["viewid"]
 
@@ -321,6 +322,7 @@ def glcomparisonsave():
     db = conn[dbobj["dbname"]]
 
     if operation == "options" :
+        optionArray = inputObj["Options"]
         db["views"].update({"_id" : ObjectId(viewid) },
                                      { "$set" : { "options" : optionArray } })
 

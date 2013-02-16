@@ -140,6 +140,7 @@ Cache.prototype.LoadQueueLoaded = function(tile) {
 // This is called if their was a 404 image not found error.
 Cache.prototype.LoadQueueError = function(tile) {
     --this.LoadingCount;
+    this.LoadQueueUpdate();
 }
 
 // ------ I tink this method really belongs in the view! -----------

@@ -28,6 +28,9 @@
 <!-- Actor for tile -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
 
+<!-- Edit menu, right click -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
+
 <!-- Source and cache for the viewer
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
@@ -74,8 +77,15 @@ shape has visibility and
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <script type="text/javascript">
-//  var QUESTION = <?php echo json_encode($mongo_question);?>;
+  //  var QUESTION = <?php echo json_encode($mongo_question);?>;
   // These globals are used in the viewer javascript.  I need to get rid of them.
+
+  var ARGS = {};
+
+  ARGS.Viewer1 = {};
+  ARGS.Viewer1.annotations = {};
+  ARGS.Viewer1.center = center;
+
   var DBID = "{{img.dbid}}";
   var VIEWID = "{{img.viewid}}";
   var DIMENSION = {{img.dimension}};
@@ -87,10 +97,17 @@ shape has visibility and
   var rotation = {{img.rotation}};  
   {% if img.zoom is defined %}
     var zoom = {{img.zoom}};
+    ARGS.Viewer1.viewHeight = 900 << zoom;
   {% endif %}
   {% if img.viewHeight is defined %}
     var viewHeight = {{img.viewHeight}};
+    ARGS.Viewer1.viewHeight = viewHeight;
   {% endif %}
+
+  ARGS.Viewer1.rotation = rotation;
+  ARGS.Viewer1.db = DBID;
+  ARGS.Viewer1.viewid = VIEWID;
+
   
 </script>
 
@@ -166,7 +183,10 @@ shape has visibility and
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
+  var EDIT = false;
 
+  var SESSIONS_URL  = "{{url_for('session.sessions')}}";
+  var COMPARISON_SAVE_URL  = "/webgl-viewer/comparison-save";
   
   function handleResize() {
     if (GL) {
@@ -206,16 +226,8 @@ shape has visibility and
       VIEWER1.MainView.Camera.ComputeMatrix();
       VIEWER1.OverView.Camera.ComputeMatrix();
     }
-    // I want to eliminate zoom and replace it with view height.
-    var height = 10000;
-    if (typeof VIEW_HEIGHT != 'undefined') {
-        height = VIEW_HEIGHT;
-    } else if (typeof ZOOM != 'undefined') {
-        // Compute the height from the zoom.
-        height = CANVAS.clientHeight << zoom;
-    }
     VIEWER1.SetDimensions(DIMENSION);
-    VIEWER1.SetCamera(center,rotation,height);
+    VIEWER1.SetCamera(center,rotation,ARGS.Viewer1.viewHeight);
     
     
     EVENT_MANAGER.AddViewer(VIEWER1);
@@ -237,11 +249,30 @@ shape has visibility and
 
   var C_DOWN = false;
   var O_DOWN = false;
-  function handleMouseDown(event) {EVENT_MANAGER.HandleMouseDown(event);}
+
+  var E_DOWN = false;
+  var D_DOWN = false;
+
+  function handleMouseDown(event) {
+    // Left single click shows edit menu.
+    // TODO: supress menu on double click.
+    if (EDIT && event.which == 3) {
+        ShowComparisonEditMenu(event.clientX, event.clientY);
+    }
+    EVENT_MANAGER.HandleMouseDown(event);
+  }
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+    if (event.keyCode == 68) { D_DOWN = true;}
+    if (event.keyCode == 69) { E_DOWN = true;}
+    if (D_DOWN && E_DOWN) {
+        EDIT = ! EDIT; 
+        alert("Edit: " + EDIT);
+        E_DOWN = false;
+        D_DOWN = false;
+    }
     // hack to convert a normal view to a comparison view.
     if (event.keyCode == 67) { C_DOWN = true;}
     if (event.keyCode == 79) { O_DOWN = true;}
@@ -291,6 +322,9 @@ shape has visibility and
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
+
+    // Create the edit menu.
+    InitComparisonEditMenus();
 
     eventuallyRender();
   }
@@ -641,7 +675,7 @@ shape has visibility and
       </table>
       <table border="1" id="rotatebuttons" >
         <tr>
-          <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
+          <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
             <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
           </td>
           <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
@@ -696,7 +730,7 @@ shape has visibility and
       <div class="container">
         <div class="nav-collapse collapse">
           <ul class="nav">
-            <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-left </a></li>
+            <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-right </a></li>
             <li> <a class="span2 nodoubleclick" onclick="rotateLeft();" ">Rotate-left </a></li>
           </ul>
         </div>

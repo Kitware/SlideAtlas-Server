@@ -270,6 +270,10 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+        if (event.keyCode == 49) { // the 1 key
+          window.location = "/webgl-viewer?db="+ARGS.Viewer1.db+"&view="+ARGS.Viewer1.viewid;
+        }
+        if (event.keyCode == 34) { SessionAdvance();}
         if (event.keyCode == 68) { D_DOWN = true;}
         if (event.keyCode == 69) { E_DOWN = true;}
         if (D_DOWN && E_DOWN) {
@@ -315,7 +319,7 @@ function InitAnnotations(viewer, annotations)
 
     for (i in annotations) {
         var annotation = annotations[i];
-        widget = new TextWidget(viewer, annotation.text);
+        widget = new TextWidget(viewer, annotation.string);
         var p1 = annotation.position;
         var offset = annotation.offset;
         widget.SetPosition(p1[0], p1[1]);
@@ -588,6 +592,7 @@ function SetAnnotationVisibility(visibility) {
       // shape list and widget list.
       widget.RemoveFromViewer();
       WidgetPropertyDialogDelete();
+      ComparisonSaveAnnotations();
       eventuallyRender();
     }
   }
