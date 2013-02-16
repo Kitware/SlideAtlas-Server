@@ -180,7 +180,8 @@ shape has visibility and
     ARGS.Viewer1.annotations = [];
     {% for annotation in question.viewer1.annotations %}
         var a = {};
-        a.label = "{{ annotation.string}}";
+        a.type = "text";
+        a.string = "{{ annotation.string}}";
         a.color = {{ annotation.color }};
         a.offset = {{ annotation.offset }};
         a.position = {{ annotation.position }};
@@ -314,7 +315,7 @@ function InitAnnotations(viewer, annotations)
 
     for (i in annotations) {
         var annotation = annotations[i];
-        widget = new TextWidget(viewer, annotation.label);
+        widget = new TextWidget(viewer, annotation.text);
         var p1 = annotation.position;
         var offset = annotation.offset;
         widget.SetPosition(p1[0], p1[1]);
@@ -324,8 +325,12 @@ function InitAnnotations(viewer, annotations)
 }
 
 function ToggleAnnotationVisibility() {
-    VIEWER1.ShapeVisibility = ! VIEWER1.ShapeVisibility;
-    if (VIEWER1.ShapeVisibility) {
+    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+}
+
+function SetAnnotationVisibility(visibility) {
+    VIEWER1.ShapeVisibility = visibility;
+    if (visibility) {
         $("#annotationButton").css({'opacity': '0.6'});
     } else {
         $("#annotationButton").css({'opacity': '0.2'});

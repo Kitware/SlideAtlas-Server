@@ -66,7 +66,7 @@ def glview():
     if 'dimension' in docImage:
         img["dimension"] = str(docImage["dimension"])
     elif 'dimensions' in docImage:
-            img["dimension"] = str(docImage["dimensions"])
+        img["dimension"] = str(docImage["dimensions"])
     img["db"] = dbid
     img["center"] = str(docBookmark["center"])
     img["rotation"] = str(docBookmark["rotation"])
@@ -112,7 +112,10 @@ def glviewdual():
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
-    img["dimension"] = str(imgobj["dimension"])
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
     img["center"] = str(bookmarkobj["center"])
     img["zoom"] = str(bookmarkobj["zoom"])
     img["rotation"] = str(bookmarkobj["rotation"])
@@ -134,7 +137,10 @@ def glviewdual():
         img["origin"] = str(imgobj["origin"])
         img["spacing"] = str(imgobj["spacing"])
         img["levels"] = str(imgobj["levels"])
-        img["dimension"] = str(imgobj["dimension"])
+        if 'dimension' in imgobj:
+            img["dimension"] = str(imgobj["dimension"])
+        elif 'dimensions' in imgobj:
+            img["dimension"] = str(imgobj["dimensions"])
         img["db"] = dbid
         img["center"] = str(bookmarkobj["center"])
         img["zoom"] = str(bookmarkobj["zoom"])
@@ -196,9 +202,10 @@ def glcomparison():
     annotations = []
     if 'annotations' in viewobj:
         for annotation in viewobj["annotations"]:
-            if annotation["type"] == "text" :
-                annotation["string"] = annotation["string"].replace("\n", "\\n")
-                annotations.append(annotation)
+            if 'type' in annotation:
+                if annotation["type"] == "text" :
+                    annotation["string"] = annotation["string"].replace("\n", "\\n")
+                    annotations.append(annotation)
     img["annotations"] = annotations;
 
     question = {}
@@ -267,6 +274,13 @@ def glcomparisonoption():
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
+
+    if 'dimension' in imgobj:
+        dim = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        dim = str(imgobj["dimensions"])
+
+
     # The base view is for the left panel
     data = {
          'success': 1,
@@ -277,7 +291,7 @@ def glcomparisonoption():
          'origin': imgobj["origin"],
          'spacing': imgobj["spacing"],
          'levels': imgobj["levels"],
-         'dimension': imgobj["dimension"],
+         'dimension': dim,
          'rotation': bookmarkobj["rotation"]
          }
 

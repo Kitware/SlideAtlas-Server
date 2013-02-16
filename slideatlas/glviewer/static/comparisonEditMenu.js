@@ -429,6 +429,7 @@ function ComparisonPasteOptions() {
 
 
 function ComparisonNewAnnotation() {
+    SetAnnotationVisibility(true);
    // The text is created when the apply button is pressed.
    $("#text-properties-dialog").dialog("open");
     
