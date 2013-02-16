@@ -444,7 +444,8 @@ function SetAnnotationVisibility(visibility) {
         'color': '#303030',
         'font-size': '20px'
     }).attr('id', 'diagnosis').text("Diagnosis").click(function(){
-         $('#diagnoses').fadeToggle();});
+         $('#diagnoses').fadeToggle();}).mouseenter(function(){
+         $('#diagnoses').fadeIn();});
     
     $('<div>').appendTo('body').css({
         'background-color': 'white',
