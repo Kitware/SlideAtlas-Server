@@ -239,9 +239,9 @@ def glcomparison():
             optionImage["origin"] = str(imgobj2["origin"])
             optionImage["spacing"] = str(imgobj2["spacing"])
             optionImage["levels"] = str(imgobj2["levels"])
-            if 'dimension' in imgobj:
+            if 'dimension' in imgobj2:
                 optionImage["dimension"] = str(imgobj2["dimension"])
-            elif 'dimensions' in imgobj:
+            elif 'dimensions' in imgobj2:
                 optionImage["dimension"] = str(imgobj2["dimensions"])
             optionImages.append(optionImage)
     question["options"] = optionViews;
