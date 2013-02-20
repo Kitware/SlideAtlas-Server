@@ -20,8 +20,10 @@ def upload():
         # we are expected to save the uploaded file and return some infos about it:
         #                              vvvvvvvvv   this is the name for input type=file
         names = []
+#        return Response("", status=200)
 #        print request.headers
 
+        dummy = request.form
         jsonresponse = {}
         jsonresponse["files"] = []
 
@@ -38,6 +40,7 @@ def upload():
         obj["delete_url"] = "?file=" + filename
         obj["name"] = filename
         print obj
+
 
         return jsonify(obj)
 
