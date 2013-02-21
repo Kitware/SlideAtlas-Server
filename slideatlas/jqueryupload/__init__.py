@@ -47,14 +47,18 @@ def upload():
         end = int(match[1])
         total = int(match[2])
 
-        # Expect _id in the form
-        id = request.form['_id']
-
         # No need to return conventional file list 
         jsonresponse = {}
+
+        # Expect _id in the form
+        try:
+            id = request.form['_id']
+        except:
+            return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
+
+        # Craft the response json 
         jsonresponse["done"] = end + 1
         jsonresponse["_id"] = id
-
 
         return jsonify(jsonresponse)
 #        print request.headers

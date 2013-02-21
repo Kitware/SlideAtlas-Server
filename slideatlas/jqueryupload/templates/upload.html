@@ -37,9 +37,6 @@ $(function () {
         maxChunkSize: 1000, // 10 MB
         add: function (e, data) {
             data.context = $('<p/>').text('Uploading...').appendTo(document.body);
-            var fd = new FormData();
-            fd.append("_id", this._id);
-            data.formData = fd;
             data.submit();
         },
         submit: function(e,data) {
@@ -50,18 +47,15 @@ $(function () {
             });
             return false;
         },       
-        chunksend: function (e, data) {
-            var fd = new FormData();
-            fd.append("_id", this._id);
-            data.formData = fd;
-            console.log("Before");
-            console.log(data);
+        fail: function (e, data) {
+            data.context.text('Upload failed.');
+            var progress = 0;
+            $('#progress .bar').css(
+                'width',
+                progress + '%'
+            );
         },
-        chunkdone: function (e, data) {
-            console.log("After");
-            console.log(data.result);
-            this._id = data.result._id
-        },
+
         done: function (e, data) {
             data.context.text('Upload finished.');
         },

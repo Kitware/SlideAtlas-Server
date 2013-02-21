@@ -21,7 +21,7 @@ The requests must post a request to upload new file, and the server returns a un
 The client can then send this _id back as formdata. Any further request from client without any unique valid is considered error.
 
 
-When the request is first received (i.e. content-range starts with zero), The unique file ID is created, and is sent back as in return json.
+When any put request is received, the the request is first received (i.e. content-range starts with zero), The unique file ID is created, and is sent back as in return json.
 Client side keeps this information and sends it back with each following request. Similarly updated md5 can also be sent which is finally updated in gridfs when the entire file is inserted.
 
 The gridfs should contain some information to indicate that the file is not complete to avoid partial file handling.
