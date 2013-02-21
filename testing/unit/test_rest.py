@@ -154,14 +154,11 @@ class APIv1_Tests(unittest.TestCase):
         Test generic api for databases users rules in admindb
         """
         self.login_admin()
-        obj = self.parseResponse("/apiv1/databases")
-        self.failUnless(obj.has_key("databases"), "No database in the results")
 
-        obj = self.parseResponse("/apiv1/users")
-        self.failUnless(obj.has_key("users"), "No database in the results")
+        for item in ["databases", "users", "rules"]:
+            obj = self.parseResponse("/apiv1/" + item)
+            self.failUnless(obj.has_key(item), "No " + item + "in the results")
 
-        dbobj = self.parseResponse("/apiv1/rules")
-        self.failUnless(obj.has_key("rules"), "No database in the results")
 
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
