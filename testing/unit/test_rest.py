@@ -1,8 +1,8 @@
 import sys
 from json import loads
 import json
-sys.path.append("../..")
-sys.path.append("..")
+import os
+sys.path.append(os.path.abspath("../.."))
 import slideatlas
 import unittest
 
@@ -148,6 +148,20 @@ class APIv1_Tests(unittest.TestCase):
         # This should fail
         rv = self.app.get("/apiv1/databases/" + str(obj["_id"]))
         self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
+
+    def testAdminDBItems(self):
+        """
+        Test generic api for databases users rules in admindb
+        """
+        self.login_admin()
+        obj = self.parseResponse("/apiv1/databases")
+        self.failUnless(obj.has_key("databases"), "No database in the results")
+
+        obj = self.parseResponse("/apiv1/users")
+        self.failUnless(obj.has_key("users"), "No database in the results")
+
+        dbobj = self.parseResponse("/apiv1/rules")
+        self.failUnless(obj.has_key("rules"), "No database in the results")
 
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
