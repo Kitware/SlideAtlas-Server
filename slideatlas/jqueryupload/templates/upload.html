@@ -32,11 +32,35 @@
 <script>
 $(function () {
     $('#fileupload').fileupload({
+        type:'PUT',
         dataType: 'json',
         maxChunkSize: 1000, // 10 MB
-       add: function (e, data) {
+        add: function (e, data) {
             data.context = $('<p/>').text('Uploading...').appendTo(document.body);
+            var fd = new FormData();
+            fd.append("_id", this._id);
+            data.formData = fd;
             data.submit();
+        },
+        submit: function(e,data) {
+            var $this = $(this);
+            $.post('', function (result) {
+                data.formData = result; // e.g. {id: 123}
+                $this.fileupload('send', data);
+            });
+            return false;
+        },       
+        chunksend: function (e, data) {
+            var fd = new FormData();
+            fd.append("_id", this._id);
+            data.formData = fd;
+            console.log("Before");
+            console.log(data);
+        },
+        chunkdone: function (e, data) {
+            console.log("After");
+            console.log(data.result);
+            this._id = data.result._id
         },
         done: function (e, data) {
             data.context.text('Upload finished.');
