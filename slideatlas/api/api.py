@@ -22,16 +22,23 @@ mod = Blueprint('api', __name__,
 
 # The url valid for databases, rules and users with supported queries
 class AdminDBAPI(MethodView):
-    decorators = [common_utils.user_required]
 
-    def get(self, restype, resid):
+    @common_utils.site_admin_required(False)
+    def get(self, restype, resid=None):
+        # Restype has to be between allowed ones or the request will not come here
         if resid == None:
-            return "You want alist of %s" % (restype)
+            dbobjs = conn[current_app.config["CONFIGDB"]][restype].find()
+            dbobjarray = list()
+            for adbobj in dbobjs:
+                dbobjarray.append(adbobj)
+
+            return jsonify({ restype : dbobjarray})
         else:
-            if restype == "attachments":
-                return "You want %s, %s" % (restype, resid)
+            obj = conn[current_app.config["CONFIGDB"]][restype].find_one({"_id" : ObjectId(resid)})
+            if obj :
+                return jsonify(obj)
             else:
-                return "You want %s, %s" % (restype, resid)
+                return Response("{\"error\" : \"resource not found\"}" , status=405)
 
     def post(self, restype):
         # create a new user
@@ -57,8 +64,8 @@ class AdminDBAPI(MethodView):
 
 # The url valid for databases, rules and users with supported queries
 class DatabaseAPI(AdminDBAPI):
-    @common_utils.site_admin_required
-    def get(self, resid):
+    @common_utils.site_admin_required(False)
+    def get(self, resid=None):
         dbobjs = conn[current_app.config["CONFIGDB"]]["databases"].find()
         dbobjarray = list()
         for adbobj in dbobjs:
