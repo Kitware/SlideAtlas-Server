@@ -8,5 +8,6 @@ class Database(mongokit.Document):
         'copyright' : basestring
         }
 
-    required_fields = [ 'label' , 'host', 'dbname', 'copyright']
-
+    required_fields = [ 'label' , 'host', 'dbname']
+    default_values = {'copyright': 'Copyright &copy 2013, All rights reserved.',
+                                   'host' : '127.0.0.1:27017'}
