@@ -28,15 +28,22 @@ class AdminDBAPI(MethodView):
     def get(self, restype, resid=None):
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
-            dbobjs = conn[current_app.config["CONFIGDB"]][restype].find()
-            dbobjarray = list()
-            for adbobj in dbobjs:
-                dbobjarray.append(adbobj)
-
-            return jsonify({ restype : dbobjarray})
+            objs = conn[current_app.config["CONFIGDB"]][restype].find()
+            objarray = list()
+            for anobj in objs:
+                # Filter the list with passwd if type is user
+                if restype == "users":
+                    if "passwd" in anobj:
+                        del anobj["passwd"]
+                objarray.append(anobj)
+            return jsonify({ restype : objarray})
         else:
             obj = conn[current_app.config["CONFIGDB"]][restype].find_one({"_id" : ObjectId(resid)})
             if obj :
+                if restype == "users":
+                    if "passwd" in obj:
+                        del obj["passwd"]
+
                 return jsonify(obj)
             else:
                 return Response("{\"error\" : \"resource not found\"}" , status=405)

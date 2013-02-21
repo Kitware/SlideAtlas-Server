@@ -159,6 +159,27 @@ class APIv1_Tests(unittest.TestCase):
             obj = self.parseResponse("/apiv1/" + item)
             self.failUnless(obj.has_key(item), "No " + item + "in the results")
 
+        # Test databases
+        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+
+        # Test rules
+        obj = self.parseResponse("/apiv1/rules/507619bb0a3ee10434ae0828")
+        self.failUnless(obj.has_key("label"), "No label in the rule in the results")
+
+    def testUserNoPasswd(self):
+        # User should have label and should not have password
+        self.login_admin()
+
+        obj = self.parseResponse("/apiv1/users/510b43f4d6364703a2380fa6")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+        self.failIf(obj.has_key("passwd"), "Should not return password ever")
+
+        obj = self.parseResponse("/apiv1/users")
+        self.failUnless(obj.has_key("users"), "No list of users returned")
+
+        for auser in obj["users"]:
+            self.failIf(auser.has_key("passwd"), "Should not return password ever")
 
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
