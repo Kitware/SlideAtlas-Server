@@ -179,14 +179,18 @@ class DataSessionsAPI(MethodView):
             admindb = conn[current_app.config["CONFIGDB"]]
             dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
             if dbobj == None:
-                return "{ \"error \" : \"You want a list of sessions, but it is not implemented \"}"
+                return None
             # TODO: have an application or module level connection pooling
             return conn[dbobj["dbname"]]
 
     def get(self, dbid, sessid=None):
+        conn.register([Session, Database])
+        datadb = self.get_data_db(dbid)
+        if datadb == None:
+            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+
         if sessid == None:
-            datadb = self.get_data_db(dbid)
-            conn.register([Session])
+
             sessions = datadb["sessions"].Session.find()
             sessionlist = list()
 
@@ -200,14 +204,12 @@ class DataSessionsAPI(MethodView):
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
-            datadb = self.get_data_db(dbid)
-            conn.register([Session])
-            sessionobj = datadb["sessions"].Session.find_one({"_id" : sessid})
+            sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
 
             if sessobj <> None:
-                return jsonify(sessionobj)
+                return jsonify(sessobj)
             else:
-                return Response("{ \"error \" : \"You want You want a session %s in %s, but it doesnot exist \"}" % (sessid, dbid), status=405)
+                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
 class DataSessionItemsAPI(MethodView):
     decorators = [user_required]
@@ -250,11 +252,11 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 , view_func=DataSessionsAPI.as_view("show_session"),
                                 methods=["get"])
 
+
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 , view_func=DataSessionsAPI.as_view("show_sessions"),
-                                defaults={'sessid':None},
                                 methods=["get"])
 
 
