@@ -5,10 +5,17 @@
  var app = angular.module('adminapi',["ngResource" ]).
     config(
      function ($routeProvider) {
-        $routeProvider.when("/", {templateUrl: "/apiv1/static/partials/dblist.html"});
-        $routeProvider.when("/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
-        $routeProvider.when("/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
-        $routeProvider.when("/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
+        $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dblist.html"});
+        $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
+        $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
+
+        $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userlist.html"});
+        $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/usernew.html"});
+
+        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
+        $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
+
         $routeProvider.otherwise({ redirectTo: "/"});
     });
 
@@ -54,7 +61,7 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         if(typeof db === 'undefined')
             {
             alert("Item not found for editing");
-            $location.path("#/") ;
+            $location.path("#/databases") ;
             return;
             }
 
@@ -64,7 +71,7 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         
         $scope.save = function () {
             $scope.database.$update({dbid:$scope.database._id}, function(data){
-                $location.path("#/");
+                $location.path("#/databases");
                 }
                 ); 
         }
@@ -78,7 +85,7 @@ app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
 
         $scope.save = function () {
             Database.save({'insert' : $scope.database}, function() {
-                $location.path("#/")
+                $location.path("#/databases")
             });
             }
     });
@@ -102,7 +109,7 @@ app.controller("DBListCtrl", function ($scope, Database, $location, Data)
         if (confirm("Remove database " + db.dbname + '?')) 
             {
             Database.delete({dbid:db._id}, function() {
-                $location.path("#/");
+                $location.path("#/databases");
                 });
             }
         }

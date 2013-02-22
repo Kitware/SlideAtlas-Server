@@ -6,9 +6,7 @@
 
   <h1>Displaying a session list for {{ name}} !</h1>
 
-
-
- {% for arule in sessions %}
+  {% for arule in sessions %}
     <h2> {{ arule.rule }}</h2>
     <table class="table table-bordered table-hover" >
         {% for asession in arule.sessions %}
