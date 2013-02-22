@@ -41,20 +41,37 @@ Versioing
 
 All the queries are prefixed by apiv1
 
-
 i.e. to get a list of databases -
 
 .. code-block:: none
 
    localhost:27017/apiv1/databases 
-      
+
+Sessions
+--------
+
+A session is smallest unit for which an access can be granted or revoked. It contains lists of useful items like
+
+- Raw images (that are to be processed internally)
+- Views of images
+- Downloadable file attachments, that are simply stored.
+
+A list of sessions in a known databaseid is obtained by -
+
+.. code-block:: 
+      GET /<dbid>/sessions
+
+The main use case of this list is to display selectable sessions with the access rights to the user that is logged in
+So it is not necessary to include the lists which will be sent when a particular session is requested
+
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To read user has read access to session. It is easiest at this point to put can_see / can_admin information
-in the cookie session, other alternatives are to evaluate that information every time
+TODO: there should be a common place for access information computation about the sessions.
+This will improve the performance of the each reqeust.
 
-- Insert items for example attachments
+- Attachments and raw files are uploaded
+- Images are uploaded elsewhere, and are referred in the session with the help of a view
 
    - attachments
          - Upload a new file:
@@ -64,7 +81,7 @@ in the cookie session, other alternatives are to evaluate that information every
 
 - Get or Remove Items
 
-    - Get a list of session items
+    - When a list of items is queried ,Get a list of session items
 
 .. code-block:: none
 

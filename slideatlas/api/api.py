@@ -156,15 +156,6 @@ class DatabaseAPI(AdminDBAPI):
 
         return jsonify(dbobj)
 
-#        if restype == 'databases':
-#                return "You want to add database"
-#        elif restype == "rules":
-#                return "You want to post rule"
-#        elif restype == 'users':
-#            # Posting to users means typically adding new rules to users
-#            return "You want to add database"
-#        pass
-
 mod.add_url_rule('/databases', defaults={"resid" : None}, view_func=DatabaseAPI.as_view("show_database_list"), methods=['post'])
 mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['DELETE', 'put'])
 
@@ -190,8 +181,7 @@ class DataSessionsAPI(MethodView):
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
         if sessid == None:
-
-            sessions = datadb["sessions"].Session.find()
+            sessions = datadb["sessions"].Session.find({}, {'images':0, 'views':0, 'attachments':0})
             sessionlist = list()
 
             for asession in sessions:
@@ -229,7 +219,7 @@ class DataSessionItemsAPI(MethodView):
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
-                                '/<regex("(attachments|views)"):restype>'
+                                '/<regex("(attachments|views|images)"):restype>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_items"),
                                 defaults={'resid':None},
                                 methods=["get"])
@@ -238,12 +228,10 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
-                                '/<regex("(attachments|views)"):restype>'
+                                '/<regex("(attachments|views|images)"):restype>'
                                 '/<regex("[a-f0-9]{24}"):resid>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_item"),
                                 methods=["get"])
-
-
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
@@ -261,33 +249,6 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 
 
 # Specially for session
-
-## For a list of sessions
-#mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
-#                                '/sessions', view_func=DataSessionItemsAPI.as_view("show_session_list"), defaults={"resid" : None, "restype" : None, "sessid" : None})
-
-## For a particular session (May not be needed)
-#@mod.route('/<regex("[a-f0-9]{24}"):dbid>'
-#                        '/sessions'
-#                        '/<regex("[a-f0-9]{24}"):sessid>', defaults={"sessid" : None})
-#
-#@user_required
-#def some():
-#    return Response("{}", status=200)
-#
-#def session_object_request(dbid, sessid=None):
-#    """
-#                                    "/apiv1/5074589002e31023d4292d83/sessions",
-#                                    "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83",
-#
-#                                    "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/views",
-#                                    "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/views/5074589002e31023d4292d83",
-#
-#                                    "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/attachments",
-#                                    "/apiv1/5074589002e31023d4292d83/sessions/5074589002e31023d4292d83/attachments/5074589002e31023d4292d83",
-#    """
-#    # See if the user is requesting any session id
-#    return "you want : %s, %s, %s, %s" % (dbid, sessid, restype, resid)
 
 # Render admin template
 @mod.route('/admin')
