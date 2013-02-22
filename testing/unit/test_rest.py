@@ -181,6 +181,12 @@ class APIv1_Tests(unittest.TestCase):
         for auser in obj["users"]:
             self.failIf(auser.has_key("passwd"), "Should not return password ever")
 
+    def testSessionList(self):
+        self.login_viewer()
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions")
+        self.failUnless(obj.has_key("sessions"))
+
+
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":
             rv = self.app.get(url)

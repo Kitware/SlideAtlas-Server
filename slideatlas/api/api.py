@@ -12,6 +12,8 @@ from slideatlas import model
 from celery.platforms import resource
 from slideatlas.common_utils import jsonify
 from slideatlas.model.database import Database
+from slideatlas.model import Session
+
 from slideatlas.common_utils import site_admin_required
 from slideatlas.common_utils import user_required
 mod = Blueprint('api', __name__,
@@ -173,11 +175,39 @@ mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{2
 class DataSessionsAPI(MethodView):
     decorators = [user_required]
 
+    def get_data_db(self, dbid):
+            admindb = conn[current_app.config["CONFIGDB"]]
+            dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
+            if dbobj == None:
+                return "{ \"error \" : \"You want a list of sessions, but it is not implemented \"}"
+            # TODO: have an application or module level connection pooling
+            return conn[dbobj["dbname"]]
+
     def get(self, dbid, sessid=None):
         if sessid == None:
-            return "You want a list of sessions"
+            datadb = self.get_data_db(dbid)
+            conn.register([Session])
+            sessions = datadb["sessions"].Session.find()
+            sessionlist = list()
+
+            for asession in sessions:
+                sessionlist.append(asession)
+
+            if len(sessionlist) > 0:
+                return jsonify({'sessions' : sessionlist})
+            else:
+                return Response("{ \"error \" : \"You want You want a list of sessions in %s, but there are no sessions in it \"}" % (dbid), status=405)
         else:
-            return "You want session %s from %s" % (dbid, sessid)
+            # Get and return a list of sessions from given database
+            # TODO: Filter for the user that is requesting
+            datadb = self.get_data_db(dbid)
+            conn.register([Session])
+            sessionobj = datadb["sessions"].Session.find_one({"_id" : sessid})
+
+            if sessobj <> None:
+                return jsonify(sessionobj)
+            else:
+                return Response("{ \"error \" : \"You want You want a session %s in %s, but it doesnot exist \"}" % (sessid, dbid), status=405)
 
 class DataSessionItemsAPI(MethodView):
     decorators = [user_required]
