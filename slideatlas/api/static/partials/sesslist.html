@@ -12,7 +12,7 @@
             <tr ng-repeat ="adb in databases" >
                 <td>{{ adb.dbname }} </td>
                 <td>{{ adb.host }} </td>
-                <td><a href="#/databases/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
+                <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
             </tr>
   </div>

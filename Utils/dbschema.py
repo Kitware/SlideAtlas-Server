@@ -26,6 +26,7 @@ if site.LOGIN_REQUIRED:
 
 # List all databases
 conn.register([model.Database, model.Rule, model.User, model.Session])
+db = conn[site.CONFIGDB]
 
 # Add a database
 def add_new_admin_rule_to_demo():
@@ -226,11 +227,25 @@ def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="b
     admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
-def grant_session(admindbobj, str_session_id, str_db, str_group_id):
+
+def grant_session(admindbobj, str_session_id, str_db, facebook_group="", google_email="", revoke=False):
     """
-    Generic function to rename and grant session
+    Generic function to grant or revoke session to google users 
+    returns rule_id so can be reused 
     gets  
     """
+    dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
+    print dbdoc
+
+    if len(facebook_group) > 0:
+        ruledoc = admindbobj["rules"].Rule.find_one({'facebook_id':facebook_group, "db" : dbdoc["_id"]})
+    elif len(google_email) > 0:
+        ruledoc = admindbobj["rules"].Rule.find_one({'name':facebook_group, "db" : dbdoc["_id"], 'type' : 'google'})
+
+
+    print "Rule found: ", ruledoc["_id"]
+    print "Rule: ", ruledoc
+
     sessionid = ObjectId(str_session_id)
 
     conn = admindbobj.connection
@@ -239,6 +254,14 @@ def grant_session(admindbobj, str_session_id, str_db, str_group_id):
     print "Session Label: ", sessionobj["label"]
     print "Session: ", sessionobj
 
+    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+
+    print "Access should be granted"
+
+def grant_all_sessions(admindbobj, dbname, userid, revoke=False, admin=False):
+    """
+    Generic function to set can_see_all, and set can_admin_all
+    """
     dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
     print dbdoc
 
@@ -246,8 +269,14 @@ def grant_session(admindbobj, str_session_id, str_db, str_group_id):
     print "Rule found: ", ruledoc["_id"]
     print "Rule: ", ruledoc
 
-    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
-    print "Access should be granted"
+    sessionid = ObjectId(str_session_id)
+
+    conn = admindbobj.connection
+    db = conn[str_db]
+    sessionobj = db["sessions"].find_one({"_id" : sessionid})
+
+
+
 
 def revoke_session(admindbobj, str_session_id, str_db, str_group_id):
     """
@@ -333,7 +362,7 @@ def insert_BIDMC_KAWAI(dbobj):
     dbdoc['label'] = 'Risa Kawai'
     dbdoc['host'] = HOST
     dbdoc['dbname'] = 'kawai1'
-    dbdoc['copyright'] = 'Copyright &copy 2012, Risa Kawai. All rights reserved.' 
+    dbdoc['copyright'] = 'Copyright &copy 2012, Risa Kawai. All rights reserved.'
 def grant_3dpath(dbobj):
     userobj = dbobj.users.User.find_one({"name" : "all_demo"})
     print userobj
@@ -341,8 +370,8 @@ def grant_3dpath(dbobj):
     userobj.validate()
     userobj.save()
     print userobj
-     
-    
+
+
 
 
 
@@ -354,7 +383,7 @@ def insert_3dpath(dbobj):
     dbdoc['dbname'] = '3dpath'
     dbdoc['copyright'] = 'Copyright &copy 2013, All rights reserved'
     dbdoc.validate()
-    dbdoc.save() 
+    dbdoc.save()
     print 'DB ', dbdoc["_id"]
 
     # Create a rule
@@ -601,11 +630,66 @@ def get_number_of_all_images(dbobj):
 #add_new_admin_to_demo()
 #modify_rule_to_site_admin()
 
+<<<<<<< HEAD
 #db = conn[site.CONFIGDB]
 #grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
 #
 #create_admin_user()
+== == == =
 
+#grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
+
+# For beck1
+#Facebook group
+#"271779376286267")
+
+# Create database
+# Create a rule to grant access to all sessions in that database to that facebook group
+# When a facebook user is logged in he / she will be displayed with all the sessions 
+# Create license for that database
+
+def CreateNewDatabase(admindbobj, label, dbname, host="127.0.0.1:27027", copyright=""):
+    # Find a database
+    dbdoc = admindbobj["databases"].Database.find_one({'dbname':dbname})
+
+    if dbdoc == None:
+        print "Creating Database"
+        newdb = admindbobj["databases"].Database()
+        print newdb
+#        newdb["dbname"] = dbname
+#        newdb["host"] = "127.0.0.1:27017"
+    else:
+        print "Database found: ", dbdoc["_id"]
+#
+#
+#    # Create a rule
+#    ruledoc = dbobj.rules.Rule()
+#    # Gives admin access and all sessions view access
+#    ruledoc["label"] = 'Risa Kawai'
+#    ruledoc["db"] = ObjectId('507f34a902e31010bcdb1367')
+#    ruledoc['can_see'] = [ ObjectId('507f3c295877180e04e98f0d'), ]
+#    ruledoc['can_see_all'] = True
+#    ruledoc['db_admin'] = True
+##
+##    ruledoc.validate()
+##    ruledoc.save()
+##    print "Rule Added: ", ruledoc["_id"]
+## ObjectId('5085afee02e3100e64ab9a8c')
+#
+#    ruledoc = dbobj["rules"].Rule.fetch_one({'label':"Risa Kawai"})
+#    print "Rule found: ", ruledoc["_id"]
+#
+#    # Find a user
+#    userdoc = dbobj["users"].User.fetch_one({'name':"risa.kawai@gmail.com"})
+#
+#    # Append the rule
+#    userdoc["rules"].append(ObjectId('5085afee02e3100e64ab9a8c'))
+#    userdoc.validate()
+#    print "1 User found: ", userdoc
+#    userdoc.save()
+
+CreateNewDatabase(db, "austin1");
+#CreateNewDatabase(db, "beck1");
 #insert_3dpath(conn[site.CONFIGDB])
 grant_3dpath(conn[site.CONFIGDB])
 

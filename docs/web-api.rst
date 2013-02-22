@@ -1,4 +1,7 @@
 
+.. meta::
+   :http-equiv=refresh: 5
+
 Web API Notes
 =============
 
@@ -11,12 +14,12 @@ Using celery to exececute server side operations it is more logical to use rpc l
 
 Steps of securing web API
 -------------------------
-`One reference <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
 
-`Securing API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
+- `One reference <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
+- `Securing API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
 
-Rest API design thoughts
-~~~~~~~~~~~~~~~~~~~~~~~~
+Rest API v1 design thoughts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface
 
@@ -27,32 +30,58 @@ A common decorator to check the access
 post and put operations require admin access to the database
 
 
+Versioing
+~~~~~~~~~
+
+- Implement in a blueprint so that the url-prefix makes it easy to rename
+- Do some validation in individual case, determine what the user should be able to query and then use common helper
+   python routines to get the data
+
+ **'important'**
+
+All the queries are prefixed by apiv1
+
+
+i.e. to get a list of databases -
+
+.. code-block:: none
+
+   localhost:27017/apiv1/databases 
+      
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To read user has read access to session. It is easiest at this point to put can_see / can_admin information
 in the cookie session, other alternatives are to evaluate that information every time
 
-- Insert items
+- Insert items for example attachments
 
    - attachments
          - Upload a new file:
-                  PUT /<dbid>/sessions/<sessid>/attachments
+                  POST /<dbid>/sessions/<sessid>/attachments
          - Insert an already existing attachments
                   PUT /<dbid>/sessions/<sessid>/attachments/<attachmentid>
 
 - Get or Remove Items
 
-    - Get a list
+    - Get a list of session items
+
+.. code-block:: none
+
       GET /<dbid>/sessions/<sessid>/attachments
       GET /<dbid>/sessions/<sessid>/views
+      GET /<dbid>/sessions/<sessid>/rawfiles
 
     - Get an item
       GET /<dbid>/sessions/<sessid>/attachments/<attachid>
       GET /<dbid>/sessions/<sessid>/views/<viewid>
+      GET /<dbid>/sessions/<sessid>/rawfiles/<fileid>
 
 - Modify Items
    Items can be modified directly or indirectly
+
+.. code-block:: none
+
       PATCH /<dbid>/sessions/<sessid>/attachments/<attachmentid>
       { 'label' : "NEW_NAME"}
 
@@ -72,23 +101,44 @@ Administrative database
 
 Administrative access is required to any queries dealing directly with administrative database
 
-- GET
+.. code-block:: none
 
-   - /databases/<databaseid>
-   - /databases?dbname=<databasename>
-   - /rules?facebook_group=<facebookid>
-   - /rules/<ruleid>
+   - GET
+      - /databases/<databaseid>
+      - /databases?dbname=<databasename>
+      - /rules?facebook_group=<facebookid>
+      - /rules/<ruleid>
 
-- POST
+- Add new rule or database or user
+- A custom validate method over generic object schema checking
 
-   - Add new rule or database or user
-   - A custom validate method over generic object schema checking
+   - Whether the database with that dbname exists (and is it slideatlas database)
+   - Whether the rule existed
 
-      - Whether the database with that dbname exists (and is it slideatlas database)
-      - Whether the rule existed
+.. code-block:: none
 
-- DELETE operations for specific users, a deep delete to also remove all the rules associated with the user
+   - POST
 
+operations for specific users, a deep delete to also remove all the rules associated with the user
+
+.. code-block:: none
+
+   - DELETE 
+
+High level API to manage access rights
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Get a list of registered facebook groups
+
+.. code-block:: none
+
+   GET /apiv1/facebook-groups
+   
+   POST /apiv1/facebook-groups/<facebook-group-id>
+   {'dbid' : '<dbid>', can_see' : [ '<sessionid>', ... ]}
+   {'dbid' : '<dbid>', 'can_see_all' : [ '<sessionid>', ... ]}
+   
+   
 More pending use cases
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -100,15 +150,17 @@ Authentication (login) operations
 
 - A user session can be created by either sending an json request or by logging into page which sends out a json request to the api.
 
-- / Home page
-   - login form
-   - Information on what this site is about
+.. code-block:: none
 
-- / login
-   - &type=google
-   - &type=facebook
-   - &type=openid
-   - &type=password
+   - / Home page
+      - login form
+      - Information on what this site is about
+   
+   - / login
+      - &type=google
+      - &type=facebook
+      - &type=openid
+      - &type=password
 
 Few access rights are calculated at the time of login. Hence if the access rights are
 calculated while the user is logged in the user must logout and login again to see the effect.
@@ -126,8 +178,8 @@ Session and images
 
    - /  Gets a list of all sessions  for the logged in user can see
 
-Viewing image
-~~~~~~~~~~~~~
+Viewing and other pages
+~~~~~~~~~~~~~~~~~~~~~~~
 - Main image view with annotation management
 
 - /glviewer/<viewid>
@@ -139,13 +191,6 @@ Viewing image
    - &dbid = <dbid>
 
 TODO: Probably the img appears only in one database, and so dbid could be resolved internally / stored in viewid
-
-Versioing
-~~~~~~~~~
-
-- Implement in a blueprint so that the url-prefix makes it easy to rename
-- Do some validation in individual case, determine what the user should be able to query and then use common helper
-   python routines to get the data
 
 
 Generic resources
