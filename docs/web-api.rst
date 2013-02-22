@@ -2,8 +2,8 @@
 .. meta::
    :http-equiv=refresh: 5
 
-Web API Notes
-=============
+Web API
+=======
 
 Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
 
@@ -12,40 +12,37 @@ Following set of slides is a very good `Link read <http://lanyrd.com/2012/europy
 This application would have a combination of REST and RPC calls. Or maybe rest like calls with few posts involving methods.
 Using celery to exececute server side operations it is more logical to use rpc like posts on resources pointed by REST api.
 
-Steps of securing web API
--------------------------
+References for `securing web API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
 
-- `One reference <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
-- `Securing API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
+- Implement in a blueprint so that the url-prefix makes it identifies diferent versions
+- Do some validation in every request, i.e. determine if the user is logged in and what can be queried and then use common helper
+   python routines to get and serve the data
 
-Rest API v1 design thoughts
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Rest API v1
+~~~~~~~~~~~
 
-Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface
+ **important**
 
-Two kinds API for two kinds of database types. those in image database, and those in administrative database
-Those in image database require a database id (to locate the database) in each request
-
-A common decorator to check the access
-post and put operations require admin access to the database
-
-
-Versioing
-~~~~~~~~~
-
-- Implement in a blueprint so that the url-prefix makes it easy to rename
-- Do some validation in individual case, determine what the user should be able to query and then use common helper
-   python routines to get the data
-
- **'important'**
-
-All the queries are prefixed by apiv1
+All the queries in version 1 are prefixed by apiv1
 
 i.e. to get a list of databases -
 
 .. code-block:: none
 
-   localhost:27017/apiv1/databases 
+   localhost:8080/apiv1/databases 
+
+Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface.
+
+Two kinds API for two kinds of database types. those in image database, and those in administrative database.
+Those in image database require a database id (to locate the database) in each request.
+
+A common decorator to check the access @user_required, and @site_admin required implemented so far.
+
+Put requests are used for putting entities e.g. file where the destination is known. POST requests are used for posting
+new resources, in particular complete objects. When partial modifications are to be made, PATCH command is used..
+
+TODO: there should be a common place for access information computation about the sessions.
+This will improve the performance of the each reqeust.
 
 Sessions
 --------
@@ -58,30 +55,32 @@ A session is smallest unit for which an access can be granted or revoked. It con
 
 A list of sessions in a known databaseid is obtained by -
 
-.. code-block:: 
-      GET /<dbid>/sessions
+.. code-block:: none
+
+      GET /apiv1/<dbid>/sessions
 
 The main use case of this list is to display selectable sessions with the access rights to the user that is logged in
-So it is not necessary to include the lists which will be sent when a particular session is requested
+So it is not necessary to include the lists which will be sent when a particular session is requested.
+
+New sessions can be posted here
+
+.. code-block:: none
+
+   POST /apiv1/<dbid>/sesisons
+   { 'label' : "label string }
+
+A particular session is obtained by
+
+.. code-block:: none
+
+   GET /apiv1/<dbid>/sessions/<sessid>
+      
+A particular session contains
 
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO: there should be a common place for access information computation about the sessions.
-This will improve the performance of the each reqeust.
-
-- Attachments and raw files are uploaded
-- Images are uploaded elsewhere, and are referred in the session with the help of a view
-
-   - attachments
-         - Upload a new file:
-                  POST /<dbid>/sessions/<sessid>/attachments
-         - Insert an already existing attachments
-                  PUT /<dbid>/sessions/<sessid>/attachments/<attachmentid>
-
-- Get or Remove Items
-
-    - When a list of items is queried ,Get a list of session items
+A list of the items can be obtaied by
 
 .. code-block:: none
 
@@ -89,24 +88,53 @@ This will improve the performance of the each reqeust.
       GET /<dbid>/sessions/<sessid>/views
       GET /<dbid>/sessions/<sessid>/rawfiles
 
-    - Get an item
-      GET /<dbid>/sessions/<sessid>/attachments/<attachid>
-      GET /<dbid>/sessions/<sessid>/views/<viewid>
-      GET /<dbid>/sessions/<sessid>/rawfiles/<fileid>
-
-- Modify Items
-   Items can be modified directly or indirectly
+To get or delete items
 
 .. code-block:: none
 
-      PATCH /<dbid>/sessions/<sessid>/attachments/<attachmentid>
+      DELETE /<dbid>/sessions/<sessid>/attachments/<attachid>
+      DELETE /<dbid>/sessions/<sessid>/views/<viewid>
+      DELETE /<dbid>/sessions/<sessid>/rawfiles/<fileid>
+
+Uploading attachments or raw files, first a POST request should be made make a post request to get a new _id, and then upload the file to that _id. That _id
+will be the _id in gridfs
+
+.. code-block:: none
+
+   POST /apiv1/<dbid>/sessions/attachments
+   {'_id' : <ObjectId>}
+      
+   PUT /apiv1/<dbid>/sessions/attachments/<fileid>
+   {'_id' : <ObjectId>}
+
+Chunked requests are made in the put, see the code for details
+
+TODO: API for insering views is being designed
+
+Items can be modified directly or indirectly for example renaming
+
+.. code-block:: none
+
+      PATCH /apiv1/<dbid>/sessions/<sessid>/attachments/<attachmentid>
       { 'label' : "NEW_NAME"}
 
-      PATCH /<dbid>/sessions/<sessid>/views/<viewid>
+      PATCH /apiv1/<dbid>/sessions/<sessid>/views/<viewid>
+      { 'label' : "NEW_NAME"}
+      
+Operations like reordering also involve post query
+
+.. code-block:: none
+
+      PATCH /apiv1/<dbid>/sessions/<sessid>/views/<viewid>
+      { 'label' : "NEW_NAME"}
+      
+returns
+
+.. code-block:: javascript
+
       { 'label' : "NEW_NAME"}
 
-      PATCH /<dbid>/views/<viewid>
-      { 'label' : "NEW_NAME"}
+Or in rare cases when position value of all elements needs to be changed in the client side, it returns entire list
 
 Administrative database
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -155,17 +183,12 @@ Get a list of registered facebook groups
    {'dbid' : '<dbid>', can_see' : [ '<sessionid>', ... ]}
    {'dbid' : '<dbid>', 'can_see_all' : [ '<sessionid>', ... ]}
    
-   
-More pending use cases
-~~~~~~~~~~~~~~~~~~~~~~
-
-Upload attachments Selecing multiple files from a folder and initiate upload for a particular session (a named session is created if not specified)
--
-
 Authentication (login) operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A user session can be created by either sending an json request or by logging into page which sends out a json request to the api.
+
+TODO: Rewrite this documentation in the light of new API
 
 .. code-block:: none
 
@@ -182,19 +205,6 @@ Authentication (login) operations
 Few access rights are calculated at the time of login. Hence if the access rights are
 calculated while the user is logged in the user must logout and login again to see the effect.
 
-
-Session and images
-~~~~~~~~~~~~~~~~~~
-
--  sessions/<sessid>
-   - &rename=<new-label>
-
-
-- /sessions/<sessid>
-   - &grant=<new-label>
-
-   - /  Gets a list of all sessions  for the logged in user can see
-
 Viewing and other pages
 ~~~~~~~~~~~~~~~~~~~~~~~
 - Main image view with annotation management
@@ -208,44 +218,4 @@ Viewing and other pages
    - &dbid = <dbid>
 
 TODO: Probably the img appears only in one database, and so dbid could be resolved internally / stored in viewid
-
-
-Generic resources
-~~~~~~~~~~~~~~~~~
-
-- Getting the information, here "user" is used, and can be replaced by any generic resource
-
-User
-----
-
-View
-----
-GET
-- /view/<viewid>
-PATCH
-- /view/<viewid>
-
-
-
-Session
--------
-Session is special as it contains list of views internally
-
-GET (Get the information)
-- /user/<userid>
-
-      - &id=<id> Get specifc user
-
-PUT (Update the information)
-- /user/<userid>
-
-      - &id=<id> Get specifc user
-
-POST
-- /user/<userid>
-
-   - &id=<id> Get specifc user
-
-- / getlist
-
 
