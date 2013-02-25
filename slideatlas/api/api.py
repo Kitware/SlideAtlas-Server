@@ -165,8 +165,8 @@ mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{2
 # The url valid for databases, rules and users with supported queries
 class DataSessionsAPI(MethodView):
     decorators = [user_required]
-
     def get_data_db(self, dbid):
+            conn.register([Database])
             admindb = conn[current_app.config["CONFIGDB"]]
             dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
             if dbobj == None:
@@ -200,6 +200,77 @@ class DataSessionsAPI(MethodView):
                 return jsonify(sessobj)
             else:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
+    def delete(self, dbid, sessid=None):
+        conn.register([Session, Database])
+        datadb = self.get_data_db(dbid)
+        if datadb == None:
+            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+
+        if sessid == None:
+            return Response("{ \"error \" : \"No session to delete\"}", status=405)
+        else:
+            # TODO: Important, Not all users are allowed to delete
+            sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
+
+            if sessobj <> None:
+                # Delete if empty
+                empty = True
+
+                if "images" in sessobj:
+                    if len(sessobj["images"]) > 0:
+                        empty = False
+
+                if "attachments" in sessobj:
+                    if len(sessobj["attachments"]) > 0:
+                        empty = False
+
+                if "attachments" in sessobj:
+                    if len(sessobj["attachments"]) > 0:
+                        empty = False
+
+                if not empty:
+                    return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+                else:
+                    # Perform the delete
+                    try:
+                        datadb["sessions"].remove({"_id" : ObjectId(sessid)})
+                        print "DELETED from application"
+                    except Exception as inst:
+                        return Response("{\"error\" : %s}" % str(inst), status=405)
+                    # TODO: How to return success?
+                    return Response("{}")
+            else:
+                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
+    def post(self, dbid, sessid=None):
+        # Parse the data in json format 
+        data = request.json
+
+        # Unknown request if no parameters 
+        if data == None:
+            abort(400)
+
+        # Only insert command is supported
+        if not data.has_key("insert"):
+            abort(400)
+
+        # Create the database object from the supplied parameters
+        conn.register([Session])
+        try:
+            db = self.get_data_db(dbid)
+            newsession = db["sessions"].Session()
+            newsession["label"] = data["insert"]["label"]
+            newsession["images"] = []
+            newsession.validate()
+            newsession.save()
+        except Exception as inst:
+#            # If valid database object cannot be constructed it is invalid request 
+            return Response("{\"error\" : %s}" % str(inst), status=405)
+
+        return jsonify(newsession)
+
+
 
 class DataSessionItemsAPI(MethodView):
     decorators = [user_required]
@@ -238,14 +309,14 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
                                 , view_func=DataSessionsAPI.as_view("show_session"),
-                                methods=["get"])
+                                methods=["get", "delete"])
 
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 , view_func=DataSessionsAPI.as_view("show_sessions"),
-                                methods=["get"])
+                                methods=["get", "post"])
 
 
 # Specially for session

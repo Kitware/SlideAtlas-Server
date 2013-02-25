@@ -75,7 +75,33 @@ A particular session is obtained by
 
    GET /apiv1/<dbid>/sessions/<sessid>
       
-A particular session contains
+or is deleted by
+
+.. code-block:: none
+
+   DELETE /apiv1/<dbid>/sessions/<sessid>
+
+.. warning::
+
+   This call presently works only if the session is completely empty.    
+   If an attempt is made to delete a non-empty session, an error will be returned. 
+   This will change when management of orphan items is implemented.
+
+.. note::
+   **Following are thoughts**
+
+   A particular session contains other items. So the question comes
+   what happens to the items in the session when the session is removed.
+   
+   Current thought is to move all the items (references to a orphan session)
+   which is displayed only to administrators.
+
+   Possibly implement a recursive delete call by
+
+   .. code-block:: none
+      
+      POST /apiv1/<dbid>/sessions/<sessid>
+      {purge : ["images", "attachments", "raw-files"]}
 
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
