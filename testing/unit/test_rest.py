@@ -149,6 +149,41 @@ class APIv1_Tests(unittest.TestCase):
         rv = self.app.get("/apiv1/databases/" + str(obj["_id"]))
         self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
 
+
+    def testAdminDBModifyUsingPost(self):
+        """
+        Tests post operation for partially modifying database in admin databases
+        """
+        # Sign in for admin access
+        self.login_admin()
+
+        newdb = dict(insert={
+                              "label" : "Database for DJ Test Partial update",
+                              "host" : "127.0.0.1",
+                              "dbname" : "dj2",
+                              "copyright" : "All rights reserved by DJ 2013"}
+                            )
+
+        obj = self.parseResponse("/apiv1/databases", newdb, method="post")
+
+        modification = dict(modify={
+                              "host" : "127.0.0.1:27017" }
+                            )
+
+        # Query it back and check 
+        obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), modification, method="post")
+        print "Returned object: ", obj2
+
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+        self.failUnless(obj2["host"] == modification["modify"]["host"])
+        self.failUnless(obj2["label"] == obj["label"])
+
+        # Now delete the database
+        obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
+
+        # Not testing delete
+
+
     def testAdminDBItems(self):
         """
         Test generic api for databases users rules in admindb

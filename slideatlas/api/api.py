@@ -94,25 +94,64 @@ class DatabaseAPI(AdminDBAPI):
         if data == None:
             abort(400)
 
+        conn.register([Database])
+
         # Only insert command is supported
-        if not data.has_key("insert"):
+        if data.has_key("insert") :
+            # Create the database object from the supplied parameters  
+
+            try:
+                if resid <> None:
+                    raise "Trying to create new resource at existing resource"
+
+                newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database()
+                newdb["label"] = data["insert"]["label"]
+                newdb["host"] = data["insert"]["host"]
+                newdb["dbname"] = data["insert"]["dbname"]
+                newdb["copyright"] = data["insert"]["copyright"]
+                newdb.validate()
+                newdb.save()
+            except Exception as inst:
+                # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
+
+            return jsonify(newdb)
+        elif data.has_key("modify"):
+            # Resid must be supplied
+            if resid == None :
+                return Response("{\"error\" : \"No resource id supplied for modification\"}" , status=405)
+
+            try:
+                # Locate the resource 
+                newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database.find_one({"_id" : ObjectId(resid)})
+                if newdb == None:
+                    raise " Resource %s not found" % (resid)
+            except Exception as inst:
+                # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
+
+            # Now update 
+            try:
+                for akey in data["modify"]:
+                    if akey == "_id":
+                        return Response("{\"error\" : \"Cannot modify _id \"}" , status=405)
+
+                    # Update other keys
+                    if akey in newdb:
+                        newdb[akey] = data["modify"][akey]
+
+                    newdb.validate()
+                    newdb.save()
+            except Exception as inst:
+                # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
+
+            return jsonify(newdb)
+
+        else:
+            # Only insert and modify commands supported so far
             abort(400)
 
-        # Create the database object from the supplied parameters  
-        conn.register([Database])
-        try:
-            newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database()
-            newdb["label"] = data["insert"]["label"]
-            newdb["host"] = data["insert"]["host"]
-            newdb["dbname"] = data["insert"]["dbname"]
-            newdb["copyright"] = data["insert"]["copyright"]
-            newdb.validate()
-            newdb.save()
-        except Exception as inst:
-            # If valid database object cannot be constructed it is invalid request 
-            return Response("{\"error\" : %s}" % str(inst), status=405)
-
-        return jsonify(newdb)
 
     def put(self, resid):
         # put requires admin access
@@ -156,8 +195,8 @@ class DatabaseAPI(AdminDBAPI):
 
         return jsonify(dbobj)
 
-mod.add_url_rule('/databases', defaults={"resid" : None}, view_func=DatabaseAPI.as_view("show_database_list"), methods=['post'])
-mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['DELETE', 'put'])
+mod.add_url_rule('/databases', view_func=DatabaseAPI.as_view("show_database_list"), methods=['post'])
+mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['DELETE', 'put', 'post'])
 
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"), methods=['get'])
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))

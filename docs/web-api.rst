@@ -60,14 +60,16 @@ A list of sessions in a known databaseid is obtained by -
       GET /apiv1/<dbid>/sessions
 
 The main use case of this list is to display selectable sessions with the access rights to the user that is logged in
-So it is not necessary to include the lists which will be sent when a particular session is requested.
+So the view, attachments and etc lists are not included.
 
 New sessions can be posted here
 
 .. code-block:: none
 
    POST /apiv1/<dbid>/sesisons
-   { 'label' : "label string }
+   { 'insert: { 'label' : "label string }}
+
+returns the newly inserted session object with empty views and attachments lists
 
 A particular session is obtained by
 
@@ -75,6 +77,13 @@ A particular session is obtained by
 
    GET /apiv1/<dbid>/sessions/<sessid>
       
+The main use case of this is to present the session to the user.  So this does contain all the lists.
+
+.. note::
+
+   TODO: Thinking of dereferencing views and attachments so enough information to display them is presented.
+   
+
 or is deleted by
 
 .. code-block:: none
@@ -83,7 +92,7 @@ or is deleted by
 
 .. warning::
 
-   This call presently works only if the session is completely empty.    
+   This call presently works only if the session i.e. the lists of items in it are completely empty.    
    If an attempt is made to delete a non-empty session, an error will be returned. 
    This will change when management of orphan items is implemented.
 
@@ -103,6 +112,14 @@ or is deleted by
       POST /apiv1/<dbid>/sessions/<sessid>
       {purge : ["images", "attachments", "raw-files"]}
 
+Modifying the properties of the session are made possible by
+
+.. code-block:: none
+
+   POST /apiv1/<dbid>/sesisons
+   { 'insert: { 'label' : "label string }}
+
+
 Items in session (Attachments / Views)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -114,6 +131,12 @@ A list of the items can be obtaied by
       GET /<dbid>/sessions/<sessid>/views
       GET /<dbid>/sessions/<sessid>/rawfiles
 
+Later can be generalized to any list
+
+.. code-block:: none
+
+      GET /<dbid>/sessions/<sessid>/<listname>
+      
 To get or delete items
 
 .. code-block:: none
@@ -128,12 +151,25 @@ will be the _id in gridfs
 .. code-block:: none
 
    POST /apiv1/<dbid>/sessions/attachments
+   
+returns a new _id.
+
+.. code-block:: none
+
    {'_id' : <ObjectId>}
-      
+
+So in the following request And in the following PUT request(s) file chunks are uploaded. see the code for details
+
+.. code-block:: none
+
    PUT /apiv1/<dbid>/sessions/attachments/<fileid>
    {'_id' : <ObjectId>}
 
-Chunked requests are made in the put, see the code for details
+.. warning::
+
+   The ObjectId is not actually inserted in the attachements collection until the file is actually uploaded.
+   So it will not be visible as attachment or rawfile until then 
+
 
 TODO: API for insering views is being designed
 
