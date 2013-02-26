@@ -1,12 +1,12 @@
-{% extends '/base.html'  %}
+<!doctype html>
 
-{% block head %}
+<title>Stack Viewer</title>
 
-{{ super() }}
 
-<title>Connectome Viewer</title>
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 
-<link rel="stylesheet" type="text/css" href="{{ url_for('glviewer.static', filename='viewer.css')}}" />
+
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
@@ -24,12 +24,12 @@
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossWidget.js') }}"></script>
 
 <!-- Actor for tile -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
-
-<!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
 
 <!-- Source and cache for the viewer
 Manages the list, and gives to camera, either lowres, or appropriate tiles
@@ -41,6 +41,10 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 
 <!-- Has two views -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
+
+<!-- For 3d pathology -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
+
 
 <!-- Widgets
 
@@ -75,42 +79,6 @@ shape has visibility and
 
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
-
-<script type="text/javascript">
-  //  var QUESTION = <?php echo json_encode($mongo_question);?>;
-  // These globals are used in the viewer javascript.  I need to get rid of them.
-
-  var ARGS = {};
-
-  ARGS.Viewer1 = {};
-  ARGS.Viewer1.annotations = {};
-  ARGS.Viewer1.center = center;
-
-  var DBID = "{{img.dbid}}";
-  var VIEWID = "{{img.viewid}}";
-  var IMGID = "{{img.collection}}";
-  var DIMENSION = {{img.dimension}};
-  var LEVELS = {{img.levels}};
-  var origin = {{img.origin}};
-  origin[1] = -origin[1];
-  var spacing = {{img.spacing}};
-  var center = {{img.center}};
-  var rotation = {{img.rotation}};  
-  {% if img.zoom is defined %}
-    var zoom = {{img.zoom}};
-    ARGS.Viewer1.viewHeight = 900 << zoom;
-  {% endif %}
-  {% if img.viewHeight is defined %}
-    var viewHeight = {{img.viewHeight}};
-    ARGS.Viewer1.viewHeight = viewHeight;
-  {% endif %}
-
-  ARGS.Viewer1.rotation = rotation;
-  ARGS.Viewer1.db = DBID;
-  ARGS.Viewer1.viewid = VIEWID;
-
-  
-</script>
 
 <script id="shader-poly-fs" type="x-shader/x-fragment">
   precision mediump float;
@@ -181,13 +149,69 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var DBID;
+  var SESSID;
+  var VIEWS;
+  var SECTIONS;
+  var TRANSFORMATIONS;
+  var SECTION_INDEX;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
   var EDIT = false;
 
-  var SESSIONS_URL  = "{{url_for('session.sessions')}}";
-  var COMPARISON_SAVE_URL  = "/webgl-viewer/comparison-save";
+  
+
+  // sets the global variable ARGS
+  function getArgs() {
+    SESSID = "{{ sess }}";
+    DBID  = "{{ db }}";
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/stack-session",
+        data: {"db" :  DBID,
+               "sess" : SESSID},
+        success: function(data,status){
+          //alert(data + "\nStatus: " + status);
+          VIEWS = data["views"];
+          // To bad jason does not save the object type.  Need to cast.
+          var transformations = data["transformations"];
+          TRANSFORMATIONS = [];
+          for (i in transformations) {
+            var trans = new PairTransformation();
+            trans.Correlations = transformations[i].Correlations;
+            TRANSFORMATIONS.push(trans);
+          }
+          // Initialize transformations with view centers. (bootstrap)
+          //TRANSFORMATIONS = [];
+          //for (var i = 1; i < VIEWS.length; ++i) {
+          //  var trans = new PairTransformation();
+          //  trans.AddCorrelation(VIEWS[i-1].center, VIEWS[i].center);
+          //  TRANSFORMATIONS.push(trans);
+          //}
+          webGLStart();
+          },
+        error: function() { alert( "AJAX ARGS - error()" ); },
+    });
+  }
+
+
+// url: "http://localhost:8080/webgl-viewer/stack-save",
+function saveStack() {
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/stack-save",
+    data: {"db": DBID,
+           "sess": SESSID,
+           "stack" :  JSON.stringify( {"transformations": TRANSFORMATIONS} )},
+    success: function(data,status){
+       //alert(data + "\nStatus: " + status);
+       },
+    error: function() { alert( "AJAX - error()" ); },
+    });
+ }
+
+    
   
   function handleResize() {
     if (GL) {
@@ -195,52 +219,161 @@ shape has visibility and
       CANVAS.height = CANVAS.clientHeight;
       GL.viewport(0, 0, CANVAS.width, CANVAS.height);
       if (VIEWER1) {
-        VIEWER1.SetViewport([0, 40, CANVAS.width, CANVAS.height-80]);
+        VIEWER1.SetViewport([0, 0, CANVAS.width, CANVAS.height]);
         eventuallyRender();
       }
     }
   };
 
   function initViews() {
-    var source1 = new Cache("/tile?img={{img.collection}}&db={{img.db}}&name=", LEVELS);
-    VIEWER1 = new Viewer([0,40, CANVAS.clientWidth,CANVAS.clientHeight-80], source1);
-
-    // This may not be used anymore.
-    VIEWER1.AnnotationCallback = function(widget) {
-      alert("Annotation Callback is being used.");
-      var json = widget.Serialize();
-
-      // $.post("saveannotation.php?id="+QUESTION.qid.$id, {widget:json}, function(){
-        // saveConstants();
-      // });
-
-    }
-    var cam = null;
-    // The old php way:
-    if(cam){
-      VIEWER1.MainView.Camera.Height = parseFloat(cam.height);
-      VIEWER1.MainView.Camera.FocalPoint[0] = parseFloat(cam.fp[0]);
-      VIEWER1.MainView.Camera.FocalPoint[1] = parseFloat(cam.fp[1]);
-      VIEWER1.MainView.Camera.FocalPoint[2] = parseFloat(cam.fp[2]);
-      VIEWER1.MainView.Camera.Roll = parseFloat(cam.roll);
-      VIEWER1.OverView.Camera.Roll = parseFloat(cam.roll);
-      VIEWER1.MainView.Camera.ComputeMatrix();
-      VIEWER1.OverView.Camera.ComputeMatrix();
-    }
-    VIEWER1.SetDimensions(DIMENSION);
-    VIEWER1.SetCamera(center,rotation,ARGS.Viewer1.viewHeight);
-    
-    
+    VIEWER1 = new Viewer([0,0, CANVAS.clientWidth,CANVAS.clientHeight], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
 
-    // TODO: Add annotations later
-    // if(QUESTION.annotations != undefined){
-      // for(var i=0; i < QUESTION.annotations.length; i++) {
-        // VIEWER1.LoadWidget(QUESTION.annotations[i]);
-      // }
-    // }
+    // Preload all the sources.
+    SECTIONS = [];
+    for (i in VIEWS) {
+        view = VIEWS[i];
+        var source = null;
+        // Since mltiple section are in one slide. Reuse sources when possible.
+        for (j = 0; j < i; ++j) {
+            if (VIEWS[j].img._id == view.img._id) {
+                source = SECTIONS[j];
+            }
+        }
+        if ( ! source) {
+            source = new Cache("/tile?img="+view.img._id+"&db="+DBID+"&name=", 
+                               view.img.levels);
+        }
+        SECTIONS.push(source);
+    }
+    
+    // Setup the points.
+    SECTION_INDEX = 0;
+    VIEWER1.SetCache(SECTIONS[SECTION_INDEX]);
+    VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
+    VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
+
+    setupCrossHairs();
+
+    }
+
+  
+  function updateSection(inc) {
+    var newIdx = SECTION_INDEX + inc;
+
+    if (newIdx < 0 || newIdx >= SECTIONS.length) {
+        return;
+    }
+
+    VIEWER1.SetCache(SECTIONS[newIdx]);
+    VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
+    // Compute the new camera.
+    var cam = VIEWER1.GetCamera();
+    var rotation = cam.GetRotation();
+    var height = cam.Height;
+    var center = cam.FocalPoint;
+    if (inc < 0) {
+        center = TRANSFORMATIONS[newIdx].ReverseTransform(cam.FocalPoint);
+        rotation += TRANSFORMATIONS[newIdx].DeltaRotation;
+    } else {
+        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(cam.FocalPoint);
+        rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRotation;
+        // We need to transform the event world point to avoid bug with chain when
+        // Mouse is not moved.
+        var tmp = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform([EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY]);
+        EVENT_MANAGER.MouseWorldX = tmp[0];
+        EVENT_MANAGER.MouseWorldY = tmp[1];
+    }
+
+    VIEWER1.SetCamera(center, rotation, height);    
+    SECTION_INDEX = newIdx;
+    setupCrossHairs();
   }
 
+  function setupCrossHairs() {
+    if ( ! EDIT) { return; }
+    VIEWER1.ShapeList = [];
+    VIEWER1.WidgetList = [];
+    VIEWER1.ShapeVisibility = true;
+
+    if ( SECTION_INDEX < TRANSFORMATIONS.length) {
+        var trans = TRANSFORMATIONS[SECTION_INDEX];
+        for (i in trans.Correlations) {
+            var c = trans.Correlations[i];
+            var crossWidget = new CrossWidget(VIEWER1, false);
+            var cross = crossWidget.Shape;
+            cross.FillColor    = [1,0,0]; 
+            cross.OutlineColor = [0,1,1];
+            cross.Origin       = c.point0; // I expect reference will update transform automatically.
+        }
+    }    
+    if (SECTION_INDEX > 0) {
+        var trans = TRANSFORMATIONS[SECTION_INDEX-1];
+        for (i in trans.Correlations) {
+            var c = trans.Correlations[i];
+            var crossWidget = new CrossWidget(VIEWER1, false);
+            var cross = crossWidget.Shape;
+            cross.FillColor    = [0,1,1]; 
+            cross.OutlineColor = [1,0,0];
+            cross.Origin       = c.point1; // I expect reference will update transform automatically.
+        }
+    }
+  }
+  
+var FeatureChainEndCross;
+var FeatureChainEndIndex;
+// x, y are in world coordinates
+function FeatureChainStart(x,y) {
+    // Create a widget just for show.
+    var crossWidget = new CrossWidget(VIEWER1, false);
+    var cross = crossWidget.Shape;
+    cross.FillColor    = [1,0,0]; 
+    cross.OutlineColor = [0,1,1];
+    cross.Origin       = [x, y];
+    // Save for the position for the next link.
+    FeatureChainEndCross = cross;
+    FeatureChainEndIndex = SECTION_INDEX;
+    eventuallyRender();
+}
+// x, y are in world coordinates
+function FeatureChainAdd(x,y) {
+    if ( ! FeatureChainEndCross ) {
+        FeatureChainStart(x,y);
+        return;
+    }
+    if (SECTION_INDEX <= 0) {
+        alert("First section cannot end a feature link.");
+        return;
+    }
+    if (SECTION_INDEX != FeatureChainEndIndex + 1) {
+        alert("Link cannot span more than one section.");
+        return;
+    }
+
+    // Create the correlation.
+    var trans = TRANSFORMATIONS[SECTION_INDEX-1];
+    trans.Correlations.push({"point0": [FeatureChainEndCross.Origin[0],FeatureChainEndCross.Origin[1]],
+                             "point1": [x,y]});
+    // Create a widget just for show.
+    var crossWidget = new CrossWidget(VIEWER1, false);
+    var cross = crossWidget.Shape;
+    cross.FillColor    = [0,1,1]; 
+    cross.OutlineColor = [1,0,0];
+    // A dance to set cross origin as pointer to correlation array.
+    var correlation = trans.Correlations[trans.Correlations.length-1];
+    cross.Origin       = correlation.point1;
+    // Save for the position for the next link.
+    FeatureChainEndCross = cross;
+    FeatureChainEndIndex = SECTION_INDEX;
+    eventuallyRender();
+}
+
+
+
+
+
+
+  
   function draw() {
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     // This just changes the camera based on the current time.
@@ -248,68 +381,41 @@ shape has visibility and
     VIEWER1.Draw();
   }
 
-  var C_DOWN = false;
-  var O_DOWN = false;
-
   var E_DOWN = false;
   var D_DOWN = false;
-
-  function insertStackSection() {
-    var cam = VIEWER1.GetCamera();
-    var camObj = {"center": cam.FocalPoint, "height": cam.Height};
-    
-    $.ajax({
-        type: "post",
-        url: "/webgl-viewer/stack-insert",
-        data: {"db" :    DBID,
-               "img" :   IMGID,
-               "cam":    JSON.stringify(camObj)},
-        success: function(data,status){
-           alert(data + "\nStatus: " + status);
-           },
-        error: function() { alert( "AJAX - error()" ); },
-    });
-  }
-
-  
-  function handleMouseDown(event) {
-    // Left single click shows edit menu.
-    // TODO: supress menu on double click.
-    if (EDIT && event.which == 3) {
-        ShowComparisonEditMenu(event.clientX, event.clientY);
-    }
+  function handleMouseDown(event) { 
     EVENT_MANAGER.HandleMouseDown(event);
   }
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
-    if (event.keyCode == 68) { D_DOWN = true;}
-    if (event.keyCode == 69) { E_DOWN = true;}
-    if (D_DOWN && E_DOWN) {
-        EDIT = ! EDIT; 
-        alert("Edit: " + EDIT);
-        //insertStackSection(); put this in a menu
-        E_DOWN = false;
-        D_DOWN = false;
-    }
-    // hack to convert a normal view to a comparison view.
-    if (event.keyCode == 67) { C_DOWN = true;}
-    if (event.keyCode == 79) { O_DOWN = true;}
-    if (C_DOWN && O_DOWN) {
-        $.get("/webgl-viewer/comparison-convert?db="+DBID+"&view="+VIEWID,
-          function(data,status){
-              alert(data + " is now a comparison");
-          });
-        C_DOWN = false;
-        O_DOWN = false;
-    }
-    EVENT_MANAGER.HandleKeyDown(event);
-  }
+        if (event.keyCode == 68) { D_DOWN = true;}
+        if (event.keyCode == 69) { E_DOWN = true;}
+        if (D_DOWN && E_DOWN) {
+            EDIT = ! EDIT; 
+            alert("Edit: " + EDIT);
+            E_DOWN = false;
+            D_DOWN = false;
+        }
+        if (event.keyCode == 33) { // page up
+            updateSection(-1);
+        }
+        if (event.keyCode == 34 || event.keyCode == 32) { // page down or space
+            updateSection(1);
+        }
+        if (event.keyCode == 83) { // 's'
+            if (EDIT) { saveStack();}
+        }
+        if (event.keyCode == 49) { // '1' : start a new feature chain
+            if (EDIT) { FeatureChainStart(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+        }
+        if (event.keyCode == 50) { // '2' : start a new feature chain
+            if (EDIT) { FeatureChainAdd(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+        }
+        EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {
-    if (event.keyCode == 67) { C_DOWN = false;}
-    if (event.keyCode == 79) { O_DOWN = false;}
-    EVENT_MANAGER.HandleKeyUp(event);}
+        EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
     if (e && e.stopPropagation)
@@ -317,13 +423,38 @@ shape has visibility and
     return false;
   }
 
+  
+
+// Not used at the moment.
+function InitAnnotations(viewer, annotations)
+{
+    if (annotations.length == 0) {
+        return;
+    }
+    
+    for (i in annotations) {
+        var annotation = annotations[i];
+        widget = new TextWidget(viewer, annotation.string);
+        var p1 = annotation.position;
+        var offset = annotation.offset;
+        widget.SetPosition(p1[0], p1[1]);
+        widget.SetTextOffset(offset[0], offset[1]);
+        widget.SetAnchorShapeVisibility(true);
+    }
+}
+
+function ToggleAnnotationVisibility() {
+    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+}
+
+
   function webGLStart() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
     if ( ! doesBrowserSupportWebGL(testCanvas)) {
         return; // WHat to do?  Function provides the alert.
     }
-
+    
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initViews();
@@ -341,10 +472,33 @@ shape has visibility and
 
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;
+    document.oncontextmenu = cancelContextMenu;         
+        
+    // Place the zoom in / out buttons.
+    // Todo: Make the button become more opaque when pressed.
+    // Associate with viewer (How???).
+    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '60px',
+        'right' : '5px',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}").click(function(){
+             VIEWER1.AnimateZoom(0.5);});
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '5px',
+        'right' : '5px',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
+             VIEWER1.AnimateZoom(2.0);});            
 
-    // Create the edit menu.
-    InitComparisonEditMenus();
 
     eventuallyRender();
   }
@@ -401,6 +555,9 @@ shape has visibility and
       widget.SetActive(false);
     }
     widget.SetAnchorShapeVisibility(markerFlag);
+
+    //ComparisonSaveAnnotations();
+    
     eventuallyRender();
   }
 
@@ -457,6 +614,8 @@ shape has visibility and
       // We need to remove an item from a list.
       // shape list and widget list.
       widget.RemoveFromViewer();
+      WidgetPropertyDialogDelete();
+      //ComparisonSaveAnnotations();
       eventuallyRender();
     }
   }
@@ -512,9 +671,9 @@ shape has visibility and
         annots = 0;
     }
 
-    $.post("setquestion.php", {qid: qid, qtitle:questiontitle, qtext: questiontext, choices: questionchoices, cam: camValues, corr: correct, annotations:annots}, function(cs){
+    //$.post("setquestion.php", {qid: qid, qtitle:questiontitle, qtext: questiontext, //choices: questionchoices, cam: camValues, corr: correct, annotations:annots}, //function(cs){
         //alert(cs);
-    });
+    //});
   }
 
   function findChecked(){
@@ -536,22 +695,7 @@ shape has visibility and
   }
 
     $(document).ready(function() {
-        // if (QUESTION.choices) {
-            // document.getElementById("qtext").innerHTML = QUESTION.qtext;
-            // document.getElementById("title").innerHTML = QUESTION.title;
-            // for (var i = 0; i < QUESTION.choices.length; ++i) {
-                // var liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" /></td></tr>';
-                // if(QUESTION.correct == (i+'')){
-                    // liststring = '<tr><td>'+(i+1)+': <input type="text" class="answer" value="'+QUESTION.choices[i]+'" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-                // }
-                // $('#choicelist').append(liststring);
-            // }
-        // }
-        // else {
-            // var liststring = '<tr><td>1: <input type="text" class="answer" /></td><td><input type="radio" name="correct" checked="checked" /></td></tr>';
-            // $('#choicelist').append(liststring);
-        // }
-/*
+
       $("#text-properties-dialog").dialog({
           autoOpen:false,
           height:250,
@@ -646,21 +790,19 @@ shape has visibility and
         }
       }
     });
-*/
+
   });
 
 </script>
 
-{% endblock %}
 
-{% block bodytags %}
-{{ super() }}
-{% endblock %}
-
-
-{% block body_content %}
-{{ super() }}
-
+<style>
+#feedback { font-size: 1.4em; }
+#optionMenu .ui-selecting { background: #FECA40; }
+#optionMenu .ui-selected { background: #F39814; color: white; }
+#optionMenu { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#optionMenu li { padding: 3px; height: 18px; width: 100%}
+</style>
 
 
 <canvas id="gltest" style="display:none" ></canvas>
@@ -695,7 +837,7 @@ shape has visibility and
       </table>
       <table border="1" id="rotatebuttons" >
         <tr>
-          <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
+          <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
             <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
           </td>
           <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
@@ -742,28 +884,9 @@ shape has visibility and
           </fieldset>
         </form>
       </div>
-</div>
-
-
-  <div class="navbar navbar-inverse navbar-fixed-bottom">
-    <div class="navbar-inner ">
-      <div class="container">
-        <div class="nav-collapse collapse">
-          <ul class="nav">
-            <li> <a class="span2 offset4 nodoubleclick" onclick="rotateRight();"> Rotate-right </a></li>
-            <li> <a class="span2 nodoubleclick" onclick="rotateLeft();" ">Rotate-left </a></li>
-          </ul>
-        </div>
-      </div>
     </div>
-  </div>
-
-{% endblock %}
-{%- block bootstrap_js_bottom %}
-{{ super() }}
 
 <script>
-    webGLStart();
-
+    // Get arguments and then initialize webgl.
+    getArgs();
 </script>
-{%- endblock %}

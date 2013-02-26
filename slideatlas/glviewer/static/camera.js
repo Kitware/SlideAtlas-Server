@@ -18,6 +18,11 @@ function Camera (viewportWidth, viewportHeight) {
     this.CreateBuffer();
 }
 
+
+Camera.prototype.GetRotation = function () {
+    return this.Roll * 180.0 / 3.1415926535;
+}
+
 // dx, dy are in view coordinates [-0.5,0.5].  
 // The camera matrix converts world to view.
 Camera.prototype.HandleTranslate = function (dx,dy) {
