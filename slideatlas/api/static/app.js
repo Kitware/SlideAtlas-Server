@@ -26,6 +26,14 @@ app.factory('Database', function($resource) {
             update:{ method: 'PUT'}
               });
   });
+
+app.factory('Session', function($resource) {
+    return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@_id'}, 
+                 {
+            query: { method: 'GET', params: {}, isArray: true },
+              });
+  });
+
   
 app.factory('Data', function() {
     var methods = {};
@@ -119,3 +127,30 @@ app.controller("DBListCtrl", function ($scope, Database, $location, Data)
         }
     });
     
+
+app.controller("SessListCtrl", function ($scope, Session, $location, Data)
+    {
+    console.log("Refreshing SessListCtrl")
+
+    Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
+        Data.setList(data.sessions);
+        $scope.sessions = Data.getList();
+        }
+    );
+    
+    // $scope.delete = function(idx) 
+    //     {
+    //     // Locate the object
+    //     var db = Data.getItem(idx) 
+    //     console.log(db)
+    //     if (confirm("Remove database " + db.dbname + '?')) 
+    //         {
+    //         Database.delete({dbid:db._id}, function(data) {
+    //             Data.removeItem(idx);
+    //             $location.path("/databases");
+    //             });
+    //         }
+    //     };
+    });
+    
+

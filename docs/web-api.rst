@@ -117,7 +117,7 @@ Modifying the properties of the session are made possible by
 .. code-block:: none
 
    POST /apiv1/<dbid>/sesisons
-   { 'insert: { 'label' : "label string }}
+   { 'modify' : { 'label' : "label string }}
 
 
 Items in session (Attachments / Views)
@@ -211,10 +211,10 @@ Administrative access is required to any queries dealing directly with administr
 .. code-block:: none
 
    - GET
-      - /databases/<databaseid>
-      - /databases?dbname=<databasename>
-      - /rules?facebook_group=<facebookid>
-      - /rules/<ruleid>
+      - /apiv1/databases/<databaseid>
+      - /apiv1/databases?dbname=<databasename>
+      - /apiv1/rules?facebook_group=<facebookid>
+      - /apiv1/rules/<ruleid>
 
 - Add new rule or database or user
 - A custom validate method over generic object schema checking
@@ -224,7 +224,23 @@ Administrative access is required to any queries dealing directly with administr
 
 .. code-block:: none
 
-   - POST
+   - POST /apiv1/databases
+      { 'insert' : {'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}}
+
+To fully replace a known database record
+
+.. code-block:: none
+
+   - PUT /apiv1/databases/<dbid>
+      { '_id' : <id>, 'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}
+
+To partially or fully modify a known database record
+
+.. code-block:: none
+
+   - POST /apiv1/databases/<dbid>
+      { 'insert' : { '_id' : <id>, 'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}}
+
 
 operations for specific users, a deep delete to also remove all the rules associated with the user
 

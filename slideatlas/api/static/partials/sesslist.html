@@ -1,18 +1,16 @@
-     <div ng-controller="DBListCtrl">
-         Total Records : {{databases.length }}  
+     <div ng-controller="SessListCtrl">
+         Total Records : {{sessions.length }}  
          <table class="table table-striped">
             <thead>
                 <tr>
-                <td><h4>Database name </h4></td>
-                <td><h4>Host</h4></td>
+                <td><h4>Session label </h4></td>
                 <td> </td>
-                <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
+                <td><a href="#/sessions/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="adb in databases" >
-                <td>{{ adb.dbname }} </td>
-                <td>{{ adb.host }} </td>
-                <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
+            <tr ng-repeat ="adb in sessions" >
+                <td>{{ adb.label }} </td>
+                <td><a href="#/sessions/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
             </tr>
   </div>
