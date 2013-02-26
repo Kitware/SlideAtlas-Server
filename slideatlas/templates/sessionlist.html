@@ -12,12 +12,21 @@
     <h2> {{ arule.rule }}</h2>
     <table class="table table-bordered table-hover" >
         {% for asession in arule.sessions %}
+            {% if asession.stack %}
+            <tr> <td><a href="/webgl-viewer/stack?sess={{asession.sessid}}&db={{asession.sessdb}}" class="lead">{{ asession.label}}</td>
+                {% if asession.canadmin %}
+                  <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
+                {% else %}
+                {% endif %}
+            </tr>
+            {% else %}
             <tr> <td><a href="sessions?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead">{{ asession.label}}</td>
                 {% if asession.canadmin %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
                 {% else %}
                 {% endif %}
             </tr>
+            {% endif %}
          {% endfor %}
     </table>
  <br>

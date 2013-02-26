@@ -159,6 +159,9 @@ def sessions():
                                                 'label' : sessionobj["label"],
                                                 'sessdb': str(dbobj["_id"])
                                                 }
+                        if 'type' in sessionobj:
+                            if (sessionobj["type"] == "stack"):
+                                thissession["stack"] = True;
                         sessions.append(thissession)
                 elif len(ruleobj["can_see"]) > 0:
                     # Gets access to a limited number of sessions
@@ -168,6 +171,9 @@ def sessions():
                                                 'label' : sessionobj["label"],
                                                 'sessdb': str(dbobj["_id"])
                                                 }
+                        if 'type' in sessionobj:
+                            if (sessionobj["type"] == "stack"):
+                                thissession["stack"] = True;
                         sessions.append(thissession)
 
                 # if db administrator

@@ -250,6 +250,8 @@ def glcomparison():
     return make_response(render_template('comparison.html', question=question))
 
 
+    
+    
 
 
 
@@ -307,7 +309,7 @@ def glcomparisonoption():
 # Saves comparison view back into the database.
 @mod.route('/comparison-save', methods=['GET', 'POST'])
 def glcomparisonsave():
-    #pdb.set_trace();
+    #pdb.set_trace()
 
     inputStr = request.form['input']  # for post
     operation = request.form['operation']  # for post
@@ -370,3 +372,135 @@ def glcomparisonconvert():
     return viewid
 
 
+
+    
+    
+    
+ 
+
+# Stack viewer.
+@mod.route('/stack')
+def glstack():
+    """
+    - /webgl-viewer/stack?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
+    """
+
+    # Comparison is a modified view.
+    sessid = request.args.get('sess', None)
+    if not sessid:
+        sessid = "51256ae6894f5931098069d5"
+    # this is the same as the sessions db in the sessions page.
+    dbid = request.args.get('db', None)
+    if not dbid:
+        dbid = "5123c81782778fd2f954a34a"
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    return make_response(render_template('stack.html', 
+                         db = dbid, sess = sessid))
+    
+
+# stack viewer gets the stack info with ajax.
+@mod.route('/stack-session')
+def glstacksession():
+    """
+    - /webgl-viewer/stack-session?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
+    """
+
+    # Comparison is a modified view.
+    #sessid = request.args.get('sess', None)
+    sessid = "51256ae6894f5931098069d5"
+    # this is the same as the sessions db in the sessions page.
+    #dbid = request.args.get('db', None)
+    dbid = "5123c81782778fd2f954a34a"
+        
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    sessobj = db["sessions"].find_one({"_id" : ObjectId(sessid) })
+    views = [];
+    for view in sessobj["views"]:
+        viewid = view["ref"]
+        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        #viewobj["_id"] = str(viewobj["_id"])
+        #viewobj["rotation"] = 0
+        # Having issues with jsonify
+        myview = {"center": viewobj["center"],
+                  "height": viewobj["height"],
+                  "rotation": 0}
+        imgobj = db["images"].find_one({"_id" : viewobj["img"] })
+        #imgobj["_id"] = str(imgobj["_id"])
+        #imgobj["thumb"] = ""
+        myimg = {"dimensions": imgobj["dimension"],
+                 "_id": str(imgobj["_id"]),
+                 "levels": imgobj["levels"]}
+                 
+        myview["img"] = myimg
+        views.append(myview)
+
+    #pdb.set_trace()
+
+    return jsonify({"views":views, "transformations": sessobj["transformations"]})
+
+    
+
+# When the transform correlation points change, this method changed the database
+# to match the viewer.
+@mod.route('/stack-save', methods=['GET', 'POST'])
+def glstacksave():
+    #pdb.set_trace()
+
+    dbid = request.form['db']  # for post
+    sessid = request.form['sess']  # for post
+    stackStr = request.form['stack']  # for post
+    stackObj = json.loads(stackStr)
+
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    # Reset the transformations
+    db["sessions"].update({"_id": ObjectId(sessid)}, 
+                          {"$set": {"transformations": stackObj["transformations"]}})
+
+
+    return "Success"
+
+    
+    
+    
+    
+# For initial creation of the stack.  Add a view to the stack.
+@mod.route('/stack-insert', methods=['GET', 'POST'])
+def glstackinsert():
+    #pdb.set_trace()
+
+    dbid = request.form['db']  # for post
+    imgid = request.form['img']  # for post
+    camStr = request.form['cam']  # for post
+    #inputStr = request.args.get('input', "{}") # for get
+
+    viewObj = json.loads(camStr)
+    viewObj["img"] = ObjectId(imgid)
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    # add the view
+    view_id = db["views"].insert(viewObj)
+
+    # I do not know the insert toan array so I will just set the whole thing
+    session = db["sessions"].find_one({"name": "RenalStack" })
+    #num = session["views"].length
+    num = len(session["views"])
+    section = {"ref": view_id, "hide": False, "pos": num}
+    session["views"].append(section);
+    db["sessions"].update({"name" : "RenalStack" },
+                          { "$set" : { "views" : session["views"] } })
+
+    return "Success"
