@@ -183,6 +183,33 @@ class APIv1_Tests(unittest.TestCase):
 
         # Not testing delete
 
+    def testRenameSessionUsingPost(self):
+        """
+        Tests post operation for renaming session 
+        """
+        # Sign in for admin access
+        self.login_admin()
+        self.login_viewer()
+        newsession = dict(insert={
+                      "label" : "New Session for DJ rename test"
+                      }
+                    )
+
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
+        self.failIf(obj.has_key("error"))
+
+        modification = dict(modify={"label" : "Some"})
+        # Query it back and check 
+        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), modification, method="post")
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+
+        self.failUnlessEqual(obj2['label'], modification["modify"]["label"])
+
+        # delete the test session
+        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
+
+        # Not testing delete
+
 
     def testAdminDBItems(self):
         """

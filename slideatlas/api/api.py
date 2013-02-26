@@ -73,6 +73,7 @@ class AdminDBAPI(MethodView):
         pass
 
 # The url valid for databases, rules and users with supported queries
+
 class DatabaseAPI(AdminDBAPI):
 
     def delete(self, resid):
@@ -102,7 +103,7 @@ class DatabaseAPI(AdminDBAPI):
 
             try:
                 if resid <> None:
-                    raise "Trying to create new resource at existing resource"
+                    raise Exception("Trying to create new resource at existing resource")
 
                 newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database()
                 newdb["label"] = data["insert"]["label"]
@@ -125,7 +126,7 @@ class DatabaseAPI(AdminDBAPI):
                 # Locate the resource 
                 newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database.find_one({"_id" : ObjectId(resid)})
                 if newdb == None:
-                    raise " Resource %s not found" % (resid)
+                    raise Exception(" Resource %s not found" % (resid))
             except Exception as inst:
                 # If valid database object cannot be constructed it is invalid request 
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
@@ -167,7 +168,7 @@ class DatabaseAPI(AdminDBAPI):
         # See if id matches the resource being modified
         try:
             if data["_id"] != resid:
-                raise 1
+                raise Exception(1)
         except:
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
@@ -269,7 +270,7 @@ class DataSessionsAPI(MethodView):
                         empty = False
 
                 if not empty:
-                    return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+                    return Response("{ \"error \" : \"Session %s in db %s not empty\"}" % (sessid, dbid), status=405)
                 else:
                     # Perform the delete
                     try:
@@ -290,26 +291,55 @@ class DataSessionsAPI(MethodView):
         if data == None:
             abort(400)
 
-        # Only insert command is supported
-        if not data.has_key("insert"):
-            abort(400)
-
-        # Create the database object from the supplied parameters
         conn.register([Session])
-        try:
-            db = self.get_data_db(dbid)
-            newsession = db["sessions"].Session()
-            newsession["label"] = data["insert"]["label"]
-            newsession["images"] = []
-            newsession.validate()
-            newsession.save()
-        except Exception as inst:
-#            # If valid database object cannot be constructed it is invalid request 
-            return Response("{\"error\" : %s}" % str(inst), status=405)
+        db = self.get_data_db(dbid)
+        if data.has_key("insert"):
+            # Create the database object from the supplied parameters
+            try:
+                newsession = db["sessions"].Session()
+                newsession["label"] = data["insert"]["label"]
+                newsession["images"] = []
+                newsession.validate()
+                newsession.save()
+            except Exception as inst:
+    #            # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : %s}" % str(inst), status=405)
 
-        return jsonify(newsession)
+            return jsonify(newsession)
 
+        elif data.has_key("modify"):
+          # Resid must be supplied
+            if sessid == None :
+                return Response("{\"error\" : \"No session _id supplied for modification\"}" , status=405)
 
+            try:
+                # Locate the resource 
+                newdb = db["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+                if newdb == None:
+                    raise Exception(" Resource %s not found" % (sessid))
+            except Exception as inst:
+                # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
+
+            # Now update 
+            try:
+                for akey in data["modify"]:
+                    # Presently updating only label is supported
+                    if akey <> "label":
+                        return Response("{\"error\" : \"Cannot modify %s \"}" % (akey) , status=405)
+
+                    newdb[akey] = data["modify"][akey]
+                    newdb.validate()
+                    newdb.save()
+            except Exception as inst:
+                # If valid database object cannot be constructed it is invalid request 
+                return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
+
+            return jsonify(newdb)
+
+        else:
+            # Only insert and modify commands are supported
+            abort(400)
 
 class DataSessionItemsAPI(MethodView):
     decorators = [user_required]
@@ -348,7 +378,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
                                 , view_func=DataSessionsAPI.as_view("show_session"),
-                                methods=["get", "delete"])
+                                methods=["get", "delete", "post"])
 
 
 # For a list of resources within session
