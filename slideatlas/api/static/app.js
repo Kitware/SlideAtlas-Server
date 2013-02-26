@@ -8,13 +8,13 @@
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dblist.html"});
         $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
-        $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
+        // $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
 
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userlist.html"});
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/usernew.html"});
 
         $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
-        $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
+        $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/sessnew.html", controller:"SessNewCtrl"});
 
         $routeProvider.otherwise({ redirectTo: "/"});
     });
@@ -42,7 +42,10 @@ app.factory('Data', function() {
 
     methods.setList = function (alist) {
         this.databases = alist;
-    }
+    };
+    methods.removeItem = function(idx){
+            this.databases.splice(idx,1)
+    };
     
     return methods;
               
@@ -61,7 +64,7 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         if(typeof db === 'undefined')
             {
             alert("Item not found for editing");
-            $location.path("#/databases") ;
+            $location.path("/databases") ;
             return;
             }
 
@@ -71,7 +74,7 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         
         $scope.save = function () {
             $scope.database.$update({dbid:$scope.database._id}, function(data){
-                $location.path("#/databases");
+                $location.path("/databases");
                 }
                 ); 
         }
@@ -85,7 +88,7 @@ app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
 
         $scope.save = function () {
             Database.save({'insert' : $scope.database}, function() {
-                $location.path("#/databases")
+                $location.path("/databases");
             });
             }
     });
@@ -93,8 +96,8 @@ app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
 
 app.controller("DBListCtrl", function ($scope, Database, $location, Data)
     {
-    // console.log("Refreshing DBListCtrl")
-        
+    console.log("Refreshing DBListCtrl")
+
     Database.get({}, function(data) {
         Data.setList(data.databases);
         $scope.databases = Data.getList();
@@ -108,8 +111,9 @@ app.controller("DBListCtrl", function ($scope, Database, $location, Data)
         console.log(db)
         if (confirm("Remove database " + db.dbname + '?')) 
             {
-            Database.delete({dbid:db._id}, function() {
-                $location.path("#/databases");
+            Database.delete({dbid:db._id}, function(data) {
+                Data.removeItem(idx);
+                $location.path("/databases");
                 });
             }
         }

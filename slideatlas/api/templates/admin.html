@@ -12,8 +12,20 @@
   {% endraw %}
 -->
 
-  <a href=""> <h2> Databases </h2> </a>
-
+    <div class="btn-group">
+    <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+    Admin
+    <span class="caret"></span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="dropdownMenu" role="menu">
+      <!-- dropdown menu links -->
+              
+      <li> <a role="menuitem" href="#/databases"> Databases </a> </li>
+      <li> <a role="menuitem" href="#/users"> Users </a> </li>
+      <li> <a role="menuitem" href="#/rules"> Rules </a> </li>
+      <li> <a role="menuitem" href="#/sessions"> Sessions </a> </li>
+     </ul>
+    </div>
   <ng-view> </ng-view>
   </div>
 
