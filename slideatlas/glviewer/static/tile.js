@@ -15,7 +15,7 @@ LoadTileCallback.prototype.HandleLoadedTexture = function () {
 // If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
 LoadTileCallback.prototype.HandleErrorTexture = function () {
-    this.Cache.LoadQueueError(this.Tile);
+    LoadQueueError(this.Tile);
 }
 
 
@@ -43,6 +43,7 @@ function Tile(x, y, z, level, name, cache) {
   //this is just for debugging
   //this.Id = x + (y<<level)
   //
+  this.Cache = cache;
   this.X = x;
   this.Y = y;
   this.Level = level;
@@ -62,28 +63,28 @@ function Tile(x, y, z, level, name, cache) {
   this.Texture = null;
   this.TimeStamp = TIME_STAMP;
   this.BranchTimeStamp = TIME_STAMP;
-  ++cache.NumberOfTiles;
+  ++NUMBER_OF_TILES;
 };
 
 Tile.prototype.destructor=function()
 {
-    --NUM_TILES;
-    if (this.Texture) {
+  --NUMBER_OF_TILES;
+  if (this.Texture) {
     GL.deleteTexture(this.Texture);
-    }
-    this.Texture = null;
-    delete this.Matrix;
-    this.Matrix = null;
-    if (this.Image) {
+  }
+  this.Texture = null;
+  delete this.Matrix;
+  this.Matrix = null;
+  if (this.Image) {
     delete this.Image;
     this.Image = 0;
-    }
-    for (var i = 0; i < 4; ++i) {
+  }
+  for (var i = 0; i < 4; ++i) {
     if (this.Children[i] != null) {
         this.Children[i].destructor();
         this.Children[i] = null;
     }
-    }
+  }
 }
 
 
@@ -149,7 +150,7 @@ Tile.prototype.HandleLoadedTexture = function (cache) {
     GL.bindTexture(GL.TEXTURE_2D, null);
     // There is an issue: Tiles call this method when their image gets loaded.
     // How does the tile know which cache it belongs too.
-    cache.LoadQueueLoaded(this);
+    LoadQueueLoaded(this);
 }
 
 

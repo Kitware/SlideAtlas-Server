@@ -428,9 +428,13 @@ def glstacksession():
         #viewobj["_id"] = str(viewobj["_id"])
         #viewobj["rotation"] = 0
         # Having issues with jsonify
+        imgdbid = dbid
+        if 'db' in viewobj:
+            imgdbid = str(viewobj["db"])
         myview = {"center": viewobj["center"],
                   "height": viewobj["height"],
-                  "rotation": 0}
+                  "rotation": 0,
+                  "db": imgdbid}
         imgobj = db["images"].find_one({"_id" : viewobj["img"] })
         #imgobj["_id"] = str(imgobj["_id"])
         #imgobj["thumb"] = ""
