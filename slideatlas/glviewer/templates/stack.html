@@ -242,7 +242,7 @@ function saveStack() {
             }
         }
         if ( ! source) {
-            source = new Cache("/tile?img="+view.img._id+"&db="+DBID+"&name=", 
+            source = new Cache("/tile?img="+view.img._id+"&db="+view.db+"&name=", 
                                view.img.levels);
         }
         SECTIONS.push(source);
