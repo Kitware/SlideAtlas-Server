@@ -410,12 +410,16 @@ def glstacksession():
     """
 
     # Comparison is a modified view.
-    #sessid = request.args.get('sess', None)
-    sessid = "51256ae6894f5931098069d5"
+    sessid = request.args.get('sess', None)
+    if not sessid:
+        sessid = "51256ae6894f5931098069d5"
     # this is the same as the sessions db in the sessions page.
-    #dbid = request.args.get('db', None)
-    dbid = "5123c81782778fd2f954a34a"
-        
+    dbid = request.args.get('db', None)
+    if not dbid:
+        dbid = "5123c81782778fd2f954a34a"
+
+    #pdb.set_trace()
+    
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
