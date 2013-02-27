@@ -2,7 +2,7 @@
 // Make this a singlton (effectively) for now.
 
 var NUMBER_OF_TILES = 0;
-var MAXIMUM_NUMBER_OF_TILES = 3000;
+var MAXIMUM_NUMBER_OF_TILES = 5000;
 var PRUNE_TIME = 0;
 var CACHES = [];
 
