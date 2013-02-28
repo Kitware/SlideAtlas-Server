@@ -429,13 +429,13 @@ def glstacksession():
     for view in sessobj["views"]:
         viewid = view["ref"]
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-        #viewobj["_id"] = str(viewobj["_id"])
         #viewobj["rotation"] = 0
         # Having issues with jsonify
         imgdbid = dbid
         if 'db' in viewobj:
             imgdbid = str(viewobj["db"])
-        myview = {"center": viewobj["center"],
+        myview = {"_id": str(viewobj["_id"]),
+                  "center": viewobj["center"],
                   "height": viewobj["height"],
                   "rotation": 0,
                   "db": imgdbid}
@@ -449,36 +449,51 @@ def glstacksession():
         myview["img"] = myimg
         views.append(myview)
 
+    for pair in sessobj["transformations"]:
+        if 'view0' in pair:
+            pair["view0"] = str(pair["view0"])
+            pair["view1"] = str(pair["view1"])
+
+    for markup in sessobj["annotations"]:
+        markup["view"] = str(markup["view"])
+            
     #pdb.set_trace()
 
-    return jsonify({"views":views, "transformations": sessobj["transformations"]})
+    return jsonify({"views":views, 
+                    "transformations": sessobj["transformations"], 
+                    "annotations": sessobj["annotations"]})
 
     
-
-# When the transform correlation points change, this method changed the database
-# to match the viewer.
+# This method saves transformations and/or annotations (whatever exists in data.
 @mod.route('/stack-save', methods=['GET', 'POST'])
 def glstacksave():
     #pdb.set_trace()
 
     dbid = request.form['db']  # for post
     sessid = request.form['sess']  # for post
-    stackStr = request.form['stack']  # for post
-    stackObj = json.loads(stackStr)
+    dataStr = request.form['data']  # for post
+    stackObj = json.loads(dataStr)
 
-    
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
 
-    # Reset the transformations
-    db["sessions"].update({"_id": ObjectId(sessid)}, 
-                          {"$set": {"transformations": stackObj["transformations"]}})
-
+    if 'transformations' in stackObj:
+        # first convert all the view ids strings into ObjectIds
+        for pair in stackObj["transformations"]:
+            pair["view0"] = ObjectId(pair["view0"])
+            pair["view1"] = ObjectId(pair["view1"])
+        # Save the transformations in mongo
+        db["sessions"].update({"_id": ObjectId(sessid)}, 
+                              {"$set": {"transformations": stackObj["transformations"]}})
+    if 'annotations' in stackObj:
+        # first convert all the view ids strings into ObjectIds
+        for annotation in stackObj["annotations"]:
+            annotation["view"] = ObjectId(annotation["view"])
+        db["sessions"].update({"_id": ObjectId(sessid)}, 
+                              {"$set": {"annotations": stackObj["annotations"]}})
 
     return "Success"
-
-    
     
     
     
@@ -512,3 +527,5 @@ def glstackinsert():
                           { "$set" : { "views" : session["views"] } })
 
     return "Success"
+
+    

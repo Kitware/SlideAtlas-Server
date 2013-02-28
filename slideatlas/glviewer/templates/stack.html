@@ -46,6 +46,9 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <!-- For 3d pathology -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
 
+<!-- For 3d annotations -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationEditMenu.js') }}"></script>
+
 
 <!-- Widgets
 
@@ -150,18 +153,21 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  // Arguments
   var DBID;
   var SESSID;
   var VIEWS;
-  var SECTIONS;
   var TRANSFORMATIONS;
+  var ANNOTATION_STACKS;
+
+  var SECTIONS;
   var SECTION_INDEX;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
-  var EDIT = false;
+  var EDIT = true;
+  var EDIT_R = false;
 
-  
 
   // sets the global variable ARGS
   function getArgs() {
@@ -175,11 +181,22 @@ shape has visibility and
         success: function(data,status){
           //alert(data + "\nStatus: " + status);
           VIEWS = data["views"];
+          ANNOTATION_STACKS = data["annotations"];
           // To bad jason does not save the object type.  Need to cast.
           var transformations = data["transformations"];
           TRANSFORMATIONS = [];
-          for (i in transformations) {
+          for (var i=0; i <transformations.length; ++i) {
             var trans = new PairTransformation();
+            if (transformations[i].View0) {
+                trans.View0 = transformations[i].View0;
+            } else {   // one time change database.
+                trans.View0 = VIEWS[i]._id;
+            }
+            if (transformations[i].View1) {
+                trans.View1 = transformations[i].View1;
+            } else {    // one time change database.
+                trans.View1 = VIEWS[i+1]._id;
+            }
             trans.Correlations = transformations[i].Correlations;
             TRANSFORMATIONS.push(trans);
           }
@@ -190,6 +207,8 @@ shape has visibility and
           //  trans.AddCorrelation(VIEWS[i-1].center, VIEWS[i].center);
           //  TRANSFORMATIONS.push(trans);
           //}
+
+
           webGLStart();
           },
         error: function() { alert( "AJAX ARGS - error()" ); },
@@ -204,13 +223,13 @@ function saveStack() {
     url: "/webgl-viewer/stack-save",
     data: {"db": DBID,
            "sess": SESSID,
-           "stack" :  JSON.stringify( {"transformations": TRANSFORMATIONS} )},
+           "data" :  JSON.stringify( {"transformations": TRANSFORMATIONS} )},
     success: function(data,status){
        //alert(data + "\nStatus: " + status);
        },
     error: function() { alert( "AJAX - error()" ); },
     });
- }
+}
 
     
   
@@ -232,25 +251,33 @@ function saveStack() {
 
     // Preload all the sources.
     SECTIONS = [];
-    for (i in VIEWS) {
+    for (var i=0; i < VIEWS.length; ++i) {
         view = VIEWS[i];
         var source = null;
         // Since mltiple section are in one slide. Reuse sources when possible.
         for (j = 0; j < i; ++j) {
             if (VIEWS[j].img._id == view.img._id) {
-                source = SECTIONS[j];
+                source = SECTIONS[j].Source;
             }
         }
         if ( ! source) {
             source = new Cache("/tile?img="+view.img._id+"&db="+view.db+"&name=", 
                                view.img.levels);
         }
-        SECTIONS.push(source);
+
+        var section = {"Source": source, "View": view._id, "Annotations": []};
+        for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
+            annotation = ANNOTATION_STACKS[i].annotations[j];
+            section.Annotations.push(LoadWidget(VIEWER1, annotation));
+        }
+            
+        SECTIONS.push(section);
     }
     
     // Setup the points.
     SECTION_INDEX = 0;
-    VIEWER1.SetCache(SECTIONS[SECTION_INDEX]);
+    VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
+    VIEWER1.WidgetList = SECTIONS[SECTION_INDEX].Annotations;
     VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
     VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
 
@@ -266,8 +293,10 @@ function saveStack() {
         return;
     }
 
-    VIEWER1.SetCache(SECTIONS[newIdx]);
+    VIEWER1.SetCache(SECTIONS[newIdx].Source);
+    VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
     VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
+    VIEWER1.Widget
     // Compute the new camera.
     var cam = VIEWER1.GetCamera();
     var rotation = cam.GetRotation();
@@ -292,7 +321,7 @@ function saveStack() {
   }
 
   function setupCrossHairs() {
-    if ( ! EDIT) { return; }
+    if ( ! EDIT_R) { return; }
     VIEWER1.ShapeList = [];
     VIEWER1.WidgetList = [];
     VIEWER1.ShapeVisibility = true;
@@ -370,11 +399,6 @@ function FeatureChainAdd(x,y) {
 }
 
 
-
-
-
-
-  
   function draw() {
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     // This just changes the camera based on the current time.
@@ -382,9 +406,16 @@ function FeatureChainAdd(x,y) {
     VIEWER1.Draw();
   }
 
+  // Hack to be replaced soon
   var E_DOWN = false;
   var D_DOWN = false;
-  function handleMouseDown(event) { 
+  var R_DOWN = false;
+  function handleMouseDown(event) {
+    // Left single click shows edit menu.
+    // TODO: supress menu on double click.
+    if (EDIT && event.which == 3) {
+        ShowAnnotationEditMenu(event.clientX, event.clientY);
+    }
     EVENT_MANAGER.HandleMouseDown(event);
   }
   function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
@@ -393,11 +424,18 @@ function FeatureChainAdd(x,y) {
   function handleKeyDown(event) {
         if (event.keyCode == 68) { D_DOWN = true;}
         if (event.keyCode == 69) { E_DOWN = true;}
+        if (event.keyCode == 82) { R_DOWN = true;}
         if (D_DOWN && E_DOWN) {
             EDIT = ! EDIT; 
             alert("Edit: " + EDIT);
             E_DOWN = false;
             D_DOWN = false;
+        }
+        if (D_DOWN && R_DOWN) {
+            EDIT_R = ! EDIT_R; 
+            alert("Edit 'R': " + EDIT_R);
+            E_DOWN = false;
+            R_DOWN = false;
         }
         if (event.keyCode == 33 || event.keyCode == 37) { // page up or left arrow
             updateSection(-1);
@@ -406,13 +444,13 @@ function FeatureChainAdd(x,y) {
             updateSection(1);
         }
         if (event.keyCode == 83) { // 's'
-            if (EDIT) { saveStack();}
+            if (EDIT_R) { saveStack();}
         }
         if (event.keyCode == 49) { // '1' : start a new feature chain
-            if (EDIT) { FeatureChainStart(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+            if (EDIT_R) { FeatureChainStart(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
         }
         if (event.keyCode == 50) { // '2' : start a new feature chain
-            if (EDIT) { FeatureChainAdd(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+            if (EDIT_R) { FeatureChainAdd(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
         }
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {
@@ -473,7 +511,9 @@ function ToggleAnnotationVisibility() {
 
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
+    document.oncontextmenu = cancelContextMenu;
+
+    InitAnnotationEditMenus();
         
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
@@ -501,6 +541,7 @@ function ToggleAnnotationVisibility() {
              VIEWER1.AnimateZoom(2.0);});            
 
              
+             
     // Place the previous next buttons.
     $('<img>').appendTo('body').css({
         'opacity': '0.4',
@@ -523,6 +564,23 @@ function ToggleAnnotationVisibility() {
     }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='rightArrow2.png')}}").click(function(){
             updateSection(1);});
 
+
+    // Hack button to toggle annotation.
+    $('<button>').appendTo('body').css({
+        'opacity': '0.6',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'font-size': '30px',
+        'bottom' : '5px',
+        'left' : '130px',
+        'z-index': '2'})
+      .attr('id', 'annotationButton').text("A")
+      .click(function(){
+         ToggleAnnotationVisibility();});
+ 
+
+
     eventuallyRender();
   }
 
@@ -533,120 +591,7 @@ function ToggleAnnotationVisibility() {
     eventuallyRender();
   }
 
-  function NewCircle() {
-    // When the circle button is pressed, create the widget.
-    var widget = new CircleWidget(VIEWER1, true);
-    VIEWER1.ActiveWidget = widget;
-  }
 
-  function NewPolyline() {
-    // When the text button is pressed, create the widget.
-    VIEWER1.ActiveWidget = new PolylineWidget(VIEWER1, true);
-  }
-
-  function NewText() {
-    // Just open the dialog, and let it take over.
-    // The text is created when the apply button is pressed.
-
-    // For debugging
-    //var t = new Text();
-    //t.Position = [6000,6000];
-    //t.Color = [0,0,0];
-    //t.String = "Hello\nWorld";
-    //t.UpdateBuffers();
-    //VIEWER1.AddShape(t);
-    // Just open the dialog, and let it take over.
-    // The text is created when the apply button is pressed.
-    $("#text-properties-dialog").dialog("open");
-  }
-
-  function TextPropertyDialogApply() {
-    var string = document.getElementById("textwidgetcontent").value;
-    if (string == "") {
-      alert("Empty String");
-      return;
-    }
-    var widget = VIEWER1.ActiveWidget;
-    var markerFlag = document.getElementById("TextMarker").checked;
-
-    if (widget == null) {
-      // This is a new widget.
-      var widget = new TextWidget(VIEWER1, string);
-    } else {
-      widget.Shape.String = string;
-      widget.Shape.UpdateBuffers();
-      widget.SetActive(false);
-    }
-    widget.SetAnchorShapeVisibility(markerFlag);
-
-    //ComparisonSaveAnnotations();
-    
-    eventuallyRender();
-  }
-
-  function ArrowPropertyDialogApply() {
-    var hexcolor = document.getElementById("arrowcolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    //var fixedSizeFlag = document.getElementById("ArrowFixedSize").checked;
-    widget.Shape.SetFillColor(hexcolor);
-    if (widget != null) {
-      widget.SetActive(false);
-      //widget.SetFixedSize(fixedSizeFlag);
-    }
-    eventuallyRender();
-  }
-
-  function CirclePropertyDialogApply() {
-    var hexcolor = document.getElementById("circlecolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    widget.Shape.SetOutlineColor(hexcolor);
-    var lineWidth = document.getElementById("circlelinewidth");
-    widget.Shape.LineWidth = parseFloat(lineWidth.value);
-    widget.Shape.UpdateBuffers();
-
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-    eventuallyRender();
-  }
-
-  function PolylinePropertyDialogApply() {
-    var hexcolor = document.getElementById("polylinecolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    widget.Shape.SetOutlineColor(hexcolor);
-    var lineWidth = document.getElementById("polylinewidth");
-    widget.Shape.LineWidth = parseFloat(lineWidth.value);
-    widget.Shape.UpdateBuffers();
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-    eventuallyRender();
-  }
-
-  function WidgetPropertyDialogCancel() {
-    var widget = VIEWER1.ActiveWidget;
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-  }
-
-  function WidgetPropertyDialogDelete() {
-    var widget = VIEWER1.ActiveWidget;
-    if (widget != null) {
-      VIEWER1.ActiveWidget = null;
-      // We need to remove an item from a list.
-      // shape list and widget list.
-      widget.RemoveFromViewer();
-      WidgetPropertyDialogDelete();
-      //ComparisonSaveAnnotations();
-      eventuallyRender();
-    }
-  }
-
-  // function savequestion() {
-      // saveConstants();
-      // //window.location = "lessonmaker.php";
-  // }
 
   function zoomIn() {
     VIEWER1.AnimateZoom(0.5);
@@ -666,59 +611,12 @@ function ToggleAnnotationVisibility() {
 
     //********************************************************
 
-  function saveConstants() {
-    var questionchoices = [];
-    var questiontext = document.getElementById("qtext").value;
-    var questiontitle = document.getElementById("title").value;
 
-    var numAnswers = $('.answer').length;
-
-    for(var i=0; i < numAnswers; i++){
-      questionchoices[i] = $('.answer')[i].value;
-    }
-
-    var qid = QUESTION.qid.$id;
-    var cam = VIEWER1.MainView.Camera;
-    var camValues = {'roll':cam.Roll, 'fp':cam.FocalPoint, 'height':cam.Height};
-
-    var correct = findChecked();
-
-    correct = correct + '';
-
-    var annots = [];
-
-    for(var i=0; i < VIEWER1.WidgetList.length; i++){
-      annots.push(VIEWER1.WidgetList[i].Serialize());
-    }
-    if(annots.length == 0){
-        annots = 0;
-    }
-
-    //$.post("setquestion.php", {qid: qid, qtitle:questiontitle, qtext: questiontext, //choices: questionchoices, cam: camValues, corr: correct, annotations:annots}, //function(cs){
-        //alert(cs);
-    //});
-  }
-
-  function findChecked(){
-    var span = document.getElementById("choicelist");
-    var inputs = span.getElementsByTagName("input");
-    var radios = [];
-    for (var i = 0; i < inputs.length; ++i){
-      if (inputs[i].type.toLowerCase() === "radio") {
-        radios.push(inputs[i]);
-      }
-    }
-    for (var i = 0; i < radios.length; ++i) {
-      if (radios[i].checked) {
-        return i;
-      }
-    }
-
-    return 0;
-  }
 
     $(document).ready(function() {
-
+      // Get arguments and then initialize webgl.
+      getArgs();
+    
       $("#text-properties-dialog").dialog({
           autoOpen:false,
           height:250,
@@ -880,7 +778,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-            Color(#rrggbb):<input id="circlecolor" ></input></br>
+            Color:<input type="color" id="circlecolor" ></input></br>
             Line Width:<input id="circlelinewidth" ></input></br>
             <p id="circlearea"></p>
           </fieldset>
@@ -891,7 +789,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-            Color(#rrggbb):<input id="polylinecolor" ></input></br>
+            Color:<input type="color" id="polylinecolor" ></input></br>
             Line Width:<input id="polylinewidth" ></input>
           </fieldset>
         </form>
@@ -901,7 +799,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-            Color(#rrggbb):<input id="arrowcolor" ></input>
+            Color:<input type="color" id="arrowcolor" ></input>
             <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
             <p id="ArrowLength"></p>
           </fieldset>
@@ -909,7 +807,3 @@ function ToggleAnnotationVisibility() {
       </div>
     </div>
 
-<script>
-    // Get arguments and then initialize webgl.
-    getArgs();
-</script>

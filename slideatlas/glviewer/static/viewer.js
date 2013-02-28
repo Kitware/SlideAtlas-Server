@@ -28,7 +28,6 @@ function Viewer (viewport, cache) {
   this.RollTarget = this.MainView.Camera.Roll;
 
   this.ShapeVisibility = false;
-  this.AnnotationList = []; // Remove this.
   this.ShapeList = [];
   this.WidgetList = [];
   this.ActiveWidget = null;
@@ -228,19 +227,14 @@ Viewer.prototype.Draw = function() {
   this.OverView.DrawTiles();
   this.MainView.DrawTiles();
 
-  // Obsolete
-  //for(i=0; i<this.AnnotationList.length; i++){
-  //  this.AnnotationList[i].Draw(this);
-  //}
   if (this.ShapeVisibility) {
       for(i=0; i<this.ShapeList.length; i++){
         this.ShapeList[i].Draw(this.MainView);
       }
+      for(i in this.WidgetList){
+        this.WidgetList[i].Draw(this.MainView);
+      }
   }
-}
-
-Viewer.prototype.AddAnnotation = function(position, text, color) {
-  this.AnnotationList.push(new Annotation(position, text, color));
 }
 
 // A list of shapes to render in the viewer

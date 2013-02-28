@@ -34,7 +34,6 @@ function ArrowWidget (viewer, newFlag) {
   this.Shape.Length = 50;
   this.Shape.Width = 8;
   viewer.WidgetList.push(this);
-  viewer.AddShape(this.Shape);
   // Note: If the user clicks before the mouse is in the
   // canvas, this will behave odd.
   this.TipPosition = [0,0];
@@ -49,13 +48,14 @@ function ArrowWidget (viewer, newFlag) {
   this.State = ARROW_WIDGET_WAITING;
 }
 
+ArrowWidget.prototype.Draw = function(view) {
+    this.Shape.Draw(view);
+}
+
+
 ArrowWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.Shape);
-  if(idx!=-1) { 
-    this.Viewer.ShapeList.splice(idx, 1); 
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
   if(idx!=-1) { 

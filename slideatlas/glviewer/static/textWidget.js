@@ -59,22 +59,18 @@ function TextWidget (viewer, string) {
   this.AnchorShape.UpdateBuffers();
 
   viewer.WidgetList.push(this);
-  viewer.AddShape(this.Shape);
-  viewer.AddShape(this.AnchorShape);
   this.ActiveReason = 1;
 }
+
+TextWidget.prototype.Draw = function(view) {
+    this.Shape.Draw(view);
+    this.AnchorShape.Draw(view);
+}
+
 
 TextWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.Shape);
-  if(idx!=-1) { 
-    this.Viewer.ShapeList.splice(idx, 1); 
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.AnchorShape);
-  if(idx!=-1) { 
-    this.Viewer.ShapeList.splice(idx, 1); 
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
   if(idx!=-1) { 
@@ -117,7 +113,7 @@ TextWidget.prototype.Load = function(obj) {
   this.Shape.Position = [parseFloat(obj.position[0]),
                          parseFloat(obj.position[1]),
                          parseFloat(obj.position[2])];
-  this.SetAnchorShapeVisibility(obj.anchorVisibility == "true");
+  this.SetAnchorShapeVisibility(obj.anchorVisibility);
   this.Shape.UpdateBuffers();
 }
 

@@ -39,8 +39,6 @@ function PolylineWidget (viewer, newFlag) {
 	this.Shape.OutlineColor = [0.0, 0.0, 0.0];
   this.Shape.FixedSize = false;
 
-  this.Viewer.ShapeList.push(this.Shape);
-  this.Viewer.ShapeList.push(this.Circle);
   this.Viewer.WidgetList.push(this);
   
   // Set line thickness   using viewer. (5 pixels).
@@ -61,6 +59,12 @@ function PolylineWidget (viewer, newFlag) {
   this.ActiveMidpoint = -1;
   eventuallyRender();
 }
+
+PolylineWidget.prototype.Draw = function(view) {
+    this.Shape.Draw(view);
+    this.Circle.Draw(view);
+}
+
 
 PolylineWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
@@ -92,14 +96,6 @@ PolylineWidget.prototype.Load = function(obj) {
 PolylineWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.Shape);
-  if(idx!=-1) { 
-    this.Viewer.ShapeList.splice(idx, 1); 
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.Circle);
-  if(idx!=-1) { 
-    this.Viewer.ShapeList.splice(idx, 1); 
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
   if(idx!=-1) { 
