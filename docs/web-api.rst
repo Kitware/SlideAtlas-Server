@@ -62,6 +62,10 @@ A list of sessions in a known databaseid is obtained by -
 The main use case of this list is to display selectable sessions with the access rights to the user that is logged in
 So the view, attachments and etc lists are not included.
 
+.. warning::
+
+   TODO:  It is not very convenient to get session list in this format, as the list should include all the sessions (regardless of the database) visible to the user. Possible grouped by the "facebook group" or the "rule" that granted the access.
+
 New sessions can be posted here
 
 .. code-block:: none
@@ -83,6 +87,7 @@ The main use case of this is to present the session to the user.  So this does c
 
    TODO: Thinking of dereferencing views and attachments so enough information to display them is presented.
    
+
 
 or is deleted by
 
@@ -111,6 +116,7 @@ or is deleted by
       
       POST /apiv1/<dbid>/sessions/<sessid>
       {purge : ["images", "attachments", "raw-files"]}
+
 
 Modifying the properties of the session are made possible by
 
