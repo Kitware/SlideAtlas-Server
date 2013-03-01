@@ -4,7 +4,7 @@ sys.path.append("..")
 
 from subprocess import call
 from slideatlas import model
-from slideatlas import site_slideatlas as site
+from slideatlas import site_local as site
 
 HOST = site.MONGO_SERVER
 CONFIGDB = site.CONFIGDB
@@ -333,8 +333,44 @@ def insert_BIDMC_KAWAI(dbobj):
     dbdoc['label'] = 'Risa Kawai'
     dbdoc['host'] = HOST
     dbdoc['dbname'] = 'kawai1'
-    dbdoc['copyright'] = 'Copyright &copy 2012, Risa Kawai. All rights reserved.'
-    dbdoc.save()
+    dbdoc['copyright'] = 'Copyright &copy 2012, Risa Kawai. All rights reserved.' 
+def grant_3dpath(dbobj):
+    userobj = dbobj.users.User.find_one({"name" : "all_demo"})
+    print userobj
+    userobj["rules"].append(ObjectId("513100511d41c80780b38734"))
+    userobj.validate()
+    userobj.save()
+    print userobj
+     
+    
+
+
+
+def insert_3dpath(dbobj):
+
+    dbdoc = dbobj.databases.Database()
+    dbdoc['label'] = 'Renal Stack Demo'
+    dbdoc['host'] = "127.0.0.1"
+    dbdoc['dbname'] = '3dpath'
+    dbdoc['copyright'] = 'Copyright &copy 2013, All rights reserved'
+    dbdoc.validate()
+    dbdoc.save() 
+    print 'DB ', dbdoc["_id"]
+
+    # Create a rule
+    ruledoc = dbobj.rules.Rule()
+    # Gives admin access and all sessions view access
+    ruledoc["label"] = '3dPath Demo to all_demo'
+    ruledoc["db"] = dbdoc["_id"]
+    ruledoc['can_see'] = [ ]
+    ruledoc['can_see_all'] = True
+    ruledoc['db_admin'] = True
+    ruledoc.validate()
+    ruledoc.save()
+    print 'Rule: ', ruledoc["_id"]
+
+
+
 
 def grant_KAWAI1(dbobj):
     # Find a database
@@ -565,9 +601,12 @@ def get_number_of_all_images(dbobj):
 #add_new_admin_to_demo()
 #modify_rule_to_site_admin()
 
-db = conn[site.CONFIGDB]
-grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
-
+#db = conn[site.CONFIGDB]
+#grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
+#
 #create_admin_user()
+
+#insert_3dpath(conn[site.CONFIGDB])
+grant_3dpath(conn[site.CONFIGDB])
 
 print "Done"
