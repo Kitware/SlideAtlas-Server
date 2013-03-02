@@ -22,6 +22,7 @@
 <!-- Perspective camera etc. May be ready to remove -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
@@ -410,18 +411,13 @@ function FeatureChainAdd(x,y) {
   var E_DOWN = false;
   var D_DOWN = false;
   var R_DOWN = false;
-  function handleMouseDown(event) {
-    // Left single click shows edit menu.
-    // TODO: supress menu on double click.
-    if (EDIT && event.which == 3) {
-        ShowAnnotationEditMenu(event.clientX, event.clientY);
-    }
-    EVENT_MANAGER.HandleMouseDown(event);
-  }
-  function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
+  
+  function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
+  function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+        if (DIALOG_OPEN) { return; } // Hack to keep stack from processing space events when a dialog is open.
         if (event.keyCode == 68) { D_DOWN = true;}
         if (event.keyCode == 69) { E_DOWN = true;}
         if (event.keyCode == 82) { R_DOWN = true;}
@@ -437,10 +433,10 @@ function FeatureChainAdd(x,y) {
             E_DOWN = false;
             R_DOWN = false;
         }
-        if (event.keyCode == 33 || event.keyCode == 37) { // page up or left arrow
+        if (event.keyCode == 33) { // page up
             updateSection(-1);
         }
-        if (event.keyCode == 34 || event.keyCode == 32 || event.keyCode == 39) { // page down or space or right arrow
+        if (event.keyCode == 34 || event.keyCode == 32) { // page down or space
             updateSection(1);
         }
         if (event.keyCode == 83) { // 's'
@@ -454,6 +450,9 @@ function FeatureChainAdd(x,y) {
         }
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {
+        if (event.keyCode == 68) { D_DOWN = false;}
+        if (event.keyCode == 69) { E_DOWN = false;}
+        if (event.keyCode == 82) { R_DOWN = false;}
         EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
@@ -505,6 +504,8 @@ function ToggleAnnotationVisibility() {
     GL.enable(GL.DEPTH_TEST);
 
     CANVAS.onmousedown = handleMouseDown;
+    // CANVAS.ondblclick = handleDoubleClick; // does not detect right button double clicks.
+    // event manager will use up down events to detect double clicks.
     CANVAS.onmousewheel = handleMouseWheel;
     document.onmouseup = handleMouseUp;
     document.onmousemove = handleMouseMove;
@@ -513,7 +514,6 @@ function ToggleAnnotationVisibility() {
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
 
-    InitAnnotationEditMenus();
         
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
@@ -567,7 +567,7 @@ function ToggleAnnotationVisibility() {
 
     // Hack button to toggle annotation.
     $('<button>').appendTo('body').css({
-        'opacity': '0.6',
+        'opacity': '0.2',
         'position': 'absolute',
         'height': '50px',
         'width': '50px',
@@ -616,103 +616,8 @@ function ToggleAnnotationVisibility() {
     $(document).ready(function() {
       // Get arguments and then initialize webgl.
       getArgs();
-    
-      $("#text-properties-dialog").dialog({
-          autoOpen:false,
-          height:250,
-          width:350,
-          modal:true,
-          buttons:{
-              Delete: function() {
-                  WidgetPropertyDialogDelete();
-                  $(this).dialog("close");
-              },
-              Apply: function() {
-                  TextPropertyDialogApply();
-                  $(this).dialog("close");
-              }
-          },
-          close: function(event,ui) {
-              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  WidgetPropertyDialogCancel();
-                  $(this).dialog("close");
-              }
-              $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-          }
-      });
-
-      $("#arrow-properties-dialog").dialog({
-          autoOpen:false,
-          height:280,
-          width:350,
-          modal:true,
-          buttons:{
-              Delete: function() {
-                  WidgetPropertyDialogDelete();
-                  $(this).dialog("close");
-              },
-              Apply: function() {
-                  ArrowPropertyDialogApply();
-                  $(this).dialog("close");
-              }
-          },
-          close: function(event,ui) {
-              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  WidgetPropertyDialogCancel();
-                  $(this).dialog("close");
-              }
-              //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-          }
-      });
-
-    $("#circle-properties-dialog").dialog({
-      autoOpen:false,
-      height:300,
-      width:350,
-      modal:true,
-      buttons:{
-        Delete: function() {
-          WidgetPropertyDialogDelete();
-          $(this).dialog("close");
-        },
-        Apply: function() {
-          CirclePropertyDialogApply();
-          $(this).dialog("close");
-        }
-      },
-      close: function(event,ui) {
-        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          WidgetPropertyDialogCancel();
-          $(this).dialog("close");
-        }
-        //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-      }
+      InitAnnotationEditMenus();
     });
-
-    $("#polyline-properties-dialog").dialog({
-      autoOpen:false,
-      height:250,
-      width:350,
-      modal:true,
-      buttons:{
-        Delete: function() {
-          WidgetPropertyDialogDelete();
-          $(this).dialog("close");
-        },
-        Apply: function() {
-          PolylinePropertyDialogApply();
-          $(this).dialog("close");
-        }
-      },
-      close: function(event,ui) {
-        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          WidgetPropertyDialogCancel();
-          $(this).dialog("close");
-        }
-      }
-    });
-
-  });
 
 </script>
 
@@ -770,6 +675,7 @@ function ToggleAnnotationVisibility() {
       <div id="text-properties-dialog" title="Text Annotation Editor" >
         <form>
           <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+          Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
           <input type="checkbox" id="TextMarker" checked /> Marker </input>
         </form>
       </div>

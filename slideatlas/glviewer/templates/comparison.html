@@ -25,6 +25,7 @@
 <!-- Edit menu, right click -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='comparisonEditMenu.js') }}"></script>
 
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
@@ -213,8 +214,9 @@ shape has visibility and
     {% endfor %}    
   }
  
-  
-  
+  // hack to avoid an undefined error (until we unify annotation stuff).
+  function ShowAnnotationEditMenu(x, y) {
+  }
   
   function handleResize() {
     if (GL) {
@@ -306,7 +308,7 @@ function InitAnnotations(viewer, annotations)
     
     // Hack button to toggle annotation.
     $('<button>').appendTo('body').css({
-        'opacity': '0.6',
+        'opacity': '0.2',
         'position': 'absolute',
         'height': '50px',
         'width': '50px',

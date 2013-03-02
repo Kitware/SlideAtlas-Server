@@ -283,7 +283,7 @@ ArrowWidget.prototype.ShowPropertiesDialog = function () {
   //fs.checked = this.Shape.FixedSize;
 
   var color = document.getElementById("arrowcolor");
-  color.value = this.Shape.ConvertColorToHex(this.Shape.FillColor);
+  color.value = ConvertColorToHex(this.Shape.FillColor);
   
   var lengthLabel = document.getElementById("ArrowLength");
   //if (fs.checked) {
