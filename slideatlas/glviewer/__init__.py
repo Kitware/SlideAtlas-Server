@@ -454,9 +454,11 @@ def glstacksession():
             pair["view0"] = str(pair["view0"])
             pair["view1"] = str(pair["view1"])
 
-    if 'annotations' in sessobj:
-        for markup in sessobj["annotations"]:
-            markup["view"] = str(markup["view"])
+    if not 'annotations' in sessobj:
+        sessobj["annotations"] = []
+
+    for markup in sessobj["annotations"]:
+        markup["view"] = str(markup["view"])
             
     #pdb.set_trace()
 

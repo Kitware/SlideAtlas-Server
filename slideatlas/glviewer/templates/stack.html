@@ -267,9 +267,11 @@ function saveStack() {
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};
-        for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
+        if (i < ANNOTATION_STACKS.length) {
+	  for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
             annotation = ANNOTATION_STACKS[i].annotations[j];
             section.Annotations.push(LoadWidget(VIEWER1, annotation));
+          }
         }
             
         SECTIONS.push(section);
