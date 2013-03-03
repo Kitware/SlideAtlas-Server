@@ -379,7 +379,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   }
   
   // See if any widget became active.
-  if (event.SystemEvent.which == 0) {
+  if (event.SystemEvent.which == 0 && this.ShapeVisibility) {
     for (var i = 0; i < this.WidgetList.length; ++i) {
       if (this.WidgetList[i].CheckActive(event)) {
         this.ActivateWidget(this.WidgetList[i]);
