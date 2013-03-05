@@ -130,5 +130,5 @@ def home():
         label = None
         email = None
 
-    return render_template('home.html', name=label, email=email, git=get_git_name(), session=session.__repr__())
+    return render_template('home.html', label=label, username=email, git=get_git_name(), session=session.__repr__(), host=app.config["MONGO_SERVER"])
 
