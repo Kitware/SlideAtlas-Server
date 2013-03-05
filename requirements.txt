@@ -1,19 +1,10 @@
 pymongo
 flask
 flask-bootstrap
-flask-mongoengine
 mongokit
-
-#For documentation
 sphinx
-
-# For google login
 flask-openid
-# For facebook login
 flask-oauth
-#openid-mongodb
-#flask-WTF
-# Optionally tornado for production server run
 tornado
 celery
 
