@@ -1,6 +1,10 @@
 //==============================================================================
 // Create and manage the menu to edit annotations.
 
+// Hack:  When the dialog is open, the viewer still gets key events.
+// The viewer/ html file will check this global before processing events.
+var DIALOG_OPEN = false;
+
 
 function SetAnnotationVisibility(visibility) {
     VIEWER1.ShapeVisibility = visibility;
@@ -39,7 +43,7 @@ function InitAnnotationEditMenus() {
              .css({'width': '100%', 'list-style-type':'none'});
     $('<li>').appendTo(AnnotationEditSelector)
              .text("new text")
-             .click(function(){AnnotationNewArrow();});
+             .click(function(){AnnotationNewText();});
     $('<li>').appendTo(AnnotationEditSelector)
              .text("new circle")
              .click(function(){AnnotationNewCircle();});
@@ -49,6 +53,115 @@ function InitAnnotationEditMenus() {
     $('<li>').appendTo(AnnotationEditSelector)
              .text("save annotations")
              .click(function(){SaveAnnotations();});
+
+    // annotation dialogs for editing properties
+    $("#text-properties-dialog").dialog({
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
+          Delete: function() {
+              WidgetPropertyDialogDelete();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          },
+          Apply: function() {
+              TextPropertyDialogApply();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          }
+      },
+      close: function(event,ui) {
+          if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+              WidgetPropertyDialogCancel();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          }
+          $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+      }
+    });
+
+    $("#arrow-properties-dialog").dialog({
+      autoOpen:false,
+      height:280,
+      width:350,
+      modal:true,
+      buttons:{
+          Delete: function() {
+              WidgetPropertyDialogDelete();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          },
+          Apply: function() {
+              ArrowPropertyDialogApply();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          }
+      },
+      close: function(event,ui) {
+          if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+              WidgetPropertyDialogCancel();
+              DIALOG_OPEN = false;
+              $(this).dialog("close");
+          }
+          //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+      }
+    });
+
+    $("#circle-properties-dialog").dialog({
+      autoOpen:false,
+      height:300,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          WidgetPropertyDialogDelete();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          CirclePropertyDialogApply();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          WidgetPropertyDialogCancel();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        }
+        //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+      }
+    });
+
+    $("#polyline-properties-dialog").dialog({
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          WidgetPropertyDialogDelete();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          PolylinePropertyDialogApply();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          WidgetPropertyDialogCancel();
+          DIALOG_OPEN = false;
+          $(this).dialog("close");
+        }
+      }
+    });             
+             
 }
 
 // Hack.  We need some uniform way to save annotations.
@@ -90,19 +203,22 @@ function SaveAnnotations() {
 }
 
 
-function AnnotationNewArrow() {
-    SetAnnotationVisibility(true);
-   // The text is created when the apply button is pressed.
-   $("#text-properties-dialog").dialog("open");
-    
-   $('#AnnotationEditMenu').hide();
+function AnnotationNewText() {
+  SetAnnotationVisibility(true);
+  // The text is created when the apply button is pressed.
+  DIALOG_OPEN = true;
+  $("#text-properties-dialog").dialog("open");
+  $('#AnnotationEditMenu').hide();
 }
 
 
 function NewPolyline() {
     SetAnnotationVisibility(true);
     // When the text button is pressed, create the widget.
-    VIEWER1.ActiveWidget = new PolylineWidget(VIEWER1, true);
+    var widget = new PolylineWidget(VIEWER1, true);
+    widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
+    VIEWER1.ActiveWidget = widget;
+
     $('#AnnotationEditMenu').hide();
 }
 
@@ -111,12 +227,14 @@ function AnnotationNewCircle() {
     SetAnnotationVisibility(true);
     // When the circle button is pressed, create the widget.
     var widget = new CircleWidget(VIEWER1, true);
+    widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
     VIEWER1.ActiveWidget = widget;
     $('#AnnotationEditMenu').hide();
 }
 
   function TextPropertyDialogApply() {
     var string = document.getElementById("textwidgetcontent").value;
+    var hexcolor = document.getElementById("textcolor").value;
     if (string == "") {
       alert("Empty String");
       return;
@@ -132,6 +250,8 @@ function AnnotationNewCircle() {
       widget.Shape.UpdateBuffers();
       widget.SetActive(false);
     }
+    widget.Shape.SetColor(hexcolor);
+    widget.AnchorShape.SetFillColor(hexcolor);
     widget.SetAnchorShapeVisibility(markerFlag);
 
     //ComparisonSaveAnnotations();

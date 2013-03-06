@@ -304,3 +304,10 @@ Text.prototype.HandleMouseMove = function(event, dx,dy) {
 
     return false;
 }
+
+Text.prototype.SetColor = function (c) {
+  this.Color = ConvertColor(c);
+}
+
+
+

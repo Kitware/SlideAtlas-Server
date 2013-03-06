@@ -77,17 +77,42 @@ EventManager.prototype.HandleMouseDown = function(event) {
   this.LastMouseY = this.MouseY;
 
   this.SetMousePositionFromEvent(event);
-  this.MouseDown = true;
-
   this.ChooseViewer();
+
   if (this.CurrentViewer) {
-	  event.preventDefault();
+    event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
+
+    var dTime = new Date().getTime() - this.MouseUpTime;
+    if (dTime < 200.0) { // 200 milliseconds
+      PENDING_SHOW_ANNOTATION_MENU = false;
+      this.CurrentViewer.HandleDoubleClick(this);
+      return;
+    }
+
+    this.MouseDown = true;
     this.CurrentViewer.HandleMouseDown(this);
   }
 }
 
+
+  // Handle double click and single click events better.
+  // setTimeout(function(){alert("Hello")},3000);
+  //$("p").dblclick(function(){alert("The paragraph was double-clicked.");});
+  
+var PENDING_SHOW_ANNOTATION_MENU = false;
+var SHOW_ANNOTATION_MENU_MOUSE_POSITION;
+function ShowPendingAnnotationEditMenu() {
+  if (PENDING_SHOW_ANNOTATION_MENU) {
+    ShowAnnotationEditMenu(SHOW_ANNOTATION_MENU_MOUSE_POSITION[0], SHOW_ANNOTATION_MENU_MOUSE_POSITION[1]);
+  }
+}
+
 EventManager.prototype.HandleMouseUp = function(event) {
+  if ( ! this.MouseDown) {
+    // This will occur if on double clicks (and probably if mouse down was outside canvas).
+    return;
+  }
   this.SetMousePositionFromEvent(event);
   this.MouseDown = false;
 
@@ -95,6 +120,18 @@ EventManager.prototype.HandleMouseUp = function(event) {
   if (this.CurrentViewer) {
     this.CurrentViewer.HandleMouseUp(this);
   }
+
+  // Record time so we can detect double click.
+  this.MouseUpTime = new Date().getTime();
+
+  // Should we let the viewer handle this?
+  // Can it supress on double click?
+  if (EDIT && event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
+    // Wait to make sure this is not a double click.
+    PENDING_SHOW_ANNOTATION_MENU = true;
+    SHOW_ANNOTATION_MENU_MOUSE_POSITION = [event.clientX, event.clientY];
+    setTimeout(function(){ShowPendingAnnotationEditMenu();},200);
+  }    
 }
 
 // Forward even to view.

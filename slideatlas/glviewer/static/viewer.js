@@ -321,15 +321,14 @@ Viewer.prototype.HandleMouseDown = function(event) {
   }
 }
 
-Viewer.prototype.HandleMouseUp = function(event) {
+Viewer.prototype.HandleDoubleClick = function(event) {
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleMouseUp(event);
+    this.ActiveWidget.HandleMouseDown(event);
     return;
   }
   
-  // Detect double click.  No time for now.  Just detect two ups in the same location.
-  if (event.MouseX == this.DoubleClickX && event.MouseY == this.DoubleClickY) {
+  // Detect double click.
     mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
     if (event.SystemEvent.which == 1) {
       this.AnimateDoubleClickZoom(0.5, mWorld);
@@ -338,11 +337,15 @@ Viewer.prototype.HandleMouseUp = function(event) {
       this.AnimateDoubleClickZoom(2.0, mWorld);
       //this.AnimateZoom(2.0);
     }
+}
+
+Viewer.prototype.HandleMouseUp = function(event) {
+  // Forward the events to the widget if one is active.
+  if (this.ActiveWidget != null) {
+    this.ActiveWidget.HandleMouseUp(event);
+    return;
   }
-  this.DoubleClickX = event.MouseX; 
-  this.DoubleClickY = event.MouseY; 
-  
-	return;
+  return;
 }
 
 
@@ -376,7 +379,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   }
   
   // See if any widget became active.
-  if (event.SystemEvent.which == 0) {
+  if (event.SystemEvent.which == 0 && this.ShapeVisibility) {
     for (var i = 0; i < this.WidgetList.length; ++i) {
       if (this.WidgetList[i].CheckActive(event)) {
         this.ActivateWidget(this.WidgetList[i]);

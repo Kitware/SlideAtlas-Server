@@ -115,6 +115,7 @@ TextWidget.prototype.Load = function(obj) {
                          parseFloat(obj.position[2])];
   this.SetAnchorShapeVisibility(obj.anchorVisibility);
   this.Shape.UpdateBuffers();
+  this.UpdateAnchorShape();
 }
 
 // When the arrow is visible, the text is offset from the position (tip of arrow).
@@ -307,11 +308,16 @@ TextWidget.prototype.SetActive = function(flag) {
 }
 
 TextWidget.prototype.ShowPropertiesDialog = function () {
+  var color = document.getElementById("textcolor");
+  color.value = ConvertColorToHex(this.Shape.Color);
+
   var ta = document.getElementById("textwidgetcontent");
   ta.value = this.Shape.String;
   var tm = document.getElementById("TextMarker");
   tm.checked = this.AnchorShape.Visibility;
   
+  // hack to supress viewer key events.
+  DIALOG_OPEN = true;
   $("#text-properties-dialog").dialog("open");
 }    
 

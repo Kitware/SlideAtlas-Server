@@ -207,7 +207,7 @@ CircleWidget.prototype.SetActive = function(flag) {
 
 CircleWidget.prototype.ShowPropertiesDialog = function () {
   var color = document.getElementById("circlecolor");
-  color.value = this.Shape.ConvertColorToHex(this.Shape.OutlineColor);
+  color.value = ConvertColorToHex(this.Shape.OutlineColor);
 
   var lineWidth = document.getElementById("circlelinewidth");
   lineWidth.value = (this.Shape.LineWidth).toFixed(2);
