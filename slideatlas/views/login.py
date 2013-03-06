@@ -92,7 +92,7 @@ def facebook_authorized(resp=None):
 def get_facebook_oauth_token():
     return session.get('oauth_token')
 
-@mod.route('/login.google')
+@mod.route('/login.google', methods=["GET", "POST"])
 @oid.loginhandler
 @oid.after_login
 def login_google(oid_response=None):
@@ -101,7 +101,7 @@ def login_google(oid_response=None):
     GOOGLE_IDENTITY_URL = 'https://www.google.com/accounts/o8/id'
 
     if oid.fetch_error():
-        flash("OpenID Error")
+        flash("OpenId Error: " + str(oid.fetch_error()), "error")
         return redirect('/home')
     elif not oid_response:
         return oid.try_login(GOOGLE_IDENTITY_URL, ask_for=['email', 'fullname']) # 'nickname'
@@ -121,10 +121,10 @@ def login_google(oid_response=None):
             userdoc["name"] = oid_response.email
             userdoc["label"] = oid_response.fullname
             userdoc.save()
-            #flash('New user account created', 'info')
+#            flash('New user account created', 'info')
         else:
             pass
-            #flash('Account exists', 'info')
+#            flash('Existing account located', 'info')
 
         return do_user_login(userdoc)
 
@@ -178,6 +178,7 @@ def do_user_login(user):
 #        flash(adb + ": " + str(accesses[adb]), "info")
 #
 #    flash("Site admin : " + str(session["site_admin"]), "info")
+
 
     flash('You were successfully logged in. ', 'success')
     return redirect('/home')

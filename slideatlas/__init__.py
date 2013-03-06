@@ -45,7 +45,6 @@ app.url_map.converters['regex'] = RegexConverter
 Bootstrap(app)
 
 from .views import login
-from .views.login import oid
 
 login.oid.init_app(app)
 app.register_blueprint(login.mod)
@@ -130,5 +129,5 @@ def home():
         label = None
         email = None
 
-    return render_template('home.html', label=label, username=email, git=get_git_name(), session=session.__repr__(), host=app.config["MONGO_SERVER"])
+    return render_template('home.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_SERVER"])
 
