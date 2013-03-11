@@ -5,13 +5,17 @@
  var app = angular.module('adminapi',["ngResource" ]).
     config(
      function ($routeProvider) {
-        $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dblist.html"});
+        $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
         $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
         // $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
 
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userlist.html"});
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/usernew.html"});
+
+        $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
+        $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
 
         $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
         $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/sessnew.html", controller:"SessNewCtrl"});
@@ -88,7 +92,6 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         }
     });
 
-
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
         // Start with a blank database
@@ -101,8 +104,19 @@ app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
             }
     });
 
+app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
+    {
+        // Locate the object
+        console.log("Refreshing dbDetailsCtrl" + $routeParams.dbid)
 
-app.controller("DBListCtrl", function ($scope, Database, $location, Data)
+        Session.get({dbid: $routeParams.dbid}, function(data) {
+            Data.setList(data.sessions);
+            $scope.sessions = Data.getList();
+            }
+        );
+    });
+
+app.controller("dbListCtrl", function ($scope, Database, $location, Data)
     {
     console.log("Refreshing DBListCtrl")
 
@@ -126,7 +140,6 @@ app.controller("DBListCtrl", function ($scope, Database, $location, Data)
             }
         }
     });
-    
 
 app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     {

@@ -1,6 +1,5 @@
 
-.. meta::
-   :http-equiv=refresh: 5
+ commented .. meta:: :http-equiv=refresh: 5
 
 Web API
 =======

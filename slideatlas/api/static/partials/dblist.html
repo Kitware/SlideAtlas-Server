@@ -1,4 +1,4 @@
-     <div ng-controller="DBListCtrl">
+     <div ng-controller="dbListCtrl">
          Total Records : {{databases.length }}  
          <table class="table table-striped">
             <thead>
@@ -10,7 +10,7 @@
                </tr>
            </thead>
             <tr ng-repeat ="adb in databases" >
-                <td>{{ adb.dbname }} </td>
+                <td><a href="#/{{adb._id}}/sessions">{{ adb.dbname }} </a></td>
                 <td>{{ adb.host }} </td>
                 <td><a href="#/databases/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
