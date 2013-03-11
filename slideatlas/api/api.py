@@ -236,19 +236,20 @@ class DataSessionsAPI(MethodView):
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
             sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
+            if sessobj == None:
+                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
             # Dereference the views 
             for aview in sessobj["views"]:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
                 viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                 aview["details"] = viewdetails
 
+            if not "attachments" in sessobj:
+                sessobj["attachments"] = []
 
-            print sessobj
+            return jsonify(sessobj)
 
-            if sessobj <> None:
-                return jsonify(sessobj)
-            else:
-                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
     def delete(self, dbid, sessid=None):
         conn.register([Session, Database])
