@@ -108,6 +108,19 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
     {
         // Locate the object
         console.log("Refreshing dbDetailsCtrl" + $routeParams.dbid)
+        $scope.dbid = $routeParams.dbid;
+        Session.get({dbid: $routeParams.dbid}, function(data) {
+            Data.setList(data.sessions);
+            $scope.sessions = Data.getList();
+            }
+        );
+    });
+
+app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
+    {   
+        // For modifying session as a whole  
+        // Locate the object
+        console.log("Refreshing sessEditCtrl" + $routeParams.dbid)
 
         Session.get({dbid: $routeParams.dbid}, function(data) {
             Data.setList(data.sessions);
@@ -115,6 +128,20 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
             }
         );
     });
+
+app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
+    {   
+        // For modifying session as a whole  
+        // Locate the object
+        console.log("Refreshing sessDetailsCtrl with dbid=" + $routeParams.dbid + " and sessid =" + $routeParams.sessid)
+
+        // Session.get({dbid: $routeParams.dbid}, function(data) {
+        //    Data.setList(data.sessions);
+        //    $scope.sessions = Data.getList();
+        //    }
+        // );
+    });
+
 
 app.controller("dbListCtrl", function ($scope, Database, $location, Data)
     {
