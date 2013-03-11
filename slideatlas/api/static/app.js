@@ -32,7 +32,7 @@ app.factory('Database', function($resource) {
   });
 
 app.factory('Session', function($resource) {
-    return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@_id'}, 
+    return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@sessid'}, 
                  {
             query: { method: 'GET', params: {}, isArray: true },
               });
@@ -134,12 +134,13 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         // For modifying session as a whole  
         // Locate the object
         console.log("Refreshing sessDetailsCtrl with dbid=" + $routeParams.dbid + " and sessid =" + $routeParams.sessid)
-
-        // Session.get({dbid: $routeParams.dbid}, function(data) {
-        //    Data.setList(data.sessions);
-        //    $scope.sessions = Data.getList();
-        //    }
-        // );
+        $scope.dbid = $routeParams.dbid
+        $scope.sessid = $routeParams.sessid
+        
+        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) {
+           $scope.session = data
+           }
+        );
     });
 
 

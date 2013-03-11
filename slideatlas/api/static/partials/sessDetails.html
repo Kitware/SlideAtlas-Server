@@ -1,0 +1,45 @@
+<h2> Details for session </h2>
+<div ng-controller="sessDetailsCtrl">
+    <h3> Attachments   
+    </h3>
+    
+    <table class="table table-bordered table-hover" >
+        <thead>
+            <td> <h4> Label </h4> </td>
+            <td><a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
+                    add new 
+                </a>
+            </td>
+        </thead>
+        <tr ng-repeat ="item in session.attachments" >
+            <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item._id}}" class="lead"> 
+                        {{ item.name}} 
+                    </a>
+            </td>
+            <td>
+            <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
+                        add new  </a>
+            </td>
+        </tr>
+    </table>
+    </br>
+
+    <h3> Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
+                        add new  </a> ] 
+    </h3> 
+    <table class="table table-bordered table-hover" >
+        <thead>
+            <td> <h4> Label </h4>
+            </td>
+            <td></td>
+        </thead>
+        <tr ng-repeat ="animage in session.views" >
+            <td> 
+                <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead">{{ animage.details.image.label}}</a> 
+            </td>
+            <td> 
+                <img src="/tile?db={{dbid}}&img={{animage.details.img}}&name=t.jpg" width=100px>
+            </td>
+        </tr>
+    </table>
+</div>

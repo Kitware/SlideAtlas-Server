@@ -16,6 +16,7 @@ from slideatlas.model import Session
 
 from slideatlas.common_utils import site_admin_required
 from slideatlas.common_utils import user_required
+from json import dumps
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
                 template_folder="templates",
@@ -235,6 +236,14 @@ class DataSessionsAPI(MethodView):
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
             sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
+            # Dereference the views 
+            for aview in sessobj["views"]:
+                viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
+                viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                aview["details"] = viewdetails
+
+
+            print sessobj
 
             if sessobj <> None:
                 return jsonify(sessobj)
