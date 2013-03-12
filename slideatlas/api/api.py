@@ -408,8 +408,18 @@ class DataSessionItemsAPI(MethodView):
         # this is the name for input type=file
         names = []
         # Make sure to read the form before sending the reply
-        # Parse headers 
+        jsonresponse = {}
+        jsonresponse["_id"] = request.form['_id']
 
+        datadb = self.get_data_db(dbid)
+        if datadb == None:
+            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+        conn.register([Session])
+        sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+        if sessobj == None:
+            return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
+        # Parse headers 
         try:
             #Get filename from content disposition 
             fnameheader = request.headers["Content-Disposition"]
@@ -422,11 +432,36 @@ class DataSessionItemsAPI(MethodView):
             start = int(match[0])
             end = int(match[1])
             total = int(match[2])
+            success = True
         except:
-            return Response("{\"error\" : \" Error in parsing headers \"}", status=405)
+            success = False
+
+        # Headers cannot be parsed, so try 
+        if not success:
+            try:
+                bfile = request.files['file']
+
+                gf = gridfs.GridFS(datadb , restype)
+                afile = gf.new_file(chunk_size=1048576, filename=bfile.filename, _id=ObjectId(resid))
+                afile.write(bfile.read())
+                afile.close()
+                if not sessobj.has_key("attachments"):
+                    sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
+                    sessobj.validate()
+                    sessobj.save()
+    #                print "Inserted attachments", str(sessobj["attachments"])
+                else:
+                    size_before = len(sessobj["attachments"])
+                    sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
+                    sessobj.validate()
+                    sessobj.save()
+
+                return Response("{\"success\" : \" - \"}", status=200)
+            except:
+                return Response("{\"error\" : \" Error processing single chunk header \"}", status=405)
+
 
         # No need to return conventional file list 
-        jsonresponse = {}
         # Expect _id in the form
         try:
             jsonresponse["_id"] = request.form['_id']
@@ -442,17 +477,10 @@ class DataSessionItemsAPI(MethodView):
 
         bfile = request.files['file']
 
-        datadb = self.get_data_db(dbid)
-        if datadb == None:
-            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        conn.register([Session])
-        sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
-        if sessobj == None:
-            return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
         first = False
         last = False
         # If first chunk
-        if start == 0:
+        if start == 0 :
             first = True
             jsonresponse["first"] = 1
             # Create a file
