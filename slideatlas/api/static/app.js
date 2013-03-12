@@ -121,6 +121,24 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
             $scope.sessions = Data.getList();
             }
         );
+        
+        $scope.deletesession = function(idx) 
+        {
+        // Locate the object
+        var sess = $scope.sessions[idx]
+        if (confirm("Remove attachment " + sess.label + '?')) 
+            {
+            //SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref}, 
+            //    function(data) {
+            //        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+            //            {
+            //            $scope.session = data
+            //            });
+            //    });
+            }
+        }
+
+        
     });
 
 app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Database, Data, Session)

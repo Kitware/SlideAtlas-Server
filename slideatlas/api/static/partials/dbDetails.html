@@ -12,6 +12,6 @@
             <tr ng-repeat ="adb in sessions" >
                 <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
                 <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
-                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i>delete </a> </td>
+                <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
             </tr>
      </div>

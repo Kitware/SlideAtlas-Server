@@ -374,6 +374,35 @@ class DataSessionItemsAPI(MethodView):
             # TODO: have an application or module level connection pooling
             return conn[dbobj["dbname"]]
 
+    def delete(self, dbid, sessid, restype, resid=None):
+        if resid == None:
+            return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
+        else:
+            datadb = self.get_data_db(dbid)
+            if datadb == None:
+                return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+
+            # TODO: This block of code to common and can be abstrated
+            conn.register([Session])
+            sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+            if sessobj == None:
+                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
+            if restype == "attachments" or restype == "rawfiles":
+                # Remove from the gridfs
+                gf = gridfs.GridFS(datadb , restype)
+                gf.delete(ObjectId(resid))
+
+                # Remove the reference from session
+                attachments = [value for value in sessobj["attachments"] if value["ref"] != ObjectId(resid)]
+                # Find the index
+                # Remove that index
+                sessobj["attachments"] = attachments
+                sessobj.validate()
+                sessobj.save()
+            else:
+                return "You want %s from views in %s/%s" % (resid, dbid, sessid)
+
     def get(self, dbid, sessid, restype, resid=None):
         if resid == None:
             return "You want alist of %s/%s/%s" % (dbid, sessid, restype)
@@ -381,6 +410,13 @@ class DataSessionItemsAPI(MethodView):
             datadb = self.get_data_db(dbid)
             if datadb == None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+
+            conn.register([Session])
+            sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+            if sessobj == None:
+                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+
+            # TODO: Make sure that resid exists in this session before being obtained from gridfs
 
             if restype == "attachments" or restype == "rawfiles":
                 gf = gridfs.GridFS(datadb , restype)
@@ -457,6 +493,7 @@ class DataSessionItemsAPI(MethodView):
                     sessobj.save()
 
                 return Response("{\"success\" : \" - \"}", status=200)
+
             except:
                 return Response("{\"error\" : \" Error processing single chunk header \"}", status=405)
 
@@ -557,7 +594,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/<regex("(attachments|views|images)"):restype>'
                                 '/<regex("[a-f0-9]{24}"):resid>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_item"),
-                                methods=["get", "put"])
+                                methods=["get", "put", "delete"])
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
