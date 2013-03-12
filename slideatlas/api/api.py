@@ -433,8 +433,7 @@ class DataSessionItemsAPI(MethodView):
         except:
             return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
 
-        size = end - start + 1
-        n = start / size
+        n = int(start / 1048576.0)
         # Craft the response json 
         jsonresponse["start"] = start
         jsonresponse["end"] = end
