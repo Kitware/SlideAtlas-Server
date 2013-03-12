@@ -7,8 +7,8 @@ Following are the use cases accordng to different privileges
 Site Admin
 ~~~~~~~~~~
 - Everything that DB admins can do
-- Setup new databases
-- Grant admin access
+- Register / Create new databases in slide atlas system
+- Grant and revoke DB level admin accesses
 - DB to user
 
 DB Admin

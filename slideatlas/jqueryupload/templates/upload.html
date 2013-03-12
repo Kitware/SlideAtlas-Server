@@ -15,10 +15,9 @@
 
 <h1> Select the file to upload </h1>
 </br>
+<form enctype=multipart/form-data>
 <input id="fileupload" type="file" name="files[]" data-url="" multiple>
-
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
-
+</form>
 <div id="progress">
     <div class="bar" style="width: 0%;"></div>
 </div>
@@ -33,11 +32,32 @@
 <script>
 $(function () {
     $('#fileupload').fileupload({
+        type:'PUT',
         dataType: 'json',
-        done: function (e, data) {
-            $.each(data.result, function (index, file) {
-                $('<p/>').text(file.name).appendTo(document.body);
+        maxChunkSize: 1000, // 10 MB
+        add: function (e, data) {
+            data.context = $('<p/>').text('Uploading...').appendTo(document.body);
+            data.submit();
+        },
+        submit: function(e,data) {
+            var $this = $(this);
+            $.post('', function (result) {
+                data.formData = result; // e.g. {id: 123}
+                $this.fileupload('send', data);
             });
+            return false;
+        },       
+        fail: function (e, data) {
+            data.context.text('Upload failed.');
+            var progress = 0;
+            $('#progress .bar').css(
+                'width',
+                progress + '%'
+            );
+        },
+
+        done: function (e, data) {
+            data.context.text('Upload finished.');
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);

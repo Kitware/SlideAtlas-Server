@@ -20,6 +20,6 @@ class Session(Document):
         'views' : [RefList]
         }
 
-    required_fields = [ 'name']
+    required_fields = [ 'label']
 
 

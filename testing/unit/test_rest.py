@@ -1,8 +1,8 @@
 import sys
 from json import loads
 import json
-sys.path.append("../..")
-sys.path.append("..")
+import os
+sys.path.append(os.path.abspath("../.."))
 import slideatlas
 import unittest
 
@@ -147,6 +147,139 @@ class APIv1_Tests(unittest.TestCase):
 
         # This should fail
         rv = self.app.get("/apiv1/databases/" + str(obj["_id"]))
+        self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
+
+
+    def testAdminDBModifyUsingPost(self):
+        """
+        Tests post operation for partially modifying database in admin databases
+        """
+        # Sign in for admin access
+        self.login_admin()
+
+        newdb = dict(insert={
+                              "label" : "Database for DJ Test Partial update",
+                              "host" : "127.0.0.1",
+                              "dbname" : "dj2",
+                              "copyright" : "All rights reserved by DJ 2013"}
+                            )
+
+        obj = self.parseResponse("/apiv1/databases", newdb, method="post")
+
+        modification = dict(modify={
+                              "host" : "127.0.0.1:27017" }
+                            )
+
+        # Query it back and check 
+        obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), modification, method="post")
+        print "Returned object: ", obj2
+
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+        self.failUnless(obj2["host"] == modification["modify"]["host"])
+        self.failUnless(obj2["label"] == obj["label"])
+
+        # Now delete the database
+        obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
+
+        # Not testing delete
+
+    def testRenameSessionUsingPost(self):
+        """
+        Tests post operation for renaming session 
+        """
+        # Sign in for admin access
+        self.login_admin()
+        self.login_viewer()
+        newsession = dict(insert={
+                      "label" : "New Session for DJ rename test"
+                      }
+                    )
+
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
+        self.failIf(obj.has_key("error"))
+
+        modification = dict(modify={"label" : "Some"})
+        # Query it back and check 
+        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), modification, method="post")
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+
+        self.failUnlessEqual(obj2['label'], modification["modify"]["label"])
+
+        # delete the test session
+        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
+
+        # Not testing delete
+
+
+    def testAdminDBItems(self):
+        """
+        Test generic api for databases users rules in admindb
+        """
+        self.login_admin()
+
+        for item in ["databases", "users", "rules"]:
+            obj = self.parseResponse("/apiv1/" + item)
+            self.failUnless(obj.has_key(item), "No " + item + "in the results")
+
+        # Test databases
+        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+
+        # Test rules
+        obj = self.parseResponse("/apiv1/rules/507619bb0a3ee10434ae0828")
+        self.failUnless(obj.has_key("label"), "No label in the rule in the results")
+
+    def testUserNoPasswd(self):
+        # User should have label and should not have password
+        self.login_admin()
+
+        obj = self.parseResponse("/apiv1/users/510b43f4d6364703a2380fa6")
+        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+        self.failIf(obj.has_key("passwd"), "Should not return password ever")
+
+        obj = self.parseResponse("/apiv1/users")
+        self.failUnless(obj.has_key("users"), "No list of users returned")
+
+        for auser in obj["users"]:
+            self.failIf(auser.has_key("passwd"), "Should not return password ever")
+
+    def testAPISessionList(self):
+        self.login_viewer()
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions")
+        self.failUnless(obj.has_key("sessions"))
+
+    def testAPISingleSession(self):
+        self.login_viewer()
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/4ecbbc6d0e6f7d7a56000000")
+        self.failUnless(obj.has_key("images"))
+
+    def testAPICreateSession(self):
+        self.login_viewer()
+        newsession = dict(insert={
+                      "label" : "New Session for DJ"
+                      }
+                    )
+
+        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
+        self.failIf(obj.has_key("error"))
+
+        # Query it back and check 
+        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
+        self.failUnlessEqual(obj['_id'], obj2["_id"])
+
+#        obj2["label"] = "Modified"
+#
+#        obj3 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]), obj2, method="put")
+#
+#        # Query it back and check if the label if actually modified
+#        obj4 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]))
+#        self.failUnlessEqual(obj2["label"], obj4["label"])
+#
+        # Now test if the database record can be deleted 
+        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
+
+        # This should fail
+        rv = self.app.get("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
         self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
 
     def parseResponse(self, url, postdata=None, method="get"):

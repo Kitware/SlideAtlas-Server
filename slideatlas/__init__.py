@@ -19,7 +19,7 @@ celery = Celery(broker="mongodb://127.0.0.1/slideatlas-tasks", backend="mongodb:
 # Configure here teh path to put downloaded folders 
 # (should be big and with write access to web server user)
 app.config['UPLOAD_FOLDER'] = "d:/docs"
-app.config.from_object("site_slideatlas")
+app.config.from_object("site_local")
 
 
 # Connection settings for local demo database for testing (VM) 
@@ -45,7 +45,6 @@ app.url_map.converters['regex'] = RegexConverter
 Bootstrap(app)
 
 from .views import login
-from .views.login import oid
 
 login.oid.init_app(app)
 app.register_blueprint(login.mod)
@@ -130,5 +129,5 @@ def home():
         label = None
         email = None
 
-    return render_template('home.html', name=label, email=email, git=get_git_name(), session=session.__repr__())
+    return render_template('home.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_SERVER"])
 

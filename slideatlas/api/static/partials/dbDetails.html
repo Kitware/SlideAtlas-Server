@@ -1,0 +1,17 @@
+    <h2> Details for database </h2>
+     <div ng-controller="dbDetailsCtrl">
+         Total Records : {{sessions.length }}  
+         <table class="table table-striped">
+            <thead>
+                <tr>
+                <td><h4>Session label </h4></td>
+                <td> </td>
+                <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
+               </tr>
+           </thead>
+            <tr ng-repeat ="adb in sessions" >
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
+                <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
+            </tr>
+     </div>

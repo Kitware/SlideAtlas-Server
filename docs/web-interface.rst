@@ -1,5 +1,5 @@
-Implemented Web Interface
--------------------------
+Web Interface
+-------------
 
 .. automodule:: slideatlas
   :members:

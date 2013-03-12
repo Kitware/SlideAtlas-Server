@@ -1,5 +1,7 @@
-Database Schema version s0.3 corresponds to v2.0rc2
-===================================================
+Schema for the MongoDB
+======================
+version s0.3 corresponds to v2.0rc2
+
 
 .. role:: optionalfield
 
