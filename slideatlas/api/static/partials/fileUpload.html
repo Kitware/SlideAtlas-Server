@@ -1,0 +1,30 @@
+<!--  Shows file selection view, and progress when file(s) are being uploaded -->
+
+<style> 
+.bar {
+    height: 18px;
+    background: green;
+}
+</style>
+
+<h2> {{ type }} uploader </h1>
+    
+Select the file to upload 
+</br>
+<form enctype=multipart/form-data>
+<input id="fileupload" type="file" name="files[]">
+</form>
+<div id="progress">
+    <div class="bar" style="width: 0%;"></div>
+</div>
+
+<script src="/static/js/vendor/jquery.ui.widget.js"></script>
+<script src="/static/js/jquery.fileupload.js"></script>
+<script ng-cloak>
+console.log("/{{dbid}}/sessions/{{sessid}}/attachments");
+
+
+$(function () {
+
+});
+</script>

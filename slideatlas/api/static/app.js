@@ -16,6 +16,7 @@
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
+        $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
         $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
         $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/sessnew.html", controller:"SessNewCtrl"});
@@ -115,6 +116,75 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
             }
         );
     });
+
+app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
+    {
+        // Locate the object
+        console.log("Refreshing fileUploadCtrl with dbid=" + $routeParams.dbid + " and ssid=" + $routeParams.sessid + " and type=" + $routeParams.type )
+        $scope.dbid = $routeParams.dbid;
+        $scope.sessid = $routeParams.sessid;
+        $scope.type = $routeParams.type;
+        
+        $scope.$evalAsync( function () {
+            var urlstr = "/apiv1/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
+            var _id = ""
+            get_id = function (){
+                return _id;
+            };
+            console.log("Getting executed");
+            console.log("Refreshing fileUploadCtrl with dbid=" + $routeParams.dbid + " and ssid=" + $routeParams.sessid + " and type=" + $routeParams.type )
+                $('#fileupload').fileupload({
+                    type:'PUT',
+                    url: urlstr + get_id(),
+                    dataType: 'json',
+                    maxChunkSize: 1000, // 10 MB
+                    add: function (e, data) {
+                        data.context = $('<p/>').text('Uploading...').appendTo(document.body);
+                        data.submit();
+                    },
+                    submit: function(e,data) {
+                        var $this = $(this);
+                        $.post(urlstr, {"insert" : 1 },
+                            function (result) 
+                                {
+                                data.formData = result; // e.g. {id: 123}
+                                _id = result._id
+                                //var that = $(this).data('fileupload');
+                                $this.fileupload('option','url', urlstr + "/"+ _id);
+                                $this.fileupload('send', data);
+                            });
+                        return false;
+                    },       
+                    fail: function (e, data) {
+                        data.context.text('Upload failed.');
+                        var progress = 0;
+                        $('#progress .bar').css(
+                            'width',
+                            progress + '%'
+                        );
+                    },
+            
+                    done: function (e, data) {
+                        data.context.text('Upload finished.');
+                    },
+                    progressall: function (e, data) {
+                        var progress = parseInt(data.loaded / data.total * 100, 10);
+                        $('#progress .bar').css(
+                            'width',
+                            progress + '%'
+                        );
+                    }
+                });
+        });
+        
+        //Session.get({dbid: $routeParams.dbid}, function(data) {
+        //    Data.setList(data.sessions);
+        //    $scope.sessions = Data.getList();
+        //    }
+        //);
+    });
+
+
 
 app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
     {   

@@ -16,6 +16,7 @@ from slideatlas.model import Session
 
 from slideatlas.common_utils import site_admin_required
 from slideatlas.common_utils import user_required
+import re
 from json import dumps
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -363,6 +364,66 @@ class DataSessionItemsAPI(MethodView):
             else:
                 return "You want list of views in %s/%s" % (dbid, sessid)
 
+    def put(self, dbid, sessid, restype, resid):
+        # we are expected to save the uploaded file and return some info about it:
+        # this is the name for input type=file
+        names = []
+        # Make sure to read the form before sending the reply
+        # Parse headers 
+        #Get filename from content disposition 
+        fnameheader = request.headers["Content-Disposition"]
+        disposition = re.search(r'filename="(.+?)"', fnameheader)
+        filename = disposition.group(0)[10:-1]
+
+        # Get the actual chunk position from Content-Range
+        range = request.headers["Content-Range"]
+        match = re.findall(r'\d+', range)
+        start = int(match[0])
+        end = int(match[1])
+        total = int(match[2])
+
+        # No need to return conventional file list 
+        jsonresponse = {}
+
+        # Expect _id in the form
+        try:
+            id = request.form['_id']
+        except:
+            return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
+
+        # Craft the response json 
+        jsonresponse["start"] = start
+        jsonresponse["end"] = end
+        jsonresponse["total"] = total
+        jsonresponse["done"] = end + 1
+        jsonresponse["_id"] = id
+
+        return jsonify(jsonresponse)
+
+    def post(self, dbid, sessid, restype, resid=None):
+        if resid == None:
+            # Supported for new creations 
+            if restype == "attachments" or restype == "rawfiles":
+                data = request.form
+                # Only insert command is supported
+                if data == None:
+                    return Response("{\"error\" : \"Only create method is supported by post \"} " , status=405)
+
+                if data.has_key("insert") :
+                    id = ObjectId()
+                    # No need to return conventional file list 
+                    jsonresponse = {}
+                    jsonresponse["_id"] = id
+                    jsonresponse["type"] = restype
+                    return jsonify(jsonresponse)
+                else:
+                    return Response("{\"error\" : \"Only create method is supported by post \"} " , status=405)
+        else:
+            if restype == "attachments":
+
+                return "You want list of attachments in %s/%s" % (dbid, sessid)
+            else:
+                return "You want list of views in %s/%s" % (dbid, sessid)
 
 
 # For a list of resources within session
@@ -372,7 +433,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/<regex("(attachments|views|images)"):restype>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_items"),
                                 defaults={'resid':None},
-                                methods=["get"])
+                                methods=["get", "post"])
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
@@ -381,7 +442,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/<regex("(attachments|views|images)"):restype>'
                                 '/<regex("[a-f0-9]{24}"):resid>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_item"),
-                                methods=["get"])
+                                methods=["get", "put"])
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
