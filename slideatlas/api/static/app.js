@@ -137,7 +137,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                     type:'PUT',
                     url: urlstr + get_id(),
                     dataType: 'json',
-                    maxChunkSize: 1000, // 10 MB
+                    maxChunkSize: 1048576, // 10 MB
                     add: function (e, data) {
                         $('#status').text('Uploading...');
                         data.submit();
@@ -156,8 +156,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                         return false;
                     },       
                     fail: function (e, data) {
-                        $('#progress').text('Upload failed ...');
-                        data.context.text('Upload failed.');
+                        $('#status').text('Upload failed ...');
                         var progress = 0;
                         $('#progress .bar').css(
                             'width',

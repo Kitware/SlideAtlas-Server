@@ -20,6 +20,7 @@ import re
 import gridfs
 
 from json import dumps
+from bson.binary import Binary
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
                 template_folder="templates",
@@ -408,35 +409,89 @@ class DataSessionItemsAPI(MethodView):
         names = []
         # Make sure to read the form before sending the reply
         # Parse headers 
-        #Get filename from content disposition 
-        fnameheader = request.headers["Content-Disposition"]
-        disposition = re.search(r'filename="(.+?)"', fnameheader)
-        filename = disposition.group(0)[10:-1]
 
-        # Get the actual chunk position from Content-Range
-        range = request.headers["Content-Range"]
-        match = re.findall(r'\d+', range)
-        start = int(match[0])
-        end = int(match[1])
-        total = int(match[2])
+        try:
+            #Get filename from content disposition 
+            fnameheader = request.headers["Content-Disposition"]
+            disposition = re.search(r'filename="(.+?)"', fnameheader)
+            filename = disposition.group(0)[10:-1]
+
+            # Get the actual chunk position from Content-Range
+            range = request.headers["Content-Range"]
+            match = re.findall(r'\d+', range)
+            start = int(match[0])
+            end = int(match[1])
+            total = int(match[2])
+        except:
+            return Response("{\"error\" : \" Error in parsing headers \"}", status=405)
 
         # No need to return conventional file list 
         jsonresponse = {}
-
         # Expect _id in the form
         try:
             jsonresponse["_id"] = request.form['_id']
         except:
             return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
 
+        size = end - start + 1
+        n = start / size
         # Craft the response json 
         jsonresponse["start"] = start
         jsonresponse["end"] = end
         jsonresponse["total"] = total
         jsonresponse["done"] = end + 1
-        jsonresponse["_id"] = id
 
+        bfile = request.files['file']
+
+        datadb = self.get_data_db(dbid)
+        if datadb == None:
+            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+        conn.register([Session])
+        sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+        if sessobj == None:
+            return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+        first = False
+        last = False
+        # If first chunk
+        if start == 0:
+            first = True
+            jsonresponse["first"] = 1
+            # Create a file
+            gf = gridfs.GridFS(datadb , restype)
+            afile = gf.new_file(chunk_size=1048576, filename=filename, _id=ObjectId(resid))
+            afile.write(bfile.read())
+            afile.close()
+
+        if total == end + 1:
+            last = True
+            jsonresponse["last"] = 1
+            # Add the attachment id to the 
+            if not sessobj.has_key("attachments"):
+                sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
+                sessobj.validate()
+                sessobj.save()
+#                print "Inserted attachments", str(sessobj["attachments"])
+            else:
+                size_before = len(sessobj["attachments"])
+                sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
+                sessobj.validate()
+                sessobj.save()
+#                print "Appended to  attachments", str(sessobj["attachments"])
+
+        if not first:
+            obj = {}
+            obj["n"] = n
+            obj["files_id"] = ObjectId(resid)
+            obj["data"] = Binary(bfile.read())
+
+            datadb["attachments.chunks"].insert(obj)
+            fileobj = datadb["attachments.files"].find_one({"_id" : obj["files_id"]})
+            datadb["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
+
+        # Finalize
+        # Append to the chunks collection
         return jsonify(jsonresponse)
+
 
     def post(self, dbid, sessid, restype, resid=None):
         if resid == None:
