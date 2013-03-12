@@ -16,4 +16,5 @@ def wipe_all_attachments():
 if __name__ == "__main__":
     print "Helper routine to wipe all attachments and gridfs in some database"
     print "Handle with care and look at code"
+    wipe_all_attachments()
 

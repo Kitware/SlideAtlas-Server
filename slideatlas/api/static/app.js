@@ -116,11 +116,17 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
         // Locate the object
         console.log("Refreshing dbDetailsCtrl" + $routeParams.dbid)
         $scope.dbid = $routeParams.dbid;
-        Session.get({dbid: $routeParams.dbid}, function(data) {
-            Data.setList(data.sessions);
-            $scope.sessions = Data.getList();
-            }
-        );
+        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+        {
+        $scope.sessions = data.sessions
+        });
+
+        
+        //Session.get({dbid: $routeParams.dbid}, function(data) {
+        //    Data.setList(data.sessions);
+        //    $scope.sessions = Data.getList();
+        //    }
+        //);
         
         $scope.deletesession = function(idx) 
         {
@@ -128,13 +134,14 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
         var sess = $scope.sessions[idx]
         if (confirm("Remove attachment " + sess.label + '?')) 
             {
-            //SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref}, 
-            //    function(data) {
-            //        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
-            //            {
-            //            $scope.session = data
-            //            });
-            //    });
+            Session.delete({dbid:$scope.dbid, sessid: sess._id},
+                function(data) {
+                    console.log("success in deletion");
+                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+                        {
+                        $scope.sessions = data.sessions
+                        });
+                });
             }
         }
 
