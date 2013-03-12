@@ -139,7 +139,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                     dataType: 'json',
                     maxChunkSize: 1000, // 10 MB
                     add: function (e, data) {
-                        data.context = $('<p/>').text('Uploading...').appendTo(document.body);
+                        $('#status').text('Uploading...');
                         data.submit();
                     },
                     submit: function(e,data) {
@@ -156,6 +156,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                         return false;
                     },       
                     fail: function (e, data) {
+                        $('#progress').text('Upload failed ...');
                         data.context.text('Upload failed.');
                         var progress = 0;
                         $('#progress .bar').css(
@@ -165,10 +166,11 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                     },
             
                     done: function (e, data) {
-                        data.context.text('Upload finished.');
+                        $("status").text('Upload finished.');
                     },
                     progressall: function (e, data) {
                         var progress = parseInt(data.loaded / data.total * 100, 10);
+                        $('#status').text("Progress = " + progress / 2.0+ '%');
                         $('#progress .bar').css(
                             'width',
                             progress + '%'

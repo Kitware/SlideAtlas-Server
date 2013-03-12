@@ -8,23 +8,18 @@
 </style>
 
 <h2> {{ type }} uploader </h1>
-    
-Select the file to upload 
 </br>
 <form enctype=multipart/form-data>
-<input id="fileupload" type="file" name="files[]">
+ <input id="fileupload" type="file" name="files[]" >
 </form>
-<div id="progress">
+
+<div id="status">
+</div>
+
+<div id="progress" class="progress progress-striped">
     <div class="bar" style="width: 0%;"></div>
 </div>
 
 <script src="/static/js/vendor/jquery.ui.widget.js"></script>
 <script src="/static/js/jquery.fileupload.js"></script>
-<script ng-cloak>
-console.log("/{{dbid}}/sessions/{{sessid}}/attachments");
-
-
-$(function () {
-
-});
-</script>
+<!--   Additional script is executed through evalAsync()     -->
