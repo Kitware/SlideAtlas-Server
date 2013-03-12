@@ -39,6 +39,12 @@ app.factory('Session', function($resource) {
               });
   });
 
+app.factory('SessionItem', function($resource) {
+    return $resource('/apiv1/:dbid/sessions/:sessid/:restype/:resid', {dbid:'@dbid', sessid:'@sessid', restype:'@restype', resid:'@resid'});
+  });
+
+
+
   
 app.factory('Data', function() {
     var methods = {};
@@ -200,7 +206,7 @@ app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Databa
         );
     });
 
-app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
+app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session, SessionItem)
     {   
         // For modifying session as a whole  
         // Locate the object
@@ -220,13 +226,15 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         console.log(attach)
         if (confirm("Remove attachment " + attach.details.name + '?')) 
             {
-            //Database.delete({dbid:db._id}, function(data) {
-            //    Data.removeItem(idx);
-            //    $location.path("/databases");
-            //    });
+            SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref}, 
+                function(data) {
+                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+                        {
+                        $scope.session = data
+                        });
+                });
             }
         }
-
     });
 
 
