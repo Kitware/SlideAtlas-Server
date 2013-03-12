@@ -212,6 +212,21 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
            $scope.session = data
            }
         );
+        
+        $scope.deletefile = function(idx) 
+        {
+        // Locate the object
+        var attach = $scope.session.attachments[idx]
+        console.log(attach)
+        if (confirm("Remove attachment " + attach.details.name + '?')) 
+            {
+            //Database.delete({dbid:db._id}, function(data) {
+            //    Data.removeItem(idx);
+            //    $location.path("/databases");
+            //    });
+            }
+        }
+
     });
 
 

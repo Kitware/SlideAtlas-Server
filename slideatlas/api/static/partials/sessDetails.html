@@ -12,6 +12,7 @@
             <td>
                 <h4> Size </h4>
             </td>
+            <td> </td>
         </thead>
         <tr ng-repeat ="item in session.attachments" >
             <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead"> 
@@ -21,6 +22,7 @@
             <td>
                 {{ item.details.length}}
             </td>
+            <td><a ng-click="deletefile($index)"><i class="icon-remove-sign"></i></a> </td>
         </tr>
     </table>
     </br>
