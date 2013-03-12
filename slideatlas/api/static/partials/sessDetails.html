@@ -14,13 +14,12 @@
             </td>
         </thead>
         <tr ng-repeat ="item in session.attachments" >
-            <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item._id}}" class="lead"> 
-                        {{ item.name}} 
+            <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead"> 
+                        {{ item.details.name}} 
                     </a>
             </td>
             <td>
-            <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
-                        add new  </a>
+                {{ item.details.length}}
             </td>
         </tr>
     </table>

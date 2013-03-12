@@ -2,7 +2,7 @@
 rest api for administrative interface
 refer to documentation
 """
-
+from werkzeug.wsgi import wrap_file
 from flask import Blueprint, render_template, request, url_for, current_app, Response, abort
 from flask.views import MethodView
 from bson import ObjectId
@@ -13,10 +13,12 @@ from celery.platforms import resource
 from slideatlas.common_utils import jsonify
 from slideatlas.model.database import Database
 from slideatlas.model import Session
-
+from gridfs import GridFS
 from slideatlas.common_utils import site_admin_required
 from slideatlas.common_utils import user_required
 import re
+import gridfs
+
 from json import dumps
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -246,7 +248,14 @@ class DataSessionsAPI(MethodView):
                 viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                 aview["details"] = viewdetails
 
-            if not "attachments" in sessobj:
+            # Dereference the attachments
+            attachments = []
+            if "attachments" in sessobj:
+                gfs = GridFS(datadb, "attachments")
+                for anattach in sessobj['attachments']:
+                    fileobj = gfs.get(anattach["ref"])
+                    anattach["details"] = ({'name': fileobj.name, 'length' : fileobj.length})
+            else:
                 sessobj["attachments"] = []
 
             return jsonify(sessobj)
@@ -355,14 +364,43 @@ class DataSessionsAPI(MethodView):
 class DataSessionItemsAPI(MethodView):
     decorators = [user_required]
 
+    def get_data_db(self, dbid):
+            conn.register([Database])
+            admindb = conn[current_app.config["CONFIGDB"]]
+            dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
+            if dbobj == None:
+                return None
+            # TODO: have an application or module level connection pooling
+            return conn[dbobj["dbname"]]
+
     def get(self, dbid, sessid, restype, resid=None):
         if resid == None:
             return "You want alist of %s/%s/%s" % (dbid, sessid, restype)
         else:
-            if restype == "attachments":
-                return "You want list of attachments in %s/%s" % (dbid, sessid)
+            datadb = self.get_data_db(dbid)
+            if datadb == None:
+                return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+
+            if restype == "attachments" or restype == "rawfiles":
+                gf = gridfs.GridFS(datadb , restype)
+
+                fileobj = gf.get(ObjectId(resid))
+                data = wrap_file(request.environ, fileobj)
+                response = current_app.response_class(
+                    data,
+                    mimetype=fileobj.content_type,
+                    direct_passthrough=True)
+                response.content_length = fileobj.length
+                response.last_modified = fileobj.upload_date
+                response.set_etag(fileobj.md5)
+                response.cache_control.max_age = 0
+                response.cache_control.s_max_age = 0
+                response.cache_control.public = True
+                response.headers['Content-Disposition'] = 'attachment; filename=' + fileobj.filename
+                response.make_conditional(request)
+                return response
             else:
-                return "You want list of views in %s/%s" % (dbid, sessid)
+                return "You want %s from views in %s/%s" % (resid, dbid, sessid)
 
     def put(self, dbid, sessid, restype, resid):
         # we are expected to save the uploaded file and return some info about it:
