@@ -387,7 +387,7 @@ class DataSessionItemsAPI(MethodView):
 
         # Expect _id in the form
         try:
-            id = request.form['_id']
+            jsonresponse["_id"] = request.form['_id']
         except:
             return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
 
@@ -419,23 +419,18 @@ class DataSessionItemsAPI(MethodView):
                 else:
                     return Response("{\"error\" : \"Only create method is supported by post \"} " , status=405)
         else:
-            if restype == "attachments":
-
-                return "You want list of attachments in %s/%s" % (dbid, sessid)
-            else:
-                return "You want list of views in %s/%s" % (dbid, sessid)
-
+            return Response("{\"error\" : \"Only posting to all collections of %s are not implemented yet\"} " % (restype) , status=405)
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
-                                '/<regex("(attachments|views|images)"):restype>'
+                                '/<regex("(attachments|views)"):restype>'
                                 , view_func=DataSessionItemsAPI.as_view("show_session_items"),
                                 defaults={'resid':None},
                                 methods=["get", "post"])
 
-# For a list of resources within session
+# For a particular resource from lists (e.g. attachments) within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
@@ -450,7 +445,6 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/<regex("[a-f0-9]{24}"):sessid>'
                                 , view_func=DataSessionsAPI.as_view("show_session"),
                                 methods=["get", "delete", "post"])
-
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
