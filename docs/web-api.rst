@@ -81,12 +81,7 @@ A particular session is obtained by
    GET /apiv1/<dbid>/sessions/<sessid>
       
 The main use case of this is to present the session to the user.  So this does contain all the lists.
-
-.. note::
-
-   TODO: Thinking of dereferencing views and attachments so enough information to display them is presented.
-   
-
+Views, attachments and rawfiles etc are dereferenced to include enough details to present them in a list.
 
 or is deleted by
 
@@ -140,7 +135,7 @@ Later can be generalized to any list
 
 .. code-block:: none
 
-      GET /<dbid>/sessions/<sessid>/<listname>
+      GET /<dbid>/sessions/<sessid>/<resource-type>
       
 To get or delete items
 
@@ -156,12 +151,25 @@ will be the _id in gridfs
 .. code-block:: none
 
    POST /apiv1/<dbid>/sessions/attachments
-   
-returns a new _id.
+   { "insert" : {} } 
+      
+On success returns
+
+.. code-block:: none
+
+   { "_id" : <string ObjectId>}
+
+.. warning::
+
+   The ObjectId is not actually inserted in the attachements collection until the file is actually uploaded.
+   So it will not be visible as attachment or rawfile until then 
+
+On success returns
 
 .. code-block:: none
 
    {'_id' : <ObjectId>}
+
 
 So in the following request And in the following PUT request(s) file chunks are uploaded. see the code for details
 
@@ -170,13 +178,8 @@ So in the following request And in the following PUT request(s) file chunks are 
    PUT /apiv1/<dbid>/sessions/attachments/<fileid>
    {'_id' : <ObjectId>}
 
-.. warning::
 
-   The ObjectId is not actually inserted in the attachements collection until the file is actually uploaded.
-   So it will not be visible as attachment or rawfile until then 
-
-
-TODO: API for insering views is being designed
+TODO: API and UI for insering views is being designed
 
 Items can be modified directly or indirectly for example renaming
 
@@ -188,6 +191,9 @@ Items can be modified directly or indirectly for example renaming
       PATCH /apiv1/<dbid>/sessions/<sessid>/views/<viewid>
       { 'label' : "NEW_NAME"}
       
+
+TODO: Implement above patch queries
+
 Operations like reordering also involve post query
 
 .. code-block:: none
@@ -262,9 +268,29 @@ Get a list of registered facebook groups
 
    GET /apiv1/facebook-groups
    
+The use cases include -
+
+TODO: In future, the groups can be superset of facebook group
+
+.. warning:: 
+
+   How to make sure that while modifying the access rules, minimum rule records are created. 
+   For example, when User1 has can_see permission to SessionA, and a second request comes to grant User1 permissions to User2, 
+   will it be possible to reuse the rule.  What if on a later day, the permission is revoked only for User1. Then 
+   User2  has can_see permission to SessionA. Then rule can be removed from User1's rules. But if the rule contains SessionA and 
+   SessionB then a new Rule needs to be created for User1 for only access to SessionB as access to SessionA has been revoked.
+
+
+- Manipulate the permissions of a facebook group. i.e. grant or revoke
+
+.. code-block:: none
+   
+   GET /apiv1/facebook-groups
+
    POST /apiv1/facebook-groups/<facebook-group-id>
    {'dbid' : '<dbid>', can_see' : [ '<sessionid>', ... ]}
    {'dbid' : '<dbid>', 'can_see_all' : [ '<sessionid>', ... ]}
+
    
 Authentication (login) operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
