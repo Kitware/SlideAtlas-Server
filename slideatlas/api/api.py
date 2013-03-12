@@ -400,6 +400,7 @@ class DataSessionItemsAPI(MethodView):
                 sessobj["attachments"] = attachments
                 sessobj.validate()
                 sessobj.save()
+                return Response("{ \"Success \" : \" \"}", status=200)
             else:
                 return "You want %s from views in %s/%s" % (resid, dbid, sessid)
 
