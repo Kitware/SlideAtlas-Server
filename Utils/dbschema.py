@@ -567,10 +567,49 @@ def get_number_of_all_images(dbobj):
 
 db = conn[site.CONFIGDB]
 #grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
-grant_session(db, "5113c6bb5877181c34f1879c" , str_db="bidmc1", str_group_id="365400966808177")
+# grant_session(db, "5113c6bb5877181c34f1879c" , str_db="bidmc1", str_group_id="365400966808177")
 
-#365400966808177
+#grant_session(db, "4f56b9f74834a30ebc000000" , str_db="bev1", str_group_id="365400966808177")
+#rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Vasculopathic")
 
-#create_admin_user()
+def register_new_database(dbobj, label, dbname):
+    dbdoc = dbobj.databases.Database()
+    dbdoc['label'] = label
+    dbdoc['host'] = HOST
+    dbdoc['dbname'] = dbname
+    dbdoc['copyright'] = 'Copyright &copy 2013, ' + label + '. All rights reserved.'
+    dbdoc.validate()
+    dbdoc.save()
+    print "Registered DB", dbdoc
+
+def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_all=False, can_see=[], db_admin=False):
+    # Find database id 
+    dbdoc = dbobj["databases"].find_one({"dbname" : dbname})
+
+    # Create the rule 
+    stud_rule = dbobj.rules.Rule()
+    if len(label) > 0:
+        stud_rule["label"] = label
+    else:
+        stud_rule['label'] = dbname + "_facebook_" + str_fb_group
+        if can_see_all:
+            stud_rule['label'] = stud_rule['label'] + "_" + can_see_all
+
+    stud_rule['db'] = dbdoc["_id"]
+    stud_rule['db_admin'] = db_admin
+    stud_rule['can_see'] = can_see
+    stud_rule['can_see_all'] = can_see_all
+    stud_rule["facebook_id"] = str_fb_group
+    stud_rule.validate()
+    stud_rule.save()
+    print "Registered ", stud_rule
+
+#register_new_database(db, "Andy Beck", "beck1")
+# returned ObjectId('513fbc64d636479c6501ee78')
+
+#register_new_facebook_rule(db, "beck1", "271779376286267",
+#                           "BIDMC Pathology Beck",
+#                           can_see_all=True, db_admin=True)
+# Returned ObjectId('513fbf70d63647aa6d44f39a')
 
 print "Done"
