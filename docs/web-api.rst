@@ -2,23 +2,30 @@
  commented .. meta:: :http-equiv=refresh: 5
 
 Web API
-=======
+#######
 
-Ultimately this file should become redundant  and the actual documentation of the flask routes should take over
+Ultimately this file should become redundant  and the actual documentation of
+the flask routes should take over
 
-Following set of slides is a very good `Link read <http://lanyrd.com/2012/europython/srzpf/>`_  before discussing this
+Following set of slides is a very good
+`Link read <http://lanyrd.com/2012/europython/srzpf/>`_  before discussing this
 
-This application would have a combination of REST and RPC calls. Or maybe rest like calls with few posts involving methods.
-Using celery to exececute server side operations it is more logical to use rpc like posts on resources pointed by REST api.
+This application would have a combination of REST and RPC calls. Or maybe rest
+like calls with few posts involving methods. Using celery to exececute server
+side operations it is more logical to use rpc like posts on resources pointed
+by REST api.
 
-References for `securing web API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
+References for
+`securing web API's <http://www.infoq.com/news/2010/01/rest-api-authentication-schemes>`_
 
-- Implement in a blueprint so that the url-prefix makes it identifies diferent versions
-- Do some validation in every request, i.e. determine if the user is logged in and what can be queried and then use common helper
-   python routines to get and serve the data
+- Implement in a blueprint so that the url-prefix makes it identifies diferent
+  versions
+- Do some validation in every request, i.e. determine if the user is logged in
+  and what can be queried and then use common helper python routines to get and
+  serve the data
 
 Rest API v1
-~~~~~~~~~~~
+===========
 
  **important**
 
@@ -30,23 +37,28 @@ i.e. to get a list of databases -
 
    localhost:8080/apiv1/databases 
 
-Rest API blueprint is established and later `consumed <https://gist.github.com/3005268>`_ in the web templates interface.
+Rest API blueprint is established and later
+`consumed <https://gist.github.com/3005268>`_ in the web templates interface.
 
-Two kinds API for two kinds of database types. those in image database, and those in administrative database.
-Those in image database require a database id (to locate the database) in each request.
+Two kinds API for two kinds of database types. those in image database, and
+those in administrative database. Those in image database require a database id
+(to locate the database) in each request.
 
-A common decorator to check the access @user_required, and @site_admin required implemented so far.
+A common decorator to check the access @user_required, and @site_admin required
+implemented so far.
 
-Put requests are used for putting entities e.g. file where the destination is known. POST requests are used for posting
-new resources, in particular complete objects. When partial modifications are to be made, PATCH command is used..
+Put requests are used for putting entities e.g. file where the destination is
+known. POST requests are used for posting new resources, in particular complete
+objects. When partial modifications are to be made, PATCH command is used..
 
-TODO: there should be a common place for access information computation about the sessions.
-This will improve the performance of the each reqeust.
+TODO: there should be a common place for access information computation about
+the sessions. This will improve the performance of the each reqeust.
 
 Sessions
 --------
 
-A session is smallest unit for which an access can be granted or revoked. It contains lists of useful items like
+A session is smallest unit for which an access can be granted or revoked. It
+contains lists of useful items like
 
 - Raw images (that are to be processed internally)
 - Views of images
@@ -58,8 +70,9 @@ A list of sessions in a known databaseid is obtained by -
 
       GET /apiv1/<dbid>/sessions
 
-The main use case of this list is to display selectable sessions with the access rights to the user that is logged in
-So the view, attachments and etc lists are not included.
+The main use case of this list is to display selectable sessions with the access
+rights to the user that is logged in So the view, attachments and etc lists are
+not included.
 
 .. warning::
 
@@ -80,8 +93,9 @@ A particular session is obtained by
 
    GET /apiv1/<dbid>/sessions/<sessid>
       
-The main use case of this is to present the session to the user.  So this does contain all the lists.
-Views, attachments and rawfiles etc are dereferenced to include enough details to present them in a list.
+The main use case of this is to present the session to the user.  So this does
+contain all the lists. Views, attachments and rawfiles etc are dereferenced to
+include enough details to present them in a list.
 
 or is deleted by
 
@@ -121,7 +135,7 @@ Modifying the properties of the session are made possible by
 
 
 Items in session (Attachments / Views)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+======================================
 
 A list of the items can be obtaied by
 
@@ -145,7 +159,8 @@ To get or delete items
       DELETE /<dbid>/sessions/<sessid>/views/<viewid>
       DELETE /<dbid>/sessions/<sessid>/rawfiles/<fileid>
 
-Uploading attachments or raw files, first a POST request should be made make a post request to get a new _id, and then upload the file to that _id. That _id
+Uploading attachments or raw files, first a POST request should be made make a
+post request to get a new _id, and then upload the file to that _id. That _id
 will be the _id in gridfs
 
 .. code-block:: none
@@ -171,7 +186,8 @@ On success returns
    {'_id' : <ObjectId>}
 
 
-So in the following request And in the following PUT request(s) file chunks are uploaded. see the code for details
+So in the following request And in the following PUT request(s) file chunks are
+uploaded. see the code for details
 
 .. code-block:: none
 
@@ -207,17 +223,20 @@ returns
 
       { 'label' : "NEW_NAME"}
 
-Or in rare cases when position value of all elements needs to be changed in the client side, it returns entire list
+Or in rare cases when position value of all elements needs to be changed in the
+client side, it returns entire list
 
 Administrative database
-~~~~~~~~~~~~~~~~~~~~~~~
+=======================
 - Resources for administrative interface are "database", "rule", "user"
-- Since the final destination {_id} of the resource is not known to calling rest API POST operation is used
+- Since the final destination {_id} of the resource is not known to calling
+  rest API POST operation is used
 - All queries return empty list when used with GET or 403
 - Resources will return 40X depending on the error
 - There could be a generic API for
 
-Administrative access is required to any queries dealing directly with administrative database
+Administrative access is required to any queries dealing directly with
+administrative database
 
 .. code-block:: none
 
@@ -230,7 +249,8 @@ Administrative access is required to any queries dealing directly with administr
 - Add new rule or database or user
 - A custom validate method over generic object schema checking
 
-   - Whether the database with that dbname exists (and is it slideatlas database)
+   - Whether the database with that dbname exists (and is it slideatlas
+     database)
    - Whether the rule existed
 
 .. code-block:: none
@@ -253,14 +273,15 @@ To partially or fully modify a known database record
       { 'insert' : { '_id' : <id>, 'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}}
 
 
-operations for specific users, a deep delete to also remove all the rules associated with the user
+operations for specific users, a deep delete to also remove all the rules
+associated with the user
 
 .. code-block:: none
 
    - DELETE 
 
 High level API to manage access rights
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+======================================
 
 Get a list of registered facebook groups
 
@@ -274,11 +295,14 @@ TODO: In future, the groups can be superset of facebook group
 
 .. warning:: 
 
-   How to make sure that while modifying the access rules, minimum rule records are created. 
-   For example, when User1 has can_see permission to SessionA, and a second request comes to grant User1 permissions to User2, 
-   will it be possible to reuse the rule.  What if on a later day, the permission is revoked only for User1. Then 
-   User2  has can_see permission to SessionA. Then rule can be removed from User1's rules. But if the rule contains SessionA and 
-   SessionB then a new Rule needs to be created for User1 for only access to SessionB as access to SessionA has been revoked.
+   How to make sure that while modifying the access rules, minimum rule 
+   records are created. For example, when User1 has can_see permission to 
+   SessionA, and a second request comes to grant User1 permissions to User2, 
+   will it be possible to reuse the rule.  What if on a later day, the permission is 
+   revoked only for User1. Then User2  has can_see permission to SessionA. Then
+   rule can be removed from User1's rules. But if the rule contains SessionA and 
+   SessionB then a new Rule needs to be created for User1 for only access to 
+   SessionB as access to SessionA has been revoked.
 
 
 - Manipulate the permissions of a facebook group. i.e. grant or revoke
@@ -293,9 +317,10 @@ TODO: In future, the groups can be superset of facebook group
 
    
 Authentication (login) operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=================================
 
-- A user session can be created by either sending an json request or by logging into page which sends out a json request to the api.
+- A user session can be created by either sending an json request or by
+  logging into page which sends out a json request to the api.
 
 TODO: Rewrite this documentation in the light of new API
 
@@ -311,20 +336,20 @@ TODO: Rewrite this documentation in the light of new API
       - &type=openid
       - &type=password
 
-Few access rights are calculated at the time of login. Hence if the access rights are
-calculated while the user is logged in the user must logout and login again to see the effect.
+Few access rights are calculated at the time of login. Hence if the access
+rights are calculated while the user is logged in the user must logout and
+login again to see the effect.
 
 Viewing and other pages
-~~~~~~~~~~~~~~~~~~~~~~~
+=======================
 - Main image view with annotation management
 
 - /glviewer/<viewid>
    - ?viewid=<viewid>
    - &dbid = <dbid>
 
-   /olviewer?viewid=<viewid>
-   - ?viewid=<viewid>
-   - &dbid = <dbid>
+   /olviewer?viewid=<viewid> - ?viewid=<viewid> - &dbid = <dbid>
 
-TODO: Probably the img appears only in one database, and so dbid could be resolved internally / stored in viewid
+TODO: Probably the img appears only in one database, and so dbid could be
+resolved internally / stored in viewid
 
