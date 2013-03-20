@@ -1,18 +1,18 @@
 
 Administrative roles
-====================
+####################
 
 Following are the use cases accordng to different privileges
 
 Site Admin
-~~~~~~~~~~
+==========
 - Everything that DB admins can do
 - Register / Create new databases in slide atlas system
 - Grant and revoke DB level admin accesses
 - DB to user
 
 DB Admin
-~~~~~~~~
+========
 
 - Everything that session admins can do
 - Create new sessions
@@ -21,7 +21,7 @@ DB Admin
 - Create and revoke database licenses (see below)
 
 Session Admin
-~~~~~~~~~~~~~
+=============
 
 - Upload / delete annotations
 - Lead a session
@@ -32,7 +32,7 @@ Session Admin
 - Create a rule involving this session
 
 No admin
-~~~~~~~~
+========
 
 - Currently only view access
 
@@ -44,7 +44,7 @@ Currently considering only db_admin, and no admin access rights are implemented
 for simplicity.
 
 Uploading files
-~~~~~~~~~~~~~~~
+===============
 
 Upload is currently performed using a desktop application. Anyone can download
 or share this application  But for security only downloading the application
@@ -56,7 +56,7 @@ used for uploading.
 For now only DB administrators are able to upload content to their database.
 
 Managing MongoDB users
-~~~~~~~~~~~~~~~~~~~~~~
+======================
 
 Upload access (in the application) is managed per db in mongodb.
 
