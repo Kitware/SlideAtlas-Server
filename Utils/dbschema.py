@@ -612,6 +612,6 @@ def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_al
 #                           can_see_all=True, db_admin=True)
 # Returned ObjectId('513fbf70d63647aa6d44f39a')
 
-rename_and_grant_session(db, str_session_id="4f66b43b4834a30fc8000000", str_newlabel="Neural Tumors")
+#rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Neural Tumors")
 
 print "Done"
