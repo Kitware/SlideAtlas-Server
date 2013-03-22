@@ -38,6 +38,10 @@ def create_user(admindb, userdb, key=None, debug=False):
     print userdb
     conn = userdb.connection
     # Find  if the database exists
+    print userdb.name
+
+    dbrec = admindb["databases"].find_one({'dbname' :  userdb.name, 'host' : conn.host})
+
     dbrec = admindb["databases"].find_one({'dbname' :  userdb.name, 'host' : conn.host})
 
     info = {  "host" : conn.host,
@@ -52,11 +56,11 @@ def create_user(admindb, userdb, key=None, debug=False):
     if dbrec <> None:
         print "Database record found in the admin database"
         admindb["databases"].update({"_id" : dbrec["_id"]}, { "$push" :  { "users" :  info }})
+        # Create the user
+        userdb.add_user(uname, pwd, False)
     else:
-        print "Database not registered"
-
-    # Create the user
-    userdb.add_user(uname, pwd, False)
+        print "Error, Database not registered"
+        sys.exit(1)
 
     return info
 
@@ -71,10 +75,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Utility to rename sessions on 1.x slideatlas servers')
     parser.add_argument('-d', '--db' , required=True, help='Database to which user is added')
+    parser.add_argument('-a', '--admindb' , help='Administrative database', required=True)
     parser.add_argument('-u', '--username' , default="", help='Admin Username (Should have write access)')
     parser.add_argument('-p', '--password' , default="", help='Admi Password')
     parser.add_argument('-m', '--mongodb' , help='MongoDB Server to connect to', default="127.0.0.1:27017")
-    parser.add_argument('-a', '--admindb' , help='Administrative database')
     parser.add_argument('-k', '--key' , help='File key to user')
 
     parser.add_argument('-n', '--noop', help='Dry run, no updates to the destination database', action='store_true')
@@ -94,10 +98,10 @@ if __name__ == '__main__':
     # Try authenticated connection 
     try:
         conn = pymongo.Connection(args.mongodb)
-        mongodb = conn["admin"]
         # Find if authentication is necessary
         if len(args.username) > 0:
-            if not mongodb.authenticate(args.username, args.password):
+            logindb = conn["admin"]
+            if not logindb.authenticate(args.username, args.password):
                 raise 1
             else:
                 print "Connection Successful .. "
