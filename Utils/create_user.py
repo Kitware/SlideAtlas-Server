@@ -42,8 +42,6 @@ def create_user(admindb, userdb, key=None, debug=False):
 
     dbrec = admindb["databases"].find_one({'dbname' :  userdb.name, 'host' : conn.host})
 
-    dbrec = admindb["databases"].find_one({'dbname' :  userdb.name, 'host' : conn.host})
-
     info = {  "host" : conn.host,
                    "db" : userdb.name,
                    "username":  uname,

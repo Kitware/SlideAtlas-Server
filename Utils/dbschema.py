@@ -572,10 +572,10 @@ db = conn[site.CONFIGDB]
 #grant_session(db, "4f56b9f74834a30ebc000000" , str_db="bev1", str_group_id="365400966808177")
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Vasculopathic")
 
-def register_new_database(dbobj, label, dbname):
+def register_new_database(dbobj, label, dbname, host):
     dbdoc = dbobj.databases.Database()
     dbdoc['label'] = label
-    dbdoc['host'] = HOST
+    dbdoc['host'] = host
     dbdoc['dbname'] = dbname
     dbdoc['copyright'] = 'Copyright &copy 2013, ' + label + '. All rights reserved.'
     dbdoc.validate()
@@ -613,5 +613,5 @@ def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_al
 # Returned ObjectId('513fbf70d63647aa6d44f39a')
 
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Neural Tumors")
-
+#register_new_database(db, "Austin Newman and Dr Googe", "austin1", "slide-atlas.org")
 print "Done"
