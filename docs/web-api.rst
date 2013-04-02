@@ -109,22 +109,19 @@ or is deleted by
    If an attempt is made to delete a non-empty session, an error will be returned. 
    This will change when management of orphan items is implemented.
 
-.. note::
-   **Following are thoughts**
+It might be useful to have an api call to purge entire session including all the items (images / files or attachments) in a session.
 
-   A particular session contains other items. So the question comes
-   what happens to the items in the session when the session is removed.
+.. code-block:: none
    
-   Current thought is to move all the items (references to a orphan session)
+   POST /apiv1/<dbid>/sessions/<sessid>
+   {purge : [ <"session", "images", "attachments", "raw-files">] }
+
+The parameters can be "session",  in which case all the items are recursively removed along with the session.
+ Other parameters will delete all the items of a kind. i.e. "images" will delete all the images.
+
+.. note::
+   Another possibility is to move all the items to an orphan session
    which is displayed only to administrators.
-
-   Possibly implement a recursive delete call by
-
-   .. code-block:: none
-      
-      POST /apiv1/<dbid>/sessions/<sessid>
-      {purge : ["images", "attachments", "raw-files"]}
-
 
 Modifying the properties of the session are made possible by
 
