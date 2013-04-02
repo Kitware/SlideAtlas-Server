@@ -569,6 +569,8 @@ db = conn[site.CONFIGDB]
 #grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
 # grant_session(db, "5113c6bb5877181c34f1879c" , str_db="bidmc1", str_group_id="365400966808177")
 
+grant_session(db, "5149ec3d58771824f80e77df" , str_db="bidmc1", str_group_id="365400966808177")
+
 #grant_session(db, "4f56b9f74834a30ebc000000" , str_db="bev1", str_group_id="365400966808177")
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Vasculopathic")
 
@@ -582,7 +584,18 @@ def register_new_database(dbobj, label, dbname, host):
     dbdoc.save()
     print "Registered DB", dbdoc
 
-def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_all=False, can_see=[], db_admin=False):
+def register_new_google(dbobj, email, label):
+    usrdoc = dbobj.users.User()
+    usrdoc['label'] = label
+    usrdoc['name'] = email
+    usrdoc['type'] = "google"
+    usrdoc['rules'] = []
+    usrdoc.validate()
+    usrdoc.save()
+    print "Registered User", usrdoc
+
+
+def register_new_rule(dbobj, dbname, str_fb_group=None, label='', can_see_all=False, can_see=[], db_admin=False):
     # Find database id 
     dbdoc = dbobj["databases"].find_one({"dbname" : dbname})
 
@@ -599,10 +612,38 @@ def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_al
     stud_rule['db_admin'] = db_admin
     stud_rule['can_see'] = can_see
     stud_rule['can_see_all'] = can_see_all
-    stud_rule["facebook_id"] = str_fb_group
+    if str_fb_group <> None:
+        stud_rule["facebook_id"] = str_fb_group
     stud_rule.validate()
     stud_rule.save()
     print "Registered ", stud_rule
+
+# TODO: Can inherit some operations and make it into object
+def grant_to_google_user(dbobj, email, str_ruleid):
+    userobj = dbobj["users"].User.fetch_one({"name" : email, "type" : "google" })
+    if userobj <> None:
+        print "Found user:" , userobj
+    else:
+        print "Error: Need to create user"
+        return
+
+    ruleid = ObjectId(str_ruleid)
+
+    ruleobj = dbobj["rules"].find_one({"_id" : ruleid})
+    if ruleobj <> None:
+        print "Found rule:" , ruleobj
+    else:
+        print "Error: No such rule"
+        return
+
+    if ruleid in userobj["rules"]:
+        print "Rule already applied to user"
+    else:
+        print "Rule needs to be applied"
+        userobj["rules"].append(ruleid)
+        userobj.validate()
+        userobj.save()
+        print "New User: ", userobj
 
 #register_new_database(db, "Andy Beck", "beck1")
 # returned ObjectId('513fbc64d636479c6501ee78')
@@ -613,5 +654,20 @@ def register_new_facebook_rule(dbobj, dbname, str_fb_group, label='', can_see_al
 # Returned ObjectId('513fbf70d63647aa6d44f39a')
 
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Neural Tumors")
+
 #register_new_database(db, "Austin Newman and Dr Googe", "austin1", "slide-atlas.org")
+#register_new_google(db, "austin.newman@gmail.com", "Austin Newman")
+#register_new_google(db, "paulgooge@gmail.com", "Paul Googe")
+#Registered User {'name': 'austin.newman@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Austin Newman', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3420'), 'type': 'google'}
+#Registered User {'name': 'paulgooge@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Paul Googe', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3421'), 'type': 'google'}
+
+#register_new_rule(db, "austin1", None,
+#                           "Dr Googe and Austin Newman",
+#                           can_see_all=True, db_admin=True)
+#Registered  {'db_admin': True, 'site_admin': None, 'db': ObjectId('51549f11d6364788300ff401'), 'label': 'Dr Googe and Austin Newman', 'can_see_all': True, 'facebook_id': None, 'can_see': [], '_id': ObjectId('515a1273d6364710d68b4e87')}
+#
+#grant_to_google_user(db, "dhandeo@gmail.com", '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "paulgooge@gmail.com", '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "austin.newman@gmail.com" , '515a1273d6364710d68b4e87')
+
 print "Done"
