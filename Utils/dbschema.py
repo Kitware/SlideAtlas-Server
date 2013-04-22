@@ -1,5 +1,6 @@
 # include top level PYTHONPATH 
 import sys
+from flask_openid import OpenID
 sys.path.append("..")
 
 from subprocess import call
@@ -569,7 +570,7 @@ db = conn[site.CONFIGDB]
 #grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
 # grant_session(db, "5113c6bb5877181c34f1879c" , str_db="bidmc1", str_group_id="365400966808177")
 
-grant_session(db, "5149ec3d58771824f80e77df" , str_db="bidmc1", str_group_id="365400966808177")
+#grant_session(db, "5149ec3d58771824f80e77df" , str_db="bidmc1", str_group_id="365400966808177")
 
 #grant_session(db, "4f56b9f74834a30ebc000000" , str_db="bev1", str_group_id="365400966808177")
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Vasculopathic")
@@ -591,6 +592,7 @@ def register_new_google(dbobj, email, label):
     usrdoc['type'] = "google"
     usrdoc['rules'] = []
     usrdoc.validate()
+    print usrdoc
     usrdoc.save()
     print "Registered User", usrdoc
 
@@ -620,7 +622,7 @@ def register_new_rule(dbobj, dbname, str_fb_group=None, label='', can_see_all=Fa
 
 # TODO: Can inherit some operations and make it into object
 def grant_to_google_user(dbobj, email, str_ruleid):
-    userobj = dbobj["users"].User.fetch_one({"name" : email, "type" : "google" })
+    userobj = dbobj["users"].User.find_one({"name" : email, "type" : "google" })
     if userobj <> None:
         print "Found user:" , userobj
     else:
@@ -655,9 +657,12 @@ def grant_to_google_user(dbobj, email, str_ruleid):
 
 #rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Neural Tumors")
 
+#rename_and_grant_session(db, str_session_id="4f258dc54834a30b24000000", str_newlabel="Congenital Diseases")
+#rename_and_grant_session(db, str_session_id="4f728d064834a30efc000000", str_newlabel="Degenerative, Perforating, and Nutritional Disorders")
+
 #register_new_database(db, "Austin Newman and Dr Googe", "austin1", "slide-atlas.org")
 #register_new_google(db, "austin.newman@gmail.com", "Austin Newman")
-#register_new_google(db, "paulgooge@gmail.com", "Paul Googe")
+#register_new_google(db, "befjones@gmail.com", "Beverly E. Faulkner-Jones")
 #Registered User {'name': 'austin.newman@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Austin Newman', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3420'), 'type': 'google'}
 #Registered User {'name': 'paulgooge@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Paul Googe', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3421'), 'type': 'google'}
 
@@ -669,5 +674,9 @@ def grant_to_google_user(dbobj, email, str_ruleid):
 #grant_to_google_user(db, "dhandeo@gmail.com", '515a1273d6364710d68b4e87')
 #grant_to_google_user(db, "paulgooge@gmail.com", '515a1273d6364710d68b4e87')
 #grant_to_google_user(db, "austin.newman@gmail.com" , '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "stephen.turney@gmail.com", '515a1273d6364710d68b4e87')
+grant_to_google_user(db, "befjones@gmail.com" , '515a1273d6364710d68b4e87')
+
+#grant_session(db, "516240a74834a3017896a8e0" , str_db="bidmc1", str_group_id="365400966808177")
 
 print "Done"

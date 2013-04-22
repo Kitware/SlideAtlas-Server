@@ -6,7 +6,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(".."))
-from slideatlas.common_utils import get_object_in_collection
+from common_utils import get_object_in_collection
 
 # def CreateJpegThumb(binary_jpeg_image, channel_threshold=245):
 # TODO: Currently depends on wx, this routine should be rewritten 
