@@ -245,12 +245,13 @@ def glview():
 
     
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    if viewobj["type"] == "single" :
-      return glsingle(db,dbid,viewid,viewobj)
-    if viewobj["type"] == "comparison" :
-      return glcomparison(db,dbid,viewid,viewobj)
-    else : # old style
-      return glview2(db,dbobj,dbid,viewid,viewobj)
+    if 'type' in viewobj:
+      if viewobj["type"] == "single" :
+        return glsingle(db,dbid,viewid,viewobj)
+      if viewobj["type"] == "comparison" :
+        return glcomparison(db,dbid,viewid,viewobj)
+    # old style
+    return glview2(db,dbobj,dbid,viewid,viewobj)
 
 
 

@@ -421,7 +421,7 @@ function SaveView() {
        //alert(data + "\nStatus: " + status);
        },
     error: function() { alert( "AJAX - error(): save View" ); },
-    });
+    }});
 }
 
 
