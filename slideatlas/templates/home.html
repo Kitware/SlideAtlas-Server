@@ -4,18 +4,17 @@
 {{ super() }}
 <div class="container">
 
-<br/>
-<h2> Welcome to SlideAtlas : {{git}} </h2>
+<h2> Welcome to SlideAtlas </h2>
+<table class="table table-bordered table-hover">
+<tr> <td> Version </td> <td> {{git}} </td></tr>
+<tr> <td> Host </td> <td> {{host}} </td></tr>
+</table>  
 
-<br/>
-
-{% if name %}
-  <h3>Hello {{ name }} !</h3>
+{% if label %}
+<table class="table table-bordered table-hover">
+<tr> <td> Username </td><td> {{username}} </td></tr>
+<tr> <td> Label </td><td> {{label}} </td></tr>
+</table`>
 {% endif %}
-
-{% if email %}
-  <h3>Email : {{ email }}!</h3>
-{% endif %}
-
 </div>
 {% endblock %}

@@ -17,7 +17,8 @@ Welcome to SlideAtlas's documentation!
    common-utilities
    ui-design
    testing
-   
+   tasks
+
 
 Indices and tables
 ==================

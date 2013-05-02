@@ -6,6 +6,11 @@
 {% block head %}
 {{ super() }} 
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<style type="text/css">
+    [ng\:cloak], [ng-cloak], .ng-cloak {
+      display: none !important;
+    }
+</style>
 {% endblock %}
 
 {% block body_content %}
@@ -75,7 +80,14 @@
 {% endif %}
 {% endwith %}
 
+{#
+{%- for msg in session %}
+<li>{{ msg }} {{ session[msg] }}</li>
+{% endfor -%}
+#}
+
 </div>
+
 
 {% endblock %}
 

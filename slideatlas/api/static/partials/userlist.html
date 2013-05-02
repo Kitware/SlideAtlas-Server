@@ -1,0 +1,25 @@
+     <div ng-controller="UserListCtrl">
+         <br/>
+         Total Users : {{users.length }}
+         <-- br/>                     
+         Google Users : {{users.length }}
+         <br/>                     
+         Facebook Users : {{users.length }}
+         <br/-->
+         <table class="table table-striped">
+            <thead>
+                <tr>
+                <td><h4>User name </h4></td>
+                <td><h4>Host</h4></td>
+                <td> </td>
+                <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
+               </tr>
+           </thead>
+            <tr ng-repeat ="anitem in items" >
+                <td>{{ adb.dbname }} </td>
+                <td>{{ adb.host }} </td>
+                <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
+                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
+            </tr>
+  </div>
+    

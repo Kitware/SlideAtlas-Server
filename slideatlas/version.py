@@ -1,9 +1,13 @@
 import os
 from subprocess import check_output
+import inspect
 
 def get_git_name():
     curdir = os.getcwd()
-    newdir = os.path.dirname(os.path.abspath(__file__))
+#    print curdir
+    p = inspect.getfile(get_git_name)
+    newdir = os.path.dirname(os.path.abspath(p))
+#    print newdir
     out = ''
     try:
         params = ["git", "describe", "--tags", "--always"]
