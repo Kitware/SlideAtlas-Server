@@ -246,9 +246,9 @@ function saveStack() {
     }
   };
 
+
   function initViews() {
-    VIEWER1 = new Viewer([0,0, CANVAS.clientWidth,CANVAS.clientHeight], null);
-    EVENT_MANAGER.AddViewer(VIEWER1);
+    VIEWER1 = initView([0,0, CANVAS.clientWidth,CANVAS.clientHeight]);
 
     // Preload all the sources.
     SECTIONS = [];
@@ -285,8 +285,7 @@ function saveStack() {
     VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
 
     setupCrossHairs();
-
-    }
+  }
 
   
   function updateSection(inc) {
@@ -323,6 +322,7 @@ function saveStack() {
     setupCrossHairs();
   }
 
+  // Markers to see stack correlations.
   function setupCrossHairs() {
     if ( ! EDIT_R) { return; }
     VIEWER1.ShapeList = [];
@@ -517,30 +517,6 @@ function ToggleAnnotationVisibility() {
     document.oncontextmenu = cancelContextMenu;
 
         
-    // Place the zoom in / out buttons.
-    // Todo: Make the button become more opaque when pressed.
-    // Associate with viewer (How???).
-    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '55px',
-        'right' : '5px',
-        'z-index': '2'
-    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}").click(function(){
-             VIEWER1.AnimateZoom(0.5);});
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '5px',
-        'right' : '5px',
-        'z-index': '2'
-    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
-             VIEWER1.AnimateZoom(2.0);});            
 
              
              
@@ -686,7 +662,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-            Color:<input type="color" id="circlecolor" ></input></br>
+            Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
             Line Width:<input id="circlelinewidth" ></input></br>
             <p id="circlearea"></p>
           </fieldset>
@@ -697,7 +673,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-            Color:<input type="color" id="polylinecolor" ></input></br>
+            Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
             Line Width:<input id="polylinewidth" ></input>
           </fieldset>
         </form>
@@ -707,7 +683,7 @@ function ToggleAnnotationVisibility() {
         <form>
           <fieldset>
             <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-            Color:<input type="color" id="arrowcolor" ></input>
+            Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
             <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
             <p id="ArrowLength"></p>
           </fieldset>

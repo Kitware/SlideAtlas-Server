@@ -7,42 +7,175 @@ from slideatlas.common_utils import jsonify
 
 import pdb
 
+# View that toggles between single and dual.
+# Note: I am working toward moving as much onto the client (single vs dual) as possbile.
+# The annoying thing here is the extent to which information is spread between view, image and bookmarks.
+# what is the point of an image?  Shouldn't the meta data be stored in the pyramid database info collection or the view?
+# This will change when I include bookmarks as annotation in the view.
+# a tree of views will make things more complex.
+def glsingle(db, dbid, viewid, viewobj):
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+    
+    #pdb.set_trace()
+    
+    # The base view is for the left panel
+    img = {}
+    img["db"] = dbid
+    img["viewid"] = viewid
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
+    img["center"] = str(bookmarkobj["center"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+    if 'zoom' in bookmarkobj:
+        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
+    if 'viewHeight' in bookmarkobj:
+        img["viewHeight"] = str(bookmarkobj["viewHeight"])
+
+    # record the bookmarks as annotation.
+    annotations = []
+    if 'annotations' in viewobj:
+        for annotation in viewobj["annotations"]:
+            if 'type' in annotation:
+                if annotation["type"] == "text" :
+                    annotation["string"] = annotation["string"].replace("\n", "\\n")
+                    annotations.append(annotation)
+    img["annotations"] = annotations;
+
+    question = {}
+    question["viewer1"] = img;
+
+    # now create a list of options.
+    # this array will get saved back into the view
+    optionViews = []
+    # I am separating out the image information because we get it from the images
+    optionImages = []
+
+    # I am embedding views in the options array rather than referencing object ids.
+    if 'options' in viewobj:
+        for viewobj in viewobj["options"]:
+            # The optionView stores the image and anything that can change with the comparison view.
+            optionView = {}
+            optionView["label"] = str(viewobj["label"])
+            optionView["db"] = dbid
+            optionView["img"] = str(viewobj["img"])
+            optionView["viewHeight"] = str(viewobj["viewHeight"])
+            optionView["center"] = str(viewobj["center"])
+            optionView["rotation"] = str(viewobj["rotation"])
+            optionViews.append(optionView)
 
 
+            # now for the info needed for display, but not put back into the database view object
+            # get the option image database object to copy its info.
+            imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+            # Start of the info object
+            optionImage = {}
+            optionImage["origin"] = str(imgobj2["origin"])
+            optionImage["spacing"] = str(imgobj2["spacing"])
+            optionImage["levels"] = str(imgobj2["levels"])
+            if 'dimension' in imgobj2:
+                optionImage["dimension"] = str(imgobj2["dimension"])
+            elif 'dimensions' in imgobj2:
+                optionImage["dimension"] = str(imgobj2["dimensions"])
+            optionImages.append(optionImage)
+    question["options"] = optionViews;
+    question["optionInfo"] = optionImages;
 
-mod = Blueprint('glviewer', __name__,
-                template_folder="templates",
-                static_folder="static",
-                url_prefix="/webgl-viewer"
-                )
+    return make_response(render_template('single.html', question=question))
+    
 
-@mod.route('')
-def glview():
-    """
-    - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
-    """
+def glcomparison(db, dbid, viewid, viewobj):
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
-    # See if the user is requesting any session id
-    viewid = request.args.get('view', None)
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db', None)
+    # I cannot figure out how to pass a string with newlines  and quotes
+    #annotationsStr = json.dumps(viewobj["annotations"])
+    #annotationsStr = annotationsStr.replace("&#34;","'")
+    #annotationsStr = annotationsStr.replace("\n","\\n")
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
-    db = conn[dbobj["dbname"]]
+    # The base view is for the left panel
+    img = {}
+    img["db"] = dbid
+    img["viewid"] = viewid
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
+    img["center"] = str(bookmarkobj["center"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+    if 'zoom' in bookmarkobj:
+        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
+    if 'viewHeight' in bookmarkobj:
+        img["viewHeight"] = str(bookmarkobj["viewHeight"])
 
-    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+    # record the bookmarks as annotation.
+    annotations = []
+    if 'annotations' in viewobj:
+        for annotation in viewobj["annotations"]:
+            if 'type' in annotation:
+                if annotation["type"] == "text" :
+                    annotation["string"] = annotation["string"].replace("\n", "\\n")
+                    annotations.append(annotation)
+    img["annotations"] = annotations;
+
+    question = {}
+    question["viewer1"] = img;
+
+    # now create a list of options.
+    # this array will get saved back into the view
+    optionViews = []
+    # I am separating out the image information because we get it from the images
+    optionImages = []
+
+    # I am embedding views in the options array rather than referencing object ids.
+    if 'options' in viewobj:
+        for viewobj in viewobj["options"]:
+            # The optionView stores the image and anything that can change with the comparison view.
+            optionView = {}
+            optionView["label"] = str(viewobj["label"])
+            optionView["db"] = dbid
+            optionView["img"] = str(viewobj["img"])
+            optionView["viewHeight"] = str(viewobj["viewHeight"])
+            optionView["center"] = str(viewobj["center"])
+            optionView["rotation"] = str(viewobj["rotation"])
+            optionViews.append(optionView)
+
+
+            # now for the info needed for display, but not put back into the database view object
+            # get the option image database object to copy its info.
+            imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+            # Start of the info object
+            optionImage = {}
+            optionImage["origin"] = str(imgobj2["origin"])
+            optionImage["spacing"] = str(imgobj2["spacing"])
+            optionImage["levels"] = str(imgobj2["levels"])
+            if 'dimension' in imgobj2:
+                optionImage["dimension"] = str(imgobj2["dimension"])
+            elif 'dimensions' in imgobj2:
+                optionImage["dimension"] = str(imgobj2["dimensions"])
+            optionImages.append(optionImage)
+    question["options"] = optionViews;
+    question["optionInfo"] = optionImages;
+
+    return make_response(render_template('comparison.html', question=question))
+        
+    
+    
+    
+def glview2(db, dbobj, dbid, viewid, viewobj):
     imgid = viewobj["img"]
-
     if not imgid:
         imgid = '4f2808554834a30ccc000001'
-
-    # TODO: Store database in the view and do not pass as arg.
-    if not dbid:
-        dbid = '5074589002e31023d4292d83'
-
-    conn.register([model.Database])
 
     # difference? #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     #dbobj = admindb["databases"].find_one({"_id" : ObjectId(dbid)})
@@ -78,6 +211,55 @@ def glview():
     return render_template('viewer.html', img=img)
 
 
+
+
+
+
+
+mod = Blueprint('glviewer', __name__,
+                template_folder="templates",
+                static_folder="static",
+                url_prefix="/webgl-viewer"
+                )
+
+@mod.route('')
+def glview():
+    """
+    - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
+    """
+
+    # See if the user is requesting any session id
+    viewid = request.args.get('view', None)
+    
+    # this is the same as the sessions db in the sessions page.
+    # TODO: Store database in the view and do not pass as arg.
+    dbid = request.args.get('db', None)
+    if not dbid:
+        dbid = '5074589002e31023d4292d83'
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
+    db = conn[dbobj["dbname"]]
+    conn.register([model.Database])
+
+    
+    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+    if viewobj["type"] == "single" :
+      return glsingle(db,dbid,viewid,viewobj)
+    if viewobj["type"] == "comparison" :
+      return glcomparison(db,dbid,viewid,viewobj)
+    else : # old style
+      return glview2(db,dbobj,dbid,viewid,viewobj)
+
+
+
+    
+    
+    
+    
+    
+    # I believe this is legacy.  
 @mod.route('/dual')
 def glviewdual():
     """
@@ -157,7 +339,7 @@ def glviewdual():
 @mod.route('/comparison')
 def glcomparison():
     """
-    - /webgl-viewer/comparison?db=507619bb0a3ee10434ae0827&viewid=5074528302e3100db8429cb4
+    - /webgl-viewer/comparison?db=507619bb0a3ee10434ae0827&view=5074528302e3100db8429cb4
     """
 
     # Comparison is a modified view.
@@ -370,14 +552,9 @@ def glcomparisonconvert():
                                  { "$set" : { "type" : "comparison" } })
 
     return viewid
-
-
-
-    
-    
-    
  
 
+ 
 # Stack viewer.
 @mod.route('/stack')
 def glstack():
@@ -531,4 +708,56 @@ def glstackinsert():
 
     return "Success"
 
-    
+
+
+
+
+
+
+# I need to unify.  Comparison, stack and single view.
+# Saves the default view back into the database.
+@mod.route('/save-view', methods=['GET', 'POST'])
+def glcomparisonsave():
+    #pdb.set_trace()
+
+    messageStr = request.form['message']  # for post
+
+    messageObj = json.loads(messageStr)
+    dbid = messageObj["db"]
+    viewid = inputObj["viewid"]
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    if operation == "view" :
+        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        bookmarkid = viewobj["startup_view"]
+
+        # Save the annotations
+        db["views"].update({"_id" : ObjectId(viewid) },
+                                     { "$set" : { "annotations" : inputObj["Viewer1"]["annotations"] } })
+
+        # Save the startup view / bookmark
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
+                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
+                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
+        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
+                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
+
+                                     # may or may not work
+        #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+        #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
+        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
+        #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
+        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj) 
+
+
+    return operation
+
+
+
+
+
+

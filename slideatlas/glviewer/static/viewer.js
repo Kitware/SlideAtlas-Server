@@ -34,7 +34,9 @@ function Viewer (viewport, cache) {
 
   this.DoubleClickX = 0; 
   this.DoubleClickY = 0;
-}
+
+  this.GuiElements = [];
+  }
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
@@ -42,8 +44,42 @@ Viewer.prototype.SetCache = function(cache) {
   this.OverView.SetCache(cache);
 }
 
+
+Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
+  var element = {};
+  element.Id = idString;
+  element[relativeX] = x;
+  element[relativeY] = y;
+  this.GuiElements.push(element);
+}
+
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
+
+  // I am working on getting gui elements managed by the viewer.
+  // Informal for now.
+  for (var i = 0; i < this.GuiElements.length; ++i) {
+    var button = this.GuiElements[i];
+    var jButton = $(button.Id);
+    if (viewport[2] < 300 || viewport[3] < 300) {
+      jButton.hide();
+    } else {
+      jButton.show();
+    }
+    
+    if (button.Bottom) {
+      var pos = button.Bottom.toString() + "px";
+      jButton.css({
+      'bottom' : pos});
+    }
+    if (button.Right) {
+      var pos = viewport[0] + viewport[2] - button.Right; 
+      pos = pos.toString() + "px";
+      jButton.css({
+      'left' : pos});
+    }
+  }
+
   this.MainView.SetViewport(viewport);
   var overViewport = [viewport[0] + viewport[2]*0.8, 
                       viewport[1] + viewport[3]*0.8,
@@ -72,6 +108,13 @@ Viewer.prototype.SetDimensions = function(dims) {
     this.OverView.Camera.ComputeMatrix();
     eventuallyRender();
 }
+
+// To fix a bug in the perk and elmer uploader.
+Viewer.prototype.ToggleMirror = function() {
+    this.MainView.Camera.Mirror = ! this.MainView.Camera.Mirror;
+    this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
+}
+
 
 // This is used to set the default camera so the complexities 
 // of the target and overview are hidden.
@@ -365,6 +408,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   x = x/viewport[2];
   y = y/viewport[3];
   var cam = this.MainView.Camera;
+
   x = (x*2.0 - 1.0)*cam.Matrix[15];
   y = (y*2.0 - 1.0)*cam.Matrix[15];
   var m = cam.Matrix;

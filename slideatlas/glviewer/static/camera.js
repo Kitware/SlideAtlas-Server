@@ -2,7 +2,7 @@
 // Camera Object
 function Camera (viewportWidth, viewportHeight) {
     // Better managmenet of layers and sub layers.
-    // Assigne a range of the z buffer  for the view to use exclusively.
+    // Assign a range of the z buffer  for the view to use exclusively.
     // The full range is -1->1.  -1 is in front.
     this.ZRange = [-1.0,1.0];
     this.Roll = 0;
@@ -16,6 +16,7 @@ function Camera (viewportWidth, viewportHeight) {
     this.Points = [];
     this.Buffer = null;
     this.CreateBuffer();
+    this.Mirror = false;
 }
 
 
@@ -36,9 +37,13 @@ Camera.prototype.HandleTranslate = function (dx,dy) {
     var w = this.GetWidth();
     var h = this.GetHeight();
     
+    if (this.Mirror) {
+      dy = -dy;
+    }
+    
     // Scale to world.
-    dx = dx * h;
-    dy = dy * h;
+    dx = dx * w;
+    dy = dy * w;
     // Rotate
     var rx = dx*c + dy*s;
     var ry = dy*c - dx*s;
@@ -59,10 +64,16 @@ Camera.prototype.HandleRoll = function (x,y, dx, dy) {
   // Remove magnitude of location.
   // Scale by R to get correct angle.
   dRoll = dRoll / (x*x + y*y);
+  if ( this.Mirror) {
+    dRoll = -dRoll;
+  }
   // Keep roll in radians.
   this.Roll += dRoll;
+  
   this.ComputeMatrix();
 }
+
+
 
 
 Camera.prototype.Translate = function (dx,dy,dz) {
@@ -78,7 +89,7 @@ Camera.prototype.GetHeight = function () {
 }
 
 Camera.prototype.GetWidth = function () {
-    return this.Height * this.ViewportWidth / this.ViewportHeight;
+  return this.Height * this.ViewportWidth / this.ViewportHeight;
 }
 
 // Camera matrix transforms points into camera coordinate system 
@@ -93,7 +104,9 @@ Camera.prototype.ComputeMatrix = function () {
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
     var h = this.GetHeight();
- 
+
+    if (this.Mirror) { h = -h; }
+    
     mat4.identity(this.Matrix);
 
     this.Matrix[0] = c;

@@ -1,0 +1,73 @@
+<!doctype html>
+ 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jQuery UI Sortable - Default functionality</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+  <style>
+  #sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+  #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 28px; }
+  #sortable li span { position: absolute; margin-left: -1.3em; }
+  </style>
+  <script>
+    $(function() {
+      $( "#sortable" ).sortable();
+      $( "#sortable" ).disableSelection();
+    });
+
+    function deleteView(arg) {
+      // A hack, but how should it be done right?
+      var tmp = "#"+arg;
+      $(tmp).remove();
+    }
+
+    function save() {
+      var views = [];
+      $('li', 'ul').each(function () {
+        //views.push($(this).text());
+        views.push($(this).attr('id'));
+      });
+      // Save the new order inthe database.
+      var args = {};
+      args.views = views;
+      args.db = "{{data.db}}";
+      args.session = "{{data.sessid}}";
+
+      $.ajax({
+        type: "post",
+        url: "/session-save",
+        data: {"input" :  JSON.stringify( args )},
+        success: function(data,status){
+           //alert(data + "\nStatus: " + status);
+           },
+        error: function() { alert( "AJAX - error()" ); },
+        });      
+    }
+
+    </script>
+  
+</head>
+<body>
+ 
+<ul id="sortable">
+  {% for animage in data.list %}
+    <li class="ui-state-default" id="{{animage.view}}">
+      <!-- <span class="ui-icon ui-icon-arrowthick-2-n-s"></span> !-->
+      <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
+
+      <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" height=32px></td> 
+      {{ animage.label}}
+    </li>
+  {% endfor %}
+  
+</ul>
+
+
+<button onclick="save()">Save</button>
+ 
+ 
+</body>
+</html>

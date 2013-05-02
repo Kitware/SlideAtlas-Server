@@ -28,11 +28,11 @@ function getCookie(c_name)
 
 
 
-function ShowComparisonEditMenu(x, y) {
-    $('#comparisonEditMenu').css({'top': y, 'left':x}).show();
+function ShowViewEditMenu(x, y) {
+    $('#viewEditMenu').css({'top': y, 'left':x}).show();
 }
 
-function InitComparisonEditMenus() {
+function InitViewEditMenus() {
     // Create the menu of edit options.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
@@ -45,37 +45,41 @@ function InitComparisonEditMenus() {
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'
-    }).attr('id', 'comparisonEditMenu').hide()
+    }).attr('id', 'viewEditMenu').hide()
       .mouseleave(function(){$(this).fadeOut();});
     
-    var comparisonEditSelector = $('<ol>');
-    comparisonEditSelector.appendTo('#comparisonEditMenu')
-             .attr('id', 'comparisonEditSelector')
+    var viewEditSelector = $('<ol>');
+    viewEditSelector.appendTo('#viewEditMenu')
+             .attr('id', 'viewEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
-    $('<li>').appendTo(comparisonEditSelector)
+    $('<li>').appendTo(viewEditSelector)
+             .text("dual view")
+             .attr('id', 'toggleDualItem')
+             .click(function(){ToggleDualView();});
+    $('<li>').appendTo(viewEditSelector)
              .text("add diagnosis")
-             .click(function(){ComparisonAddDiagnosis();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewAddDiagnosis();});
+    $('<li>').appendTo(viewEditSelector)
              .text("delete diagnosis")
-             .click(function(){ComparisonDeleteDiagnosis();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewDeleteDiagnosis();});
+    $('<li>').appendTo(viewEditSelector)
              .text("edit diagnosis label")
-             .click(function(){ComparisonEditDiagnosisLabel();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewEditDiagnosisLabel();});
+    $('<li>').appendTo(viewEditSelector)
              .text("save right view")
-             .click(function(){ComparisonSaveRightView();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewSaveRightView();});
+    $('<li>').appendTo(viewEditSelector)
              .text("save left view")
-             .click(function(){ComparisonSaveLeftView();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewSaveLeftView();});
+    $('<li>').appendTo(viewEditSelector)
              .text("new annotaton")
-             .click(function(){ComparisonNewAnnotation();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewNewAnnotation();});
+    $('<li>').appendTo(viewEditSelector)
              .text("copy options")
-             .click(function(){ComparisonCopyOptions();});
-    $('<li>').appendTo(comparisonEditSelector)
+             .click(function(){ViewCopyOptions();});
+    $('<li>').appendTo(viewEditSelector)
              .text("paste options")
-             .click(function(){ComparisonPasteOptions();});
+             .click(function(){ViewPasteOptions();});
 
     // Create a selection list of sessions.   
     $('<div>').appendTo('body').css({
@@ -125,7 +129,7 @@ function InitComparisonEditMenus() {
 
 
     // Create the dialog to edit diagnosis labels.
-    var tmp = $('<div>').attr('id', 'comparisonDialog').hide();
+    var tmp = $('<div>').attr('id', 'viewDialog').hide();
     tmp.appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -134,7 +138,7 @@ function InitComparisonEditMenus() {
     }).attr('title', 'Edit Label');
     $('<label>').appendTo(tmp).text("Diagnosis : ");
     $('<input type="text"/>').appendTo(tmp).attr('id', 'diagnosisLabelInput').css({'width': '100%'});
-    $('<button>').appendTo(tmp).text("Submit").click(function(){ComparisonEditDiagnosisLabelSubmit();});
+    $('<button>').appendTo(tmp).text("Submit").click(function(){ViewEditDiagnosisLabelSubmit();});
 }
 
 function InitSessionMenuAjax(data) {
@@ -175,19 +179,19 @@ function ShowViewMenuAjax(data) {
 }
 function ViewMenuCallback(obj) {
     // We need the information in view, image and bookmark (startup_view) object.
-    //window.location = "http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
-    //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
-    $.get(COMPARISON_OPTION_URL+"?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
+    //window.location = "http://localhost:8080/webgl-viewer/View-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
+    //$.get("http://localhost:8080/webgl-viewer/View-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
+    $.get(VIEW_OPTION_URL+"?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
           function(data,status){
             if (status == "success") {
-              AddComparisonOption(data);
+              AddViewOption(data);
             } else { alert("ajax failed."); }
           });
 }
 
 
 // It would be nice to share this method with the initialization code.
-function AddComparisonOption(option) {
+function AddViewOption(option) {
     var index = ARGS.Options.length;
     // Add a new option.
     var view = {};
@@ -219,17 +223,17 @@ function AddComparisonOption(option) {
     changeOption(index);
     
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
 }
 
-//    url: "http://localhost:8080/webgl-viewer/comparison-save",
-function ComparisonSave(operation) {
+//    url: "http://localhost:8080/webgl-viewer/view-save",
+function ViewSave(operation) {
   if ( ! EDIT) {
     return;
   }
   $.ajax({
     type: "post",
-    url: COMPARISON_SAVE_URL,
+    url: VIEW_SAVE_URL,
     data: {"input" :  JSON.stringify( ARGS ),
            "operation" : operation},
     success: function(data,status){
@@ -239,13 +243,13 @@ function ComparisonSave(operation) {
     });
  }
 
-function ComparisonSaveAnnotations() {
+function ViewSaveAnnotations() {
     ARGS.Viewer1.annotations = [];
     for (i in VIEWER1.WidgetList) {
         widget = VIEWER1.WidgetList[i];
         ARGS.Viewer1.annotations.push(widget.Serialize());
     }
-    ComparisonSave("view");
+    ViewSave("view");
 }
 
 // Set the current option / diagnosis.
@@ -288,13 +292,13 @@ function changeOption(index) {
 
 
 
-function ComparisonAddDiagnosis() {
-    $('#comparisonEditMenu').hide();
+function ViewAddDiagnosis() {
+    $('#viewEditMenu').hide();
     $('#sessionMenu').show();
 }
 
-function ComparisonDeleteDiagnosis() {
-    $('#comparisonEditMenu').hide();
+function ViewDeleteDiagnosis() {
+    $('#viewEditMenu').hide();
     if (VIEWER2.OptionIndex == undefined) {
         alert("No diangosis selected to delete.");
         return;
@@ -324,10 +328,10 @@ function ComparisonDeleteDiagnosis() {
     changeOption(-1);
     
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
 }
 
-function ComparisonEditDiagnosisLabel() {
+function ViewEditDiagnosisLabel() {
     if (VIEWER2.OptionIndex == undefined) {
         alert("No diangosis selected to edit.");
         return;
@@ -335,12 +339,12 @@ function ComparisonEditDiagnosisLabel() {
     var selectedIndex = VIEWER2.OptionIndex;
 
     $('#diagnosisLabelInput').attr('value', ARGS.Options[selectedIndex].label);
-    $('#comparisonDialog').dialog();
+    $('#viewDialog').dialog();
     
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
 }
-function ComparisonEditDiagnosisLabelSubmit() {
+function ViewEditDiagnosisLabelSubmit() {
     if (VIEWER2.OptionIndex == undefined) { // check should not be necessary here.
         alert("No diangosis selected to edit.");
         return;
@@ -354,14 +358,14 @@ function ComparisonEditDiagnosisLabelSubmit() {
     // The menu button needs to change because the option is selected.
     $('#diagnosis').text(txt);
 
-    $('#comparisonDialog').dialog( "close" );    
+    $('#viewDialog').dialog( "close" );    
 
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
 }
 
 
-function ComparisonSaveRightView() {
+function ViewSaveRightView() {
     if (VIEWER2.OptionIndex == undefined) {
         alert("No diangosis selected to edit.");
         return;
@@ -374,37 +378,85 @@ function ComparisonSaveRightView() {
     ARGS.Options[selectedIndex].center = [cam.FocalPoint[0], cam.FocalPoint[1]];
     ARGS.Options[selectedIndex].rotation = 180 * cam.Roll / 3.14159265;
     
-    $('#comparisonEditMenu').hide();
+    $('#viewEditMenu').hide();
     
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
+}
+
+// It would be nice to animate the transition
+// It would be nice to integrate all animation in a flexible utility.
+var ANIMATION_LAST_TIME;
+var ANIMATION_DURATION;
+var ANIMATION_TARGET;
+
+
+
+function ToggleDualView() {
+  $('#viewEditMenu').hide();
+
+  DUAL_VIEW = ! DUAL_VIEW;
+
+  if (DUAL_VIEW) {
+    ANIMATION_CURRENT = 1.0;
+    ANIMATION_TARGET = 0.5;
+    $('#toggleDualItem').text("single view");    
+  } else {
+    ANIMATION_CURRENT = 0.5;
+    ANIMATION_TARGET = 1.0;
+    $('#toggleDualItem').text("dual view");    
+  }
+  ANIMATION_LAST_TIME = new Date().getTime();
+  ANIMATION_DURATION = 200.0;
+  AnimateViewToggle();
+}
+
+function AnimateViewToggle() {
+  var timeStep = new Date().getTime() - ANIMATION_LAST_TIME;
+  if (timeStep > ANIMATION_DURATION) {
+    // end the animation.
+    VIEWER1_FRACTION = ANIMATION_TARGET;
+    handleResize();
+    return;
+    }
+  
+  var k = timeStep / ANIMATION_DURATION;
+  
+  // update
+  ANIMATION_DURATION *= (1.0-k);
+  VIEWER1_FRACTION += (ANIMATION_TARGET-VIEWER1_FRACTION) * k;
+  handleResize();
+  requestAnimFrame(AnimateViewToggle);
 }
 
 
-function ComparisonSaveLeftView() {
+
+
+
+function ViewSaveLeftView() {
     var cam = VIEWER1.GetCamera();
     ARGS.Viewer1.viewHeight = cam.Height;
     // Copy values not pointer reference.
     ARGS.Viewer1.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
     ARGS.Viewer1.rotation = 180 * cam.Roll / 3.14159265;
     
-    $('#comparisonEditMenu').hide();
+    $('#viewEditMenu').hide();
     
     // Save the new options in mongo
-    ComparisonSave("view");
+    ViewSave("view");
 }
 
 
 // Use cookies as a clipboard for copy and paste.
-function ComparisonCopyOptions() {
-  setCookie("ComparisonOptions",JSON.stringify(ARGS.Options),1);
-  setCookie("ComparisonOptionInfo",JSON.stringify(ARGS.OptionInfo),1);
-  $('#comparisonEditMenu').hide();
+function ViewCopyOptions() {
+  setCookie("viewOptions",JSON.stringify(ARGS.Options),1);
+  setCookie("viewOptionInfo",JSON.stringify(ARGS.OptionInfo),1);
+  $('#viewEditMenu').hide();
 }
 
-function ComparisonPasteOptions() {
-    var options = getCookie("ComparisonOptions");
-    var optionInfo = getCookie("ComparisonOptionInfo");
+function ViewPasteOptions() {
+    var options = getCookie("viewOptions");
+    var optionInfo = getCookie("viewOptionInfo");
     if (options == null || options == "" || optionInfo == null || optionInfo == "") {
         alert("Nothing on the clipboard.");
         return;
@@ -423,18 +475,18 @@ function ComparisonPasteOptions() {
     }
 
     // Save the new options in mongo
-    ComparisonSave("options");
+    ViewSave("options");
 
-    $('#comparisonEditMenu').hide();
+    $('#viewEditMenu').hide();
 }
 
 
-function ComparisonNewAnnotation() {
+function ViewNewAnnotation() {
     SetAnnotationVisibility(true);
    // The text is created when the apply button is pressed.
    $("#text-properties-dialog").dialog("open");
     
-   $('#comparisonEditMenu').hide();
+   $('#viewEditMenu').hide();
 }
 
 
@@ -450,4 +502,5 @@ function SessionAdvance() {
 
 function SessionAdvanceAjax() {
 }
+
 

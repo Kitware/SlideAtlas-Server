@@ -80,7 +80,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
     //}
     tmp = tmp * canvasHeight / this.TileDimensions[1];
     var level = 0;
-    while (tmp > 1.5) {
+    while (tmp > 1.0) {
         ++level;
         tmp = tmp * 0.5;
     }

@@ -5,6 +5,18 @@
 // The viewer/ html file will check this global before processing events.
 var DIALOG_OPEN = false;
 
+// How to get events with click (right left mouse on button?????
+//function AnnotationButtonPress(event) {
+//    if (event.which == 3) {
+//      ShowAnnotationEditMenu(event.clientX, event.clientY);
+//    } else {
+//      ToggleAnnotationVisibility();
+//    }
+//}
+
+function ToggleAnnotationVisibility() {
+    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+}
 
 function SetAnnotationVisibility(visibility) {
     VIEWER1.ShapeVisibility = visibility;
@@ -15,7 +27,6 @@ function SetAnnotationVisibility(visibility) {
     }
     eventuallyRender();    
 }
-
 
 function ShowAnnotationEditMenu(x, y) {
     $('#AnnotationEditMenu').css({'top': y, 'left':x}).show();
@@ -53,6 +64,43 @@ function InitAnnotationEditMenus() {
     $('<li>').appendTo(AnnotationEditSelector)
              .text("save annotations")
              .click(function(){SaveAnnotations();});
+    // annotation should be linked to right click anntoation button.
+    // This should be in a different menu.
+    $('<li>').appendTo(AnnotationEditSelector)
+             .text("flip horizontal")
+             .click(function(){FlipHorizontal();});
+    $('<li>').appendTo(AnntationEditSelector)
+             .text("save view")
+             .click(function(){SaveView();});
+             
+
+    // I cannot get this to work.
+             
+    //var textDiv = $('<div>').appendTo('body')
+    //  .attr('id', 'text-properties-dialog')
+    //  .attr('title', 'Text Annotation Editor');
+    //var textForm = $('<form>').appendTo(textDiv);
+    //$('textarea').appendTo(textDiv).attr('id', 'textwidgetcontent').css({'width':'100%', 'height':'100%'});
+    //$('</br>').appendTo(textDiv);
+    //$('Color:<input type="color" value="#0000ff">')
+    //  .appendTo(textDiv)
+    //  .attr('id', 'textcolor');
+    //$('</br>').appendTo(textDiv);
+    //$('<input type="checkbox" value="#0000ff">')
+    //  .appendTo(textDiv)
+    //  .attr('id', 'TextMarker');
+    //  .value("Marker");
+    
+    //$("<div id='text-properties-dialog' title='Text Annotation Editor' > <form> <textarea id='textwidgetcontent' style='width:100%;height:100%;' ></textarea> </br> Color:<input type='color' id='textcolor' //value='#0000ff'></input></br> <input type='checkbox' id='TextMarker' checked /> Marker </input>  </form> </div>");
+
+    //  <div id="text-properties-dialog" title="Text Annotation Editor" >
+    //    <form>
+    //      <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+    //      Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
+    //      <input type="checkbox" id="TextMarker" checked /> Marker </input>
+    //    </form>
+    //  </div>
+
 
     // annotation dialogs for editing properties
     $("#text-properties-dialog").dialog({
@@ -164,12 +212,6 @@ function InitAnnotationEditMenus() {
              
 }
 
-// Hack.  We need some uniform way to save annotations.
-// TODO fix this.
-// This is called from TextWidget.
-function ComparisonSaveAnnotations() {
-}
-
 
 // url: "http://localhost:8080/webgl-viewer/stack-save",
 function SaveAnnotations() {
@@ -254,7 +296,6 @@ function AnnotationNewCircle() {
     widget.AnchorShape.SetFillColor(hexcolor);
     widget.SetAnchorShapeVisibility(markerFlag);
 
-    //ComparisonSaveAnnotations();
     
     eventuallyRender();
   }
@@ -313,7 +354,6 @@ function AnnotationNewCircle() {
       // shape list and widget list.
       widget.RemoveFromViewer();
       WidgetPropertyDialogDelete();
-      //ComparisonSaveAnnotations();
       eventuallyRender();
     }
   }
@@ -340,18 +380,48 @@ function LoadWidget(viewer, serializedWidget) {
 }
 
 
-function ToggleAnnotationVisibility() {
-    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+
+// Stuff that really does not belong here.
+
+
+// Mirror image
+function FlipHorizontal() {
+   $('#AnnotationEditMenu').hide();
+
+    var cam = VIEWER1.GetCamera();
+    VIEWER1.ToggleMirror();
+    VIEWER1.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
 }
 
-function SetAnnotationVisibility(visibility) {
-    VIEWER1.ShapeVisibility = visibility;
-    if (visibility) {
-        $("#annotationButton").css({'opacity': '0.6'});
-    } else {
-        $("#annotationButton").css({'opacity': '0.2'});
-    }
-    eventuallyRender();    
+// Todo: Convert this from dual view comparison to standard viewer.
+function SaveView() {
+  $('#AnnotationEditMenu').hide();
+  var cam = VIEWER1.GetCamera();
+
+  var messageObj = {};
+  messageObj.db = DBID;
+  messageObj.viewid = VIEWID;
+  messageObj.cam = {};
+  
+  if (cam.Mirror) {
+    messageObj.cam.height = - cam.Height;
+  } else {
+    messageObj.cam.height = cam.Height;
+  }
+ 
+  // Copy values not pointer reference.
+  messageObj.cam.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
+  messageObj.cam.rotation = 180.0 * cam.Roll / 3.14159265;
+
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/save-view",
+    data: {"message" :  JSON.stringify( messageObj ),
+    success: function(data,status){
+       //alert(data + "\nStatus: " + status);
+       },
+    error: function() { alert( "AJAX - error(): save View" ); },
+    });
 }
 
 

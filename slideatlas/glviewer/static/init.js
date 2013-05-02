@@ -258,8 +258,8 @@ function initImageTileBuffers() {
 var RENDER_PENDING = false;
 function eventuallyRender() {
     if (! RENDER_PENDING) {
-    RENDER_PENDING = true;
-    requestAnimFrame(tick);
+      RENDER_PENDING = true;
+      requestAnimFrame(tick);
     }
 }
 
@@ -270,3 +270,36 @@ function tick() {
 
 
 
+// TODO:
+// I still need to make the zoom buttons relative to the viewport
+// Also the callback (zoom) cannot be hardcoded to VIEWER1!!!!!
+function initView(viewport) {
+  var viewer = new Viewer(viewport, null);
+  EVENT_MANAGER.AddViewer(viewer);
+
+  // Place the zoom in / out buttons.
+  // Todo: Make the button become more opaque when pressed.
+  // Associate with viewer (How???).
+  // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+  $('<img>').appendTo('body').css({
+      'opacity': '0.4',
+      'position': 'absolute',
+      'height': '50px',
+      'width': '50px',
+      'bottom' : '55px',
+      'right' : '5px',
+      'z-index': '2'
+  }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomin2.png").click(function(){
+           VIEWER1.AnimateZoom(0.5);});
+  $('<img>').appendTo('body').css({
+      'opacity': '0.4',
+      'position': 'absolute',
+      'height': '50px',
+      'width': '50px',
+      'bottom' : '5px',
+      'right' : '5px',
+      'z-index': '2'
+  }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomout2.png").click(function(){
+           VIEWER1.AnimateZoom(2.0);});                
+  return viewer;
+}

@@ -7,6 +7,9 @@ from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from bson import ObjectId
 
+import json
+import pdb
+
 NUMBER_ON_PAGE = 10
 
 
@@ -215,3 +218,95 @@ def sessions():
             return jsonify(sessions=sessionlist, name=name, ajax=1)
         else:
             return render_template('sessionlist.html', sessions=sessionlist, name=name)
+
+
+
+
+
+# change the order of views in the
+@mod.route('/sessionedit')
+def sessionedit():
+    """
+    - /session-edit?sessid=10239094124
+    """
+    # See if the user is requesting any session id
+    sessid = request.args.get('sessid', None)
+    sessdb = request.args.get('sessdb', None)
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
+    db = conn[dbobj["dbname"]]
+
+    session = db["sessions"].find_one({"_id" : ObjectId(sessid) })
+
+    # iterate through the view objects and record image information.
+    list = []
+    if session.has_key("views"):
+        for aview in session['views']:
+            view = db["views"].find_one({"_id" : aview["ref"]})
+            image = db["images"].find_one({'_id' : ObjectId(view["img"])})
+            if image.has_key("thumb"):
+                del image['thumb']
+                db["images"].save(image)
+
+            item = {}
+            item['db'] = str(dbobj["_id"])
+            item['session'] = sessid;
+            item["img"] = str(view["img"])
+            item["label"] = image["label"]
+            item["view"] = str(aview["ref"])
+            list.append(item)    
+    
+    data = {
+             'success': 1,
+             'db' : sessdb,
+             'sessid' : sessid,
+             'session' : session,
+             'list' : list
+             }
+
+    return render_template('sessionedit.html', data=data)
+
+    
+    
+# Saves comparison view back into the database.
+@mod.route('/session-save', methods=['GET', 'POST'])
+def sessionsave():
+
+    inputStr = request.form['input']  # for post
+    #inputStr = request.args.get('input', "{}") # for get
+
+    inputObj = json.loads(inputStr)
+    dbId = inputObj["db"]
+    sessId = inputObj["session"]
+    viewIds = inputObj["views"]
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbId) })
+    db = conn[dbobj["dbname"]]
+
+    # get the session in the database to modify.
+    session = db["sessions"].find_one({"_id" : ObjectId(sessId) })
+    # create a new list of sessions.
+    oldViews = session["views"]
+    newViews = []
+    for viewId in viewIds:
+      for index, view in enumerate(oldViews):
+        if str(view["ref"]) == viewId :
+          view["pos"] = index
+          del oldViews[index]
+          newViews.append(view)
+    
+    # pdb.set_trace()
+
+    # Delete the views that are left over.
+    # Views are owned by the session.
+    # Images can be shared.
+    for view in oldViews:
+      db["views"].remove({"_id" : view["ref"] })
+
+    session["views"] = newViews;
+    db["sessions"].save(session);
+
+    # I should probably return success.  This is just a place holder.
+    return "success";
