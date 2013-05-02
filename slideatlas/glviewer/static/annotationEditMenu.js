@@ -5,24 +5,27 @@
 // The viewer/ html file will check this global before processing events.
 var DIALOG_OPEN = false;
 
+// How to get events with click (right left mouse on button?????
+//function AnnotationButtonPress(event) {
+//    if (event.which == 3) {
+//      ShowAnnotationEditMenu(event.clientX, event.clientY);
+//    } else {
+//      ToggleAnnotationVisibility();
+//    }
+//}
 
 function ToggleAnnotationVisibility() {
-  var vis = VIEWER1.GetAnnotationVisibility();
-  if (vis == ANNOTATION_OFF) {
-    vis == ANNOTATION_NO_TEXT;
-  } else if (vis == ANNOTATION_NO_TEXT) {
-    vis == ANNOTATION_ON;
-  } else {
-    vis == ANNOTATION_OFF;
-  }
-  SetAnnotationVisibility( vis );
+    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
 }
 
 function SetAnnotationVisibility(visibility) {
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  if ( ! viewer) { return; }
-  viewer.SetAnnotationVisibility(visibility);
-  eventuallyRender();    
+    VIEWER1.ShapeVisibility = visibility;
+    if (visibility) {
+        $("#annotationButton").css({'opacity': '0.6'});
+    } else {
+        $("#annotationButton").css({'opacity': '0.2'});
+    }
+    eventuallyRender();    
 }
 
 function ShowAnnotationEditMenu(x, y) {
@@ -66,7 +69,7 @@ function InitAnnotationEditMenus() {
     $('<li>').appendTo(AnnotationEditSelector)
              .text("flip horizontal")
              .click(function(){FlipHorizontal();});
-    $('<li>').appendTo(AnnotationEditSelector)
+    $('<li>').appendTo(AnntationEditSelector)
              .text("save view")
              .click(function(){SaveView();});
              
@@ -418,7 +421,7 @@ function SaveView() {
        //alert(data + "\nStatus: " + status);
        },
     error: function() { alert( "AJAX - error(): save View" ); },
-    }});
+    });
 }
 
 

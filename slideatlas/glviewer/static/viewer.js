@@ -2,26 +2,12 @@
 // There is only one viewer that handles events.  It can forwad events
 // to other objects as it see fit however.
 
-// I am changing this to support three states of annotation visibility:
-// None, Annotations, but no text, and all on.
-var ANNOTATION_OFF = 0;
-var ANNOTATION_NO_TEXT = 1;
-var ANNOTATION_ON = 2;
-
-var INTERACTION_NONE = 0;
-var INTERACTION_DRAG = 1;
-var INTERACTION_ROTATE = 2;
-var INTERACTION_ZOOM = 3;
 
 function Viewer (viewport, cache) {
   // Some of these could get transitioned to view or style ...
   // Left click option: Drag in main window, place in overview.
   this.OverViewEventFlag = false;
 
-  // Interaction state:
-  // What to do for mouse move or mouse up.
-  this.InteractionState = INTERACTION_NONE;
-  
   this.AnimateLast;
   this.AnimateDuration = 0.0;
   this.TranslateTarget = [0.0,0.0];
@@ -41,7 +27,7 @@ function Viewer (viewport, cache) {
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
 
-  this.AnnotationVisibility = ANNOTATION_OFF;
+  this.ShapeVisibility = false;
   this.ShapeList = [];
   this.WidgetList = [];
   this.ActiveWidget = null;
@@ -50,17 +36,7 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
-}
-  
-  
-
-Viewer.prototype.GetAnnotationVisibility = function() {
-  return this.AnnotationVisibility;
-}
-  
-Viewer.prototype.SetAnnotationVisibility = function(vis) {
-  this.AnnotationVisibility = vis;
-}  
+  }
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
@@ -68,31 +44,6 @@ Viewer.prototype.SetCache = function(cache) {
   this.OverView.SetCache(cache);
 }
 
-Viewer.prototype.GetCache = function() {
-  return this.MainView.GetCache();
-}
-
-Viewer.prototype.ShowGuiElements = function() {
-  for (var i = 0; i < this.GuiElements.length; ++i) {
-    var element = this.GuiElements[i];
-    if ('Object' in element) {
-      element.Object.show();
-    } else if ('Id' in element) {
-      $(element.Id).show();
-    }
-  }
-}
-
-Viewer.prototype.HideGuiElements = function() {
-  for (var i = 0; i < this.GuiElements.length; ++i) {
-    var element = this.GuiElements[i];
-    if ('Object' in element) {
-      element.Object.hide();
-    } else if ('Id' in element) {
-      $(element.Id).hide();
-    }
-  }
-}
 
 Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
   var element = {};
@@ -102,59 +53,29 @@ Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) 
   this.GuiElements.push(element);
 }
 
-Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
-  var element = {};
-  element.Object = object;
-  element[relativeX] = x;
-  element[relativeY] = y;
-  this.GuiElements.push(element);
-}
-
-
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
 
   // I am working on getting gui elements managed by the viewer.
   // Informal for now.
   for (var i = 0; i < this.GuiElements.length; ++i) {
-    var element = this.GuiElements[i];
-    var object;
-    if ('Object' in element) {
-      object = element.Object;
-    } else if ('Id' in element) {
-      object = $(element.Id);
+    var button = this.GuiElements[i];
+    var jButton = $(button.Id);
+    if (viewport[2] < 300 || viewport[3] < 300) {
+      jButton.hide();
     } else {
-      continue;
+      jButton.show();
     }
-
-    // When the viewports are too small, large elements overlap ....
-    // This stomps on the dual view arrow elementts visibility.
-    // We would need out own visibility state ...
-    //if (viewport[2] < 300 || viewport[3] < 300) {
-    //  object.hide();
-    //} else {
-    //  object.show();
-    //}
     
-    if ('Bottom' in element) {
-      var pos = element.Bottom.toString() + "px";
-      object.css({
-      'bottom' : pos});
-    } else if ('Top' in element) {
-      var pos = element.Top.toString() + "px";
-      object.css({
+    if (button.Bottom) {
+      var pos = button.Bottom.toString() + "px";
+      jButton.css({
       'bottom' : pos});
     }
-
-    if ('Left' in element) {
-      var pos = viewport[0] + element.Left; 
+    if (button.Right) {
+      var pos = viewport[0] + viewport[2] - button.Right; 
       pos = pos.toString() + "px";
-      object.css({
-      'left' : pos});
-    } else if ('Right' in element) {
-      var pos = viewport[0] + viewport[2] - element.Right; 
-      pos = pos.toString() + "px";
-      object.css({
+      jButton.css({
       'left' : pos});
     }
   }
@@ -172,11 +93,10 @@ Viewer.prototype.GetViewport = function() {
   return this.MainView.Viewport;
 }
 
-// For the overview and maybe camera reset in the future.
+// For the overview and maybe reset camera in the future.
 Viewer.prototype.SetDimensions = function(dims) {
     this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
     this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
-    
     var height = dims[1];
     // See if the view is constrained by the width.
     var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
@@ -184,13 +104,8 @@ Viewer.prototype.SetDimensions = function(dims) {
       height = height2;
     }
     this.OverView.Camera.Height = height;
+
     this.OverView.Camera.ComputeMatrix();
-
-    // Set the default main view camera too  (in case a camera is not in database).
-    this.MainView.Camera.FocalPoint = this.OverView.Camera.FocalPoint.slice(0); // slice=>clone
-    this.MainView.Camera.Height = this.OverView.Camera.Height;
-    this.MainView.Camera.ComputeMatrix();
-
     eventuallyRender();
 }
 
@@ -200,19 +115,6 @@ Viewer.prototype.ToggleMirror = function() {
     this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
 }
 
-// Same as set camera but use animation
-Viewer.prototype.AnimateCamera = function(center, rotation, height) {
-
-  this.ZoomTarget = height;
-  // Compute traslate target to keep position in the same place.
-  this.TranslateTarget[0] = center[0];
-  this.TranslateTarget[1] = center[1];  
-  this.RollTarget = rotation;
-
-  this.AnimateLast = new Date().getTime();
-  this.AnimateDuration = 200.0; // hard code 200 milliseconds
-  eventuallyRender();
-}
 
 // This is used to set the default camera so the complexities 
 // of the target and overview are hidden.
@@ -240,11 +142,6 @@ Viewer.prototype.GetCamera = function() {
     return this.MainView.Camera;
 }
 
-Viewer.prototype.GetSpacing = function() {
-  var cam = this.GetCamera();
-  var viewport = this.GetViewport();
-  return cam.Height / viewport[3];
-}
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
@@ -305,28 +202,9 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
   eventuallyRender();
 }
 
-
-
-Viewer.prototype.RemoveWidget = function(widget) {
-  if (widget.Viewer == null) {
-    return;
-  }
-  widget.Viewer = null;
-  var idx = this.WidgetList.indexOf(widget);
-  if(idx!=-1) { 
-    this.WidgetList.splice(idx, 1); 
-  }
-}
-
-
-
 // Load a widget from a json object (origin MongoDB).
 Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
-    case "pencil":
-      var pencil = new PencilWidget(this, false);
-      pencil.Load(obj);  
-      break;
     case "arrow":
       var arrow = new ArrowWidget(this, false);
       arrow.Load(obj);  
@@ -392,21 +270,14 @@ Viewer.prototype.Draw = function() {
   this.OverView.DrawTiles();
   this.MainView.DrawTiles();
 
-  if (this.AnnotationVisibility) {
-    for(i=0; i<this.ShapeList.length; i++){
-      this.ShapeList[i].Draw(this.MainView);
-    }
-    for(i in this.WidgetList){
-      this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-    }
+  if (this.ShapeVisibility) {
+      for(i=0; i<this.ShapeList.length; i++){
+        this.ShapeList[i].Draw(this.MainView);
+      }
+      for(i in this.WidgetList){
+        this.WidgetList[i].Draw(this.MainView);
+      }
   }
-}
-
-// Makes the viewer clean to setup a new slide...
-Viewer.prototype.Reset = function() {
-  this.SetCache(null);
-  this.WidgetList = [];
-  this.ShapeList = [];
 }
 
 // A list of shapes to render in the viewer
@@ -425,25 +296,22 @@ Viewer.prototype.Animate = function() {
     this.OverView.Camera.Roll = this.MainView.Camera.Roll = this.RollTarget;
     this.MainView.Camera.FocalPoint[0] = this.TranslateTarget[0];
     this.MainView.Camera.FocalPoint[1] = this.TranslateTarget[1];
-
-    // Save the state when the animation is finished.
-    RecordState();
   } else {
     // Interpolate
     var currentHeight = this.MainView.Camera.GetHeight();
     var currentCenter = this.MainView.Camera.FocalPoint;
     var currentRoll   = this.MainView.Camera.Roll;
     this.MainView.Camera.Height
-      = currentHeight + (this.ZoomTarget-currentHeight)
+	    = currentHeight + (this.ZoomTarget-currentHeight)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.Roll = this.OverView.Camera.Roll
-      = currentRoll + (this.RollTarget-currentRoll)
+	    = currentRoll + (this.RollTarget-currentRoll)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.FocalPoint[0]
-      = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+	    = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.FocalPoint[1]
-      = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+	    = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     // We are not finished yet.
     // Schedule another render
@@ -493,39 +361,25 @@ Viewer.prototype.HandleMouseDown = function(event) {
     x = x - this.OverView.Viewport[0];
     y = y - this.OverView.Viewport[1];
     this.OverViewPlaceCamera(x, y);
-    return;
-  }
-
-  // Choose what interaction will be performed.
-  if (event.SystemEvent.which == 1 ) {
-    if (event.SystemEvent.ctrlKey) {
-      this.InteractionState = INTERACTION_ROTATE;
-    } else if (event.SystemEvent.altKey) {    
-      this.InteractionState = INTERACTION_ZOOM;
-    } else {
-      this.InteractionState = INTERACTION_DRAG;
-    }
-  }
-  if (event.SystemEvent.which == 2 ) {
-    this.InteractionState = INTERACTION_ROTATE;
   }
 }
 
 Viewer.prototype.HandleDoubleClick = function(event) {
+  // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleDoubleClick(event);
+    this.ActiveWidget.HandleMouseDown(event);
     return;
   }
   
   // Detect double click.
-  mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
-  if (event.SystemEvent.which == 1) {
-    this.AnimateDoubleClickZoom(0.5, mWorld);
-    //this.AnimateZoom(0.5);
-  } else if (event.SystemEvent.which == 3) {
-    this.AnimateDoubleClickZoom(2.0, mWorld);
-    //this.AnimateZoom(2.0);
-  }
+    mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
+    if (event.SystemEvent.which == 1) {
+      this.AnimateDoubleClickZoom(0.5, mWorld);
+      //this.AnimateZoom(0.5);
+    } else if (event.SystemEvent.which == 3) {
+      this.AnimateDoubleClickZoom(2.0, mWorld);
+      //this.AnimateZoom(2.0);
+    }
 }
 
 Viewer.prototype.HandleMouseUp = function(event) {
@@ -534,12 +388,6 @@ Viewer.prototype.HandleMouseUp = function(event) {
     this.ActiveWidget.HandleMouseUp(event);
     return;
   }
-
-  if (this.InteractionState != INTERACTION_NONE) {
-    this.InteractionState = INTERACTION_NONE;
-    RecordState();
-  }
-  
   return;
 }
 
@@ -575,7 +423,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   }
   
   // See if any widget became active.
-  if (event.SystemEvent.which == 0 && this.AnnotationVisibility) {
+  if (event.SystemEvent.which == 0 && this.ShapeVisibility) {
     for (var i = 0; i < this.WidgetList.length; ++i) {
       if (this.WidgetList[i].CheckActive(event)) {
         this.ActivateWidget(this.WidgetList[i]);
@@ -590,7 +438,15 @@ Viewer.prototype.HandleMouseMove = function(event) {
   
   var x = event.MouseX;
   var y = event.MouseY;
-
+  var rotate = false;
+  var zoom = false;
+  if (event.SystemEvent.ctrlKey || event.SystemEvent.which == 2 ) {
+    rotate = true;
+  }
+  if (event.SystemEvent.altKey) {    
+    rotate = false;
+    zoom = true;
+  }
   if (this.OverViewEventFlag) {
     x = x - this.OverView.Viewport[0];
     y = y - this.OverView.Viewport[1];
@@ -602,7 +458,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   // Drag camera in main view.
   x = x - this.MainView.Viewport[0];
   y = y - this.MainView.Viewport[1];
-  if (this.InteractionState == INTERACTION_ROTATE) {
+  if (rotate) {
     // Rotate
     // Origin in the center.
     // GLOBAL GL will use view's viewport instead.
@@ -612,12 +468,12 @@ Viewer.prototype.HandleMouseMove = function(event) {
     this.MainView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
     this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
     this.RollTarget = this.MainView.Camera.Roll;
-  } else if (this.InteractionState == INTERACTION_ZOOM) {
+  } else if (zoom) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
     this.MainView.Camera.Height *= (1.0 + (dy* 5.0));
     this.ZoomTarget = this.MainView.Camera.Height;
     this.MainView.Camera.ComputeMatrix();
-  } else if (this.InteractionState == INTERACTION_DRAG) {
+  } else {
     // Translate
     // Convert to view [-0.5,0.5] coordinate system.
     // Note: the origin gets subtracted out in delta above.
@@ -673,7 +529,20 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
     eventuallyRender();
   }
 
-  if (keyCode == 38) {
+  // Cursor keys just move around the view.
+  if (keyCode == 37) {
+    // Left cursor key
+    if (SLICE > 1) {
+      this.MainView.Camera.Translate(0,0,-ROOT_SPACING[2]);
+      --SLICE;
+      eventuallyRender();
+    }
+  } else if (keyCode == 39) {
+    // Right cursor key
+    ++SLICE;
+    this.MainView.Camera.Translate(0,0,ROOT_SPACING[2]);
+    eventuallyRender();
+  } else if (keyCode == 38) {
     // Up cursor key
     this.ZoomTarget *= 2;
     this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
@@ -686,7 +555,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
     if (this.ZoomTarget > 0.9 / (1 << 5)) {
       this.ZoomTarget *= 0.5;
       this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-      this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+	    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
       this.AnimateLast = new Date().getTime();
       this.AnimateDuration = 200.0;
       eventuallyRender();

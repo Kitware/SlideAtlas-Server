@@ -1,68 +1,12 @@
 import mongokit
 from bson import ObjectId
-from flask import Blueprint, Response, abort, request, render_template, url_for, session, current_app, make_response
+from flask import Blueprint, Response, abort, request, render_template, url_for, current_app, make_response
 from slideatlas import slconn as conn, admindb, model
 import json
 from slideatlas.common_utils import jsonify
 
 import pdb
 
-
-
-
-
-def jsonifyView(db,dbid,viewid,viewobj):
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    
-    #pdb.set_trace()
-    # the official schema says dimension not dimensios. correct the schema later.
-    #if 'dimension' in imgobj:
-    #  imgobj['dimensions'] = imgobj['dimension']
-    #  delete imgobj.dimension
-    #  db["images"].save(imgobj);
-    
-    img = {}
-    img["db"] = dbid
-    img["viewid"] = viewid
-    img["collection"] = str(imgobj["_id"])
-    img["origin"] = imgobj["origin"]
-    img["spacing"] = imgobj["spacing"]
-    img["levels"] = imgobj["levels"]
-    if 'dimensions' in imgobj:
-      img["dimensions"] = imgobj["dimensions"]
-    elif 'dimension' in imgobj:
-      img["dimensions"] = imgobj["dimension"]
-
-    # I want to change the schema to get rid of this startup bookmark.
-    if 'startup_view' in viewobj:
-      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-      img["center"] = bookmarkobj["center"]
-      img["rotation"] = bookmarkobj["rotation"]
-      if 'zoom' in bookmarkobj:
-        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-      if 'viewHeight' in bookmarkobj:
-        img["viewHeight"] = bookmarkobj["viewHeight"]
-      
-    return jsonify(img)
-
-
-# bookmarks are really notes.
-def jsonifyBookmarks(db, dbid, viewid, viewobj):
-    # I do not think we can pass an array back.
-    val = {}
-    val["Bookmarks"] = []
-    if 'bookmarks' in viewobj :
-      for bookmarkId in viewobj["bookmarks"] :
-        bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
-        bookmark = bookmarkObj
-        bookmark["_id"] = str(bookmark["_id"])
-        bookmark["img"] = str(bookmark["img"])
-        val["Bookmarks"].append(bookmark)
-
-    return jsonify(val)
-    
-    
-    
 # View that toggles between single and dual.
 # Note: I am working toward moving as much onto the client (single vs dual) as possbile.
 # The annoying thing here is the extent to which information is spread between view, image and bookmarks.
@@ -71,16 +15,9 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 # a tree of views will make things more complex.
 def glsingle(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
     
-    # I was going get the user id from the session, and pass it to the viewer.
-    # I think I will just try to retreive the user from the "Save Note" method.
-    if 'user' in session:
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        email = None
+    #pdb.set_trace()
     
     # The base view is for the left panel
     img = {}
@@ -90,19 +27,15 @@ def glsingle(db, dbid, viewid, viewobj):
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
-    if 'dimensions' in imgobj:
-        img["dimensions"] = str(imgobj["dimensions"])
-    elif 'dimension' in imgobj:
-        img["dimensions"] = str(imgobj["dimension"])
-        
-    # I want to change the schema to get rid of this startup bookmark.
-    if 'startup_view' in viewobj:
-      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-      img["center"] = str(bookmarkobj["center"])
-      img["rotation"] = str(bookmarkobj["rotation"])
-      if 'zoom' in bookmarkobj:
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
+    img["center"] = str(bookmarkobj["center"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+    if 'zoom' in bookmarkobj:
         img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-      if 'viewHeight' in bookmarkobj:
+    if 'viewHeight' in bookmarkobj:
         img["viewHeight"] = str(bookmarkobj["viewHeight"])
 
     # record the bookmarks as annotation.
@@ -117,11 +50,7 @@ def glsingle(db, dbid, viewid, viewobj):
 
     question = {}
     question["viewer1"] = img;
-    if 'label' in imgobj:
-      question["label"] = imgobj["label"]
-    else:
-      question["label"] = "slide";
-      
+
     # now create a list of options.
     # this array will get saved back into the view
     optionViews = []
@@ -158,10 +87,9 @@ def glsingle(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('single.html', question=question, user=email))
+    return make_response(render_template('single.html', question=question))
     
-    
-    
+
 def glcomparison(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
@@ -284,6 +212,10 @@ def glview2(db, dbobj, dbid, viewid, viewobj):
 
 
 
+
+
+
+
 mod = Blueprint('glviewer', __name__,
                 template_folder="templates",
                 static_folder="static",
@@ -295,14 +227,10 @@ def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
-    
+
     # See if the user is requesting any session id
     viewid = request.args.get('view', None)
-    # get all the metadata to display a view in the webgl viewer.
-    ajax = request.args.get('json', None)
-    # get bookmarks.
-    bookmarks = request.args.get('bookmarks', None)
-
+    
     # this is the same as the sessions db in the sessions page.
     # TODO: Store database in the view and do not pass as arg.
     dbid = request.args.get('db', None)
@@ -313,63 +241,101 @@ def glview():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
     db = conn[dbobj["dbname"]]
-    conn.register([model.Database])    
+    conn.register([model.Database])
+
     
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    if ajax:
-      return jsonifyView(db,dbid,viewid,viewobj);
-    if bookmarks:
-      return jsonifyBookmarks(db,dbid,viewid,viewobj);
-
-
-    if 'type' in viewobj:
-      if viewobj["type"] == "single" :
-        return glsingle(db,dbid,viewid,viewobj)
-      if viewobj["type"] == "comparison" :
-        return glcomparison(db,dbid,viewid,viewobj)
-    # default is now the single view (which can be switch to dual by the user).
-    return glsingle(db,dbid,viewid,viewobj)
+    if viewobj["type"] == "single" :
+      return glsingle(db,dbid,viewid,viewobj)
+    if viewobj["type"] == "comparison" :
+      return glcomparison(db,dbid,viewid,viewobj)
+    else : # old style
+      return glview2(db,dbobj,dbid,viewid,viewobj)
 
 
 
-# get all the children notes for a parent (authord by a specific user).
-@mod.route('/getchildnotes')
-def getchildnotes():
-    #pdb.set_trace()
-    parentid = request.args.get('parentid', "")
-    dbid = request.args.get('db', "")
-    user = session["user"]["email"]
     
-    #pdb.set_trace()
+    
+    
+    
+    
+    # I believe this is legacy.  
+@mod.route('/dual')
+def glviewdual():
+    """
+    - /webgl-viewer/dual?db=507619bb0a3ee10434ae0827&sessid=4ecbbc6d0e6f7d7a56000000
+    """
+
+    # See if the user is requesting any session id
+    sessid = request.args.get('sessid', None)
+    # this is the same as the sessions db in the sessions page.
+    dbid = request.args.get('db', None)
 
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-    
-    notecursor = db["notes"].find({ "ParentId" : ObjectId(parentid) })
-    # make a new structure to return.  Convert the ids to strings.
-    noteArray = [];
-    for note in notecursor:
-      note["Id"] = str(note["_id"])
-      note["_id"] = None
-      note["ParentId"] = str(note["ParentId"])
-      noteArray.append(note)
-      
-    data = {};
-    data["Notes"] = noteArray
-    
-    return jsonify(data)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-# I am getting rid of the special paths in favor of just using the type to select the viewer.
-# this is legarcy code.
+
+
+    coll = db["sessions"]
+    asession = coll.find_one({'_id' : ObjectId(sessid)})
+
+    # if asession.has_key("views"):
+    #        for aview in asession['views']:
+    aview = asession['views'][0]
+    viewobj = db["views"].find_one({"_id" : aview["ref"]})
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+
+
+    # use the first view for the left panel.
+    img = {}
+    img["db"] = dbid
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    if 'dimension' in imgobj:
+        img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+        img["dimension"] = str(imgobj["dimensions"])
+    img["center"] = str(bookmarkobj["center"])
+    img["zoom"] = str(bookmarkobj["zoom"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+
+    question = {}
+    question["viewer1"] = img;
+    # now create a list of options.
+    options = []
+
+    # iterate through the session objects
+    asession = db["sessions"].find_one({'_id' : ObjectId(sessid)});
+    for aview in asession['views']:
+        viewobj = db["views"].find_one({"_id" : aview["ref"]})
+        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+        #
+        img = {}
+        img["collection"] = str(imgobj["_id"])
+        img["origin"] = str(imgobj["origin"])
+        img["spacing"] = str(imgobj["spacing"])
+        img["levels"] = str(imgobj["levels"])
+        if 'dimension' in imgobj:
+            img["dimension"] = str(imgobj["dimension"])
+        elif 'dimensions' in imgobj:
+            img["dimension"] = str(imgobj["dimensions"])
+        img["db"] = dbid
+        img["center"] = str(bookmarkobj["center"])
+        img["zoom"] = str(bookmarkobj["zoom"])
+        img["rotation"] = str(bookmarkobj["rotation"])
+        img["label"] = imgobj["label"]
+        #
+        options.append(img)
+    question["options"] = options;
+
+    return make_response(render_template('dualviewer.html', question=question))
+
+
+
 @mod.route('/comparison')
 def glcomparison():
     """
@@ -793,102 +759,5 @@ def glcomparisonsave():
 
 
 
-# Starts a recording
-# name is a way to identify a recording session.
-
-@mod.route('/record-save', methods=['GET', 'POST'])
-def glrecordsave():
-    #pdb.set_trace()
-    user = session["user"]["email"]
-
-    dbid      = request.form['db']  # for post
-    name      = request.form['name']  
-    date      = request.form['date']  # used only when creating a new recording
-    recordStr = request.form['record']  
-    record = json.loads(recordStr)
-
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-
-    recordingobj = db["recordings"].find_one({"name" : name })
-    
-    if not recordingobj:
-      # construct a new object.
-      recordingobj = {}
-      recordingobj["name"] = name
-      recordingobj["user"] = user
-      recordingobj["date"] = int(date)
-      recordingobj["records"] = [record]
-      db["recordings"].save( recordingobj );
-    else :
-      db["recordings"].update( {"name": name}, { "$push" : { 'records': record}}) 
-
-    return "success"
-
-
-# These methods are required to work with the note widget.
-# We need to get and set the data associated with any one comment,
-# get a list of all comments associated with a single note,
-# and a couple of other methods for working with comment authors are needed.
-
-# the function to get all comments associated with a single note
-@mod.route('/getparentcomments', methods=['GET', 'POST'])
-def getparentcomments():
-    #pdb.set_trace()
-    dbid = request.form['db']
-    noteid = request.form["id"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
-    toplevelcomments = db["comments"].find({ "parent": noteid })
-    
-    
-     
-    for obj in toplevelcomments:
-      obj["_id"] = str(obj["_id"])
-    
-    return jsonify(toplevelcomments)
-
-
-# The function to handle the ajax call that gets the data for a specific comment id.
-@mod.route('/getcomment', methods=['GET', 'POST'])
-def getcomment():
-    dbid = request.form["db"]
-    commentid = request.form["id"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
-    comment = db["comments"].find_one({"_id": ObjectId(commentid) })
-    
-    if comment:
-      comment["_id"] = str(comment["_id"])
-    
-    return jsonify(comment)
-
-    
-# This is close to a general purpose function to insert an object into the database.
-@mod.route('/saveusernote', methods=['GET', 'POST'])
-def saveusernote():
-    #pdb.set_trace()
-    dbid    = request.form['db']  # for post
-    noteStr = request.form['note']  
-
-    note    = json.loads(noteStr)
-    note["ParentId"] = ObjectId(note["ParentId"]);
-    # user should be set by flask so it cannot be faked.
-    note["User"] = session["user"]["email"]
-  
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-
-    noteId = db["notes"].save(note);
-    return str(noteId);
- 
 
 
