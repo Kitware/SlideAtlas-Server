@@ -27,34 +27,35 @@ View.prototype.SetViewport = function(viewport) {
 
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawTiles = function () {
-    // Select the tiles to render first.
-    this.Tiles = this.Cache.ChooseTiles(this, SLICE, this.Tiles);
+  // Select the tiles to render first.
+  this.Tiles = this.Cache.ChooseTiles(this, SLICE, this.Tiles);
 
-    var program = imageProgram;
-    GL.useProgram(program);
-    
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                           tileVertexPositionBuffer.itemSize, 
-                           GL.FLOAT, false, 0, 0);     // Texture coordinates
-    GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-    GL.vertexAttribPointer(program.textureCoordAttribute, 
-                           tileVertexTextureCoordBuffer.itemSize, 
-                           GL.FLOAT, false, 0, 0);
-    // Cell Connectivity
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
-    
-    // Draw tiles.
-    GL.viewport(this.Viewport[0], this.Viewport[1], 
-                this.Viewport[2], this.Viewport[3]);
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, this.Camera.Matrix);
-    for (var i = 0; i < this.Tiles.length; ++i) {
-        this.Tiles[i].Draw(program); // Debugging outline
-    }
+  var program = imageProgram;
+  GL.useProgram(program);
+
+  // These are the same for every tile.
+  // Vertex points (shifted by tiles matrix)
+  GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
+  // Needed for outline ??? For some reason, DrawOutline did not work
+  // without this call first.
+  GL.vertexAttribPointer(program.vertexPositionAttribute, 
+                        tileVertexPositionBuffer.itemSize, 
+                        GL.FLOAT, false, 0, 0);     // Texture coordinates
+  GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
+  GL.vertexAttribPointer(program.textureCoordAttribute, 
+                        tileVertexTextureCoordBuffer.itemSize, 
+                        GL.FLOAT, false, 0, 0);
+  // Cell Connectivity
+  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
+
+  // Draw tiles.
+  GL.viewport(this.Viewport[0], this.Viewport[1], 
+              this.Viewport[2], this.Viewport[3]);
+  GL.uniformMatrix4fv(program.pMatrixUniform, false, this.Camera.Matrix);
+  // Note: if not all tiles are loaded, this will draw the lower level tile multiple times.
+  for (var i = 0; i < this.Tiles.length; ++i) {
+    this.Tiles[i].Draw(program); // Debugging outline
+  }
 }
 
 

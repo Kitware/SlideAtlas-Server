@@ -364,6 +364,8 @@ PolylineWidget.prototype.SetActive = function(flag) {
   }
 }
 
+// Can we bind the dialog apply callback to an objects method?
+var POLYLINE_WIDGET_DIALOG_SELF;
 PolylineWidget.prototype.ShowPropertiesDialog = function () {
   var color = document.getElementById("polylinecolor");
   color.value = ConvertColorToHex(this.Shape.OutlineColor);
@@ -371,5 +373,45 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   var lineWidth = document.getElementById("polylinewidth");
   lineWidth.value = (this.Shape.LineWidth).toFixed(2);
 
+  POLYLINE_WIDGET_DIALOG_SELF = this;
   $("#polyline-properties-dialog").dialog("open");
 }    
+
+function PolylinePropertyDialogApply() {
+  var widget = POLYLINE_WIDGET_DIALOG_SELF;
+  if ( ! widget) { 
+    return; 
+  }
+  var hexcolor = document.getElementById("polylinecolor").value;
+  widget.Shape.SetOutlineColor(hexcolor);
+  var lineWidth = document.getElementById("polylinewidth");
+  widget.Shape.LineWidth = parseFloat(lineWidth.value);
+  widget.Shape.UpdateBuffers();
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+  eventuallyRender();
+}
+
+function PolylinePropertyDialogCancel() {
+  var widget = POLYLINE_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+}
+
+function PolylinePropertyDialogDelete() {
+  var widget = POLYLINE_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+    // We need to remove an item from a list.
+    // shape list and widget list.
+    widget.RemoveFromViewer();
+    eventuallyRender();
+  }
+}
+
+
+
+
+

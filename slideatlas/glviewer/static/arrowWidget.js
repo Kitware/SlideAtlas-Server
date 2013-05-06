@@ -278,6 +278,8 @@ ArrowWidget.prototype.SetActive = function(flag) {
   }
 }
 
+// Can we bind the dialog apply callback to an objects method?
+var ARROW_WIDGET_DIALOG_SELF;
 ArrowWidget.prototype.ShowPropertiesDialog = function () {
   //var fs = document.getElementById("ArrowFixedSize");
   //fs.checked = this.Shape.FixedSize;
@@ -292,10 +294,43 @@ ArrowWidget.prototype.ShowPropertiesDialog = function () {
   //  lengthLabel.innerHTML = "Length: " + (this.Shape.Length).toFixed(2) + " units";
   //}
   
+  ARROW_WIDGET_DIALOG_SELF = this;
   $("#arrow-properties-dialog").dialog("open");
 }    
 
+function ArrowPropertyDialogApply() {
+  var widget = ARROW_WIDGET_DIALOG_SELF;
+  if ( ! widget) { 
+    return; 
+  }
 
+  var hexcolor = document.getElementById("arrowcolor").value;
+  //var fixedSizeFlag = document.getElementById("ArrowFixedSize").checked;
+  widget.Shape.SetFillColor(hexcolor);
+  if (widget != null) {
+    widget.SetActive(false);
+    //widget.SetFixedSize(fixedSizeFlag);
+  }
+  eventuallyRender();
+}
+
+function ArrowPropertyDialogCancel() {
+  var widget = ARROW_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+}
+
+function ArrowPropertyDialogDelete() {
+  var widget = ARROW_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    viewer.ActiveWidget = null;
+    // We need to remove an item from a list.
+    // shape list and widget list.
+    widget.RemoveFromViewer();
+    eventuallyRender();
+  }
+}
 
 
 

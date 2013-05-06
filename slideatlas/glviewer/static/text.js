@@ -84,7 +84,7 @@ function Text() {
   this.Image.onload = GetTextureLoadedFunction(this); 
   //this.Image.onerror = TextError(); // Always fires for some reason.
   // This starts the loading.
-  this.Image.src = "static/letters.gif";
+  this.Image.src = IMAGE_PATH_URL +"letters.gif";
   
   this.Color = [0.5, 1.0, 1.0];
   this.Size = 30; // Height in pixels

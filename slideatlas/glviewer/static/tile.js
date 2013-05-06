@@ -112,9 +112,9 @@ Tile.prototype.StartLoad = function (cache) {
 
 
 Tile.prototype.Draw = function (program) {
-    // Load state 0 is: Not loaded and not scheduled to be loaded yet.
-    // Load state 1 is: not loaded but in the load queue.
-    if ( this.LoadState != 3) {
+  // Load state 0 is: Not loaded and not scheduled to be loaded yet.
+  // Load state 1 is: not loaded but in the load queue.
+  if ( this.LoadState != 3) {
     // The tile is not available.
     // render the lower resolution tile as a place holder.
     if (this.Parent) {
@@ -123,16 +123,16 @@ Tile.prototype.Draw = function (program) {
     // Keep rendering until all nodes are available.
     eventuallyRender();
     return;
-    }
-    // Texture
-    GL.activeTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+  }
+  // Texture
+  GL.activeTexture(GL.TEXTURE0);
+  GL.bindTexture(GL.TEXTURE_2D, this.Texture);
 
-    GL.uniform1i(program.samplerUniform, 0);
-    // Matrix that tranforms the vertex p
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+  GL.uniform1i(program.samplerUniform, 0);
+  // Matrix that tranforms the vertex p
+  GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-    GL.drawElements(GL.TRIANGLES, tileCellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+  GL.drawElements(GL.TRIANGLES, tileCellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
 }
 
 

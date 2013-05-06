@@ -29,7 +29,8 @@ function TextWidget (viewer, string) {
     return null;
   }
   this.Viewer = viewer;
-  this.State = TEXT_WIDGET_WAITING;
+  // Text widgets are created with the dialog open (to set the string).
+  this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
   this.CursorLocation = 0; // REMOVE
 
   var cam = this.Viewer.MainView.Camera;
@@ -307,7 +308,10 @@ TextWidget.prototype.SetActive = function(flag) {
   }
 }
 
+// Can we bind the dialog apply callback to an objects method?
+var TEXT_WIDGET_DIALOG_SELF;
 TextWidget.prototype.ShowPropertiesDialog = function () {
+  TEXT_WIDGET_DIALOG_SELF = this;
   var color = document.getElementById("textcolor");
   color.value = ConvertColorToHex(this.Shape.Color);
 
@@ -318,10 +322,55 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   
   // hack to supress viewer key events.
   DIALOG_OPEN = true;
+  // Can we bind the dialog apply callback to an objects method?
+  ARROW_WIDGET_DIALOG_SELF = this;
   $("#text-properties-dialog").dialog("open");
 }    
 
+function TextPropertyDialogApply() {
+  var widget = ARROW_WIDGET_DIALOG_SELF;
+  if ( ! widget) { 
+    return; 
+  }
+  widget.SetActive(false);
 
+  var string = document.getElementById("textwidgetcontent").value;
+  // remove any trailing white space.
+  string = string.trim();
+  if (string == "") {
+    alert("Empty String");
+    return;
+  }
+
+  var hexcolor = document.getElementById("textcolor").value;
+  var markerFlag = document.getElementById("TextMarker").checked;
+
+  widget.Shape.String = string;
+  widget.Shape.UpdateBuffers();
+  widget.Shape.SetColor(hexcolor);
+  widget.AnchorShape.SetFillColor(hexcolor);
+  widget.SetAnchorShapeVisibility(markerFlag);
+  
+  eventuallyRender();
+}
+
+function TextPropertyDialogCancel() {
+  var widget = TEXT_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+}
+
+function TextPropertyDialogDelete() {
+  var widget = TEXT_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+    // We need to remove an item from a list.
+    // shape list and widget list.
+    widget.RemoveFromViewer();
+    eventuallyRender();
+  }
+}
 
 
 

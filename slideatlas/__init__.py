@@ -20,6 +20,7 @@ celery = Celery(broker="mongodb://127.0.0.1/slideatlas-tasks", backend="mongodb:
 # (should be big and with write access to web server user)
 app.config['UPLOAD_FOLDER'] = "d:/docs"
 app.config.from_object("site_slideatlas")
+#app.config.from_object("site_local")
 
 
 # Connection settings for local demo database for testing (VM) 

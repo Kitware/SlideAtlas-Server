@@ -168,6 +168,9 @@ shape has visibility and
   var VIEWER1;
   var EDIT = true;
   var EDIT_R = false;
+  
+  var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
+
 
 
   // sets the global variable ARGS
@@ -413,6 +416,14 @@ function FeatureChainAdd(x,y) {
   var E_DOWN = false;
   var D_DOWN = false;
   var R_DOWN = false;
+  
+  // The event manager detects single right click and double right click.
+  // This gets galled on the single.
+  function ShowPropertiesMenu(x, y) { 
+    if (EDIT) {
+      ShowAnnotationEditMenu(x, y);
+    }
+  }
   
   function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
   function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }

@@ -8,7 +8,7 @@
   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
   <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
   <style>
-  #sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+  #sortable { list-style-type: none; margin: 0; padding: 0; width: 100%; }
   #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 28px; }
   #sortable li span { position: absolute; margin-left: -1.3em; }
   </style>
@@ -47,26 +47,52 @@
         });      
     }
 
+    function updateOptions() {
+      var x=document.getElementById("search");
+      //x.value=x.value.toUpperCase();
+    }
+        
     </script>
   
 </head>
 <body>
+
+<div style="position:fixed; margin-top:-40px; width:100%">
+  <table style="width:100%">
+    <tr>
+      <td style="width:100%;">
+        <input type="text" id="search" onkeyup="updateOptions()" name="views" style="width:100%">
+        <datalist id="views">
+          <!--<option value="Internet Explorer"> !-->
+        </datalist>
+      </td>
+      <td>
+        <button onclick="save()" style="float:right; margin-right:20px;">Save</button>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+
+
+
  
-<ul id="sortable">
-  {% for animage in data.list %}
-    <li class="ui-state-default" id="{{animage.view}}">
-      <!-- <span class="ui-icon ui-icon-arrowthick-2-n-s"></span> !-->
-      <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
+<div style="margin-top:50px;">
+  <ul id="sortable">
+    {% for animage in data.list %}
+      <li class="ui-state-default" id="{{animage.view}}">
+        <!-- <span class="ui-icon ui-icon-arrowthick-2-n-s"></span> !-->
+        <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
 
-      <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" height=32px></td> 
-      {{ animage.label}}
-    </li>
-  {% endfor %}
-  
-</ul>
+        <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" height=32px></td> 
+        {{ animage.label}}
+      </li>
+    {% endfor %}
+    
+  </ul>
+</div>
 
-
-<button onclick="save()">Save</button>
  
  
 </body>

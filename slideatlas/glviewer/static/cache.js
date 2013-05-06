@@ -1,4 +1,3 @@
-var TIME_STAMP = 0;
 
 
 // Source is the directory that contains the tile files.
@@ -66,6 +65,11 @@ Cache.prototype.LoadRoots = function () {
 // This could get expensive because it is called so often.
 // Eventually I want a quick coverage test to exit early.
 Cache.prototype.ChooseTiles = function(view, slice, tiles) {
+    // I am prioritizing tiles in the queue by time stamp.
+    // Loader sets the the tiles time stamp.
+    // Time stamp only progresses after a whole render.
+    AdvanceTimeStamp();
+
     // I am putting this here to avoid deleting tiles
     // in the rendering list.
     Prune();           
@@ -117,19 +121,20 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
     bounds[2] = view.Camera.FocalPoint[1]-yMax;
     bounds[3] = view.Camera.FocalPoint[1]+yMax;
 
+    // Logic for progressive rendering is in the loader:
+    // Do not load a tile if its parent is not loaded.
+    
+    var tiles = [];
     var tileIds = this.GetVisibleTileIds(level, bounds);
     var tile;
-    tiles = [];
     for (var i = 0; i < tileIds.length; ++i) {
       tile = this.GetTile(slice, level, tileIds[i]);
-      tiles.push(tile);
-      // Do not worry.  If the tile is loaded or loading,
+      // If the tile is loaded or loading,
       // this does nothing.
       LoadQueueAdd(tile);
+      tiles.push(tile);
     }
-    // Mark the tiles to be rendered so they will be last to be pruned.
-    this.StampTiles(tiles);
-
+    
     // Preload the next slice.
     //bounds[0] = bounds[1] = camera.FocalPoint[0];
     //bounds[2] = bounds[3] = camera.FocalPoint[1];
@@ -151,19 +156,20 @@ Cache.prototype.GetVisibleTileIds = function (level, bounds) {
     var id;
     var idList = [];
     var dim = 1 << level;
-    bounds[0] = Math.floor(bounds[0] * dim / (this.TileDimensions[0]*this.RootSpacing[0]));
-    bounds[1] = Math.ceil(bounds[1] * dim / (this.TileDimensions[0]*this.RootSpacing[0])) - 1.0;
-    bounds[2] = Math.floor(bounds[2] * dim / (this.TileDimensions[1]*this.RootSpacing[1]));
-    bounds[3] = Math.ceil(bounds[3] * dim / (this.TileDimensions[1]*this.RootSpacing[1])) - 1.0;
-    if (bounds[0] < 0) {bounds[0] = 0;}
-    if (bounds[1] >= dim) {bounds[1] = dim-1;}
-    if (bounds[2] < 0) {bounds[2] = 0;}
-    if (bounds[3] >= dim) {bounds[3] = dim-1;}
-    for (var y = bounds[2]; y <= bounds[3]; ++y) {
-	for (var x = bounds[0]; x <= bounds[1]; ++x) {
-	    id = x | (y << level);
-	    idList.push(id);
-        }
+    var bds = [];
+    bds[0] = Math.floor(bounds[0] * dim / (this.TileDimensions[0]*this.RootSpacing[0]));
+    bds[1] = Math.ceil(bounds[1] * dim / (this.TileDimensions[0]*this.RootSpacing[0])) - 1.0;
+    bds[2] = Math.floor(bounds[2] * dim / (this.TileDimensions[1]*this.RootSpacing[1]));
+    bds[3] = Math.ceil(bounds[3] * dim / (this.TileDimensions[1]*this.RootSpacing[1])) - 1.0;
+    if (bds[0] < 0) {bds[0] = 0;}
+    if (bds[1] >= dim) {bds[1] = dim-1;}
+    if (bds[2] < 0) {bds[2] = 0;}
+    if (bds[3] >= dim) {bds[3] = dim-1;}
+    for (var y = bds[2]; y <= bds[3]; ++y) {
+      for (var x = bds[0]; x <= bds[1]; ++x) {
+        id = x | (y << level);
+        idList.push(id);
+      }
     }
     return idList;
 }
@@ -183,96 +189,89 @@ Cache.prototype.GetTileIdContainingPoint = function (level, wPt) {
 
 
 
-Cache.prototype.StampTiles = function(tiles) {
-    for (var i = 0; i < tiles.length; ++i) {
-	tiles[i].TimeStamp = TIME_STAMP;
-	this.UpdateBranchTimeStamp(tiles[i]);
-    }
-    ++TIME_STAMP;
-}
 
 // Set parent to be minimum of children.
 Cache.prototype.UpdateBranchTimeStamp = function(tile) {
-    var min = TIME_STAMP;
+    var min = GetCurrentTime();
     if (tile.Children[0] != null) {
-	if (tile.Children[0].BranchTimeStamp < min) {
-	    min = tile.Children[0].BranchTimeStamp;
-	}
+      if (tile.Children[0].BranchTimeStamp < min) {
+        min = tile.Children[0].BranchTimeStamp;
+      }
     }
     if (tile.Children[1] != null) {
-	if (tile.Children[1].BranchTimeStamp < min) {
-	    min = tile.Children[1].BranchTimeStamp;
-	}
+      if (tile.Children[1].BranchTimeStamp < min) {
+        min = tile.Children[1].BranchTimeStamp;
+      }
     }
     if (tile.Children[2] != null) {
-	if (tile.Children[2].BranchTimeStamp < min) {
-	    min = tile.Children[2].BranchTimeStamp;
-	}
+      if (tile.Children[2].BranchTimeStamp < min) {
+        min = tile.Children[2].BranchTimeStamp;
+      }
     }
     if (tile.Children[3] != null) {
-	if (tile.Children[3].BranchTimeStamp < min) {
-	    min = tile.Children[3].BranchTimeStamp;
-	}
+      if (tile.Children[3].BranchTimeStamp < min) {
+        min = tile.Children[3].BranchTimeStamp;
+      }
     }
-    if (min == TIME_STAMP) { // no children
-	min = tile.TimeStamp;
+    if (min == GetCurrentTime()) { // no children
+      min = tile.TimeStamp;
     }
     if (min != tile.BranchTimeStamp) {
-	tile.BranchTimeStamp = min;
-	if (tile.Parent != null) {
-	    this.UpdateBranchTimeStamp(tile.Parent);
-	}
+      tile.BranchTimeStamp = min;
+      if (tile.Parent != null) {
+        this.UpdateBranchTimeStamp(tile.Parent);
+      }
     }
 }
 
 Cache.prototype.GetTile = function(slice, level, id) {
-    //Separate x and y.
-    var dim = 1 << level;
-    var x = id & (dim-1);
-    var y = id >> level;
-    if (this.RootTiles[slice] == null) {
-        var tile;
-	//var name = slice + "/t";
-	var name = "t";
-	tile = new Tile(0,0,slice, 0, name, this);
-	this.RootTiles[slice] = tile;
-    }
-    return this.RecursiveGetTile(this.RootTiles[slice], level, x, y, slice);
+  //Separate x and y.
+  var dim = 1 << level;
+  var x = id & (dim-1);
+  var y = id >> level;
+  if (this.RootTiles[slice] == null) {
+    var tile;
+    //var name = slice + "/t";
+    var name = "t";
+    tile = new Tile(0,0,slice, 0, name, this);
+    this.RootTiles[slice] = tile;
+  }
+  return this.RecursiveGetTile(this.RootTiles[slice], level, x, y, slice);
 }
 
 // This creates the tile tree down to the tile (if necessry) and returns
 // the tile requested.  The tiles objects created are not added to 
 // the load queue here.
 Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
-    if (deltaDepth == 0) {
-	return node;
+  if (deltaDepth == 0) {
+    return node;
+  }
+  --deltaDepth;
+  var cx = (x>>deltaDepth)&1;
+  var cy = (y>>deltaDepth)&1;
+  var childIdx = cx+(2*cy);
+  var child = node.Children[childIdx];
+  if (child == null) {
+    var childName = node.Name;
+    if (childIdx == 0) {childName += "t";} 
+    if (childIdx == 1) {childName += "s";} 
+    if (childIdx == 2) {childName += "q";} 
+    if (childIdx == 3) {childName += "r";} 
+    child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
+                     (node.Level + 1),
+                     childName, this);
+    // This is to fix a bug. Root.BranchTime larger
+    // than all children BranchTimeStamps.  When
+    // long branch is added, node never gets updated.
+    if (node.Children[0] == null && node.Children[1] == null &&
+        node.Children[2] == null && node.Children[3] == null) {
+        node.BranchTimeStamp = GetCurrentTime();
     }
-    --deltaDepth;
-    var cx = (x>>deltaDepth)&1;
-    var cy = (y>>deltaDepth)&1;
-    var childIdx = cx+(2*cy);
-    var child = node.Children[childIdx];
-    if (child == null) {
-	var childName = node.Name;
-        if (childIdx == 0) {childName += "t";} 
-        if (childIdx == 1) {childName += "s";} 
-        if (childIdx == 2) {childName += "q";} 
-        if (childIdx == 3) {childName += "r";} 
-	child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
-                         (node.Level + 1),
-                         childName, this);
-	// This is to fix a bug. Root.BranchTime larger
-	// than all children BranchTimeStamps.  When
-	// long branch is added, node never gets updated.
-	if (node.Children[0] == null && node.Children[1] == null &&
-	    node.Children[2] == null && node.Children[3] == null) {
-	    node.BranchTimeStamp = TIME_STAMP;
-	}
 
-	node.Children[childIdx] = child;
-        child.Parent = node;
-    }
-    return this.RecursiveGetTile(child, deltaDepth, x, y, z);
+    node.Children[childIdx] = child;
+    child.Parent = node;
+  }
+  return this.RecursiveGetTile(child, deltaDepth, x, y, z);
 }
 
 

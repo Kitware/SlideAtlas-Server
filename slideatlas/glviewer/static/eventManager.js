@@ -85,7 +85,7 @@ EventManager.prototype.HandleMouseDown = function(event) {
 
     var dTime = new Date().getTime() - this.MouseUpTime;
     if (dTime < 200.0) { // 200 milliseconds
-      PENDING_SHOW_ANNOTATION_MENU = false;
+      PENDING_SHOW_PROPERTIES_MENU = false;
       this.CurrentViewer.HandleDoubleClick(this);
       return;
     }
@@ -96,15 +96,11 @@ EventManager.prototype.HandleMouseDown = function(event) {
 }
 
 
-  // Handle double click and single click events better.
-  // setTimeout(function(){alert("Hello")},3000);
-  //$("p").dblclick(function(){alert("The paragraph was double-clicked.");});
-  
-var PENDING_SHOW_ANNOTATION_MENU = false;
-var SHOW_ANNOTATION_MENU_MOUSE_POSITION;
-function ShowPendingAnnotationEditMenu() {
-  if (PENDING_SHOW_ANNOTATION_MENU) {
-    ShowAnnotationEditMenu(SHOW_ANNOTATION_MENU_MOUSE_POSITION[0], SHOW_ANNOTATION_MENU_MOUSE_POSITION[1]);
+var PENDING_SHOW_PROPERTIES_MENU = false;
+var SHOW_PROPERTIES_MOUSE_POSITION;
+function ShowPendingPropertiesMenu() {
+  if (PENDING_SHOW_PROPERTIES_MENU) {
+    ShowPropertiesMenu(SHOW_PROPERTIES_MOUSE_POSITION[0], SHOW_PROPERTIES_MOUSE_POSITION[1]);
   }
 }
 
@@ -126,11 +122,11 @@ EventManager.prototype.HandleMouseUp = function(event) {
 
   // Should we let the viewer handle this?
   // Can it supress on double click?
-  if (EDIT && event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
+  if (event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
     // Wait to make sure this is not a double click.
-    PENDING_SHOW_ANNOTATION_MENU = true;
-    SHOW_ANNOTATION_MENU_MOUSE_POSITION = [event.clientX, event.clientY];
-    setTimeout(function(){ShowPendingAnnotationEditMenu();},200);
+    PENDING_SHOW_PROPERTIES_MENU = true;
+    SHOW_PROPERTIES_MOUSE_POSITION = [event.clientX, event.clientY];
+    setTimeout(function(){ShowPendingPropertiesMenu();},200);
   }    
 }
 

@@ -365,21 +365,16 @@ Viewer.prototype.HandleMouseDown = function(event) {
 }
 
 Viewer.prototype.HandleDoubleClick = function(event) {
-  // Forward the events to the widget if one is active.
-  if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleMouseDown(event);
-    return;
-  }
   
   // Detect double click.
-    mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
-    if (event.SystemEvent.which == 1) {
-      this.AnimateDoubleClickZoom(0.5, mWorld);
-      //this.AnimateZoom(0.5);
-    } else if (event.SystemEvent.which == 3) {
-      this.AnimateDoubleClickZoom(2.0, mWorld);
-      //this.AnimateZoom(2.0);
-    }
+  mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
+  if (event.SystemEvent.which == 1) {
+    this.AnimateDoubleClickZoom(0.5, mWorld);
+    //this.AnimateZoom(0.5);
+  } else if (event.SystemEvent.which == 3) {
+    this.AnimateDoubleClickZoom(2.0, mWorld);
+    //this.AnimateZoom(2.0);
+  }
 }
 
 Viewer.prototype.HandleMouseUp = function(event) {

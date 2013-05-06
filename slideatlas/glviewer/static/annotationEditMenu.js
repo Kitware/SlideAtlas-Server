@@ -5,27 +5,23 @@
 // The viewer/ html file will check this global before processing events.
 var DIALOG_OPEN = false;
 
-// How to get events with click (right left mouse on button?????
-//function AnnotationButtonPress(event) {
-//    if (event.which == 3) {
-//      ShowAnnotationEditMenu(event.clientX, event.clientY);
-//    } else {
-//      ToggleAnnotationVisibility();
-//    }
-//}
 
 function ToggleAnnotationVisibility() {
     SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
 }
 
 function SetAnnotationVisibility(visibility) {
-    VIEWER1.ShapeVisibility = visibility;
-    if (visibility) {
-        $("#annotationButton").css({'opacity': '0.6'});
-    } else {
-        $("#annotationButton").css({'opacity': '0.2'});
-    }
-    eventuallyRender();    
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+
+  viewer.ShapeVisibility = visibility;
+  // I might put it in the view menu.
+  //if (visibility) {
+  //    $("#annotationButton").css({'opacity': '0.6'});
+  //} else {
+  //    $("#annotationButton").css({'opacity': '0.2'});
+  //}
+  eventuallyRender();    
 }
 
 function ShowAnnotationEditMenu(x, y) {
@@ -69,7 +65,7 @@ function InitAnnotationEditMenus() {
     $('<li>').appendTo(AnnotationEditSelector)
              .text("flip horizontal")
              .click(function(){FlipHorizontal();});
-    $('<li>').appendTo(AnntationEditSelector)
+    $('<li>').appendTo(AnnotationEditSelector)
              .text("save view")
              .click(function(){SaveView();});
              
