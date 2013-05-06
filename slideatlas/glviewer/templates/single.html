@@ -48,7 +48,7 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 
 <!-- Widgets
 
-Different widgets haev show dialog method,
+Different widgets have show dialog method,
 hardcoded to the divs
 
 Widgets have serialize method which creates an object
@@ -161,10 +161,9 @@ shape has visibility and
   var VIEWER1_FRACTION = 1.0;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
-  // I cannot get url_for to give me a path to view addresses
-  var VIEW_OPTION_URL  = "/webgl-viewer/view-option";
-  var VIEW_SAVE_URL  = "/webgl-viewer/view-save";
-
+  var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
+  
+  
   // sets the global variable ARGS
   function getArgs() {
     
@@ -243,16 +242,27 @@ shape has visibility and
     var source = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source);
-    if (ARGS.Viewer2) {
-      source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
-    }
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
-
     VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
                       ARGS.Viewer1.viewHeight);
-    
+                      
+    if (ARGS.Viewer2) {
+      source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
+      VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
+      VIEWER2.SetDimensions(ARGS.Viewer2.dimensions);
+      VIEWER2.SetCamera(ARGS.Viewer2.center, 
+                        ARGS.Viewer2.rotation, 
+                        ARGS.Viewer2.viewHeight);
+    } else {
+      // Just duplicate the first view for a default.
+      VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
+      VIEWER2.SetDimensions(ARGS.Viewer1.dimensions);
+      VIEWER2.SetCamera(ARGS.Viewer1.center, 
+                        ARGS.Viewer1.rotation, 
+                        ARGS.Viewer1.viewHeight);
+    }
+                  
     EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
@@ -267,38 +277,19 @@ shape has visibility and
     VIEWER1.Draw();
     VIEWER2.Draw();
   }
+  
+  // The event manager detects single right click and double right click.
+  // This gets galled on the single.
+  function ShowPropertiesMenu(x, y) { ShowViewEditMenu(x, y);}
 
-  var E_DOWN = false;
-  var D_DOWN = false;
-  function handleMouseDown(event) { 
-    // Left single click shows edit menu.
-    // TODO: supress menu on double click.
-    if (event.which == 3) {
-        ShowViewEditMenu(event.clientX, event.clientY);
-    }
-    EVENT_MANAGER.HandleMouseDown(event);
-  }
-  function handleMouseUp(event) {EVENT_MANAGER.HandleMouseUp(event);}
+  function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
+  function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
-        if (event.keyCode == 49) { // the 1 key
-          window.location = "/webgl-viewer?db="+ARGS.Viewer1.db+"&view="+ARGS.Viewer1.viewid;
-        }
         if (event.keyCode == 34) { SessionAdvance();}
-        if (event.keyCode == 68) { D_DOWN = true;}
-        if (event.keyCode == 69) { E_DOWN = true;}
-        if (D_DOWN && E_DOWN) {
-            EDIT = ! EDIT; 
-            alert("Edit: " + EDIT);
-            E_DOWN = false;
-            D_DOWN = false;
-        }
         EVENT_MANAGER.HandleKeyDown(event);}
-  function handleKeyUp(event) {
-        if (event.keyCode == 68) { D_DOWN = false;}
-        if (event.keyCode == 69) { E_DOWN = false;}
-        EVENT_MANAGER.HandleKeyUp(event);}
+  function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
     if (e && e.stopPropagation)
@@ -306,53 +297,6 @@ shape has visibility and
     return false;
   }
 
-  
-
-// Not used at the moment.
-function InitAnnotations(viewer, annotations)
-{
-    if (annotations.length == 0) {
-        return;
-    }
-    
-    // Hack button to toggle annotation.
-    $('<button>').appendTo('body').css({
-        'opacity': '0.2',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'font-size': '30px',
-        'bottom' : '5px',
-        'left' : '5px',
-        'z-index': '2'})
-      .attr('id', 'annotationButton').text("A")
-      .click(function(){
-         ToggleAnnotationVisibility();});
-
-    for (i in annotations) {
-        var annotation = annotations[i];
-        widget = new TextWidget(viewer, annotation.string);
-        var p1 = annotation.position;
-        var offset = annotation.offset;
-        widget.SetPosition(p1[0], p1[1]);
-        widget.SetTextOffset(offset[0], offset[1]);
-        widget.SetAnchorShapeVisibility(true);
-    }
-}
-
-function ToggleAnnotationVisibility() {
-    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
-}
-
-function SetAnnotationVisibility(visibility) {
-    VIEWER1.ShapeVisibility = visibility;
-    if (visibility) {
-        $("#annotationButton").css({'opacity': '0.6'});
-    } else {
-        $("#annotationButton").css({'opacity': '0.2'});
-    }
-    eventuallyRender();    
-}
 
   function webGLStart() {
     // Just to see if webgl is supported:
@@ -374,17 +318,17 @@ function SetAnnotationVisibility(visibility) {
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
-    CANVAS.onmousedown = handleMouseDown;
-    CANVAS.onmousewheel = handleMouseWheel;
-    document.onmouseup = handleMouseUp;
+    CANVAS.onmousedown =   handleMouseDown;
+    CANVAS.onmouseup =     handleMouseUp;
+    CANVAS.onmousewheel =  handleMouseWheel;
+    document.onmouseup =   handleMouseUp;
     document.onmousemove = handleMouseMove;
-
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
+    document.onkeydown =   handleKeyDown;
+    document.onkeyup =     handleKeyUp;
     document.oncontextmenu = cancelContextMenu;         
 
     // Create the annotations for viewer1 
-    InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
+    //InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
     
     // Create the edit menu.
     InitViewEditMenus();
@@ -427,7 +371,6 @@ function SetAnnotationVisibility(visibility) {
     VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
      
      
-     
     // Place the zoom in / out buttons. For the second viewer
     $('<img>').appendTo('body').css({
         'opacity': '0.4',
@@ -437,7 +380,11 @@ function SetAnnotationVisibility(visibility) {
         'bottom' : '60px',
         'left' : '96%',
         'z-index': '2'
-    }).attr('class', 'viewer2').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}").click(function(){
+    }).attr('id', 'zoomIn2')
+      .attr('class', 'viewer2')
+      .attr('type','image')
+      .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
+      .click(function(){
              VIEWER2.AnimateZoom(0.5);});
     $('<img>').appendTo('body').css({
         'opacity': '0.4',
@@ -447,186 +394,19 @@ function SetAnnotationVisibility(visibility) {
         'bottom' : '5px',
         'left' : '96%',
         'z-index': '2'
-    }).attr('class', 'viewer2').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
+    }).attr('id', 'zoomOut2')
+      .attr('class', 'viewer2')
+      .attr('type','image')
+      .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
+      .click(function(){
              VIEWER2.AnimateZoom(2.0);});
     $('.viewer2').hide();
-             
+    VIEWER2.AddGuiElement("#zoomIn2", "Bottom", 60, "Right", 55);
+    VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
 
-
-
-    // Create the menu to select slides for the second view.
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'opacity': '0.6',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'height': '24px',
-        'top' : '10px',
-        'left' : '53%',
-        'width': '35%',
-        'z-index': '2',
-        'text-align': 'center',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'diagnosis').text("Diagnosis").click(function(){
-         $('#diagnoses').fadeToggle();}).mouseenter(function(){
-         $('#diagnoses').fadeIn();});
-    
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'opacity': '0.6',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'top' : '35px',
-        'left' : '53%',
-        'width': '35%',
-        'z-index': '2',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'diagnoses');
-    
-    $('<ol>').appendTo('#diagnoses').attr('id', 'optionMenu').css({'width': '100%'});
-    for (i in ARGS.Options) {
-        $('<li>').appendTo('#optionMenu').text(ARGS.Options[i].label).css({'border-radius': '5px'});
-    }
-    
-    $( "#optionMenu" ).selectable({
-      stop: function() {
-        $('#diagnosis').text($('.ui-selected').text());
-        $('#diagnoses').fadeOut();
-        $( ".ui-selected", this ).each(function() {
-          var li = $( "#optionMenu li" );
-          var t = li.text();
-          var index = $( "#optionMenu li" ).index( this );
-          changeOption(index);
-        });
-      }
-    });    
-    
     eventuallyRender();
   }
 
-  function NewArrow() {
-    // When the arrow button is pressed, create the widget.
-    var widget = new ArrowWidget(VIEWER1, true);
-    VIEWER1.ActiveWidget = widget;
-    eventuallyRender();
-  }
-
-  function NewCircle() {
-    // When the circle button is pressed, create the widget.
-    var widget = new CircleWidget(VIEWER1, true);
-    VIEWER1.ActiveWidget = widget;
-  }
-
-  function NewPolyline() {
-    // When the text button is pressed, create the widget.
-    VIEWER1.ActiveWidget = new PolylineWidget(VIEWER1, true);
-  }
-
-  function NewText() {
-    // Just open the dialog, and let it take over.
-    // The text is created when the apply button is pressed.
-
-    // For debugging
-    //var t = new Text();
-    //t.Position = [6000,6000];
-    //t.Color = [0,0,0];
-    //t.String = "Hello\nWorld";
-    //t.UpdateBuffers();
-    //VIEWER1.AddShape(t);
-    // Just open the dialog, and let it take over.
-    // The text is created when the apply button is pressed.
-    $("#text-properties-dialog").dialog("open");
-  }
-
-  function TextPropertyDialogApply() {
-    var string = document.getElementById("textwidgetcontent").value;
-    if (string == "") {
-      alert("Empty String");
-      return;
-    }
-    var widget = VIEWER1.ActiveWidget;
-    var markerFlag = document.getElementById("TextMarker").checked;
-
-    if (widget == null) {
-      // This is a new widget.
-      var widget = new TextWidget(VIEWER1, string);
-    } else {
-      widget.Shape.String = string;
-      widget.Shape.UpdateBuffers();
-      widget.SetActive(false);
-    }
-    widget.SetAnchorShapeVisibility(markerFlag);
-
-    ViewSaveAnnotations();
-    
-    eventuallyRender();
-  }
-
-  function ArrowPropertyDialogApply() {
-    var hexcolor = document.getElementById("arrowcolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    //var fixedSizeFlag = document.getElementById("ArrowFixedSize").checked;
-    widget.Shape.SetFillColor(hexcolor);
-    if (widget != null) {
-      widget.SetActive(false);
-      //widget.SetFixedSize(fixedSizeFlag);
-    }
-    eventuallyRender();
-  }
-
-  function CirclePropertyDialogApply() {
-    var hexcolor = document.getElementById("circlecolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    widget.Shape.SetOutlineColor(hexcolor);
-    var lineWidth = document.getElementById("circlelinewidth");
-    widget.Shape.LineWidth = parseFloat(lineWidth.value);
-    widget.Shape.UpdateBuffers();
-
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-    eventuallyRender();
-  }
-
-  function PolylinePropertyDialogApply() {
-    var hexcolor = document.getElementById("polylinecolor").value;
-    var widget = VIEWER1.ActiveWidget;
-    widget.Shape.SetOutlineColor(hexcolor);
-    var lineWidth = document.getElementById("polylinewidth");
-    widget.Shape.LineWidth = parseFloat(lineWidth.value);
-    widget.Shape.UpdateBuffers();
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-    eventuallyRender();
-  }
-
-  function WidgetPropertyDialogCancel() {
-    var widget = VIEWER1.ActiveWidget;
-    if (widget != null) {
-      widget.SetActive(false);
-    }
-  }
-
-  function WidgetPropertyDialogDelete() {
-    var widget = VIEWER1.ActiveWidget;
-    if (widget != null) {
-      VIEWER1.ActiveWidget = null;
-      // We need to remove an item from a list.
-      // shape list and widget list.
-      widget.RemoveFromViewer();
-      WidgetPropertyDialogDelete();
-      ViewSaveAnnotations();
-      eventuallyRender();
-    }
-  }
-
-  // function savequestion() {
-      // saveConstants();
-      // //window.location = "lessonmaker.php";
-  // }
 
   function zoomIn() {
     VIEWER1.AnimateZoom(0.5);
@@ -646,57 +426,6 @@ function SetAnnotationVisibility(visibility) {
 
     //********************************************************
 
-  function saveConstants() {
-    var questionchoices = [];
-    var questiontext = document.getElementById("qtext").value;
-    var questiontitle = document.getElementById("title").value;
-
-    var numAnswers = $('.answer').length;
-
-    for(var i=0; i < numAnswers; i++){
-      questionchoices[i] = $('.answer')[i].value;
-    }
-
-    var qid = QUESTION.qid.$id;
-    var cam = VIEWER1.MainView.Camera;
-    var camValues = {'roll':cam.Roll, 'fp':cam.FocalPoint, 'height':cam.Height};
-
-    var correct = findChecked();
-
-    correct = correct + '';
-
-    var annots = [];
-
-    for(var i=0; i < VIEWER1.WidgetList.length; i++){
-      annots.push(VIEWER1.WidgetList[i].Serialize());
-    }
-    if(annots.length == 0){
-        annots = 0;
-    }
-
-    $.post("setquestion.php", {qid: qid, qtitle:questiontitle, qtext: questiontext, choices: questionchoices, cam: camValues, corr: correct, annotations:annots}, function(cs){
-        //alert(cs);
-    });
-  }
-
-  function findChecked(){
-    var span = document.getElementById("choicelist");
-    var inputs = span.getElementsByTagName("input");
-    var radios = [];
-    for (var i = 0; i < inputs.length; ++i){
-      if (inputs[i].type.toLowerCase() === "radio") {
-        radios.push(inputs[i]);
-      }
-    }
-    for (var i = 0; i < radios.length; ++i) {
-      if (radios[i].checked) {
-        return i;
-      }
-    }
-
-    return 0;
-  }
-
     $(document).ready(function() {
 
       $("#text-properties-dialog").dialog({
@@ -706,7 +435,7 @@ function SetAnnotationVisibility(visibility) {
           modal:true,
           buttons:{
               Delete: function() {
-                  WidgetPropertyDialogDelete();
+                  TextPropertyDialogDelete();
                   $(this).dialog("close");
               },
               Apply: function() {
@@ -716,7 +445,7 @@ function SetAnnotationVisibility(visibility) {
           },
           close: function(event,ui) {
               if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  WidgetPropertyDialogCancel();
+                  TextPropertyDialogCancel();
                   $(this).dialog("close");
               }
               $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
@@ -730,7 +459,7 @@ function SetAnnotationVisibility(visibility) {
           modal:true,
           buttons:{
               Delete: function() {
-                  WidgetPropertyDialogDelete();
+                  ArrowPropertyDialogDelete();
                   $(this).dialog("close");
               },
               Apply: function() {
@@ -740,7 +469,7 @@ function SetAnnotationVisibility(visibility) {
           },
           close: function(event,ui) {
               if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  WidgetPropertyDialogCancel();
+                  ArrowPropertyDialogCancel();
                   $(this).dialog("close");
               }
               //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
@@ -754,7 +483,7 @@ function SetAnnotationVisibility(visibility) {
       modal:true,
       buttons:{
         Delete: function() {
-          WidgetPropertyDialogDelete();
+          CirclePropertyDialogDelete();
           $(this).dialog("close");
         },
         Apply: function() {
@@ -764,7 +493,7 @@ function SetAnnotationVisibility(visibility) {
       },
       close: function(event,ui) {
         if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          WidgetPropertyDialogCancel();
+          CirclePropertyDialogCancel();
           $(this).dialog("close");
         }
         //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
@@ -778,7 +507,7 @@ function SetAnnotationVisibility(visibility) {
       modal:true,
       buttons:{
         Delete: function() {
-          WidgetPropertyDialogDelete();
+          PolylinePropertyDialogDelete();
           $(this).dialog("close");
         },
         Apply: function() {
@@ -788,7 +517,7 @@ function SetAnnotationVisibility(visibility) {
       },
       close: function(event,ui) {
         if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          WidgetPropertyDialogCancel();
+          PolylinePropertyDialogCancel();
           $(this).dialog("close");
         }
       }
@@ -813,81 +542,47 @@ function SetAnnotationVisibility(visibility) {
 
 
 
- <div class="ui-widget" style="visibility:hidden">
-      <table border="1" id="annotbuttons">
-        <tr>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
-          </td>
-        </tr>
-      </table>
-      <table border="1" id="zoombuttons" >
-        <tr>
-          <td type="button" onclick="zoomIn();" style="width:20px;height:20px;background-color:white;text-align:center;" >+</td>
-        </tr>
-        <tr>
-          <td type="button" onclick="zoomOut();" style="width:20px;height:20px;background-color:white;text-align:center;" >-</td>
-        </tr>
-      </table>
-      <table border="1" id="rotatebuttons" >
-        <tr>
-          <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
-          </td>
-          <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('glviewer.static', filename='rotateRight.jpg') }}" height="25" />
-          </td>
-        </tr>
-      </table>
+<div class="ui-widget" style="visibility:hidden">
+  <div id="text-properties-dialog" title="Text Annotation Editor" >
+    <form>
+      <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+      Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
+      <input type="checkbox" id="TextMarker" checked /> Marker </input>
+    </form>
+  </div>
 
-      <div id="text-properties-dialog" title="Text Annotation Editor" >
-        <form>
-          <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
-          <input type="checkbox" id="TextMarker" checked /> Marker </input>
-        </form>
-      </div>
+  <div id="circle-properties-dialog" title="Circle Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and center and radius entries (thickness too) -->
+        Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
+        Line Width:<input id="circlelinewidth" ></input></br>
+        <p id="circlearea"></p>
+      </fieldset>
+    </form>
+  </div>
 
-      <div id="circle-properties-dialog" title="Circle Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-            Color(#rrggbb):<input id="circlecolor" ></input></br>
-            Line Width:<input id="circlelinewidth" ></input></br>
-            <p id="circlearea"></p>
-          </fieldset>
-        </form>
-      </div>
+  <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
+        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
+        Line Width:<input id="polylinewidth" ></input>
+      </fieldset>
+    </form>
+  </div>
 
-      <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-            Color(#rrggbb):<input id="polylinecolor" ></input></br>
-            Line Width:<input id="polylinewidth" ></input>
-          </fieldset>
-        </form>
-      </div>
-
-      <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-            Color(#rrggbb):<input id="arrowcolor" ></input>
-            <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
-            <p id="ArrowLength"></p>
-          </fieldset>
-        </form>
-      </div>
-    </div>
+  <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
+        Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
+        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
+        <p id="ArrowLength"></p>
+      </fieldset>
+    </form>
+  </div>
+</div>
 
 <script>
     webGLStart();

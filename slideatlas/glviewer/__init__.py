@@ -250,8 +250,8 @@ def glview():
         return glsingle(db,dbid,viewid,viewobj)
       if viewobj["type"] == "comparison" :
         return glcomparison(db,dbid,viewid,viewobj)
-    # old style
-    return glview2(db,dbobj,dbid,viewid,viewobj)
+    # default is now the single view (which can be switch to dual by the user).
+    return glsingle(db,dbid,viewid,viewobj)
 
 
 
@@ -260,83 +260,8 @@ def glview():
     
     
     
-    # I believe this is legacy.  
-@mod.route('/dual')
-def glviewdual():
-    """
-    - /webgl-viewer/dual?db=507619bb0a3ee10434ae0827&sessid=4ecbbc6d0e6f7d7a56000000
-    """
-
-    # See if the user is requesting any session id
-    sessid = request.args.get('sessid', None)
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db', None)
-
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-
-
-    coll = db["sessions"]
-    asession = coll.find_one({'_id' : ObjectId(sessid)})
-
-    # if asession.has_key("views"):
-    #        for aview in asession['views']:
-    aview = asession['views'][0]
-    viewobj = db["views"].find_one({"_id" : aview["ref"]})
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-
-
-    # use the first view for the left panel.
-    img = {}
-    img["db"] = dbid
-    img["collection"] = str(imgobj["_id"])
-    img["origin"] = str(imgobj["origin"])
-    img["spacing"] = str(imgobj["spacing"])
-    img["levels"] = str(imgobj["levels"])
-    if 'dimension' in imgobj:
-        img["dimension"] = str(imgobj["dimension"])
-    elif 'dimensions' in imgobj:
-        img["dimension"] = str(imgobj["dimensions"])
-    img["center"] = str(bookmarkobj["center"])
-    img["zoom"] = str(bookmarkobj["zoom"])
-    img["rotation"] = str(bookmarkobj["rotation"])
-
-    question = {}
-    question["viewer1"] = img;
-    # now create a list of options.
-    options = []
-
-    # iterate through the session objects
-    asession = db["sessions"].find_one({'_id' : ObjectId(sessid)});
-    for aview in asession['views']:
-        viewobj = db["views"].find_one({"_id" : aview["ref"]})
-        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-        #
-        img = {}
-        img["collection"] = str(imgobj["_id"])
-        img["origin"] = str(imgobj["origin"])
-        img["spacing"] = str(imgobj["spacing"])
-        img["levels"] = str(imgobj["levels"])
-        if 'dimension' in imgobj:
-            img["dimension"] = str(imgobj["dimension"])
-        elif 'dimensions' in imgobj:
-            img["dimension"] = str(imgobj["dimensions"])
-        img["db"] = dbid
-        img["center"] = str(bookmarkobj["center"])
-        img["zoom"] = str(bookmarkobj["zoom"])
-        img["rotation"] = str(bookmarkobj["rotation"])
-        img["label"] = imgobj["label"]
-        #
-        options.append(img)
-    question["options"] = options;
-
-    return make_response(render_template('dualviewer.html', question=question))
-
-
-
+# I am getting rid of the special paths in favor of just using the type to select the viewer.
+# this is legarcy code.
 @mod.route('/comparison')
 def glcomparison():
     """

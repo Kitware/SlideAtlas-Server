@@ -297,7 +297,8 @@ def sessionsave():
           del oldViews[index]
           newViews.append(view)
     
-    # pdb.set_trace()
+
+    # Delete the views that are left over.
     # Views are owned by the session.
     # Images can be shared.
     for view in oldViews:
@@ -308,3 +309,4 @@ def sessionsave():
 
     # I should probably return success.  This is just a place holder.
     return "success";
+

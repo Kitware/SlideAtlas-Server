@@ -1,3 +1,13 @@
+// Used wrongly in textWidget.js
+// Stub it out until we fix this.
+function ComparisonSaveAnnotations() {}
+
+
+// We need to remeber which viewer an open dialog applies to.
+
+
+
+
 //==============================================================================
 // Create and manage the menu to edit dual views.
 
@@ -29,6 +39,21 @@ function getCookie(c_name)
 
 
 function ShowViewEditMenu(x, y) {
+    // Viewers have independent annotation visibility (which could be annoying.
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    if ( ! viewer) { return; }
+
+    var color = "#A0A0A0";
+    if (viewer.WidgetList.length > 0) {
+      color = "#000000";
+    }
+
+    if (GetAnnotationVisibility(viewer)) {
+      $('#toggleAnnotationVisibility').text("Hide Annotations").css({'color': color});
+    } else {
+      $('#toggleAnnotationVisibility').text("Show Annotations").css({'color': color});
+    }
+ 
     $('#viewEditMenu').css({'top': y, 'left':x}).show();
 }
 
@@ -53,33 +78,26 @@ function InitViewEditMenus() {
              .attr('id', 'viewEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
     $('<li>').appendTo(viewEditSelector)
-             .text("dual view")
+             .text("Dual View")
              .attr('id', 'toggleDualItem')
              .click(function(){ToggleDualView();});
     $('<li>').appendTo(viewEditSelector)
-             .text("add diagnosis")
-             .click(function(){ViewAddDiagnosis();});
+             .text("New Text")
+             .click(function(){AnnotationNewText();});
     $('<li>').appendTo(viewEditSelector)
-             .text("delete diagnosis")
-             .click(function(){ViewDeleteDiagnosis();});
+             .text("New Circle")
+             .click(function(){AnnotationNewCircle();});
     $('<li>').appendTo(viewEditSelector)
-             .text("edit diagnosis label")
-             .click(function(){ViewEditDiagnosisLabel();});
+             .text("New Free Form")
+             .click(function(){NewPolyline();});
     $('<li>').appendTo(viewEditSelector)
-             .text("save right view")
-             .click(function(){ViewSaveRightView();});
+             .attr('id', 'toggleAnnotationVisibility')
+             .text("Show Annotations")
+             .click(function(){ToggleAnnotationVisibility();});
     $('<li>').appendTo(viewEditSelector)
-             .text("save left view")
-             .click(function(){ViewSaveLeftView();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("new annotaton")
-             .click(function(){ViewNewAnnotation();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("copy options")
-             .click(function(){ViewCopyOptions();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("paste options")
-             .click(function(){ViewPasteOptions();});
+             .text("Flip Horizontal")
+             .click(function(){FlipHorizontal();});
+         
 
     // Create a selection list of sessions.   
     $('<div>').appendTo('body').css({
@@ -118,279 +136,14 @@ function InitViewEditMenus() {
     }).attr('id', 'viewMenu').hide()
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
-
-    // Get info from the databse to fillout the the rest of the view menu.
-    //$.get("http://localhost:8080/sessions?json=true",function(data,status){
-    $.get(SESSIONS_URL+"?json=true",function(data,status){
-        if (status == "success") {
-            InitSessionMenuAjax(data);
-        } else { alert("ajax failed."); }
-    });
-
-
-    // Create the dialog to edit diagnosis labels.
-    var tmp = $('<div>').attr('id', 'viewDialog').hide();
-    tmp.appendTo('body').css({
-        'background-color': 'white',
-        'border-style': 'solid',
-        'border-width': '1px',
-        'border-radius': '5px',
-    }).attr('title', 'Edit Label');
-    $('<label>').appendTo(tmp).text("Diagnosis : ");
-    $('<input type="text"/>').appendTo(tmp).attr('id', 'diagnosisLabelInput').css({'width': '100%'});
-    $('<button>').appendTo(tmp).text("Submit").click(function(){ViewEditDiagnosisLabelSubmit();});
 }
 
-function InitSessionMenuAjax(data) {
-    for (i in data.sessions) {
-        var group = data.sessions[i];
-        $('<li>').appendTo('#sessionMenuSelector').css({'font-weight':'bold'}).text(group.rule);
-        for (j in group.sessions) {
-            session = group.sessions[j];
-            $('<li>').appendTo('#sessionMenuSelector')
-                .text(session.label)
-                .attr('sessdb', session.sessdb).attr('sessid', session.sessid)
-                .click(function(){ShowViewMenu(this);});
-        }
-    }
-}
-    
-    
-function ShowViewMenu(obj) {
-    // Get info from the databse to fillout the the rest of the view menu.
-    //$.get("http://localhost:8080/sessions?json=1&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
-    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
-          function(data,status){
-            if (status == "success") {
-              ShowViewMenuAjax(data);
-            } else { alert("ajax failed."); }
-          });
-}
-function ShowViewMenuAjax(data) {
-    $('#viewMenuSelector').empty();
-    for (i in data.images) {
-        var slide = data.images[i];
-        $('<li>').appendTo('#viewMenuSelector') // <option> for drop down
-            .text(slide.label)
-            .attr('db', slide.db).attr('viewid', slide.view)
-            .click(function(){ViewMenuCallback(this);});
-    }
-    $('#viewMenu').show();    
-}
-function ViewMenuCallback(obj) {
-    // We need the information in view, image and bookmark (startup_view) object.
-    //window.location = "http://localhost:8080/webgl-viewer/View-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
-    //$.get("http://localhost:8080/webgl-viewer/View-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
-    $.get(VIEW_OPTION_URL+"?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
-          function(data,status){
-            if (status == "success") {
-              AddViewOption(data);
-            } else { alert("ajax failed."); }
-          });
-}
-
-
-// It would be nice to share this method with the initialization code.
-function AddViewOption(option) {
-    var index = ARGS.Options.length;
-    // Add a new option.
-    var view = {};
-    
-    view.label = option.label.replace(/&#39;/g,"'");
-    view.label = option.label.replace(".ndpi","");
-
-    view.db = option.db;
-    view.img = option.img;
-    view.center = option.center;
-    view.viewHeight = option.viewHeight;
-    view.rotation = option.rotation;
-    ARGS.Options.push(view);
-
-    var info = {};
-    info.origin = option.origin;
-    info.spacing = option.spacing;
-    info.levels = option.levels;
-    info.dimensions = option.dimension;
-    ARGS.OptionInfo.push(info);
-    
-    // Unselect any selected items.
-    $(".ui-selected", '#optionMenu').removeClass("ui-selected").addClass("ui-unselecting");
-    // Add the new item and select it.
-    $('<li>').appendTo('#optionMenu').text(ARGS.Options[index].label).addClass("ui-selected");
-    // trigger the mouse stop event (this will select all .ui-selecting elements, and deselect all .ui-unselecting elements)
-    //$('#optionMenu')._mouseStop(null);
-    // Calling this method directly will leave the option menu visible.
-    changeOption(index);
-    
-    // Save the new options in mongo
-    ViewSave("options");
-}
-
-//    url: "http://localhost:8080/webgl-viewer/view-save",
-function ViewSave(operation) {
-  if ( ! EDIT) {
-    return;
-  }
-  $.ajax({
-    type: "post",
-    url: VIEW_SAVE_URL,
-    data: {"input" :  JSON.stringify( ARGS ),
-           "operation" : operation},
-    success: function(data,status){
-       //alert(data + "\nStatus: " + status);
-       },
-    error: function() { alert( "AJAX - error()" ); },
-    });
- }
-
-function ViewSaveAnnotations() {
-    ARGS.Viewer1.annotations = [];
-    for (i in VIEWER1.WidgetList) {
-        widget = VIEWER1.WidgetList[i];
-        ARGS.Viewer1.annotations.push(widget.Serialize());
-    }
-    ViewSave("view");
-}
-
-// Set the current option / diagnosis.
-function changeOption(index) {
-    if (index < 0) {
-        // Create a new source for the viewer.
-        // We may want to save sources so they do not have to reload when selected.
-        VIEWER2.SetCache(null);
-        VIEWER2.OptionIndex = undefined;
-        $('#diagnosis').text("Diagnosis");
-        $('.viewer2').hide();
-    } else {
-        // Create a new source for the viewer.
-        // We may want to save sources so they do not have to reload when selected.
-        var option = ARGS.Options[index];
-        var optionInfo = ARGS.OptionInfo[index];
-        var source = new Cache("/tile?img="+option.img+"&db="+option.db+"&name=", optionInfo.levels);
-        VIEWER2.SetCache(source);
-        VIEWER2.SetCamera(option.center, option.rotation, option.viewHeight);
-        VIEWER2.SetDimensions(optionInfo.dimensions);
-        // I need to remember which option is currently selected
-        // so it can be edited (save view, delete).
-        VIEWER2.OptionIndex = index;
-        $('.viewer2').show();
-    }
-
-    eventuallyRender();
-}
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ViewAddDiagnosis() {
-    $('#viewEditMenu').hide();
-    $('#sessionMenu').show();
-}
-
-function ViewDeleteDiagnosis() {
-    $('#viewEditMenu').hide();
-    if (VIEWER2.OptionIndex == undefined) {
-        alert("No diangosis selected to delete.");
-        return;
-    }
-    var indexToDelete = VIEWER2.OptionIndex;
-    var newOptions = [];
-    for (i in ARGS.Options) {
-        if (i != indexToDelete) {
-            newOptions.push(ARGS.Options[i]);
-        }
-    }
-    ARGS.Options = newOptions;
-
-    var newOptionInfo = [];
-    for (i in ARGS.OptionInfo) {
-        if (i != indexToDelete) {
-            newOptionInfo.push(ARGS.OptionInfo[i]);
-        }
-    }
-    ARGS.OptionInfo = newOptionInfo;
-
-    // delete the selected item from the option list.
-    //$("#foo > option[value='2']").remove();
-    $("#optionMenu > li").remove(".ui-selected");    
-    
-    $("#diagnoses").fadeIn();    
-    changeOption(-1);
-    
-    // Save the new options in mongo
-    ViewSave("options");
-}
-
-function ViewEditDiagnosisLabel() {
-    if (VIEWER2.OptionIndex == undefined) {
-        alert("No diangosis selected to edit.");
-        return;
-    }
-    var selectedIndex = VIEWER2.OptionIndex;
-
-    $('#diagnosisLabelInput').attr('value', ARGS.Options[selectedIndex].label);
-    $('#viewDialog').dialog();
-    
-    // Save the new options in mongo
-    ViewSave("options");
-}
-function ViewEditDiagnosisLabelSubmit() {
-    if (VIEWER2.OptionIndex == undefined) { // check should not be necessary here.
-        alert("No diangosis selected to edit.");
-        return;
-    }
-    var selectedIndex = VIEWER2.OptionIndex;
-    var txt = $('#diagnosisLabelInput').attr('value');
-    ARGS.Options[selectedIndex].label = txt;
-    
-    // Now we have to change the label in the diagnosis option list.
-    $("#optionMenu > li.ui-selected").text(txt);   
-    // The menu button needs to change because the option is selected.
-    $('#diagnosis').text(txt);
-
-    $('#viewDialog').dialog( "close" );    
-
-    // Save the new options in mongo
-    ViewSave("options");
-}
-
-
-function ViewSaveRightView() {
-    if (VIEWER2.OptionIndex == undefined) {
-        alert("No diangosis selected to edit.");
-        return;
-    }
-    var selectedIndex = VIEWER2.OptionIndex;
-
-    var cam = VIEWER2.GetCamera();
-    ARGS.Options[selectedIndex].viewHeight = cam.Height;
-    // Copy values not pointer reference.
-    ARGS.Options[selectedIndex].center = [cam.FocalPoint[0], cam.FocalPoint[1]];
-    ARGS.Options[selectedIndex].rotation = 180 * cam.Roll / 3.14159265;
-    
-    $('#viewEditMenu').hide();
-    
-    // Save the new options in mongo
-    ViewSave("options");
-}
 
 // It would be nice to animate the transition
 // It would be nice to integrate all animation in a flexible utility.
 var ANIMATION_LAST_TIME;
 var ANIMATION_DURATION;
 var ANIMATION_TARGET;
-
-
 
 function ToggleDualView() {
   $('#viewEditMenu').hide();
@@ -429,64 +182,74 @@ function AnimateViewToggle() {
   requestAnimFrame(AnimateViewToggle);
 }
 
-
-
-
-
-function ViewSaveLeftView() {
-    var cam = VIEWER1.GetCamera();
-    ARGS.Viewer1.viewHeight = cam.Height;
-    // Copy values not pointer reference.
-    ARGS.Viewer1.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
-    ARGS.Viewer1.rotation = 180 * cam.Roll / 3.14159265;
-    
-    $('#viewEditMenu').hide();
-    
-    // Save the new options in mongo
-    ViewSave("view");
-}
-
-
-// Use cookies as a clipboard for copy and paste.
-function ViewCopyOptions() {
-  setCookie("viewOptions",JSON.stringify(ARGS.Options),1);
-  setCookie("viewOptionInfo",JSON.stringify(ARGS.OptionInfo),1);
+function AnnotationNewText() {
   $('#viewEditMenu').hide();
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+  SetAnnotationVisibility(viewer, true);
+  var widget = new TextWidget(viewer, "");
+  // Set default color from the last text widget setting.
+  var hexcolor = document.getElementById("textcolor").value;
+  widget.Shape.SetColor(hexcolor);
+  widget.AnchorShape.SetFillColor(hexcolor);
+  // Default value for anchor shape visibility
+  widget.AnchorShape.Visibility = document.getElementById("TextMarker").value;
+  viewer.ActiveWidget = widget;
+
+  // The dialog is used to set the initial text.
+  widget.ShowPropertiesDialog();
 }
 
-function ViewPasteOptions() {
-    var options = getCookie("viewOptions");
-    var optionInfo = getCookie("viewOptionInfo");
-    if (options == null || options == "" || optionInfo == null || optionInfo == "") {
-        alert("Nothing on the clipboard.");
-        return;
-    }
-    
-    changeOption(-1);
-    
-    
-    ARGS.Options = JSON.parse(options);
-    ARGS.OptionInfo = JSON.parse(optionInfo);
-    
-    // Rebuild the option menu.
-    $('#optionMenu').empty();
-    for (i in ARGS.Options) {
-        $('<li>').appendTo('#optionMenu').text(ARGS.Options[i].label).css({'border-radius': '5px'});
-    }
-
-    // Save the new options in mongo
-    ViewSave("options");
-
+function NewPolyline() {
     $('#viewEditMenu').hide();
+    // When the text button is pressed, create the widget.
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    if ( ! viewer) { return; }
+    SetAnnotationVisibility(viewer, true);
+    var widget = new PolylineWidget(viewer, true);
+    widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
+    viewer.ActiveWidget = widget;
+}
+
+function AnnotationNewCircle() {
+    $('#viewEditMenu').hide();
+    // When the circle button is pressed, create the widget.
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    if ( ! viewer) { return; }
+    SetAnnotationVisibility(viewer, true);
+    var widget = new CircleWidget(viewer, true);
+    widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
+    viewer.ActiveWidget = widget;
+}
+
+function SetAnnotationVisibility(viewer, visibility) {
+    viewer.ShapeVisibility = visibility;
+    eventuallyRender();    
+}
+
+function GetAnnotationVisibility(viewer) {
+  return viewer.ShapeVisibility;
+}
+
+function ToggleAnnotationVisibility() {
+    $('#viewEditMenu').hide();
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    if ( ! viewer) { return; }
+    SetAnnotationVisibility(viewer, ! GetAnnotationVisibility(viewer));
 }
 
 
-function ViewNewAnnotation() {
-    SetAnnotationVisibility(true);
-   // The text is created when the apply button is pressed.
-   $("#text-properties-dialog").dialog("open");
-    
-   $('#viewEditMenu').hide();
+
+// Mirror image
+function FlipHorizontal() {
+    $('#viewEditMenu').hide();
+    // When the circle button is pressed, create the widget.
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    if ( ! viewer) { return; }
+
+    var cam = viewer.GetCamera();
+    viewer.ToggleMirror();
+    viewer.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
 }
 
 
@@ -502,5 +265,9 @@ function SessionAdvance() {
 
 function SessionAdvanceAjax() {
 }
+
+
+
+
 
 

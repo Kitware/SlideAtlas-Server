@@ -30,7 +30,7 @@ function PolylineWidget (viewer, newFlag) {
   this.ClosedLoop = false;
   // Circle is to show an active vertex.
   this.Circle = new Circle();
-  this.Circle.FillColor = [1.0, 1.0, 0.2];
+  this.Circle.FillColor = [1.0, 1.0, 0.2]
   this.Circle.OutlineColor = [0.0,0.0,0.0];
   this.Circle.FixedSize = false;
   this.Circle.ZOffset = -0.05;
@@ -72,12 +72,7 @@ PolylineWidget.prototype.Serialize = function() {
   obj.type = "polyline";
   obj.outlinecolor = this.Shape.OutlineColor;
   obj.linewidth = this.Shape.LineWidth;
-  // Copy the points to avoid array reference bug.
-  obj.points = [];
-  for (var i = 0; i < this.Shape.Points.length; ++i) {
-    obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
-  }
-  
+  obj.points = this.Shape.Points;
   obj.closedloop = this.ClosedLoop;
   return obj;
 }
@@ -116,9 +111,6 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
 PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
-PolylineWidget.prototype.HandleDoubleClick = function(event) {
-}
-
 // Mouse down does nothing. Mouse up causes all state changes.
 PolylineWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
@@ -147,7 +139,6 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
       this.Shape.Active = false;
       this.ActivateVertex(-1);
       eventuallyRender();
-      RecordState();
       return;
     }
     this.Shape.Points.push(pt);
@@ -184,15 +175,6 @@ PolylineWidget.prototype.HandleMouseUp = function(event) {
     this.State = POLYLINE_WIDGET_PROPERTIES_DIALOG;
     this.ShowPropertiesDialog();
   }
-
-  if (event.SystemEvent.which == 1) {
-    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
-        this.State == POLYLINE_WIDGET_ACTIVE) {
-      // Dragging a vertex or the whole polyline.
-      RecordState();
-    }
-  }
-
 }
 
 
@@ -249,7 +231,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
         this.Shape.Points[this.ActiveVertex] = pt;
         }
       this.Circle.Origin = pt;
-      this.Shape.Buffers();
+      this.Shape.UpdateBuffers();
       eventuallyRender();
     }
   }
@@ -408,7 +390,6 @@ function PolylinePropertyDialogApply() {
   if (widget != null) {
     widget.SetActive(false);
   }
-  RecordState();
   eventuallyRender();
 }
 
@@ -427,7 +408,6 @@ function PolylinePropertyDialogDelete() {
     // shape list and widget list.
     widget.RemoveFromViewer();
     eventuallyRender();
-    RecordState();
   }
 }
 

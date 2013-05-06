@@ -19,7 +19,7 @@ var ARROW_WIDGET_ACTIVE = 5; // Mouse is over the widget and it is receiving eve
 var ARROW_WIDGET_PROPERTIES_DIALOG = 6; // Properties dialog is up
 
 
-// We might get rid of the new flag by passing in a null viewer.
+
 function ArrowWidget (viewer, newFlag) {
   if (viewer == null) {
     return null;
@@ -33,18 +33,16 @@ function ArrowWidget (viewer, newFlag) {
   this.Shape.OutlineColor = [1.0, 1.0, 1.0];
   this.Shape.Length = 50;
   this.Shape.Width = 8;
+  viewer.WidgetList.push(this);
   // Note: If the user clicks before the mouse is in the
   // canvas, this will behave odd.
   this.TipPosition = [0,0];
   this.TipOffset = [0,0];
 
-  if (viewer) {
-    viewer.WidgetList.push(this);
-    if (newFlag && viewer) {
-      this.State = ARROW_WIDGET_NEW;
-      this.Viewer.ActivateWidget(this);
-      return;
-    }
+  if (newFlag) {
+    this.State = ARROW_WIDGET_NEW;
+    this.Viewer.ActivateWidget(this);
+    return;
   }
 
   this.State = ARROW_WIDGET_WAITING;
@@ -73,10 +71,10 @@ ArrowWidget.prototype.Serialize = function() {
   var obj = new Object();
   obj.type = "arrow";
   obj.origin = this.Shape.Origin
-  obj.fillcolor = this.Shape.FillColor;
-  obj.outlinecolor = this.Shape.OutlineColor;
-  obj.length = this.Shape.Length;
-  obj.width = this.Shape.Width;
+	obj.fillcolor = this.Shape.FillColor;
+	obj.outlinecolor = this.Shape.OutlineColor;
+	obj.length = this.Shape.Length;
+	obj.width = this.Shape.Width;
   obj.orientation = this.Shape.Orientation;
   obj.fixedsize = this.Shape.FixedSize;
   obj.fixedorientation = this.Shape.FixedOrientation;
@@ -299,12 +297,6 @@ ArrowWidget.prototype.ShowPropertiesDialog = function () {
   ARROW_WIDGET_DIALOG_SELF = this;
   $("#arrow-properties-dialog").dialog("open");
 }    
-
-// I need this because old schemes cannot use "Load"
-ArrowWidget.prototype.SetColor = function (hexColor) {
-  this.Shape.SetFillColor(hexColor);
-  eventuallyRender();
-}
 
 function ArrowPropertyDialogApply() {
   var widget = ARROW_WIDGET_DIALOG_SELF;

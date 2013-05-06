@@ -25,7 +25,6 @@ function CircleWidget (viewer, newFlag) {
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth =  5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
-  
   this.Viewer.WidgetList.push(this);
 
   // Note: If the user clicks before the mouse is in the
@@ -83,9 +82,6 @@ CircleWidget.prototype.Load = function(obj) {
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
-CircleWidget.prototype.HandleDoubleClick = function(event) {
-}
-
 CircleWidget.prototype.HandleMouseDown = function(event) {
   if (event.SystemEvent.which != 1)
     {
@@ -116,7 +112,6 @@ CircleWidget.prototype.HandleMouseUp = function(event) {
     this.ShowPropertiesDialog();
   } else if ( this.State == CIRCLE_WIDGET_DRAG ||  this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     this.SetActive(false);
-    RecordState();
   }
 }
 
@@ -242,7 +237,6 @@ function CirclePropertyDialogApply() {
   widget.Shape.LineWidth = parseFloat(lineWidth.value);
   widget.Shape.UpdateBuffers();
   widget.SetActive(false);
-  RecordState();
   eventuallyRender();
 }
 
@@ -262,7 +256,6 @@ function CirclePropertyDialogDelete() {
     // shape list and widget list.
     widget.RemoveFromViewer();
     eventuallyRender();
-    RecordState();
   }
 }
 
