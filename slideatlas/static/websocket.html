@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
    <head>
+   	  <script src="/static/js/jquery-1.9.1.min.js"> </script>
+    
       <script type="text/javascript">
          var sock = null;
          var ellog = null;
@@ -36,7 +38,17 @@
                }
 
                sock.onmessage = function(e) {
-                  log("Got echo: " + e.data);
+               		// if response is image 
+					// Create an image tag 
+					$("#img").empty();
+               		var img = new Image();
+               		var data = e.data;
+               		//var x = new Uint8Array(data, 0);
+               		//str = data.rQshiftBytes();
+					img.src = URL.createObjectURL(e.data)
+					$("#img").append(img);
+					//$("#img").appendChild(img);
+                  	log("Got echo: " + e.data);
                }
             }
          };
@@ -64,6 +76,7 @@
          <p>Message: <input id="message" type="text" size="50" maxlength="50" value="Hello, world!"></p>
       </form>
       <button onclick='send();'>Send Message</button>
+      <div id="img"> </div>
       <pre id="log" style="height: 20em; overflow-y: scroll; background-color: #faa;"></pre>
    </body>
 </html>

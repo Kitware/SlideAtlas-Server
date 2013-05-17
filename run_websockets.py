@@ -16,8 +16,8 @@ from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware, WSGIRo
 class EchoServerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, msg, binary):
-        self.sendMessage(msg, binary)
-
+        fin = open("data/tiger.jpg")
+        self.sendMessage(fin.read(), True)
 
 if __name__ == '__main__':
 
