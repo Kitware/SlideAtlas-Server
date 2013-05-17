@@ -23,6 +23,8 @@ app.config['UPLOAD_FOLDER'] = "d:/docs"
 app.config.from_object("site_slideatlas")
 #app.config.from_object("site_local")
 
+>>>>>>> Mounting Flask WSGI application within twisted
+
 # Connection settings for local demo database for testing (VM) 
 slconn = mongokit.Connection(app.config["MONGO_SERVER"], tz_aware=False, auto_start_request=False)
 admindb = slconn["admin"]
