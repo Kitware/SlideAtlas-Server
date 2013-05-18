@@ -1,5 +1,6 @@
 from slideatlas import app
 import sys
+import os
 
 # run in under twisted through wsgi
 from twisted.web.wsgi import WSGIResource
@@ -16,7 +17,8 @@ from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware, WSGIRo
 class EchoServerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, msg, binary):
-        fin = open("data/tiger.jpg")
+        #fin = open(os.path.abspath(__file__) + "/data/tiger.jpg")
+        fin = open("/home/dhan/projects/slideatlas-flask/data/tiger.jpg")
         self.sendMessage(fin.read(), True)
 
 if __name__ == '__main__':

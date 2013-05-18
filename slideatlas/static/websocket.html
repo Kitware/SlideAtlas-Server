@@ -45,7 +45,7 @@
                		var data = e.data;
                		//var x = new Uint8Array(data, 0);
                		//str = data.rQshiftBytes();
-					img.src = URL.createObjectURL(e.data)
+					img.src = URL.createObjectURL(e.data.slice(0,e.data.size, "image/jpg"))
 					$("#img").append(img);
 					//$("#img").appendChild(img);
                   	log("Got echo: " + e.data);

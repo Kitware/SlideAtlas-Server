@@ -1,4 +1,4 @@
-MONGO_SERVER = "ayodhya:27017"
+MONGO_SERVER = "127.0.0.1:27017"
 CONFIGDB = "slideatlasv2"
 
 
