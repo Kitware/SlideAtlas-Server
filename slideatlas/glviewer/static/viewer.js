@@ -93,10 +93,11 @@ Viewer.prototype.GetViewport = function() {
   return this.MainView.Viewport;
 }
 
-// For the overview and maybe reset camera in the future.
+// For the overview and maybe camera reset in the future.
 Viewer.prototype.SetDimensions = function(dims) {
     this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
     this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
+    
     var height = dims[1];
     // See if the view is constrained by the width.
     var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
@@ -104,8 +105,13 @@ Viewer.prototype.SetDimensions = function(dims) {
       height = height2;
     }
     this.OverView.Camera.Height = height;
-
     this.OverView.Camera.ComputeMatrix();
+
+    // Set the default main view camera too  (in case a camera is not in database).
+    this.MainView.Camera.FocalPoint = this.OverView.Camera.FocalPoint;
+    this.MainView.Camera.Height = this.OverView.Camera.Height;
+    this.MainView.Camera.ComputeMatrix();
+
     eventuallyRender();
 }
 

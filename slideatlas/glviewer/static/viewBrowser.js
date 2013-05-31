@@ -85,7 +85,6 @@ function ViewBrowserSessionCallback(obj) {
         });
 }
 
-//tile?db=5074589002e31023d4292d83&img=4f14a3975877180e08000001&name=thumb.jpg
 function ViewBrowserAddSessionViews(sessionData) {
     var sessionItem = $("[sessid="+sessionData.sessid+"]");
     var viewList = $('<ul>').appendTo(sessionItem)
@@ -94,10 +93,8 @@ function ViewBrowserAddSessionViews(sessionData) {
       var item = $('<li>').appendTo(viewList)
           .attr('db', image.db).attr('viewid', image.view)
           .click(function(){ViewBrowserImageCallback(this);});
-//<img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px>
-//tile?db=5074589002e31023d4292d83&img=4f14a3975877180e08000001&name=thumb.jpg
       $('<img>').appendTo(item)
-          .attr('src', "tile?db="+image.db+"&img="+image.img+"&name=thumb.jpg")
+          .attr('src', "tile?db="+image.db+"&img="+image.img+"&name=t.jpg")     // all images should have thumb.jpg
           .css({'height': '50px'});
       $('<span>').appendTo(item)
           .text(image.label);
@@ -122,11 +119,17 @@ function ViewBrowserLoadImage(viewData) {
   var source = new Cache("/tile?img="+viewData.collection+"&db="+viewData.db+"&name=", viewData.levels);
   ACTIVE_VIEWER.SetCache(source);
   
+  // all this does is set the default camera.
   ACTIVE_VIEWER.SetDimensions(viewData.dimensions);
-  ACTIVE_VIEWER.SetCamera(viewData.center, 
-                          viewData.rotation, 
-                          viewData.viewHeight);
-  eventualyRender();
+
+    // Handle exceptions in database schema.
+  if ( viewData.center) {
+    ACTIVE_VIEWER.SetCamera(viewData.center, 
+                            viewData.rotation, 
+                            viewData.viewHeight);
+  }
+  
+  eventuallyRender();
 }
 
 

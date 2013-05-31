@@ -174,13 +174,22 @@ shape has visibility and
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
     ARGS.Viewer1.viewid = "{{question.viewer1.viewid}}";
     ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
-    ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
+    ARGS.Viewer1.dimensions = {{question.viewer1.dimensions}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
     ARGS.Viewer1.spacing = {{question.viewer1.spacing}};
-    ARGS.Viewer1.center = {{question.viewer1.center}};
-    ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
-    ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    
+    // A pain dealing with exceptions in the database schema:
+    {% if question.viewer1.center %}
+      ARGS.Viewer1.center = {{question.viewer1.center}};
+      ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
+      ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    {% else %}
+      ARGS.Viewer1.center = [ARGS.Viewer1.dimensions[0] * 0.5, ARGS.Viewer1.dimensions[1] * 0.5];
+      ARGS.Viewer1.viewHeight = ARGS.Viewer1.dimensions[1];
+      ARGS.Viewer1.rotation = 0.0;
+    {% endif %}
+
     // Copy the annotations for the view.
     ARGS.Viewer1.annotations = [];
     {% for annotation in question.viewer1.annotations %}
@@ -192,7 +201,8 @@ shape has visibility and
         a.position = {{ annotation.position }};
         ARGS.Viewer1.annotations.push(a);
        {% endfor %}    
-    
+
+    // Although options are for comparisons, I might generalize it to any view.
     // Now for the optional views for Viewer2
     // Convert python structure into javascript.
     ARGS.Options = [];
@@ -201,9 +211,11 @@ shape has visibility and
         view.label = "{{option.label}}";
         view.db = "{{option.db}}";
         view.img = "{{option.img}}";
-        view.center = {{option.center}};
-        view.viewHeight = {{option.viewHeight}};
-        view.rotation = {{option.rotation}};
+        {% if view.center %}
+          view.center = {{option.center}};
+          view.viewHeight = {{option.viewHeight}};
+          view.rotation = {{option.rotation}};
+        {% endif %}
         ARGS.Options.push(view);
     {% endfor %}    
     ARGS.OptionInfo = [];
@@ -212,7 +224,7 @@ shape has visibility and
         view.origin = {{option.origin}};
         view.spacing = {{option.spacing}};
         view.levels = {{option.levels}};
-        view.dimensions = {{option.dimension}};
+        view.dimensions = {{option.dimensions}};
         ARGS.OptionInfo.push(view);
     {% endfor %}    
   }

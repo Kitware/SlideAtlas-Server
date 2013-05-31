@@ -13,28 +13,36 @@ import pdb
 
 def jsonifyView(db,dbid,viewid,viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
     
     #pdb.set_trace()
+    # the official schema says dimension not dimensios. correct the schema later.
+    #if 'dimension' in imgobj:
+    #  imgobj['dimensions'] = imgobj['dimension']
+    #  delete imgobj.dimension
+    #  db["images"].save(imgobj);
     
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
     img["collection"] = str(imgobj["_id"])
-    img["origin"] = str(imgobj["origin"])
-    img["spacing"] = str(imgobj["spacing"])
-    img["levels"] = str(imgobj["levels"])
-    if 'dimension' in imgobj:
-      img["dimension"] = str(imgobj["dimension"])
-    elif 'dimensions' in imgobj:
-      img["dimension"] = str(imgobj["dimensions"])
-    img["center"] = str(bookmarkobj["center"])
-    img["rotation"] = str(bookmarkobj["rotation"])
-    if 'zoom' in bookmarkobj:
-      img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
-      img["viewHeight"] = str(bookmarkobj["viewHeight"])
+    img["origin"] = imgobj["origin"]
+    img["spacing"] = imgobj["spacing"]
+    img["levels"] = imgobj["levels"]
+    if 'dimensions' in imgobj:
+      img["dimensions"] = imgobj["dimensions"]
+    elif 'dimension' in imgobj:
+      img["dimensions"] = imgobj["dimension"]
 
+    # I want to change the schema to get rid of this startup bookmark.
+    if 'startup_view' in viewobj:
+      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+      img["center"] = bookmarkobj["center"]
+      img["rotation"] = bookmarkobj["rotation"]
+      if 'zoom' in bookmarkobj:
+        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
+      if 'viewHeight' in bookmarkobj:
+        img["viewHeight"] = bookmarkobj["viewHeight"]
+      
     return jsonify(img)
 
     
@@ -47,7 +55,6 @@ def jsonifyView(db,dbid,viewid,viewobj):
 # a tree of views will make things more complex.
 def glsingle(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
     
     #pdb.set_trace()
     
@@ -59,15 +66,19 @@ def glsingle(db, dbid, viewid, viewobj):
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
-    if 'dimension' in imgobj:
-        img["dimension"] = str(imgobj["dimension"])
-    elif 'dimensions' in imgobj:
-        img["dimension"] = str(imgobj["dimensions"])
-    img["center"] = str(bookmarkobj["center"])
-    img["rotation"] = str(bookmarkobj["rotation"])
-    if 'zoom' in bookmarkobj:
+    if 'dimensions' in imgobj:
+        img["dimensions"] = str(imgobj["dimensions"])
+    elif 'dimension' in imgobj:
+        img["dimensions"] = str(imgobj["dimension"])
+        
+    # I want to change the schema to get rid of this startup bookmark.
+    if 'startup_view' in viewobj:
+      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+      img["center"] = str(bookmarkobj["center"])
+      img["rotation"] = str(bookmarkobj["rotation"])
+      if 'zoom' in bookmarkobj:
         img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
+      if 'viewHeight' in bookmarkobj:
         img["viewHeight"] = str(bookmarkobj["viewHeight"])
 
     # record the bookmarks as annotation.
