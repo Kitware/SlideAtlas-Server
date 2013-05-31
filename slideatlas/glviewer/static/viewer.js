@@ -121,6 +121,19 @@ Viewer.prototype.ToggleMirror = function() {
     this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
 }
 
+// Same as set camera but use animation
+Viewer.prototype.AnimateCamera = function(center, rotation, height) {
+
+  this.ZoomTarget = height;
+  // Compute traslate target to keep position in the same place.
+  this.TranslateTarget[0] = center[0];
+  this.TranslateTarget[1] = center[1];  
+  this.RollTarget = rotation;
+
+  this.AnimateLast = new Date().getTime();
+  this.AnimateDuration = 200.0; // hard code 200 milliseconds
+  eventuallyRender();
+}
 
 // This is used to set the default camera so the complexities 
 // of the target and overview are hidden.

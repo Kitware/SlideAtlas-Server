@@ -84,6 +84,12 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Load View")
              .click(function(){ShowViewBrowser();});
+    // Hack until we have some sort of scale.
+    $('<li>').appendTo(viewEditSelector)
+             .attr('id', 'dualViewCopyZoom')
+             .text("Copy Zoom")
+             .hide()
+             .click(function(){CopyZoom();});
     $('<li>').appendTo(viewEditSelector)
              .text("New Label")
              .click(function(){AnnotationNewText();});
@@ -159,11 +165,13 @@ function ToggleDualView() {
   if (DUAL_VIEW) {
     ANIMATION_CURRENT = 1.0;
     ANIMATION_TARGET = 0.5;
-    $('#toggleDualItem').text("Single View");    
+    $('#toggleDualItem').text("Single View");
+    $('#dualViewCopyZoom').show();
   } else {
     ANIMATION_CURRENT = 0.5;
     ANIMATION_TARGET = 1.0;
-    $('#toggleDualItem').text("dual view");    
+    $('#toggleDualItem').text("Dual View");    
+    $('#dualViewCopyZoom').hide();
   }
   ANIMATION_LAST_TIME = new Date().getTime();
   ANIMATION_DURATION = 200.0;
@@ -187,6 +195,24 @@ function AnimateViewToggle() {
   handleResize();
   requestAnimFrame(AnimateViewToggle);
 }
+
+function CopyZoom() {
+  $('#viewEditMenu').hide();
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+
+  var cam = viewer.GetCamera();
+  var copyCam;
+  if (viewer == VIEWER1) {
+    var copyCam = VIEWER2.GetCamera();
+  } else {
+    var copyCam = VIEWER1.GetCamera();
+  }
+  
+  viewer.AnimateCamera(cam.FocalPoint, cam.Roll, copyCam.Height);
+}
+
+
 
 function AnnotationNewText() {
   $('#viewEditMenu').hide();
