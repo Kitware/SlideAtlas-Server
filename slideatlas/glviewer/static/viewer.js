@@ -524,20 +524,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
     eventuallyRender();
   }
 
-  // Cursor keys just move around the view.
-  if (keyCode == 37) {
-    // Left cursor key
-    if (SLICE > 1) {
-      this.MainView.Camera.Translate(0,0,-ROOT_SPACING[2]);
-      --SLICE;
-      eventuallyRender();
-    }
-  } else if (keyCode == 39) {
-    // Right cursor key
-    ++SLICE;
-    this.MainView.Camera.Translate(0,0,ROOT_SPACING[2]);
-    eventuallyRender();
-  } else if (keyCode == 38) {
+  if (keyCode == 38) {
     // Up cursor key
     this.ZoomTarget *= 2;
     this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];

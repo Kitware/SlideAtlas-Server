@@ -7,6 +7,38 @@ from slideatlas.common_utils import jsonify
 
 import pdb
 
+
+
+
+
+def jsonifyView(db,dbid,viewid,viewobj):
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+    
+    #pdb.set_trace()
+    
+    img = {}
+    img["db"] = dbid
+    img["viewid"] = viewid
+    img["collection"] = str(imgobj["_id"])
+    img["origin"] = str(imgobj["origin"])
+    img["spacing"] = str(imgobj["spacing"])
+    img["levels"] = str(imgobj["levels"])
+    if 'dimension' in imgobj:
+      img["dimension"] = str(imgobj["dimension"])
+    elif 'dimensions' in imgobj:
+      img["dimension"] = str(imgobj["dimensions"])
+    img["center"] = str(bookmarkobj["center"])
+    img["rotation"] = str(bookmarkobj["rotation"])
+    if 'zoom' in bookmarkobj:
+      img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
+    if 'viewHeight' in bookmarkobj:
+      img["viewHeight"] = str(bookmarkobj["viewHeight"])
+
+    return jsonify(img)
+
+    
+    
 # View that toggles between single and dual.
 # Note: I am working toward moving as much onto the client (single vs dual) as possbile.
 # The annoying thing here is the extent to which information is spread between view, image and bookmarks.
@@ -230,7 +262,9 @@ def glview():
 
     # See if the user is requesting any session id
     viewid = request.args.get('view', None)
-    
+    # get all the metadata to display a view in the webgl viewer.
+    ajax = request.args.get('json', None)
+
     # this is the same as the sessions db in the sessions page.
     # TODO: Store database in the view and do not pass as arg.
     dbid = request.args.get('db', None)
@@ -245,6 +279,10 @@ def glview():
 
     
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+    if ajax:
+      return jsonifyView(db,dbid,viewid,viewobj);
+
+
     if 'type' in viewobj:
       if viewobj["type"] == "single" :
         return glsingle(db,dbid,viewid,viewobj)

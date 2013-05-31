@@ -82,7 +82,10 @@ function InitViewEditMenus() {
              .attr('id', 'toggleDualItem')
              .click(function(){ToggleDualView();});
     $('<li>').appendTo(viewEditSelector)
-             .text("New Text")
+             .text("Load View")
+             .click(function(){ShowViewBrowser();});
+    $('<li>').appendTo(viewEditSelector)
+             .text("New Label")
              .click(function(){AnnotationNewText();});
     $('<li>').appendTo(viewEditSelector)
              .text("New Circle")
@@ -90,6 +93,9 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("New Free Form")
              .click(function(){NewPolyline();});
+    $('<li>').appendTo(viewEditSelector)
+             .text("New Comment")
+             .click(function(){NewComment();});
     $('<li>').appendTo(viewEditSelector)
              .attr('id', 'toggleAnnotationVisibility')
              .text("Show Annotations")
@@ -153,7 +159,7 @@ function ToggleDualView() {
   if (DUAL_VIEW) {
     ANIMATION_CURRENT = 1.0;
     ANIMATION_TARGET = 0.5;
-    $('#toggleDualItem').text("single view");    
+    $('#toggleDualItem').text("Single View");    
   } else {
     ANIMATION_CURRENT = 0.5;
     ANIMATION_TARGET = 1.0;
@@ -202,7 +208,6 @@ function AnnotationNewText() {
 
 function NewPolyline() {
     $('#viewEditMenu').hide();
-    // When the text button is pressed, create the widget.
     var viewer = EVENT_MANAGER.CurrentViewer;
     if ( ! viewer) { return; }
     SetAnnotationVisibility(viewer, true);
@@ -213,13 +218,45 @@ function NewPolyline() {
 
 function AnnotationNewCircle() {
     $('#viewEditMenu').hide();
-    // When the circle button is pressed, create the widget.
     var viewer = EVENT_MANAGER.CurrentViewer;
     if ( ! viewer) { return; }
     SetAnnotationVisibility(viewer, true);
     var widget = new CircleWidget(viewer, true);
     widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
     viewer.ActiveWidget = widget;
+}
+
+// Comment is just a text box.
+function NewComment() {
+    $('#viewEditMenu').hide();
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    // Create a text box
+    viewport = viewer.GetViewport();
+    var left = viewport[0] + 20;
+    var width = viewport[2] - 70;
+    var bottom = viewport[1] + viewport[3] - 20;
+    var height = viewport[3] / 4;
+    
+    left = left.toString() + "px";
+    width = width.toString() + "px";
+    bottom = bottom.toString() + "px";
+    height = height.toString() + "px";
+
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'border-style': 'solid',
+        'border-width': '1px',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'bottom' : bottom,
+        'left' : left,
+        'width' : width,
+        'height' : height,
+        'overflow': 'auto',
+        'z-index': '2',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'comment').hide();
 }
 
 function SetAnnotationVisibility(viewer, visibility) {

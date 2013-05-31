@@ -120,6 +120,8 @@ Camera.prototype.ComputeMatrix = function () {
     this.Matrix[15]=  0.5*w;
 }
 
+// TODO: ROOT_SPACING IS UNDEFINED.
+// Reset is not bound to any event.
 Camera.prototype.Reset = function () {
     // Compute the bounds
     var bounds = [];

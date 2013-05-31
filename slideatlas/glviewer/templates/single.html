@@ -24,6 +24,7 @@
 
 <!-- Edit menu, right click -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
@@ -332,6 +333,7 @@ shape has visibility and
     
     // Create the edit menu.
     InitViewEditMenus();
+    InitViewBrowser();
     
     
     // Place the zoom in / out buttons.
