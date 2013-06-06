@@ -44,6 +44,27 @@ Viewer.prototype.SetCache = function(cache) {
   this.OverView.SetCache(cache);
 }
 
+Viewer.prototype.ShowGuiElements = function() {
+  for (var i = 0; i < this.GuiElements.length; ++i) {
+    var element = this.GuiElements[i];
+    if ('Object' in element) {
+      element.Object.show();
+    } else if ('Id' in element) {
+      $(element.Id).show();
+    }
+  }
+}
+
+Viewer.prototype.HideGuiElements = function() {
+  for (var i = 0; i < this.GuiElements.length; ++i) {
+    var element = this.GuiElements[i];
+    if ('Object' in element) {
+      element.Object.hide();
+    } else if ('Id' in element) {
+      $(element.Id).hide();
+    }
+  }
+}
 
 Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
   var element = {};
@@ -53,29 +74,59 @@ Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) 
   this.GuiElements.push(element);
 }
 
+Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
+  var element = {};
+  element.Object = object;
+  element[relativeX] = x;
+  element[relativeY] = y;
+  this.GuiElements.push(element);
+}
+
+
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
 
   // I am working on getting gui elements managed by the viewer.
   // Informal for now.
   for (var i = 0; i < this.GuiElements.length; ++i) {
-    var button = this.GuiElements[i];
-    var jButton = $(button.Id);
-    if (viewport[2] < 300 || viewport[3] < 300) {
-      jButton.hide();
+    var element = this.GuiElements[i];
+    var object;
+    if ('Object' in element) {
+      object = element.Object;
+    } else if ('Id' in element) {
+      object = $(element.Id);
     } else {
-      jButton.show();
+      continue;
     }
+
+    // When the viewports are too small, large elements overlap ....
+    // This stomps on the dual view arrow elementts visibility.
+    // We would need out own visibility state ...
+    //if (viewport[2] < 300 || viewport[3] < 300) {
+    //  object.hide();
+    //} else {
+    //  object.show();
+    //}
     
-    if (button.Bottom) {
-      var pos = button.Bottom.toString() + "px";
-      jButton.css({
+    if ('Bottom' in element) {
+      var pos = element.Bottom.toString() + "px";
+      object.css({
+      'bottom' : pos});
+    } else if ('Top' in element) {
+      var pos = element.Top.toString() + "px";
+      object.css({
       'bottom' : pos});
     }
-    if (button.Right) {
-      var pos = viewport[0] + viewport[2] - button.Right; 
+
+    if ('Left' in element) {
+      var pos = viewport[0] + element.Left; 
       pos = pos.toString() + "px";
-      jButton.css({
+      object.css({
+      'left' : pos});
+    } else if ('Right' in element) {
+      var pos = viewport[0] + viewport[2] - element.Right; 
+      pos = pos.toString() + "px";
+      object.css({
       'left' : pos});
     }
   }
@@ -108,7 +159,7 @@ Viewer.prototype.SetDimensions = function(dims) {
     this.OverView.Camera.ComputeMatrix();
 
     // Set the default main view camera too  (in case a camera is not in database).
-    this.MainView.Camera.FocalPoint = this.OverView.Camera.FocalPoint;
+    this.MainView.Camera.FocalPoint = this.OverView.Camera.FocalPoint.slice(0); // slice=>clone
     this.MainView.Camera.Height = this.OverView.Camera.Height;
     this.MainView.Camera.ComputeMatrix();
 

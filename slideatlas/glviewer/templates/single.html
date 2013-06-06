@@ -25,6 +25,9 @@
 <!-- Edit menu, right click -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
@@ -158,8 +161,6 @@ shape has visibility and
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
-  // For sliding dual view (animating toggle).
-  var VIEWER1_FRACTION = 1.0;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
@@ -233,19 +234,24 @@ shape has visibility and
   function ShowAnnotationEditMenu(x, y) {
   }
   
+  // Might consider interactive resize feature too.
   function handleResize() {
     if (GL) {
       CANVAS.width = CANVAS.clientWidth;
       CANVAS.height = CANVAS.clientHeight;
       GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-      // Might consider resize feature too.
-      var halfWidth = CANVAS.width * VIEWER1_FRACTION; // I do not like this global.
+
+      // we set the left border to leave space for the notes window.
+      var left = CANVAS.width * NOTES_FRACTION;
+      // The remaining width is split between the two viewers.
+      var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
+      var width2 = (CANVAS.width-left) - width1;
       if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, halfWidth, CANVAS.height]);
+        VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
         eventuallyRender();
       }
       if (VIEWER2) {
-        VIEWER2.SetViewport([halfWidth, 0, CANVAS.width-halfWidth, CANVAS.height]);
+        VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
         eventuallyRender();
       }
     }
@@ -259,7 +265,8 @@ shape has visibility and
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
                       ARGS.Viewer1.viewHeight);
-                      
+    EVENT_MANAGER.AddViewer(VIEWER1);
+                  
     if (ARGS.Viewer2) {
       source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
       VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
@@ -275,12 +282,10 @@ shape has visibility and
                         ARGS.Viewer1.rotation, 
                         ARGS.Viewer1.viewHeight);
     }
-                  
-    EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
-}
+  }
 
   function draw() {
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
@@ -346,7 +351,12 @@ shape has visibility and
     // Create the edit menu.
     InitViewEditMenus();
     InitViewBrowser();
-    
+    InitDualViewWidget();
+    InitNotesWidget();
+    var annotationWidget1 = new AnnotationWidget(VIEWER1);
+    var annotationWidget2 = new AnnotationWidget(VIEWER2);
+    handleResize();
+    DualViewUpdateGui();
     
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
@@ -358,7 +368,7 @@ shape has visibility and
         'height': '50px',
         'width': '50px',
         'bottom' : '60px',
-        'left' : '97%',
+        'right' : '5px',
         'z-index': '2'
     }).attr('id', 'zoomIn1')
       .attr('class', 'viewer1')
@@ -371,7 +381,7 @@ shape has visibility and
         'height': '50px',
         'width': '50px',
         'bottom' : '5px',
-        'left' : '97%',
+        'right' : '5px',
         'z-index': '2'
     }).attr('id', 'zoomOut1')
       .attr('class', 'viewer1')
@@ -552,7 +562,6 @@ shape has visibility and
 
 
 <canvas id="gltest" style="display:none" ></canvas>
-
 
 
 
