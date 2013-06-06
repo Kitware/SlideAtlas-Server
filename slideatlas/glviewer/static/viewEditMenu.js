@@ -47,12 +47,6 @@ function ShowViewEditMenu(x, y) {
     if (viewer.WidgetList.length > 0) {
       color = "#000000";
     }
-
-    if (GetAnnotationVisibility(viewer)) {
-      $('#toggleAnnotationVisibility').text("Hide Annotations").css({'color': color});
-    } else {
-      $('#toggleAnnotationVisibility').text("Show Annotations").css({'color': color});
-    }
  
     $('#viewEditMenu').css({'top': y, 'left':x}).show();
 }
