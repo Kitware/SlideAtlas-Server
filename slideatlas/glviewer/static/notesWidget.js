@@ -6,6 +6,150 @@
 // For animating the display of the notes window.
 var NOTES_FRACTION = 0.0;
 var NOTES_VISIBILITY = false;
+var TOP_NOTES = [];
+
+
+function Note (parent) {
+  var self = this; // trick to set methods in callbacks.
+  this.Parent = parent;
+  this.Children = [];
+  if(parent != null){
+    this.Div = $('<div>').after(parent)
+      .css({
+        'background-color': 'white',
+        'border': '1px solid #000000',
+        'position': 'relative',
+        'top' : '5px',
+        'left' : '0%',
+        'height' : '145px',
+        'width': '95%',
+        'z-index': '1',
+        'text-align': 'left',
+        'color': '#303030',
+        'font-size': '15px',
+        'word-wrap': 'break-word'
+      });
+  } else {
+    this.Div = $('<div>').appendTo($('#NoteEditor'))
+      .css({
+        'background-color': 'white',
+        'border': '1px solid #000000',
+        'position': 'relative',
+        'top' : '5px',
+        //'left' : '0%',
+        'height' : '145px',
+        'width': '95%',
+        'margin': '0 auto',
+        'z-index': '1',
+        'text-align': 'left',
+        'color': '#303030',
+        'font-size': '15px',
+        'word-wrap': 'break-word'
+      });
+  }
+      
+  this.Text = $('<div>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '5px',
+      'left': '-70px',
+      'font-size': '15px'
+    }).attr('wrap', 'logical');
+  
+  this.Text.hide();
+    
+  this.Editor = $('<textarea>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '-20px',
+      'height': '100px',
+      'left': '2px',
+      //'right': '5%',
+      'width': '95%',
+      'margin': '0 auto',
+      'border': '1px solid #d3d3d3', 
+      'resize': 'none'})
+    //.attr('id', 'NoteEditorText')
+    .attr('wrap', 'logical')
+  
+  //Cancel
+  this.Cancel = $('<button>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '-20px',
+      'float': 'right'
+    })
+    .text('Cancel')
+    .attr('wrap', 'logical')
+    .click(function(){ document.getElementById('NoteEditorText').value = ""; });
+    
+  //Save
+  this.Save = $('<button>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '-20px',
+      'float': 'left'
+    })
+    .text('Save')
+    .attr('wrap', 'logical')
+    .click(function(){ self.SaveFunc(); }); 
+  
+  //Edit
+  this.Edit = $('<button>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '5px',
+      'left': '-65px',
+      'float': 'left'
+    })
+    .text('Edit')
+    .attr('wrap', 'logical').hide()
+    .click(function(){ self.EditFunc(); });
+  
+  //Reply
+  this.Reply = $('<button>').appendTo(this.Div)
+    .css({
+      'position': 'relative',
+      'top': '5px',
+      'float': 'right'
+    })
+    .text('Reply')
+    .attr('wrap', 'logical').hide()
+    .click(function(){ self.ReplyFunc(); }); 
+  
+  
+}
+// saving means:
+// replace the text field with regular text
+// replace the save and cancel buttons with reply and edit buttons.
+Note.prototype.SaveFunc = function() {
+  this.Cancel.hide();
+  this.Save.hide();
+  this.Edit.show();
+  this.Reply.show();
+  
+  this.Text.text(this.Editor.val());
+  this.Editor.hide();
+  this.Text.show();
+  
+}
+
+Note.prototype.EditFunc = function() {
+  this.Cancel.show();
+  this.Save.show();
+  this.Edit.hide();
+  this.Reply.hide();
+  
+  this.Text.hide();
+  this.Editor.show();
+  
+  //this.Editor.value
+}
+
+// What we do here is, is we make a new note right under the one we clicked 'reply' on, and add it to the list of children.
+Note.prototype.ReplyFunc = function() {
+  Children.push(new Note(this));
+}
 
 function InitNotesWidget() {
 
@@ -15,7 +159,7 @@ function InitNotesWidget() {
       'height': '30px',
       'width': '80px',
       'font-size': '18px',
-      'top' : '5px',
+      'bottom' : '5px',
       'left' : '5px',
       'z-index': '2'})
     .attr('id', 'notesButton').text("Notes")
@@ -36,20 +180,22 @@ function InitNotesWidget() {
     .hide()
     .attr('id', 'NoteEditor');
     
-  $('<textarea>').appendTo(d)
-    .css({
-      'position': 'absolute',
-      'top': '40px',
-      'height': '100px',
-      'left' : '0px',
-      'right' : '0px',
-      'width': 'auto',
-      'border': '1px solid #d3d3d3', 
-      'resize': 'none'})
-    .attr('id', 'NoteEditorText')
-    .attr('wrap', 'logical');
+  var d2 = $('<div>').appendTo(d);
     
+  var NewNote = $('<button>').appendTo(d)
+    .css({
+      'position': 'relative',
+      'top': '5px',
+      'float': 'left'
+    }).text('New Note')
+    .click(function(){ TOP_NOTES.push(new Note()); });
+    
+  //var note = new Note();
+  //TOP_NOTES.push(note);
+  //var note2 = new Note();
 }
+
+
 
 
 
