@@ -9,6 +9,7 @@ function Cache(source, numLevels) {
     this.TileDimensions = [256, 256];
     this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
     this.NumberOfSections = 1;
+    this.NumberOfLevels = numLevels;
     
     this.RootTiles = [];
 

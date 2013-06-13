@@ -25,6 +25,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth =  5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
+  
   this.Viewer.WidgetList.push(this);
 
   // Note: If the user clicks before the mouse is in the

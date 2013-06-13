@@ -366,6 +366,8 @@ Viewer.prototype.Animate = function() {
     this.OverView.Camera.Roll = this.MainView.Camera.Roll = this.RollTarget;
     this.MainView.Camera.FocalPoint[0] = this.TranslateTarget[0];
     this.MainView.Camera.FocalPoint[1] = this.TranslateTarget[1];
+    // Record the end state.
+    RecordState();
   } else {
     // Interpolate
     var currentHeight = this.MainView.Camera.GetHeight();

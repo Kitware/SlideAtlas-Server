@@ -117,8 +117,11 @@ function ViewBrowserImageCallback(obj) {
 
 function ViewBrowserLoadImage(viewData) {
   var source = new Cache("/tile?img="+viewData.collection+"&db="+viewData.db+"&name=", viewData.levels);
+  source.Database = viewData.db;
+  source.Collection = viewData.collection;
+
   ACTIVE_VIEWER.SetCache(source);
-  
+   
   // all this does is set the default camera.
   ACTIVE_VIEWER.SetDimensions(viewData.dimensions);
 
@@ -129,6 +132,8 @@ function ViewBrowserLoadImage(viewData) {
                             viewData.viewHeight);
   }
   
+  RecordState();
+
   eventuallyRender();
 }
 

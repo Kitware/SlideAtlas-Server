@@ -1,6 +1,6 @@
 import mongokit
 from bson import ObjectId
-from flask import Blueprint, Response, abort, request, render_template, url_for, current_app, make_response
+from flask import Blueprint, Response, abort, request, render_template, url_for, session, current_app, make_response
 from slideatlas import slconn as conn, admindb, model
 import json
 from slideatlas.common_utils import jsonify
@@ -45,6 +45,21 @@ def jsonifyView(db,dbid,viewid,viewobj):
       
     return jsonify(img)
 
+
+# bookmarks are really notes.
+def jsonifyBookmarks(db, dbid, viewid, viewobj):
+    # I do not think we can pass an array back.
+    val = {}
+    val["Bookmarks"] = []
+    for bookmarkId in viewobj["bookmarks"] :
+      bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
+      bookmark = bookmarkObj
+      bookmark["_id"] = str(bookmark["_id"])
+      bookmark["img"] = str(bookmark["img"])
+      val["Bookmarks"].append(bookmark)
+
+    return jsonify(val)
+    
     
     
 # View that toggles between single and dual.
@@ -56,8 +71,19 @@ def jsonifyView(db,dbid,viewid,viewobj):
 def glsingle(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     
-    #pdb.set_trace()
+    # I was going get the user id from the session, and pass it to the viewer.
+    # I think I will just try to retreive the user from the "Save Note" method.
+    if 'user' in session:
+        #        print session["user"]
+        email = session["user"]["email"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        email = None
     
+
+
     # The base view is for the left panel
     img = {}
     img["db"] = dbid
@@ -132,7 +158,8 @@ def glsingle(db, dbid, viewid, viewobj):
 
     return make_response(render_template('single.html', question=question))
     
-
+    
+    
 def glcomparison(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
@@ -210,7 +237,7 @@ def glcomparison(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('comparison.html', question=question))
+    return make_response(render_template('comparison.html', question=question, user=email))
         
     
     
@@ -275,6 +302,8 @@ def glview():
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
+    # get bookmarks.
+    bookmarks = request.args.get('bookmarks', None)
 
     # this is the same as the sessions db in the sessions page.
     # TODO: Store database in the view and do not pass as arg.
@@ -292,6 +321,8 @@ def glview():
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
     if ajax:
       return jsonifyView(db,dbid,viewid,viewobj);
+    if bookmarks:
+      return jsonifyBookmarks(db,dbid,viewid,viewobj);
 
 
     if 'type' in viewobj:
