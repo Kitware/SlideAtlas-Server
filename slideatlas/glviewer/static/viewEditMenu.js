@@ -83,8 +83,7 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
-         
-
+    
     // Create a selection list of sessions.   
     $('<div>').appendTo('body').css({
         'background-color': 'white',

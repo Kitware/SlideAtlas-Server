@@ -21,6 +21,7 @@ function InitNotesWidget() {
     .attr('id', 'notesButton').text("Notes")
     .click(function(){ToggleNotesVisibility();});
 
+
   var d = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',

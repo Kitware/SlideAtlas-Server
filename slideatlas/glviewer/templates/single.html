@@ -28,6 +28,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
@@ -353,6 +354,8 @@ shape has visibility and
     InitViewBrowser();
     InitDualViewWidget();
     InitNotesWidget();
+    InitRecorderWidget();
+    
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
     var annotationWidget2 = new AnnotationWidget(VIEWER2);
     handleResize();

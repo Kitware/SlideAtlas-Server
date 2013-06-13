@@ -63,6 +63,9 @@ function ToggleDualView() {
     DUAL_ANIMATION_TARGET = 1.0;
     DualViewUpdateGui();
   }
+
+  RecordState();
+
   DUAL_ANIMATION_LAST_TIME = new Date().getTime();
   DUAL_ANIMATION_DURATION = 1000.0;
   AnimateViewToggle();

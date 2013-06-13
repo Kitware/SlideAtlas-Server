@@ -17,20 +17,20 @@ function AnnotationWidget (viewer) {
   // We need unique names for the HTML elements.
   this.Widget = $('<table>').appendTo('body')
     .css({
-      'opacity': '0.4',
+      'opacity': '0.5',
       'position': 'absolute',
       'height': '28px',
       'bottom' : '5px',
-      'right' : '172px',
+      'right' : '20px',
       'z-index': '1'});;
 
-  viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 200);
+  viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 260);
 
   var row = $('<tr>').appendTo(this.Widget)
   var cell = $('<td>').appendTo(row)
   this.VisibilityButton = $('<img>').appendTo(cell)
     .css({
-      'opacity': '0.4',
+      'opacity': '0.5',
       'border-radius': '5px'})
     .attr('type','image')
     .attr('src',"webgl-viewer/static/pencil3.png")
@@ -39,7 +39,7 @@ function AnnotationWidget (viewer) {
   this.ToolsTable = $('<td>').appendTo(row)
     .hide()
     .css({
-      'opacity': '0.4',
+      'opacity': '0.5',
       'width': '100',
       'border-radius': '5px'});
 
@@ -69,6 +69,9 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
     this.ToolsTable.fadeOut();  
   }
   this.Viewer.ShapeVisibility = visibility;
+
+  RecordState();
+
   eventuallyRender();    
 }
 
@@ -85,7 +88,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
 AnnotationWidget.prototype.NewText = function() {
   this.SetVisibility(true);
   var widget = new TextWidget(this.Viewer, "");
-  // Set default color from the last text widget setting.
+  // Set default color rom the last text widget setting.
   var hexcolor = document.getElementById("textcolor").value;
   widget.Shape.SetColor(hexcolor);
   widget.AnchorShape.SetFillColor(hexcolor);
@@ -95,6 +98,8 @@ AnnotationWidget.prototype.NewText = function() {
 
   // The dialog is used to set the initial text.
   widget.ShowPropertiesDialog();
+  
+  RecordState();
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
@@ -102,6 +107,8 @@ AnnotationWidget.prototype.NewPolyline = function() {
   var widget = new PolylineWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Viewer.ActiveWidget = widget;
+
+  RecordState();
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
@@ -109,5 +116,7 @@ AnnotationWidget.prototype.NewCircle = function() {
   var widget = new CircleWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Viewer.ActiveWidget = widget;
+
+  RecordState();
 }
 
