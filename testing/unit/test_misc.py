@@ -1,7 +1,8 @@
-import sys
-sys.path.append("../..")
-sys.path.append("..")
-from slideatlas.version import get_git_name
+import sys, os
+
+
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0,parentdir) from slideatlas.version import get_git_name
 import unittest
 
 class MiscTests(unittest.TestCase):
