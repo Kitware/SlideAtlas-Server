@@ -7,20 +7,21 @@ var DIALOG_OPEN = false;
 
 
 function ToggleAnnotationVisibility() {
-    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+  var vis = VIEWER1.GetAnnotationVisibility();
+  if (vis == ANNOTATION_OFF) {
+    vis == ANNOTATION_NO_TEXT;
+  } else if (vis == ANNOTATION_NO_TEXT) {
+    vis == ANNOTATION_ON;
+  } else {
+    vis == ANNOTATION_OFF;
+  }
+  SetAnnotationVisibility( vis );
 }
 
 function SetAnnotationVisibility(visibility) {
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
-
-  viewer.ShapeVisibility = visibility;
-  // I might put it in the view menu.
-  //if (visibility) {
-  //    $("#annotationButton").css({'opacity': '0.6'});
-  //} else {
-  //    $("#annotationButton").css({'opacity': '0.2'});
-  //}
+  viewer.SetAnnotationVisibility(visibility);
   eventuallyRender();    
 }
 

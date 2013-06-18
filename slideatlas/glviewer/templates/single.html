@@ -259,7 +259,9 @@ shape has visibility and
   };
 
   function initViews() {
-    var source = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
+    var source = new Cache(ARGS.Viewer1.db, 
+                           ARGS.Viewer1.collection, 
+                           ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source);
     VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
@@ -269,7 +271,9 @@ shape has visibility and
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
     if (ARGS.Viewer2) {
-      source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
+      source = new Cache(ARGS.Viewer2.collection,
+                         ARGS.Viewer2.db,
+                         ARGS.Viewer2.levels);
       VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
       VIEWER2.SetDimensions(ARGS.Viewer2.dimensions);
       VIEWER2.SetCamera(ARGS.Viewer2.center, 
@@ -306,6 +310,7 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+        // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}

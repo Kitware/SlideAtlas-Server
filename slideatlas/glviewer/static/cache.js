@@ -1,22 +1,34 @@
 
 
 // Source is the directory that contains the tile files.
-function Cache(source, numLevels) {
-    // For debugging
-    //this.PendingTiles = [];
-    this.Source = source;
+function Cache(dbStr, collectionStr, numLevels) {
+  // Look through existing caches and reuse one if possible
+  for (var i = 0; i < CACHES.length; ++i) {
+    if (CACHES[i].Collection == collectionStr) {
+      return CACHES[i];
+    }
+  }
+  
+  var sourceStr = "/tile?img="+collectionStr+"&db="+dbStr+"&name=";
 
-    this.TileDimensions = [256, 256];
-    this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
-    this.NumberOfSections = 1;
-    this.NumberOfLevels = numLevels;
-    
-    this.RootTiles = [];
+  this.Collection = collectionStr;
+  this.Database = dbStr;
 
-    this.LoadRoots();
-    
-    // Keep a global list for pruning tiles.
-    CACHES.push(this);
+  // For debugging
+  //this.PendingTiles = [];
+  this.Source = sourceStr;
+
+  this.TileDimensions = [256, 256];
+  this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
+  this.NumberOfSections = 1;
+  this.NumberOfLevels = numLevels;
+  
+  this.RootTiles = [];
+
+  this.LoadRoots();
+  
+  // Keep a global list for pruning tiles.
+  CACHES.push(this);
 }
 
 Cache.prototype.destructor=function()

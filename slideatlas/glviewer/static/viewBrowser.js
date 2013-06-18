@@ -116,9 +116,7 @@ function ViewBrowserImageCallback(obj) {
 }
 
 function ViewBrowserLoadImage(viewData) {
-  var source = new Cache("/tile?img="+viewData.collection+"&db="+viewData.db+"&name=", viewData.levels);
-  source.Database = viewData.db;
-  source.Collection = viewData.collection;
+  var source = new Cache(viewData.db, viewData.collection, viewData.levels);
 
   ACTIVE_VIEWER.SetCache(source);
    

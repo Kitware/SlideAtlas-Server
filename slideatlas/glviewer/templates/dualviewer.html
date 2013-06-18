@@ -197,7 +197,9 @@ shape has visibility and
   };
 
   function initViews() {
-    var source1 = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
+    var source1 = new Cache(ARGS.Viewer1.collection,
+                            ARGS.Viewer1.db, 
+                            ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
@@ -238,7 +240,7 @@ shape has visibility and
   function changeOption(index) {
     // Create a new source for the viewer.
     var option = ARGS.Options[index];
-    var source = new Cache("/tile?img="+option.collection+"&db="+option.db+"&name=", option.levels);
+    var source = new Cache(option.collection, option.db, option.levels);
     VIEWER2.SetCache(source);
     var height = CANVAS.clientHeight << option.zoom;
     VIEWER2.SetCamera(option.center, option.rotation, height);

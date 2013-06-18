@@ -151,6 +151,7 @@ function FlipHorizontal() {
     var cam = viewer.GetCamera();
     viewer.ToggleMirror();
     viewer.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
+    RecordState();
 }
 
 

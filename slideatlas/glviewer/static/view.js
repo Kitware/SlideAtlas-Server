@@ -16,13 +16,17 @@ function View (viewport, cache) {
 }
 
 View.prototype.SetCache = function(cache) {
-    this.Cache = cache;
+  this.Cache = cache;
+}
+
+View.prototype.GetCache = function() {
+  return this.Cache;
 }
 
 View.prototype.SetViewport = function(viewport) {
-    this.Viewport = viewport;
-    this.Camera.ViewportWidth = viewport[2];
-    this.Camera.ViewportHeight = viewport[3];
+  this.Viewport = viewport;
+  this.Camera.ViewportWidth = viewport[2];
+  this.Camera.ViewportHeight = viewport[3];
 }
 
 // Note: Tile in the list may not be loaded yet.

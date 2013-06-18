@@ -85,6 +85,14 @@ shape has visibility and
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
+
+
+<!-- GUI widgets -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
+
+
+
+
 <script id="shader-poly-fs" type="x-shader/x-fragment">
   precision mediump float;
   uniform vec3 uColor;
@@ -170,6 +178,9 @@ shape has visibility and
   var EDIT_R = false;
   
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
+
+  // I cannot check if DUAL_VIEW is defined so just include it.
+  var DUAL_VIEW = false;
 
 
 
@@ -265,8 +276,7 @@ function saveStack() {
             }
         }
         if ( ! source) {
-            source = new Cache("/tile?img="+view.img._id+"&db="+view.db+"&name=", 
-                               view.img.levels);
+            source = new Cache(view.img._id, view.db, view.img.levels);
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};

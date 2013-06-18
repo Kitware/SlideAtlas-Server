@@ -113,6 +113,7 @@ CircleWidget.prototype.HandleMouseUp = function(event) {
     this.ShowPropertiesDialog();
   } else if ( this.State == CIRCLE_WIDGET_DRAG ||  this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     this.SetActive(false);
+    RecordState();
   }
 }
 
@@ -238,6 +239,7 @@ function CirclePropertyDialogApply() {
   widget.Shape.LineWidth = parseFloat(lineWidth.value);
   widget.Shape.UpdateBuffers();
   widget.SetActive(false);
+  RecordState();
   eventuallyRender();
 }
 
@@ -257,6 +259,7 @@ function CirclePropertyDialogDelete() {
     // shape list and widget list.
     widget.RemoveFromViewer();
     eventuallyRender();
+    RecordState();
   }
 }
 

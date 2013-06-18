@@ -1,44 +1,23 @@
 //I will have to think about this ...
 //save state vs. save delta state.
-//State is simple .... Supports undo better ....
-//How deep do you go into the state?  I assume annotation, but what about notes ...
-
-// Start by implementing undo.
-
-// This class gives an API for recording events.
-// Events to be recorded:
-// View switch: {single, dual}
-// Load a new image: db, viewId, viewIdx {0,1} // Which viewer got a new source.
-// Camera Changed: Height, FocalPoint, Roll, viewIdx {0,1}
-// Annotation: Id, eventType: {New, Delete, Change}, info // options, annotation specific
-// Load Note: Id
-
-// Should we save the recording state in a cookie so the user can change sessions?
-// A recording icon (stop button) should be visible.
+//State is simple .... Supports undo better .... Start with this.
 
 // Maybe students can link to the instructor recording session.  The could add notes which are added to the recording.
 
 // It might be nice to know where the mouse is pointing at all times.  We need a pointing tool. That is alot of events though.  LATER....
 
-// Recording can implement undo too.  Save in local array vs aave in database.
-// DESIGN ISSUE:
-// Records have Object and State
-//   Example of objects are Viewers and AnnotationWidgets.
-//   I could save the object or an ID / index for the object.
-//   Local is easy. However, we will probably want to synchronize clients.
-//   Database ID would be natural, but object may not be in the database.
-
-// DESIGN ISSUE:
-// We cannot rely on the consistancy of the database, recording will
-// have to build eveything from atomic object. i.e. when a viewer
-// loads an image, we must separatly record the default camera and annotations
-// that get loaded with it.  When recording is turned on, we must serialize the current state
- 
+// Design issue:
+// Should I save the state at the end of a move or the begining?
 
 
+
+
+
+// Pointer to 
 var TIME_LINE = [];
+var REDO_STACK = [];
+
 var UNDO_BUTTON;
-// set by the viewEditMenu (for the moment).
 var REDO_BUTTON;
 
 function InitRecorderWidget() {
@@ -65,7 +44,9 @@ function InitRecorderWidget() {
       .hide()
       .click(function(){alert("REDO");});
 
-  // Add an item "button" to the start menu.  
+
+    // We have to start with one state (since we are recording states at the end of a move).
+    RecordState();
 }
 
 
@@ -74,16 +55,17 @@ function NewPageRecord() {
   stateRecord.Viewers = [];
   stateRecord.Viewers.push(NewViewerRecord(VIEWER1));
   if (DUAL_VIEW) {
-  stateRecord.Viewers.push(NewViewerRecord(VIEWER2));
+    stateRecord.Viewers.push(NewViewerRecord(VIEWER2));
   }
-  // Note state?
+  // Note state? Which note is current.
+  // Placeholder. Notes are not ready yet.
   
   return stateRecord;
 }
 
 
 function NewViewerRecord(viewer) {
-  var cache = viewer.Cache;
+  var cache = viewer.GetCache();
   
   var viewerRecord = {};
   
@@ -102,32 +84,89 @@ function NewViewerRecord(viewer) {
   viewerRecord.AnnotationVisibility = viewer.GetAnnotationVisibility();
   if (viewerRecord.AnnotationVisibility) {
     viewerRecord.Annotations = [];
-    for (var i = 0; i < viewer.Annotations.length; ++i) {
-      viewerRecord.Annotations.push(NewAnnotationRecord(viewer.Annotations[i]));
+    for (var i = 0; i < viewer.WidgetList.length; ++i) {
+      viewerRecord.Annotations.push(viewer.WidgetList[i].Serialize());
     }
   }
   
   return viewerRecord;
 }
 
-
-function NewAnnotationRecord(annotation) {
-  var cache = viewer.Cache;
-}  
-
-
-// Generic
-// Schema of events is assume to be consistent as defined by the user.
+// Create a snapshot of the current state and push it on  the TIME_LINE stack.
 function RecordState() {
-  var info = {};
-  // We do not need this object reference yet.
-  // It would be useful for undo.
-  // info.Object = object;
-  //info.Id = id;
+  // Redo is an option after undo, until we save a new state.
+  REDO_STACK = [];
+
+  var pageRecord = NewPageRecord();
   var d = new Date();
-  info.Time = d.getTime();
-  info.User = "bev"; // Place holder until I figure out user ids.
-  TIME_LINE.push(info);
+  pageRecord.Time = d.getTime();
+  //pageRecord.User = "bev"; // Place holder until I figure out user ids.
+  TIME_LINE.push(pageRecord);
+}
+
+
+// Move the state back in time.
+function UndoState() {
+  if (TIME_LINE.length > 1) {
+    // We need at least 2 states to undo.  The last state gets removed,
+    // the second to last get applied.
+    var record = TIME_LINE.pop();
+    REDO_STACK.push(record);
+
+    // Get the new end state
+    record = TIME_LINE[TIME_LINE.length-1];
+    // Now change the page to the state at the end of the timeline.
+    SetNumberOfViews(record.Viewers.length);
+    ApplyViewerRecord(VIEWER1, record.Viewers[0]);
+    if (record.Viewers.length > 1) {
+      ApplyViewerRecord(VIEWER2, record.Viewers[1]);
+    }
+  }
+}
+
+// Move the state forward in time.
+function RedoState() {
+  if (REDO_STACK.length == 0) {
+    return;
+  }
+  var record = REDO_STACK.pop();
+  TIME_LINE.push(record);
+
+  // Now change the page to the state at the end of the timeline.
+  SetNumberOfViews(record.Viewers.length);
+  ApplyViewerRecord(VIEWER1, record.Viewers[0]);
+  if (record.Viewers.length > 1) {
+    ApplyViewerRecord(VIEWER2, record.Viewers[1]);
+  }
+}
+
+function ApplyViewerRecord(viewer, viewerRecord) {
+  var cache = viewer.GetCache();
+  if (viewerRecord.Collection != cache.Collection) {
+    var newCache = new Cache(viewerRecord.Database, 
+                             viewerRecord.Collection, 
+                             viewerRecord.NumberOfLevels);
+    viewer.SetCache(newCache);
+  }
+
+  if (viewerRecord.Camera != undefined) {
+    var cameraRecord = viewerRecord.Camera;
+    viewer.SetCamera(cameraRecord.FocalPoint,
+                     cameraRecord.Roll,
+                     cameraRecord.Height);
+  }
+  
+  if (viewerRecord.AnnotationVisibility != undefined) {
+    viewer.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
+  }
+  if (viewerRecord.Annotations != undefined) {
+    // For now lets just do the easy thing and recreate all the annotations.
+    viewer.WidgetList = [];
+    viewer.ShapeList = [];
+    for (var i = 0; i < viewerRecord.Annotations.length; ++i) {
+      viewer.LoadWidget(viewerRecord.Annotations[i]);
+    }
+  }
 }
 
 
