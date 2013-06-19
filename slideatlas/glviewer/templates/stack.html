@@ -276,7 +276,7 @@ function saveStack() {
             }
         }
         if ( ! source) {
-            source = new Cache(view.img._id, view.db, view.img.levels);
+            source = new Cache(view.db, view.img._id, view.img.levels);
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};
@@ -308,19 +308,21 @@ function saveStack() {
         return;
     }
 
-    VIEWER1.SetCache(SECTIONS[newIdx].Source);
-    VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
-    VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
-    // Compute the new camera.
     var cam = VIEWER1.GetCamera();
     var rotation = cam.GetRotation();
     var height = cam.Height;
-    var center = cam.FocalPoint;
+    var center = [cam.FocalPoint[0], cam.FocalPoint[1], cam.FocalPoint[2]];
+
+    VIEWER1.SetCache(SECTIONS[newIdx].Source);
+    VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
+    VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
+
+    // Compute the new camera.
     if (inc < 0) {
-        center = TRANSFORMATIONS[newIdx].ReverseTransform(cam.FocalPoint);
+        center = TRANSFORMATIONS[newIdx].ReverseTransform(center);
         rotation += TRANSFORMATIONS[newIdx].DeltaRotation;
     } else {
-        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(cam.FocalPoint);
+        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(center);
         rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRotation;
         // We need to transform the event world point to avoid bug with chain when
         // Mouse is not moved.
@@ -339,7 +341,7 @@ function saveStack() {
     if ( ! EDIT_R) { return; }
     VIEWER1.ShapeList = [];
     VIEWER1.WidgetList = [];
-    VIEWER1.ShapeVisibility = true;
+    VIEWER1.AnnotationVisibility = 1;
 
     if ( SECTION_INDEX < TRANSFORMATIONS.length) {
         var trans = TRANSFORMATIONS[SECTION_INDEX];

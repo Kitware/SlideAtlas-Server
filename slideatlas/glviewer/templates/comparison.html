@@ -244,8 +244,8 @@ shape has visibility and
   };
 
   function initViews() {
-    var source1 = new Cache(ARGS.Viewer1.collection, 
-                            ARGS.Viewer1.db, 
+    var source1 = new Cache(ARGS.Viewer1.db,
+                            ARGS.Viewer1.collection,  
                             ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
