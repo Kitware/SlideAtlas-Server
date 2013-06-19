@@ -17,8 +17,8 @@ from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware, WSGIRo
 class EchoServerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, msg, binary):
-        #fin = open(os.path.abspath(__file__) + "/data/tiger.jpg")
-        fin = open("/home/dhan/projects/slideatlas-flask/data/tiger.jpg")
+        fin = open(os.path.dirname(os.path.abspath(__file__)) + "/data/tiger.jpg")
+        #fin = open("/home/dhan/projects/flask-slideatlas/data/tiger.jpg")
         self.sendMessage(fin.read(), True)
 
 if __name__ == '__main__':
@@ -28,23 +28,23 @@ if __name__ == '__main__':
        debug = True
     else:
        debug = False
-    
+
     factory = WebSocketServerFactory("ws://localhost:8000",
                                      debug = debug,
                                      debugCodePaths = debug)
-    
+
     factory.protocol = EchoServerProtocol
     factory.setProtocolOptions(allowHixie76 = True) # needed if Hixie76 is to be supported
-    
+
     # Mount different resources
-    
+
     wsRes = WebSocketResource(factory)
-    
+
     wsgiRes = WSGIResource(reactor, reactor.getThreadPool(), app)
-    
+
     rootRes = WSGIRootResource(wsgiRes, {'ws' : wsRes})
-    
+
     site = Site(rootRes)
-    
+
     reactor.listenTCP(8000, site )
     reactor.run()
