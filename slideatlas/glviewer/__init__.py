@@ -765,5 +765,41 @@ def glcomparisonsave():
 
 
 
+# Starts a recording
+@mod.route('/record-save', methods=['GET', 'POST'])
+def glrecordsave():
+    #pdb.set_trace()
+
+    dbid  = request.form['db']  # for post
+    user  = request.form['user']  # for post
+    name  = request.form['name']  
+    date  = request.form['date']  
+    recordStr = request.form['record']  
+    record = json.loads(recordStr)
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    recordingobj = db["recordings"].find_one({"name" : name })
+    # what gets returned if the recording does not exist yet?
+    
+    if not recordingobj:
+      # construct a new object.
+      recordingobj = {}
+      recordingobj["name"] = name
+      recordingobj["user"] = user
+      recordingobj["date"] = int(date)
+      recordingobj["records"] = [record]
+      db["recordings"].save( recordingobj );
+    else :
+      db["recordings"].update( {"name": name}, { "$push" : { 'records': record}}) 
+
+    return "success"
+
+    
+    
+    
+    
 
 

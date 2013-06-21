@@ -23,6 +23,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
 <!-- Edit menu, right click -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
@@ -154,6 +155,7 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var SESSION_DB = "{{question.viewer1.db}}";
   var ARGS;
   var ARG_ANNOTATIONS;
   var EDIT = false; // Not used at the moment.
@@ -165,7 +167,6 @@ shape has visibility and
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  
   
   // sets the global variable ARGS
   function getArgs() {
