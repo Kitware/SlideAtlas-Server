@@ -40,6 +40,20 @@ function InitDualViewWidget() {
     VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);    
 }
 
+// Called programatically. No animation.
+function SetNumberOfViews(numViews) {
+  DUAL_VIEW = (numViews > 1);
+
+  if (DUAL_VIEW) {
+    VIEWER1_FRACTION = 0.5;
+  } else {
+    VIEWER1_FRACTION = 1.0;
+  }
+
+  handleResize();    
+  DualViewUpdateGui();
+}
+
 
 // It would be nice to animate the transition
 // It would be nice to integrate all animation in a flexible utility.
@@ -48,14 +62,14 @@ var DUAL_ANIMATION_DURATION;
 var DUAL_ANIMATION_TARGET;
 
 function ToggleDualView() {
-  $('#viewEditMenu').hide();
-
   DUAL_VIEW = ! DUAL_VIEW;
   
   if (DUAL_VIEW) {
     DUAL_ANIMATION_CURRENT = 1.0;
     DUAL_ANIMATION_TARGET = 0.5;
     // Edit menu option to copy camera zoom between views.
+    // I do not call update gui here because I want 
+    // the buttons to appear at the end of the animation.
     $('#dualViewCopyZoom').show();
     // Animation takes care of switching the buttons
   } else {

@@ -392,6 +392,7 @@ function ToggleNotesVisibility() {
   $('#viewEditMenu').hide();
 
   NOTES_VISIBILITY = ! NOTES_VISIBILITY;
+  RecordState();
 
   if (NOTES_VISIBILITY) {
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;

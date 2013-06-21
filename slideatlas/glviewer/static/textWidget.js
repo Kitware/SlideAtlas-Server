@@ -63,9 +63,14 @@ function TextWidget (viewer, string) {
   this.ActiveReason = 1;
 }
 
-TextWidget.prototype.Draw = function(view) {
-    this.Shape.Draw(view);
+// Three state visibility so text can be hidden during calss questions.
+TextWidget.prototype.Draw = function(view, visibility) {
+  if (visibility != ANNOTATION_OFF) {
     this.AnchorShape.Draw(view);
+  }
+  if (visibility == ANNOTATION_ON) {
+    this.Shape.Draw(view);
+  }
 }
 
 
@@ -102,9 +107,10 @@ TextWidget.prototype.Load = function(obj) {
   }
 
   this.Shape.String = obj.string;
-  this.Shape.Color = [parseFloat(obj.color[0]),
-                      parseFloat(obj.color[1]),
-                      parseFloat(obj.color[2])];
+  var rgb = [parseFloat(obj.color[0]),
+             parseFloat(obj.color[1]),
+             parseFloat(obj.color[2])];
+  this.Shape.Color = rgb;
   this.Shape.Size = parseFloat(obj.size);
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?
@@ -115,6 +121,8 @@ TextWidget.prototype.Load = function(obj) {
                          parseFloat(obj.position[1]),
                          parseFloat(obj.position[2])];
   this.SetAnchorShapeVisibility(obj.anchorVisibility);
+  this.AnchorShape.SetFillColor(rgb);
+
   this.Shape.UpdateBuffers();
   this.UpdateAnchorShape();
 }
@@ -190,23 +198,27 @@ TextWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 TextWidget.prototype.HandleMouseDown = function(event) {
-  if (this.State == TEXT_WIDGET_ACTIVE) {
-    if (this.AnchorShape.Visibility && this.ActiveReason == 0) {
-      this.State = TEXT_WIDGET_DRAG_TEXT;
-    } else {
-      this.State = TEXT_WIDGET_DRAG;
+  if (event.SystemEvent.which == 1) {
+    if (this.State == TEXT_WIDGET_ACTIVE) {
+      if (this.AnchorShape.Visibility && this.ActiveReason == 0) {
+        this.State = TEXT_WIDGET_DRAG_TEXT;
+      } else {
+        this.State = TEXT_WIDGET_DRAG;
+      }
+      eventuallyRender();
     }
-    eventuallyRender();
   }
 }
 
 // returns false when it is finished doing its work.
-TextWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == TEXT_WIDGET_DRAG || this.State == TEXT_WIDGET_DRAG_TEXT) {
-    this.State = TEXT_WIDGET_ACTIVE;
-    // TODO: We need some callback to generalize to more than comparison views.
-    ComparisonSaveAnnotations();
+TextWidget.prototype.HandleMouseUp = function(event) {    
+  if (event.SystemEvent.which == 1) {
+    if (this.State == TEXT_WIDGET_DRAG ||
+        this.State == TEXT_WIDGET_DRAG_TEXT) {
+      RecordState();
     }
+    this.State = TEXT_WIDGET_ACTIVE;
+  }
   
   if (this.State == TEXT_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
@@ -351,6 +363,8 @@ function TextPropertyDialogApply() {
   widget.AnchorShape.SetFillColor(hexcolor);
   widget.SetAnchorShapeVisibility(markerFlag);
   
+  RecordState();
+  
   eventuallyRender();
 }
 
@@ -369,6 +383,7 @@ function TextPropertyDialogDelete() {
     // shape list and widget list.
     widget.RemoveFromViewer();
     eventuallyRender();
+    RecordState();
   }
 }
 

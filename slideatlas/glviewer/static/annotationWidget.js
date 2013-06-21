@@ -14,6 +14,7 @@
 function AnnotationWidget (viewer) {
   var self = this; // trick to set methods in callbacks. 
   this.Viewer = viewer;
+  viewer.AnnotationWidget = this;
   // We need unique names for the HTML elements.
   this.Widget = $('<table>').appendTo('body')
     .css({
@@ -61,32 +62,45 @@ function AnnotationWidget (viewer) {
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
-  if (visibility) {
-    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")    
-    this.ToolsTable.fadeIn();
-  } else {
-    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")
-    this.ToolsTable.fadeOut();  
+  if (this.Viewer.GetAnnotationVisibility() == visibility) {
+    return;
   }
-  this.Viewer.ShapeVisibility = visibility;
-
-  RecordState();
+  if (visibility == ANNOTATION_OFF) {
+    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")    
+    this.ToolsTable.fadeOut();
+  } else if (visibility == ANNOTATION_NO_TEXT) {
+    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")
+    this.ToolsTable.fadeIn();  
+  } else {
+    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Up.png")
+  }
+  this.Viewer.SetAnnotationVisibility(visibility);
 
   eventuallyRender();    
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {
-  return this.Viewer.ShapeVisibility;
+  return this.Viewer.GetAnnotationVisibility();
 }
 
 AnnotationWidget.prototype.ToggleVisibility = function() {
-  this.SetVisibility(! this.GetVisibility());
+  var vis = this.GetVisibility();
+  if (vis == ANNOTATION_OFF) {
+    vis = ANNOTATION_NO_TEXT;
+  } else if (vis == ANNOTATION_NO_TEXT) {
+    vis = ANNOTATION_ON;
+  } else {
+    vis = ANNOTATION_OFF;
+  }
+  this.SetVisibility( vis );
+  RecordState();
 }
 
 // I would like to change the behavior of this.  
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
-  this.SetVisibility(true);
+  this.SetVisibility(ANNOTATION_ON);
+
   var widget = new TextWidget(this.Viewer, "");
   // Set default color rom the last text widget setting.
   var hexcolor = document.getElementById("textcolor").value;
@@ -98,25 +112,19 @@ AnnotationWidget.prototype.NewText = function() {
 
   // The dialog is used to set the initial text.
   widget.ShowPropertiesDialog();
-  
-  RecordState();
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
-  this.SetVisibility(true);
+  this.SetVisibility(ANNOTATION_ON);
   var widget = new PolylineWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Viewer.ActiveWidget = widget;
-
-  RecordState();
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
-  this.SetVisibility(true);
+  this.SetVisibility(ANNOTATION_ON);
   var widget = new CircleWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Viewer.ActiveWidget = widget;
-
-  RecordState();
 }
 

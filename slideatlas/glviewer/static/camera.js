@@ -24,6 +24,12 @@ Camera.prototype.GetRotation = function () {
     return this.Roll * 180.0 / 3.1415926535;
 }
 
+Camera.prototype.GetFocalPoint = function () {
+  // Copy to avoid bugs because arrays are shared.
+  // These are nasty to find.
+  return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]]; 
+}
+
 // dx, dy are in view coordinates [-0.5,0.5].  
 // The camera matrix converts world to view.
 Camera.prototype.HandleTranslate = function (dx,dy) {

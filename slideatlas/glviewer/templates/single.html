@@ -23,6 +23,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
 <!-- Edit menu, right click -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
@@ -154,6 +155,7 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var SESSION_DB = "{{question.viewer1.db}}";
   var ARGS;
   var ARG_ANNOTATIONS;
   var EDIT = false; // Not used at the moment.
@@ -165,7 +167,6 @@ shape has visibility and
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  
   
   // sets the global variable ARGS
   function getArgs() {
@@ -259,7 +260,9 @@ shape has visibility and
   };
 
   function initViews() {
-    var source = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
+    var source = new Cache(ARGS.Viewer1.db, 
+                           ARGS.Viewer1.collection, 
+                           ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source);
     VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
@@ -269,7 +272,9 @@ shape has visibility and
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
     if (ARGS.Viewer2) {
-      source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
+      source = new Cache(ARGS.Viewer2.collection,
+                         ARGS.Viewer2.db,
+                         ARGS.Viewer2.levels);
       VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
       VIEWER2.SetDimensions(ARGS.Viewer2.dimensions);
       VIEWER2.SetCamera(ARGS.Viewer2.center, 
@@ -306,6 +311,7 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+        // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}

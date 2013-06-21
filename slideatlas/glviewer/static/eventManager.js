@@ -24,6 +24,7 @@ function EventManager (canvas) {
     this.Viewers = [];
     this.CurrentViewer = null;
     this.ShiftKeyPressed = false;
+    this.ControlKeyPressed = false;
     this.Key = '';
     this.MouseX = 0;
     this.MouseY = 0;
@@ -127,7 +128,7 @@ EventManager.prototype.HandleMouseUp = function(event) {
     PENDING_SHOW_PROPERTIES_MENU = true;
     SHOW_PROPERTIES_MOUSE_POSITION = [event.clientX, event.clientY];
     setTimeout(function(){ShowPendingPropertiesMenu();},200);
-  }    
+  }
 }
 
 // Forward even to view.
@@ -161,7 +162,20 @@ EventManager.prototype.HandleKeyDown = function(event) {
     // Shift key modifier.
     this.ShiftKeyPressed = true;
   }
+  if (event.keyCode == 17) {
+    // Control key modifier.
+    this.ControlKeyPressed = true;
+  }
 
+  // Handle undo and redo (cntrl-z, cntrl-y)
+  if (this.ControlKeyPressed && event.keyCode == 90) {
+    // Function in recordWidget.
+    UndoState();
+  } else if (this.ControlKeyPressed && event.keyCode == 89) {
+    // Function in recordWidget.
+    RedoState();
+  }
+    
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
@@ -173,5 +187,8 @@ EventManager.prototype.HandleKeyUp = function(event) {
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = false;
+  } else if (event.keyCode == 17) {
+    // Control key modifier.
+    this.ControlKeyPressed = false;
   }
 }
