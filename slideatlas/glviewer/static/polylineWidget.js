@@ -30,7 +30,7 @@ function PolylineWidget (viewer, newFlag) {
   this.ClosedLoop = false;
   // Circle is to show an active vertex.
   this.Circle = new Circle();
-  this.Circle.FillColor = [1.0, 1.0, 0.2]
+  this.Circle.FillColor = [1.0, 1.0, 0.2];
   this.Circle.OutlineColor = [0.0,0.0,0.0];
   this.Circle.FixedSize = false;
   this.Circle.ZOffset = -0.05;
@@ -114,6 +114,9 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
 }
 
 PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+}
+
+PolylineWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 // Mouse down does nothing. Mouse up causes all state changes.
@@ -246,7 +249,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
         this.Shape.Points[this.ActiveVertex] = pt;
         }
       this.Circle.Origin = pt;
-      this.Shape.UpdateBuffers();
+      this.Shape.Buffers();
       eventuallyRender();
     }
   }

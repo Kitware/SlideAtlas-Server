@@ -240,6 +240,11 @@ Viewer.prototype.GetCamera = function() {
     return this.MainView.Camera;
 }
 
+Viewer.prototype.GetSpacing = function() {
+  var cam = this.GetCamera();
+  var viewport = this.GetViewport();
+  return cam.Height / viewport[3];
+}
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
@@ -300,9 +305,28 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
   eventuallyRender();
 }
 
+
+
+Viewer.prototype.RemoveWidget = function(widget) {
+  if (widget.Viewer == null) {
+    return;
+  }
+  widget.Viewer = null;
+  var idx = this.WidgetList.indexOf(widget);
+  if(idx!=-1) { 
+    this.WidgetList.splice(idx, 1); 
+  }
+}
+
+
+
 // Load a widget from a json object (origin MongoDB).
 Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
+    case "pencil":
+      var pencil = new PencilWidget(this, false);
+      pencil.Load(obj);  
+      break;
     case "arrow":
       var arrow = new ArrowWidget(this, false);
       arrow.Load(obj);  
@@ -481,6 +505,10 @@ Viewer.prototype.HandleMouseDown = function(event) {
 }
 
 Viewer.prototype.HandleDoubleClick = function(event) {
+  if (this.ActiveWidget != null) {
+    this.ActiveWidget.HandleDoubleClick(event);
+    return;
+  }
   
   // Detect double click.
   mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
