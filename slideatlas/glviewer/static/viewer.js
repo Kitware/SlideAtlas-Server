@@ -378,6 +378,13 @@ Viewer.prototype.Draw = function() {
   }
 }
 
+// Makes the viewer clean to setup a new slide...
+Viewer.prototype.Reset = function() {
+  this.SetCache(null);
+  this.WidgetList = [];
+  this.ShapeList = [];
+}
+
 // A list of shapes to render in the viewer
 Viewer.prototype.AddShape = function(shape) {
   this.ShapeList.push(shape);
@@ -403,16 +410,16 @@ Viewer.prototype.Animate = function() {
     var currentCenter = this.MainView.Camera.FocalPoint;
     var currentRoll   = this.MainView.Camera.Roll;
     this.MainView.Camera.Height
-	    = currentHeight + (this.ZoomTarget-currentHeight)
+      = currentHeight + (this.ZoomTarget-currentHeight)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.Roll = this.OverView.Camera.Roll
-	    = currentRoll + (this.RollTarget-currentRoll)
+      = currentRoll + (this.RollTarget-currentRoll)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.FocalPoint[0]
-	    = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+      = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     this.MainView.Camera.FocalPoint[1]
-	    = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+      = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     // We are not finished yet.
     // Schedule another render
@@ -651,7 +658,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
     if (this.ZoomTarget > 0.9 / (1 << 5)) {
       this.ZoomTarget *= 0.5;
       this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-	    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+      this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
       this.AnimateLast = new Date().getTime();
       this.AnimateDuration = 200.0;
       eventuallyRender();

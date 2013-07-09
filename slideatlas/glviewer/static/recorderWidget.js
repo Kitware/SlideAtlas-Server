@@ -118,9 +118,6 @@ function RecordingStop() {
   // Prompt for a name and if the user want to keep the recording.
 }
 
-
-
-
 function NewPageRecord() {
   stateRecord = {};
   stateRecord.Viewers = [];
@@ -137,6 +134,7 @@ function NewPageRecord() {
 
 function NewViewerRecord(viewer) {
   var cache = viewer.GetCache();
+  if ( ! cache) { return null;}
   
   var viewerRecord = {};
   

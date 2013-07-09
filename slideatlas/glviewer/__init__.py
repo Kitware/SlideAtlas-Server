@@ -797,9 +797,94 @@ def glrecordsave():
 
     return "success"
 
+
+# These methods are required to work with the note widget.
+# We need to get and set the data associated with any one comment,
+# get a list of all comments associated with a single note,
+# and a couple of other methods for working with comment authors are needed.
+
+# the function to get all comments associated with a single note
+@mod.route('/getparentcomments', methods=['GET', 'POST'])
+def getparentcomments():
+    #pdb.set_trace()
+    dbid = request.form['db']
+    noteid = request.form["id"]
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+    toplevelcomments = db["comments"].find({ "parent": noteid })
+    
+    
+     
+    for obj in toplevelcomments:
+      obj["_id"] = str(obj["_id"])
+    
+    return jsonify(toplevelcomments)
+
+
+# The function to handle the ajax call that gets the data for a specific comment id.
+@mod.route('/getcomment', methods=['GET', 'POST'])
+def getcomment():
+    dbid = request.form["db"]
+    commentid = request.form["id"]
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+    comment = db["comments"].find_one({"_id": ObjectId(commentid) })
+    
+    if comment:
+      comment["_id"] = str(comment["_id"])
+    
+    return jsonify(comment)
+
+@mod.route('/savecomment', methods=['GET', 'POST'])
+def savecomment():
+    dbid = request.form["db"]
+    
+    commentid = request.form["commentid"]
+    #commentid = ""
+    #pdb.set_trace()
+    if commentid == "":
+      commentid = str(ObjectId())
+    commenttext = request.form["text"]
+    children = request.form["children"]
+    parent = request.form["parent"]
+    #author = request.form["author"]
+    
+    author = session["user"]["email"]
     
     
     
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
     
+    db["comments"].update({"_id": ObjectId(commentid) }, {"$set": {"text": commenttext,
+                                                                   "author": author,
+                                                                   "children": children,
+                                                                   "parent": parent }})
+    
+    # We also have to add this comment to the list of children of the parent comment.
+    if parent != "":
+      db["comments"].update({"_id": ObjectId(parent) }, {"$push": { children: commentid }});
+    
+    return "Success"
+    
+@mod.route('/getauthor', methods=['GET', 'POST'])
+def getauthor():
+    dbid = request.form["db"]
+    commentid = request.form["commentid"]
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+    comment = db["comments"].find_one({"_id": ObjectId(commentid) });
+    return comment["author"]
+
 
 

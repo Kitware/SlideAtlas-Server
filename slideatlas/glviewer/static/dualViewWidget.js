@@ -64,7 +64,7 @@ var DUAL_ANIMATION_TARGET;
 function ToggleDualView() {
   DUAL_VIEW = ! DUAL_VIEW;
   
-  if (DUAL_VIEW) {
+  if (DUAL_VIEW) {  
     DUAL_ANIMATION_CURRENT = 1.0;
     DUAL_ANIMATION_TARGET = 0.5;
     // Edit menu option to copy camera zoom between views.
