@@ -226,6 +226,13 @@ function RedoState() {
 }
 
 function ApplyViewerRecord(viewer, viewerRecord) {
+  // If a widget is active, then just inactivate it.
+  // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+  if (viewer.ActiveWidget) {
+    // Hackish way to deactivate.
+    viewer.ActiveWidget.SetActive(false);  
+  }
+
   var cache = viewer.GetCache();
   if (viewerRecord.Collection != cache.Collection) {
     var newCache = new Cache(viewerRecord.Database, 

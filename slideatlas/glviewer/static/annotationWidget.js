@@ -18,7 +18,7 @@ function AnnotationWidget (viewer) {
   // We need unique names for the HTML elements.
   this.Widget = $('<table>').appendTo('body')
     .css({
-      'opacity': '0.5',
+      'opacity': '0.6',
       'position': 'absolute',
       'height': '28px',
       'bottom' : '5px',
@@ -31,7 +31,7 @@ function AnnotationWidget (viewer) {
   var cell = $('<td>').appendTo(row)
   this.VisibilityButton = $('<img>').appendTo(cell)
     .css({
-      'opacity': '0.5',
+      'opacity': '0.6',
       'border-radius': '5px'})
     .attr('type','image')
     .attr('src',"webgl-viewer/static/pencil3.png")
@@ -40,8 +40,8 @@ function AnnotationWidget (viewer) {
   this.ToolsTable = $('<td>').appendTo(row)
     .hide()
     .css({
-      'opacity': '0.5',
-      'width': '100',
+      'opacity': '0.6',
+      'width': '130',
       'border-radius': '5px'});
 
   $('<img>').appendTo(this.ToolsTable)
@@ -59,6 +59,11 @@ function AnnotationWidget (viewer) {
     .attr('type','image')
     .attr('src',"webgl-viewer/static/FreeForm.gif")
     .click(function(){self.NewPolyline();});
+  $('<img>').appendTo(this.ToolsTable)
+    .css({'height': '28px'})
+    .attr('type','image')
+    .attr('src',"webgl-viewer/static/Pencil-icon.png")
+    .click(function(){self.NewPencil();});
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
@@ -112,6 +117,13 @@ AnnotationWidget.prototype.NewText = function() {
 
   // The dialog is used to set the initial text.
   widget.ShowPropertiesDialog();
+}
+
+// Probably want a singleton pencil.
+AnnotationWidget.prototype.NewPencil = function() {
+  this.SetVisibility(ANNOTATION_ON);
+  var widget = new PencilWidget(this.Viewer, true);
+  this.Viewer.ActiveWidget = widget;
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
