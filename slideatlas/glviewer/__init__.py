@@ -51,12 +51,13 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
     # I do not think we can pass an array back.
     val = {}
     val["Bookmarks"] = []
-    for bookmarkId in viewobj["bookmarks"] :
-      bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
-      bookmark = bookmarkObj
-      bookmark["_id"] = str(bookmark["_id"])
-      bookmark["img"] = str(bookmark["img"])
-      val["Bookmarks"].append(bookmark)
+    if 'bookmarks' in viewobj :
+      for bookmarkId in viewobj["bookmarks"] :
+        bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
+        bookmark = bookmarkObj
+        bookmark["_id"] = str(bookmark["_id"])
+        bookmark["img"] = str(bookmark["img"])
+        val["Bookmarks"].append(bookmark)
 
     return jsonify(val)
     
@@ -74,7 +75,6 @@ def glsingle(db, dbid, viewid, viewobj):
     # I was going get the user id from the session, and pass it to the viewer.
     # I think I will just try to retreive the user from the "Save Note" method.
     if 'user' in session:
-        #        print session["user"]
         email = session["user"]["email"]
     else:
         # Send the user back to login page
@@ -82,8 +82,6 @@ def glsingle(db, dbid, viewid, viewobj):
         flash("You are not logged in..", "info")
         email = None
     
-
-
     # The base view is for the left panel
     img = {}
     img["db"] = dbid
@@ -119,7 +117,11 @@ def glsingle(db, dbid, viewid, viewobj):
 
     question = {}
     question["viewer1"] = img;
-
+    if 'label' in imgobj:
+      question["label"] = imgobj["label"]
+    else:
+      question["label"] = "slide";
+      
     # now create a list of options.
     # this array will get saved back into the view
     optionViews = []
@@ -156,7 +158,7 @@ def glsingle(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('single.html', question=question))
+    return make_response(render_template('single.html', question=question, user=email))
     
     
     
@@ -237,7 +239,7 @@ def glcomparison(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('comparison.html', question=question, user=email))
+    return make_response(render_template('comparison.html', question=question))
         
     
     
@@ -282,10 +284,6 @@ def glview2(db, dbobj, dbid, viewid, viewobj):
 
 
 
-
-
-
-
 mod = Blueprint('glviewer', __name__,
                 template_folder="templates",
                 static_folder="static",
@@ -297,7 +295,7 @@ def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
-
+    
     # See if the user is requesting any session id
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
@@ -315,8 +313,7 @@ def glview():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
     db = conn[dbobj["dbname"]]
-    conn.register([model.Database])
-
+    conn.register([model.Database])    
     
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
     if ajax:
@@ -335,6 +332,37 @@ def glview():
 
 
 
+# get all the children notes for a parent (authord by a specific user).
+@mod.route('/getchildnotes')
+def getchildnotes():
+    #pdb.set_trace()
+    parentid = request.args.get('parentid', "")
+    dbid = request.args.get('db', "")
+    user = session["user"]["email"]
+    
+    #pdb.set_trace()
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+    notecursor = db["notes"].find({ "ParentId" : ObjectId(parentid) })
+    # make a new structure to return.  Convert the ids to strings.
+    noteArray = [];
+    for note in notecursor:
+      note["Id"] = str(note["_id"])
+      note["_id"] = None
+      note["ParentId"] = str(note["ParentId"])
+      noteArray.append(note)
+      
+    data = {};
+    data["Notes"] = noteArray
+    
+    return jsonify(data)
+    
+    
+    
+    
     
     
     
@@ -766,14 +794,16 @@ def glcomparisonsave():
 
 
 # Starts a recording
+# name is a way to identify a recording session.
+
 @mod.route('/record-save', methods=['GET', 'POST'])
 def glrecordsave():
     #pdb.set_trace()
+    user = session["user"]["email"]
 
-    dbid  = request.form['db']  # for post
-    user  = request.form['user']  # for post
-    name  = request.form['name']  
-    date  = request.form['date']  
+    dbid      = request.form['db']  # for post
+    name      = request.form['name']  
+    date      = request.form['date']  # used only when creating a new recording
     recordStr = request.form['record']  
     record = json.loads(recordStr)
 
@@ -782,7 +812,6 @@ def glrecordsave():
     db = conn[dbobj["dbname"]]
 
     recordingobj = db["recordings"].find_one({"name" : name })
-    # what gets returned if the recording does not exist yet?
     
     if not recordingobj:
       # construct a new object.
@@ -841,50 +870,25 @@ def getcomment():
     
     return jsonify(comment)
 
-@mod.route('/savecomment', methods=['GET', 'POST'])
-def savecomment():
-    dbid = request.form["db"]
     
-    commentid = request.form["commentid"]
-    #commentid = ""
+# This is close to a general purpose function to insert an object into the database.
+@mod.route('/saveusernote', methods=['GET', 'POST'])
+def saveusernote():
     #pdb.set_trace()
-    if commentid == "":
-      commentid = str(ObjectId())
-    commenttext = request.form["text"]
-    children = request.form["children"]
-    parent = request.form["parent"]
-    #author = request.form["author"]
-    
-    author = session["user"]["email"]
-    
-    
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
-    db["comments"].update({"_id": ObjectId(commentid) }, {"$set": {"text": commenttext,
-                                                                   "author": author,
-                                                                   "children": children,
-                                                                   "parent": parent }})
-    
-    # We also have to add this comment to the list of children of the parent comment.
-    if parent != "":
-      db["comments"].update({"_id": ObjectId(parent) }, {"$push": { children: commentid }});
-    
-    return "Success"
-    
-@mod.route('/getauthor', methods=['GET', 'POST'])
-def getauthor():
-    dbid = request.form["db"]
-    commentid = request.form["commentid"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
-    comment = db["comments"].find_one({"_id": ObjectId(commentid) });
-    return comment["author"]
+    dbid    = request.form['db']  # for post
+    noteStr = request.form['note']  
 
+    note    = json.loads(noteStr)
+    note["ParentId"] = ObjectId(note["ParentId"]);
+    # user should be set by flask so it cannot be faked.
+    note["User"] = session["user"]["email"]
+  
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    noteId = db["notes"].save(note);
+    return str(noteId);
+ 
 
 

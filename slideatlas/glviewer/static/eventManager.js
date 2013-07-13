@@ -84,7 +84,8 @@ EventManager.prototype.HandleMouseDown = function(event) {
     event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
 
-    var dTime = new Date().getTime() - this.MouseUpTime;
+    var d = new Date();
+    var dTime = d.getTime() - this.MouseUpTime;
     if (dTime < 200.0) { // 200 milliseconds
       PENDING_SHOW_PROPERTIES_MENU = false;
       this.CurrentViewer.HandleDoubleClick(this);

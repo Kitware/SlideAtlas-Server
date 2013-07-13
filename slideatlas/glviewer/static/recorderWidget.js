@@ -19,6 +19,143 @@
 // I like just poping the last state off the TIME_LINE and pushing to the REDO_STACK
 
 
+//------------------------------------------------------------------------------
+// Records are now being used for notes.  Since page record may contain 
+// information about current note, I am using ViewerRecord as a shared object.
+
+function ViewerRecord () {
+  this.Database = "";
+  this.Collection = "";
+  this.NumberOfLevels = 0;
+}
+
+ViewerRecord.prototype.LoadBookmark = function(data) {
+  // Hack.  I should probably get the source from data.img
+  // However, this would require a post to get info.
+  // Since booksmarks are slated to be depreciated,
+  // I will just hack this. (copy from viewer).
+  var cache = VIEWER1.GetCache();    
+  this.Database = cache.Database;
+  this.Collection = cache.Collection;
+  this.NumberOfLevels = cache.NumberOfLevels;
+  
+  var cameraRecord = {};
+  cameraRecord.FocalPoint = data.center;
+  cameraRecord.Height = 900 << data.zoom;
+  cameraRecord.Roll = data.rotation;
+  this.Camera = cameraRecord;
+
+  // I cannot use a temporary widget to get a serialization because the constructor
+  // adds the widget to the viewer.  I hate complext constructors!
+  // Hack the serialization too.
+  var obj = {};
+  obj.type = "text";
+
+  obj.color = ConvertColor(data.annotation.color);
+  obj.size = 30;
+  obj.position = data.annotation.points[0];
+  obj.offset = [data.annotation.points[1][0]-obj.position[0], 
+                data.annotation.points[1][1]-obj.position[1]];
+  // Try to convert from world to pixels
+  obj.offset[0] = obj.offset[0] * 900 / cameraRecord.Height;
+  obj.offset[1] = obj.offset[1] * 900 / cameraRecord.Height;
+
+  obj.string = data.title;
+  obj.anchorVisibility = true;
+  this.Annotations = [obj];
+}
+
+// view args format. Get rid of this asap.
+ViewerRecord.prototype.LoadRootViewer = function(data) {
+  // Hack. data is in args  but ....
+  var cache = new Cache(data.db, 
+                        data.collection, 
+                        data.levels);
+
+  this.Database = data.db;
+  this.Collection = data.collection;
+  this.NumberOfLevels = data.levels;
+
+  var cameraRecord = {};
+  cameraRecord.FocalPoint = data.center;
+  cameraRecord.Height = data.viewHeight;
+  cameraRecord.Roll = data.rotation;
+  this.Camera = cameraRecord;
+  this.Annotations = [];
+}
+
+
+ViewerRecord.prototype.CopyViewer = function (viewer) {
+  var cache = viewer.GetCache();
+  if ( ! cache) { 
+    this.Database = "";
+    this.Collection = "";
+    this.NumberOfLevels = 0;
+    this.Camera = null;
+    this.AnnotationVisibility = false;
+    this.Annotations = [];
+    return;
+  }
+    
+  this.Database = cache.Database;
+  this.Collection = cache.Collection;
+  // I could get this from the image / collection.
+  this.NumberOfLevels = cache.NumberOfLevels;
+
+  var cam = viewer.GetCamera();
+  var cameraRecord = {};
+  cameraRecord.FocalPoint = cam.GetFocalPoint();
+  cameraRecord.Height = cam.GetHeight();
+  cameraRecord.Roll = cam.GetRotation();
+  this.Camera = cameraRecord;
+  
+  this.AnnotationVisibility = viewer.GetAnnotationVisibility();
+  if (this.AnnotationVisibility) {
+    this.Annotations = [];
+    for (var i = 0; i < viewer.WidgetList.length; ++i) {
+      this.Annotations.push(viewer.WidgetList[i].Serialize());
+    }
+  }
+}
+
+ViewerRecord.prototype.Apply = function (viewer) {
+  // If a widget is active, then just inactivate it.
+  // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+  if (viewer.ActiveWidget) {
+    // Hackish way to deactivate.
+    viewer.ActiveWidget.SetActive(false);  
+  }
+
+  var cache = viewer.GetCache();
+  if ( ! cache || this.Collection != cache.Collection) {
+    var newCache = new Cache(this.Database, 
+                             this.Collection, 
+                             this.NumberOfLevels);
+    viewer.SetCache(newCache);
+  }
+
+  if (this.Camera != undefined) {
+    var cameraRecord = this.Camera;
+    viewer.SetCamera(cameraRecord.FocalPoint,
+                     cameraRecord.Roll,
+                     cameraRecord.Height);
+  }
+  
+  if (this.AnnotationVisibility != undefined) {
+    viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
+  }
+  if (this.Annotations != undefined) {
+    // For now lets just do the easy thing and recreate all the annotations.
+    viewer.WidgetList = [];
+    viewer.ShapeList = [];
+    for (var i = 0; i < this.Annotations.length; ++i) {
+      viewer.LoadWidget(this.Annotations[i]);
+    }
+  }
+}
+
+
+
 
 
 
@@ -121,9 +258,13 @@ function RecordingStop() {
 function NewPageRecord() {
   stateRecord = {};
   stateRecord.Viewers = [];
-  stateRecord.Viewers.push(NewViewerRecord(VIEWER1));
+  var viewerRecord = new ViewerRecord();
+  viewerRecord.CopyViewer(VIEWER1);
+  stateRecord.Viewers.push(viewerRecord);
   if (DUAL_VIEW) {
-    stateRecord.Viewers.push(NewViewerRecord(VIEWER2));
+    viewerRecord = new ViewerRecord();
+    viewerRecord.CopyViewer(VIEWER2);
+    stateRecord.Viewers.push(viewerRecord);
   }
   // Note state? Which note is current.
   // Placeholder. Notes are not ready yet.
@@ -132,34 +273,6 @@ function NewPageRecord() {
 }
 
 
-function NewViewerRecord(viewer) {
-  var cache = viewer.GetCache();
-  if ( ! cache) { return null;}
-  
-  var viewerRecord = {};
-  
-  viewerRecord.Database = cache.Database;
-  viewerRecord.Collection = cache.Collection;
-  // I could get this from the image / collection.
-  viewerRecord.NumberOfLevels = cache.NumberOfLevels;
-
-  var cam = viewer.GetCamera();
-  var cameraRecord = {};
-  cameraRecord.FocalPoint = cam.GetFocalPoint();
-  cameraRecord.Height = cam.GetHeight();
-  cameraRecord.Roll = cam.GetRotation();
-  viewerRecord.Camera = cameraRecord;
-  
-  viewerRecord.AnnotationVisibility = viewer.GetAnnotationVisibility();
-  if (viewerRecord.AnnotationVisibility) {
-    viewerRecord.Annotations = [];
-    for (var i = 0; i < viewer.WidgetList.length; ++i) {
-      viewerRecord.Annotations.push(viewer.WidgetList[i].Serialize());
-    }
-  }
-  
-  return viewerRecord;
-}
 
 // Create a snapshot of the current state and push it on  the TIME_LINE stack.
 function RecordState() {
@@ -179,7 +292,6 @@ function RecordState() {
       data: {"record": JSON.stringify( pageRecord ),
              "name"  : RECORDING_NAME,
              "db"    : SESSION_DB,
-             "user"  : "Bev",
              "date"  : d.getTime()},
       success: function(data,status){
          //alert(data + "\nStatus: " + status);
@@ -202,9 +314,9 @@ function UndoState() {
     record = TIME_LINE[TIME_LINE.length-1];
     // Now change the page to the state at the end of the timeline.
     SetNumberOfViews(record.Viewers.length);
-    ApplyViewerRecord(VIEWER1, record.Viewers[0]);
+    record.Viewers[0].Apply(VIEWER1);
     if (record.Viewers.length > 1) {
-      ApplyViewerRecord(VIEWER2, record.Viewers[1]);
+      record.Viewers[1].Apply(VIEWER2);
     }
   }
 }
@@ -219,46 +331,11 @@ function RedoState() {
 
   // Now change the page to the state at the end of the timeline.
   SetNumberOfViews(record.Viewers.length);
-  ApplyViewerRecord(VIEWER1, record.Viewers[0]);
+  record.Viewers[0].Apply(VIEWER1);
   if (record.Viewers.length > 1) {
-    ApplyViewerRecord(VIEWER2, record.Viewers[1]);
+    record.Viewers[1].Apply(VIEWER2);
   }
 }
 
-function ApplyViewerRecord(viewer, viewerRecord) {
-  // If a widget is active, then just inactivate it.
-  // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
-  if (viewer.ActiveWidget) {
-    // Hackish way to deactivate.
-    viewer.ActiveWidget.SetActive(false);  
-  }
-
-  var cache = viewer.GetCache();
-  if (viewerRecord.Collection != cache.Collection) {
-    var newCache = new Cache(viewerRecord.Database, 
-                             viewerRecord.Collection, 
-                             viewerRecord.NumberOfLevels);
-    viewer.SetCache(newCache);
-  }
-
-  if (viewerRecord.Camera != undefined) {
-    var cameraRecord = viewerRecord.Camera;
-    viewer.SetCamera(cameraRecord.FocalPoint,
-                     cameraRecord.Roll,
-                     cameraRecord.Height);
-  }
-  
-  if (viewerRecord.AnnotationVisibility != undefined) {
-    viewer.AnnotationWidget.SetVisibility(viewerRecord.AnnotationVisibility);
-  }
-  if (viewerRecord.Annotations != undefined) {
-    // For now lets just do the easy thing and recreate all the annotations.
-    viewer.WidgetList = [];
-    viewer.ShapeList = [];
-    for (var i = 0; i < viewerRecord.Annotations.length; ++i) {
-      viewer.LoadWidget(viewerRecord.Annotations[i]);
-    }
-  }
-}
 
 

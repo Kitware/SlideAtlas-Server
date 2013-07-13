@@ -306,22 +306,6 @@ ArrowWidget.prototype.SetColor = function (hexColor) {
   eventuallyRender();
 }
 
-// Hack for bookmarks.  Points passed in are in world coordinates
-ArrowWidget.prototype.SetPoints = function (p0, p1) {
-  this.TipPosition = [p1[0],p1[1]];
-  this.TipOffset = [p0[0]-p1[0], p0[1]-p1[1]];
-
-  this.Shape.Length = Math.sqrt(this.TipOffset[0]*this.TipOffset[0]
-                              + this.TipOffset[1]*this.TipOffset[1]);
-  this.Shape.Length *= this.Viewer.GetPixelsPerUnit();
-
-  this.Shape.Origin = [p1[0],p1[1]];
-  this.Shape.Orientation = Math.atan2(this.TipOffset[1], this.TipOffset[0]) * 180.0 / Math.PI;
-  this.Shape.UpdateBuffers();
-  eventuallyRender();
-}
-
-
 function ArrowPropertyDialogApply() {
   var widget = ARROW_WIDGET_DIALOG_SELF;
   if ( ! widget) { 
