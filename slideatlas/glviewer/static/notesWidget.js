@@ -247,7 +247,7 @@ Note.prototype.Serialize = function(includeChildren) {
 }
 
 Note.prototype.Load = function(obj){
-  if (obj.Type || obj.Type != "Note") {
+  if (obj.Type && obj.Type != "Note") {
     alert("Cannot load note of type " + obj.Type);
     return;
   }
