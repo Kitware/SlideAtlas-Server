@@ -92,7 +92,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     this.Collection = "";
     this.NumberOfLevels = 0;
     this.Camera = null;
-    this.AnnotationVisibility = false;
+    this.AnnotationVisibility = ANNOTATION_OFF;
     this.Annotations = [];
     return;
   }
