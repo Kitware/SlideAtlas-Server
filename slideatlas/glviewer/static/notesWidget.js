@@ -230,6 +230,7 @@ Note.prototype.UpdateChildrenGUI = function() {
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
+  obj.Type = "Note";
   obj.User = this.User;
   obj.Date = this.Date;
   obj.ParentId = this.ParentId;
@@ -246,6 +247,10 @@ Note.prototype.Serialize = function(includeChildren) {
 }
 
 Note.prototype.Load = function(obj){
+  if (obj.Type || obj.Type != "Note") {
+    alert("Cannot load note of type " + obj.Type);
+    return;
+  }
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
@@ -262,7 +267,8 @@ Note.prototype.Load = function(obj){
 }
 
 
-
+// I am going to create two notes for each bookmark so the annotations appear
+// like question and answer.
 Note.prototype.LoadBookmark = function(data) {
   // What should we do about date? I do not think Bookmarks record the date.
   this.Id = data._id;
@@ -309,7 +315,6 @@ function SaveUserNote() {
   // Save the note in the database for this specific user.
   // TODO: If author privaleges, save note in the actual session / view.
   var dbid = ARGS.Viewer1.db;
-  var bug = JSON.stringify( childNote );
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
@@ -447,10 +452,19 @@ function BookmarksCallback (data, status) {
   if (status == "success") {
     var length = data.Bookmarks.length;
     for(var i=0; i < length; i++){
+      // I am going to create two notes for each bookmark so the annotations appear
+      // like question and answer.
       var note = new Note();
       note.LoadBookmark(data.Bookmarks[i]);
+      note.Text = "Question";
+      note.ViewerRecords[0].AnnotationVisibility = ANNOTATION_NO_TEXT; 
       ROOT_NOTE.Children.push(note);
-    }
+      var note2 = new Note();
+      note2.LoadBookmark(data.Bookmarks[i]);
+      note2.ViewerRecords[0].AnnotationVisibility = ANNOTATION_ON; 
+      note.Children.push(note2);
+      note2.ChildrenVisible = true;
+      }
     // Load the root note.
     DisplayNote(NOTE_ITERATOR.GetNote());
   } else { alert("ajax failed."); }
@@ -541,7 +555,7 @@ function InitNotesWidget() {
                                       'position': 'relative',
                                       'width': '98%',
                                       'left': '2%',
-                                      'top': '5px',
+                                      'top': '0px',
                                       'bottom-margin': '50px',
                                       'height': '70px',
                                       'resize': 'none'
@@ -588,7 +602,7 @@ function ToggleNotesWindow() {
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.2;
   } else {
-    TOP_NOTE_WRAPPER_DIV.hide();
+    NOTE_WINDOW.hide();
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.0;
   }
