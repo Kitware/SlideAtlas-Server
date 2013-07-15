@@ -4,10 +4,10 @@ import inspect
 
 def get_git_name():
     curdir = os.getcwd()
-#    print curdir
+    print curdir
     p = inspect.getfile(get_git_name)
     newdir = os.path.dirname(os.path.abspath(p))
-#    print newdir
+    print newdir
     out = ''
     try:
         params = ["git", "describe", "--tags", "--always"]
