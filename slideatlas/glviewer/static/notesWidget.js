@@ -23,6 +23,7 @@ var ROOT_NOTE;
 var NOTE_ITERATOR;
 
 // GUI elements
+var NOTE_WINDOW;
 var TOP_NOTE_WRAPPER_DIV;
 var NOTE_TEXT_ENTRY;
 
@@ -49,6 +50,7 @@ NoteIterator.prototype.Initialize = function(rootNote) {
   item.Parent = null;
   this.Stack = item;
 }
+
 
 // Should not be necessary
 NoteIterator.prototype.GetNote = function() {
@@ -152,8 +154,7 @@ NoteIterator.prototype.Previous = function() {
 }
 
 
-
-
+//------------------------------------------------------------------------------
 // Note object (maybe will be used for views and sessions too).
 
 // data is the object retrieved from mongo (with string ids)
@@ -173,14 +174,60 @@ function Note () {
   this.Children = [];
   this.ChildrenVisible = true;
 
-  // ChildrenDiv always exists and is just moved around.
-  this.ChildrenDiv = $('<div>').hide();
+  // GUI elements.
+  this.Icon = $('<img>').css({'height': '20px',
+                              'width': '20x',
+                              'float':'left'})
+                        .attr('src',"webgl-viewer/static/dot.png");
+  this.TextDiv = $('<div>').css({'font-size': '18px',
+                                 'margin-left':'20px'})
+                           .text(this.Text);
+  this.ChildrenDiv = $('<div>').css({'margin-left':'15px'});
 }
 
-// Place holder.  includeChildren is not implemented either.
-// for children (not implemented) recursion???
-// It would be easier if we returned object rather than stringify.
-// This applies to ViewerRecords too.
+// No clearing.  Just draw this notes GUI in a div.
+Note.prototype.DisplayGUI = function(div) {
+  // Put an icon to the left of the text.
+  
+  this.Icon.appendTo(div);
+  this.TextDiv.appendTo(div).text(this.Text);
+  // The div should attached even if nothing is in it.
+  // A child may appear and UpdateChildrenGui called.
+  // If we could tell is was removed, UpdateChildGUI could append it.
+  this.ChildrenDiv.appendTo(div);
+  this.UpdateChildrenGUI();
+}
+
+Note.prototype.UpdateChildrenGUI = function() {
+  // Clear
+  this.ChildrenDiv.empty();
+  if (this.Children.length == 0) {
+    this.Icon.attr('src',"webgl-viewer/static/dot.png");
+    return;
+  }
+  if (this.ChildrenVisible == false) {
+    this.Icon.attr('src',"webgl-viewer/static/plus.png")
+             .click(function() {self.Expand();});
+    return;
+  }
+
+  // Callback trick
+  var self = this;
+  
+  // Redraw
+  this.Icon.attr('src',"webgl-viewer/static/minus.png")
+           .click(function() {self.Collapse();});
+  for (var i = 0; i < this.Children.length; ++i) {
+    this.Children[i].DisplayGUI(this.ChildrenDiv);
+  }
+}
+
+
+
+
+
+
+
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
   obj.User = this.User;
@@ -202,12 +249,19 @@ Note.prototype.Load = function(obj){
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
+  for (var i = 0; i < this.Children; ++i) {
+    var childObj = this.Children[i];
+    this.Children[i] = new Note();
+    this.Children[i].Load(childObj);
+  }
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
     if (obj.ViewerRecords[i]) {
       obj.ViewerRecords[i].__proto__ = ViewerRecord.prototype;
     }
   }
 }
+
+
 
 Note.prototype.LoadBookmark = function(data) {
   // What should we do about date? I do not think Bookmarks record the date.
@@ -255,6 +309,7 @@ function SaveUserNote() {
   // Save the note in the database for this specific user.
   // TODO: If author privaleges, save note in the actual session / view.
   var dbid = ARGS.Viewer1.db;
+  var bug = JSON.stringify( childNote );
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
@@ -269,12 +324,6 @@ function SaveUserNote() {
   // If we choose the child, then we need to update the iterator,
   // which will also update the gui and viewers.
   NextNoteCallback();
-  
-  // If we want to reset the Parent as active note.
-  //parentNote.HideChildComments();
-  //parentNote.Icon.remove();
-  //parentNote.TextDiv.remove();
-  //DisplayNote(parentNote);
 }
 
 
@@ -294,9 +343,6 @@ Note.prototype.RequestUserNotes = function() {
     });  
 }
 
-// A bit of a pain saving a whole object.
-// Children could get dragged along.
-// We need to cast generic objects to Notes ...
 Note.prototype.LoadUserNotes = function(data) {
   for (var i = 0; i < data.Notes.length; ++i) {
     var noteData = data.Notes[i];
@@ -336,63 +382,6 @@ Note.prototype.Expand = function() {
 }
 
 
-//--------------------------------------
-// We need a consistent strategy for drawing the GUI.
-// We have the icon, text and childrenDiv.
-// Collapse and expand uses visiblity.
-// Display GUI creates new html (including ChildrenDiv).
-// Clearing the note GUI before display.  Removes icon and text, Hides children div.
-
-// Lets always have a ChildrenDiv (created in constructor).
-// so it can be modified when note GUI is not displayed.
-// We will just move it around.
-
-
-
-// No clearing.  Just draw this notes GUI in a div.
-Note.prototype.DisplayGUI = function(div) {
-  // Put an icon to the left of the text.
-  
-  this.Icon = $('<img>').appendTo(div)
-                        .css({'height': '20px',
-                              'width': '20x',
-                              'float':'left'})
-                        .attr('src',"webgl-viewer/static/dot.png");
-
-  this.TextDiv = $('<div>').appendTo(div)
-                           .css({'font-size': '18px',
-                                 'position': 'static',
-                                 'left': '20px',
-                                 'right': '0px'})
-                           .text(this.Text);
-
-  if (this.Children.length > 0) {
-    this.ChildrenDiv = $('<div>').appendTo(div)
-                                 .css({'position':'relative', 
-                                       'left':'15px',
-                                       'right':'0px'})
-                                 .show();
-    this.UpdateChildrenGUI();
-  }
-}
-
-Note.prototype.UpdateChildrenGUI = function() {
-  var self = this;
-  this.ChildrenDiv.empty();
-  if (this.Children.length == 0) { return; }
-  
-  if (this.ChildrenVisible) {
-    this.Icon.attr('src',"webgl-viewer/static/minus.png")
-             .click(function() {self.Collapse();});
-    for (var i = 0; i < this.Children.length; ++i) {
-      this.Children[i].DisplayGUI(this.ChildrenDiv);
-    }
-  } else {
-    this.Icon.attr('src',"webgl-viewer/static/plus.png")
-             .click(function() {self.Expand();});
-  }
-}
-
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function() { 
   SetNumberOfViews(this.ViewerRecords.length);
@@ -405,12 +394,6 @@ Note.prototype.DisplayView = function() {
   } else {
     // Default source.
     VIEWER2.SetCache(VIEWER1.GetCache());
-  }
-}
-
-Note.prototype.HideChildComments = function() {
-  if (this.ChildrenDiv) {
-    this.ChildrenDiv.hide();
   }
 }
 
@@ -429,6 +412,7 @@ function DisplayNote(note) {
     NOTE_NEXT.css({'opacity': '0.5'});
   }
   
+  TOP_NOTE_WRAPPER_DIV.empty();
   note.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
   note.DisplayView();
 }
@@ -441,12 +425,6 @@ function PreviousNoteCallback() {
   VIEWER1.Reset();
   VIEWER2.Reset();
 
-  // I do not like this method of clearing the GUI.  I need to make a dedicated div.
-  var note = NOTE_ITERATOR.GetNote();
-  note.HideChildComments();
-  note.Icon.remove();
-  note.TextDiv.remove();
-
   note = NOTE_ITERATOR.Previous();
   DisplayNote(note);
 }
@@ -458,12 +436,6 @@ function NextNoteCallback() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
   VIEWER2.Reset();
-
-  // I do not like this method of clearing the GUI.  I need to make a dedicated div.
-  var note = NOTE_ITERATOR.GetNote();
-  note.HideChildComments();
-  note.Icon.remove();
-  note.TextDiv.remove();
 
   note = NOTE_ITERATOR.Next();
   DisplayNote(note);
@@ -483,8 +455,6 @@ function BookmarksCallback (data, status) {
     DisplayNote(NOTE_ITERATOR.GetNote());
   } else { alert("ajax failed."); }
 }
-
-
 
 function InitNotesWidget() {
 
@@ -529,7 +499,7 @@ function InitNotesWidget() {
   .attr('src',"webgl-viewer/static/rightArrow2.png")
   .click(function(){NextNoteCallback();});
 
-  TOP_NOTE_WRAPPER_DIV = $('<div>').appendTo('body')
+  NOTE_WINDOW = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',
       'position': 'absolute',
@@ -537,19 +507,28 @@ function InitNotesWidget() {
       'left' : '0%',
       'height' : '100%',
       'width': '20%',
+      'z-index': '1'})
+    .hide()
+    .attr('id', 'NoteWindow');
+
+
+  TOP_NOTE_WRAPPER_DIV = $('<div>').appendTo(NOTE_WINDOW)
+    .css({
+      'position': 'absolute',
+      'top' : '0%',
+      'left' : '0%',
+      'bottom' : '130px',
+      'width': '100%',
       'z-index': '1',
       'text-align': 'left',
       'color': '#303030',
       'font-size': '14px'})
-    .hide()
-    .attr('id', 'NoteEditor');
+    .attr('id', 'NoteTree');
   
     
-
   // The next three elements are to handle the addition of comments.  Currently placeholders.
   // The top div wraps the text field and the submit button at the bottom of the widget.
-  
-  var commentTextFieldWrapper = $('<div>').appendTo(TOP_NOTE_WRAPPER_DIV)
+  var commentTextFieldWrapper = $('<div>').appendTo(NOTE_WINDOW)
     .css({
       'position': 'absolute',
       'width': '96%',
@@ -575,19 +554,6 @@ function InitNotesWidget() {
                                           'bottom': '7px'
                                        });
   
-  // I might not have to define the commentsubmit button first, but just to be safe...
-  
-  // The admittedly very complex comment submit button.
-  // What I'm doing is, I'm using the button for multiple purposes.
-  // When the button is clicked, I look at data attributes attached to the button
-  // to see whether I'm posting a new comment, replying to another comment, or editing an existing comment.
-  
-  //The data attribute will contain a reference to the comment object that
-  //the commenter is replying to.  The text of the button should be changed to match, for clarity of UI.
-  //jQuery.data(commentSubmit, "replyTo", null)
-    //.data(commentSubmit, "editFlag", null); 
-  
-  //REPLY_TO = "";
   EDIT_FLAG = ""; //Set this attribute to the stringified id of the comment you're editing
   
   var commentSubmit = $('<button>').appendTo(commentButtonWrapper)
@@ -622,7 +588,7 @@ function ToggleNotesWindow() {
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.2;
   } else {
-    $('#NoteEditor').hide();
+    TOP_NOTE_WRAPPER_DIV.hide();
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.0;
   }
@@ -638,7 +604,7 @@ function AnimateNotesWindow() {
     NOTES_FRACTION = NOTES_ANIMATION_TARGET;
     handleResize();
     if (NOTES_VISIBILITY) {
-      $('#NoteEditor').fadeIn();
+      NOTE_WINDOW.fadeIn();
     }
   return;
   }
