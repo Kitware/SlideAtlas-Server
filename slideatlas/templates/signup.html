@@ -8,24 +8,32 @@
 
 <script>
     $(document).ready(function (){
-         $("#signup").on("click", function() {
+         $("#signup").submit(function(event) {
 
-             if($("#name").val().length == 0){
-                 // Mark the field for error
-                console.log("Error in name;")
-                return
-             }
+             event.preventDefault();
 
-             if($("#email")[0].checkValidity()=== false){
-                // Mark the field for error
-                console.log("Error in email;")
-                return
-             }
+             // if($("#name")[0].checkValidity()=== false){
+                // //$("#namehelp").css("display", "inline");
+                // $("#name")[0].setCustomValidity("Full name should be 3-30 alpha-numeric characters");
+                // console.log("Error in name;")
+                // return
+             // }
+            // else{
+                // $("#name")[0].setCustomValidity("");
+            // }
+            // if($("#email")[0].checkValidity()=== false){
+                // // Mark the field for error
+                // $("#email")[0].setCustomValidity("Valid email address is required");
+                // return
+            // }
+            // else{
+                // $("#email")[0].setCustomValidity("");
+            // }
 
             $.ajax({
                 type: "POST",
                 url : "/login.signup",
-                data: { name: $("#name").val(), email : $("#email").val() },
+                data: { name: $("#name")[0].val(), email : $("#email")[0].val() },
                 success : function( data ) {
                         console.log(data)
                         alert("We have send you an e-mail. Please follow the instructions to continue with signup.");
@@ -49,17 +57,19 @@
     </div>
     <br/>
     <div class="row-fluid">
+        <form action="/login.signup" method="post">
         <div class="span8 offset2 ">
             <div>
-                <label for="name">Your name:</label>
-                <input type="text" name="name" id="name" value="">
+                <label for="name">Your full name:</label>
+                <input type="text" name="name" id="name" pattern="[A-Za-z0-9 ]{3,30}" required title="Full name should be 3-30 alpha-numeric characters">
             </div>
             <div>
                 <label for="email" >Email:</label>
-                <input type="email" name="email" id="email" required>
+                <input type="email" name="email" id="email" required title="Please enter a valid email here">
             </div>
-                <button id="signup" class="btn">Sign Up</button>
+                <button id="signup" type="submit" class="btn">Sign Up</button>
             </div>
+        </form>
         </div>
     </div>
 

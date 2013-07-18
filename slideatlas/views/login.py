@@ -1,4 +1,5 @@
 
+import flask
 from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
 from flask_openid import OpenID
 from flask_oauth import OAuth
@@ -38,7 +39,7 @@ def login_signup():
     """
     if request.method == "POST":
         # Only two methods supported
-        return render_template('signup.html')
+        return flask.Response('Success')
     else:
         # Only two methods supported
         return render_template('signup.html')
