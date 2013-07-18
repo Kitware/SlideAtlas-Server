@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+
+{% block body_content %}
+{{ super() }}
+<script src="/static/js/jquery-1.9.1.min.js"></script>
+<script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
+
+<script>
+    $(document).ready(function (){
+         $("#signup").on("click", function() {
+
+             if($("#name").val().length == 0){
+                 // Mark the field for error
+                console.log("Error in name;")
+                return
+             }
+
+             if($("#email")[0].checkValidity()=== false){
+                // Mark the field for error
+                console.log("Error in email;")
+                return
+             }
+
+            $.ajax({
+                type: "POST",
+                url : "/login.signup",
+                data: { name: $("#name").val(), email : $("#email").val() },
+                success : function( data ) {
+                        console.log(data)
+                        alert("We have send you an e-mail. Please follow the instructions to continue with signup.");
+                    },
+                error : function (data){
+                        alert("error while posting");
+                },
+            });
+        });
+    });
+
+</script>
+
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span8 offset1">
+           <h1>Welcome to Slide Atlas</h1>
+           <h3> New account information </h3>
+        </div>
+    </div>
+    <br/>
+    <div class="row-fluid">
+        <div class="span8 offset2 ">
+            <div>
+                <label for="name">Your name:</label>
+                <input type="text" name="name" id="name" value="">
+            </div>
+            <div>
+                <label for="email" >Email:</label>
+                <input type="email" name="email" id="email" required>
+            </div>
+                <button id="signup" class="btn">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row-fluid">
+        <div class="span8 offset1">
+            <p> Slide-atlas will not share your email address with anybody else and will not use it for any other purpose than slide-atlas. </p>
+            <p> Your email address will be used to identify your affiliation to courses so that correct slides are provided to you. </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

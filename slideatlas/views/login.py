@@ -30,6 +30,25 @@ def login():
     """
     return render_template('login.html')
 
+@mod.route("/login.signup", methods=['GET', 'POST'])
+def login_signup():
+    """
+    "Displays the signup template when getting
+    else processes signup request when posting
+    """
+    if request.method == "POST":
+        # Only two methods supported
+        return render_template('signup.html')
+    else:
+        # Only two methods supported
+        return render_template('signup.html')
+
+@mod.route("/login.reset")
+def login_reset():
+    """
+    """
+    return render_template('new-reset.html')
+
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
 def login_passwd():
@@ -170,7 +189,7 @@ def do_user_login(user):
             session["site_admin"] = True
 
     # Insert that information in the session
-    # In future, session may contain only session it, 
+    # In future, session may contain only session it,
     # and this could get into database
 
 #    For debugging
