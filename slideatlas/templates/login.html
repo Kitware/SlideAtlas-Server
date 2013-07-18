@@ -1,35 +1,49 @@
 {% extends "base.html" %}
 
+
 {% block body_content %}
 {{ super() }}
 
-
-<div class="container">
-
-<h1>Slide Atlas</h1>
-
-<h2>Password login</h2>
-
-<form action="/login.passwd" method="POST">
-    <div>
-        <label for="username">Username:</label>
-        <input type="text" name="username" id="username" value="">
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span8 offset1">
+           <h1>Welcome to Slide Atlas</h1>
+            <br/>
+            <br/>
+           <h3> Please sign in </h3>
+        </div>
+    </div>
+    <br/>
+    <div class="row-fluid">
+        <div class="span8 offset2 ">
+            <form action="/login.passwd" method="POST">
+                <div>
+                    <label for="username">Username:<a href="login.signup"> Create account </a> </label>
+                    <input type="text" name="username" id="username" value="">
+                </div>
+                <div>
+                    <label for="passwd">Password:<a href="login.reset"> Forgot password </a> </label>
+                    <input type="password" name="passwd" id="passwd" value="">
+                </div>
+                <div>
+                    <button class="btn" type="submit">Submit</button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <div>
-        <label for="passwd">Password:</label>
-        <input type="password" name="passwd" id="passwd" value="">
+    <div class="row-fluid">
+        <div class="span8 offset1">
+            <h3> Or use :  </h3>
+        </div>
     </div>
 
-    <div>
-        <button type="submit">Submit</button>
+    <div class="row-fluid">
+        <div class="span8 offset2">
+            <a href="/login.facebook" class="btn">Facebook login</a>
+            <a href="/login.google" class="btn">Google login</a>
+        </div>
     </div>
-
-</form>
-
-<h2><a href="/login.facebook">Facebook login</a></h2>
-
-<h2><a href="/login.google">Google login</a></h2>
 </div>
 {% endblock %}
 
