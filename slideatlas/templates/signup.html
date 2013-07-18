@@ -10,36 +10,21 @@
     $(document).ready(function (){
          $("#signup").submit(function(event) {
 
-             event.preventDefault();
-
-             // if($("#name")[0].checkValidity()=== false){
-                // //$("#namehelp").css("display", "inline");
-                // $("#name")[0].setCustomValidity("Full name should be 3-30 alpha-numeric characters");
-                // console.log("Error in name;")
-                // return
-             // }
-            // else{
-                // $("#name")[0].setCustomValidity("");
-            // }
-            // if($("#email")[0].checkValidity()=== false){
-                // // Mark the field for error
-                // $("#email")[0].setCustomValidity("Valid email address is required");
-                // return
-            // }
-            // else{
-                // $("#email")[0].setCustomValidity("");
-            // }
+            event.preventDefault();
 
             $.ajax({
                 type: "POST",
                 url : "/login.signup",
-                data: { name: $("#name")[0].val(), email : $("#email")[0].val() },
+                data: { name: $("#name").val(), email : $("#email").val() },
                 success : function( data ) {
+                        $
                         console.log(data)
+                        $("#signup input").attr("disabled","disabled")
+                        $("#signup button").attr("disabled","disabled")
                         alert("We have send you an e-mail. Please follow the instructions to continue with signup.");
                     },
                 error : function (data){
-                        alert("error while posting");
+                        alert("error while submission");
                 },
             });
         });
@@ -57,7 +42,7 @@
     </div>
     <br/>
     <div class="row-fluid">
-        <form action="/login.signup" method="post">
+        <form action="/login.signup" method="post" id="signup">
         <div class="span8 offset2 ">
             <div>
                 <label for="name">Your full name:</label>
@@ -67,16 +52,18 @@
                 <label for="email" >Email:</label>
                 <input type="email" name="email" id="email" required title="Please enter a valid email here">
             </div>
-                <button id="signup" type="submit" class="btn">Sign Up</button>
+                <button type="submit" class="btn">Sign Up</button>
             </div>
         </form>
         </div>
     </div>
 
+    <br/>
+
     <div class="row-fluid">
         <div class="span8 offset1">
-            <p> Slide-atlas will not share your email address with anybody else and will not use it for any other purpose than slide-atlas. </p>
             <p> Your email address will be used to identify your affiliation to courses so that correct slides are provided to you. </p>
+            <p> Slide-atlas will not share your email address with anybody else and will not use it for any other purpose than slide-atlas. </p>
         </div>
     </div>
 </div>
