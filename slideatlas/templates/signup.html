@@ -18,13 +18,16 @@
                 data: { name: $("#name").val(), email : $("#email").val() },
                 success : function( data ) {
                         $
-                        console.log(data)
+                        console.log("Success in submisison")
                         $("#signup input").attr("disabled","disabled")
                         $("#signup button").attr("disabled","disabled")
-                        alert("We have send you an e-mail. Please follow the instructions to continue with signup.");
+                        alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with signup.");
+                        // window.location = "/home"
                     },
                 error : function (data){
-                        alert("error while submission");
+                        console.log("Error in submisison"")
+                        console.log(data)
+                        //alert("error while submission");
                 },
             });
         });

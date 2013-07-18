@@ -3,8 +3,11 @@ import flask
 from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
 from flask_openid import OpenID
 from flask_oauth import OAuth
+import smtplib
+from email.mime.text import MIMEText
 
 from slideatlas.common_utils import DBAccess
+import bson
 
 from slideatlas import model, app
 from slideatlas  import slconn as conn
@@ -38,8 +41,58 @@ def login_signup():
     else processes signup request when posting
     """
     if request.method == "POST":
-        # Only two methods supported
-        return flask.Response('Success')
+        name = request.form["name"]
+        emailto = request.form["email"]
+
+        # Check whether that user exists
+        conn.register([model.User])
+        admindb = conn[current_app.config["CONFIGDB"]]
+
+        user = admindb["users"].User.find_one({"name" : emailto, "type" : "passwd"})
+
+        if user != None:
+            return flask.Response("{\"error\" :  \"User exists\"}")
+
+        # Create accout and a random tocken
+        token = bson.ObjectId()
+
+        # Not found, create one
+        userdoc = admindb["users"].User()
+        userdoc["type"] = 'passwd'
+        userdoc["name"] = emailto
+        userdoc["label"] = name
+        userdoc["token"] = token
+        userdoc["confirmed"] = False
+        userdoc.validate()
+        userdoc.save()
+
+        # Create email
+        emailfrom  = "dhanannjay.deo@kitware.com"
+
+        body = "Hello " + name + ",\n"
+        body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
+        body = body + "\n     " + url_for('.login_reset', external=True) + "?token=" + str(token) + " \n"
+        body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
+        body = body + "\nThis link will work only once, and will let you create password. \n"
+        body = body + "\nIf you did not enter this address as your contact email, please disregard this message.\n"
+        body = body + "\nThank you,\nThe SlideAtlas Administration Team\n"
+
+        # Create a text/plain message
+        msg = MIMEText(body)
+
+        # me == the sender's email address
+        # you == the recipient's email address
+        msg['Subject'] = 'Account email confirmation for slide-atlas.org'
+        msg['From'] = emailfrom
+        msg['To'] = emailto
+        s = smtplib.SMTP('public.kitware.com')
+        try:
+            out = s.sendmail(emailfrom, [emailto], msg.as_string())
+        except:
+            return flask.Response("{\"error\" :  \"Error sending email\"}")
+
+        s.quit()
+        return flask.Response("{\"success\" :  \"" + str(out) + "\"}")
     else:
         # Only two methods supported
         return render_template('signup.html')
@@ -47,8 +100,30 @@ def login_signup():
 @mod.route("/login.reset")
 def login_reset():
     """
+
     """
-    return render_template('new-reset.html')
+    token = bson.ObjectId(request.args["token"])
+
+    # Check whether that user exists
+    conn.register([model.User])
+    admindb = conn[current_app.config["CONFIGDB"]]
+
+    user = admindb["users"].User.find_one({"token" : token})
+
+    if user == None:
+        flash("Confirmation link expired or invalid", "error")
+        return redirect('/home')
+
+    # Remove the token
+    del user["token"]
+    del user["confirmed"]
+    user["passwd"] = "some"
+    user.save()
+
+    flash("Success, password=some ", "success")
+    return redirect('/login')
+
+#    return Response('new-reset.html')
 
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
@@ -57,10 +132,14 @@ def login_passwd():
     conn.register([model.User])
     admindb = conn[current_app.config["CONFIGDB"]]
 
-    user = admindb["users"].User.find_one({"name" : request.form['username']})
+    user = admindb["users"].User.find_one({"name" : request.form['username'], "type" : "passwd"})
     if user == None:
         flash('User not found ' + request.form['username'], "error")
         return redirect('/home')
+    if "confirmed" in user:
+        if user["confirmed"] == False:
+            flash('Account email confirmation required', "error")
+            return redirect('/home')
     if user["passwd"] != request.form['passwd']:
         flash('Authentication', "error")
         return redirect('/home')
