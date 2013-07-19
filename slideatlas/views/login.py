@@ -71,7 +71,7 @@ def login_signup():
 
         body = "Hello " + name + ",\n"
         body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
-        body = body + "\n     " + url_for('.login_reset', external=True) + "?token=" + str(token) + " \n"
+        body = body + "\n     " + url_for('.login_confirm', external=True) + "?token=" + str(token) + " \n"
         body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
         body = body + "\nThis link will work only once, and will let you create password. \n"
         body = body + "\nIf you did not enter this address as your contact email, please disregard this message.\n"
@@ -97,8 +97,8 @@ def login_signup():
         # Only two methods supported
         return render_template('signup.html')
 
-@mod.route("/login.reset")
-def login_reset():
+@mod.route("/login.confirm")
+def login_confirm():
     """
 
     """
