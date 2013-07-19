@@ -21,6 +21,8 @@ var ROOT_NOTE;
 
 // Iterator is used to implement the next and previous note buttons.
 var NOTE_ITERATOR;
+// For clearing selected GUI setting.
+var SELECTED_NOTE;
 
 // GUI elements
 var NOTE_WINDOW;
@@ -180,10 +182,49 @@ function Note () {
                               'float':'left'})
                         .attr('src',"webgl-viewer/static/dot.png");
   this.TextDiv = $('<div>').css({'font-size': '18px',
-                                 'margin-left':'20px'})
+                                 'margin-left':'20px',
+                                 'color':'#379BFF',})
                            .text(this.Text);
   this.ChildrenDiv = $('<div>').css({'margin-left':'15px'});
 }
+
+Note.prototype.Select = function() {
+  if (NOTE_ITERATOR.GetNote() != this) {
+    // Find the note and set a new iterator
+    // This is so the nextr and previous buttons will behave.
+    var iter = new NoteIterator();
+    iter.Initialize(ROOT_NOTE);
+    while (iter.GetNote() != this) {
+      if ( iter.IsEnd()) {
+        alert("Could not find note.");
+        return;
+      }
+      iter.Next();
+    }
+    NOTE_ITERATOR = iter;    
+  }
+  // Indicate which note is selected.
+  if (SELECTED_NOTE) {
+    SELECTED_NOTE.TextDiv.css({'background':'white'});
+  }
+  SELECTED_NOTE = this;
+  this.TextDiv.css({'background':'#f0f0f0'});
+
+  // Disable and enable prev/next buttons so we cannot go past the end.
+  if (NOTE_ITERATOR.IsStart()) {
+    NOTE_PREV.css({'opacity': '0.1'});
+  } else {
+    NOTE_PREV.css({'opacity': '0.5'});
+  }
+  if (NOTE_ITERATOR.IsEnd()) {
+    NOTE_NEXT.css({'opacity': '0.1'});
+  } else {
+    NOTE_NEXT.css({'opacity': '0.5'});
+  }
+
+  this.DisplayView();
+}
+
 
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
@@ -191,6 +232,11 @@ Note.prototype.DisplayGUI = function(div) {
   
   this.Icon.appendTo(div);
   this.TextDiv.appendTo(div).text(this.Text);
+  var self = this;
+  this.TextDiv.click(function() {self.Select()});
+  this.TextDiv.hover(function(){self.TextDiv.css({'text-decoration':'underline'});},
+                     function(){self.TextDiv.css({'text-decoration':'none'});});
+
   // The div should attached even if nothing is in it.
   // A child may appear and UpdateChildrenGui called.
   // If we could tell is was removed, UpdateChildGUI could append it.
@@ -206,6 +252,7 @@ Note.prototype.UpdateChildrenGUI = function() {
     return;
   }
   if (this.ChildrenVisible == false) {
+    var self = this;
     this.Icon.attr('src',"webgl-viewer/static/plus.png")
              .click(function() {self.Expand();});
     return;
@@ -402,25 +449,7 @@ Note.prototype.DisplayView = function() {
   }
 }
 
-// I do not want to reference the iterator in a note method, so this is separate.
-// Just update the states of the forward and next buttons, then call the Note display methods.
-function DisplayNote(note) {
-  // Disable and enable prev/next buttons so we cannot go past the end.
-  if (NOTE_ITERATOR.IsStart()) {
-    NOTE_PREV.css({'opacity': '0.1'});
-  } else {
-    NOTE_PREV.css({'opacity': '0.5'});
-  }
-  if (NOTE_ITERATOR.IsEnd()) {
-    NOTE_NEXT.css({'opacity': '0.1'});
-  } else {
-    NOTE_NEXT.css({'opacity': '0.5'});
-  }
-  
-  TOP_NOTE_WRAPPER_DIV.empty();
-  note.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
-  note.DisplayView();
-}
+
 
 // Previous button
 function PreviousNoteCallback() {
@@ -430,8 +459,8 @@ function PreviousNoteCallback() {
   VIEWER1.Reset();
   VIEWER2.Reset();
 
-  note = NOTE_ITERATOR.Previous();
-  DisplayNote(note);
+  NOTE_ITERATOR.Previous();
+  NOTE_ITERATOR.GetNote().Select();
 }
 
 // Next button
@@ -442,8 +471,8 @@ function NextNoteCallback() {
   VIEWER1.Reset();
   VIEWER2.Reset();
 
-  note = NOTE_ITERATOR.Next();
-  DisplayNote(note);
+  NOTE_ITERATOR.Next();
+  NOTE_ITERATOR.GetNote().Select();
 }
 
 
@@ -465,9 +494,9 @@ function BookmarksCallback (data, status) {
       note.Children.push(note2);
       note2.ChildrenVisible = true;
       }
-    // Load the root note.
-    DisplayNote(NOTE_ITERATOR.GetNote());
+    ROOT_NOTE.UpdateChildrenGUI();
   } else { alert("ajax failed."); }
+  NOTE_ITERATOR.GetNote().Select();
 }
 
 function InitNotesWidget() {
@@ -579,6 +608,11 @@ function InitNotesWidget() {
   // Bookmarks (sub notes) are loaded next.
   NOTE_ITERATOR = new NoteIterator();
   NOTE_ITERATOR.Initialize(ROOT_NOTE);
+
+  // Load the root note.
+  TOP_NOTE_WRAPPER_DIV.empty();
+  ROOT_NOTE.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
+  NOTE_ITERATOR.GetNote().Select();
   
   // Load the bookmarks, and encapsulate them into notes.
   $.get(window.location.href + '&bookmarks=1',
