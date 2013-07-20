@@ -167,6 +167,8 @@ function Note () {
   this.User = ARGS.User; // Reset by flask.
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
+  this.Type = "Note";
+  
   
   this.Text = "";
   // Upto two for dual view.
@@ -176,17 +178,28 @@ function Note () {
   this.Children = [];
   this.ChildrenVisible = true;
 
+  // For Questions and Bookmarks
+  this.Answers = [];
+
   // GUI elements.
+  this.Div = $('<div>').attr({'class':'note'});
   this.Icon = $('<img>').css({'height': '20px',
                               'width': '20x',
                               'float':'left'})
-                        .attr('src',"webgl-viewer/static/dot.png");
+                        .attr('src',"webgl-viewer/static/dot.png")
+                        .appendTo(this.Div);
   this.TextDiv = $('<div>').css({'font-size': '18px',
                                  'margin-left':'20px',
                                  'color':'#379BFF',})
-                           .text(this.Text);
-  this.ChildrenDiv = $('<div>').css({'margin-left':'15px'});
+                           .text(this.Text)
+                           .appendTo(this.Div);
+  // The div should attached even if nothing is in it.
+  // A child may appear and UpdateChildrenGui called.
+  // If we could tell is was removed, UpdateChildGUI could append it.
+  this.ChildrenDiv = $('<div>').css({'margin-left':'15px'})
+                               .appendTo(this.Div);
 }
+
 
 Note.prototype.Select = function() {
   if (NOTE_ITERATOR.GetNote() != this) {
@@ -226,23 +239,64 @@ Note.prototype.Select = function() {
 }
 
 
+// Change the color of this notes text and all children too.
+Note.prototype.PropagateColor = function (color) {
+  this.TextDiv.css({'color':color});
+  for (var i = 0; i < this.Children.length; ++i) {
+    this.Children[i].PropagateColor(color);
+  }
+}
+
+
+Note.prototype.HandleDragStart = function () {
+  this.PropagateColor('#a0a0a0');
+}
+
+
+Note.prototype.HandleDragStop = function ( ui ) {
+  this.PropagateColor('#379BFF');
+
+  var offsetXPos = parseInt( ui.offset.left );
+  var offsetYPos = parseInt( ui.offset.top );
+  //alert( "Drag stopped!\n\nOffset: (" + offsetXPos + ", " + offsetYPos + ")\n");
+  // Redraw
+  ui.offset.left = 0;  
+  ui.offset.top = 0;  
+  //TOP_NOTE_WRAPPER_DIV.empty();
+  //ROOT_NOTE.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
+  //NOTE_ITERATOR.GetNote().Select();
+}
+
+
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
   // Put an icon to the left of the text.
+  var self = this;
+  this.Div.appendTo(div);
+  this.Div.draggable({
+    containment: TOP_NOTE_WRAPPER_DIV,
+    cursor: 'move',
+    helper: 'clone',
+    stop: function(e,ui){self.HandleDragStop(ui);},
+    start: function(e,ui){self.HandleDragStart();},
+    revert: true
+  }); 
   
-  this.Icon.appendTo(div);
-  this.TextDiv.appendTo(div).text(this.Text);
+  this.TextDiv.text(this.Text);
   var self = this;
   this.TextDiv.click(function() {self.Select()});
   this.TextDiv.hover(function(){self.TextDiv.css({'text-decoration':'underline'});},
                      function(){self.TextDiv.css({'text-decoration':'none'});});
-
-  // The div should attached even if nothing is in it.
-  // A child may appear and UpdateChildrenGui called.
-  // If we could tell is was removed, UpdateChildGUI could append it.
-  this.ChildrenDiv.appendTo(div);
+                     
   this.UpdateChildrenGUI();
+  this.ChildrenDiv.droppable({accept: '.note',
+                              tolerance: 'pointer',
+                              drop: function( event, ui ) {},
+                              over: function( event, ui ) {},
+                              out: function( event, ui ) {}
+                              });
 }
+
 
 Note.prototype.UpdateChildrenGUI = function() {
   // Clear
@@ -270,14 +324,9 @@ Note.prototype.UpdateChildrenGUI = function() {
 }
 
 
-
-
-
-
-
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
-  obj.Type = "Note";
+  obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
   obj.ParentId = this.ParentId;
@@ -293,11 +342,9 @@ Note.prototype.Serialize = function(includeChildren) {
   return obj;
 }
 
+
 Note.prototype.Load = function(obj){
-  if (obj.Type && obj.Type != "Note") {
-    alert("Cannot load note of type " + obj.Type);
-    return;
-  }
+  // Shared (superclass?)
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
@@ -311,6 +358,23 @@ Note.prototype.Load = function(obj){
       obj.ViewerRecords[i].__proto__ = ViewerRecord.prototype;
     }
   }
+
+  // Nothing more for plain notes.
+  if ( ! obj.Type || obj.Type == "Note") {
+    return;
+  }
+
+  // I could try to combine bookmark and question, but bookmark
+  // is geared to interactive presentation not offline quiz. 
+  if (obj.Type == "Bookmark") {
+    for (var i = 0; i < this.Answers.length; ++i) {
+      var answerObj = this.Answers[i];
+      this.Answers[i] = new Note();
+      this.Answers[i].Load(answerObj);
+    }    
+  }
+  
+  alert("Cannot load note of type " + obj.Type);
 }
 
 
@@ -395,6 +459,7 @@ Note.prototype.RequestUserNotes = function() {
     });  
 }
 
+
 Note.prototype.LoadUserNotes = function(data) {
   for (var i = 0; i < data.Notes.length; ++i) {
     var noteData = data.Notes[i];
@@ -406,6 +471,7 @@ Note.prototype.LoadUserNotes = function(data) {
     note.RequestUserNotes();
   }
 }
+
 
 // Root view with default bookmark
 // Eventually all these loads will be the same.
@@ -426,6 +492,7 @@ Note.prototype.Collapse = function() {
   this.ChildrenVisible = false;
   this.UpdateChildrenGUI();
 }
+
 
 Note.prototype.Expand = function() {
   //alert("Expand "+this.Text);
@@ -449,6 +516,8 @@ Note.prototype.DisplayView = function() {
   }
 }
 
+
+//------------------------------------------------------------------------------
 
 
 // Previous button
@@ -486,13 +555,14 @@ function BookmarksCallback (data, status) {
       var note = new Note();
       note.LoadBookmark(data.Bookmarks[i]);
       note.Text = "Question";
+      note.Type = "Bookmark";
       note.ViewerRecords[0].AnnotationVisibility = ANNOTATION_NO_TEXT; 
       ROOT_NOTE.Children.push(note);
       var note2 = new Note();
       note2.LoadBookmark(data.Bookmarks[i]);
+      note.Type = "Answer";
       note2.ViewerRecords[0].AnnotationVisibility = ANNOTATION_ON; 
-      note.Children.push(note2);
-      note2.ChildrenVisible = true;
+      note.Answers.push(note2);
       }
     ROOT_NOTE.UpdateChildrenGUI();
   } else { alert("ajax failed."); }
