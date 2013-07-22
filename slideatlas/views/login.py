@@ -117,13 +117,16 @@ def login_confirm():
     # Remove the token
     del user["token"]
     del user["confirmed"]
-    user["passwd"] = "some"
+    user["password_status"] = "reset"
+
     user.save()
 
-    flash("Success, password=some ", "success")
-    return redirect('/login')
+    flash("Success, Please reset the password", "success")
+    return redirect('/login.reset')
 
-#    return Response('new-reset.html')
+@mod.route('/login.reset', methods=['GET', 'POST'])
+def login_reset():
+    return flask.render_template('profile.html', message="Please reset the password")
 
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
