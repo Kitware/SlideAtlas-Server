@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+
+{% block body_content %}
+{{ super() }}
+<script src="/static/js/jquery-1.9.1.min.js"></script>
+<script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
+
+<script>
+$(document).ready(function (){
+
+     $("#signup").submit(function(event) {
+            event.preventDefault();
+
+            alert("Ready to post password reset request.");
+
+            // $.ajax({
+                // type: "POST",
+                // url : "/login.reset",
+                // data: { name: $("#name").val(), email : $("#email").val() },
+                // success : function( data ) {
+                        // $
+                        // console.log("Success in submisison")
+                        // $("#signup input").attr("disabled","disabled")
+                        // $("#signup button").attr("disabled","disabled")
+                        // alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with signup.");
+                        // // window.location = "/home"
+                    // },
+                // error : function (data){
+                        // console.log("Error in submisison")
+                        // console.log(data)
+                        // //alert("error while submission");
+                // },
+            // });
+        });
+    });
+
+</script>
+
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span8 offset1">
+           <h1> Password reset request </h1>
+        </div>
+    </div>
+    <br/>
+    <div class="row-fluid">
+        <form action="/login.reset-request" method="post" id="signup">
+            <div class="span8 offset2 ">
+                    <label for="name">email:</label>
+                    <input type="email" name="name" id="passwd" required title="Please enter a valid email">
+                    <button type="submit" class="btn">Sign Up</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -31,6 +31,7 @@ facebook = oauth.remote_app('facebook',
 @mod.route("/login")
 def login():
     """
+    Displays various login options, including signup
     """
     return render_template('login.html')
 
@@ -100,7 +101,10 @@ def login_signup():
 @mod.route("/login.confirm")
 def login_confirm():
     """
-
+    End point after login creation or password reset requests
+    Verifies that the request is legitimate and when in good standing
+    follows up with password reset
+    Logs the user in
     """
     token = bson.ObjectId(request.args["token"])
 
@@ -124,14 +128,52 @@ def login_confirm():
     flash("Success, Please reset the password", "success")
     return redirect('/login.reset')
 
+@mod.route('/login.reset-request', methods=['GET', 'POST'])
+def login_reset_request():
+    """
+    End point for password reset request
+    Asks user for a valid email and posts back, if the account exists, sends out email for password reset.
+    Follows up with login.signup if an account for that email is not found, or
+    login.confirm if the valid account is found.
+    """
+
+    if request.method == "GET":
+        # In browser request that user wants to reset the password
+        return flask.render_template('reset-request.html', message="Please reset the password")
+
+    if request.method == "POST":
+        # Create a token
+        # Send out an email
+        return flask.render_template('profile.html', origin="password", message="Please reset the password")
+
+
 @mod.route('/login.reset', methods=['GET', 'POST'])
 def login_reset():
-    return flask.render_template('profile.html', message="Please reset the password")
+    """
+    Asks user for a password and its match. Posts back in the same session.
+    Updates the password state in the currently logged in user
+    User must be logged in already (generally by login.confirm)
+    """
+
+    if request.method == "GET":
+        # In browser request that user wants to reset the password
+        # Create a token
+        # Send out an email
+        #
+        return flask.render_template('profile.html', message="Please reset the password")
+
+    if request.method == "POST":
+        # In browser request that user wants to reset the password
+        return flask.render_template('profile.html', message="Please reset the password")
 
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
 def login_passwd():
-    # Try to find the user
+    """
+    Processes login request.
+    Logs the user tryign to login with valid password.
+    follows up with do_user_login
+    """
     conn.register([model.User])
     admindb = conn[current_app.config["CONFIGDB"]]
 
