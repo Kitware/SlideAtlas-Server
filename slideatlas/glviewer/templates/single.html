@@ -23,7 +23,13 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
 
 <!-- Edit menu, right click -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
@@ -59,6 +65,7 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
 
 <!-- Shapes starting with superclass
 
@@ -149,6 +156,7 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var SESSION_DB = "{{question.viewer1.db}}";
   var ARGS;
   var ARG_ANNOTATIONS;
   var EDIT = false; // Not used at the moment.
@@ -157,29 +165,37 @@ shape has visibility and
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
-  // For sliding dual view (animating toggle).
-  var VIEWER1_FRACTION = 1.0;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  
   
   // sets the global variable ARGS
   function getArgs() {
     
     // TODO: Try to copy the object in one command!!!
     ARGS = {};
+    ARGS.User = "{{user}}";
+    ARGS.Label = "{{question.label}}";
     ARGS.Viewer1 = {};
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
     ARGS.Viewer1.viewid = "{{question.viewer1.viewid}}";
     ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
-    ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
+    ARGS.Viewer1.dimensions = {{question.viewer1.dimensions}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
     ARGS.Viewer1.spacing = {{question.viewer1.spacing}};
-    ARGS.Viewer1.center = {{question.viewer1.center}};
-    ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
-    ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    
+    // A pain dealing with exceptions in the database schema:
+    {% if question.viewer1.center %}
+      ARGS.Viewer1.center = {{question.viewer1.center}};
+      ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
+      ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    {% else %}
+      ARGS.Viewer1.center = [ARGS.Viewer1.dimensions[0] * 0.5, ARGS.Viewer1.dimensions[1] * 0.5];
+      ARGS.Viewer1.viewHeight = ARGS.Viewer1.dimensions[1];
+      ARGS.Viewer1.rotation = 0.0;
+    {% endif %}
+
     // Copy the annotations for the view.
     ARGS.Viewer1.annotations = [];
     {% for annotation in question.viewer1.annotations %}
@@ -191,7 +207,8 @@ shape has visibility and
         a.position = {{ annotation.position }};
         ARGS.Viewer1.annotations.push(a);
        {% endfor %}    
-    
+
+    // Although options are for comparisons, I might generalize it to any view.
     // Now for the optional views for Viewer2
     // Convert python structure into javascript.
     ARGS.Options = [];
@@ -200,9 +217,11 @@ shape has visibility and
         view.label = "{{option.label}}";
         view.db = "{{option.db}}";
         view.img = "{{option.img}}";
-        view.center = {{option.center}};
-        view.viewHeight = {{option.viewHeight}};
-        view.rotation = {{option.rotation}};
+        {% if view.center %}
+          view.center = {{option.center}};
+          view.viewHeight = {{option.viewHeight}};
+          view.rotation = {{option.rotation}};
+        {% endif %}
         ARGS.Options.push(view);
     {% endfor %}    
     ARGS.OptionInfo = [];
@@ -211,7 +230,7 @@ shape has visibility and
         view.origin = {{option.origin}};
         view.spacing = {{option.spacing}};
         view.levels = {{option.levels}};
-        view.dimensions = {{option.dimension}};
+        view.dimensions = {{option.dimensions}};
         ARGS.OptionInfo.push(view);
     {% endfor %}    
   }
@@ -220,35 +239,45 @@ shape has visibility and
   function ShowAnnotationEditMenu(x, y) {
   }
   
+  // Might consider interactive resize feature too.
   function handleResize() {
     if (GL) {
       CANVAS.width = CANVAS.clientWidth;
       CANVAS.height = CANVAS.clientHeight;
       GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-      // Might consider resize feature too.
-      var halfWidth = CANVAS.width * VIEWER1_FRACTION; // I do not like this global.
+
+      // we set the left border to leave space for the notes window.
+      var left = CANVAS.width * NOTES_FRACTION;
+      // The remaining width is split between the two viewers.
+      var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
+      var width2 = (CANVAS.width-left) - width1;
       if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, halfWidth, CANVAS.height]);
+        VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
         eventuallyRender();
       }
       if (VIEWER2) {
-        VIEWER2.SetViewport([halfWidth, 0, CANVAS.width-halfWidth, CANVAS.height]);
+        VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
         eventuallyRender();
       }
     }
   };
 
   function initViews() {
-    var source = new Cache("/tile?img="+ARGS.Viewer1.collection+"&db="+ARGS.Viewer1.db+"&name=", ARGS.Viewer1.levels);
+    var source = new Cache(ARGS.Viewer1.db, 
+                           ARGS.Viewer1.collection, 
+                           ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source);
     VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
                       ARGS.Viewer1.viewHeight);
-                      
+    EVENT_MANAGER.AddViewer(VIEWER1);
+                  
     if (ARGS.Viewer2) {
-      source = new Cache("/tile?img="+ARGS.Viewer2.collection+"&db="+ARGS.Viewer2.db+"&name=", ARGS.Viewer2.levels);
+      source = new Cache(ARGS.Viewer2.collection,
+                         ARGS.Viewer2.db,
+                         ARGS.Viewer2.levels);
       VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
       VIEWER2.SetDimensions(ARGS.Viewer2.dimensions);
       VIEWER2.SetCamera(ARGS.Viewer2.center, 
@@ -262,12 +291,10 @@ shape has visibility and
                         ARGS.Viewer1.rotation, 
                         ARGS.Viewer1.viewHeight);
     }
-                  
-    EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
-}
+  }
 
   function draw() {
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
@@ -287,6 +314,7 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
+        // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
@@ -332,7 +360,15 @@ shape has visibility and
     
     // Create the edit menu.
     InitViewEditMenus();
+    InitViewBrowser();
+    InitDualViewWidget();
+    InitNotesWidget();
+    InitRecorderWidget();
     
+    var annotationWidget1 = new AnnotationWidget(VIEWER1);
+    var annotationWidget2 = new AnnotationWidget(VIEWER2);
+    handleResize();
+    DualViewUpdateGui();
     
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
@@ -344,7 +380,7 @@ shape has visibility and
         'height': '50px',
         'width': '50px',
         'bottom' : '60px',
-        'left' : '97%',
+        'right' : '5px',
         'z-index': '2'
     }).attr('id', 'zoomIn1')
       .attr('class', 'viewer1')
@@ -357,7 +393,7 @@ shape has visibility and
         'height': '50px',
         'width': '50px',
         'bottom' : '5px',
-        'left' : '97%',
+        'right' : '5px',
         'z-index': '2'
     }).attr('id', 'zoomOut1')
       .attr('class', 'viewer1')
@@ -538,7 +574,6 @@ shape has visibility and
 
 
 <canvas id="gltest" style="display:none" ></canvas>
-
 
 
 

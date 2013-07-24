@@ -89,9 +89,13 @@ function PushBestToLast() {
     var t1 = LOAD_QUEUE[i];
     var swap = false;
     if (t1 != null) {
-      if (t0 == null) { swap = true; }
-      if (t0.TimeStamp > t1.TimeStamp) { swap = true; } 
-      if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) { swap = true;}
+      if (t0 == null) { 
+        swap = true; 
+      } else if (t0.TimeStamp > t1.TimeStamp) { 
+        swap = true; 
+      } else if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) { 
+        swap = true;
+      }
     }
     if (swap) {
       // Swap the pair.

@@ -3,37 +3,13 @@
 function ComparisonSaveAnnotations() {}
 
 
-// We need to remeber which viewer an open dialog applies to.
 
+var START_RECORDING_MENU_ITEM;
 
 
 
 //==============================================================================
 // Create and manage the menu to edit dual views.
-
-// We need cookies for copy and past options.
-function setCookie(c_name,value,exdays)
-{
-    var exdate=new Date();
-    exdate.setDate(exdate.getDate() + exdays);
-    var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
-    document.cookie=c_name + "=" + c_value;
-}
-
-function getCookie(c_name)
-{
-    var i,x,y,ARRcookies=document.cookie.split(";");
-    for (i=0;i<ARRcookies.length;i++)
-    {
-      x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
-      y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
-      x=x.replace(/^\s+|\s+$/g,"");
-      if (x==c_name)
-        {
-        return unescape(y);
-        }
-      }
-}
 
 
 
@@ -46,12 +22,6 @@ function ShowViewEditMenu(x, y) {
     var color = "#A0A0A0";
     if (viewer.WidgetList.length > 0) {
       color = "#000000";
-    }
-
-    if (GetAnnotationVisibility(viewer)) {
-      $('#toggleAnnotationVisibility').text("Hide Annotations").css({'color': color});
-    } else {
-      $('#toggleAnnotationVisibility').text("Show Annotations").css({'color': color});
     }
  
     $('#viewEditMenu').css({'top': y, 'left':x}).show();
@@ -78,27 +48,24 @@ function InitViewEditMenus() {
              .attr('id', 'viewEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
     $('<li>').appendTo(viewEditSelector)
-             .text("Dual View")
-             .attr('id', 'toggleDualItem')
-             .click(function(){ToggleDualView();});
+             .text("Load View")
+             .click(function(){ShowViewBrowser();});
+    // Hack until we have some sort of scale.
     $('<li>').appendTo(viewEditSelector)
-             .text("New Text")
-             .click(function(){AnnotationNewText();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("New Circle")
-             .click(function(){AnnotationNewCircle();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("New Free Form")
-             .click(function(){NewPolyline();});
-    $('<li>').appendTo(viewEditSelector)
-             .attr('id', 'toggleAnnotationVisibility')
-             .text("Show Annotations")
-             .click(function(){ToggleAnnotationVisibility();});
+             .attr('id', 'dualViewCopyZoom')
+             .text("Copy Zoom")
+             .hide()
+             .click(function(){CopyZoom();});
     $('<li>').appendTo(viewEditSelector)
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
-         
+    START_RECORDING_MENU_ITEM = $('<li>')
+             .appendTo(viewEditSelector)
+             .text("Start Recording")
+             .click(function(){$('#viewEditMenu').hide(); RecordingStart();});
 
+
+             
     // Create a selection list of sessions.   
     $('<div>').appendTo('body').css({
         'background-color': 'white',
@@ -139,105 +106,21 @@ function InitViewEditMenus() {
 }
 
 
-// It would be nice to animate the transition
-// It would be nice to integrate all animation in a flexible utility.
-var ANIMATION_LAST_TIME;
-var ANIMATION_DURATION;
-var ANIMATION_TARGET;
-
-function ToggleDualView() {
-  $('#viewEditMenu').hide();
-
-  DUAL_VIEW = ! DUAL_VIEW;
-
-  if (DUAL_VIEW) {
-    ANIMATION_CURRENT = 1.0;
-    ANIMATION_TARGET = 0.5;
-    $('#toggleDualItem').text("single view");    
-  } else {
-    ANIMATION_CURRENT = 0.5;
-    ANIMATION_TARGET = 1.0;
-    $('#toggleDualItem').text("dual view");    
-  }
-  ANIMATION_LAST_TIME = new Date().getTime();
-  ANIMATION_DURATION = 200.0;
-  AnimateViewToggle();
-}
-
-function AnimateViewToggle() {
-  var timeStep = new Date().getTime() - ANIMATION_LAST_TIME;
-  if (timeStep > ANIMATION_DURATION) {
-    // end the animation.
-    VIEWER1_FRACTION = ANIMATION_TARGET;
-    handleResize();
-    return;
-    }
-  
-  var k = timeStep / ANIMATION_DURATION;
-  
-  // update
-  ANIMATION_DURATION *= (1.0-k);
-  VIEWER1_FRACTION += (ANIMATION_TARGET-VIEWER1_FRACTION) * k;
-  handleResize();
-  requestAnimFrame(AnimateViewToggle);
-}
-
-function AnnotationNewText() {
+function CopyZoom() {
   $('#viewEditMenu').hide();
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
-  SetAnnotationVisibility(viewer, true);
-  var widget = new TextWidget(viewer, "");
-  // Set default color from the last text widget setting.
-  var hexcolor = document.getElementById("textcolor").value;
-  widget.Shape.SetColor(hexcolor);
-  widget.AnchorShape.SetFillColor(hexcolor);
-  // Default value for anchor shape visibility
-  widget.AnchorShape.Visibility = document.getElementById("TextMarker").value;
-  viewer.ActiveWidget = widget;
 
-  // The dialog is used to set the initial text.
-  widget.ShowPropertiesDialog();
+  var cam = viewer.GetCamera();
+  var copyCam;
+  if (viewer == VIEWER1) {
+    var copyCam = VIEWER2.GetCamera();
+  } else {
+    var copyCam = VIEWER1.GetCamera();
+  }
+  
+  viewer.AnimateCamera(cam.FocalPoint, cam.Roll, copyCam.Height);
 }
-
-function NewPolyline() {
-    $('#viewEditMenu').hide();
-    // When the text button is pressed, create the widget.
-    var viewer = EVENT_MANAGER.CurrentViewer;
-    if ( ! viewer) { return; }
-    SetAnnotationVisibility(viewer, true);
-    var widget = new PolylineWidget(viewer, true);
-    widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
-    viewer.ActiveWidget = widget;
-}
-
-function AnnotationNewCircle() {
-    $('#viewEditMenu').hide();
-    // When the circle button is pressed, create the widget.
-    var viewer = EVENT_MANAGER.CurrentViewer;
-    if ( ! viewer) { return; }
-    SetAnnotationVisibility(viewer, true);
-    var widget = new CircleWidget(viewer, true);
-    widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
-    viewer.ActiveWidget = widget;
-}
-
-function SetAnnotationVisibility(viewer, visibility) {
-    viewer.ShapeVisibility = visibility;
-    eventuallyRender();    
-}
-
-function GetAnnotationVisibility(viewer) {
-  return viewer.ShapeVisibility;
-}
-
-function ToggleAnnotationVisibility() {
-    $('#viewEditMenu').hide();
-    var viewer = EVENT_MANAGER.CurrentViewer;
-    if ( ! viewer) { return; }
-    SetAnnotationVisibility(viewer, ! GetAnnotationVisibility(viewer));
-}
-
 
 
 // Mirror image
@@ -250,6 +133,7 @@ function FlipHorizontal() {
     var cam = viewer.GetCamera();
     viewer.ToggleMirror();
     viewer.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
+    RecordState();
 }
 
 
