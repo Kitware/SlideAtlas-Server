@@ -29,14 +29,20 @@ $(document).ready(function (){
                 console.log("Submisison successful")
                 // Whether relevant account exists
                 // Whether reset successful
-                if(data.hasOwnProperty("response")) {
-                    console.log(data["response"])
+                data = JSON.parse(data);
+                if(data.hasOwnProperty("error")) {
+                    show_alert(data["error"], "error");
+                    $("#signup input").removeAttr("disabled");
+                    $("#signup button").removeAttr("disabled");
                 }
-                alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with password reset.");
+                if(data.hasOwnProperty("success")) {
+                    show_alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with password reset.", "success");
+                }
             },
              error : function (data) {
-                   console.log("Submisison not successful")
-                   console.log(data)
+                console.log("Submisison not successful")
+                console.log(data)
+                show_alert("Unable to process your request ", "error");
              }
         });
     });
