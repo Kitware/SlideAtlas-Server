@@ -59,8 +59,13 @@ $(document).ready(function (){
         <form action="/login.reset" method="post" id="signup">
         <div class="span8 offset2 ">
             <div>
-                <label for="name">Password:</label>
-                <input type="password" name="name" id="passwd" required title="Password should be at least 5 characters long">
+                <label for="name">Name:</label>
+                <input type="text" value="{{name}}" name="name" id="passwd" required title="Password should be at least 5 characters long">
+            </div>
+
+            <div>
+                <label for="passwd">Password:</label>
+                <input type="password" name="passwd" id="passwd" required title="Password should be at least 5 characters long">
             </div>
             <div>
                 <label for="passwd2" >Password (repeat):</label>
