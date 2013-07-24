@@ -19,7 +19,8 @@ class User(mongokit.Document):
         'last_login' : datetime.datetime,
         'first_login' : datetime.datetime,
         'token' : ObjectId,
-        'confirmed' : bool
+        'confirmed' : bool,
+        'password_ready' : bool,
         }
 
     default_values = {

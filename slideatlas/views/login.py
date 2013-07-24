@@ -75,7 +75,7 @@ def login_signup():
         body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
         body = body + "\n     " + url_for('.login_confirm', external=True) + "?token=" + str(token) + " \n"
         body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
-        body = body + "\nThis link will work only once, and will let you create password. \n"
+        body = body + "\nThis link will work only once, and will let you create a new password. \n"
         body = body + "\nIf you did not enter this address as your contact email, please disregard this message.\n"
         body = body + "\nThank you,\nThe SlideAtlas Administration Team\n"
 
@@ -149,29 +149,52 @@ def login_resetrequest():
         conn.register([model.User])
         admindb = conn[current_app.config["CONFIGDB"]]
 
-        user = admindb["users"].User.find_one({"name" : email, "type" : "passwd"})
-        if user == None:
+        userdoc = admindb["users"].User.find_one({"name" : email, "type" : "passwd"})
+        if userdoc == None:
             # user not found
             return flask.Response('{"error" : "User not found"}')
 
-        # if "confirmed" in user:
-        #     if user["confirmed"] == False:
-        #         flash('Account email confirmation required', "error")
-        #         return redirect('/home')
+        # First reset the password
+        name = userdoc["label"]
+        emailto = userdoc["name"]
 
-        # Create a random password
-        # if user["passwd"] != request.form['passwd']:
-        #     flash('Authentication', "error")
-        #     return redirect('/home')
-        # else:
-        #     return do_user_login(user)
+        # Create accout and a random tocken
+        userdoc["token"] = bson.ObjectId()
+        userdoc["password_ready"] = False
 
+        userdoc.validate()
+        userdoc.save()
 
-        # email = "dhan_deo@yahoo.com"
-        # Send out an email
-        return flask.Response('{"response" : "' + email + '", "password" : "' + nicepass(6,2) +'}')
-        # Send out an email
-        # return flask.Response('Hello')
+        # Create email
+        emailfrom  = "dhanannjay.deo@kitware.com"
+
+        body = "Hello " + name + ",\n"
+        body = body + "You recently requested a password reset for your account at https://slide-atlas.org."
+        body = body + "\n To complete the request operation please follow the link below- \n"
+        body = body + "\n     " + url_for('.login_confirm', _external=True) + "?token=" + str(userdoc["token"]) + " \n"
+        body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
+        body = body + "\nThis link will work only once, and will let you create a new password. \n"
+        body = body + "\nIf you did not request password reset, please disregard this message.\n"
+        body = body + "\nThank you,\nThe SlideAtlas Administration Team\n"
+
+        # Create a text/plain message
+        msg = MIMEText(body)
+
+        # me == the sender's email address
+        # you == the recipient's email address
+        msg['Subject'] = 'Password reset confirmation for slide-atlas.org'
+        msg['From'] = emailfrom
+        msg['To'] = emailto
+        print msg
+        s = smtplib.SMTP('public.kitware.com')
+        try:
+            out = s.sendmail(emailfrom, [emailto], msg.as_string())
+        except:
+            return flask.Response("{\"error\" :  \"Error sending email\"}")
+
+        s.quit()
+        return flask.Response("{\"success\" :  \"" + str(out) + "\"}")
+
 
 @mod.route('/login.reset', methods=['GET', 'POST'])
 def login_reset():
