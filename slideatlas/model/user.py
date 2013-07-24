@@ -20,7 +20,7 @@ class User(mongokit.Document):
         'first_login' : datetime.datetime,
         'token' : ObjectId,
         'confirmed' : bool,
-        'password_ready' : bool,
+        'password_status' : basestring,
         }
 
     default_values = {

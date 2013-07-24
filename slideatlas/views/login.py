@@ -64,7 +64,7 @@ def login_signup():
         userdoc["name"] = emailto
         userdoc["label"] = name
         userdoc["token"] = token
-        userdoc["confirmed"] = False
+        userdoc["password_status"] = "new"
         userdoc.validate()
         userdoc.save()
 
@@ -121,12 +121,17 @@ def login_confirm():
 
     # Remove the token
     del user["token"]
-    del user["confirmed"]
-    user["password_status"] = "reset"
 
+    if user["password_status"] == "new":
+        flash("Success, Your email is confirmed, please continue by setting the password here", "success")
+
+    elif user["password_status"] == "reset-request":
+        flash("Success, Your request for password reset is verified , please reset the password here", "success")
+
+    user["password_status"] = "reset"
+    user.validate()
     user.save()
 
-    flash("Success, Please reset the password", "success")
     return redirect('/login.reset')
 
 @mod.route('/login.reset.request', methods=['GET', 'POST'])
@@ -160,7 +165,11 @@ def login_resetrequest():
 
         # Create accout and a random tocken
         userdoc["token"] = bson.ObjectId()
-        userdoc["password_ready"] = False
+        userdoc["password_status"] = "reset-request"
+
+        # May only be useful for some
+        if "password_ready" in userdoc:
+            del userdoc["password_ready"]
 
         userdoc.validate()
         userdoc.save()
