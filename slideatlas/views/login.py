@@ -6,11 +6,12 @@ from flask_oauth import OAuth
 import smtplib
 from email.mime.text import MIMEText
 
-from slideatlas.common_utils import DBAccess
+from slideatlas.common_utils import DBAccess, nicepass
 import bson
 
 from slideatlas import model, app
 from slideatlas  import slconn as conn
+
 
 mod = Blueprint('login', __name__)
 oid = OpenID()
@@ -128,24 +129,49 @@ def login_confirm():
     flash("Success, Please reset the password", "success")
     return redirect('/login.reset')
 
-@mod.route('/login.reset-request', methods=['GET', 'POST'])
-def login_reset_request():
+@mod.route('/login.reset.request', methods=['GET', 'POST'])
+def login_resetrequest():
     """
     End point for password reset request
     Asks user for a valid email and posts back, if the account exists, sends out email for password reset.
     Follows up with login.signup if an account for that email is not found, or
     login.confirm if the valid account is found.
     """
-
     if request.method == "GET":
         # In browser request that user wants to reset the password
         return flask.render_template('reset-request.html', message="Please reset the password")
 
     if request.method == "POST":
         # Create a token
-        # Send out an email
-        return flask.render_template('profile.html', origin="password", message="Please reset the password")
+        email = flask.request.form["email"]
 
+        # Find if an account with that name exists
+        conn.register([model.User])
+        admindb = conn[current_app.config["CONFIGDB"]]
+
+        user = admindb["users"].User.find_one({"name" : email, "type" : "passwd"})
+        if user == None:
+            # user not found
+            return flask.Response('{"error" : "User not found"}')
+
+        # if "confirmed" in user:
+        #     if user["confirmed"] == False:
+        #         flash('Account email confirmation required', "error")
+        #         return redirect('/home')
+
+        # Create a random password
+        # if user["passwd"] != request.form['passwd']:
+        #     flash('Authentication', "error")
+        #     return redirect('/home')
+        # else:
+        #     return do_user_login(user)
+
+
+        # email = "dhan_deo@yahoo.com"
+        # Send out an email
+        return flask.Response('{"response" : "' + email + '", "password" : "' + nicepass(6,2) +'}')
+        # Send out an email
+        # return flask.Response('Hello')
 
 @mod.route('/login.reset', methods=['GET', 'POST'])
 def login_reset():
