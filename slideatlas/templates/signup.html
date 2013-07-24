@@ -12,23 +12,31 @@
 
             event.preventDefault();
 
+            $("#signup input").attr("disabled","disabled");
+            $("#signup button").attr("disabled","disabled");
+
             $.ajax({
                 type: "POST",
                 url : "/login.signup",
                 data: { name: $("#name").val(), email : $("#email").val() },
                 success : function( data ) {
-                        $
-                        console.log("Success in submisison")
-                        $("#signup input").attr("disabled","disabled")
-                        $("#signup button").attr("disabled","disabled")
-                        alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with signup.");
-                        // window.location = "/home"
+                        data = JSON.parse(data);
+                        if(data.hasOwnProperty("success")) {
+                            console.log("Success in submisison");
+                            show_alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with signup.", "success");
+                        }
+                        if(data.hasOwnProperty("error")) {
+                            console.log("Error in submisison");
+                            show_alert("Error in new account creation, " + data["error"] + ". You can reset the password if you have forgotten", "error");
+
+                            $("#signup input").removeAttr("disabled");
+                            $("#signup button").removeAttr("disabled");
+                        }
                     },
                 error : function (data){
-                        console.log("Error in submisison"")
-                        console.log(data)
-                        //alert("error while submission");
-                },
+                        console.log("Error in submisison");
+                        console.log(data);
+                }
             });
         });
     });
@@ -45,7 +53,7 @@
     </div>
     <br/>
     <div class="row-fluid">
-        <form action="/login.signup" method="post" id="signup">
+        <form action="/asa" method="post" id="signup">
         <div class="span8 offset2 ">
             <div>
                 <label for="name">Your full name:</label>
@@ -56,9 +64,8 @@
                 <input type="email" name="email" id="email" required title="Please enter a valid email here">
             </div>
                 <button type="submit" class="btn">Sign Up</button>
-            </div>
-        </form>
         </div>
+        </form>
     </div>
 
     <br/>
