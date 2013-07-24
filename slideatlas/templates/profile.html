@@ -9,6 +9,16 @@
 <script>
 $(document).ready(function (){
 
+    $("#passwd2").on("input", function (input) {
+        if (input.target.value != document.getElementById('passwd').value) {
+            input.target.setCustomValidity('The two passwords must match.');
+        }
+        else {
+            // input is valid -- reset the error message
+            input.target.setCustomValidity('');
+        }
+    });
+
      $("#signup").submit(function(event) {
             event.preventDefault();
 
@@ -41,21 +51,25 @@ $(document).ready(function (){
 <div class="container-fluid">
     <div class="row-fluid">
         <div class="span8 offset1">
-           <h1> Password reset request </h1>
-            <p> Please enter your email associated with your slide-atlas account, and a new randomly generated password will be sent there. </p>
+           <h1> Password reset </h1>
         </div>
     </div>
     <br/>
     <div class="row-fluid">
-        <form action="/login.reset-request" method="post" id="signup">
-            <div class="span8 offset1">
-                    <div class="controls form-inline">
-                        <label for="name">email:</label>
-                        <input type="email" name="name" id="passwd" required title="Please enter a valid email">
-                        <button type="submit" class="btn">Reset password</button>
-                    </div>
+        <form action="/login.reset" method="post" id="signup">
+        <div class="span8 offset2 ">
+            <div>
+                <label for="name">Password:</label>
+                <input type="password" name="name" id="passwd" required title="Password should be at least 5 characters long">
+            </div>
+            <div>
+                <label for="passwd2" >Password (repeat):</label>
+                <input type="password" name="passwd2" id="passwd2" required title="Passwords must match">
+            </div>
+                <button type="submit" class="btn">Sign Up</button>
             </div>
         </form>
+        </div>
     </div>
 </div>
 {% endblock %}
