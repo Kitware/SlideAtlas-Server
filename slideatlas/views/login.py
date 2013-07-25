@@ -377,6 +377,11 @@ def do_user_login(user):
     session['site_admin'] = False
     session['last_activity'] = user["last_login"]
     # Also add the rules information to the session
+    if not (ObjectId(current_app.config["DEMO_RULE"]) in user["rules"]):
+        user["rules"].append(ObjectId(current_app.config["DEMO_RULE"]))
+
+    user.save()
+
     # Loop over the rules
     accesses = { }
     for arule in user["rules"]:
