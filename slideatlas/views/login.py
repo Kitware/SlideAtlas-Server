@@ -1,4 +1,4 @@
-
+from bson.objectid import ObjectId
 import flask
 from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
 from flask_openid import OpenID
@@ -226,7 +226,26 @@ def login_reset():
 
     if request.method == "POST":
         # In browser request that user wants to reset the password
-        return flask.render_template('profile.html', name="Name", email="Email")
+        label = flask.request.form["label"]
+        passwd = flask.request.form["passwd"]
+
+        # Verify that the user is logged in or return
+        if not session.has_key("user"):
+            return flask.Response('{"error" : "User not logged in" }')
+        else:
+            # Chagne the information in the session
+            session["user"]["label"] = label
+            # Locate the record
+            conn.register([model.User])
+            dbobj = conn[current_app.config["CONFIGDB"]]
+            userdoc = dbobj["users"].User.find_one({'_id' : ObjectId(session["user"]["id"])})
+            userdoc["passwd"] = passwd
+            userdoc["password_status"] = "Ready"
+            userdoc["label"] = label
+            userdoc.validate()
+            userdoc.save()
+
+            return flask.Response('{"success" : "" }')
 
 
 
@@ -277,7 +296,7 @@ def facebook_authorized(resp=None):
     # Check if the user exists
     conn.register([model.User])
     dbobj = conn[current_app.config["CONFIGDB"]]
-    userdoc = dbobj["users"].User.fetch_one(
+    userdoc = dbobj["users"].User.find_one(
                             {'type' : 'facebook',
                             'name' : me.data['email']
                             })
@@ -319,7 +338,7 @@ def login_google(oid_response=None):
         # Check if the user exists
         conn.register([model.User])
         dbobj = conn[current_app.config["CONFIGDB"]]
-        userdoc = dbobj["users"].User.fetch_one(
+        userdoc = dbobj["users"].User.find_one(
                                 {'type' : 'google',
                                 'name' : oid_response.email
                                 })

@@ -19,29 +19,28 @@ $(document).ready(function (){
         }
     });
 
-     $("#signup").submit(function(event) {
+     $("#update").submit(function(event) {
             event.preventDefault();
 
-            alert("Ready to post password reset request.");
-
-            // $.ajax({
-                // type: "POST",
-                // url : "/login.reset",
-                // data: { name: $("#name").val(), email : $("#email").val() },
-                // success : function( data ) {
-                        // $
-                        // console.log("Success in submisison")
-                        // $("#signup input").attr("disabled","disabled")
-                        // $("#signup button").attr("disabled","disabled")
-                        // alert("We have send an e-mail at <" + $("#email").val() + ">. Please follow the instructions to continue with signup.");
-                        // // window.location = "/home"
-                    // },
-                // error : function (data){
-                        // console.log("Error in submisison")
-                        // console.log(data)
-                        // //alert("error while submission");
-                // },
-            // });
+            $.ajax({
+                type: "POST",
+                url : "/login.reset",
+                data: { label: $("#name").val(), passwd : $("#passwd").val() },
+                success : function( data ) {
+                        data = JSON.parse(data);
+                        if(data.hasOwnProperty("success")){
+                            show_alert("Update successful!", "success");
+                        } else {
+                            show_alert("Update failed: " + data["error"], "error");
+                        }
+                    },
+                error : function (data){
+                        data = JSON.parse(data);
+                        console.log("Error in submisison");
+                        show_alert("Update failed!", "error");
+                        console.log(data)
+                },
+            });
         });
     });
 
@@ -56,7 +55,7 @@ $(document).ready(function (){
     </div>
     <br/>
     <div class="row-fluid">
-        <form action="/login.reset" method="post" id="signup">
+        <form action="/login.reset" method="post" id="update">
         <div class="span8 offset2 ">
             <div>
                 <label for="email">Email:</label>
