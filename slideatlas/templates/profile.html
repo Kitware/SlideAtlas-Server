@@ -51,7 +51,7 @@ $(document).ready(function (){
 <div class="container-fluid">
     <div class="row-fluid">
         <div class="span8 offset1">
-           <h1> Password reset </h1>
+           <h1> Profile Update </h1>
         </div>
     </div>
     <br/>
@@ -59,8 +59,13 @@ $(document).ready(function (){
         <form action="/login.reset" method="post" id="signup">
         <div class="span8 offset2 ">
             <div>
+                <label for="email">Email:</label>
+                <input type="email" value="{{email}}" name="email" id="email" disabled="disabled">
+            </div>
+
+            <div>
                 <label for="name">Name:</label>
-                <input type="text" value="{{name}}" name="name" id="passwd" required title="Password should be at least 5 characters long">
+                <input type="text" value="{{name}}" name="name" id="name" required title="Name should be at least 5 characters long">
             </div>
 
             <div>
@@ -71,7 +76,7 @@ $(document).ready(function (){
                 <label for="passwd2" >Password (repeat):</label>
                 <input type="password" name="passwd2" id="passwd2" required title="Passwords must match">
             </div>
-                <button type="submit" class="btn">Sign Up</button>
+                <button type="submit" class="btn">Update</button>
             </div>
         </form>
         </div>

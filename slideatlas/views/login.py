@@ -132,6 +132,9 @@ def login_confirm():
     user.validate()
     user.save()
 
+    # Todo: do user login
+    do_user_login(user)
+
     return redirect('/login.reset')
 
 @mod.route('/login.reset.request', methods=['GET', 'POST'])
@@ -212,17 +215,19 @@ def login_reset():
     Updates the password state in the currently logged in user
     User must be logged in already (generally by login.confirm)
     """
+    # Start with the currently logged in user
 
     if request.method == "GET":
         # In browser request that user wants to reset the password
         # Create a token
         # Send out an email
         #
-        return flask.render_template('profile.html', message="Please reset the password")
+        return flask.render_template('profile.html', name=session["user"]["label"], email=session["user"]["email"])
 
     if request.method == "POST":
         # In browser request that user wants to reset the password
-        return flask.render_template('profile.html', message="Please reset the password")
+        return flask.render_template('profile.html', name="Name", email="Email")
+
 
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
@@ -247,7 +252,8 @@ def login_passwd():
         flash('Authentication', "error")
         return redirect('/home')
     else:
-        return do_user_login(user)
+        do_user_login(user)
+        return redirect('/home')
 
 @mod.route('/login.facebook')
 def login_facebook():
@@ -288,7 +294,9 @@ def facebook_authorized(resp=None):
         pass
         flash('Facebook account exists', 'info')
 
-    return do_user_login(userdoc)
+    do_user_login(userdoc)
+    return redirect('/home')
+
 
 @facebook.tokengetter
 def get_facebook_oauth_token():
@@ -328,7 +336,8 @@ def login_google(oid_response=None):
             pass
 #            flash('Existing account located', 'info')
 
-        return do_user_login(userdoc)
+        do_user_login(userdoc)
+        return redirect('/home')
 
 
 
@@ -383,4 +392,3 @@ def do_user_login(user):
 
 
     flash('You were successfully logged in. ', 'success')
-    return redirect('/home')
