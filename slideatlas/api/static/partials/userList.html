@@ -6,20 +6,22 @@
          <br/>
          Facebook Users : {{users.length }}
          <br/-->
+         Filter by: <input type="text" ng-model="search.$" />
          <table class="table table-striped">
             <thead>
                 <tr>
                 <td><h4>User name </h4></td>
-                <td><h4>type</h4></td>
-                <td> </td>
+                <td><h4>type</h4> </td>
+                <td><h4>Some</h4> </td>
                 <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="auser in users" >
+            <tr ng-repeat ="auser in users | filter:search" >
                 <td>{{ auser.name }} </td>
                 <td>{{ auser.type }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
+
             </tr>
   </div>
 
