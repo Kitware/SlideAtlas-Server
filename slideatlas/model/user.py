@@ -19,7 +19,6 @@ class User(mongokit.Document):
         'last_login' : datetime.datetime,
         'first_login' : datetime.datetime,
         'token' : ObjectId,
-        'confirmed' : bool,
         'password_status' : basestring,
         }
 
@@ -27,7 +26,6 @@ class User(mongokit.Document):
              'rules': [],
              'last_login': datetime.datetime.utcnow(),
              'first_login' :datetime.datetime.utcnow(),
-             'confirmed' : False,
              }
 
 #    migration_handler = UserMigration

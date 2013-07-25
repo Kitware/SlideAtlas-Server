@@ -71,9 +71,9 @@ def login_signup():
         # Create email
         emailfrom  = "dhanannjay.deo@kitware.com"
 
-        body = "Hello " + name + ",\n"
+        body = "Hello " + name + ",\n\n"
         body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
-        body = body + "\n     " + url_for('.login_confirm', external=True) + "?token=" + str(token) + " \n"
+        body = body + "\n     " + url_for('.login_confirm', _external=True) + "?token=" + str(token) + " \n"
         body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
         body = body + "\nThis link will work only once, and will let you create a new password. \n"
         body = body + "\nIf you did not enter this address as your contact email, please disregard this message.\n"
@@ -180,7 +180,7 @@ def login_resetrequest():
         # Create email
         emailfrom  = "dhanannjay.deo@kitware.com"
 
-        body = "Hello " + name + ",\n"
+        body = "Hello " + name + ",\n\n"
         body = body + "You recently requested a password reset for your account at https://slide-atlas.org."
         body = body + "\n To complete the request operation please follow the link below- \n"
         body = body + "\n     " + url_for('.login_confirm', _external=True) + "?token=" + str(userdoc["token"]) + " \n"
@@ -240,7 +240,7 @@ def login_reset():
             dbobj = conn[current_app.config["CONFIGDB"]]
             userdoc = dbobj["users"].User.find_one({'_id' : ObjectId(session["user"]["id"])})
             userdoc["passwd"] = passwd
-            userdoc["password_status"] = "Ready"
+            userdoc["password_status"] = "ready"
             userdoc["label"] = label
             userdoc.validate()
             userdoc.save()
@@ -262,17 +262,25 @@ def login_passwd():
     user = admindb["users"].User.find_one({"name" : request.form['username'], "type" : "passwd"})
     if user == None:
         flash('User not found ' + request.form['username'], "error")
-        return redirect('/home')
-    if "confirmed" in user:
-        if user["confirmed"] == False:
-            flash('Account email confirmation required', "error")
-            return redirect('/home')
+        return redirect('/login')
+
+    if user["password_status"] == "new" :
+        flash("Account email confirmation pending. Please use reset password link on the login page if you want confirmation email to be sent again", "error")
+        return redirect('/login')
+
+    if user["password_status"] == "reset-request" :
+        flash("Account password reset pending. Please use reset password link on the login page if you want password reset email to be sent again", "error")
+        return redirect('/login')
+
+
+    # Now password_status == ready !
+
     if user["passwd"] != request.form['passwd']:
-        flash('Authentication', "error")
-        return redirect('/home')
+        flash('Authentication error. Password rejected', "error")
+        return redirect('/login')
     else:
         do_user_login(user)
-        return redirect('/home')
+        return redirect('/sessions')
 
 @mod.route('/login.facebook')
 def login_facebook():
@@ -314,7 +322,7 @@ def facebook_authorized(resp=None):
         flash('Facebook account exists', 'info')
 
     do_user_login(userdoc)
-    return redirect('/home')
+    return redirect('/sessions')
 
 
 @facebook.tokengetter
@@ -356,7 +364,7 @@ def login_google(oid_response=None):
 #            flash('Existing account located', 'info')
 
         do_user_login(userdoc)
-        return redirect('/home')
+        return redirect('/sessions')
 
 
 
@@ -415,4 +423,4 @@ def do_user_login(user):
 #    flash("Site admin : " + str(session["site_admin"]), "info")
 
 
-    flash('You were successfully logged in. ', 'success')
+    flash('You are successfully logged in.', 'success')
