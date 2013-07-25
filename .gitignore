@@ -10,3 +10,4 @@ testing/Testing
 slideatlas/site_slideatlas.py
 chromedriver.log
 
+env/

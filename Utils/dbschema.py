@@ -1,10 +1,11 @@
 # include top level PYTHONPATH 
 import sys
+from flask_openid import OpenID
 sys.path.append("..")
 
 from subprocess import call
 from slideatlas import model
-from slideatlas import site_local as site
+from slideatlas import site_slideatlas as site
 
 HOST = site.MONGO_SERVER
 CONFIGDB = site.CONFIGDB
@@ -26,7 +27,6 @@ if site.LOGIN_REQUIRED:
 
 # List all databases
 conn.register([model.Database, model.Rule, model.User, model.Session])
-db = conn[site.CONFIGDB]
 
 # Add a database
 def add_new_admin_rule_to_demo():
@@ -227,25 +227,11 @@ def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="b
     admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
     print "Access should be granted"
 
-
-def grant_session(admindbobj, str_session_id, str_db, facebook_group="", google_email="", revoke=False):
+def grant_session(admindbobj, str_session_id, str_db, str_group_id):
     """
-    Generic function to grant or revoke session to google users 
-    returns rule_id so can be reused 
+    Generic function to rename and grant session
     gets  
     """
-    dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
-    print dbdoc
-
-    if len(facebook_group) > 0:
-        ruledoc = admindbobj["rules"].Rule.find_one({'facebook_id':facebook_group, "db" : dbdoc["_id"]})
-    elif len(google_email) > 0:
-        ruledoc = admindbobj["rules"].Rule.find_one({'name':facebook_group, "db" : dbdoc["_id"], 'type' : 'google'})
-
-
-    print "Rule found: ", ruledoc["_id"]
-    print "Rule: ", ruledoc
-
     sessionid = ObjectId(str_session_id)
 
     conn = admindbobj.connection
@@ -254,14 +240,6 @@ def grant_session(admindbobj, str_session_id, str_db, facebook_group="", google_
     print "Session Label: ", sessionobj["label"]
     print "Session: ", sessionobj
 
-    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
-
-    print "Access should be granted"
-
-def grant_all_sessions(admindbobj, dbname, userid, revoke=False, admin=False):
-    """
-    Generic function to set can_see_all, and set can_admin_all
-    """
     dbdoc = admindbobj["databases"].Database.find_one({'dbname':str_db})
     print dbdoc
 
@@ -269,14 +247,8 @@ def grant_all_sessions(admindbobj, dbname, userid, revoke=False, admin=False):
     print "Rule found: ", ruledoc["_id"]
     print "Rule: ", ruledoc
 
-    sessionid = ObjectId(str_session_id)
-
-    conn = admindbobj.connection
-    db = conn[str_db]
-    sessionobj = db["sessions"].find_one({"_id" : sessionid})
-
-
-
+    admindbobj["rules"].update({"_id" : ruledoc["_id"]}, { "$push" : {"can_see" : sessionid}})
+    print "Access should be granted"
 
 def revoke_session(admindbobj, str_session_id, str_db, str_group_id):
     """
@@ -363,43 +335,7 @@ def insert_BIDMC_KAWAI(dbobj):
     dbdoc['host'] = HOST
     dbdoc['dbname'] = 'kawai1'
     dbdoc['copyright'] = 'Copyright &copy 2012, Risa Kawai. All rights reserved.'
-def grant_3dpath(dbobj):
-    userobj = dbobj.users.User.find_one({"name" : "all_demo"})
-    print userobj
-    userobj["rules"].append(ObjectId("513100511d41c80780b38734"))
-    userobj.validate()
-    userobj.save()
-    print userobj
-
-
-
-
-
-def insert_3dpath(dbobj):
-
-    dbdoc = dbobj.databases.Database()
-    dbdoc['label'] = 'Renal Stack Demo'
-    dbdoc['host'] = "127.0.0.1"
-    dbdoc['dbname'] = '3dpath'
-    dbdoc['copyright'] = 'Copyright &copy 2013, All rights reserved'
-    dbdoc.validate()
     dbdoc.save()
-    print 'DB ', dbdoc["_id"]
-
-    # Create a rule
-    ruledoc = dbobj.rules.Rule()
-    # Gives admin access and all sessions view access
-    ruledoc["label"] = '3dPath Demo to all_demo'
-    ruledoc["db"] = dbdoc["_id"]
-    ruledoc['can_see'] = [ ]
-    ruledoc['can_see_all'] = True
-    ruledoc['db_admin'] = True
-    ruledoc.validate()
-    ruledoc.save()
-    print 'Rule: ', ruledoc["_id"]
-
-
-
 
 def grant_KAWAI1(dbobj):
     # Find a database
@@ -630,67 +566,117 @@ def get_number_of_all_images(dbobj):
 #add_new_admin_to_demo()
 #modify_rule_to_site_admin()
 
-<<<<<<< HEAD
-#db = conn[site.CONFIGDB]
+db = conn[site.CONFIGDB]
 #grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
-#
-#create_admin_user()
-== == == =
+# grant_session(db, "5113c6bb5877181c34f1879c" , str_db="bidmc1", str_group_id="365400966808177")
 
-#grant_session(db, "5112779658771804a4d224cb" , str_db="bev1", str_group_id="231408953605826")
+#grant_session(db, "5149ec3d58771824f80e77df" , str_db="bidmc1", str_group_id="365400966808177")
 
-# For beck1
-#Facebook group
-#"271779376286267")
+#grant_session(db, "4f56b9f74834a30ebc000000" , str_db="bev1", str_group_id="365400966808177")
+#rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Vasculopathic")
 
-# Create database
-# Create a rule to grant access to all sessions in that database to that facebook group
-# When a facebook user is logged in he / she will be displayed with all the sessions 
-# Create license for that database
+def register_new_database(dbobj, label, dbname, host):
+    dbdoc = dbobj.databases.Database()
+    dbdoc['label'] = label
+    dbdoc['host'] = host
+    dbdoc['dbname'] = dbname
+    dbdoc['copyright'] = 'Copyright &copy 2013, ' + label + '. All rights reserved.'
+    dbdoc.validate()
+    dbdoc.save()
+    print "Registered DB", dbdoc
 
-def CreateNewDatabase(admindbobj, label, dbname, host="127.0.0.1:27027", copyright=""):
-    # Find a database
-    dbdoc = admindbobj["databases"].Database.find_one({'dbname':dbname})
+def register_new_google(dbobj, email, label):
+    usrdoc = dbobj.users.User()
+    usrdoc['label'] = label
+    usrdoc['name'] = email
+    usrdoc['type'] = "google"
+    usrdoc['rules'] = []
+    usrdoc.validate()
+    print usrdoc
+    usrdoc.save()
+    print "Registered User", usrdoc
 
-    if dbdoc == None:
-        print "Creating Database"
-        newdb = admindbobj["databases"].Database()
-        print newdb
-#        newdb["dbname"] = dbname
-#        newdb["host"] = "127.0.0.1:27017"
+
+def register_new_rule(dbobj, dbname, str_fb_group=None, label='', can_see_all=False, can_see=[], db_admin=False):
+    # Find database id 
+    dbdoc = dbobj["databases"].find_one({"dbname" : dbname})
+
+    # Create the rule 
+    stud_rule = dbobj.rules.Rule()
+    if len(label) > 0:
+        stud_rule["label"] = label
     else:
-        print "Database found: ", dbdoc["_id"]
-#
-#
-#    # Create a rule
-#    ruledoc = dbobj.rules.Rule()
-#    # Gives admin access and all sessions view access
-#    ruledoc["label"] = 'Risa Kawai'
-#    ruledoc["db"] = ObjectId('507f34a902e31010bcdb1367')
-#    ruledoc['can_see'] = [ ObjectId('507f3c295877180e04e98f0d'), ]
-#    ruledoc['can_see_all'] = True
-#    ruledoc['db_admin'] = True
-##
-##    ruledoc.validate()
-##    ruledoc.save()
-##    print "Rule Added: ", ruledoc["_id"]
-## ObjectId('5085afee02e3100e64ab9a8c')
-#
-#    ruledoc = dbobj["rules"].Rule.fetch_one({'label':"Risa Kawai"})
-#    print "Rule found: ", ruledoc["_id"]
-#
-#    # Find a user
-#    userdoc = dbobj["users"].User.fetch_one({'name':"risa.kawai@gmail.com"})
-#
-#    # Append the rule
-#    userdoc["rules"].append(ObjectId('5085afee02e3100e64ab9a8c'))
-#    userdoc.validate()
-#    print "1 User found: ", userdoc
-#    userdoc.save()
+        stud_rule['label'] = dbname + "_facebook_" + str_fb_group
+        if can_see_all:
+            stud_rule['label'] = stud_rule['label'] + "_" + can_see_all
 
-CreateNewDatabase(db, "austin1");
-#CreateNewDatabase(db, "beck1");
-#insert_3dpath(conn[site.CONFIGDB])
-grant_3dpath(conn[site.CONFIGDB])
+    stud_rule['db'] = dbdoc["_id"]
+    stud_rule['db_admin'] = db_admin
+    stud_rule['can_see'] = can_see
+    stud_rule['can_see_all'] = can_see_all
+    if str_fb_group <> None:
+        stud_rule["facebook_id"] = str_fb_group
+    stud_rule.validate()
+    stud_rule.save()
+    print "Registered ", stud_rule
+
+# TODO: Can inherit some operations and make it into object
+def grant_to_google_user(dbobj, email, str_ruleid):
+    userobj = dbobj["users"].User.find_one({"name" : email, "type" : "google" })
+    if userobj <> None:
+        print "Found user:" , userobj
+    else:
+        print "Error: Need to create user"
+        return
+
+    ruleid = ObjectId(str_ruleid)
+
+    ruleobj = dbobj["rules"].find_one({"_id" : ruleid})
+    if ruleobj <> None:
+        print "Found rule:" , ruleobj
+    else:
+        print "Error: No such rule"
+        return
+
+    if ruleid in userobj["rules"]:
+        print "Rule already applied to user"
+    else:
+        print "Rule needs to be applied"
+        userobj["rules"].append(ruleid)
+        userobj.validate()
+        userobj.save()
+        print "New User: ", userobj
+
+#register_new_database(db, "Andy Beck", "beck1")
+# returned ObjectId('513fbc64d636479c6501ee78')
+
+#register_new_facebook_rule(db, "beck1", "271779376286267",
+#                           "BIDMC Pathology Beck",
+#                           can_see_all=True, db_admin=True)
+# Returned ObjectId('513fbf70d63647aa6d44f39a')
+
+#rename_and_grant_session(db, str_session_id="4f56b9f74834a30ebc000000", str_newlabel="Neural Tumors")
+
+#rename_and_grant_session(db, str_session_id="4f258dc54834a30b24000000", str_newlabel="Congenital Diseases")
+#rename_and_grant_session(db, str_session_id="4f728d064834a30efc000000", str_newlabel="Degenerative, Perforating, and Nutritional Disorders")
+
+#register_new_database(db, "Austin Newman and Dr Googe", "austin1", "slide-atlas.org")
+#register_new_google(db, "austin.newman@gmail.com", "Austin Newman")
+#register_new_google(db, "befjones@gmail.com", "Beverly E. Faulkner-Jones")
+#Registered User {'name': 'austin.newman@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Austin Newman', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3420'), 'type': 'google'}
+#Registered User {'name': 'paulgooge@gmail.com', 'rules': [], 'first_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), 'label': 'Paul Googe', 'last_login': datetime.datetime(2013, 4, 1, 22, 56, 57, 607000), '_id': ObjectId('515a10bad636470b9a7b3421'), 'type': 'google'}
+
+#register_new_rule(db, "austin1", None,
+#                           "Dr Googe and Austin Newman",
+#                           can_see_all=True, db_admin=True)
+#Registered  {'db_admin': True, 'site_admin': None, 'db': ObjectId('51549f11d6364788300ff401'), 'label': 'Dr Googe and Austin Newman', 'can_see_all': True, 'facebook_id': None, 'can_see': [], '_id': ObjectId('515a1273d6364710d68b4e87')}
+#
+#grant_to_google_user(db, "dhandeo@gmail.com", '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "paulgooge@gmail.com", '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "austin.newman@gmail.com" , '515a1273d6364710d68b4e87')
+#grant_to_google_user(db, "stephen.turney@gmail.com", '515a1273d6364710d68b4e87')
+grant_to_google_user(db, "befjones@gmail.com" , '515a1273d6364710d68b4e87')
+
+#grant_session(db, "516240a74834a3017896a8e0" , str_db="bidmc1", str_group_id="365400966808177")
 
 print "Done"

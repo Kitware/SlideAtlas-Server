@@ -16,14 +16,14 @@ app = Flask(__name__)
 
 celery = Celery(broker="mongodb://127.0.0.1/slideatlas-tasks", backend="mongodb://127.0.0.1/slideatlas-tasks")
 
-# Configure here teh path to put downloaded folders 
+# Configure here teh path to put downloaded folders
 # (should be big and with write access to web server user)
 app.config['UPLOAD_FOLDER'] = "d:/docs"
 
-app.config.from_object("site_slideatlas")
-#app.config.from_object("site_local")
+#app.config.from_object("site_slideatlas")
+app.config.from_object("site_local")
 
-# Connection settings for local demo database for testing (VM) 
+# Connection settings for local demo database for testing (VM)
 slconn = mongokit.Connection(app.config["MONGO_SERVER"], tz_aware=False, auto_start_request=False)
 admindb = slconn["admin"]
 

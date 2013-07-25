@@ -3,10 +3,10 @@ Common Patterns
 ===============
 
 .. todo::
-   Add documentation about common module here 
+   Add documentation about common module here
 
-.. Comment   
-   .. Include module here 
+.. Comment
+   .. Include module here
          .. automodule:: mongolistutils
          :members:
 
@@ -119,7 +119,18 @@ This is a repeatative task. The computations are not heavy but pre-computed
 information stored can be useful.
 
 
+Account creation
+----------------
 
+Users select an email.
+
+- If the email already has an account, password reset is invoked after asking user.
+- Else account is created, and is marked unconfirmed.
+- When user clicks the link provided in the email, is taken to password reset page.
+   - user is logged in but status of password is reset (i.e. no password works)
+   - If the password is successfully changed, the account is ready, the password is ready
+- If the password change fails at this point, then the email is confirmed (i.e. account is confirmed), but since the password is still in reset stage, 
+  use cannot login unless s/he visits password reset page and continue with email confirmation
 
 
 
