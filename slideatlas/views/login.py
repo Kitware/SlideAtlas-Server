@@ -264,6 +264,10 @@ def login_passwd():
         flash('User not found ' + request.form['username'], "error")
         return redirect('/login')
 
+    if not ("password_status" in user):
+        user["password_status"] = "ready"
+        user.save()
+
     if user["password_status"] == "new" :
         flash("Account email confirmation pending. Please use reset password link on the login page if you want confirmation email to be sent again", "error")
         return redirect('/login')
