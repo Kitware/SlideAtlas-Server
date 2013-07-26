@@ -14,6 +14,9 @@
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userList.html"});
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/userNew.html"});
 
+        $routeProvider.when("/roles", {templateUrl: "/apiv1/static/partials/roleList.html"});
+
+
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
@@ -345,6 +348,29 @@ app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter)
             console.log($scope.query)
             $scope.filtered_users = $filter('filter')($scope.users, $scope.query);
             console.log($scope.filtered_users.length)
+        });
+
+    });
+
+app.factory('Role', function($resource) {
+    return $resource('rules/:id', {id:'@_id'},
+                 {
+            query: { method: 'GET', params: {}, isArray: false },
+            update:{ method: 'PUT'}
+              });
+  });
+
+
+app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
+        console.log("Refreshing RoleListCtrl");
+
+        Role.get({}, function(data) {
+                Data.setList(data.rules);
+                $scope.roles = Data.getList();
+           });
+
+        $scope.$watch('query',function(val){
+            //$scope.filtered_users = $filter('filter')($scope.users, $scope.query);
         });
 
     });

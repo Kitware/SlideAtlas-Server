@@ -1,5 +1,7 @@
      <div ng-controller="UserListCtrl">
          <br/>
+         <h2> User Admin </h2>
+         <br/>
          Selected Users : {{filtered_users.length }} of {{users.length }}
          <!--br/>
          Google Users : {{users.length }}
@@ -21,7 +23,7 @@
            </thead>
             <tr ng-repeat ="auser in filtered_users | filter:query" ng-class="{'success':auser.isSelected}">
                 <td> <input type="checkbox" ng-model="auser.isSelected"> </td>
-                <td>{{ auser.name }} </td>
+                <td>{{ auser.name }}  <ul ng-repeat ="arole in auser.rules"> <li> {{ arole }} </li> </ul></td>
                 <td>{{ auser.type }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
