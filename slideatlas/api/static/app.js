@@ -15,7 +15,7 @@
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/userNew.html"});
 
         $routeProvider.when("/roles", {templateUrl: "/apiv1/static/partials/roleList.html"});
-        $routeProvider.when("/roles/details/:idx", {templateUrl: "/apiv1/static/partials/roleNew.html", controller:"RoleEditCtrl"});
+        $routeProvider.when("/roles/edit/:idx", {templateUrl: "/apiv1/static/partials/roleEdit.html", controller:"RoleEditCtrl"});
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
@@ -330,6 +330,7 @@ app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter)
         console.log("Refreshing UserListCtrl");
 
         $scope.areAllSelected = false;
+        $scope.users = [];
 
         User.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
                 Data.setList(data.users);
@@ -375,3 +376,22 @@ app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter)
 
     });
 
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter) {
+
+        var items = Data.getList()
+        var role = Data.getItem($routeParams.idx);
+        if(typeof role === 'undefined')
+            {
+            alert("Item not found for editing");
+            $location.path("/roles") ;
+            return;
+            }
+
+        $scope.role = Role.get({id:role._id});
+
+        $scope.save = function () {
+            $scope.role.$update({id:$scope.role._id}, function(data){
+                $location.path("/roles");
+            });
+        }
+    });
