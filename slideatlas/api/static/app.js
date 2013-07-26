@@ -15,7 +15,7 @@
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/userNew.html"});
 
         $routeProvider.when("/roles", {templateUrl: "/apiv1/static/partials/roleList.html"});
-
+        $routeProvider.when("/roles/details/:idx", {templateUrl: "/apiv1/static/partials/roleNew.html", controller:"RoleEditCtrl"});
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});

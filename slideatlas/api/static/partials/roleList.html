@@ -15,16 +15,13 @@
            </thead>
             <tr ng-repeat ="auser in roles | filter:query">
                 <td>{{ auser.label }}
-                    <ul>
-                        <li> can_see :  {{ auser.can_see.length }} </li>
-                        <li> can_admin :  {{ auser.can_admin.length }} </li>
-                        <li> can_see_all :  {{ auser.can_see_all}} </li>
-                    </ul>
+                    <br/>
+                        <span ng-show="auser.can_see.length > 0"  class="label label-info"> can_see :  {{ auser.can_see.length }} </span>
+                        <span ng-show="auser.can_admin==true" class="label label-success"> can_admin :  {{ auser.can_admin.length }} </span>
+                        <span ng-show="auser.can_see_all > 0" class="label label-important"> can_see_all </span>
                 </td>
-                <td>{{ auser.type }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
-
             </tr>
          </table>
 
