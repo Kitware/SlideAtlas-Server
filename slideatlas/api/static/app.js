@@ -382,12 +382,23 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
         var role = Data.getItem($routeParams.idx);
         if(typeof role === 'undefined')
             {
-            alert("Item not found for editing");
+//            alert("Item not found for editing");
             $location.path("/roles") ;
             return;
             }
 
-        $scope.role = Role.get({id:role._id});
+        $scope.role = Role.get({id:role._id}, function() {
+            if(!$scope.role.hasOwnProperty("can_admin")) {
+                $scope.role.can_admin = [];
+            }
+            if(!$scope.role.hasOwnProperty("can_admin_all")) {
+                $scope.role.can_admin_all = false;
+            }
+            if(!$scope.role.hasOwnProperty("users")) {
+                $scope.role.users = [];
+            }
+        });
+
 
         $scope.save = function () {
             $scope.role.$update({id:$scope.role._id}, function(data){

@@ -2,45 +2,49 @@
         <h2> Details for role </h2>
 
         <pre> {{ role | json }}</pre>
-        <!--form>
-             Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
-             Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
-             Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
-             Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright � 2011-12. All rights reserved."><br />
 
-             <button ng-click="save()" class="btn-primary"> Save </button>
-        </form>
+        <h5> Label : <input type="text" class="input" ng-model="role.label" palceholder="Label for the database"> </h5>
 
-        <button ng-click="add_session()" class="btn-primary"> Save </button>
+        <h5> Can See: {{ role.can_see.length }} (all <input type="checkbox" class="input" ng-model="role.can_see_all">)</h5>
 
-         Total Records : {{sessions.length }}  
-         <table class="table table-striped">
+         <table class="table table-striped" ng-hide="role.can_see.length < 1">
             <thead>
                 <tr>
                 <td><h4>Session label </h4></td>
                 <td> </td>
                 <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
                </tr>
-           </thead>
+            </thead>
             <tr ng-repeat ="adb in sessions" >
                 <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
                 <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
                 <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
             </tr>
+        </table>
 
-        Applied to users
+        <h5> Can Admin: {{ role.can_admin.length }} (all <input type="checkbox" class="input" ng-model="role.can_admin_all">)</h5>
 
-        <table class="table table-striped">
-        <thead>
-            <tr>
-            <td><h4>Session label </h4></td>
-            <td> </td>
-            <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
-           </tr>
-        </thead>
-        <tr ng-repeat ="adb in sessions" >
-            <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
-            <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
-            <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
-        </tr-->
+        <table class="table table-striped" ng-hide="role.can_admin.length < 1">
+            <thead>
+                <tr>
+                <td><h4>Session label </h4></td>
+                <td> </td>
+                <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
+               </tr>
+            </thead>
+            <tr ng-repeat ="adb in sessions" >
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
+                <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
+            </tr>
+        </table>
+
+        <h5> Applied to users: {{ role.users.length }} </h5>
+
+        <ul class="" ng-hide="role.users.length < 1">
+            <li ng-repeat="adb in role.users"> {{ adb.name }}: {{ adb.label }}</li>
+        </ul>
+
+         <button ng-click="save()" class="btn-primary"> Update </button>
+
      </div>
