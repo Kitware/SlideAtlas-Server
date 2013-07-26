@@ -3,21 +3,22 @@
 
         <pre> {{ role | json }}</pre>
 
-        <h5> Label : <input type="text" class="input" ng-model="role.label" palceholder="Label for the database"> </h5>
+        <h4> Label : <input type="text" class="input" ng-model="role.label" palceholder="Label for the database"> </h4>
 
-        <h5> Can See: {{ role.can_see.length }} (all <input type="checkbox" class="input" ng-model="role.can_see_all">)</h5>
+        <h4> Can See: {{ role.can_see.length }} (all <input type="checkbox" class="input" ng-model="role.can_see_all">)</h4>
+        <span class="btn btn-primary" ng-click="new()"> <i class="icon-plus-sign"></i> new </span>
 
          <table class="table table-striped" ng-hide="role.can_see.length < 1">
             <thead>
                 <tr>
-                <td><h4>Session label </h4></td>
+                <td><h5>Session label </h5></td>
                 <td> </td>
-                <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
+                <td> </td>
                </tr>
             </thead>
-            <tr ng-repeat ="adb in sessions" >
-                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
-                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
+            <tr ng-repeat ="adb in role.can_see" >
+                <td>{{ adb}} </a> </td>
+                <td><a href=""> <i class="icon-edit"></i> edit </a> </td>
                 <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
             </tr>
         </table>
