@@ -327,8 +327,6 @@ app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter)
         console.log("Refreshing UserListCtrl");
 
         $scope.areAllSelected = false;
-        $scope.users = [];
-
 
         User.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
                 Data.setList(data.users);
@@ -343,28 +341,11 @@ app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter)
                 }
         };
 
-        //$scope.filtered_users = $filter( $scope.users, $scope.search);
-
-        $scope.getSelectionState = function(){
-            var selectionState = true;
-            for( var i =0;i < $scope.users.length;i++){
-                selectionState = selectionState && $scope.users[i].isSelected;
-            }
-            return selectionState;
-        };
-
         $scope.$watch('query',function(val){
             console.log($scope.query)
             $scope.filtered_users = $filter('filter')($scope.users, $scope.query);
             console.log($scope.filtered_users.length)
         });
-
-
-//        $scope.$watch('getSelectionState()',function(val){
-//            if(val !== undefined){
-//                $scope.areAllSelected = val;
-//            }
-//        });
 
     });
 

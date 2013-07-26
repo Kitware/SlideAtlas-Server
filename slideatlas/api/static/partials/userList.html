@@ -1,11 +1,13 @@
      <div ng-controller="UserListCtrl">
          <br/>
-         Total Users : {{users.length }}
+         Selected Users : {{filtered_users.length }} of {{users.length }}
          <!--br/>
          Google Users : {{users.length }}
          <br/>
          Facebook Users : {{users.length }}
          <br/-->
+         <br/>
+         <br/>
          Filter by: <input type="text" ng-model="query" />
          <table class="table">
             <thead>
@@ -27,6 +29,7 @@
             </tr>
          </table>
 
-         <pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre>
+         <!--pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre-->
+
      </div>
 
