@@ -6,22 +6,27 @@
          <br/>
          Facebook Users : {{users.length }}
          <br/-->
-         Filter by: <input type="text" ng-model="search.$" />
-         <table class="table table-striped">
+         Filter by: <input type="text" ng-model="query" />
+         <table class="table">
             <thead>
                 <tr>
+                <td><h4> Selected <input ng-model="areAllSelected" ng-change="onAllSelected()" type="checkbox"/></h4> </td>
                 <td><h4>User name </h4></td>
                 <td><h4>type</h4> </td>
-                <td><h4>Some</h4> </td>
+                <td><h4>Edit </h4> </td>
                 <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="auser in users | filter:search" >
+            <tr ng-repeat ="auser in filtered_users | filter:query" ng-class="{'success':auser.isSelected}">
+                <td> <input type="checkbox" ng-model="auser.isSelected"> </td>
                 <td>{{ auser.name }} </td>
                 <td>{{ auser.type }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
 
             </tr>
-  </div>
+         </table>
+
+         <pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre>
+     </div>
 

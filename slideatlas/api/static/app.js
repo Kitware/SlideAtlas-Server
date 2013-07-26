@@ -323,12 +323,48 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     });
 
 
-app.controller("UserListCtrl", function ($scope, User, $location, Data) {
-        console.log("Refreshing UserListCtrl")
+app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
+        console.log("Refreshing UserListCtrl");
+
+        $scope.areAllSelected = false;
+        $scope.users = [];
+
 
         User.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
                 Data.setList(data.users);
                 $scope.users = Data.getList();
+                $scope.filtered_users = $scope.users;
+                //$scope.onAllSelected()
            });
+
+        $scope.onAllSelected = function() {
+            for( var i =0;i < $scope.filtered_users.length;i++){
+                $scope.filtered_users[i].isSelected = $scope.areAllSelected;
+                }
+        };
+
+        //$scope.filtered_users = $filter( $scope.users, $scope.search);
+
+        $scope.getSelectionState = function(){
+            var selectionState = true;
+            for( var i =0;i < $scope.users.length;i++){
+                selectionState = selectionState && $scope.users[i].isSelected;
+            }
+            return selectionState;
+        };
+
+        $scope.$watch('query',function(val){
+            console.log($scope.query)
+            $scope.filtered_users = $filter('filter')($scope.users, $scope.query);
+            console.log($scope.filtered_users.length)
+        });
+
+
+//        $scope.$watch('getSelectionState()',function(val){
+//            if(val !== undefined){
+//                $scope.areAllSelected = val;
+//            }
+//        });
+
     });
 
