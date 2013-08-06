@@ -890,5 +890,19 @@ def saveusernote():
     noteId = db["notes"].save(note);
     return str(noteId);
  
+# This is close to a general purpose function to delete an object from the database.
+@mod.route('/deleteusernote', methods=['GET', 'POST'])
+def saveusernote():
+    #pdb.set_trace()
+    dbid    = request.form['db']  # for post
+    noteid  = request.form['id']  
+  
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    db["notes"].remove({"_id" : ObjectId(noteid)});
+    return str(noteId);
+ 
 
 
