@@ -162,6 +162,9 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var SESSION_DATABASE;
+  var USER;
+
   // Arguments
   var DBID;
   var SESSID;
@@ -186,6 +189,10 @@ shape has visibility and
 
   // sets the global variable ARGS
   function getArgs() {
+    SESSION_DATABASE = "{{ sess }}";
+    USER = "";
+  
+  
     SESSID = "{{ sess }}";
     DBID  = "{{ db }}";
     $.ajax({

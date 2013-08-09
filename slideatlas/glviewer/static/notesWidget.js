@@ -28,6 +28,19 @@
 // Warning popup message to save notes when navigating off page.
 
 
+// Discusion:  We have a local (not saved to server) edit state (turned on by edit and off by cancel).
+// Edit is turned off by advancing to the next note or adding a note.  This is confusing.
+// Changes are automatically saved locally. Save buttun saves to server.  This is confusing.
+
+
+// How about a global lock / unlock button (like quick). Edit -> Clone, Save, Cancel.
+
+
+
+
+
+
+
 
 // For animating the display of the notes window (DIV).
 var NOTES_FRACTION = 0.0;
@@ -47,6 +60,7 @@ var NOTE_WINDOW;
 var NOTE_TREE_DIV;
 var NOTE_TITLE_ENTRY;
 var NOTE_TEXT_ENTRY;
+var NOTE_NEW_BUTTON;
 var NOTE_DELETE_BUTTON;
 var NOTE_SAVE_BUTTON;
 var NOTE_EDIT_BUTTON;
@@ -64,6 +78,7 @@ var NOTE_MODIFIED = false;
 var NOTE_PREV;
 var NOTE_NEXT;
 
+var POPUP_MENU_BUTTON;
 var POPUP_MENU;
 
 
@@ -302,9 +317,7 @@ NoteIterator.prototype.ToEnd = function() {
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
 function Note () {
-  // this.Id = "";
-  // this.ParentId = "";
-  this.User = ARGS.User; // Reset by flask.
+  this.User = GetUser(); // Reset by flask.
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
   this.Type = "Note";
@@ -374,7 +387,7 @@ Note.prototype.AddChild = function(childNote, first) {
     this.Children.push(childNote);
   }
   
-  if (this.Children.length == 2 && this.UserCanEdit()) {
+  if (this.Children.length == 2 && this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
     var self = this;
     this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
@@ -386,15 +399,17 @@ Note.prototype.AddChild = function(childNote, first) {
 // the childrenDiv jquery element.
 // I could use jQuery.data(div,"note",this) or store the index in an attribute.
 Note.prototype.ReorderChildren = function() {
-  var self = this;
   var newChildren = [];
-  this.ChildrenDiv.children().each(function(){
-      //var i = parseInt($(this).attr('index'));
-      var i = $(this).data('index');
-      var note = self.Children[i];
-      note.Div.data("index", newChildren.length);
-      newChildren.push(note);
-  });
+  var children = this.ChildrenDiv.children();
+  for (var newIndex = 0; newIndex < children.length; ++newIndex) {
+    var oldIndex = $(children[newIndex]).data('index');
+    var note = this.Children[oldIndex];
+    note.Div.data("index", newIndex);
+    if (newIndex != oldIndex) {
+      NoteModified();
+    }
+    newChildren.push(note);
+  }
  
   this.Children = newChildren;
 }
@@ -418,11 +433,6 @@ Note.prototype.Contains = function(decendent) {
 }
 
 Note.prototype.Select = function() {
-  // If the user is editing a note, 
-  // changes before we move to another note.
-  // If we are editing a note.  Save cange dsfsdf
-  DeactivateEdit(true);
-
   if (NOTE_ITERATOR.GetNote() != this) {
     // For when user selects a note from a list.
     // Find the note and set a new iterator
@@ -438,24 +448,38 @@ Note.prototype.Select = function() {
     NOTE_ITERATOR = iter;    
   }
 
-  // Only change the GUI
+  // Handle the note that is being unselected.
   // Clear the selected background of the deselected note.
   if (SELECTED_NOTE) {
     SELECTED_NOTE.TitleDiv.css({'background':'white'});
+    if (NOTE_EDIT_ACTIVE && SELECTED_NOTE.UserCanEdit()) {
+      SELECTED_NOTE.RecordGUIChanges();
+      NoteModified();     
+    }
   }
   
-  if (this.UserCanEdit()) {
-    NOTE_EDIT_BUTTON.removeAttr("disabled").css({'opacity':'1.0'});
-    if (this == ROOT_NOTE){
-      // We do not allow the user to delete the root note / slide.
-      // We need a session editor to do that.
-      NOTE_DELETE_BUTTON.attr("disabled", "disabled").css({'opacity':'0.5'});
-    } else {
-      NOTE_DELETE_BUTTON.removeAttr("disabled").css({'opacity':'1.0'});
-    }
+  if (this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
+    NOTE_TITLE_ENTRY.removeAttr('readonly');
+    NOTE_TITLE_ENTRY.css({'border-style': 'inset',
+                          'background': '#f5f8ff'});
+    NOTE_TEXT_ENTRY.removeAttr('readonly');
+    NOTE_TEXT_ENTRY.css({'border-style': 'inset',
+                         'background': '#f5f8ff'});
+    NOTE_DELETE_BUTTON.show();  
   } else {
-    NOTE_EDIT_BUTTON.attr("disabled", "disabled").css({'opacity':'0.5'});
-    NOTE_DELETE_BUTTON.attr("disabled", "disabled").css({'opacity':'0.5'});
+    NOTE_TITLE_ENTRY.attr('readonly', 'readonly');
+    NOTE_TITLE_ENTRY.css({'border-style': 'solid',
+                          'background': '#ffffff'});
+    NOTE_TEXT_ENTRY.attr('readonly', 'readonly');
+    NOTE_TEXT_ENTRY.css({'border-style': 'solid',
+                         'background': '#ffffff'});
+    NOTE_DELETE_BUTTON.hide();  
+  }
+
+  if (this == ROOT_NOTE){
+    // We do not allow the user to delete the root note / slide.
+    // We need a session editor to do that.
+    NOTE_DELETE_BUTTON.hide();
   }
   
   SELECTED_NOTE = this;
@@ -468,6 +492,14 @@ Note.prototype.Select = function() {
   NOTE_ITERATOR.UpdateButtons();
 
   this.DisplayView();
+}
+
+
+Note.prototype.RecordGUIChanges = function () {
+  this.Title = NOTE_TITLE_ENTRY.val();
+  this.TitleDiv.text(SELECTED_NOTE.Title);
+  this.Text = NOTE_TEXT_ENTRY.val();
+  this.RecordView();
 }
 
 
@@ -525,10 +557,10 @@ Note.prototype.Serialize = function(includeChildren) {
   // We should probably serialize the ViewerRecords too.
   obj.ViewerRecords = this.ViewerRecords;
 
-  obj.Answers = [];
-  for (var i = 0; i < this.Answers.length; ++i) {
-    obj.Answers.push(this.Answers[i].Serialize());
-  }
+  //obj.Answers = [];
+  //for (var i = 0; i < this.Answers.length; ++i) {
+  //  obj.Answers.push(this.Answers[i].Serialize());
+  //}
 
   if (includeChildren) {
     obj.Children = [];
@@ -539,23 +571,35 @@ Note.prototype.Serialize = function(includeChildren) {
   return obj;
 }
 
-
+// This method of loading is causing a pain.
+// Children ...
 Note.prototype.Load = function(obj){
   // Shared (superclass?)
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
-  for (var i = 0; i < this.Answers.length; ++i) {
-    var answerObj = this.Answers[i];
-    this.Answers[i] = new Note();
-    this.Answers[i].Load(answerObj);
-  }
+  this.TitleDiv.text(this.Title);
+  //for (var i = 0; i < this.Answers.length; ++i) {
+  //  var answerObj = this.Answers[i];
+  //  this.Answers[i] = new Note();
+  //  this.Answers[i].Load(answerObj);
+  //}
   for (var i = 0; i < this.Children.length; ++i) {
     var childObj = this.Children[i];
     var childNote = new Note();
     childNote.Load(childObj);
-    this.AddChild(childNote); 
+    this.Children[i] = childNote;
+    childNote.Div.data("index", i);
+
   }
+  // Because we are not using add child.
+  if (this.Children.length > 1 && this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
+    var self = this;
+    this.ChildrenDiv.sortable({axis: "y",
+                               containment: "parent",
+                               update: function( event, ui ){self.ReorderChildren();}});                               
+  }
+
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
     if (obj.ViewerRecords[i]) {
       obj.ViewerRecords[i].__proto__ = ViewerRecord.prototype;
@@ -582,9 +626,27 @@ Note.prototype.Load = function(obj){
 }
 
 
+
+Note.prototype.LoadView = function(viewId) {
+  var self = this;
+  $.ajax({
+    type: "get",
+    url: "/webgl-viewer/getview",
+    data: {"viewid": viewId,
+           "db"  : GetSessionDatabase()},
+    success: function(data,status) { self.Load(data);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
+}
+
+
+
+
 // I am going to create two notes for each bookmark so the annotations appear
 // like question and answer.
 Note.prototype.LoadBookmark = function(data) {
+  if ( ! ARGS) { return; }
+  
   // What should we do about date? I do not think Bookmarks record the date.
   this.Id = data._id;
   this.ParentId = ARGS.Viewer1.viewid;
@@ -611,7 +673,7 @@ Note.prototype.RequestUserNotes = function() {
     type: "get",
     url: "/webgl-viewer/getchildnotes",
     data: {"parentid": this.Id,
-           "db"  : SESSION_DB},
+           "db"  : GetSessionDatabase()},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error()" ); },
     });  
@@ -689,6 +751,11 @@ Note.prototype.DisplayView = function() {
 
 
 //------------------------------------------------------------------------------
+
+
+function NoteModified() {
+  NOTE_MODIFIED = true;
+}
 
 
 // Previous button
@@ -810,8 +877,42 @@ function NewCallback () {
 // TODO: Activate and inactivate save button based on user owning note
 // This callback is for both the edit and cancel behaviors.
 function EditCallback() {
-  POPUP_MENU.hide();
 
+  NOTE_EDIT_ACTIVE = true;
+
+  NOTE_EDIT_BUTTON.hide();
+  POPUP_MENU_BUTTON.show();  
+  NOTE_NEW_BUTTON.show();
+  NOTE_SAVE_BUTTON.show();
+  // This handles making the note editable (including showing and hiding the delete button).
+  SELECTED_NOTE.Select();
+
+  // This handles making children sortable.
+  var iter = ROOT_NOTE.NewIterator();
+  do {
+    var note = iter.GetNote();
+    iter.Next();
+    if (note.Children.length > 1 && note.UserCanEdit()) {
+      var self = note;
+      note.ChildrenDiv.sortable({axis: "y",
+                                 containment: "parent",
+                                 update: function( event, ui ){self.ReorderChildren();}});
+      // Indicate the children are sortable...
+      note.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
+    }                                
+  } while ( ! iter.IsEnd());
+
+  window.onbeforeunload = function () {
+    if (NOTE_EDIT_ACTIVE && SELECTED_NOTE.UserCanEdit()) {
+      SELECTED_NOTE.RecordGUIChanges();
+    }
+    return "Some changes have not been saved to database.";
+  }  
+}
+
+
+function CancelCallback() {
+  POPUP_MENU.hide();
   if (NOTE_EDIT_ACTIVE) {
     // Cancel edit
     DeactivateEdit(false);
@@ -825,85 +926,49 @@ function EditCallback() {
     }
     return;
   }
-
-  if (ROOT_NOTE.UserCanEdit()) {
-    NOTE_EDIT_ACTIVE = true;
-    NOTE_TITLE_ENTRY.removeAttr('readonly');
-    NOTE_TITLE_ENTRY.css({'border-style': 'inset',
-                          'background': '#f5f8ff'});
-    NOTE_TEXT_ENTRY.removeAttr('readonly');
-    NOTE_TEXT_ENTRY.css({'border-style': 'inset',
-                         'background': '#f5f8ff'});
-    
-    // I do not want to confuse the user with too many options.
-    // No deleting or saving while editing.
-    // Saving = saving to database.
-    NOTE_EDIT_BUTTON.text("Cancel");
-    NOTE_SAVE_BUTTON.attr('disabled', 'disabled').css({'opacity':'0.5'});
-    NOTE_DELETE_BUTTON.attr('disabled', 'disabled').css({'opacity':'0.5'});
-    }
 }
 
-function DeactivateEdit (saveFlag) {
-  if ( ! NOTE_EDIT_ACTIVE) { return; }
 
-  // Change button lable back from cancel to edit.
-  NOTE_EDIT_BUTTON.text("Edit");
-  // No longer editing.
-  NOTE_TITLE_ENTRY.attr('readonly', 'readonly');
-  NOTE_TITLE_ENTRY.css({'border-style': 'solid',
-                        'background': '#ffffff'});
-  NOTE_TEXT_ENTRY.attr('readonly', 'readonly');
-  NOTE_TEXT_ENTRY.css({'border-style': 'solid',
-                       'background': '#ffffff'});
-
-  if (saveFlag) {
-    // I want to keep track of when there is somethiong to save to the database.
-    // I will activate the save button when there is somethig to save.
-    // This is not perfect because I am not detecting a real change.
-    // I am only detecting an edit selection that was not canceled.
-    NOTE_MODIFIED = true;
-    NOTE_SAVE_BUTTON.removeAttr('disabled').css({'opacity': '1.0'});
-    
-    // Assume that the user has changed the title, text and view of the note.
-    // Only saved in javascript, not saved in the database until save is selected.
-    // I need to detect real modifications to prompt the user to save when leaves page.
-    SELECTED_NOTE.Title = NOTE_TITLE_ENTRY.val();
-    SELECTED_NOTE.TitleDiv.text(SELECTED_NOTE.Title);
-    SELECTED_NOTE.Text = NOTE_TEXT_ENTRY.val();
-    SELECTED_NOTE.RecordView();
-  }
-  
-  NOTE_EDIT_ACTIVE = false;
-}
 
 // TODO: Activate and inactivate save button based on whether anything has changed.
 function SaveCallback() {
   POPUP_MENU.hide();
 
-  // Save the state locally in the selected note.
-  if (SELECTED_NOTE.UserCanEdit()) {
-    SELECTED_NOTE.Title = NOTE_TITLE_ENTRY.val();
-    SELECTED_NOTE.TitleDiv.text(SELECTED_NOTE.Title);
-    SELECTED_NOTE.Text = NOTE_TEXT_ENTRY.val();
-    SELECTED_NOTE.RecordView();
+  if (NOTE_EDIT_ACTIVE && SELECTED_NOTE.UserCanEdit()) {
+    SELECTED_NOTE.RecordGUIChanges();
   }
   
-  // Save all of the notes in the database for this specific user.
+  var d = new Date();
+  
+  // If user owns the root note, then upload all notes to the view.
   if (ROOT_NOTE.UserCanEdit()) {
-    // User owns the lesson. Save all the notes in the view.
+    // Save this users notes in the user specific collection.
+    var dbid = GetSessionDatabase();
+    
+    var noteObj = JSON.stringify(ROOT_NOTE.Serialize(true));
+    $.ajax({
+      type: "post",
+      url: "/webgl-viewer/saveviewnotes",
+      data: {"note" : noteObj,
+             "db"   : GetSessionDatabase(),
+             "view" : GetViewId(),
+             "date" : d.getTime()},
+      success: function(data,status) {},
+      error: function() { alert( "AJAX - error()" ); },
+      });  
   } else {
+    // Save just the users notes to the notes collection.    
+    // Save all of the users notes in the database for this specific user.
     // Save this users notes in the user specific collection.
     var iter = ROOT_NOTE.GetIterator();
     do {
       var note = iter.GetNote();
       if (note.UserCanEdit()) {
-        var dbid = ARGS.Viewer1.db;
         $.ajax({
           type: "post",
           url: "/webgl-viewer/saveusernote",
           data: {"note": JSON.stringify(note.Serialize(false)),
-                 "db"  : SESSION_DB,
+                 "db"  : GetSessionDatabase(),
                  "date": d.getTime()},
           success: function(data,status) { note.Id = data;},
           error: function() { alert( "AJAX - error()" ); },
@@ -912,16 +977,23 @@ function SaveCallback() {
     } while(iter.IsEnd());
   }
   
+  window.onbeforeunload = null;
   NOTE_MODIFIED = false;
-  NOTE_SAVE_BUTTON.attr('disabled', 'disabled').css({'opacity': '0.5'});
+  NOTE_EDIT_ACTIVE = false;
+  
+  POPUP_MENU_BUTTON.hide();
+  NOTE_SAVE_BUTTON.hide();
+  NOTE_DELETE_BUTTON.hide();
+  NOTE_NEW_BUTTON.hide();
+  NOTE_EDIT_BUTTON.show();
+  SELECTED_NOTE.Select();
 }
 
 // TODO: Disable button when we are not the root note or we do not own the note.
 function DeleteCallback () {
   POPUP_MENU.hide();
 
-  NOTE_MODIFIED = true;
-  NOTE_SAVE_BUTTON.removeAttr('disabled').css({'opacity': '1.0'});
+  NoteModified();
   
   var parent = NOTE_ITERATOR.GetParentNote();
   if (parent == null) {
@@ -940,13 +1012,12 @@ function DeleteCallback () {
   // If this user does not own the lesson, 
   // then immediatley remove the note from the database.
   // Lesson autho will have to select save to change the database.
-  var dbid = ARGS.Viewer1.db;
   /* Should we immediately change the database, or wait until the user selects save?
   $.ajax({
     type: "post",
     url: "/webgl-viewer/deleteusernote",
     data: {"id"  : note.Id,
-           "db"  : SESSION_DB},
+           "db"  : GetSessionDatabase()},
     success: function(data,status) {},
     error: function() { alert( "AJAX - error()" ); },
     });  
@@ -956,6 +1027,18 @@ function DeleteCallback () {
   parent.UpdateChildrenGUI();
 }
 
+function CheckForSave() {
+  if (NOTE_EDIT_ACTIVE && SELECTED_NOTE.UserCanEdit()) {
+    SELECTED_NOTE.RecordGUIChanges();
+    NoteModified();
+  }
+
+  if (NOTE_MODIFIED) {
+    var message = "Save changes in database?\n\nPress Cancel to discard changes.";
+    if (confirm(message)) { SaveCallback(); }
+  }
+  return true;
+}
 
 
 function AnimateNotesWindow() {
@@ -983,8 +1066,13 @@ function AnimateNotesWindow() {
 
 function InitNotesWidget() {
   ROOT_NOTE = new Note();
-  ROOT_NOTE.LoadRootView(ARGS);
-
+  if (typeof(ARGS) != "undefined") { // legacy
+    ROOT_NOTE.LoadRootView(ARGS);
+  }
+  if (typeof(NOTE_ID) != "undefined") {
+    ROOT_NOTE.LoadView(NOTE_ID);
+  }
+  
   // Nav buttons, to cycle around the notes.  
   NOTE_PREV = $('<img>').appendTo('body')
     .css({
@@ -995,10 +1083,11 @@ function InitNotesWidget() {
       'bottom' : '5px',
       'left' : '5px',
       'z-index': '2'})
-  .attr('src',"webgl-viewer/static/leftArrow2.png")
-  .click(function(){PreviousNoteCallback();});
+    .attr('src',"webgl-viewer/static/leftArrow2.png")
+    .click(function(){PreviousNoteCallback();});
 
-  $('<button>').appendTo('body').css({
+  $('<button>').appendTo('body')
+    .css({
       'opacity': '0.5',
       'position': 'absolute',
       'height': '35px',
@@ -1079,20 +1168,39 @@ function InitNotesWidget() {
   NOTE_TITLE_ENTRY.attr('readonly', 'readonly');
   NOTE_TEXT_ENTRY.attr('readonly', 'readonly');
 
-  var commentButtonWrapper = $('<div>').appendTo(noteDetailDiv)
+  var buttonWrapper = $('<div>').appendTo(noteDetailDiv)
                                        .css({'position': 'absolute',
                                              'width': '100%',
                                              'height': '40px',
                                              'bottom': '0px'});
-    
-  var popupMenuButton = $('<div>').appendTo(commentButtonWrapper)
-                                  .css({'position': 'relative',
-                                        'float': 'right',
-                                        'margin': '5px'});
+  
+  // Only visible when in edit mode.
+  POPUP_MENU_BUTTON = $('<div>').appendTo(buttonWrapper)
+                                .hide()
+                                .css({'position': 'relative',
+                                      'float': 'right',
+                                      'margin': '5px'});
+  NOTE_EDIT_BUTTON = $('<button>').appendTo(buttonWrapper)
+                                .text("Edit")
+                                .css({'color' : '#278BFF',
+                                      'font-size': '18px',
+                                      'position': 'relative',
+                                      'float': 'right',
+                                      'margin': '5px'})
+                                .click( EditCallback  );
+  NOTE_NEW_BUTTON = $('<button>').appendTo(buttonWrapper)
+                                .hide()
+                                .text("New")
+                                .css({'color' : '#278BFF',
+                                      'font-size': '18px',
+                                      'position': 'relative',
+                                      'float': 'right',
+                                      'margin': '5px'})
+                                .click( NewCallback  );
 
   // For less used buttons that appear when mouse is over the pulldown button.
   // I would like to make a dynamic bar that puts extra buttons into the pulldown as it resizes.
-  POPUP_MENU = $('<div>').appendTo(popupMenuButton)
+  POPUP_MENU = $('<div>').appendTo(POPUP_MENU_BUTTON)
                        .css({'position': 'absolute',
                              'left': '0px',
                              'bottom': '0px',
@@ -1111,26 +1219,19 @@ function InitNotesWidget() {
                        .mouseenter(function(){
                           clearTimeout($(this).data('timeoutId')); });                       
 
-  var newButton = $('<button>').appendTo(POPUP_MENU)
-                               .text("New")
-                              .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                              .click( NewCallback  );
-  NOTE_EDIT_BUTTON = $('<button>').appendTo(POPUP_MENU)
-                              .text("Edit")
-                              .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                              .click( EditCallback  );
+  NOTE_DELETE_BUTTON = $('<button>').appendTo(POPUP_MENU)
+                                .hide()
+                                .text("Delete")
+                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+                                .click( DeleteCallback  );
+
   NOTE_SAVE_BUTTON = $('<button>').appendTo(POPUP_MENU)
+                                  .hide()
                                   .text("Save")
                                   .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
                                   .click( SaveCallback  );
-  // Nothing to save until the user edits a note.
-  NOTE_SAVE_BUTTON.attr("disabled", "disabled").css({'opacity':'0.5'});
-  NOTE_DELETE_BUTTON = $('<button>').appendTo(POPUP_MENU)
-                                    .text("Delete")
-                                    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                    .click(DeleteCallback);
                        
-  var popupMenuButtonImage = $('<img>').appendTo(popupMenuButton)
+  var popupMenuButtonImage = $('<img>').appendTo(POPUP_MENU_BUTTON)
     .css({'height': '30px',
           'width': '30x',
           'opacity': '0.6'})
@@ -1148,7 +1249,7 @@ function InitNotesWidget() {
   
   // Load the bookmarks, and encapsulate them into notes.
   $.get(window.location.href + '&bookmarks=1',
-        BookmarksCallback);    
+        BookmarksCallback);            
 }
 
 

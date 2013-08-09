@@ -1,18 +1,18 @@
 
 
 // Source is the directory that contains the tile files.
-function Cache(dbStr, collectionStr, numLevels) {
+function Cache(dbId, imageId, numLevels) {
   // Look through existing caches and reuse one if possible
   for (var i = 0; i < CACHES.length; ++i) {
-    if (CACHES[i].Collection == collectionStr) {
+    if (CACHES[i].ImageId == imageId) {
       return CACHES[i];
     }
   }
   
-  var sourceStr = "/tile?img="+collectionStr+"&db="+dbStr+"&name=";
+  var sourceStr = "/tile?img="+imageId+"&db="+dbId+"&name=";
 
-  this.Collection = collectionStr;
-  this.Database = dbStr;
+  this.ImageId = imageId;
+  this.DatabaseId = dbId;
 
   // For debugging
   //this.PendingTiles = [];

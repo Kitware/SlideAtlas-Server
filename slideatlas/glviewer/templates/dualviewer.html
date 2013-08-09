@@ -140,6 +140,10 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  // Notes
+  var SESSION_DATABASE;
+  var USER;
+
   var ARGS;
   var CANVAS;
   var EVENT_MANAGER;
@@ -148,10 +152,14 @@ shape has visibility and
 
   // sets the global variable ARGS
   function getArgs() {
+    SESSION_DATABASE  = "{{question.viewer1.db}}";
+    USER = "";
+
+
     ARGS = {};
     ARGS.Viewer1 = {};
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
-    ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
+    ARGS.Viewer1.image = "{{question.viewer1.image}}";
     ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
@@ -167,7 +175,7 @@ shape has visibility and
         var view = {};
         view.label = "{{option.label}}";
         view.db = "{{option.db}}";
-        view.collection = "{{option.collection}}";
+        view.image = "{{option.image}}";
         view.origin = {{option.origin}};
         view.spacing = {{option.spacing}};
         view.levels = {{option.levels}};
@@ -197,7 +205,7 @@ shape has visibility and
   };
 
   function initViews() {
-    var source1 = new Cache(ARGS.Viewer1.collection,
+    var source1 = new Cache(ARGS.Viewer1.image,
                             ARGS.Viewer1.db, 
                             ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
@@ -240,7 +248,7 @@ shape has visibility and
   function changeOption(index) {
     // Create a new source for the viewer.
     var option = ARGS.Options[index];
-    var source = new Cache(option.collection, option.db, option.levels);
+    var source = new Cache(option.image, option.db, option.levels);
     VIEWER2.SetCache(source);
     var height = CANVAS.clientHeight << option.zoom;
     VIEWER2.SetCamera(option.center, option.rotation, height);

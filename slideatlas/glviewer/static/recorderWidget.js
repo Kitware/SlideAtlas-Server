@@ -25,18 +25,19 @@
 
 function ViewerRecord () {
   this.Database = "";
-  this.Collection = "";
+  this.Image = ""; // The image collection
   this.NumberOfLevels = 0;
 }
 
+// Bookmark is legacy schema
 ViewerRecord.prototype.LoadBookmark = function(data) {
   // Hack.  I should probably get the source from data.img
   // However, this would require a post to get info.
   // Since booksmarks are slated to be depreciated,
   // I will just hack this. (copy from viewer).
   var cache = VIEWER1.GetCache();    
-  this.Database = cache.Database;
-  this.Collection = cache.Collection;
+  this.Database = cache.DatabaseId;
+  this.Image = cache.ImageId;
   this.NumberOfLevels = cache.NumberOfLevels;
   
   var cameraRecord = {};
@@ -69,11 +70,11 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
 ViewerRecord.prototype.LoadRootViewer = function(data) {
   // Hack. data is in args  but ....
   var cache = new Cache(data.db, 
-                        data.collection, 
+                        data.image, 
                         data.levels);
 
   this.Database = data.db;
-  this.Collection = data.collection;
+  this.Image = data.image;
   this.NumberOfLevels = data.levels;
 
   var cameraRecord = {};
@@ -89,7 +90,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
   if ( ! cache) { 
     this.Database = "";
-    this.Collection = "";
+    this.Image = "";
     this.NumberOfLevels = 0;
     this.Camera = null;
     this.AnnotationVisibility = ANNOTATION_OFF;
@@ -97,8 +98,8 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     return;
   }
     
-  this.Database = cache.Database;
-  this.Collection = cache.Collection;
+  this.Database = cache.DatabaseId;
+  this.Image = cache.ImageId;
   // I could get this from the image / collection.
   this.NumberOfLevels = cache.NumberOfLevels;
 
@@ -127,9 +128,9 @@ ViewerRecord.prototype.Apply = function (viewer) {
   }
 
   var cache = viewer.GetCache();
-  if ( ! cache || this.Collection != cache.Collection) {
+  if ( ! cache || this.Image != cache.ImageId) {
     var newCache = new Cache(this.Database, 
-                             this.Collection, 
+                             this.Image, 
                              this.NumberOfLevels);
     viewer.SetCache(newCache);
   }

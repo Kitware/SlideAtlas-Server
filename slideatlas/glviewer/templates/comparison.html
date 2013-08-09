@@ -153,6 +153,11 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  // Notes
+  var SESSION_DATABASE;
+  var USER;
+
+
   var ARGS;
   var ARG_ANNOTATIONS;
   var EDIT = false;
@@ -172,13 +177,15 @@ shape has visibility and
 
   // sets the global variable ARGS
   function getArgs() {
-    
+    SESSION_DATABASE  = "{{question.viewer1.db}}";
+    USER = "";
+
     // TODO: Try to copy the object in one command!!!
     ARGS = {};
     ARGS.Viewer1 = {};
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
     ARGS.Viewer1.viewid = "{{question.viewer1.viewid}}";
-    ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
+    ARGS.Viewer1.image = "{{question.viewer1.image}}";
     ARGS.Viewer1.dimensions = {{question.viewer1.dimension}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
@@ -245,7 +252,7 @@ shape has visibility and
 
   function initViews() {
     var source1 = new Cache(ARGS.Viewer1.db,
-                            ARGS.Viewer1.collection,  
+                            ARGS.Viewer1.image,  
                             ARGS.Viewer1.levels);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
