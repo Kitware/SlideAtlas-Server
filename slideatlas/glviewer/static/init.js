@@ -35,11 +35,14 @@ function GetUser() {
   
 
 function GetViewId () {
-  if (typeof(ROOT_NOTE) != "undefined") {
-    return ROOT_NOTE._id;
+  if (typeof(VIEW_ID) != "undefined") {
+    return VIEW_ID;
   }
   if (typeof(ARGS) != "undefined") {
     return ARGS.Viewer1.viewid;
+  }
+  if (typeof(ROOT_NOTE) != "undefined") {
+    return ROOT_NOTE._id;
   }
   alert ("Could not find view id");
   return "";

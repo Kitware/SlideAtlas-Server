@@ -61,6 +61,7 @@ var NOTE_TREE_DIV;
 var NOTE_TITLE_ENTRY;
 var NOTE_TEXT_ENTRY;
 var NOTE_NEW_BUTTON;
+var NOTE_CLONE_BUTTON;
 var NOTE_DELETE_BUTTON;
 var NOTE_SAVE_BUTTON;
 var NOTE_EDIT_BUTTON;
@@ -386,13 +387,45 @@ Note.prototype.AddChild = function(childNote, first) {
   } else {
     this.Children.push(childNote);
   }
+
+  this.UpdateChildrenGUI();
+}
+
+Note.prototype.UpdateChildrenGUI = function() {
+  // Callback trick
+  var self = this;
+
+  // Clear
+  this.ChildrenDiv.empty();
+  if (this.Children.length == 0) {
+    this.Icon.attr('src',"webgl-viewer/static/dot.png");
+    return;
+  }
+  if (this.ChildrenVisibility == false) {
+    this.Icon.attr('src',"webgl-viewer/static/plus.png")
+             .click(function() {self.Expand();});
+    return;
+  }
   
-  if (this.Children.length == 2 && this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
-    var self = this;
+  // Redraw
+  this.Icon.attr('src',"webgl-viewer/static/minus.png")
+           .click(function() {self.Collapse();});
+  for (var i = 0; i < this.Children.length; ++i) {
+    this.Children[i].DisplayGUI(this.ChildrenDiv);
+  } 
+
+  if (this.Children.length > 1 && this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
+    // Make sure the indexes are set correctly.
+    for (var i = 0; i < this.Children.length; ++i) {
+      this.Children[i].Div.data("index", i);
+    }
     this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
-                               update: function( event, ui ){self.ReorderChildren();}});                               
+                               update: function( event, ui ){self.ReorderChildren();}});
+    // Indicate the children are sortable...
+    this.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
   }
+  
 }
 
 // So this is a real pain.  I need to get the order of the notes from
@@ -480,6 +513,10 @@ Note.prototype.Select = function() {
     // We do not allow the user to delete the root note / slide.
     // We need a session editor to do that.
     NOTE_DELETE_BUTTON.hide();
+    // Interesting:  TODO: If we clone the root, then a new slide is created.
+    NOTE_CLONE_BUTTON.hide();
+  } else if (NOTE_EDIT_ACTIVE) {
+    NOTE_CLONE_BUTTON.show();
   }
   
   SELECTED_NOTE = this;
@@ -520,31 +557,6 @@ Note.prototype.DisplayGUI = function(div) {
 }
 
 
-Note.prototype.UpdateChildrenGUI = function() {
-  // Clear
-  this.ChildrenDiv.empty();
-  if (this.Children.length == 0) {
-    this.Icon.attr('src',"webgl-viewer/static/dot.png");
-    return;
-  }
-  if (this.ChildrenVisibility == false) {
-    var self = this;
-    this.Icon.attr('src',"webgl-viewer/static/plus.png")
-             .click(function() {self.Expand();});
-    return;
-  }
-
-  // Callback trick
-  var self = this;
-  
-  // Redraw
-  this.Icon.attr('src',"webgl-viewer/static/minus.png")
-           .click(function() {self.Collapse();});
-  for (var i = 0; i < this.Children.length; ++i) {
-    this.Children[i].DisplayGUI(this.ChildrenDiv);
-  }
-}
-
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
@@ -565,7 +577,7 @@ Note.prototype.Serialize = function(includeChildren) {
   if (includeChildren) {
     obj.Children = [];
     for (var i = 0; i < this.Children.length; ++i) {
-      obj.Children.push(this.Children[i].Serialize());
+      obj.Children.push(this.Children[i].Serialize(includeChildren));
     }
   }
   return obj;
@@ -828,20 +840,13 @@ function ToggleNotesWindow() {
 
 // Add a user note to the currently selected notes children.
 function NewCallback () {
-  POPUP_MENU.hide();
-  
-  // Clean up if the user was editing a note.
-  DeactivateEdit(true);
 
   // Create a new note.
   var childNote = new Note();
   childNote.Title = "New Note";
   var d = new Date();
-  this.Date = d.getTime(); // Temporary. Set for real by server.
+  childNote.Date = d.getTime(); // Temporary. Set for real by server.
 
-  NOTE_TITLE_ENTRY.val("New Note");
-  NOTE_TEXT_ENTRY.val("");
-  
   // Save the state of the viewers.
   childNote.ViewerRecords = [];
   //  Viewer1
@@ -866,12 +871,50 @@ function NewCallback () {
   parentNote.UpdateChildrenGUI();
   
   childNote.Select();
-  
-  // New notes are immediatly editable.
-  // What happens if cancel is selected?  We should delete the new note.
-  NOTE_EDIT_NEW = true;
-  EditCallback();
 }
+
+
+// Add a sibling note.
+// Do not copy children (maybe in the future?)
+function CloneCallback () {
+  var parentNote = NOTE_ITERATOR.GetParentNote();
+  if ( ! parentNote) { return; }
+  var note = NOTE_ITERATOR.GetNote();
+  var index = parentNote.Children.indexOf(note);
+  if (index < 0) { return; }
+  
+  // Create a new note.
+  var newNote = new Note();
+  newNote.Title = note.Title;
+  var d = new Date();
+  newNote.Date = d.getTime(); // Temporary. Set for real by server.
+
+  NOTE_TITLE_ENTRY.val(newNote.Title);
+  NOTE_TEXT_ENTRY.val(newNote.Text);
+  
+  // Save the state of the viewers.
+  newNote.ViewerRecords = [];
+  //  Viewer1
+  var viewerRecord = new ViewerRecord();
+  viewerRecord.CopyViewer(VIEWER1);
+  newNote.ViewerRecords.push(viewerRecord);
+  // Viewer2
+  if (DUAL_VIEW) {
+    var viewerRecord = new ViewerRecord();
+    viewerRecord.CopyViewer(VIEWER2);
+    newNote.ViewerRecords.push(viewerRecord);
+  }
+  
+  // Now insert the child after the current note.
+  parentNote.Children.splice(index+1,0,newNote);
+  // ParentId is how we retrieve notes from the database.
+  // It is the only tree structure saved.
+  newNote.ParentId = parentNote.Id;
+  parentNote.UpdateChildrenGUI();
+  
+  newNote.Select();
+}
+
 
 
 // TODO: Activate and inactivate save button based on user owning note
@@ -891,43 +934,17 @@ function EditCallback() {
   var iter = ROOT_NOTE.NewIterator();
   do {
     var note = iter.GetNote();
+    note.UpdateChildrenGUI();
     iter.Next();
-    if (note.Children.length > 1 && note.UserCanEdit()) {
-      var self = note;
-      note.ChildrenDiv.sortable({axis: "y",
-                                 containment: "parent",
-                                 update: function( event, ui ){self.ReorderChildren();}});
-      // Indicate the children are sortable...
-      note.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
-    }                                
   } while ( ! iter.IsEnd());
 
   window.onbeforeunload = function () {
     if (NOTE_EDIT_ACTIVE && SELECTED_NOTE.UserCanEdit()) {
       SELECTED_NOTE.RecordGUIChanges();
     }
-    return "Some changes have not been saved to database.";
+    return "Some changes have not been saved to the database.";
   }  
 }
-
-
-function CancelCallback() {
-  POPUP_MENU.hide();
-  if (NOTE_EDIT_ACTIVE) {
-    // Cancel edit
-    DeactivateEdit(false);
-    // This resets the old note values to the GUI / view/
-    SELECTED_NOTE.Select();
-
-    if (NOTE_EDIT_NEW) {
-      var parent = NOTE_ITERATOR.GetParentNote();
-      DeleteCallback();
-      parent.Select();
-    }
-    return;
-  }
-}
-
 
 
 // TODO: Activate and inactivate save button based on whether anything has changed.
@@ -983,6 +1000,7 @@ function SaveCallback() {
   
   POPUP_MENU_BUTTON.hide();
   NOTE_SAVE_BUTTON.hide();
+  NOTE_CLONE_BUTTON.hide();
   NOTE_DELETE_BUTTON.hide();
   NOTE_NEW_BUTTON.hide();
   NOTE_EDIT_BUTTON.show();
@@ -1224,6 +1242,12 @@ function InitNotesWidget() {
                                 .text("Delete")
                                 .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
                                 .click( DeleteCallback  );
+
+  NOTE_CLONE_BUTTON = $('<button>').appendTo(POPUP_MENU)
+                                .hide()
+                                .text("Clone")
+                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+                                .click( CloneCallback  );
 
   NOTE_SAVE_BUTTON = $('<button>').appendTo(POPUP_MENU)
                                   .hide()

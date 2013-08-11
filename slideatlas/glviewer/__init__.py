@@ -165,7 +165,7 @@ def glsingle(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('single.html', question=question, user=email))
+    return make_response(render_template('single.html', question=question, viewid = viewid, user=email))
     
 
 
