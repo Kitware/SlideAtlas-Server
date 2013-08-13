@@ -170,6 +170,8 @@ def sessions():
                     # Gets access to a limited number of sessions
                     for asession in ruleobj["can_see"]:
                         sessionobj = db["sessions"].Session.find_one({"_id" : asession})
+                        if sessionobj == None:
+                            continue
                         thissession = {'sessid' : str(sessionobj["_id"]),
                                                 'label' : sessionobj["label"],
                                                 'sessdb': str(dbobj["_id"])
