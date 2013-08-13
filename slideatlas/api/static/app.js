@@ -14,6 +14,9 @@
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userList.html"});
         $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/userNew.html"});
 
+        $routeProvider.when("/roles", {templateUrl: "/apiv1/static/partials/roleList.html"});
+        $routeProvider.when("/roles/edit/:idx", {templateUrl: "/apiv1/static/partials/roleEdit.html", controller:"RoleEditCtrl"});
+
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
@@ -323,12 +326,83 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     });
 
 
-app.controller("UserListCtrl", function ($scope, User, $location, Data) {
-        console.log("Refreshing UserListCtrl")
+app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
+        console.log("Refreshing UserListCtrl");
+
+        $scope.areAllSelected = false;
+        $scope.users = [];
 
         User.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
                 Data.setList(data.users);
                 $scope.users = Data.getList();
+                $scope.filtered_users = $scope.users;
+                //$scope.onAllSelected()
            });
+
+        $scope.onAllSelected = function() {
+            for( var i =0;i < $scope.filtered_users.length;i++){
+                $scope.filtered_users[i].isSelected = $scope.areAllSelected;
+                }
+        };
+
+        $scope.$watch('query',function(val){
+            console.log($scope.query)
+            $scope.filtered_users = $filter('filter')($scope.users, $scope.query);
+            console.log($scope.filtered_users.length)
+        });
+
     });
 
+app.factory('Role', function($resource) {
+    return $resource('rules/:id', {id:'@_id'},
+                 {
+            query: { method: 'GET', params: {}, isArray: false },
+            update:{ method: 'PUT'}
+              });
+  });
+
+
+app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
+        console.log("Refreshing RoleListCtrl");
+
+        Role.get({}, function(data) {
+                Data.setList(data.rules);
+                $scope.roles = Data.getList();
+           });
+
+        $scope.$watch('query',function(val){
+            //$scope.filtered_users = $filter('filter')($scope.users, $scope.query);
+        });
+
+    });
+
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter) {
+
+        var items = Data.getList()
+        var role = Data.getItem($routeParams.idx);
+        if(typeof role === 'undefined')
+            {
+//            alert("Item not found for editing");
+            $location.path("/roles") ;
+            return;
+            }
+
+        $scope.role = Role.get({id:role._id}, function() {
+            if(!$scope.role.hasOwnProperty("can_admin")) {
+                $scope.role.can_admin = [];
+            }
+            if(!$scope.role.hasOwnProperty("can_admin_all")) {
+                $scope.role.can_admin_all = false;
+            }
+            if(!$scope.role.hasOwnProperty("users")) {
+                $scope.role.users = [];
+            }
+        });
+
+
+        $scope.save = function () {
+            $scope.role.$update({id:$scope.role._id}, function(data){
+                $location.path("/roles");
+            });
+        }
+    });

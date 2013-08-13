@@ -1,25 +1,37 @@
      <div ng-controller="UserListCtrl">
          <br/>
-         Total Users : {{users.length }}
+         <h2> User Admin </h2>
+         <br/>
+         Selected Users : {{filtered_users.length }} of {{users.length }}
          <!--br/>
          Google Users : {{users.length }}
          <br/>
          Facebook Users : {{users.length }}
          <br/-->
-         <table class="table table-striped">
+         <br/>
+         <br/>
+         Filter by: <input type="text" ng-model="query" />
+         <table class="table">
             <thead>
                 <tr>
+                <td><h4> Selected <input ng-model="areAllSelected" ng-change="onAllSelected()" type="checkbox"/></h4> </td>
                 <td><h4>User name </h4></td>
-                <td><h4>type</h4></td>
-                <td> </td>
+                <td><h4>type</h4> </td>
+                <td><h4>Edit </h4> </td>
                 <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
                </tr>
            </thead>
-            <tr ng-repeat ="auser in users" >
-                <td>{{ auser.name }} </td>
+            <tr ng-repeat ="auser in filtered_users | filter:query" ng-class="{'success':auser.isSelected}">
+                <td> <input type="checkbox" ng-model="auser.isSelected"> </td>
+                <td>{{ auser.name }}  <ul ng-repeat ="arole in auser.rules"> <li> {{ arole }} </li> </ul></td>
                 <td>{{ auser.type }} </td>
                 <td><a href="#/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
                 <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
+
             </tr>
-  </div>
+         </table>
+
+         <!--pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre-->
+
+     </div>
 
