@@ -90,34 +90,32 @@ def sessions():
         if asession.has_key("views"):
             for aview in asession['views']:
                 viewobj = db["views"].find_one({"_id" : aview["ref"]})
-                #pdb.set_trace()
-                imgid = ""
-                label = ""
-                if "Type" in viewobj:
-                  if viewobj["Type"] == "Note" :
-                    imgid = viewobj["ViewerRecords"][0]["Image"]
-                    label = viewobj["Title"]
-                if imgid == "" :
-                  if "img" in viewobj :
-                    imgid = str(viewobj["img"])
-                if imgid != "" :
-                  imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
-                  if label == "" :
-                      label = imgobj["label"]
-                  if imgobj.has_key("thumb"):
-                      del imgobj['thumb']
+                # So I found a mismatch. Session had a viewid that did not exist.
+                # Should we clean up the broken reference?
+                if viewobj :
+                    imgid = 0
+                    label = ""
+                    if "Type" in viewobj:
+                      if viewobj["Type"] == "Note" :
+                        imgid = viewobj["ViewerRecords"][0]["Image"]
+                        label = viewobj["Title"]
+                    if imgid == 0 :
+                        imgid = str(viewobj["img"])
+                    imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
+                    if label == "" :
+                        label = imgobj["label"]
+                    if imgobj.has_key("thumb"):
+                        del imgobj['thumb']
+                    animage = {}
+                    animage['db'] = str(dbobj["_id"])
+                    animage["img"] = imgid;
+                    animage["label"] = label
+                    animage["view"] = str(aview["ref"])
+                    if "type" in viewobj:
+                        if viewobj["type"] == "comparison":
+                            animage["comparison"] = 1
 
-                animage = {}
-                animage['db'] = str(dbobj["_id"])
-                if imgid != "" :
-                  animage["img"] = imgid
-                animage["label"] = label
-                animage["view"] = str(aview["ref"])
-                if "type" in viewobj:
-                    if viewobj["type"] == "comparison":
-                        animage["comparison"] = 1
-
-                images.append(animage)
+                    images.append(animage)
 
 #        for animageid in images.keys():
 #            print images[animageid]['label']
