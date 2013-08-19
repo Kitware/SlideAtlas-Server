@@ -245,7 +245,11 @@ shape has visibility and
         // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
-  function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
+  function handleKeyUp(event) {
+        if (event.keyCode == 68) { D_DOWN = false;}
+        if (event.keyCode == 69) { E_DOWN = false;}
+  
+        EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");
     if (e && e.stopPropagation)

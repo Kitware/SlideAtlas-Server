@@ -501,7 +501,7 @@ Note.prototype.Select = function() {
     NOTE_TEXT_ENTRY.css({'border-style': 'inset',
                          'background': '#f5f8ff'});
     NOTE_DELETE_BUTTON.show();  
-    if (this.Children.length > 1 && this.ChildrenVisiblity) {
+    if (this.Children.length > 1 && this.ChildrenVisibility) {
       NOTE_RANDOM_BUTTON.show();
     }
   } else {
@@ -970,7 +970,10 @@ function CloneCallback () {
   var note = NOTE_ITERATOR.GetNote();
   var index = parentNote.Children.indexOf(note);
   if (index < 0) { return; }
-  
+
+  // Record any changes before we clone the note.
+  note.RecordGUIChanges();
+ 
   // Create a new note.
   var newNote = new Note();
   newNote.Title = note.Title;
@@ -1006,7 +1009,7 @@ function CloneCallback () {
 
 
 // TODO: Activate and inactivate save button based on user owning note
-// This callback is for both the edit and cancel behaviors.
+// This callback is for both the edit and cancel behaviours.
 function EditCallback() {
 
   NOTE_EDIT_ACTIVE = true;
