@@ -565,7 +565,10 @@ Note.prototype.DisplayGUI = function(div) {
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
+<<<<<<< HEAD
   obj.Type = this.Type;
+=======
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
   obj.User = this.User;
   obj.Date = this.Date;
   obj.ParentId = this.ParentId;
@@ -591,7 +594,10 @@ Note.prototype.Serialize = function(includeChildren) {
 // This method of loading is causing a pain.
 // Children ...
 Note.prototype.Load = function(obj){
+<<<<<<< HEAD
   // Shared (superclass?)
+=======
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
@@ -689,8 +695,7 @@ Note.prototype.LoadSessionData = function(data) {
 }
 
 
-// I am going to create two notes for each bookmark so the annotations appear
-// like question and answer.
+
 Note.prototype.LoadBookmark = function(data) {
   if ( ! ARGS) { return; }
   
@@ -708,6 +713,57 @@ Note.prototype.LoadBookmark = function(data) {
 }
 
 
+<<<<<<< HEAD
+=======
+function SaveUserNote() {
+  // Create a new note.
+  var childNote = new Note();
+  var d = new Date();
+  this.Date = d.getTime(); // Also reset later.
+
+  childNote.Text = NOTE_TEXT_ENTRY.val();
+  NOTE_TEXT_ENTRY.val("");
+  childNote.ViewerRecords = [];
+  //  Viewer1
+  var viewerRecord = new ViewerRecord();
+  viewerRecord.CopyViewer(VIEWER1);
+  childNote.ViewerRecords.push(viewerRecord);
+  // Viewer2
+  if (DUAL_VIEW) {
+    var viewerRecord = new ViewerRecord();
+    viewerRecord.CopyViewer(VIEWER2);
+    childNote.ViewerRecords.push(viewerRecord);
+  }
+  
+  // Now add the note as the last child to the current note.
+  parentNote = NOTE_ITERATOR.GetNote();
+  parentNote.Children.push(childNote);
+  // ParentId is how we retrieve notes from the database.
+  // It is the only tree structure saved.
+  childNote.ParentId = parentNote.Id;
+  // Expand the parent so that the new note is visible.
+  parentNote.ChildrenVisible = true;
+
+  // Save the note in the database for this specific user.
+  // TODO: If author privaleges, save note in the actual session / view.
+  var dbid = ARGS.Viewer1.db;
+  var bug = JSON.stringify( childNote );
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/saveusernote",
+    data: {"note": JSON.stringify(childNote.Serialize(false)),
+           "db"  : SESSION_DB,
+           "date": d.getTime()},
+    success: function(data,status) { childNote.Id = data;},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
+  
+  // Redraw the GUI. should we make the parent or the new child active?
+  // If we choose the child, then we need to update the iterator,
+  // which will also update the gui and viewers.
+  NextNoteCallback();
+}
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
 
 
 // Get any children notes (this note as parent)
@@ -827,10 +883,9 @@ function BookmarksCallback (data, status) {
   if (status == "success") {
     var length = data.Bookmarks.length;
     for(var i=0; i < length; i++){
-      // I am going to create two notes for each bookmark so the annotations appear
-      // like question and answer.
       var note = new Note();
       note.LoadBookmark(data.Bookmarks[i]);
+<<<<<<< HEAD
       note.Title = "Question";
       note.Text = "";
       note.Type = "Bookmark";
@@ -844,6 +899,12 @@ function BookmarksCallback (data, status) {
       note.AddChild(note2);
       }
     ROOT_NOTE.UpdateChildrenGUI();
+=======
+      ROOT_NOTE.Children.push(note);
+    }
+    // Load the root note.
+    DisplayNote(NOTE_ITERATOR.GetNote());
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
   } else { alert("ajax failed."); }
   NOTE_ITERATOR.GetNote().Select();
 }
@@ -1206,11 +1267,39 @@ function InitNotesWidget() {
     
   // The next three elements are to handle the addition of comments.  Currently placeholders.
   // The top div wraps the text field and the submit button at the bottom of the widget.
+<<<<<<< HEAD
   var noteDetailDiv = $('<div>').appendTo(NOTE_WINDOW)
     .css({'position': 'absolute',
           'width': '100%',
           'top': '60%',
           'height': '40%'});
+=======
+  var commentTextFieldWrapper = $('<div>').appendTo(NOTE_WINDOW)
+    .css({
+      'position': 'absolute',
+      'width': '96%',
+      'margin': '0 auto',
+      'bottom': '15px'
+    });
+  
+  NOTE_TEXT_ENTRY = $('<textarea>').appendTo(commentTextFieldWrapper)
+                                   .css({
+                                      'position': 'relative',
+                                      'width': '98%',
+                                      'left': '2%',
+                                      'top': '5px',
+                                      'bottom-margin': '50px',
+                                      'height': '70px',
+                                      'resize': 'none'
+                                   });
+    
+  var commentButtonWrapper = $('<div>').appendTo(commentTextFieldWrapper)
+                                       .css({
+                                          'float': 'right',
+                                          'top': '7px',
+                                          'bottom': '7px'
+                                       });
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
   
   NOTE_TITLE_ENTRY = $('<textarea>').appendTo(noteDetailDiv)
                                     .css({'position': 'absolute',
@@ -1332,4 +1421,41 @@ function InitNotesWidget() {
 
 
 
+<<<<<<< HEAD
+=======
+function ToggleNotesWindow() {
+  NOTES_VISIBILITY = ! NOTES_VISIBILITY;
+  RecordState();
+
+  if (NOTES_VISIBILITY) {
+    NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
+    NOTES_ANIMATION_TARGET = 0.2;
+  } else {
+    TOP_NOTE_WRAPPER_DIV.hide();
+    NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
+    NOTES_ANIMATION_TARGET = 0.0;
+  }
+  NOTES_ANIMATION_LAST_TIME = new Date().getTime();
+  NOTES_ANIMATION_DURATION = 1000.0;
+  AnimateNotesWindow();
+}
+
+function AnimateNotesWindow() {
+  var timeStep = new Date().getTime() - NOTES_ANIMATION_LAST_TIME;
+  if (timeStep > NOTES_ANIMATION_DURATION) {
+    // end the animation.
+    NOTES_FRACTION = NOTES_ANIMATION_TARGET;
+    handleResize();
+    if (NOTES_VISIBILITY) {
+      NOTE_WINDOW.fadeIn();
+    }
+  return;
+  }
+  
+  var k = timeStep / NOTES_ANIMATION_DURATION;
+    
+  // update
+  NOTES_ANIMATION_DURATION *= (1.0-k);
+  NOTES_FRACTION += (NOTES_ANIMATION_TARGET-NOTES_FRACTION) * k;
+>>>>>>> a0e0004f37a4cac356c7aeae512ec6097c01ef89
   

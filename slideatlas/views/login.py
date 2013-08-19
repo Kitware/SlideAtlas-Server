@@ -1,12 +1,17 @@
-
+from bson.objectid import ObjectId
+import flask
 from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
 from flask_openid import OpenID
 from flask_oauth import OAuth
+import smtplib
+from email.mime.text import MIMEText
 
-from slideatlas.common_utils import DBAccess
+from slideatlas.common_utils import DBAccess, nicepass
+import bson
 
 from slideatlas import model, app
 from slideatlas  import slconn as conn
+
 
 mod = Blueprint('login', __name__)
 oid = OpenID()
@@ -27,25 +32,259 @@ facebook = oauth.remote_app('facebook',
 @mod.route("/login")
 def login():
     """
+    Displays various login options, including signup
     """
     return render_template('login.html')
+
+@mod.route("/login.signup", methods=['GET', 'POST'])
+def login_signup():
+    """
+    "Displays the signup template when getting
+    else processes signup request when posting
+    """
+    if request.method == "POST":
+        name = request.form["name"]
+        emailto = request.form["email"]
+
+        # Check whether that user exists
+        conn.register([model.User])
+        admindb = conn[current_app.config["CONFIGDB"]]
+
+        user = admindb["users"].User.find_one({"name" : emailto, "type" : "passwd"})
+
+        if user != None:
+            return flask.Response("{\"error\" :  \"User exists\"}")
+
+        # Create accout and a random tocken
+        token = bson.ObjectId()
+
+        # Not found, create one
+        userdoc = admindb["users"].User()
+        userdoc["type"] = 'passwd'
+        userdoc["name"] = emailto
+        userdoc["label"] = name
+        userdoc["token"] = token
+        userdoc["password_status"] = "new"
+        userdoc.validate()
+        userdoc.save()
+
+        # Create email
+        emailfrom  = "dhanannjay.deo@kitware.com"
+
+        body = "Hello " + name + ",\n\n"
+        body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
+        body = body + "\n     " + url_for('.login_confirm', _external=True) + "?token=" + str(token) + " \n"
+        body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
+        body = body + "\nThis link will work only once, and will let you create a new password. \n"
+        body = body + "\nIf you did not enter this address as your contact email, please disregard this message.\n"
+        body = body + "\nThank you,\nThe SlideAtlas Administration Team\n"
+
+        # Create a text/plain message
+        msg = MIMEText(body)
+
+        # me == the sender's email address
+        # you == the recipient's email address
+        msg['Subject'] = 'Account email confirmation for slide-atlas.org'
+        msg['From'] = emailfrom
+        msg['To'] = emailto
+        s = smtplib.SMTP('public.kitware.com')
+        try:
+            out = s.sendmail(emailfrom, [emailto], msg.as_string())
+        except:
+            return flask.Response("{\"error\" :  \"Error sending email\"}")
+
+        s.quit()
+        return flask.Response("{\"success\" :  \"" + str(out) + "\"}")
+    else:
+        # Only two methods supported
+        return render_template('signup.html')
+
+@mod.route("/login.confirm")
+def login_confirm():
+    """
+    End point after login creation or password reset requests
+    Verifies that the request is legitimate and when in good standing
+    follows up with password reset
+    Logs the user in
+    """
+    token = bson.ObjectId(request.args["token"])
+
+    # Check whether that user exists
+    conn.register([model.User])
+    admindb = conn[current_app.config["CONFIGDB"]]
+
+    user = admindb["users"].User.find_one({"token" : token})
+
+    if user == None:
+        flash("Confirmation link expired or invalid", "error")
+        return redirect('/home')
+
+    # Remove the token
+    del user["token"]
+
+    if user["password_status"] == "new":
+        flash("Success, Your email is confirmed, please continue by setting the password here", "success")
+
+    elif user["password_status"] == "reset-request":
+        flash("Success, Your request for password reset is verified , please reset the password here", "success")
+
+    user["password_status"] = "reset"
+    user.validate()
+    user.save()
+
+    # Todo: do user login
+    do_user_login(user)
+
+    return redirect('/login.reset')
+
+@mod.route('/login.reset.request', methods=['GET', 'POST'])
+def login_resetrequest():
+    """
+    End point for password reset request
+    Asks user for a valid email and posts back, if the account exists, sends out email for password reset.
+    Follows up with login.signup if an account for that email is not found, or
+    login.confirm if the valid account is found.
+    """
+    if request.method == "GET":
+        # In browser request that user wants to reset the password
+        return flask.render_template('reset-request.html', message="Please reset the password")
+
+    if request.method == "POST":
+        # Create a token
+        email = flask.request.form["email"]
+
+        # Find if an account with that name exists
+        conn.register([model.User])
+        admindb = conn[current_app.config["CONFIGDB"]]
+
+        userdoc = admindb["users"].User.find_one({"name" : email, "type" : "passwd"})
+        if userdoc == None:
+            # user not found
+            return flask.Response('{"error" : "User not found"}')
+
+        # First reset the password
+        name = userdoc["label"]
+        emailto = userdoc["name"]
+
+        # Create accout and a random tocken
+        userdoc["token"] = bson.ObjectId()
+        userdoc["password_status"] = "reset-request"
+
+        # May only be useful for some
+        if "password_ready" in userdoc:
+            del userdoc["password_ready"]
+
+        userdoc.validate()
+        userdoc.save()
+
+        # Create email
+        emailfrom  = "dhanannjay.deo@kitware.com"
+
+        body = "Hello " + name + ",\n\n"
+        body = body + "You recently requested a password reset for your account at https://slide-atlas.org."
+        body = body + "\n To complete the request operation please follow the link below- \n"
+        body = body + "\n     " + url_for('.login_confirm', _external=True) + "?token=" + str(userdoc["token"]) + " \n"
+        body = body + "\nIf clicking on the link doesn't work, try copying and pasting it into your browser.\n"
+        body = body + "\nThis link will work only once, and will let you create a new password. \n"
+        body = body + "\nIf you did not request password reset, please disregard this message.\n"
+        body = body + "\nThank you,\nThe SlideAtlas Administration Team\n"
+
+        # Create a text/plain message
+        msg = MIMEText(body)
+
+        # me == the sender's email address
+        # you == the recipient's email address
+        msg['Subject'] = 'Password reset confirmation for slide-atlas.org'
+        msg['From'] = emailfrom
+        msg['To'] = emailto
+        print msg
+        s = smtplib.SMTP('public.kitware.com')
+        try:
+            out = s.sendmail(emailfrom, [emailto], msg.as_string())
+        except:
+            return flask.Response("{\"error\" :  \"Error sending email\"}")
+
+        s.quit()
+        return flask.Response("{\"success\" :  \"" + str(out) + "\"}")
+
+
+@mod.route('/login.reset', methods=['GET', 'POST'])
+def login_reset():
+    """
+    Asks user for a password and its match. Posts back in the same session.
+    Updates the password state in the currently logged in user
+    User must be logged in already (generally by login.confirm)
+    """
+    # Start with the currently logged in user
+
+    if request.method == "GET":
+        # In browser request that user wants to reset the password
+        # Create a token
+        # Send out an email
+        #
+        return flask.render_template('profile.html', name=session["user"]["label"], email=session["user"]["email"])
+
+    if request.method == "POST":
+        # In browser request that user wants to reset the password
+        label = flask.request.form["label"]
+        passwd = flask.request.form["passwd"]
+
+        # Verify that the user is logged in or return
+        if not session.has_key("user"):
+            return flask.Response('{"error" : "User not logged in" }')
+        else:
+            # Chagne the information in the session
+            session["user"]["label"] = label
+            # Locate the record
+            conn.register([model.User])
+            dbobj = conn[current_app.config["CONFIGDB"]]
+            userdoc = dbobj["users"].User.find_one({'_id' : ObjectId(session["user"]["id"])})
+            userdoc["passwd"] = passwd
+            userdoc["password_status"] = "ready"
+            userdoc["label"] = label
+            userdoc.validate()
+            userdoc.save()
+
+            return flask.Response('{"success" : "" }')
+
 
 
 @mod.route('/login.passwd', methods=['GET', 'POST'])
 def login_passwd():
-    # Try to find the user
+    """
+    Processes login request.
+    Logs the user tryign to login with valid password.
+    follows up with do_user_login
+    """
     conn.register([model.User])
     admindb = conn[current_app.config["CONFIGDB"]]
 
-    user = admindb["users"].User.find_one({"name" : request.form['username']})
+    user = admindb["users"].User.find_one({"name" : request.form['username'], "type" : "passwd"})
     if user == None:
         flash('User not found ' + request.form['username'], "error")
-        return redirect('/home')
+        return redirect('/login')
+
+    if not ("password_status" in user):
+        user["password_status"] = "ready"
+        user.save()
+
+    if user["password_status"] == "new" :
+        flash("Account email confirmation pending. Please use reset password link on the login page if you want confirmation email to be sent again", "error")
+        return redirect('/login')
+
+    if user["password_status"] == "reset-request" :
+        flash("Account password reset pending. Please use reset password link on the login page if you want password reset email to be sent again", "error")
+        return redirect('/login')
+
+
+    # Now password_status == ready !
+
     if user["passwd"] != request.form['passwd']:
-        flash('Authentication', "error")
-        return redirect('/home')
+        flash('Authentication error. Password rejected', "error")
+        return redirect('/login')
     else:
-        return do_user_login(user)
+        do_user_login(user)
+        return redirect('/sessions')
 
 @mod.route('/login.facebook')
 def login_facebook():
@@ -69,7 +308,7 @@ def facebook_authorized(resp=None):
     # Check if the user exists
     conn.register([model.User])
     dbobj = conn[current_app.config["CONFIGDB"]]
-    userdoc = dbobj["users"].User.fetch_one(
+    userdoc = dbobj["users"].User.find_one(
                             {'type' : 'facebook',
                             'name' : me.data['email']
                             })
@@ -86,7 +325,9 @@ def facebook_authorized(resp=None):
         pass
         flash('Facebook account exists', 'info')
 
-    return do_user_login(userdoc)
+    do_user_login(userdoc)
+    return redirect('/sessions')
+
 
 @facebook.tokengetter
 def get_facebook_oauth_token():
@@ -109,7 +350,7 @@ def login_google(oid_response=None):
         # Check if the user exists
         conn.register([model.User])
         dbobj = conn[current_app.config["CONFIGDB"]]
-        userdoc = dbobj["users"].User.fetch_one(
+        userdoc = dbobj["users"].User.find_one(
                                 {'type' : 'google',
                                 'name' : oid_response.email
                                 })
@@ -126,7 +367,8 @@ def login_google(oid_response=None):
             pass
 #            flash('Existing account located', 'info')
 
-        return do_user_login(userdoc)
+        do_user_login(userdoc)
+        return redirect('/sessions')
 
 
 
@@ -147,6 +389,11 @@ def do_user_login(user):
     session['site_admin'] = False
     session['last_activity'] = user["last_login"]
     # Also add the rules information to the session
+    if not (ObjectId(current_app.config["DEMO_RULE"]) in user["rules"]):
+        user["rules"].append(ObjectId(current_app.config["DEMO_RULE"]))
+
+    user.save()
+
     # Loop over the rules
     accesses = { }
     for arule in user["rules"]:
@@ -170,7 +417,7 @@ def do_user_login(user):
             session["site_admin"] = True
 
     # Insert that information in the session
-    # In future, session may contain only session it, 
+    # In future, session may contain only session it,
     # and this could get into database
 
 #    For debugging
@@ -180,5 +427,4 @@ def do_user_login(user):
 #    flash("Site admin : " + str(session["site_admin"]), "info")
 
 
-    flash('You were successfully logged in. ', 'success')
-    return redirect('/home')
+    flash('You are successfully logged in.', 'success')

@@ -13,17 +13,19 @@ class User(mongokit.Document):
     use_schemaless = True
     structure = {
         'type' : basestring,
-        'name' : basestring, # is email
+        'name' : basestring, # is email, to be interpreted as name of the account
         'label' : basestring,
         'rules' : [ObjectId],
         'last_login' : datetime.datetime,
         'first_login' : datetime.datetime,
+        'token' : ObjectId,
+        'password_status' : basestring,
         }
 
     default_values = {
              'rules': [],
              'last_login': datetime.datetime.utcnow(),
-             'first_login' :datetime.datetime.utcnow()
+             'first_login' :datetime.datetime.utcnow(),
              }
 
 #    migration_handler = UserMigration

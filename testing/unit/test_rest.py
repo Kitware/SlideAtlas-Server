@@ -263,9 +263,20 @@ class APIv1_Tests(unittest.TestCase):
         obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
         self.failIf(obj.has_key("error"))
 
-        # Query it back and check 
-        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
-        self.failUnlessEqual(obj['_id'], obj2["_id"])
+    def testAPIPurgeSession(self):
+        self.login_admin()
+        newsession = dict(insert={
+                      "label" : "New Session for DJ"
+                      }
+                    )
+        self.fail("Not implemented")
+
+#        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
+#        self.failIf(obj.has_key("error"))
+#
+#        # Query it back and check 
+#        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
+#        self.failUnlessEqual(obj['_id'], obj2["_id"])
 
 #        obj2["label"] = "Modified"
 #
@@ -276,11 +287,11 @@ class APIv1_Tests(unittest.TestCase):
 #        self.failUnlessEqual(obj2["label"], obj4["label"])
 #
         # Now test if the database record can be deleted 
-        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
-
-        # This should fail
-        rv = self.app.get("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
-        self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
+#        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
+#
+#        # This should fail
+#        rv = self.app.get("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
+#        self.failUnless(rv.status_code == 405, 'Status code is %d' % rv.status_code)
 
     def parseResponse(self, url, postdata=None, method="get"):
         if method == "get":

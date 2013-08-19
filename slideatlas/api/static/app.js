@@ -1,7 +1,7 @@
 /**
  * @author dhanannjay.deo
  */
- 
+
  var app = angular.module('adminapi',["ngResource" ]).
     config(
      function ($routeProvider) {
@@ -11,8 +11,11 @@
         $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
         // $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
 
-        $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userlist.html"});
-        $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/usernew.html"});
+        $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userList.html"});
+        $routeProvider.when("/users/new", {templateUrl: "/apiv1/static/partials/userNew.html"});
+
+        $routeProvider.when("/roles", {templateUrl: "/apiv1/static/partials/roleList.html"});
+        $routeProvider.when("/roles/edit/:idx", {templateUrl: "/apiv1/static/partials/roleEdit.html", controller:"RoleEditCtrl"});
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
@@ -25,15 +28,24 @@
     });
 
 app.factory('Database', function($resource) {
-    return $resource('databases/:dbid', {dbid:'@_id'}, 
+    return $resource('databases/:dbid', {dbid:'@_id'},
                  {
             query: { method: 'GET', params: {}, isArray: false },
             update:{ method: 'PUT'}
               });
   });
 
+app.factory('User', function($resource) {
+    return $resource('users/:id', {id:'@_id'},
+                 {
+            query: { method: 'GET', params: {}, isArray: false },
+            update:{ method: 'PUT'}
+              });
+  });
+
+
 app.factory('Session', function($resource) {
-    return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@sessid'}, 
+    return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@sessid'},
                  {
             query: { method: 'GET', params: {}, isArray: true },
               });
@@ -45,16 +57,16 @@ app.factory('SessionItem', function($resource) {
 
 
 
-  
+
 app.factory('Data', function() {
     var methods = {};
-    
-    methods.databases ={}; 
-    
+
+    methods.databases ={};
+
     methods.getItem = function (idx) {
         return this.databases[idx];
     };
-    
+
     methods.getList = function () {
         return this.databases;
     };
@@ -65,9 +77,9 @@ app.factory('Data', function() {
     methods.removeItem = function(idx){
             this.databases.splice(idx,1)
     };
-    
+
     return methods;
-              
+
     });
 
 app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database, Data)
@@ -75,10 +87,10 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         // console.log("Refreshing edit")
         // Locate the object
         var dbs = Data.getList()
-        
+
         // for(adb in dbs)
         // { console.log(dbs[adb]);}
-        
+
         var db = Data.getItem($routeParams.idx);
         if(typeof db === 'undefined')
             {
@@ -90,12 +102,12 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
         console.log(db)
 
         $scope.database = Database.get({dbid:db._id})
-        
+
         $scope.save = function () {
             $scope.database.$update({dbid:$scope.database._id}, function(data){
                 $location.path("/databases");
                 }
-                ); 
+                );
         }
     });
 
@@ -116,28 +128,28 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
         // Locate the object
         console.log("Refreshing dbDetailsCtrl" + $routeParams.dbid)
         $scope.dbid = $routeParams.dbid;
-        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
         {
         $scope.sessions = data.sessions
         });
 
-        
+
         //Session.get({dbid: $routeParams.dbid}, function(data) {
         //    Data.setList(data.sessions);
         //    $scope.sessions = Data.getList();
         //    }
         //);
-        
-        $scope.deletesession = function(idx) 
+
+        $scope.deletesession = function(idx)
         {
         // Locate the object
         var sess = $scope.sessions[idx]
-        if (confirm("Remove attachment " + sess.label + '?')) 
+        if (confirm("Remove attachment " + sess.label + '?'))
             {
             Session.delete({dbid:$scope.dbid, sessid: sess._id},
                 function(data) {
                     console.log("success in deletion");
-                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
                         {
                         $scope.sessions = data.sessions
                         });
@@ -145,7 +157,7 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
             }
         }
 
-        
+
     });
 
 app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
@@ -155,7 +167,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         $scope.dbid = $routeParams.dbid;
         $scope.sessid = $routeParams.sessid;
         $scope.type = $routeParams.type;
-        
+
         $scope.$evalAsync( function () {
             var urlstr = "/apiv1/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
             var _id = ""
@@ -176,7 +188,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                     submit: function(e,data) {
                         var $this = $(this);
                         $.post(urlstr, {"insert" : 1 },
-                            function (result) 
+                            function (result)
                                 {
                                 data.formData = result; // e.g. {id: 123}
                                 _id = result._id
@@ -185,7 +197,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                                 $this.fileupload('send', data);
                             });
                         return false;
-                    },       
+                    },
                     fail: function (e, data) {
                         $('#status').text('Upload failed ...');
                         var progress = 0;
@@ -194,7 +206,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                             progress + '%'
                         );
                     },
-            
+
                     done: function (e, data) {
                         $("status").text('Upload finished.');
                     },
@@ -208,7 +220,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                     }
                 });
         });
-        
+
         //Session.get({dbid: $routeParams.dbid}, function(data) {
         //    Data.setList(data.sessions);
         //    $scope.sessions = Data.getList();
@@ -219,8 +231,8 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
 
 
 app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
-    {   
-        // For modifying session as a whole  
+    {
+        // For modifying session as a whole
         // Locate the object
         console.log("Refreshing sessEditCtrl" + $routeParams.dbid)
 
@@ -232,28 +244,28 @@ app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Databa
     });
 
 app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session, SessionItem)
-    {   
-        // For modifying session as a whole  
+    {
+        // For modifying session as a whole
         // Locate the object
         console.log("Refreshing sessDetailsCtrl with dbid=" + $routeParams.dbid + " and sessid =" + $routeParams.sessid)
         $scope.dbid = $routeParams.dbid
         $scope.sessid = $routeParams.sessid
-        
+
         Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) {
            $scope.session = data
            }
         );
-        
-        $scope.deletefile = function(idx) 
+
+        $scope.deletefile = function(idx)
         {
         // Locate the object
         var attach = $scope.session.attachments[idx]
         console.log(attach)
-        if (confirm("Remove attachment " + attach.details.name + '?')) 
+        if (confirm("Remove attachment " + attach.details.name + '?'))
             {
-            SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref}, 
+            SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref},
                 function(data) {
-                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) 
+                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
                         {
                         $scope.session = data
                         });
@@ -272,13 +284,13 @@ app.controller("dbListCtrl", function ($scope, Database, $location, Data)
         $scope.databases = Data.getList();
         }
     );
-    
-    $scope.delete = function(idx) 
+
+    $scope.delete = function(idx)
         {
         // Locate the object
-        var db = Data.getItem(idx) 
+        var db = Data.getItem(idx)
         console.log(db)
-        if (confirm("Remove database " + db.dbname + '?')) 
+        if (confirm("Remove database " + db.dbname + '?'))
             {
             Database.delete({dbid:db._id}, function(data) {
                 Data.removeItem(idx);
@@ -297,13 +309,13 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
         $scope.sessions = Data.getList();
         }
     );
-    
-    // $scope.delete = function(idx) 
+
+    // $scope.delete = function(idx)
     //     {
     //     // Locate the object
-    //     var db = Data.getItem(idx) 
+    //     var db = Data.getItem(idx)
     //     console.log(db)
-    //     if (confirm("Remove database " + db.dbname + '?')) 
+    //     if (confirm("Remove database " + db.dbname + '?'))
     //         {
     //         Database.delete({dbid:db._id}, function(data) {
     //             Data.removeItem(idx);
@@ -312,5 +324,85 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     //         }
     //     };
     });
-    
 
+
+app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
+        console.log("Refreshing UserListCtrl");
+
+        $scope.areAllSelected = false;
+        $scope.users = [];
+
+        User.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
+                Data.setList(data.users);
+                $scope.users = Data.getList();
+                $scope.filtered_users = $scope.users;
+                //$scope.onAllSelected()
+           });
+
+        $scope.onAllSelected = function() {
+            for( var i =0;i < $scope.filtered_users.length;i++){
+                $scope.filtered_users[i].isSelected = $scope.areAllSelected;
+                }
+        };
+
+        $scope.$watch('query',function(val){
+            console.log($scope.query)
+            $scope.filtered_users = $filter('filter')($scope.users, $scope.query);
+            console.log($scope.filtered_users.length)
+        });
+
+    });
+
+app.factory('Role', function($resource) {
+    return $resource('rules/:id', {id:'@_id'},
+                 {
+            query: { method: 'GET', params: {}, isArray: false },
+            update:{ method: 'PUT'}
+              });
+  });
+
+
+app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
+        console.log("Refreshing RoleListCtrl");
+
+        Role.get({}, function(data) {
+                Data.setList(data.rules);
+                $scope.roles = Data.getList();
+           });
+
+        $scope.$watch('query',function(val){
+            //$scope.filtered_users = $filter('filter')($scope.users, $scope.query);
+        });
+
+    });
+
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter) {
+
+        var items = Data.getList()
+        var role = Data.getItem($routeParams.idx);
+        if(typeof role === 'undefined')
+            {
+//            alert("Item not found for editing");
+            $location.path("/roles") ;
+            return;
+            }
+
+        $scope.role = Role.get({id:role._id}, function() {
+            if(!$scope.role.hasOwnProperty("can_admin")) {
+                $scope.role.can_admin = [];
+            }
+            if(!$scope.role.hasOwnProperty("can_admin_all")) {
+                $scope.role.can_admin_all = false;
+            }
+            if(!$scope.role.hasOwnProperty("users")) {
+                $scope.role.users = [];
+            }
+        });
+
+
+        $scope.save = function () {
+            $scope.role.$update({id:$scope.role._id}, function(data){
+                $location.path("/roles");
+            });
+        }
+    });

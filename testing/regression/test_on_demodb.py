@@ -13,26 +13,35 @@ class DemoTests(unittest.TestCase):
     def setUp(self):
 #        self.driver = webdriver.Chrome()
         self.driver = webdriver.Firefox()
-        self.driver.maximize_window()
-        self.driver.implicitly_wait(100)
+        self.driver.set_window_size(1000, 1000)
+#        self.driver.maximize_window()
+#        self.driver.implicitly_wait(1)
         self.base_url = "http://mongol:8080/"
         self.verificationErrors = []
 
     def test_demo_tests(self):
+        print "Testing demo .."
         driver = self.driver
         driver.get("http://mongol:8080/logout")
+#        self.driver.maximize_window()
+        self.driver.execute_script("window.resizeTo(1100,1100);")
+        sleep(2)
         driver.find_element_by_link_text("Home").click()
-        driver.find_element_by_link_text("logout").click()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_link_text("login").click()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_id("username").clear()
-        driver.find_element_by_id("username").send_keys("all_deo")
-        driver.find_element_by_id("username").clear()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_id("username").send_keys("all_demo")
+        self.driver.implicitly_wait(1)
         driver.find_element_by_css_selector("button[type=\"submit\"]").click()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_link_text("sessions").click()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_link_text("Skin").click()
+        self.driver.implicitly_wait(1)
         driver.find_element_by_link_text("4815 - 2010-10-06 16.32.21.ndpi").click()
-        sleep(3)
+        sleep(5)
         driver.save_screenshot('demo_glview.png')
 
         print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"

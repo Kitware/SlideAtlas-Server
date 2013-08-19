@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+
+{% block body_content %}
+{{ super() }}
+<script src="/static/js/jquery-1.9.1.min.js"></script>
+<script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
+
+<script>
+    $(document).ready(function (){
+         $("#signup").submit(function(event) {
+
+            event.preventDefault();
+
+            $("#signup input").attr("disabled","disabled");
+            $("#signup button").attr("disabled","disabled");
+
+            $.ajax({
+                type: "POST",
+                url : "/login.signup",
+                data: { name: $("#name").val(), email : $("#email").val() },
+                success : function( data ) {
+                        data = JSON.parse(data);
+                        if(data.hasOwnProperty("success")) {
+                            console.log("Success in submisison");
+                            show_alert('We have sent an e-mail at "' + $("#email").val() + '". Please follow the instructions to continue with signup.', "success");
+                        }
+                        if(data.hasOwnProperty("error")) {
+                            console.log("Error in submisison");
+                            show_alert("Error in new account creation, " + data["error"] + ". You can reset the password if you have forgotten", "error");
+
+                            $("#signup input").removeAttr("disabled");
+                            $("#signup button").removeAttr("disabled");
+                        }
+                    },
+                error : function (data){
+                        console.log("Error in submisison");
+                        console.log(data);
+                }
+            });
+        });
+    });
+
+</script>
+
+
+<div class="container">
+    <div class="row">
+        <div class="span8">
+           <h1>Welcome to Slide Atlas</h1>
+           <h3> New account information </h3>
+        </div>
+    </div>
+    <br/>
+    <div class="row">
+        <form action="/asa" method="post" id="signup">
+        <div class="span8">
+            <div>
+                <label for="name">Your full name:</label>
+                <input type="text" name="name" id="name" pattern="[A-Za-z0-9 ]{3,30}" required title="Full name should be 3-30 alpha-numeric characters">
+            </div>
+            <div>
+                <label for="email" >Email:</label>
+                <input type="email" name="email" id="email" required title="Please enter a valid email here">
+            </div>
+                <button type="submit" class="btn">Sign Up</button>
+        </div>
+        </form>
+    </div>
+
+    <br/>
+
+    <div class="row">
+        <div class="span8">
+            <p> Your email address will be used to identify your affiliation to courses so that correct slides are provided to you. </p>
+            <p> Slide-atlas will not share your email address with anybody else and will not use it for any other purpose than slide-atlas. </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
