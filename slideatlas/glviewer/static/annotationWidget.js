@@ -62,7 +62,7 @@ function AnnotationWidget (viewer) {
   $('<img>').appendTo(this.ToolsTable)
     .css({'height': '28px'})
     .attr('type','image')
-    .attr('src',"webgl-viewer/static/Pencil-icon.png")
+    .attr('src',"webgl-viewer/static/Pencil-icon.jpg")
     .click(function(){self.NewPencil();});
 }
 

@@ -25,18 +25,19 @@
 
 function ViewerRecord () {
   this.Database = "";
-  this.Collection = "";
+  this.Image = ""; // The image collection
   this.NumberOfLevels = 0;
 }
 
+// Bookmark is legacy schema
 ViewerRecord.prototype.LoadBookmark = function(data) {
   // Hack.  I should probably get the source from data.img
   // However, this would require a post to get info.
   // Since booksmarks are slated to be depreciated,
   // I will just hack this. (copy from viewer).
   var cache = VIEWER1.GetCache();    
-  this.Database = cache.Database;
-  this.Collection = cache.Collection;
+  this.Database = cache.DatabaseId;
+  this.Image = cache.ImageId;
   this.NumberOfLevels = cache.NumberOfLevels;
   
   var cameraRecord = {};
@@ -68,12 +69,14 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
 // view args format. Get rid of this asap.
 ViewerRecord.prototype.LoadRootViewer = function(data) {
   // Hack. data is in args  but ....
+  var bds = [0,data.dimensions[0], 0,data.dimensions[1]];
   var cache = new Cache(data.db, 
-                        data.collection, 
-                        data.levels);
+                        data.image, 
+                        data.levels,
+                        bds);
 
   this.Database = data.db;
-  this.Collection = data.collection;
+  this.Image = data.image;
   this.NumberOfLevels = data.levels;
 
   var cameraRecord = {};
@@ -88,8 +91,9 @@ ViewerRecord.prototype.LoadRootViewer = function(data) {
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
   if ( ! cache) { 
+    this.Bounds = [0,10000,0,10000];
     this.Database = "";
-    this.Collection = "";
+    this.Image = "";
     this.NumberOfLevels = 0;
     this.Camera = null;
     this.AnnotationVisibility = false;
@@ -97,11 +101,12 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     return;
   }
     
-  this.Database = cache.Database;
-  this.Collection = cache.Collection;
+  this.Database = cache.DatabaseId;
+  this.Image = cache.ImageId;
   // I could get this from the image / collection.
   this.NumberOfLevels = cache.NumberOfLevels;
-
+  this.Bounds = cache.Bounds;
+  
   var cam = viewer.GetCamera();
   var cameraRecord = {};
   cameraRecord.FocalPoint = cam.GetFocalPoint();
@@ -127,10 +132,11 @@ ViewerRecord.prototype.Apply = function (viewer) {
   }
 
   var cache = viewer.GetCache();
-  if ( ! cache || this.Collection != cache.Collection) {
+  if ( ! cache || this.Image != cache.ImageId) {
     var newCache = new Cache(this.Database, 
-                             this.Collection, 
-                             this.NumberOfLevels);
+                             this.Image, 
+                             this.NumberOfLevels,
+                             this.Bounds);
     viewer.SetCache(newCache);
   }
 

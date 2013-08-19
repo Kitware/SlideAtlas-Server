@@ -12,10 +12,17 @@ import pdb
 
 
 def jsonifyView(db,dbid,viewid,viewobj):
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    imgid = 0
+    if 'Type' in viewobj :
+      if viewobj["Type"] == "Note" :
+        imgid = viewobj["ViewerRecords"][0]["Image"]
+    if imgid == 0 :
+      imgid = viewobj["img"]
+      
+    imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
     
     #pdb.set_trace()
-    # the official schema says dimension not dimensios. correct the schema later.
+    # the official schema says dimension not dimensions. correct the schema later.
     #if 'dimension' in imgobj:
     #  imgobj['dimensions'] = imgobj['dimension']
     #  delete imgobj.dimension
@@ -24,7 +31,7 @@ def jsonifyView(db,dbid,viewid,viewobj):
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
-    img["collection"] = str(imgobj["_id"])
+    img["image"] = str(imgobj["_id"])
     img["origin"] = imgobj["origin"]
     img["spacing"] = imgobj["spacing"]
     img["levels"] = imgobj["levels"]
@@ -86,7 +93,7 @@ def glsingle(db, dbid, viewid, viewobj):
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
-    img["collection"] = str(imgobj["_id"])
+    img["image"] = str(imgobj["_id"])
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
@@ -158,8 +165,29 @@ def glsingle(db, dbid, viewid, viewobj):
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
 
-    return make_response(render_template('single.html', question=question, user=email))
+    return make_response(render_template('single.html', question=question, viewid = viewid, user=email))
     
+
+
+
+# view and note are the same in the new schema.
+# It becomes so simple!
+def glnote(db, dbid, viewid, viewobj):
+    # I was going get the user id from the session, and pass it to the viewer.
+    # I think I will just try to retreive the user from the "Save Note" method.
+    if 'user' in session:
+        email = session["user"]["email"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        email = None
+    
+    return make_response(render_template('view.html', db=dbid, view=viewid, user=email))
+
+
+
+
     
     
 def glcomparison(db, dbid, viewid, viewobj):
@@ -175,7 +203,7 @@ def glcomparison(db, dbid, viewid, viewobj):
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
-    img["collection"] = str(imgobj["_id"])
+    img["image"] = str(imgobj["_id"])
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
@@ -264,7 +292,7 @@ def glview2(db, dbobj, dbid, viewid, viewobj):
     img = {}
     img["viewid"] = str(viewid)
     img["dbid"] = str(dbid)
-    img["collection"] = str(docImage["_id"])
+    img["image"] = str(docImage["_id"])
     img["origin"] = str(docImage["origin"])
     img["spacing"] = str(docImage["spacing"])
     img["levels"] = str(docImage["levels"])
@@ -296,8 +324,9 @@ def glview():
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
     
-    # See if the user is requesting any session id
+    # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
+    sessid = request.args.get('sess', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
     # get bookmarks.
@@ -314,21 +343,30 @@ def glview():
     #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
     db = conn[dbobj["dbname"]]
     conn.register([model.Database])    
-    
-    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    if ajax:
-      return jsonifyView(db,dbid,viewid,viewobj);
-    if bookmarks:
-      return jsonifyBookmarks(db,dbid,viewid,viewobj);
 
+    if sessid :
+      email = session["user"]["email"]
+      return make_response(render_template('view.html', db=dbid, sess=sessid, user=email))
+    if viewid :
+      viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+      if ajax:
+        return jsonifyView(db,dbid,viewid,viewobj);
+      if bookmarks:
+        return jsonifyBookmarks(db,dbid,viewid,viewobj);
 
-    if 'type' in viewobj:
-      if viewobj["type"] == "single" :
-        return glsingle(db,dbid,viewid,viewobj)
-      if viewobj["type"] == "comparison" :
-        return glcomparison(db,dbid,viewid,viewobj)
-    # default is now the single view (which can be switch to dual by the user).
-    return glsingle(db,dbid,viewid,viewobj)
+      # This will be the only path in the future. Everything else is legacy.
+      if 'Type' in viewobj:
+        if viewobj["Type"] == "Note" :
+          return glnote(db,dbid,viewid,viewobj)
+        
+        
+      if 'type' in viewobj:
+        if viewobj["type"] == "single" :
+          return glsingle(db,dbid,viewid,viewobj)
+        if viewobj["type"] == "comparison" :
+          return glcomparison(db,dbid,viewid,viewobj)
+      # default is now the single view (which can be switch to dual by the user).
+      return glsingle(db,dbid,viewid,viewobj)
 
 
 
@@ -399,7 +437,7 @@ def glcomparison():
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
-    img["collection"] = str(imgobj["_id"])
+    img["image"] = str(imgobj["_id"])
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
@@ -891,4 +929,139 @@ def saveusernote():
     return str(noteId);
  
 
+ 
 
+def recursiveSetUser(note, user):
+    note["user"] = user;
+    if 'Children ' in note:
+      for child in note["Children"]:
+          recursiveSetUser(child, user)
+      
+ 
+ # This is close to a general purpose function to insert an object into the database.
+@mod.route('/saveviewnotes', methods=['GET', 'POST'])
+def saveviewnotes():
+    #pdb.set_trace()
+    dbid    = request.form['db']  # for post
+    viewId  = request.form['view']
+    noteObj = request.form['note']  
+    note    = json.loads(noteObj);
+
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+
+    # I was going get the user id from the session, and pass it to the viewer.
+    # I think I will just try to retreive the user from the "Save Note" method.
+    if 'user' in session:
+        email = session["user"]["email"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        email = None
+    # user should be set by flask so it cannot be faked.
+    recursiveSetUser(note, email);
+    
+    # the root note is the view
+    
+    # Replace the viewobject with one of type 'notes'
+    #viewobj = db["views"].find_one({"_id" : ObjectId(viewId) })
+    # nothing to copy over except the id.
+    note["_id"] = ObjectId(viewId) 
+    
+    # Save the notes
+    #db["views"].update({"_id" : ObjectId(viewId) },
+    #                   { "$set" : { "notes" : notes } })
+    db["views"].save(note)
+
+    return str(viewId);
+
+ 
+# get a view as a tree of notes.
+@mod.route('/getview')
+def getview():
+    #pdb.set_trace()
+    viewid = request.args.get('viewid', "")
+    dbid = request.args.get('db', "")
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    
+    viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
+    # Right now, only notes use "Type"
+    if "Type" in viewObj :
+      viewObj["_id"] = str(viewObj["_id"]);
+      return jsonify(viewObj)
+      
+    # Formating old views into the note structure is too much of a pain.
+    return "";
+
+    
+    
+#==============================================================================
+
+
+# I am getting rid of the special paths in favor of just using the type to select the viewer.
+# this is legarcy code.
+@mod.route('/connectome')
+def glconnectome():
+    """
+    - /webgl-viewer/connectome?db=507619bb0a3ee10434ae0827
+    """
+
+    #
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+
+    return make_response(render_template('connectome.html', db=dbName, col=collectionName))
+    
+    
+    
+# List of sections (with id, waferName and section)
+@mod.route('/getconnectomesections')
+def getconnectomesections():
+    #pdb.set_trace()
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+    sectionId = request.args.get('section', None)
+
+    db = conn[dbName]
+    
+    if sectionId :
+      sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
+      sectionObj["_id"] = str(sectionObj["_id"])
+      return jsonify(sectionObj)
+    else :
+      #sectionCursor = db[collectionName].find({},{"waferName":1, "section":1}).sort({"waferName":1, "section":1})
+      sectionCursor = db[collectionName].find({},{"waferName":1, "section":1})
+      # make a new structure to return.  Convert the ids to strings.
+      sectionArray = [];
+      for section in sectionCursor:
+        section["_id"] = str(section["_id"])
+        sectionArray.append(section)
+      data = {}
+      data["sections"] = sectionArray
+      return jsonify(data)
+
+
+# Tile that uses database name.
+@mod.route('/tile')
+def tile():
+    #pdb.set_trace()
+
+    # Get variables
+    dbName = request.args.get('db', None)
+    imgName = request.args.get('img', None)
+    name = request.args.get('name', None)
+
+    
+    imgdb = conn[dbName]
+    colImage = imgdb[imgName]
+    docImage = colImage.find_one({'name':name})
+
+    if docImage == None:
+        abort(403)
+    return Response(str(docImage['file']), mimetype="image/jpeg")

@@ -1,6 +1,7 @@
 <!doctype html>
 
 <title>Connectome Viewer</title>
+<!-- single.html -->
 
 
 <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
@@ -43,6 +44,7 @@
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
 
 <!-- Single view, view interacts with the cache -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
@@ -156,10 +158,14 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
-  var SESSION_DB = "{{question.viewer1.db}}";
+  // Notes
+  var USER = "{{user}}";
+  var VIEW_ID = "{{viewid}}";
+  var SESSION_DATABASE = "{{question.viewer1.db}}";
+  
   var ARGS;
   var ARG_ANNOTATIONS;
-  var EDIT = false; // Not used at the moment.
+  var EDIT = false; // Temporary way to hide editing.
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -179,7 +185,7 @@ shape has visibility and
     ARGS.Viewer1 = {};
     ARGS.Viewer1.db = "{{question.viewer1.db}}";
     ARGS.Viewer1.viewid = "{{question.viewer1.viewid}}";
-    ARGS.Viewer1.collection = "{{question.viewer1.collection}}";
+    ARGS.Viewer1.image = "{{question.viewer1.image}}";
     ARGS.Viewer1.dimensions = {{question.viewer1.dimensions}};
     ARGS.Viewer1.levels = {{question.viewer1.levels}};
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
@@ -263,23 +269,24 @@ shape has visibility and
   };
 
   function initViews() {
+    var bds = [0, ARGS.Viewer1.dimensions[0], 0, ARGS.Viewer1.dimensions[1]];
     var source = new Cache(ARGS.Viewer1.db, 
-                           ARGS.Viewer1.collection, 
-                           ARGS.Viewer1.levels);
+                           ARGS.Viewer1.image, 
+                           ARGS.Viewer1.levels,
+                           bds);
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source);
-    VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
                       ARGS.Viewer1.viewHeight);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
     if (ARGS.Viewer2) {
-      source = new Cache(ARGS.Viewer2.collection,
+      bds = [0, ARGS.Viewer2.dimensions[0], 0, ARGS.Viewer2.dimensions[1]];
+      source = new Cache(ARGS.Viewer2.image,
                          ARGS.Viewer2.db,
                          ARGS.Viewer2.levels);
       VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], source);
-      VIEWER2.SetDimensions(ARGS.Viewer2.dimensions);
       VIEWER2.SetCamera(ARGS.Viewer2.center, 
                         ARGS.Viewer2.rotation, 
                         ARGS.Viewer2.viewHeight);
@@ -313,7 +320,20 @@ shape has visibility and
   function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
+  
+  
+  var E_DOWN = false;
+  var D_DOWN = false;  
   function handleKeyDown(event) {
+        if (event.keyCode == 68) { D_DOWN = true;}
+        if (event.keyCode == 69) { E_DOWN = true;}
+        if (D_DOWN && E_DOWN) {
+            EDIT = ! EDIT; 
+            alert("Edit: " + EDIT);
+            E_DOWN = false;
+            D_DOWN = false;
+        }
+
         // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
@@ -338,10 +358,10 @@ shape has visibility and
     
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
-    initViews();
     initShaderPrograms();
     initOutlineBuffers();
     initImageTileBuffers();
+    initViews();
 
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);

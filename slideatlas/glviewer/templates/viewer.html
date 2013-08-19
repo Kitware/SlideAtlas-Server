@@ -90,7 +90,7 @@ shape has visibility and
 
   var DBID = "{{img.dbid}}";
   var VIEWID = "{{img.viewid}}";
-  var IMGID = "{{img.collection}}";
+  var IMGID = "{{img.image}}";
   var DIMENSION = {{img.dimension}};
   var LEVELS = {{img.levels}};
   var origin = {{img.origin}};
@@ -204,7 +204,7 @@ shape has visibility and
   };
 
   function initViews() {
-    var source1 = new Cache({{img.collection}}, {{img.db}}, LEVELS);
+    var source1 = new Cache({{img.image}}, {{img.db}}, LEVELS);
     VIEWER1 = new Viewer([0,40, CANVAS.clientWidth,CANVAS.clientHeight-80], source1);
 
     // This may not be used anymore.

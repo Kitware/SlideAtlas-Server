@@ -22,8 +22,42 @@ var tileCellBuffer;
 // and get rid of these globals.
 var GL;
 
+function GetUser() {
+  if (typeof(USER) != "undefined") {
+    return USER;
+  }
+  if (typeof(ARGS) != "undefined") {
+    return ARGS.User;
+  }
+  alert ("Could not find user");
+  return "";
+}
+  
 
+function GetViewId () {
+  if (typeof(VIEW_ID) != "undefined") {
+    return VIEW_ID;
+  }
+  if (typeof(ARGS) != "undefined") {
+    return ARGS.Viewer1.viewid;
+  }
+  if (typeof(ROOT_NOTE) != "undefined") {
+    return ROOT_NOTE._id;
+  }
+  alert ("Could not find view id");
+  return "";
+}
 
+function GetSessionDatabase() {
+  if (typeof(SESSION_DATABASE) != "undefined") {
+    return SESSION_DATABASE;
+  }
+  if (typeof(ARGS) != "undefined") {
+    return ARGS.Viewer1.db;
+  }
+  alert ("Could not find session database");
+  return "";
+}
 
 
 // WebGL Initialization
