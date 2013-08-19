@@ -1,7 +1,7 @@
 
 
 // Source is the directory that contains the tile files.
-function Cache(dbId, imageId, numLevels) {
+function Cache(dbId, imageId, numLevels, bounds) {
   // Look through existing caches and reuse one if possible
   for (var i = 0; i < CACHES.length; ++i) {
     if (CACHES[i].ImageId == imageId) {
@@ -18,6 +18,8 @@ function Cache(dbId, imageId, numLevels) {
   //this.PendingTiles = [];
   this.Source = sourceStr;
 
+  this.Warp = null;
+  this.Bounds = bounds;
   this.TileDimensions = [256, 256];
   this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
   this.NumberOfSections = 1;
@@ -34,6 +36,35 @@ function Cache(dbId, imageId, numLevels) {
 Cache.prototype.destructor=function()
 {
 }
+
+// This method converts a point in image coordinates to a point in world coordinates.
+Cache.prototype.ImageToWorld = function(imagePt) {
+  if (this.Warp) {
+    return this.Warp.ImageToWorld(imagePt);
+  }
+  // Just shift by the origin.
+  // Assume spacing is 1.
+  // This should be a simple matrix version of warp.
+  return [imagePt[0]+this.Origin[0], imagePt[1]+this.Origin[1]];
+}
+
+// This method converts a point in world coordinates to a point in cache-image coordinates.
+Cache.prototype.WorldToImage = function(worldPt) {
+  if (this.Warp) {
+    return this.Warp.WorldToImage(worldPt);
+  }
+  // Just shift by the origin.
+  // Assume spacing is 1.
+  // TODO:
+  // This should be a simple matrix version of warp.  
+  return [worldPt[0]-this.Origin[0], worldPt[1]-this.Origin[1]];
+}
+
+
+
+
+
+
 
 Cache.prototype.GetSource=function()
 {
@@ -74,10 +105,13 @@ Cache.prototype.LoadRoots = function () {
     }       
 }
 
-// ------ I tink this method really belongs in the view! -----------
+
+
+/*
+// ------ I think this method really belongs in the view! -----------
 // This could get expensive because it is called so often.
 // Eventually I want a quick coverage test to exit early.
-Cache.prototype.ChooseTiles = function(view, slice, tiles) {
+Cache.prototype.ChooseTiles = function(view, slice) {  
     // I am prioritizing tiles in the queue by time stamp.
     // Loader sets the the tiles time stamp.
     // Time stamp only progresses after a whole render.
@@ -87,81 +121,227 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
     // in the rendering list.
     Prune();           
 
-    // Pick a level to display.
-    //var fast = document.getElementById("fast").checked;
-    // Todo: fix this hack. (now a global variable gl).
-    var canvasHeight = view.Viewport[3];
-    var tmp = this.TileDimensions[1]*this.RootSpacing[1] / view.Camera.Height;
-    //if (fast) {
-    //  tmp = tmp * 0.5;
-    //}
-    tmp = tmp * canvasHeight / this.TileDimensions[1];
-    var level = 0;
-    while (tmp > 1.0) {
-        ++level;
-        tmp = tmp * 0.5;
-    }
+  // Pick a level to display.
+  //var fast = document.getElementById("fast").checked;
+  // Todo: fix this hack. (now a global variable gl).
+  var canvasHeight = view.Viewport[3];
+  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / view.Camera.Height;
+  //if (fast) {
+  //  tmp = tmp * 0.5;
+  //}
+  tmp = tmp * canvasHeight / this.TileDimensions[1];
+  var level = 0;
+  while (tmp > 1.2) {
+    ++level;
+    tmp = tmp * 0.5;
+  }
+  if (level >= this.NumberOfLevels) {
+    level = this.NumberOfLevels-1;
+  }
 
-    // Compute the world bounds of camera view.
-    var xMax = 0.0;
-    var yMax = 0.0;
-    var hw = view.Camera.GetWidth()*0.5;
-    var hh = view.Camera.GetHeight()*0.5;
-    var roll = view.Camera.Roll;
-    var s = Math.sin(roll);
-    var c = Math.cos(roll);
-    var rx, ry;
-    // Choose a camera corner and rotate. (Center of bounds in origin).
-    rx = hw*c + hh*s;
-    ry = hh*c - hw*s;
-    // Expand bounds.
-    if (xMax < rx)  { xMax = rx;}
-    if (xMax < -rx) { xMax = -rx;}
-    if (yMax < ry)  { yMax = ry;}
-    if (yMax < -ry) { yMax = -ry;}
-    // Now another corner (90 degrees away).
-    rx = hw*c - hh*s;
-    ry = -hh*c - hw*s;
-    // Expand bounds.
-    if (xMax < rx)  { xMax = rx;}
-    if (xMax < -rx) { xMax = -rx;}
-    if (yMax < ry)  { yMax = ry;}
-    if (yMax < -ry) { yMax = -ry;}
-    
-    var bounds = [];
-    bounds[0] = view.Camera.FocalPoint[0]-xMax;
-    bounds[1] = view.Camera.FocalPoint[0]+xMax;
-    bounds[2] = view.Camera.FocalPoint[1]-yMax;
-    bounds[3] = view.Camera.FocalPoint[1]+yMax;
 
-    // Logic for progressive rendering is in the loader:
-    // Do not load a tile if its parent is not loaded.
-    
-    var tiles = [];
-    var tileIds = this.GetVisibleTileIds(level, bounds);
-    var tile;
-    for (var i = 0; i < tileIds.length; ++i) {
-      tile = this.GetTile(slice, level, tileIds[i]);
-      // If the tile is loaded or loading,
-      // this does nothing.
-      LoadQueueAdd(tile);
-      tiles.push(tile);
-    }
-    
-    // Preload the next slice.
-    //bounds[0] = bounds[1] = camera.FocalPoint[0];
-    //bounds[2] = bounds[3] = camera.FocalPoint[1];
-    //tileIds = this.GetVisibleTileIds(level, bounds);
-    // There will be only one tile because the bounds
-    // contains only the center point.
-    //for (var i = 0; i < tileIds.length; ++i) {
-    //    tile = this.GetTile(slice+1, level, tileIds[i]);
-    //    LoadQueueAdd(tile);
-    //}
+  // Compute the world bounds of camera view.
+  var xMax = 0.0;
+  var yMax = 0.0;
+  var hw = view.Camera.GetWidth()*0.5;
+  var hh = view.Camera.GetHeight()*0.5;
+  var roll = view.Camera.Roll;
+  var s = Math.sin(roll);
+  var c = Math.cos(roll);
+  var rx, ry;
+  // Choose a camera corner and rotate. (Center of bounds in origin).
+  rx = hw*c + hh*s;
+  ry = hh*c - hw*s;
+  // Expand bounds to contain corner of rotated tiles.
+  if (xMax < rx)  { xMax = rx;}
+  if (xMax < -rx) { xMax = -rx;}
+  if (yMax < ry)  { yMax = ry;}
+  if (yMax < -ry) { yMax = -ry;}
+  // Now another corner (90 degrees away).
+  rx = hw*c - hh*s;
+  ry = -hh*c - hw*s;
+  // Expand bounds.
+  if (xMax < rx)  { xMax = rx;}
+  if (xMax < -rx) { xMax = -rx;}
+  if (yMax < ry)  { yMax = ry;}
+  if (yMax < -ry) { yMax = -ry;}
+  
+  var bounds = [];
+  bounds[0] = view.Camera.FocalPoint[0]-xMax;
+  bounds[1] = view.Camera.FocalPoint[0]+xMax;
+  bounds[2] = view.Camera.FocalPoint[1]-yMax;
+  bounds[3] = view.Camera.FocalPoint[1]+yMax;
+  
+  // Adjust bounds for origin of this cache.
+  // Convert the bounds into cache-image coordinates.
+  if ( ! this.Warp) {
+    // We do not have an origin in this version.
+    // If we want a simple shift, we could incorporate Matrix into warp.
+    //bounds[0] -= this.Origin[0];
+    //bounds[1] -= this.Origin[0];
+    //bounds[2] -= this.Origin[1];
+    //bounds[3] -= this.Origin[1];
+  } else {
+    // If this is too slow (occurs every render) we can estimate.
+    var iPt = this.WorldToImage([bounds[0], bounds[2]]);
+    var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
+    iPt = this.WorldToImage([bounds[1], bounds[2]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    iPt = this.WorldToImage([bounds[0], bounds[3]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    iPt = this.WorldToImage([bounds[1], bounds[3]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    bounds = iBounds;
+  }
+  var tileIds = this.GetVisibleTileIds(level, bounds);  
+  
+  var tile;
+  tiles = [];
+  for (var i = 0; i < tileIds.length; ++i) {
+    tile = this.GetTile(slice, level, tileIds[i]);
+    // If the tile is loaded or loading,
+    // this does nothing.
+    LoadQueueAdd(tile);
+    tiles.push(tile);
+  }
+  // Mark the tiles to be rendered so they will be last to be pruned.
+  this.StampTiles(tiles);
 
-    return tiles;
+  // Preload the next slice.
+  //bounds[0] = bounds[1] = camera.FocalPoint[0];
+  //bounds[2] = bounds[3] = camera.FocalPoint[1];
+  //tileIds = this.GetVisibleTileIds(level, bounds);
+  // There will be only one tile because the bounds
+  // contains only the center point.
+  //for (var i = 0; i < tileIds.length; ++i) {
+  //    tile = this.GetTile(slice+1, level, tileIds[i]);
+  //    this.LoadQueueAdd(tile);
+  //}
+
+  return tiles;
 }
+*/
 
+
+// ------ I think this method really belongs in the view! -----------
+// This could get expensive because it is called so often.
+// Eventually I want a quick coverage test to exit early.
+Cache.prototype.ChooseTiles = function(view, slice, tiles) {
+  // I am prioritizing tiles in the queue by time stamp.
+  // Loader sets the the tiles time stamp.
+  // Time stamp only progresses after a whole render.
+  AdvanceTimeStamp();
+
+  // I am putting this here to avoid deleting tiles
+  // in the rendering list.
+  Prune();           
+
+  // Pick a level to display.
+  //var fast = document.getElementById("fast").checked;
+  // Todo: fix this hack. (now a global variable gl).
+  var canvasHeight = view.Viewport[3];
+  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / view.Camera.Height;
+  //if (fast) {
+  //  tmp = tmp * 0.5;
+  //}
+  tmp = tmp * canvasHeight / this.TileDimensions[1];
+  var level = 0;
+  while (tmp > 1.0) {
+      ++level;
+      tmp = tmp * 0.5;
+  }
+
+  // Compute the world bounds of camera view.
+  var xMax = 0.0;
+  var yMax = 0.0;
+  var hw = view.Camera.GetWidth()*0.5;
+  var hh = view.Camera.GetHeight()*0.5;
+  var roll = view.Camera.Roll;
+  var s = Math.sin(roll);
+  var c = Math.cos(roll);
+  var rx, ry;
+  // Choose a camera corner and rotate. (Center of bounds in origin).
+  rx = hw*c + hh*s;
+  ry = hh*c - hw*s;
+  // Expand bounds.
+  if (xMax < rx)  { xMax = rx;}
+  if (xMax < -rx) { xMax = -rx;}
+  if (yMax < ry)  { yMax = ry;}
+  if (yMax < -ry) { yMax = -ry;}
+  // Now another corner (90 degrees away).
+  rx = hw*c - hh*s;
+  ry = -hh*c - hw*s;
+  // Expand bounds.
+  if (xMax < rx)  { xMax = rx;}
+  if (xMax < -rx) { xMax = -rx;}
+  if (yMax < ry)  { yMax = ry;}
+  if (yMax < -ry) { yMax = -ry;}
+  
+  var bounds = [];
+  bounds[0] = view.Camera.FocalPoint[0]-xMax;
+  bounds[1] = view.Camera.FocalPoint[0]+xMax;
+  bounds[2] = view.Camera.FocalPoint[1]-yMax;
+  bounds[3] = view.Camera.FocalPoint[1]+yMax;
+
+  // Adjust bounds to compensate for warping.
+  if (this.Warp) {
+    // If this is too slow (occurs every render) we can estimate.
+    var iPt = this.WorldToImage([bounds[0], bounds[2]]);
+    var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
+    iPt = this.WorldToImage([bounds[1], bounds[2]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    iPt = this.WorldToImage([bounds[0], bounds[3]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    iPt = this.WorldToImage([bounds[1], bounds[3]]);
+    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+    bounds = iBounds;
+  }
+  
+  // Logic for progressive rendering is in the loader:
+  // Do not load a tile if its parent is not loaded.
+    
+  var tiles = [];
+  var tileIds = this.GetVisibleTileIds(level, bounds);
+  var tile;
+  for (var i = 0; i < tileIds.length; ++i) {
+    tile = this.GetTile(slice, level, tileIds[i]);
+    // If the tile is loaded or loading,
+    // this does nothing.
+    LoadQueueAdd(tile);
+    tiles.push(tile);
+  }
+  
+  // Preload the next slice.
+  //bounds[0] = bounds[1] = camera.FocalPoint[0];
+  //bounds[2] = bounds[3] = camera.FocalPoint[1];
+  //tileIds = this.GetVisibleTileIds(level, bounds);
+  // There will be only one tile because the bounds
+  // contains only the center point.
+  //for (var i = 0; i < tileIds.length; ++i) {
+  //    tile = this.GetTile(slice+1, level, tileIds[i]);
+  //    LoadQueueAdd(tile);
+  //}
+
+  return tiles;
+}
 
 // Get ids of all visible tiles (including ones that have not been
 // loaded yet.)

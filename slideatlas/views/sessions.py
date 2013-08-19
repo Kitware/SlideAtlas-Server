@@ -91,23 +91,26 @@ def sessions():
             for aview in asession['views']:
                 viewobj = db["views"].find_one({"_id" : aview["ref"]})
                 #pdb.set_trace()
-                imgid = 0
+                imgid = ""
                 label = ""
                 if "Type" in viewobj:
                   if viewobj["Type"] == "Note" :
                     imgid = viewobj["ViewerRecords"][0]["Image"]
                     label = viewobj["Title"]
-                if imgid == 0 :
+                if imgid == "" :
+                  if "img" in viewobj :
                     imgid = str(viewobj["img"])
-                imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
-                if label == "" :
-                    label = imgobj["label"]
-                if imgobj.has_key("thumb"):
-                    del imgobj['thumb']
+                if imgid != "" :
+                  imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
+                  if label == "" :
+                      label = imgobj["label"]
+                  if imgobj.has_key("thumb"):
+                      del imgobj['thumb']
 
                 animage = {}
                 animage['db'] = str(dbobj["_id"])
-                animage["img"] = imgid
+                if imgid != "" :
+                  animage["img"] = imgid
                 animage["label"] = label
                 animage["view"] = str(aview["ref"])
                 if "type" in viewobj:

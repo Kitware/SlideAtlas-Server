@@ -50,19 +50,36 @@ function Tile(x, y, z, level, name, cache) {
   this.Children = [];
   this.Parent = null;
   this.LoadState = 0;
-  var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << level);
-  var yScale = cache.TileDimensions[1] * cache.RootSpacing[1] / (1 << level);
-  this.Matrix = mat4.create();
-  this.Matrix[0] = xScale;
-  this.Matrix[5] = yScale;
-  this.Matrix[12] = x * xScale;
-  this.Matrix[13] = y * yScale;
-  this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
-  this.Matrix[15] = 1.0;
   this.Name = name;
   this.Texture = null;
   this.TimeStamp = TIME_STAMP;
   this.BranchTimeStamp = TIME_STAMP;
+  
+  this.Matrix = mat4.create();
+  mat4.identity(this.Matrix);
+  this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
+
+  // Default path is to place shared geometry with the matrix.
+  if ( ! cache.Warp) {
+    // TODO: We should have a simple version of warp that creates this matrix for us.
+    // Use shared buffers and place them with the matrix transformation.
+    var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << this.Level);
+    var yScale = cache.TileDimensions[1] * cache.RootSpacing[1] / (1 << this.Level);
+    this.Matrix[0] = xScale;
+    this.Matrix[5] = yScale;
+    this.Matrix[12] = this.X * xScale;
+    this.Matrix[13] = this.Y * yScale;
+    this.Matrix[15] = 1.0;
+
+    // These tiles share the same buffers.  Do not crop when there is no warp.
+    this.VertexPositionBuffer = tileVertexPositionBuffer;
+    this.VertexTextureCoordBuffer = tileVertexTextureCoordBuffer;
+    this.CellBuffer = tileCellBuffer;
+  } else {
+    // Warp model.
+    this.CreateWarpBuffer(cache.Warp);
+  }
+  
   ++NUMBER_OF_TILES;
 };
 
@@ -86,6 +103,43 @@ Tile.prototype.destructor=function()
     }
   }
 }
+
+Tile.prototype.CreateWarpBuffer = function (warp) {
+  // Compute the tile bounds.
+  var tileDimensions = this.Cache.TileDimensions;
+  var rootSpacing = this.Cache.RootSpacing;
+  var p = (1 << this.Level);
+  var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
+  var bds = [size[0]*this.X, size[0]*(this.X+1), 
+             size[1]*this.Y, size[1]*(this.Y+1),
+             this.Level, this.Level];
+
+  // Tile geometry buffers.
+  var vertexPositionData = [];
+  var tCoordsData = [];
+  var cellData = [];
+
+  warp.CreateMeshFromBounds(bds, vertexPositionData, tCoordsData, cellData);
+
+  this.VertexTextureCoordBuffer = GL.createBuffer();
+  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(tCoordsData), GL.STATIC_DRAW);
+  this.VertexTextureCoordBuffer.itemSize = 2;
+  this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
+  
+  this.VertexPositionBuffer = GL.createBuffer();
+  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+  this.VertexPositionBuffer.itemSize = 3;
+  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+
+  this.CellBuffer = GL.createBuffer();
+  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+  this.CellBuffer.itemSize = 1;
+  this.CellBuffer.numItems = cellData.length;
+}
+
 
 
 // This starts the loading of the tile.
@@ -124,7 +178,23 @@ Tile.prototype.Draw = function (program) {
     eventuallyRender();
     return;
   }
-  // Texture
+  
+  // These are the same for every tile.
+  // Vertex points (shifted by tiles matrix)
+  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+  // Needed for outline ??? For some reason, DrawOutline did not work
+  // without this call first.
+  GL.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
+                        this.VertexPositionBuffer.itemSize, 
+                        GL.FLOAT, false, 0, 0);     // Texture coordinates
+  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+  GL.vertexAttribPointer(imageProgram.textureCoordAttribute, 
+                        this.VertexTextureCoordBuffer.itemSize, 
+                        GL.FLOAT, false, 0, 0);
+  // Cell Connectivity
+  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+    // Texture
   GL.activeTexture(GL.TEXTURE0);
   GL.bindTexture(GL.TEXTURE_2D, this.Texture);
 
@@ -132,7 +202,7 @@ Tile.prototype.Draw = function (program) {
   // Matrix that tranforms the vertex p
   GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-  GL.drawElements(GL.TRIANGLES, tileCellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+  GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
 }
 
 

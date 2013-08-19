@@ -53,7 +53,7 @@ function LoadQueueAdd(tile) {
   }
 
   if (tile.LoadState != 0) { // == 2
-    // Thie tiles is already in the load queue or loaded.
+    // This tiles is already in the load queue or loaded.
     return;
   }
   

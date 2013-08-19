@@ -1,14 +1,16 @@
 //==============================================================================
 // Section Object
 function Section () {
-  // Warping to allign this section with previous / next.
-  // This is only a metrix transformation.
+  // Warping to align this section with previous / next.
+  // This is only a matrix transformation.
   this.Matrix = mat4.create();
   mat4.identity(this.Matrix);
   // The list of caches is really just a list of images in the montage.
   this.Caches = [];
   // For debugging stitching.
-  this.Markers = [];  
+  this.Markers = [];
+  
+  this.Bounds = [0,10000,0,10000];
 }
 
 
@@ -28,31 +30,30 @@ Section.prototype.LoadRoots = function () {
 // No, we need the viewport too.
 // Could the viewport be part of the camera?
 Section.prototype.Draw = function (view) {
-  for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
-    var cache = this.Caches[cIdx];
+
+  var program = imageProgram;
+  GL.useProgram(program);
+
+  // Draw tiles.
+  GL.viewport(view.Viewport[0], view.Viewport[1], 
+              view.Viewport[2], view.Viewport[3]);
+
+  GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+
+  for (var i = 0; i < this.Caches.length; ++i) {
+    var cache = this.Caches[i];
     // Select the tiles to render first.
-    var tiles = cache.ChooseTiles(view, SLICE);
-
-    var program = imageProgram;
-    GL.useProgram(program);
-
-    // Draw tiles.
-    // Adjust the camera to the cache origin.
-    //camera is: [cam][section][image]
-    var camMatrix = mat4.create(view.Camera.Matrix);
-    mat4.multiply(camMatrix,this.Matrix);
-    // Concatentate the image translation.
-    camMatrix[12] += camMatrix[0]*cache.Origin[0] + camMatrix[4]*cache.Origin[1];     
-    camMatrix[13] += camMatrix[1]*cache.Origin[0] + camMatrix[5]*cache.Origin[1];     
-
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-    for (var i = 0; i < tiles.length; ++i) {
-      tiles[i].Draw(program);
+    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);  
+    
+    // Note: if not all tiles are loaded, this will draw the lower level tile multiple times.
+    for (var j = 0; j < this.Tiles.length; ++j) {
+      this.Tiles[j].Draw(program);
     }
   }
 }
 
-// This load tiles in the vies like draw but does not render them.
+
+// This load tiles in the view like draw but does not render them.
 // I want to preload tiles in the next section.
 Section.prototype.LoadTilesInView = function (view) {
   for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {

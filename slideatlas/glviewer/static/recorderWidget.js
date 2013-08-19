@@ -69,9 +69,11 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
 // view args format. Get rid of this asap.
 ViewerRecord.prototype.LoadRootViewer = function(data) {
   // Hack. data is in args  but ....
+  var bds = [0,data.dimensions[0], 0,data.dimensions[1]];
   var cache = new Cache(data.db, 
                         data.image, 
-                        data.levels);
+                        data.levels,
+                        bds);
 
   this.Database = data.db;
   this.Image = data.image;
@@ -89,6 +91,7 @@ ViewerRecord.prototype.LoadRootViewer = function(data) {
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
   if ( ! cache) { 
+    this.Bounds = [0,10000,0,10000];
     this.Database = "";
     this.Image = "";
     this.NumberOfLevels = 0;
@@ -102,7 +105,8 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   this.Image = cache.ImageId;
   // I could get this from the image / collection.
   this.NumberOfLevels = cache.NumberOfLevels;
-
+  this.Bounds = cache.Bounds;
+  
   var cam = viewer.GetCamera();
   var cameraRecord = {};
   cameraRecord.FocalPoint = cam.GetFocalPoint();
@@ -131,7 +135,8 @@ ViewerRecord.prototype.Apply = function (viewer) {
   if ( ! cache || this.Image != cache.ImageId) {
     var newCache = new Cache(this.Database, 
                              this.Image, 
-                             this.NumberOfLevels);
+                             this.NumberOfLevels,
+                             this.Bounds);
     viewer.SetCache(newCache);
   }
 

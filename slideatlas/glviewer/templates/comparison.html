@@ -37,6 +37,7 @@
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
 
 <!-- Single view, view interacts with the cache -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
@@ -251,20 +252,26 @@ shape has visibility and
   };
 
   function initViews() {
+    var bds = [0,ARGS.Viewer1.dimensions[0], 0,ARGS.Viewer1.dimensions[1]];
     var source1 = new Cache(ARGS.Viewer1.db,
                             ARGS.Viewer1.image,  
-                            ARGS.Viewer1.levels);
+                            ARGS.Viewer1.levels,
+                            bds);
+    var section1 = new Section();
+    section1.Caches.push(source1);
+    section1.Bounds = [0,ARGS.Viewer1.dimensions[0],0,ARGS.Viewer1.dimensions[1],0,0];
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
+    VIEWER1.SetSection(section1);
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
 
-    VIEWER1.SetDimensions(ARGS.Viewer1.dimensions);
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
                       ARGS.Viewer1.viewHeight);
     
     EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
+    eventuallyRender();
   }
 
   function draw() {
@@ -374,10 +381,10 @@ function SetAnnotationVisibility(visibility) {
     
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
+    initImageTileBuffers();
     initViews();
     initShaderPrograms();
     initOutlineBuffers();
-    initImageTileBuffers();
 
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);

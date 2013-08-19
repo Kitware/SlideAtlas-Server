@@ -37,6 +37,7 @@
 Manages the list, and gives to camera, either lowres, or appropriate tiles
  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
 
 <!-- Single view, view interacts with the cache -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
@@ -276,19 +277,20 @@ function saveStack() {
     for (var i=0; i < VIEWS.length; ++i) {
         view = VIEWS[i];
         var source = null;
-        // Since mltiple section are in one slide. Reuse sources when possible.
+        // Since multiple section are in one slide. Reuse sources when possible.
         for (j = 0; j < i; ++j) {
             if (VIEWS[j].img._id == view.img._id) {
                 source = SECTIONS[j].Source;
             }
         }
         if ( ! source) {
-            source = new Cache(view.db, view.img._id, view.img.levels);
+            var bds = [0,view.img.dimensions[0], 0,view.img.dimensions[1]];
+            source = new Cache(view.db, view.img._id, view.img.levels, bds);
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};
         if (i < ANNOTATION_STACKS.length) {
-	  for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
+          for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
             annotation = ANNOTATION_STACKS[i].annotations[j];
             section.Annotations.push(LoadWidget(VIEWER1, annotation));
           }
@@ -301,7 +303,6 @@ function saveStack() {
     SECTION_INDEX = 0;
     VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
     VIEWER1.WidgetList = SECTIONS[SECTION_INDEX].Annotations;
-    VIEWER1.SetDimensions(VIEWS[SECTION_INDEX].img.dimensions);
     VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
 
     setupCrossHairs();
@@ -527,10 +528,10 @@ function ToggleAnnotationVisibility() {
     
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
-    initViews();
     initShaderPrograms();
     initOutlineBuffers();
     initImageTileBuffers();
+    initViews();
 
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);

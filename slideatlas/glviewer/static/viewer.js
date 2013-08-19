@@ -51,8 +51,11 @@ function Viewer (viewport, cache) {
 
   this.GuiElements = [];
 }
-  
-  
+
+// TODO: LEGACY REMOVE
+Viewer.prototype.SetDimensions = function(dims) {
+  this.MainView.Section.Bounds = [0,dims[0], 0,dims[1]];
+}
 
 Viewer.prototype.GetAnnotationVisibility = function() {
   return this.AnnotationVisibility;
@@ -62,10 +65,74 @@ Viewer.prototype.SetAnnotationVisibility = function(vis) {
   this.AnnotationVisibility = vis;
 }  
 
+
+// connectome
+// TODO:
+// I do not like the global variable SECTIONS here.
+// SECTIONS should be an object of ivar.
+// The purpose of using an index arg is to preload
+// tiles from the adjacent sections.
+Viewer.prototype.SetSectionIndex = function(idx) {
+  if (idx < 0 || idx >= SECTIONS.length) {
+    return;
+  }
+  var section = SECTIONS[idx];
+  if (section == null) {
+    return;
+  }
+  if (idx > 0 && SECTIONS[idx-1]) {
+    var s = SECTIONS[idx-1];
+    s.LoadRoots();
+    // Preload the views tiles in the previous section
+    // TODO: Get ride of this hard coded global
+    s.LoadTilesInView(VIEWER1.MainView);
+  }
+  section.LoadRoots();
+  if (idx < SECTIONS.length-z1 && SECTIONS[idx+1]) {
+    var s = SECTIONS[idx+1];
+    s.LoadRoots();
+    // Preload the views tiles in the next section
+    // TODO: Get ride of this hard coded global
+    s.LoadTilesInView(VIEWER1.MainView);
+  }
+
+  this.SetSection(section);
+}
+
+Viewer.prototype.SetSection = function(section) {
+  if (section == null) {
+    return;
+  }
+  this.MainView.Section = section;
+  this.OverView.Section = section;
+  //this.ShapeList = section.Markers;
+  this.OverView.Camera.Height = section.Bounds[3]-section.Bounds[2];
+  this.OverView.Camera.FocalPoint[0] = 0.5*(section.Bounds[0]+section.Bounds[1]);
+  this.OverView.Camera.FocalPoint[1] = 0.5*(section.Bounds[2]+section.Bounds[3]);
+  this.OverView.Camera.ComputeMatrix();
+  eventuallyRender();
+}
+
+
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
   this.MainView.SetCache(cache);
   this.OverView.SetCache(cache);
+  if (cache) {
+    var bds = cache.Bounds;
+    if (bds) {
+      this.OverView.Camera.FocalPoint[0] = (bds[0] + bds[1]) / 2;
+      this.OverView.Camera.FocalPoint[1] = (bds[2] + bds[3]) / 2;
+      var height = (bds[3]-bds[2]);
+      // See if the view is constrained by the width.
+      var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+      if (height2 > height) {
+        height = height2;
+      }
+      this.OverView.Camera.Height = height;
+      this.OverView.Camera.ComputeMatrix();
+    }
+  }
 }
 
 Viewer.prototype.GetCache = function() {
@@ -170,28 +237,6 @@ Viewer.prototype.SetViewport = function(viewport) {
 
 Viewer.prototype.GetViewport = function() {
   return this.MainView.Viewport;
-}
-
-// For the overview and maybe camera reset in the future.
-Viewer.prototype.SetDimensions = function(dims) {
-    this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
-    this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
-    
-    var height = dims[1];
-    // See if the view is constrained by the width.
-    var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-    if (height2 > height) {
-      height = height2;
-    }
-    this.OverView.Camera.Height = height;
-    this.OverView.Camera.ComputeMatrix();
-
-    // Set the default main view camera too  (in case a camera is not in database).
-    this.MainView.Camera.FocalPoint = this.OverView.Camera.FocalPoint.slice(0); // slice=>clone
-    this.MainView.Camera.Height = this.OverView.Camera.Height;
-    this.MainView.Camera.ComputeMatrix();
-
-    eventuallyRender();
 }
 
 // To fix a bug in the perk and elmer uploader.
@@ -374,7 +419,8 @@ Viewer.prototype.DegToRad = function(degrees) {
 
 
 Viewer.prototype.Draw = function() {
-  if ( ! this.MainView.Cache) {
+  // connectome
+  if ( ! this.MainView.Section) {
     return;
   }
 
@@ -661,6 +707,28 @@ Viewer.prototype.HandleMouseWheel = function(event) {
 }
 
 Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
+  // Handle connectome volume stuff.
+  // TODO: integrate this with the 3d renal stack stuff.
+  // connectome
+  if (keyCode == 37) {
+    // Left cursor key
+    var idx = SECTIONS.indexOf(this.MainView.Section);
+    if(idx > 0) {
+      this.SetSection(idx-1);
+    }
+    eventuallyRender();
+  } else if (keyCode == 39) {
+    var idx = SECTIONS.indexOf(this.MainView.Section);
+    if(idx >= 0 && idx < SECTIONS.length-1) {
+      this.SetSection(idx+1);
+    }
+    eventuallyRender();
+  }
+
+
+
+
+  //----------------------
   if (this.ActiveWidget != null) {
     this.ActiveWidget.HandleKeyPress(keyCode, shift);
     return;

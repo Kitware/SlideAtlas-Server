@@ -183,7 +183,7 @@ def glnote(db, dbid, viewid, viewobj):
         flash("You are not logged in..", "info")
         email = None
     
-    return make_response(render_template('view.html', db=dbid, note=viewid, user=email))
+    return make_response(render_template('view.html', db=dbid, view=viewid, user=email))
 
 
 
@@ -324,8 +324,9 @@ def glview():
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
     
-    # See if the user is requesting any session id
+    # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
+    sessid = request.args.get('sess', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
     # get bookmarks.
@@ -342,26 +343,30 @@ def glview():
     #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
     db = conn[dbobj["dbname"]]
     conn.register([model.Database])    
-    
-    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    if ajax:
-      return jsonifyView(db,dbid,viewid,viewobj);
-    if bookmarks:
-      return jsonifyBookmarks(db,dbid,viewid,viewobj);
 
-    # This will be the only path in the future. Everything else is legacy.
-    if 'Type' in viewobj:
-      if viewobj["Type"] == "Note" :
-        return glnote(db,dbid,viewid,viewobj)
-      
-      
-    if 'type' in viewobj:
-      if viewobj["type"] == "single" :
-        return glsingle(db,dbid,viewid,viewobj)
-      if viewobj["type"] == "comparison" :
-        return glcomparison(db,dbid,viewid,viewobj)
-    # default is now the single view (which can be switch to dual by the user).
-    return glsingle(db,dbid,viewid,viewobj)
+    if sessid :
+      email = session["user"]["email"]
+      return make_response(render_template('view.html', db=dbid, sess=sessid, user=email))
+    if viewid :
+      viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+      if ajax:
+        return jsonifyView(db,dbid,viewid,viewobj);
+      if bookmarks:
+        return jsonifyBookmarks(db,dbid,viewid,viewobj);
+
+      # This will be the only path in the future. Everything else is legacy.
+      if 'Type' in viewobj:
+        if viewobj["Type"] == "Note" :
+          return glnote(db,dbid,viewid,viewobj)
+        
+        
+      if 'type' in viewobj:
+        if viewobj["type"] == "single" :
+          return glsingle(db,dbid,viewid,viewobj)
+        if viewobj["type"] == "comparison" :
+          return glcomparison(db,dbid,viewid,viewobj)
+      # default is now the single view (which can be switch to dual by the user).
+      return glsingle(db,dbid,viewid,viewobj)
 
 
 
@@ -974,22 +979,89 @@ def saveviewnotes():
     return str(viewId);
 
  
-# get all the children notes for a parent (authord by a specific user).
+# get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
     #pdb.set_trace()
     viewid = request.args.get('viewid', "")
     dbid = request.args.get('db', "")
     
-    #pdb.set_trace()
-
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
     
     viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
-    viewObj["_id"] = str(viewObj["_id"]);
-    
-    return jsonify(viewObj)
-    
+    # Right now, only notes use "Type"
+    if "Type" in viewObj :
+      viewObj["_id"] = str(viewObj["_id"]);
+      return jsonify(viewObj)
+      
+    # Formating old views into the note structure is too much of a pain.
+    return "";
 
+    
+    
+#==============================================================================
+
+
+# I am getting rid of the special paths in favor of just using the type to select the viewer.
+# this is legarcy code.
+@mod.route('/connectome')
+def glconnectome():
+    """
+    - /webgl-viewer/connectome?db=507619bb0a3ee10434ae0827
+    """
+
+    #
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+
+    return make_response(render_template('connectome.html', db=dbName, col=collectionName))
+    
+    
+    
+# List of sections (with id, waferName and section)
+@mod.route('/getconnectomesections')
+def getconnectomesections():
+    #pdb.set_trace()
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+    sectionId = request.args.get('section', None)
+
+    db = conn[dbName]
+    
+    if sectionId :
+      sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
+      sectionObj["_id"] = str(sectionObj["_id"])
+      return jsonify(sectionObj)
+    else :
+      #sectionCursor = db[collectionName].find({},{"waferName":1, "section":1}).sort({"waferName":1, "section":1})
+      sectionCursor = db[collectionName].find({},{"waferName":1, "section":1})
+      # make a new structure to return.  Convert the ids to strings.
+      sectionArray = [];
+      for section in sectionCursor:
+        section["_id"] = str(section["_id"])
+        sectionArray.append(section)
+      data = {}
+      data["sections"] = sectionArray
+      return jsonify(data)
+
+
+# Tile that uses database name.
+@mod.route('/tile')
+def tile():
+    #pdb.set_trace()
+
+    # Get variables
+    dbName = request.args.get('db', None)
+    imgName = request.args.get('img', None)
+    name = request.args.get('name', None)
+
+    
+    imgdb = conn[dbName]
+    colImage = imgdb[imgName]
+    docImage = colImage.find_one({'name':name})
+
+    if docImage == None:
+        abort(403)
+    return Response(str(docImage['file']), mimetype="image/jpeg")

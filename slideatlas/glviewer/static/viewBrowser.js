@@ -53,6 +53,7 @@ function LoadViewBrowserGUI() {
   var data = VIEW_BROWSER_INFO;
   $('#viewBrowser').empty();
   groupList = $('<ul>').appendTo('#viewBrowser')
+
   for (i=0; i < data.sessions.length; ++i) {
     var group = data.sessions[i];
     var groupItem = $('<li>').appendTo(groupList).text(group.rule);
@@ -103,7 +104,14 @@ function ViewBrowserAddSessionViews(sessionData) {
         
 function ViewBrowserImageCallback(obj) {
   $('#viewBrowser').hide();
-
+  
+  // null implies the user wants an empty view.
+  if (obj == null) {
+    ACTIVE_VIEWER.SetCache(null);
+    eventuallyRender();
+    return;
+  }
+  
   var db = $(obj).attr('db');
   var viewid = $(obj).attr('viewid');
 
@@ -116,7 +124,13 @@ function ViewBrowserImageCallback(obj) {
 }
 
 function ViewBrowserLoadImage(viewData) {
-  var source = new Cache(viewData.db, viewData.collection, viewData.levels);
+  // If we want to take origin and spacing into account, then we need to change tile geometry computation.
+  var bds = [0, viewData.dimensions[0], 0, viewData.dimensions[1]];
+  var image = viewData.collection;
+  if ( typeof(viewData.image) != undefined) {
+    image = viewData.image;
+  }
+  var source = new Cache(viewData.db, image, viewData.levels);
 
   ACTIVE_VIEWER.SetCache(source);
    

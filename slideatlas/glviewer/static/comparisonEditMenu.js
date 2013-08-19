@@ -262,7 +262,8 @@ function changeOption(index) {
         // We may want to save sources so they do not have to reload when selected.
         var option = ARGS.Options[index];
         var optionInfo = ARGS.OptionInfo[index];
-        var source = new Cache( option.db, option.img, optionInfo.levels);
+        var bds = [0,optionInfo.dimensions[0], 0,optionInfo.dimensions[1]];
+        var source = new Cache( option.db, option.img, optionInfo.levels, bds);
         VIEWER2.SetCache(source);
         VIEWER2.SetCamera(option.center, option.rotation, option.viewHeight);
         VIEWER2.SetDimensions(optionInfo.dimensions);

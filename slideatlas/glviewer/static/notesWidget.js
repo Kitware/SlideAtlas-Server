@@ -62,6 +62,7 @@ var NOTE_TITLE_ENTRY;
 var NOTE_TEXT_ENTRY;
 var NOTE_NEW_BUTTON;
 var NOTE_CLONE_BUTTON;
+var NOTE_RANDOM_BUTTON;
 var NOTE_DELETE_BUTTON;
 var NOTE_SAVE_BUTTON;
 var NOTE_EDIT_BUTTON;
@@ -359,7 +360,7 @@ function Note () {
 
 
 Note.prototype.UserCanEdit = function() {
-  return true;
+  return EDIT;
 }
 
 
@@ -491,6 +492,7 @@ Note.prototype.Select = function() {
     }
   }
   
+  NOTE_RANDOM_BUTTON.hide();
   if (this.UserCanEdit() && NOTE_EDIT_ACTIVE) {
     NOTE_TITLE_ENTRY.removeAttr('readonly');
     NOTE_TITLE_ENTRY.css({'border-style': 'inset',
@@ -499,6 +501,9 @@ Note.prototype.Select = function() {
     NOTE_TEXT_ENTRY.css({'border-style': 'inset',
                          'background': '#f5f8ff'});
     NOTE_DELETE_BUTTON.show();  
+    if (this.Children.length > 1 && this.ChildrenVisiblity) {
+      NOTE_RANDOM_BUTTON.show();
+    }
   } else {
     NOTE_TITLE_ENTRY.attr('readonly', 'readonly');
     NOTE_TITLE_ENTRY.css({'border-style': 'solid',
@@ -622,7 +627,7 @@ Note.prototype.Load = function(obj){
     return;
   }
 
-  // I could try to combone bookmark and question, but bookmark
+  // I could try to combine bookmark and question, but bookmark
   // is geared to interactive presentation not offline quiz. 
   if (obj.Type == "Bookmark") {
     // No difference yet.
@@ -639,7 +644,7 @@ Note.prototype.Load = function(obj){
 
 
 
-Note.prototype.LoadView = function(viewId) {
+Note.prototype.LoadViewId = function(viewId) {
   var self = this;
   $.ajax({
     type: "get",
@@ -651,7 +656,37 @@ Note.prototype.LoadView = function(viewId) {
     });  
 }
 
+// This does not really work.  It was going to be a method to edit sessions ....
+Note.prototype.LoadSessionId = function(sessId) {
+  var self = this;
+  // Get the sessions this user has access to.
+  $.ajax({
+    type: "get",
+    url: "/sessions",
+    data: {"sessid": sessId,
+           "sessdb": GetSessionDatabase(),
+           "json"  : true},
+    success: function(data,status) { self.LoadSessionData(data);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
+}
 
+Note.prototype.LoadSessionData = function(data) {
+  // This note (root) will be a session with no viewers.
+  this.Title = data.session.label;
+  this.TitleDiv.text(this.Title)
+  this.Text = data.session.name;
+  this.ViewerRecords = [];
+  this.Answers = [];
+  this.Children = [];
+  for (var i = 0; i < data.images.length; ++i) {
+    var child = new Note();
+    child.LoadViewId(data.images[i].view);
+    this.Children.push(child);
+  }
+  this.UpdateChildrenGUI();
+  this.Select();
+}
 
 
 // I am going to create two notes for each bookmark so the annotations appear
@@ -874,6 +909,15 @@ function NewCallback () {
 }
 
 
+
+// Randomize the order of the children
+function RandomCallback () {
+  var note = NOTE_ITERATOR.GetNote();
+  note.Children.sort(function(a,b){return Math.random() - 0.5;});
+  note.UpdateChildrenGUI();
+}
+
+
 // Add a sibling note.
 // Do not copy children (maybe in the future?)
 function CloneCallback () {
@@ -1087,8 +1131,10 @@ function InitNotesWidget() {
   if (typeof(ARGS) != "undefined") { // legacy
     ROOT_NOTE.LoadRootView(ARGS);
   }
-  if (typeof(NOTE_ID) != "undefined") {
-    ROOT_NOTE.LoadView(NOTE_ID);
+  if (typeof(SESSION_ID) != "undefined" && SESSION_ID != "") {
+    ROOT_NOTE.LoadSessionId(SESSION_ID);
+  } else if (typeof(NOTE_ID) != "undefined" && NOTE_ID != "") {
+    ROOT_NOTE.LoadViewId(NOTE_ID);
   }
   
   // Nav buttons, to cycle around the notes.  
@@ -1248,6 +1294,12 @@ function InitNotesWidget() {
                                 .text("Clone")
                                 .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
                                 .click( CloneCallback  );
+
+  NOTE_RANDOM_BUTTON = $('<button>').appendTo(POPUP_MENU)
+                                .hide()
+                                .text("Randomize")
+                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+                                .click( RandomCallback  );
 
   NOTE_SAVE_BUTTON = $('<button>').appendTo(POPUP_MENU)
                                   .hide()
