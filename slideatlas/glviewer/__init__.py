@@ -789,7 +789,7 @@ def glstackinsert():
 # I need to unify.  Comparison, stack and single view.
 # Saves the default view back into the database.
 @mod.route('/save-view', methods=['GET', 'POST'])
-def glcomparisonsave():
+def glsaveview():
     #pdb.set_trace()
 
     messageStr = request.form['message']  # for post
