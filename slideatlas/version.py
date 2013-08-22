@@ -1,5 +1,6 @@
 import os
-from subprocess import check_output
+#from subprocess import check_output
+import subprocess
 import inspect
 
 def get_git_name():
@@ -11,12 +12,12 @@ def get_git_name():
     out = ''
     try:
         params = ["git", "describe", "--tags", "--always"]
-        out = check_output(params)
+        out = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
     except:
         # Support for particular case when running on windows 
         os.chdir(newdir)
         params = ["C:/PortableGit-1.7.11/bin/git.exe", "describe", "--tags"]
-        out = check_output(params)
+        out = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
         os.chdir(curdir)
 
     os.chdir(newdir)
