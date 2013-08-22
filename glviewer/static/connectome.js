@@ -1,37 +1,86 @@
-var CONNECTOME_SECTIONS;
+var CONNECTOME_CURRENT_SECTION_INDEX = -1;
+var CONNECTOME_SECTION_IDS;
+var CONNECTOME_SECTIONS = [];
 var CONNECTOME_SECTION_META_DATA;
+var CONNECTOME_SECTION_LABEL;
+
 
 function InitConnectome () {
+
+  CONNECTOME_SECTION_LABEL =
+    $('<div>').appendTo('body').attr({'id':'sectionLabel'})
+              .css({'position': 'absolute',
+                    'left': '20px',
+                    'bottom': '30px',
+                    'border-radius': '8px',
+                    'font-size': '18px',
+                    'background': '#ffffff',
+                    'z-index': '2'});
+              
   $.ajax({
     type: "get",
     url: "/webgl-viewer/getconnectomesections",
-    data: {"db"  : "TestVolume",
-           "col" : "stitch_upload"},
-    success: function(data,status) { ConnectomeLoadData(data);},
-    error: function() { alert( "AJAX - error()" ); },
-    });  
-}
-
-function ConnectomeLoadData (data) {
-  CONNECTOME_SECTIONS = data.sections;
-  ConnectomeLoadSection(CONNECTOME_SECTIONS[0]._id);
-}
-
-function ConnectomeLoadSection (sectionId) {
-  $.ajax({
-    type: "get",
-    url: "/webgl-viewer/getconnectomesections",
-    data: {"db"  : "TestVolume",
-           "col" : "stitch_upload",
-           "section" : sectionId},
-    success: function(data,status) { ConnectomeLoadSectionData(data);},
+    data: {"db"  : DATABASE_NAME,
+           "col" : COLLECTION_NAME,
+           "type": "Section"},
+    success: function(data,status) { ConnectomeLoadSectionIds(data);},
     error: function() { alert( "AJAX - error()" ); },
     });  
 }
 
 
-// I am not exactly sure what the image coordinate system is.
-function ConnectomeLoadSectionData (data) {
+function ConnectomeAdvance(dz) {
+  var idx = CONNECTOME_CURRENT_SECTION_INDEX + dz;
+  if (idx < 0) { idx = 0; }
+  if (idx >= CONNECTOME_SECTION_IDS.length) {
+    idx = CONNECTOME_SECTION_IDS.length - 1;
+  }
+  ConnectomeSetCurrentSectionIndex(idx);
+}
+
+
+function ConnectomeLoadSectionIds (data) {
+  CONNECTOME_SECTION_IDS = data.sections;
+  ConnectomeSetCurrentSectionIndex(0);
+}
+
+
+
+function ConnectomeSetCurrentSectionIndex (sectionIndex) {
+  if (CONNECTOME_CURRENT_SECTION_INDEX == sectionIndex) {
+    return;
+  }
+  CONNECTOME_CURRENT_SECTION_INDEX = sectionIndex;
+
+  var info = CONNECTOME_SECTION_IDS[sectionIndex];
+  CONNECTOME_SECTION_LABEL.text(info.waferName + " : " + info.section);
+
+
+  if (CONNECTOME_SECTIONS[sectionIndex]) {
+    var section = CONNECTOME_SECTIONS[sectionIndex];
+
+    // Load the section
+    VIEWER1.SetSection(section);
+    eventuallyRender();
+    return;
+  }
+
+  var sectionId = CONNECTOME_SECTION_IDS[sectionIndex]._id;
+  $.ajax({
+    type: "get",
+    url: "/webgl-viewer/getconnectomesections",
+    data: {"db"  : DATABASE_NAME,
+           "col" : COLLECTION_NAME,
+           "id"  : sectionId,
+           "type": "Section"},
+    success: function(data,status) { ConnectomeLoadSection(data);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
+}
+
+
+function ConnectomeLoadSection (data) {
+  // for debugging
   CONNECTOME_SECTION_META_DATA = data;
   
   var section = new Section();
@@ -60,7 +109,11 @@ function ConnectomeLoadSectionData (data) {
   }
   
   section.LoadRoots();
+  CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX] = section;
+
+  // Load the section
   VIEWER1.SetSection(section);
+  eventuallyRender();
 }
 
 

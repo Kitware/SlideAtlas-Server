@@ -27,8 +27,6 @@ function Cache(dbId, imageId, numLevels, bounds) {
   
   this.RootTiles = [];
 
-  this.LoadRoots();
-  
   // Keep a global list for pruning tiles.
   CACHES.push(this);
 }

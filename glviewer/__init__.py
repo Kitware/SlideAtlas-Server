@@ -1026,7 +1026,8 @@ def getconnectomesections():
     #pdb.set_trace()
     dbName = request.args.get('db', '')
     collectionName = request.args.get('col', '')
-    sectionId = request.args.get('section', None)
+    sectionId = request.args.get('id', None)
+    objType = request.args.get('type', 'Section')
 
     db = conn[dbName]
     
@@ -1035,8 +1036,7 @@ def getconnectomesections():
       sectionObj["_id"] = str(sectionObj["_id"])
       return jsonify(sectionObj)
     else :
-      #sectionCursor = db[collectionName].find({},{"waferName":1, "section":1}).sort({"waferName":1, "section":1})
-      sectionCursor = db[collectionName].find({},{"waferName":1, "section":1})
+      sectionCursor = db[collectionName].find({"type":objType},{"waferName":1, "section":1}).sort([("waferName", 1), ("section", 1)])
       # make a new structure to return.  Convert the ids to strings.
       sectionArray = [];
       for section in sectionCursor:

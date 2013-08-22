@@ -1,4 +1,4 @@
-from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
+from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash, send_from_directory
 from slideatlas.version import get_git_name
 from werkzeug.routing import BaseConverter
 import glviewer
@@ -53,5 +53,5 @@ def home():
     - /<name> Says Hello <name>
 
     """
-    return render_template('home.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_SERVER"])
+    return render_template('home.html', git=get_git_name(), host=app.config["MONGO_SERVER"])
 
