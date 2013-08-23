@@ -1,11 +1,23 @@
-from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash, send_from_directory
+from flask import Flask, render_template, escape, g, request, redirect, url_for, flash, send_from_directory, Response, abort, current_app, make_response
 from slideatlas.version import get_git_name
+from slideatlas import slconn as conn, admindb, model
 from werkzeug.routing import BaseConverter
 import glviewer
 from flask_bootstrap import Bootstrap
 import mongokit
 
 import sys, os
+
+from bson import ObjectId
+import json
+from slideatlas.common_utils import jsonify
+
+import pdb
+
+
+
+
+
 
 # Create App
 sys.path.append(os.path.dirname(__file__))
@@ -44,7 +56,7 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/')
+
 @app.route('/home')
 def home():
     """
@@ -54,4 +66,73 @@ def home():
 
     """
     return render_template('home.html', git=get_git_name(), host=app.config["MONGO_SERVER"])
+
+
+
+
+
+#==============================================================================
+
+
+# I am getting rid of the special paths in favor of just using the type to select the viewer.
+# this is legarcy code.
+@app.route('/viewer')
+def viewer():
+    """
+    - /viewer?db=507619bb0a3ee10434ae0827
+    """
+
+    #
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+
+    return render_template('connectome.html', db=dbName, col=collectionName)
+    
+    
+    
+# List of sections (with id, waferName and section)
+@app.route('/getsections')
+def getsections():
+    #pdb.set_trace()
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+    sectionId = request.args.get('id', None)
+    objType = request.args.get('type', 'Section')
+
+    db = conn[dbName]
+    
+    if sectionId :
+      sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
+      sectionObj["_id"] = str(sectionObj["_id"])
+      return jsonify(sectionObj)
+    else :
+      sectionCursor = db[collectionName].find({"type":objType},{"waferName":1, "section":1}).sort([("waferName", 1), ("section", 1)])
+      # make a new structure to return.  Convert the ids to strings.
+      sectionArray = [];
+      for section in sectionCursor:
+        section["_id"] = str(section["_id"])
+        sectionArray.append(section)
+      data = {}
+      data["sections"] = sectionArray
+      return jsonify(data)
+
+
+# Tile that uses database name.
+@app.route('/tile')
+def tile():
+    #pdb.set_trace()
+
+    # Get variables
+    dbName = request.args.get('db', None)
+    imgName = request.args.get('img', None)
+    name = request.args.get('name', None)
+
+    
+    imgdb = conn[dbName]
+    colImage = imgdb[imgName]
+    docImage = colImage.find_one({'name':name})
+
+    if docImage == None:
+        abort(403)
+    return Response(str(docImage['file']), mimetype="image/jpeg")
 

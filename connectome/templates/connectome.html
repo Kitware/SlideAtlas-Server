@@ -72,7 +72,7 @@ shape has visibility and
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <!-- Stuff specific for connectome -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='connectome.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='connectome.js') }}"></script>
 
 
 
@@ -216,7 +216,9 @@ shape has visibility and
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
         // control: 17, z: 90, y: 89
-        if (event.keyCode == 34) { SessionAdvance();}
+        // Pageup , pagedown
+        if (event.keyCode == 33) { ConnectomeAdvance(-1);}
+        if (event.keyCode == 34) { ConnectomeAdvance(1);}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
