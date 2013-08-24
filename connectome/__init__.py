@@ -136,3 +136,23 @@ def tile():
         abort(403)
     return Response(str(docImage['file']), mimetype="image/jpeg")
 
+# Correlations for section.
+@app.route('/getcorrelations')
+def getcorrelations():
+    #pdb.set_trace()
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+    wafer = request.args.get('wafer', None)
+    section = request.args.get('sect', 1)
+
+    db = conn[dbName]
+    
+    data = {};
+    sectionObj0 = db[collectionName].findOne({'montage0.waferName':wafer, 'montage0.sectionNumber':section})
+    data["CorrelationArray0"] = sectionObj0["correlations"];
+    
+    sectionObj1 = db[collectionName].findOne({'montage1.waferName':wafer, 'montage0.sectionNumber':section})
+    data["CorrelationArray1"] = sectionObj1["correlations"];
+    
+    return jsonify(data)
+

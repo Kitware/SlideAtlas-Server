@@ -10,12 +10,23 @@ function InitConnectome () {
   CONNECTOME_SECTION_LABEL =
     $('<div>').appendTo('body').attr({'id':'sectionLabel'})
               .css({'position': 'absolute',
-                    'left': '20px',
+                    'left': '45px',
                     'bottom': '30px',
                     'border-radius': '8px',
                     'font-size': '18px',
                     'background': '#ffffff',
                     'z-index': '2'});
+
+  var correlationButton = $('<img>').appendTo('body')
+    .css({
+      'position': 'absolute',
+      'height': '20px',
+      'width': '20x',
+      'bottom' : '32px',
+      'left' : '20px',
+      'z-index': '2'})
+    .attr('src',"static/images/plus.jpg")
+    .click(function(){ToggleCorrelations();});
               
   $.ajax({
     type: "get",
@@ -118,5 +129,71 @@ function ConnectomeLoadSection (data) {
 
 
 
+function ToggleCorrelations() {
+  var section = CONNECTOME_SECTIONS[sectionIndex];
+  if (section.Markers.length > 0) {
+    section.Markers = [];
+    eventuallyRender();
+    return;
+  }
+
+  var info = CONNECTOME_SECTION_IDS[sectionIndex];
+  $.ajax({
+    type: "get",
+    url: "/getcorrelations",
+    data: {"db"    : DATABASE_NAME,
+           "col"   : COLLECTION_NAME,
+           "wafer" : info.waferName,
+           "sect"  : info.section},
+    success: function(data,status) { ConnectomeLoadCorrelations(data);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
+}
+
+
+
+
 
   
+ConnectomeLoadCorrelations(data) {
+  var section = CONNECTOME_SECTIONS[sectionIndex];
+  // Mark correlations for debugging.
+  // Brute force search to find correltaion points in this section.
+ /* for (var i = 0; i < PAIR_ARRAY.length; ++i) {
+    pair = PAIR_ARRAY[i];
+    if (pair.montage0.waferName == SECTION_ARRAY[s].waferName &&
+        pair.montage0.sectionNumber == SECTION_ARRAY[s].section) {
+      for (var j = 0; j < pair.correlations.length; ++j) {
+        var cor = pair.correlations[j];
+        // Find the image.  We need to convert the image coordinate to a world coordinate.
+        var source = findImage(section, cor.point0.imageCollectionName); 
+        if (source) {
+          addMarkerToSection(section, source.ImageToWorld(cor.point0.imageCoordinates), [1,0,0]);
+        }
+      }
+    }
+    if (pair.montage1.waferName == SECTION_ARRAY[s].waferName &&
+        pair.montage1.sectionNumber == SECTION_ARRAY[s].section) {
+      for (var j = 0; j < pair.correlations.length; ++j) {
+        var cor = pair.correlations[j];
+        // Find the image.  We need to convert the image coordinate to a world coordinate.
+        var source = Section.FindImage(cor.point1.imageCollectionName); 
+        if (source) {
+          addMarkerToSection(section, source.ImageToWorld(cor.point1.imageCoordinates), [0,1,1]);
+        }
+      }
+    }
+  }*/ 
+}
+
+function addMarkerToSection(section, worldPt, fillColor) {
+  var mark = new CrossHairs();
+  mark.LineWidth = 0;
+  mark.Length = 20;
+  mark.FillColor = fillColor;
+  mark.OutlineColor = [1,1,1];
+  mark.Origin = worldPt;
+  section.Markers.push(mark);
+}
+
+      
