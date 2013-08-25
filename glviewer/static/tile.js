@@ -7,23 +7,23 @@ function LoadTileCallback(tile,cache) {
     this.Cache = cache;
 }
 
-// Which cache????????
-LoadTileCallback.prototype.HandleLoadedTexture = function () {
-    this.Tile.HandleLoadedTexture(this.Cache);
+// Cache is now saved in tile ivar.
+LoadTileCallback.prototype.HandleLoadedImage = function () {
+  LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
-LoadTileCallback.prototype.HandleErrorTexture = function () {
+LoadTileCallback.prototype.HandleErrorImage = function () {
     LoadQueueError(this.Tile);
 }
 
 
-function GetLoadTextureFunction (callback) {
-    return function () {callback.HandleLoadedTexture();}
+function GetLoadImageFunction (callback) {
+    return function () {callback.HandleLoadedImage();}
 }
-function GetErrorTextureFunction (callback) {
-    return function () {callback.HandleErrorTexture();}
+function GetErrorImageFunction (callback) {
+    return function () {callback.HandleErrorImage();}
 }
 
 
@@ -34,7 +34,7 @@ function GetErrorTextureFunction (callback) {
 
 
 
-// Three stages to loading a tile:
+// Three stages to loading a tile: (texture map is created when the tile is rendered.
 // 1: Create a tile object.
 // 2: Initialize the texture.
 // 3: onload is called indicating the image has been loaded.
@@ -146,19 +146,18 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
-  if (this.Texture != null) {
+  if (this.LoadState >= 2) {
     return;
   }
 
   var imageSrc = cache.GetSource() + this.Name + ".jpg";
 
-  this.Texture = GL.createTexture();
   // Reusing the image caused problems.
   //if (this.Image == null) {
     this.Image = new Image();
     var callback = new LoadTileCallback(this, cache);
-    this.Image.onload = GetLoadTextureFunction(callback);
-    this.Image.onerror = GetErrorTextureFunction(callback);
+    this.Image.onload = GetLoadImageFunction(callback);
+    this.Image.onerror = GetErrorImageFunction(callback);
   //}
   // This starts the loading.
   this.Image.src = imageSrc;
@@ -166,6 +165,7 @@ Tile.prototype.StartLoad = function (cache) {
 
 
 Tile.prototype.Draw = function (program) {
+
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
   // Load state 1 is: not loaded but in the load queue.
   if ( this.LoadState != 3) {
@@ -178,6 +178,11 @@ Tile.prototype.Draw = function (program) {
     eventuallyRender();
     return;
   }
+
+  if (this.Texture == null) {
+    this.CreateTexture();
+  }      
+
   
   // These are the same for every tile.
   // Vertex points (shifted by tiles matrix)
@@ -206,25 +211,20 @@ Tile.prototype.Draw = function (program) {
 }
 
 
+Tile.prototype.CreateTexture = function () {
+  if (this.Texture != null) { return;}
 
-Tile.prototype.HandleLoadedTexture = function (cache) {
-    var texture = this.Texture;
-    //alert(tile);
-    GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-    GL.bindTexture(GL.TEXTURE_2D, texture);
-    GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-    GL.bindTexture(GL.TEXTURE_2D, null);
-    // There is an issue: Tiles call this method when their image gets loaded.
-    // How does the tile know which cache it belongs too.
-    LoadQueueLoaded(this);
+  this.Texture = GL.createTexture();
+  var texture = this.Texture;
+  //alert(tile);
+  GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
+  GL.bindTexture(GL.TEXTURE_2D, texture);
+  GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+  GL.bindTexture(GL.TEXTURE_2D, null);
 }
-
-
-
-
 
 
