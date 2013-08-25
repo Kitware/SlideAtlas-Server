@@ -72,6 +72,7 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
 
     // Load the section
     VIEWER1.SetSection(section);
+    VIEWER1.ShapeList = section.Markers;
     eventuallyRender();
     return;
   }
@@ -124,16 +125,17 @@ function ConnectomeLoadSection (data) {
 
   // Load the section
   VIEWER1.SetSection(section);
+  // Empty here.
+  VIEWER1.ShapeList = section.Markers;
   eventuallyRender();
 }
 
 
 
 function ToggleCorrelations() {
+  var sectionIndex = CONNECTOME_CURRENT_SECTION_INDEX;
   var section = CONNECTOME_SECTIONS[sectionIndex];
   if (section.Markers.length > 0) {
-    section.Markers = [];
-    eventuallyRender();
     return;
   }
 
@@ -155,36 +157,31 @@ function ToggleCorrelations() {
 
 
   
-ConnectomeLoadCorrelations(data) {
+function ConnectomeLoadCorrelations(data) {
+  var sectionIndex = CONNECTOME_CURRENT_SECTION_INDEX;
   var section = CONNECTOME_SECTIONS[sectionIndex];
   // Mark correlations for debugging.
-  // Brute force search to find correltaion points in this section.
- /* for (var i = 0; i < PAIR_ARRAY.length; ++i) {
-    pair = PAIR_ARRAY[i];
-    if (pair.montage0.waferName == SECTION_ARRAY[s].waferName &&
-        pair.montage0.sectionNumber == SECTION_ARRAY[s].section) {
-      for (var j = 0; j < pair.correlations.length; ++j) {
-        var cor = pair.correlations[j];
-        // Find the image.  We need to convert the image coordinate to a world coordinate.
-        var source = findImage(section, cor.point0.imageCollectionName); 
-        if (source) {
-          addMarkerToSection(section, source.ImageToWorld(cor.point0.imageCoordinates), [1,0,0]);
-        }
-      }
+  for (var i = 0; i < data.CorrelationArray0.length; ++i) {
+    var point = data.CorrelationArray0[i].point0;
+    // Find the image.  We need to convert the image coordinate to a world coordinate.
+    var source = section.FindImage(point.imageCollectionName); 
+    if (source) {
+      addMarkerToSection(section, source.ImageToWorld(point.imageCoordinates), [1,0,0]);
     }
-    if (pair.montage1.waferName == SECTION_ARRAY[s].waferName &&
-        pair.montage1.sectionNumber == SECTION_ARRAY[s].section) {
-      for (var j = 0; j < pair.correlations.length; ++j) {
-        var cor = pair.correlations[j];
-        // Find the image.  We need to convert the image coordinate to a world coordinate.
-        var source = Section.FindImage(cor.point1.imageCollectionName); 
-        if (source) {
-          addMarkerToSection(section, source.ImageToWorld(cor.point1.imageCoordinates), [0,1,1]);
-        }
-      }
+  }
+  for (var i = 0; i < data.CorrelationArray1.length; ++i) {
+    var point = data.CorrelationArray1[i].point1;
+    // Find the image.  We need to convert the image coordinate to a world coordinate.
+    var source = section.FindImage(point.imageCollectionName); 
+    if (source) {
+      addMarkerToSection(section, source.ImageToWorld(point.imageCoordinates), [0,1,1]);
     }
-  }*/ 
+  }
+  VIEWER1.ShapeList = section.Markers;
+  VIEWER1.AnnotationVisibility = true;
+  eventuallyRender();
 }
+
 
 function addMarkerToSection(section, worldPt, fillColor) {
   var mark = new CrossHairs();
