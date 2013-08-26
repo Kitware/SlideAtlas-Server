@@ -4,6 +4,10 @@ var CONNECTOME_SECTIONS = [];
 var CONNECTOME_SECTION_META_DATA;
 var CONNECTOME_SECTION_LABEL;
 
+var CONNECTOME_POPUP_MENU_BUTTON;
+var CONNECTOME_POPUP_MENU;
+
+
 
 function InitConnectome () {
 
@@ -17,17 +21,53 @@ function InitConnectome () {
                     'background': '#ffffff',
                     'z-index': '2'});
 
-  var correlationButton = $('<img>').appendTo('body')
+  CONNECTOME_POPUP_MENU_BUTTON = $('<img>')
+    .appendTo('body')
     .css({
       'position': 'absolute',
       'height': '20px',
       'width': '20x',
-      'bottom' : '32px',
       'left' : '20px',
+      'bottom' : '32px',
       'z-index': '2'})
     .attr('src',"static/images/plus.jpg")
-    .click(function(){ToggleCorrelations();});
-              
+    .mouseenter(function() {CONNECTOME_POPUP_MENU.fadeIn(); })
+    .click(function(){ShowCorrelationsCallback();});
+
+  // For less used buttons that appear when mouse is over the pulldown button.
+  // I would like to make a dynamic bar that puts extra buttons into the pulldown as it resizes.
+  CONNECTOME_POPUP_MENU = $('<div>').attr({'id':'popup'})
+    .appendTo('body')
+    .css({'position': 'absolute',
+         'left': '20px',
+         'bottom': '32px',
+         'z-index': '2',
+         'background-color': 'white',
+         'padding': '5px',
+         'border-radius': '8px',
+         'border-style': 'solid',
+         'border-width':'1px'})
+    .hide()
+    .mouseleave(function(){
+      var self = $(this),
+      timeoutId = setTimeout(function(){CONNECTOME_POPUP_MENU.fadeOut();}, 650);
+      //set the timeoutId, allowing us to clear this trigger if the mouse comes back over
+      self.data('timeoutId', timeoutId);  })
+    .mouseenter(function(){
+      clearTimeout($(this).data('timeoutId')); });                       
+
+  var loadButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("Load Neighborhood")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( LoadNeighborhoodCallback  );
+
+  var showCorrelationsButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("ShowCorrelations")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( ShowCorrelationsCallback  );
+    
   $.ajax({
     type: "get",
     url: "/getsections",
@@ -85,13 +125,13 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
            "col" : COLLECTION_NAME,
            "id"  : sectionId,
            "type": "Section"},
-    success: function(data,status) { ConnectomeLoadSection(data);},
+    success: function(data,status) { ConnectomeLoadSection(data, true);},
     error: function() { alert( "AJAX - error()" ); },
     });  
 }
 
 
-function ConnectomeLoadSection (data) {
+function ConnectomeLoadSection (data, showFlag) {
   // for debugging
   CONNECTOME_SECTION_META_DATA = data;
   
@@ -121,18 +161,50 @@ function ConnectomeLoadSection (data) {
   }
   
   section.LoadRoots();
-  CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX] = section;
 
-  // Load the section
-  VIEWER1.SetSection(section);
-  // Empty here.
-  VIEWER1.ShapeList = section.Markers;
-  eventuallyRender();
+  if (showFlag) {
+    CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX] = section;
+
+    // Load the section
+    VIEWER1.SetSection(section);
+    // The marker array is empty here.
+    VIEWER1.ShapeList = section.Markers;
+    eventuallyRender();
+  } else {
+    // Loading in the background.
+    // Load the tiles for the current view but do not show them.
+  }
+}
+
+// Load 100 sections after the current section.
+// Load for the current view.
+// It would be nice to have a progress bar.
+function LoadNeighborhoodCallback() {
+  CONNECTOME_POPUP_MENU.hide();
+  var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 100;
+  if (endIdx >= CONNECTOME_SECTION_IDS.length) {
+    endIdx = CONNECTOME_SECTION_IDS.length - 1;
+  }
+  for (var i = CONNECTOME_CURRENT_SECTION_INDEX+1; i <= endIdx; ++i) {
+    var section = CONNECTOME_SECTIONS[i];
+    if ( ! section) {
+    $.ajax({
+      type: "get",
+      url: "/getsections",
+      data: {"db"  : DATABASE_NAME,
+             "col" : COLLECTION_NAME,
+             "id"  : CONNECTOME_SECTION_IDS[i]._id,
+             "type": "Section"},
+      success: function(data,status) { ConnectomeLoadSection(data, false);},
+      error: function() { alert( "AJAX - error()" ); },
+      });  
+    }
+  }
 }
 
 
-
-function ToggleCorrelations() {
+function ShowCorrelationsCallback() {
+  CONNECTOME_POPUP_MENU.hide();
   var sectionIndex = CONNECTOME_CURRENT_SECTION_INDEX;
   var section = CONNECTOME_SECTIONS[sectionIndex];
   if (section.Markers.length > 0) {

@@ -104,132 +104,6 @@ Cache.prototype.LoadRoots = function () {
 }
 
 
-
-/*
-// ------ I think this method really belongs in the view! -----------
-// This could get expensive because it is called so often.
-// Eventually I want a quick coverage test to exit early.
-Cache.prototype.ChooseTiles = function(view, slice) {  
-    // I am prioritizing tiles in the queue by time stamp.
-    // Loader sets the the tiles time stamp.
-    // Time stamp only progresses after a whole render.
-    AdvanceTimeStamp();
-
-    // I am putting this here to avoid deleting tiles
-    // in the rendering list.
-    Prune();           
-
-  // Pick a level to display.
-  //var fast = document.getElementById("fast").checked;
-  // Todo: fix this hack. (now a global variable gl).
-  var canvasHeight = view.Viewport[3];
-  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / view.Camera.Height;
-  //if (fast) {
-  //  tmp = tmp * 0.5;
-  //}
-  tmp = tmp * canvasHeight / this.TileDimensions[1];
-  var level = 0;
-  while (tmp > 1.2) {
-    ++level;
-    tmp = tmp * 0.5;
-  }
-  if (level >= this.NumberOfLevels) {
-    level = this.NumberOfLevels-1;
-  }
-
-
-  // Compute the world bounds of camera view.
-  var xMax = 0.0;
-  var yMax = 0.0;
-  var hw = view.Camera.GetWidth()*0.5;
-  var hh = view.Camera.GetHeight()*0.5;
-  var roll = view.Camera.Roll;
-  var s = Math.sin(roll);
-  var c = Math.cos(roll);
-  var rx, ry;
-  // Choose a camera corner and rotate. (Center of bounds in origin).
-  rx = hw*c + hh*s;
-  ry = hh*c - hw*s;
-  // Expand bounds to contain corner of rotated tiles.
-  if (xMax < rx)  { xMax = rx;}
-  if (xMax < -rx) { xMax = -rx;}
-  if (yMax < ry)  { yMax = ry;}
-  if (yMax < -ry) { yMax = -ry;}
-  // Now another corner (90 degrees away).
-  rx = hw*c - hh*s;
-  ry = -hh*c - hw*s;
-  // Expand bounds.
-  if (xMax < rx)  { xMax = rx;}
-  if (xMax < -rx) { xMax = -rx;}
-  if (yMax < ry)  { yMax = ry;}
-  if (yMax < -ry) { yMax = -ry;}
-  
-  var bounds = [];
-  bounds[0] = view.Camera.FocalPoint[0]-xMax;
-  bounds[1] = view.Camera.FocalPoint[0]+xMax;
-  bounds[2] = view.Camera.FocalPoint[1]-yMax;
-  bounds[3] = view.Camera.FocalPoint[1]+yMax;
-  
-  // Adjust bounds for origin of this cache.
-  // Convert the bounds into cache-image coordinates.
-  if ( ! this.Warp) {
-    // We do not have an origin in this version.
-    // If we want a simple shift, we could incorporate Matrix into warp.
-    //bounds[0] -= this.Origin[0];
-    //bounds[1] -= this.Origin[0];
-    //bounds[2] -= this.Origin[1];
-    //bounds[3] -= this.Origin[1];
-  } else {
-    // If this is too slow (occurs every render) we can estimate.
-    var iPt = this.WorldToImage([bounds[0], bounds[2]]);
-    var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
-    iPt = this.WorldToImage([bounds[1], bounds[2]]);
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    iPt = this.WorldToImage([bounds[0], bounds[3]]);
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    iPt = this.WorldToImage([bounds[1], bounds[3]]);
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    bounds = iBounds;
-  }
-  var tileIds = this.GetVisibleTileIds(level, bounds);  
-  
-  var tile;
-  tiles = [];
-  for (var i = 0; i < tileIds.length; ++i) {
-    tile = this.GetTile(slice, level, tileIds[i]);
-    // If the tile is loaded or loading,
-    // this does nothing.
-    LoadQueueAdd(tile);
-    tiles.push(tile);
-  }
-  // Mark the tiles to be rendered so they will be last to be pruned.
-  this.StampTiles(tiles);
-
-  // Preload the next slice.
-  //bounds[0] = bounds[1] = camera.FocalPoint[0];
-  //bounds[2] = bounds[3] = camera.FocalPoint[1];
-  //tileIds = this.GetVisibleTileIds(level, bounds);
-  // There will be only one tile because the bounds
-  // contains only the center point.
-  //for (var i = 0; i < tileIds.length; ++i) {
-  //    tile = this.GetTile(slice+1, level, tileIds[i]);
-  //    this.LoadQueueAdd(tile);
-  //}
-
-  return tiles;
-}
-*/
-
-
 // ------ I think this method really belongs in the view! -----------
 // This could get expensive because it is called so often.
 // Eventually I want a quick coverage test to exit early.
@@ -467,14 +341,18 @@ Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
 
 
 // Find the oldest tile, remove it from the tree and return it to be recycled.
+// This also prunes texture maps.
+// PRUNE_TIME_TILES and PRUNE_TIME_TEXTURES are compared with used time of tile.
 Cache.prototype.PruneTiles = function()
 {
-    for (var i = 0; i < this.RootTiles.length; ++i) {
-        var node = this.RootTiles[i];
-        if (node != null && node.BranchTimeStamp < PRUNE_TIME) {
-            this.RecursivePruneTiles(node);
-        }
+  for (var i = 0; i < this.RootTiles.length; ++i) {
+    var node = this.RootTiles[i];
+    if (node != null) {
+      if (node.BranchTimeStamp < PRUNE_TIME_TILES || node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+        this.RecursivePruneTiles(node);
+      }
     }
+  }
 }
 
 Cache.prototype.RecursivePruneTiles = function(node)
@@ -482,32 +360,39 @@ Cache.prototype.RecursivePruneTiles = function(node)
   var leaf = true;
     
   for (var i = 0; i < 4; ++i) {
-    if (node.Children[i] != null) {
-        leaf = false;
-        if (node.Children[i].BranchTimeStamp < PRUNE_TIME) {
-            this.RecursivePruneTiles(node.Children[i]);
-        }
+    var child = node.Children[i];
+    if (child != null) {
+      leaf = false;
+      if (child.BranchTimeStamp < PRUNE_TIME_TILES || 
+          child.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+        this.RecursivePruneTiles(child);
+      }
     }
   }
-  if (leaf && node.Parent != null) {
-    if ( node.LoadState == 1) {
-      LoadQueueRemove(node); 
+  if (leaf && node.Parent != null) { // Roots have null parents.  Do not prune roots.
+    if (node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+      node.DeleteTexture();
     }
-    var parent = node.Parent;
-    // nodes will always have parents because we do not steal roots.
-    if (parent.Children[0] == node) {
-        parent.Children[0] = null;
-    } else if (parent.Children[1] == node) {
-        parent.Children[1] = null;
-    } else if (parent.Children[2] == node) {
-        parent.Children[2] = null;
-    } else if (parent.Children[3] == node) {
-        parent.Children[3] = null;
+    if (node.BranchTimeStamp < PRUNE_TIME_TILES) {
+      if ( node.LoadState == 1) {
+        LoadQueueRemove(node); 
+      }
+      var parent = node.Parent;
+      // nodes will always have parents because we do not steal roots.
+      if (parent.Children[0] == node) {
+          parent.Children[0] = null;
+      } else if (parent.Children[1] == node) {
+          parent.Children[1] = null;
+      } else if (parent.Children[2] == node) {
+          parent.Children[2] = null;
+      } else if (parent.Children[3] == node) {
+          parent.Children[3] = null;
+      }
+      node.Parent = null;
+      this.UpdateBranchTimeStamp(parent)
+      node.destructor();
+      delete node;
     }
-    node.Parent = null;
-    this.UpdateBranchTimeStamp(parent)
-    node.destructor();
-    delete node;
   }
 }
 

@@ -1,10 +1,18 @@
 
 // Make this a singlton (effectively) for now.
+// Two levels of caching and pruning.
+// Image without an associated texture map.
+// Texture maps (scarcer resource).
+
+
 
 var TIME_STAMP = 0;
 var NUMBER_OF_TILES = 0;
-var MAXIMUM_NUMBER_OF_TILES = 5000;
-var PRUNE_TIME = 0;
+var NUMBER_OF_TEXTURES = 0;
+var MAXIMUM_NUMBER_OF_TILES = 50000;
+var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
+var PRUNE_TIME_TILES = 0;
+var PRUNE_TIME_TEXTURES = 0;
 var CACHES = [];
 
 
@@ -19,19 +27,32 @@ function GetCurrentTime() {
 
 // Prunning could be rethought to avoid so much depdency on the cache.
 function Prune() {
-  if (NUMBER_OF_TILES <= MAXIMUM_NUMBER_OF_TILES) {
-    return;
+  var prune = false;
+  if (NUMBER_OF_TILES >= MAXIMUM_NUMBER_OF_TILES) {
+    // Overflow may be possible after running for a while.
+    if (PRUNE_TIME_TILES > TIME_STAMP) {
+      PRUNE_TIME_TILES = 0;
+    } 
+    // Advance the prune threshold.
+    PRUNE_TIME_TILES += 0.05 * (TIME_STAMP - PRUNE_TIME_TILES);
+    prune = true;
   }
-  // Overflow may be possible after running for a while.
-  if (PRUNE_TIME > TIME_STAMP) {
-    PRUNE_TIME = 0;
-  } 
   
-  // Advance the prune threshold.
-  PRUNE_TIME += 0.05 * (TIME_STAMP - PRUNE_TIME);
-  for (i in CACHES) {
-    cache = CACHES[i];
-    cache.PruneTiles();
+  if (NUMBER_OF_TEXTURES >= MAXIMUM_NUMBER_OF_TEXTURES) {
+    // Overflow may be possible after running for a while.
+    if (PRUNE_TIME_TEXTURES > TIME_STAMP) {
+      PRUNE_TIME_TEXTURES = 0;
+    } 
+    // Advance the prune threshold.
+    PRUNE_TIME_TEXTURES += 0.05 * (TIME_STAMP - PRUNE_TIME_TEXTURES);
+    prune = true;
+  }
+  
+  if (prune) {  
+    for (i in CACHES) {
+      cache = CACHES[i];
+      cache.PruneTiles();
+    }
   }
 }
 

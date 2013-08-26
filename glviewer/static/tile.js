@@ -86,10 +86,7 @@ function Tile(x, y, z, level, name, cache) {
 Tile.prototype.destructor=function()
 {
   --NUMBER_OF_TILES;
-  if (this.Texture) {
-    GL.deleteTexture(this.Texture);
-  }
-  this.Texture = null;
+  this.DeleteTexture();
   delete this.Matrix;
   this.Matrix = null;
   if (this.Image) {
@@ -214,6 +211,7 @@ Tile.prototype.Draw = function (program) {
 Tile.prototype.CreateTexture = function () {
   if (this.Texture != null) { return;}
 
+  ++NUMBER_OF_TEXTURES; // To determine when to prune textures.
   this.Texture = GL.createTexture();
   var texture = this.Texture;
   //alert(tile);
@@ -227,4 +225,10 @@ Tile.prototype.CreateTexture = function () {
   GL.bindTexture(GL.TEXTURE_2D, null);
 }
 
-
+Tile.prototype.DeleteTexture = function () {
+  if (this.Texture) {
+    --NUMBER_OF_TEXTURES; // To determine when to prune textures.
+    GL.deleteTexture(this.Texture);
+    this.Texture = null;
+  }
+}
