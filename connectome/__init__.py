@@ -98,12 +98,16 @@ def getsections():
     collectionName = request.args.get('col', '')
     sectionId = request.args.get('id', None)
     objType = request.args.get('type', 'Section')
+    # passed to server to be returned to client (hack)
+    sectionIndex = request.args.get('idx', None)
 
     db = conn[dbName]
     
     if sectionId :
       sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
       sectionObj["_id"] = str(sectionObj["_id"])
+      if sectionIndex :
+        sectionObj["index"] = int(sectionIndex)
       return jsonify(sectionObj)
     else :
       sectionCursor = db[collectionName].find({"type":objType},{"waferName":1, "section":1}).sort([("waferName", 1), ("section", 1)])

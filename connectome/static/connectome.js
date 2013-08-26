@@ -107,9 +107,8 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
   CONNECTOME_SECTION_LABEL.text(info.waferName + " : " + info.section);
 
 
-  if (CONNECTOME_SECTIONS[sectionIndex]) {
-    var section = CONNECTOME_SECTIONS[sectionIndex];
-
+  var section = CONNECTOME_SECTIONS[sectionIndex];
+  if (section) {
     // Load the section
     VIEWER1.SetSection(section);
     VIEWER1.ShapeList = section.Markers;
@@ -117,6 +116,10 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
     return;
   }
 
+  section = new Section();
+  section.Index = sectionIndex; // for debugging
+  CONNECTOME_SECTIONS[sectionIndex] = section;
+  
   var sectionId = CONNECTOME_SECTION_IDS[sectionIndex]._id;
   $.ajax({
     type: "get",
@@ -124,18 +127,20 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
     data: {"db"  : DATABASE_NAME,
            "col" : COLLECTION_NAME,
            "id"  : sectionId,
+           "idx" : sectionIndex,
            "type": "Section"},
     success: function(data,status) { ConnectomeLoadSection(data, true);},
     error: function() { alert( "AJAX - error()" ); },
     });  
 }
 
-
+//
 function ConnectomeLoadSection (data, showFlag) {
+  var section = new Section();
+
   // for debugging
   CONNECTOME_SECTION_META_DATA = data;
   
-  var section = new Section();
   section.Bounds = data.bounds;
   var worldPoints = data.worldPoints;
 
@@ -160,11 +165,13 @@ function ConnectomeLoadSection (data, showFlag) {
     section.Caches.push(cache);
   }
   
-  section.LoadRoots();
+  // index passed to server and returned.
+  // Better solution would be to use a section.method as the ajax callback.
+  CONNECTOME_SECTIONS[data.index] = section;
 
   if (showFlag) {
-    CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX] = section;
-
+    // Skip roots for pre loading
+    section.LoadRoots();
     // Load the section
     VIEWER1.SetSection(section);
     // The marker array is empty here.
@@ -173,7 +180,7 @@ function ConnectomeLoadSection (data, showFlag) {
   } else {
     // Loading in the background.
     // Load the tiles for the current view but do not show them.
-    section.LoadTilesInView(VIEWER1.MainView);
+    section.LoadTilesInView2(VIEWER1.MainView);
   }
 }
 
@@ -186,18 +193,22 @@ function LoadNeighborhoodCallback() {
   if (endIdx >= CONNECTOME_SECTION_IDS.length) {
     endIdx = CONNECTOME_SECTION_IDS.length - 1;
   }
-  for (var i = CONNECTOME_CURRENT_SECTION_INDEX+1; i <= endIdx; ++i) {
-    var section = CONNECTOME_SECTIONS[i];
-    if ( ! section) {
-    $.ajax({
-      type: "get",
-      url: "/getsections",
-      data: {"db"  : DATABASE_NAME,
-             "col" : COLLECTION_NAME,
-             "id"  : CONNECTOME_SECTION_IDS[i]._id,
-             "type": "Section"},
-      success: function(data,status) { ConnectomeLoadSection(data, false);},
-      error: function() { alert( "AJAX - error()" ); },
+  // Reverse order so the proximal sections get loaded first.
+  for (var i = endIdx; i > CONNECTOME_CURRENT_SECTION_INDEX; --i) {
+    section = CONNECTOME_SECTIONS[i];
+    if (section) {
+      section.LoadTilesInView(VIEWER1.MainView);
+    } else {    
+      $.ajax({
+        type: "get",
+        url: "/getsections",
+        data: {"db"  : DATABASE_NAME,
+               "col" : COLLECTION_NAME,
+               "id"  : CONNECTOME_SECTION_IDS[i]._id,
+               "idx" : i,
+               "type": "Section"},
+        success: function(data,status) { ConnectomeLoadSection(data, false);},
+        error: function() { alert( "AJAX - error()" ); },
       });  
     }
   }

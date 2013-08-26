@@ -72,6 +72,23 @@ Section.prototype.LoadTilesInView = function (view) {
   }
 }
 
+// The above will load the first ancestor not loaded and will stop.
+// I need to pre load the actual high res tiles for connectome.
+Section.prototype.LoadTilesInView2 = function (view) {
+  for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
+    var cache = this.Caches[cIdx];
+    // Select the tiles to load (loading is a byproduct).
+    var tiles = cache.ChooseTiles(view, SLICE);
+    for (var i = 0; i < tiles.length; ++i) {
+      tiles[i].LoadState = 1;
+      // Add the tile at the front of the queue.
+      LOAD_QUEUE.push(tiles[i]);
+    }
+  }
+  LoadQueueUpdate();
+}
+
+
 
 
 // This load tiles in the view like draw but does not render them.
