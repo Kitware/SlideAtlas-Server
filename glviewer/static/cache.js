@@ -304,7 +304,7 @@ Cache.prototype.GetTile = function(slice, level, id) {
   return this.RecursiveGetTile(this.RootTiles[slice], level, x, y, slice);
 }
 
-// This creates the tile tree down to the tile (if necessry) and returns
+// This creates the tile tree down to the tile (if necessary) and returns
 // the tile requested.  The tiles objects created are not added to 
 // the load queue here.
 Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {

@@ -173,6 +173,7 @@ function ConnectomeLoadSection (data, showFlag) {
   } else {
     // Loading in the background.
     // Load the tiles for the current view but do not show them.
+    section.LoadTilesInView(VIEWER1.MainView);
   }
 }
 

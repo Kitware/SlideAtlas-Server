@@ -63,6 +63,17 @@ Section.prototype.Draw = function (view) {
 }
 
 
+Section.prototype.LoadTilesInView = function (view) {
+  for (var i = 0; i < this.Caches.length; ++i) {
+    var cache = this.Caches[i];
+    // Select the tiles to render first.
+    // This also adds the tiles returned to the loading queue.
+    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);  
+  }
+}
+
+
+
 // This load tiles in the view like draw but does not render them.
 // I want to preload tiles in the next section.
 Section.prototype.LoadTilesInView = function (view) {
