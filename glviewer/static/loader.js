@@ -14,6 +14,7 @@ var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
 var PRUNE_TIME_TILES = 0;
 var PRUNE_TIME_TEXTURES = 0;
 var CACHES = [];
+var LOAD_PROGRESS_MAX = 0;
 
 
 
@@ -128,6 +129,10 @@ function PushBestToLast() {
   }
 }
 
+function LoadQueueStartProgress() {
+  LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+  NProgress.start();
+}
 
 
 // I need a way to remove tiles from the queue when they are deleted.
@@ -148,6 +153,17 @@ function LoadQueueRemove(tile) {
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
+  if (LOAD_PROGRESS_MAX) {
+    if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
+      LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+    }
+    if (LOAD_QUEUE.length == 0) {
+      NProgress.done();
+    } else {
+      NProgress.set(LOAD_QUEUE.length / LOAD_PROGRESS_MAX);
+    }
+  }
+
   while (LOADING_COUNT < LOADING_MAXIMUM && 
          LOAD_QUEUE.length > 0) {
     PushBestToLast();     

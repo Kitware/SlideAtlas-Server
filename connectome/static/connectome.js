@@ -134,6 +134,49 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
     });  
 }
 
+
+
+
+// Mesh from loop data.
+function ConnectomeCreateMeshWarp (imageData, worldPoints) {
+  var centerPt = new Object();
+  centerPt.ImagePt = imageData.center.pixelLocation;
+  centerPt.WorldPt = worldPoints[imageData.center.worldPointId].coordinates;
+  // Create the points array.
+  var points = [centerPt];
+  for (var j = 0; j < imageData.loop.length; ++j) {
+    var loopPt = new Object();
+    loopPt.ImagePt = imageData.loop[j].pixelLocation;
+    loopPt.WorldPt = worldPoints[imageData.loop[j].worldPointId].coordinates;
+    points.push(loopPt);
+  }
+  // Create the triangle array.
+  var triangles = [];
+  for (var j = 2; j < points.length; ++j) {
+    triangles.push([0, j-1, j]);
+  }
+  // Special case: last triangle.
+  triangles.push([0, points.length-1, 1]);
+
+  return new meshWarp(points, triangles);
+}
+
+
+function ConnectomeCreateLoopWarp (imageData, worldPoints) {
+  var loop = [];
+  for (var j = 0; j < imageData.loop.length; ++j) {
+    var loopPt = new Object();
+    loopPt.ImagePt = imageData.loop[j].pixelLocation;
+    loopPt.WorldPt = worldPoints[imageData.loop[j].worldPointId].coordinates;
+    loop.push(loopPt);
+  }
+  var centerPt = new Object();
+  centerPt.ImagePt = imageData.center.pixelLocation;
+  centerPt.WorldPt = worldPoints[imageData.center.worldPointId].coordinates;
+  return new LoopWarp(loop, centerPt);
+}
+
+
 //
 function ConnectomeLoadSection (data, showFlag) {
   var section = new Section();
@@ -150,17 +193,8 @@ function ConnectomeLoadSection (data, showFlag) {
     // Or make cache have bounds of only its image (if this is useful).
     var cache = new Cache(data.imageDatabaseName, imageData.collectionName, 8, data.bounds);
     cache.Source = "/tile?db="+data.imageDatabaseName+"&img="+imageData.collectionName+"&name=";
-    var loop = [];
-    for (var j = 0; j < imageData.loop.length; ++j) {
-      var loopPt = new Object();
-      loopPt.ImagePt = imageData.loop[j].pixelLocation;
-      loopPt.WorldPt = worldPoints[imageData.loop[j].worldPointId].coordinates;
-      loop.push(loopPt);
-    }
-    var centerPt = new Object();
-    centerPt.ImagePt = imageData.center.pixelLocation;
-    centerPt.WorldPt = worldPoints[imageData.center.worldPointId].coordinates;
-    var warp = new LoopWarp(loop, centerPt);
+    //var warp = ConnectomeCreateLoopWarp(imageData, worldPoints);
+    var warp = ConnectomeCreateMeshWarp(imageData, worldPoints);
     cache.Warp = warp;
     section.Caches.push(cache);
   }
@@ -188,7 +222,9 @@ function ConnectomeLoadSection (data, showFlag) {
 // Load for the current view.
 // It would be nice to have a progress bar.
 function LoadNeighborhoodCallback() {
-  CONNECTOME_POPUP_MENU.hide();
+  CONNECTOME_POPUP_MENU.hide();  
+  LoadQueueStartProgress();
+
   var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 100;
   if (endIdx >= CONNECTOME_SECTION_IDS.length) {
     endIdx = CONNECTOME_SECTION_IDS.length - 1;
