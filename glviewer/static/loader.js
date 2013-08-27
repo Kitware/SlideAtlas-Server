@@ -14,7 +14,22 @@ var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
 var PRUNE_TIME_TILES = 0;
 var PRUNE_TIME_TEXTURES = 0;
 var CACHES = [];
+
 var LOAD_PROGRESS_MAX = 0;
+var PROGRESS_BAR = null;
+
+function InitProgressBar () {
+  if (PROGRESS_BAR) { return;}
+  PROGRESS_BAR = $("<div>")
+   .appendTo('body')
+   .css({"position":"absolute",
+         "z-index" : "2",
+         "bottom"     : "0px",
+         "left"    : "0px",
+         "height"  : "3px",
+         "width"   : "50%",
+         "background-color" : "#404060"});
+}
 
 
 
@@ -129,10 +144,6 @@ function PushBestToLast() {
   }
 }
 
-function LoadQueueStartProgress() {
-  LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
-  NProgress.start();
-}
 
 
 // I need a way to remove tiles from the queue when they are deleted.
@@ -153,17 +164,6 @@ function LoadQueueRemove(tile) {
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
-  if (LOAD_PROGRESS_MAX) {
-    if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
-      LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
-    }
-    if (LOAD_QUEUE.length == 0) {
-      NProgress.done();
-    } else {
-      NProgress.set(LOAD_QUEUE.length / LOAD_PROGRESS_MAX);
-    }
-  }
-
   while (LOADING_COUNT < LOADING_MAXIMUM && 
          LOAD_QUEUE.length > 0) {
     PushBestToLast();     
@@ -174,6 +174,20 @@ function LoadQueueUpdate() {
       tile.StartLoad(tile.Cache);
       tile.LoadState = 2; // Loading.
       ++LOADING_COUNT;
+    }
+  }
+
+
+  if (PROGRESS_BAR) {
+    if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
+      LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+    }
+    var width = (100 * LOAD_QUEUE.length / LOAD_PROGRESS_MAX).toFixed();
+    width = width + "%";
+    PROGRESS_BAR.css({"width" : width});
+    // Reset maximum
+    if (LOAD_QUEUE.length == 0) {
+      LOAD_PROGRESS_MAX = 0;
     }
   }
 }

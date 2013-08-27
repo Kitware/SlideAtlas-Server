@@ -12,14 +12,15 @@ var CONNECTOME_POPUP_MENU;
 function InitConnectome () {
 
   CONNECTOME_SECTION_LABEL =
-    $('<div>').appendTo('body').attr({'id':'sectionLabel'})
-              .css({'position': 'absolute',
-                    'left': '45px',
-                    'bottom': '30px',
-                    'border-radius': '8px',
-                    'font-size': '18px',
-                    'background': '#ffffff',
-                    'z-index': '2'});
+    $('<div>')
+      .appendTo('body').attr({'id':'sectionLabel'})
+      .css({'position': 'absolute',
+            'left': '45px',
+            'bottom': '30px',
+            'border-radius': '8px',
+            'font-size': '18px',
+            'background': '#ffffff',
+            'z-index': '2'});
 
   CONNECTOME_POPUP_MENU_BUTTON = $('<img>')
     .appendTo('body')
@@ -92,6 +93,19 @@ function ConnectomeAdvance(dz) {
 
 function ConnectomeLoadSectionIds (data) {
   CONNECTOME_SECTION_IDS = data.sections;
+  // Look at cookies to find out what section was being viewed
+  var wafer = getCookie("wafer");
+  var section = getCookie("section");
+  if (wafer && section) {
+    section = parseInt(section);
+    for (var idx = 0; idx < CONNECTOME_SECTION_IDS.length; ++idx) {
+      var info = CONNECTOME_SECTION_IDS[idx];
+      if (info.waferName == wafer && info.section == section) {
+        ConnectomeSetCurrentSectionIndex(idx);
+        return;
+      }
+    }
+  }
   ConnectomeSetCurrentSectionIndex(0);
 }
 
@@ -105,7 +119,8 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
 
   var info = CONNECTOME_SECTION_IDS[sectionIndex];
   CONNECTOME_SECTION_LABEL.text(info.waferName + " : " + info.section);
-
+  setCookie("wafer",info.waferName, 30);
+  setCookie("section",info.section.toFixed(), 30);
 
   var section = CONNECTOME_SECTIONS[sectionIndex];
   if (section) {
@@ -220,10 +235,12 @@ function ConnectomeLoadSection (data, showFlag) {
 
 // Load 100 sections after the current section.
 // Load for the current view.
+
 // It would be nice to have a progress bar.
 function LoadNeighborhoodCallback() {
   CONNECTOME_POPUP_MENU.hide();  
-  LoadQueueStartProgress();
+
+  InitProgressBar();
 
   var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 100;
   if (endIdx >= CONNECTOME_SECTION_IDS.length) {
