@@ -15,6 +15,13 @@ var PRUNE_TIME_TILES = 0;
 var PRUNE_TIME_TEXTURES = 0;
 var CACHES = [];
 
+// Keep a queue of tiles to load so we can sort them as
+// new requests come in.
+var LOAD_QUEUE = [];
+var LOADING_COUNT = 0;
+var LOADING_MAXIMUM = 4;
+var LOAD_TIMEOUT_ID = 0;
+
 var LOAD_PROGRESS_MAX = 0;
 var PROGRESS_BAR = null;
 
@@ -72,12 +79,6 @@ function Prune() {
   }
 }
 
-
-// Keep a queue of tiles to load so we can sort them as
-// new requests come in.
-var LOAD_QUEUE = [];
-var LOADING_COUNT = 0;
-var LOADING_MAXIMUM = 4;
 
 // We could chop off the lowest priority tiles if the queue gets too long.
 function LoadQueueAdd(tile) {
@@ -164,6 +165,7 @@ function LoadQueueRemove(tile) {
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
+
   while (LOADING_COUNT < LOADING_MAXIMUM && 
          LOAD_QUEUE.length > 0) {
     PushBestToLast();     
@@ -177,6 +179,15 @@ function LoadQueueUpdate() {
     }
   }
 
+  // Observed bug: If 4 tile requests never return, loading stops.
+  // Do a time out to clear this hang.
+  if (LOAD_TIMEOUT_ID) {
+    clearTimeout(LOAD_TIMEOUT_ID);
+    LOAD_TIMEOUT_ID = 0;
+  }
+  if (LOADING_COUNT) {
+    LOAD_TIMEOUT_ID = setTimeout(function(){LoadTimeout();}, 1000);
+  }
 
   if (PROGRESS_BAR) {
     if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
@@ -206,7 +217,4 @@ function LoadQueueError(tile) {
   --LOADING_COUNT;
   LoadQueueUpdate();
 }
-
-
-
 
