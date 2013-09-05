@@ -57,6 +57,12 @@ function InitConnectome () {
     .mouseenter(function(){
       clearTimeout($(this).data('timeoutId')); });                       
 
+  var removeButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("Remove Section")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( RemoveSectionCallback  );
+
   var loadButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
     .text("Load Neighborhood")
@@ -242,29 +248,61 @@ function LoadNeighborhoodCallback() {
 
   InitProgressBar();
 
-  var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 100;
+  var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 10;
   if (endIdx >= CONNECTOME_SECTION_IDS.length) {
     endIdx = CONNECTOME_SECTION_IDS.length - 1;
   }
-  // Reverse order so the proximal sections get loaded first.
-  for (var i = endIdx; i > CONNECTOME_CURRENT_SECTION_INDEX; --i) {
-    section = CONNECTOME_SECTIONS[i];
-    if (section) {
-      section.LoadTilesInView(VIEWER1.MainView);
-    } else {    
-      $.ajax({
-        type: "get",
-        url: "/getsections",
-        data: {"db"  : DATABASE_NAME,
-               "col" : COLLECTION_NAME,
-               "id"  : CONNECTOME_SECTION_IDS[i]._id,
-               "idx" : i,
-               "type": "Section"},
+
+  // Trouble hanging. Lets try to slow dow the requests.
+  CONNECTOME_SECTION_TO_LOAD = endIdx;
+  LoadNextNeighborSection();
+}
+
+
+
+function LoadNextNeighborSection() {
+  var i = CONNECTOME_SECTION_TO_LOAD;
+  $.ajax({
+    type: "get",
+    url: "/getsections",
+    data: {"db"  : DATABASE_NAME,
+           "col" : COLLECTION_NAME,
+           "id"  : CONNECTOME_SECTION_IDS[i]._id,
+           "idx" : i,
+           "type": "Section"},
         success: function(data,status) { ConnectomeLoadSection(data, false);},
         error: function() { alert( "AJAX - error()" ); },
       });  
+
+  --CONNECTOME_SECTION_TO_LOAD;
+  if (CONNECTOME_SECTION_TO_LOAD > CONNECTOME_CURRENT_SECTION_INDEX) {
+      setTimeout(function(){LoadNextNeighborSection();}, 250);
+  } else {
+    // Reverse order so the proximal sections get loaded first.
+    var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 10;
+    if (endIdx >= CONNECTOME_SECTION_IDS.length) {
+      endIdx = CONNECTOME_SECTION_IDS.length - 1;
+    }
+    for (var i = endIdx; i > CONNECTOME_CURRENT_SECTION_INDEX; --i) {
+      section = CONNECTOME_SECTIONS[i];
+      if (section) {
+        section.LoadTilesInView(VIEWER1.MainView);
+      }
     }
   }
+}
+
+
+function RemoveSectionCallback() {
+  $.ajax({
+    type: "get",
+    url: "/removeobject",
+    data: {"db"    : DATABASE_NAME,
+           "col"   : COLLECTION_NAME,
+           "id"    : info._id},
+    success: function(data,status) { ConnectomeAdvance(1);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
 }
 
 
@@ -330,4 +368,3 @@ function addMarkerToSection(section, worldPt, fillColor) {
   section.Markers.push(mark);
 }
 
-      
