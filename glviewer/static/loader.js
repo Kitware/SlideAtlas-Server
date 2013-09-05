@@ -160,12 +160,24 @@ function LoadQueueRemove(tile) {
   }
 }
 
+
+function LoadTimeout() {
+  // 4 images requests are too slow.  Reset
+  // I do not know which requests failed so I cannot mak another request.
+  // TODO: Remember loading tiles (even if only for debugging).
+  LOADING_COUNT = 0;
+  LoadQueueUpdate();
+}
+
 // We will have some number of tiles loading at one time.
 // Take the first N tiles from the queue and start loading them.
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
-
+  if (LOADING_COUNT < 0) {
+    // Tiles must have arrived after timeout.
+    LOADING_COUNT = 0;
+  }
   while (LOADING_COUNT < LOADING_MAXIMUM && 
          LOAD_QUEUE.length > 0) {
     PushBestToLast();     
