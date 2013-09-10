@@ -110,7 +110,7 @@ Shape.prototype.Draw = function (view) {
     GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, 
                     GL.UNSIGNED_SHORT,0);
   }
-  // Outline.
+
   if (this.OutlineColor != undefined) {
     if (this.Active) {
 	    GL.uniform3f(program.colorUniform, this.ActiveColor[0], 
@@ -119,8 +119,16 @@ Shape.prototype.Draw = function (view) {
 	    GL.uniform3f(program.colorUniform, this.OutlineColor[0], 
                    this.OutlineColor[1], this.OutlineColor[2]);
     }
+
     if (this.LineWidth == 0) {
-      GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+      if (this.WireFrame) {
+        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems, 
+                    GL.UNSIGNED_SHORT,0);
+      } else {
+        // Outline. This only works for polylines
+        GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+      }
     } else {
       // Cell Connectivity
       GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);

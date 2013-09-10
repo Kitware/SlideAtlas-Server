@@ -63,6 +63,13 @@ meshWarp.prototype.ComputeDistance = function(params) {
     tmp = params[1] - 1.0;
     if (tmp > dist) { dist = tmp; }
   }
+  if (params[2] < 0.0) {
+    tmp = -params[2];
+    if (tmp > dist) { dist = tmp; }
+  } else if (params[2] > 1.0) {
+    tmp = params[2] - 1.0;
+    if (tmp > dist) { dist = tmp; }
+  }
   
   return dist;
 }
@@ -163,6 +170,7 @@ meshWarp.prototype.WorldToImage = function(worldPt) {
     return null;
   }
 
+  // This is problematic. It causes the boundary tiles to be wrong.
   // Point is outside the mesh.  Use the closest / best triangle we could find.
   var imagePt = [0.0, 0.0, 0.0];
   for (var j = 0; j < 2; ++j) {

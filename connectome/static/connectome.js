@@ -69,9 +69,15 @@ function InitConnectome () {
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( LoadNeighborhoodCallback  );
 
+  var showMeshButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("Show Mesh")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( ShowMeshCallback  );
+    
   var showCorrelationsButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
-    .text("ShowCorrelations")
+    .text("Show Correlations")
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( ShowCorrelationsCallback  );
     
@@ -294,6 +300,7 @@ function LoadNextNeighborSection() {
 
 
 function RemoveSectionCallback() {
+  var info = CONNECTOME_SECTION_IDS[CONNECTOME_CURRENT_SECTION_INDEX];
   $.ajax({
     type: "get",
     url: "/removeobject",
@@ -368,3 +375,25 @@ function addMarkerToSection(section, worldPt, fillColor) {
   section.Markers.push(mark);
 }
 
+
+// For debugging the mesh interpolation.
+function ShowMeshCallback() {
+  var section = CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX];  
+  for (var i = 0; i < section.Caches.length; ++i) {
+    var cache = section.Caches[i];
+    var shape = new Mesh();
+    shape.LineWidth = 0;
+    shape.OutlineColor = [1,0,0];
+    shape.FixedSize = false;
+    shape.WireFrame = true;
+    for (var j = 0; j < cache.Warp.Points.length; ++j) {
+      shape.Points.push(cache.Warp.Points[j].WorldPt);  
+    }
+    shape.Triangles = cache.Warp.Triangles;
+    shape.UpdateBuffers();
+    VIEWER1.ShapeList.push(shape);
+  }
+
+  VIEWER1.AnnotationVisibility = true;
+  eventuallyRender();
+}
