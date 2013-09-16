@@ -118,6 +118,38 @@ image data/pyramid collection (named *ObjectId*)
 
    -  ObjectId (pointer to 'bookmarks' document)
 
+
+
+Note (a recursive structure, which replaces view):
+- User  : who created this view / note (email)
+- Date  : When this view was created (javascript Date.getTime();)
+- Type  : To find out scheme.  Currently set to "Note".
+- Title : The short label used in note list or session list of views.
+- Text  : More descriptive and longer text.
+- ViewerRecords: An array of objects defining views.  The client currently supports an array of up to two views for the dual viewer.
+- Children: An array of notes objects that replaces bookmarks.
+- ChildrenVisibility: A boolean indicating whether the children will be displayed and traversed by default.
+- ParentId: Object id of parent note.  Used when a student makes a comment note which is saved in the Notes collection.
+
+
+
+ViewerRecord (Contains one slide image, camera and annotation).
+- Database : String name of the database containing the image.
+- Image    : String name of the image collection.
+- NumberOfLevels:  The number of levels in the image pyramid.
+- Camera   : a camera object
+   - FocalPoint : [x, y]
+   - Height     : Height of the view in world coordinates
+   - Rotation   : Rotation of the view in Radians. 
+- Annotations: An array of annotation objects.
+   - type   : one of "circle", "pencil", "text" or "polyline"
+   - color  : [r,g,b]
+   - ... 
+
+
+
+
+
 'bookmarks' collection
 ~~~~~~~~~~~~~~~~~~~~~~
 - **'\_id'**: ObjectId

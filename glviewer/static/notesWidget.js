@@ -1307,7 +1307,7 @@ function InitNotesWidget() {
                                       'position': 'relative',
                                       'float': 'right',
                                       'margin': '5px'})
-                                .click( NewCallback  );
+                                .click( NewCallback );
 
   // For less used buttons that appear when mouse is over the pulldown button.
   // I would like to make a dynamic bar that puts extra buttons into the pulldown as it resizes.
