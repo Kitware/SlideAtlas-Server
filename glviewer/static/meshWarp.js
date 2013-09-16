@@ -24,7 +24,7 @@ meshWarp.prototype.ComputePointParameters = function (inPt, trianglePoints)
   // Compute the inverse transformation.
   var tmp = m00*m11 - m10*m01;
   if (tmp == 0.0) {
-    return [0.0, 0.0, 0.0];
+    return null;
   }
   // determinant
   tmp = 1.0 / tmp; 
@@ -63,6 +63,13 @@ meshWarp.prototype.ComputeDistance = function(params) {
     tmp = params[1] - 1.0;
     if (tmp > dist) { dist = tmp; }
   }
+  if (params[2] < 0.0) {
+    tmp = -params[2];
+    if (tmp > dist) { dist = tmp; }
+  } else if (params[2] > 1.0) {
+    tmp = params[2] - 1.0;
+    if (tmp > dist) { dist = tmp; }
+  }
   
   return dist;
 }
@@ -73,7 +80,7 @@ meshWarp.prototype.ImageToWorld = function(imagePt)
 {
   // If point is outside all triangles, choose the best / closest.
   var bestTriangleIds;
-  var bestParams;
+  var bestParams = null;
   var bestDist;
   var dist;
   // Find the triangle that contains the point.
@@ -84,25 +91,31 @@ meshWarp.prototype.ImageToWorld = function(imagePt)
                           this.Points[triangleIds[2]].ImagePt];
     // Params is an array of three weights.
     var params = this.ComputePointParameters(imagePt, trianglePoints);
-    // Compute a distance of point from the triangle.
-    dist = this.ComputeDistance(params);
-    if (dist == 0.0) {
-      // Point is inside the triangle.
-      // Compute the world point from the weights.
-      var worldPt = [0.0, 0.0, 0.0];
-      for (var j = 0; j < 2; ++j) {
-        for (var k = 0; k < 3; ++k) {
-          worldPt[j] += params[k] * this.Points[triangleIds[k]].WorldPt[j];
+    if (params) {
+      // Compute a distance of point from the triangle.
+      dist = this.ComputeDistance(params);
+      if (dist == 0.0) {
+        // Point is inside the triangle.
+        // Compute the world point from the weights.
+        var worldPt = [0.0, 0.0, 0.0];
+        for (var j = 0; j < 2; ++j) {
+          for (var k = 0; k < 3; ++k) {
+            worldPt[j] += params[k] * this.Points[triangleIds[k]].WorldPt[j];
+          }
         }
+        return worldPt;
+      } else { // Keep track of the best triangle.
+        if (bestParams == null || dist < bestDist) {
+          bestDist = dist;
+          bestParams = params;
+          bestTriangleIds = triangleIds;
+        } 
       }
-      return worldPt;
-    } else { // Keep track of the best triangle.
-      if (i == 0 || dist < bestDist) {
-        bestDist = dist;
-        bestParams = params;
-        bestTriangleIds = triangleIds;
-      } 
     }
+  }
+
+  if (bestParams == null) {
+    return null;
   }
 
   // Point is outside the mesh.  Use the closest / best triangle we could find.
@@ -120,7 +133,7 @@ meshWarp.prototype.ImageToWorld = function(imagePt)
 meshWarp.prototype.WorldToImage = function(worldPt) {
   // If point is outside all triangles, choose the best / closest.
   var bestTriangleIds;
-  var bestParams;
+  var bestParams = null;
   var bestDist;
   var dist;
   // Find the triangle that contains the point.
@@ -131,26 +144,33 @@ meshWarp.prototype.WorldToImage = function(worldPt) {
                           this.Points[triangleIds[2]].WorldPt];
     // Params is an array of three weights.
     var params = this.ComputePointParameters(worldPt, trianglePoints);
-    dist = this.ComputeDistance(params);
-    if (dist == 0.0) {
-      // Point is inside the triangle.
-      // Compute the world point from the weights.
-      var imagePt = [0.0, 0.0, 0.0];
-      for (var j = 0; j < 2; ++j) {
-        for (var k = 0; k < 3; ++k) {
-          imagePt[j] += params[k] * this.Points[triangleIds[k]].ImagePt[j];
+    if (params) {
+      dist = this.ComputeDistance(params);
+      if (dist == 0.0) {
+        // Point is inside the triangle.
+        // Compute the world point from the weights.
+        var imagePt = [0.0, 0.0, 0.0];
+        for (var j = 0; j < 2; ++j) {
+          for (var k = 0; k < 3; ++k) {
+            imagePt[j] += params[k] * this.Points[triangleIds[k]].ImagePt[j];
+          } 
+        }
+        return imagePt;
+      } else { // Keep track of the best triangle.
+        if (bestParams == null || dist < bestDist) {
+          bestDist = dist;
+          bestParams = params;
+          bestTriangleIds = triangleIds;
         } 
       }
-      return imagePt;
-    } else { // Keep track of the best triangle.
-      if (i == 0 || dist < bestDist) {
-        bestDist = dist;
-        bestParams = params;
-        bestTriangleIds = triangleIds;
-      } 
     }
   }
   
+  if (bestParams == null) {
+    return null;
+  }
+
+  // This is problematic. It causes the boundary tiles to be wrong.
   // Point is outside the mesh.  Use the closest / best triangle we could find.
   var imagePt = [0.0, 0.0, 0.0];
   for (var j = 0; j < 2; ++j) {
@@ -222,6 +242,10 @@ meshWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
       // Convert the loop to world points and texture coordinates.
       for (var j = 0; j < loop.length; ++j) {
         var worldPoint = this.ImageToWorld(loop[j]);
+        if ( ! worldPoint) {
+          vertexPositionData.length = tCoordsData.length = cellData.length = 0;
+          return;
+        }
         vertexPositionData.push(worldPoint[0]);
         vertexPositionData.push(worldPoint[1]);
         vertexPositionData.push(- bds[4] / 20.0);

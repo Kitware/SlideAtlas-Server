@@ -166,3 +166,17 @@ def getcorrelations():
     
     return jsonify(data)
 
+# Remove an object from the database collection.
+@app.route('/removeobject')
+def removeobject():
+    #pdb.set_trace()
+    dbName = request.args.get('db', '')
+    collectionName = request.args.get('col', '')
+    idStr = request.args.get('id', '')
+
+    db = conn[dbName]
+    
+    db[collectionName].remove({'_id': ObjectId(idStr)})
+    
+    return
+

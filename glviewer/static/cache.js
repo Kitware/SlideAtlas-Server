@@ -168,18 +168,22 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   if (this.Warp) {
     // If this is too slow (occurs every render) we can estimate.
     var iPt = this.WorldToImage([bounds[0], bounds[2]]);
+    if ( ! iPt) { tiles.length = 0; return tiles;} 
     var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
     iPt = this.WorldToImage([bounds[1], bounds[2]]);
+    if ( ! iPt) { tiles.length = 0; return tiles;} 
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
     if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
     iPt = this.WorldToImage([bounds[0], bounds[3]]);
+    if ( ! iPt) { tiles.length = 0; return tiles;} 
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
     if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
     iPt = this.WorldToImage([bounds[1], bounds[3]]);
+    if ( ! iPt) { tiles.length = 0; return tiles;} 
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }

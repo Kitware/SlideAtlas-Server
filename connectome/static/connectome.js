@@ -12,14 +12,15 @@ var CONNECTOME_POPUP_MENU;
 function InitConnectome () {
 
   CONNECTOME_SECTION_LABEL =
-    $('<div>').appendTo('body').attr({'id':'sectionLabel'})
-              .css({'position': 'absolute',
-                    'left': '45px',
-                    'bottom': '30px',
-                    'border-radius': '8px',
-                    'font-size': '18px',
-                    'background': '#ffffff',
-                    'z-index': '2'});
+    $('<div>')
+      .appendTo('body').attr({'id':'sectionLabel'})
+      .css({'position': 'absolute',
+            'left': '45px',
+            'bottom': '30px',
+            'border-radius': '8px',
+            'font-size': '18px',
+            'background': '#ffffff',
+            'z-index': '2'});
 
   CONNECTOME_POPUP_MENU_BUTTON = $('<img>')
     .appendTo('body')
@@ -56,15 +57,27 @@ function InitConnectome () {
     .mouseenter(function(){
       clearTimeout($(this).data('timeoutId')); });                       
 
+  var removeButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("Remove Section")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( RemoveSectionCallback  );
+
   var loadButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
     .text("Load Neighborhood")
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( LoadNeighborhoodCallback  );
 
+  var showMeshButton = $('<button>')
+    .appendTo(CONNECTOME_POPUP_MENU)
+    .text("Show Mesh")
+    .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+    .click( ShowMeshCallback  );
+    
   var showCorrelationsButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
-    .text("ShowCorrelations")
+    .text("Show Correlations")
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( ShowCorrelationsCallback  );
     
@@ -92,6 +105,19 @@ function ConnectomeAdvance(dz) {
 
 function ConnectomeLoadSectionIds (data) {
   CONNECTOME_SECTION_IDS = data.sections;
+  // Look at cookies to find out what section was being viewed
+  var wafer = getCookie("wafer");
+  var section = getCookie("section");
+  if (wafer && section) {
+    section = parseInt(section);
+    for (var idx = 0; idx < CONNECTOME_SECTION_IDS.length; ++idx) {
+      var info = CONNECTOME_SECTION_IDS[idx];
+      if (info.waferName == wafer && info.section == section) {
+        ConnectomeSetCurrentSectionIndex(idx);
+        return;
+      }
+    }
+  }
   ConnectomeSetCurrentSectionIndex(0);
 }
 
@@ -105,7 +131,8 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
 
   var info = CONNECTOME_SECTION_IDS[sectionIndex];
   CONNECTOME_SECTION_LABEL.text(info.waferName + " : " + info.section);
-
+  setCookie("wafer",info.waferName, 30);
+  setCookie("section",info.section.toFixed(), 30);
 
   var section = CONNECTOME_SECTIONS[sectionIndex];
   if (section) {
@@ -220,34 +247,69 @@ function ConnectomeLoadSection (data, showFlag) {
 
 // Load 100 sections after the current section.
 // Load for the current view.
+
 // It would be nice to have a progress bar.
 function LoadNeighborhoodCallback() {
   CONNECTOME_POPUP_MENU.hide();  
-  LoadQueueStartProgress();
 
-  var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 100;
+  InitProgressBar();
+
+  var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 10;
   if (endIdx >= CONNECTOME_SECTION_IDS.length) {
     endIdx = CONNECTOME_SECTION_IDS.length - 1;
   }
-  // Reverse order so the proximal sections get loaded first.
-  for (var i = endIdx; i > CONNECTOME_CURRENT_SECTION_INDEX; --i) {
-    section = CONNECTOME_SECTIONS[i];
-    if (section) {
-      section.LoadTilesInView(VIEWER1.MainView);
-    } else {    
-      $.ajax({
-        type: "get",
-        url: "/getsections",
-        data: {"db"  : DATABASE_NAME,
-               "col" : COLLECTION_NAME,
-               "id"  : CONNECTOME_SECTION_IDS[i]._id,
-               "idx" : i,
-               "type": "Section"},
+
+  // Trouble hanging. Lets try to slow dow the requests.
+  CONNECTOME_SECTION_TO_LOAD = endIdx;
+  LoadNextNeighborSection();
+}
+
+
+
+function LoadNextNeighborSection() {
+  var i = CONNECTOME_SECTION_TO_LOAD;
+  $.ajax({
+    type: "get",
+    url: "/getsections",
+    data: {"db"  : DATABASE_NAME,
+           "col" : COLLECTION_NAME,
+           "id"  : CONNECTOME_SECTION_IDS[i]._id,
+           "idx" : i,
+           "type": "Section"},
         success: function(data,status) { ConnectomeLoadSection(data, false);},
         error: function() { alert( "AJAX - error()" ); },
       });  
+
+  --CONNECTOME_SECTION_TO_LOAD;
+  if (CONNECTOME_SECTION_TO_LOAD > CONNECTOME_CURRENT_SECTION_INDEX) {
+      setTimeout(function(){LoadNextNeighborSection();}, 250);
+  } else {
+    // Reverse order so the proximal sections get loaded first.
+    var endIdx = CONNECTOME_CURRENT_SECTION_INDEX + 10;
+    if (endIdx >= CONNECTOME_SECTION_IDS.length) {
+      endIdx = CONNECTOME_SECTION_IDS.length - 1;
+    }
+    for (var i = endIdx; i > CONNECTOME_CURRENT_SECTION_INDEX; --i) {
+      section = CONNECTOME_SECTIONS[i];
+      if (section) {
+        section.LoadTilesInView(VIEWER1.MainView);
+      }
     }
   }
+}
+
+
+function RemoveSectionCallback() {
+  var info = CONNECTOME_SECTION_IDS[CONNECTOME_CURRENT_SECTION_INDEX];
+  $.ajax({
+    type: "get",
+    url: "/removeobject",
+    data: {"db"    : DATABASE_NAME,
+           "col"   : COLLECTION_NAME,
+           "id"    : info._id},
+    success: function(data,status) { ConnectomeAdvance(1);},
+    error: function() { alert( "AJAX - error()" ); },
+    });  
 }
 
 
@@ -313,4 +375,25 @@ function addMarkerToSection(section, worldPt, fillColor) {
   section.Markers.push(mark);
 }
 
-      
+
+// For debugging the mesh interpolation.
+function ShowMeshCallback() {
+  var section = CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX];  
+  for (var i = 0; i < section.Caches.length; ++i) {
+    var cache = section.Caches[i];
+    var shape = new Mesh();
+    shape.LineWidth = 0;
+    shape.OutlineColor = [1,0,0];
+    shape.FixedSize = false;
+    shape.WireFrame = true;
+    for (var j = 0; j < cache.Warp.Points.length; ++j) {
+      shape.Points.push(cache.Warp.Points[j].WorldPt);  
+    }
+    shape.Triangles = cache.Warp.Triangles;
+    shape.UpdateBuffers();
+    VIEWER1.ShapeList.push(shape);
+  }
+
+  VIEWER1.AnnotationVisibility = true;
+  eventuallyRender();
+}
