@@ -173,13 +173,15 @@ Camera.prototype.AddPoint = function (x, y, z) {
 }
 
 Camera.prototype.CreateBuffer = function () {
+  if (GL) {
     if (this.Buffer != null) {
-	GL.deleteBuffer(this.Buffer);
+      GL.deleteBuffer(this.Buffer);
     }
     this.Buffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, this.Buffer);
     GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.Points), 
                   GL.STATIC_DRAW);
+  }
 }
 
 // Getting rid of this.
@@ -200,26 +202,26 @@ Camera.prototype.UpdateBuffer = function() {
 
 // Camera is already set.
 Camera.prototype.Draw = function (overviewCam, viewport) {
-    var cx = this.FocalPoint[0];
-    var cy = this.FocalPoint[1];
-    var rx = this.GetWidth() * 0.5;
-    var ry = this.GetHeight() * 0.5;
+  var cx = this.FocalPoint[0];
+  var cy = this.FocalPoint[1];
+  var rx = this.GetWidth() * 0.5;
+  var ry = this.GetHeight() * 0.5;
 
-    // To handle rotation, I need to pass the center through
-    // the overview camera matrix.
-    var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4] 
-		 + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
-    var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5] 
-		 + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
+  // To handle rotation, I need to pass the center through
+  // the overview camera matrix.
+  var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4] 
+   + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
+  var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5] 
+   + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
-    // I having trouble using the overview camera, so lets just compute
-    // the position of the rectangle here.
-    var ocx = overviewCam.FocalPoint[0];
-    var ocy = overviewCam.FocalPoint[1];
-    var orx = overviewCam.GetWidth() * 0.5;
-    var ory = overviewCam.GetHeight() * 0.5;
+  // I having trouble using the overview camera, so lets just compute
+  // the position of the rectangle here.
+  var ocx = overviewCam.FocalPoint[0];
+  var ocy = overviewCam.FocalPoint[1];
+  var orx = overviewCam.GetWidth() * 0.5;
+  var ory = overviewCam.GetHeight() * 0.5;
 
-
+  if (GL) {
     program = polyProgram;
     GL.useProgram(program);
     GL.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
@@ -245,6 +247,7 @@ Camera.prototype.Draw = function (overviewCam, viewport) {
     			   GL.FLOAT, false, 0, 0);    
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+  }
 }
 
 

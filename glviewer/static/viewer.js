@@ -428,15 +428,17 @@ Viewer.prototype.Draw = function() {
   // The do not currently hav a viewport.
 
   // Rendering text uses blending / transparency.
-  GL.disable(GL.BLEND);
-  GL.enable(GL.DEPTH_TEST);
-
+  if (GL) {
+    GL.disable(GL.BLEND);
+    GL.enable(GL.DEPTH_TEST);
+  }
+  
   this.MainView.Camera.Draw(this.OverView.Camera, this.OverView.Viewport);
   //
-  this.OverView.DrawOutline(true);
-  this.MainView.DrawOutline(false);
-  this.OverView.DrawTiles();
   this.MainView.DrawTiles();
+  this.OverView.DrawTiles();
+  this.MainView.DrawOutline(false);
+  this.OverView.DrawOutline(true);
 
   if (this.AnnotationVisibility) {
     for(i=0; i<this.ShapeList.length; i++){

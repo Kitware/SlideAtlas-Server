@@ -40,25 +40,65 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // No, we need the viewport too.
 // Could the viewport be part of the camera?
 Section.prototype.Draw = function (view) {
+  if (GL) {
+    var program = imageProgram;
+    GL.useProgram(program);
+    // Draw tiles.
+    GL.viewport(view.Viewport[0], view.Viewport[1], 
+                view.Viewport[2], view.Viewport[3]);
+    GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+  } else {
+    GC_save();
 
-  var program = imageProgram;
-  GL.useProgram(program);
+    //GC.strokeStyle="#FF0000";
+    //GC.strokeRect(view.Viewport[0]+ 0.25*view.Viewport[2],
+    //              view.Viewport[1]+ 0.25*view.Viewport[3],
+    //              0.5*view.Viewport[2],0.5*view.Viewport[3]);
 
-  // Draw tiles.
-  GL.viewport(view.Viewport[0], view.Viewport[1], 
-              view.Viewport[2], view.Viewport[3]);
-
-  GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
-
+    // Map (-1->1, -1->1) to the viewport.
+    //GC.transform(view.Viewport[2],0,0,view.Viewport[3],view.Viewport[0],view.Viewport[1]);
+    GC_transform(0.5*view.Viewport[2], 0.0,
+                 0.0, 0.5*view.Viewport[3], 
+                 view.Viewport[0] + 0.5*view.Viewport[2],
+                 view.Viewport[1] + 0.5*view.Viewport[3]);
+        
+    // The camera maps the world coordinate system to (-1->1, -1->1). 
+    var h = 1.0 / view.Camera.Matrix[15];
+    GC_transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h, 
+                 view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
+                 view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
+  }
+  
   for (var i = 0; i < this.Caches.length; ++i) {
     var cache = this.Caches[i];
     // Select the tiles to render first.
     this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);  
-    
-    // Note: if not all tiles are loaded, this will draw the lower level tile multiple times.
-    for (var j = 0; j < this.Tiles.length; ++j) {
-      this.Tiles[j].Draw(program);
+
+    // For the 2d viewer, the order the tiles are drawn is very important.
+    // Low-resolution tiles have to be drawn first.  Make a new sorted array.
+    // The problem is that unloaded tiles fall back to rendering parents.
+    // Make  copy (although we could just destroy the "Tiles" array which is not really used again).
+    var tiles = this.Tiles.slice(0); 
+    var loadedTiles = [];
+    var j = 0;
+    while (j < tiles.length) { // We add tiles in the loop so we need a while.
+      if (tiles[j].LoadState == 3) {
+        loadedTiles.push(tiles[j]);
+      } else if (tiles[j].parent) { // Queue up the parent.
+        // Note: Parents might be added multiple times by different siblings.
+        tiles.push_back(tiles[j].parent);
+      }
+      ++j;
     }
+    
+    // Reverse order to render low res tiles first.
+    for (var j = tiles.length-1; j >= 0; --j) {
+      tiles[j].Draw(program);
+    }
+  }
+
+  if (GC) {
+    GC_restore();
   }
 }
 

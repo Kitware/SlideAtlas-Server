@@ -16,8 +16,6 @@
 <link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
-<link type="text/css" href="{{ url_for('glviewer.static', filename='nprogress/nprogress.css') }}" rel="stylesheet" />
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='nprogress/nprogress.js') }}"></script>
 
 <!-- used some objects, matrix as an array  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
@@ -181,24 +179,23 @@ shape has visibility and
   
   // Might consider interactive resize feature too.
   function handleResize() {
+    CANVAS.width = CANVAS.clientWidth;
+    CANVAS.height = CANVAS.clientHeight;
     if (GL) {
-      CANVAS.width = CANVAS.clientWidth;
-      CANVAS.height = CANVAS.clientHeight;
       GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-
-      // we set the left border to leave space for the notes window.
-      var left = CANVAS.width * NOTES_FRACTION;
-      // The remaining width is split between the two viewers.
-      var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
-      var width2 = (CANVAS.width-left) - width1;
-      if (VIEWER1) {
-        VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
-        eventuallyRender();
-      }
-      if (VIEWER2) {
-        VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
-        eventuallyRender();
-      }
+    }
+    // we set the left border to leave space for the notes window.
+    var left = CANVAS.width * NOTES_FRACTION;
+    // The remaining width is split between the two viewers.
+    var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
+    var width2 = (CANVAS.width-left) - width1;
+    if (VIEWER1) {
+      VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
+      eventuallyRender();
+    }
+    if (VIEWER2) {
+      VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
+      eventuallyRender();
     }
   };
 
@@ -215,12 +212,21 @@ shape has visibility and
   }
 
   function draw() {
-    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    if (GL) {
+      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    } else {
+      // Start with a transform that flips the y axis. 
+      // This is an issue later because the images will be upside down.
+      GC_setTransform(1, 0, 0, -1, 0, CANVAS.clientHeight);
+      GC.fillStyle="#ffffff"; // Probably not necessary
+      GC.clearRect(0,0,CANVAS.clientWidth,CANVAS.clientHeight);
+      GC.stroke();
+    }
     // This just changes the camera based on the current time.
     VIEWER1.Animate();
-    VIEWER2.Animate();
+    if (DUAL_VIEW) { VIEWER2.Animate(); }
     VIEWER1.Draw();
-    VIEWER2.Draw();
+    if (DUAL_VIEW) { VIEWER2.Draw(); }
   }
   
   // The event manager detects single right click and double right click.
@@ -260,21 +266,20 @@ shape has visibility and
   }
 
 
-  function webGLStart() {
+  function Start() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
-    if ( ! doesBrowserSupportWebGL(testCanvas)) {
-        return; // WHat to do?  Function provides the alert.
+    if (! doesBrowserSupportWebGL(testCanvas)) {
+        initGC();
+    } else {
+      initGL(); // Sets CANVAS and GL global variables
+      initShaderPrograms();
+      initOutlineBuffers();
+      initImageTileBuffers();
+      GL.clearColor(0.9, 0.9, 0.9, 1.0);
+      GL.enable(GL.DEPTH_TEST);
     }
-    
-    initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
-
-    GL.clearColor(0.9, 0.9, 0.9, 1.0);
-    GL.enable(GL.DEPTH_TEST);
 
     CANVAS.onmousedown =   handleMouseDown;
     CANVAS.onmouseup =     handleMouseUp;
@@ -396,7 +401,6 @@ shape has visibility and
     //********************************************************
 
     $(document).ready(function() {
-
       $("#text-properties-dialog").dialog({
           autoOpen:false,
           height:250,
@@ -552,6 +556,7 @@ shape has visibility and
   </div>
 </div>
 
+
 <script>
-    webGLStart();
+    Start();
 </script>
