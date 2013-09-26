@@ -163,18 +163,11 @@ Tile.prototype.StartLoad = function (cache) {
 };
 
 
-Tile.prototype.Draw = function (program) {
-
+Tile.prototype.Draw = function (program, context) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
   // Load state 1 is: not loaded but in the load queue.
   if ( this.LoadState != 3) {
-    // The tile is not available.
-    // render the lower resolution tile as a place holder.
-    if (this.Parent) {
-        this.Parent.Draw(program);
-    }
-    // Keep rendering until all nodes are available.
-    eventuallyRender();
+    // This should never happen.
     return;
   }
 
@@ -184,53 +177,55 @@ Tile.prototype.Draw = function (program) {
     }      
     // These are the same for every tile.
     // Vertex points (shifted by tiles matrix)
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
     // Needed for outline ??? For some reason, DrawOutline did not work
     // without this call first.
-    GL.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
+    context.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
                           this.VertexPositionBuffer.itemSize, 
                           GL.FLOAT, false, 0, 0);     // Texture coordinates
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    GL.vertexAttribPointer(imageProgram.textureCoordAttribute, 
+    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+    context.vertexAttribPointer(imageProgram.textureCoordAttribute, 
                           this.VertexTextureCoordBuffer.itemSize, 
                           GL.FLOAT, false, 0, 0);
     // Cell Connectivity
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    context.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
       // Texture
-    GL.activeTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+    context.activeTexture(GL.TEXTURE0);
+    context.bindTexture(GL.TEXTURE_2D, this.Texture);
 
-    GL.uniform1i(program.samplerUniform, 0);
+    context.uniform1i(program.samplerUniform, 0);
     // Matrix that tranforms the vertex p
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+    context.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
 
-    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+    context.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
   } else {
     // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
     // WebGL handles this by flipping the texture coordinates.  Here we have to
     // translate the tiles to the correct location.
-    GC_save(); // Save the state of the transform so we can restore for the next tile.
-
+    context.save(); // Save the state of the transform so we can restore for the next tile.
+    
     // Map tile to world.
-    // Matrix is 0-1 to world
-    GC_transform(this.Matrix[0], this.Matrix[1],
-                 this.Matrix[4], this.Matrix[5],
-                 this.Matrix[12], this.Matrix[13]);
+    // Matrix is world to 0-1.
+    context.transform(this.Matrix[0], this.Matrix[1],
+                      this.Matrix[4], this.Matrix[5],
+                      this.Matrix[12], this.Matrix[13]);
+
+
     // Flip the tile upside down, but leave it in the same place
-    GC_transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+    context.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
 
     // map pixels to Tile
     // assume tile is 256x256
-    GC_transform(1.0/256.0, 0.0, 0.0, 1.0/256.0, 0.0, 0.0); 
+    context.transform(1.0/256.0, 0.0, 0.0, 1.0/256.0, 0.0, 0.0); 
 
-    GC.drawImage(this.Image,0,0);
-    //GC.strokeStyle="green"; // I need to find the method that converts RBG array to hex color
-    //GC.rect(0,0,256, 256); 
-    //GC.stroke();    
+    context.drawImage(this.Image,0,0);
+    //context.strokeStyle="green"; // I need to find the method that converts RBG array to hex color
+    //context.rect(0,0,256, 256); 
+    //context.stroke();    
 
     //  Transform to map (0->1, 0->1)
-    GC_restore();
+    context.restore();
   }
 }
 

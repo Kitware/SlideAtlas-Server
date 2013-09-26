@@ -179,33 +179,37 @@ shape has visibility and
   
   // Might consider interactive resize feature too.
   function handleResize() {
-    CANVAS.width = CANVAS.clientWidth;
-    CANVAS.height = CANVAS.clientHeight;
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
     if (GL) {
-      GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-    }
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
+    } // SetViewport does the work for 2d canvases.
+    
     // we set the left border to leave space for the notes window.
-    var left = CANVAS.width * NOTES_FRACTION;
+    var left = width * NOTES_FRACTION;
     // The remaining width is split between the two viewers.
-    var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
-    var width2 = (CANVAS.width-left) - width1;
+    var width1 = (width-left) * VIEWER1_FRACTION;
+    var width2 = (width-left) - width1;
     if (VIEWER1) {
-      VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
+      VIEWER1.SetViewport([left, 0, width1, height]);
       eventuallyRender();
     }
     if (VIEWER2) {
-      VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
+      VIEWER2.SetViewport([left+width1, 0, width2, height]);
       eventuallyRender();
     }
   };
 
   function InitViews() {
-
-    var halfWidth = CANVAS.clientWidth/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], null);
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    var halfWidth = width/2;
+    VIEWER1 = new Viewer([0,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
+    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
@@ -214,14 +218,8 @@ shape has visibility and
   function draw() {
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    } else {
-      // Start with a transform that flips the y axis. 
-      // This is an issue later because the images will be upside down.
-      GC_setTransform(1, 0, 0, -1, 0, CANVAS.clientHeight);
-      GC.fillStyle="#ffffff"; // Probably not necessary
-      GC.clearRect(0,0,CANVAS.clientWidth,CANVAS.clientHeight);
-      GC.stroke();
     }
+    
     // This just changes the camera based on the current time.
     VIEWER1.Animate();
     if (DUAL_VIEW) { VIEWER2.Animate(); }
@@ -269,30 +267,13 @@ shape has visibility and
   function Start() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
-    if (! doesBrowserSupportWebGL(testCanvas)) {
-        initGC();
-    } else {
+    if (doesBrowserSupportWebGL(testCanvas)) {
       initGL(); // Sets CANVAS and GL global variables
-      initShaderPrograms();
-      initOutlineBuffers();
-      initImageTileBuffers();
-      GL.clearColor(0.9, 0.9, 0.9, 1.0);
-      GL.enable(GL.DEPTH_TEST);
+    } else {
+      initGC();
     }
     EVENT_MANAGER = new EventManager(CANVAS);
 
-    CANVAS.onmousedown =   handleMouseDown;
-    CANVAS.onmouseup =     handleMouseUp;
-    CANVAS.onmousewheel =  handleMouseWheel;
-    document.onmouseup =   handleMouseUp;
-    document.onmousemove = handleMouseMove;
-    document.onkeydown =   handleKeyDown;
-    document.onkeyup =     handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
-
-    // Create the annotations for viewer1 
-    //InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
-    
     InitViews();
     InitViewEditMenus();
     InitViewBrowser();
@@ -300,7 +281,20 @@ shape has visibility and
     InitNotesWidget();
     InitRecorderWidget();
 
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
 
+    // Change to JQuery api
+    CANVAS[0].onmousedown =   handleMouseDown;
+    CANVAS[0].onmouseup =     handleMouseUp;
+    CANVAS[0].onmousewheel =  handleMouseWheel;
+    
+    document.onmouseup =   handleMouseUp;
+    document.onmousemove = handleMouseMove;
+    document.onkeydown =   handleKeyDown;
+    document.onkeyup =     handleKeyUp;
+    document.oncontextmenu = cancelContextMenu;         
 
     
     var annotationWidget1 = new AnnotationWidget(VIEWER1);

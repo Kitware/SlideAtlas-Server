@@ -1,6 +1,7 @@
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
 
+var ROOT_DIV;
 
 var SLICE = 1;
 
@@ -22,8 +23,6 @@ var tileCellBuffer;
 // and get rid of these globals.
 // WebGL context
 var GL;
-// 2d context
-var GC;
 
 function GetUser() {
   if (typeof(USER) != "undefined") {
@@ -79,34 +78,25 @@ function doesBrowserSupportWebGL(canvas) {
 
 
 function initGL() {
-    // Add a new canvas.
-    $('<canvas>').appendTo('body').css({
-        'position': 'absolute',
-        'width': '100%',
-        'height': '100%',
-        'top' : '0px',
-        'left' : '0px',
-        'z-index': '1'
-    }).attr('id', 'viewer'); // class='fillin nodoubleclick'
-    CANVAS = $('#viewer')[0];
-    //this.canvas.onselectstart = function() {return false;};
-    //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS.getContext("webgl") || CANVAS.getContext("experimental-webgl");
-    
-    $(window).resize(function() {
-        // Update what you need in your webgl code to use the full size of the canvas again...
-        handleResize();
-    }).trigger('resize');
-
-    //canvas.width  = canvas.clientWidth;
-    //canvas.height = canvas.clientHeight;
-    //canvas.style.width =  canvas.clientWidth + "px";
-    //canvas.style.height= canvas.clientHeight+ "px";
-    //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-    //GL.viewportWidth = canvas.clientWidth;
-    //GL.viewportHeight = canvas.clientHeight;
-    //canvas.width =  canvas.clientWidth;
-    //canvas.height= canvas.clientHeight;
+  // Add a new canvas.
+  CANVAS = $('<canvas>').appendTo('body').css({
+      'position': 'absolute',
+      'width': '100%',
+      'height': '100%',
+      'top' : '0px',
+      'left' : '0px',
+      'z-index': '1'
+  }); // class='fillin nodoubleclick'
+  //this.canvas.onselectstart = function() {return false;};
+  //this.canvas.onmousedown = function() {return false;};
+  GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+  
+  // Defined in HTML
+  initShaderPrograms();
+  initOutlineBuffers();
+  initImageTileBuffers();
+  GL.clearColor(0.9, 0.9, 0.9, 1.0);
+  GL.enable(GL.DEPTH_TEST);
 }
 
 
@@ -344,28 +334,20 @@ function initView(viewport) {
 
 //==============================================================================
 // Alternative to webgl, HTML5 2d canvas
-function initGC() {
-    // Add a new canvas.
-    $('<canvas>').appendTo('body').css({
-        'position': 'absolute',
-        'width': '100%',
-        'height': '100%',
-        'top' : '0px',
-        'left' : '0px',
-        'z-index': '1'
-    }).attr('id', 'viewer'); // class='fillin nodoubleclick'
-    CANVAS = $('#viewer')[0];
-    //var c=document.getElementById("myCanvas");
 
-    GC = CANVAS.getContext("2d");
-    
-    $(window).resize(function() {
-        // Update what you need in your webgl code to use the full size of the canvas again...
-        handleResize();
-    }).trigger('resize');
-    
-    $('<img src="/webgl-viewer/static/ArtSmall.jpg" width="256" height="192">').appendTo('body').attr('id', 'scream').hide();
+
+function initGC() {
+  // Add a new canvas.
+  CANVAS = $('<div>').appendTo('body').css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'top' : '0px',
+                'left' : '0px',
+                'z-index': '1'
+            });
 }
+
 
 var GC_STACK = [];
 var GCT = [1,0,0,1,0,0];

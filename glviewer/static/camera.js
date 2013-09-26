@@ -201,27 +201,30 @@ Camera.prototype.UpdateBuffer = function() {
 
 
 // Camera is already set.
-Camera.prototype.Draw = function (overviewCam, viewport) {
+Camera.prototype.Draw = function (overview) {
+  var overviewCam = overview.Camera;
+  var viewport = overview.Viewport;
+
   var cx = this.FocalPoint[0];
   var cy = this.FocalPoint[1];
   var rx = this.GetWidth() * 0.5;
   var ry = this.GetHeight() * 0.5;
 
   // To handle rotation, I need to pass the center through
-  // the overview camera matrix.
+  // the overview camera matrix. Coordinate system is -1->1
   var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4] 
-   + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
+                + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
   var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5] 
-   + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
-
-  // I having trouble using the overview camera, so lets just compute
-  // the position of the rectangle here.
-  var ocx = overviewCam.FocalPoint[0];
-  var ocy = overviewCam.FocalPoint[1];
-  var orx = overviewCam.GetWidth() * 0.5;
-  var ory = overviewCam.GetHeight() * 0.5;
+                + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
   if (GL) {
+    // I having trouble using the overview camera, so lets just compute
+    // the position of the rectangle here.
+    var ocx = overviewCam.FocalPoint[0];
+    var ocy = overviewCam.FocalPoint[1];
+    var orx = overviewCam.GetWidth() * 0.5;
+    var ory = overviewCam.GetHeight() * 0.5;
+
     program = polyProgram;
     GL.useProgram(program);
     GL.uniform3f(program.colorUniform, 0.9, 0.0, 0.9);
@@ -247,7 +250,33 @@ Camera.prototype.Draw = function (overviewCam, viewport) {
     			   GL.FLOAT, false, 0, 0);    
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
+  } else {
+    // Transform focal point from -1->1 to viewport
+    newCx = (1.0 + newCx) * viewport[2] * 0.5;
+    newCy = (1.0 - newCy) * viewport[3] * 0.5;
+    // Scale width and height from world to viewport.
+    rx = rx * viewport[3] / overviewCam.GetHeight();
+    ry = ry * viewport[3] / overviewCam.GetHeight();
+
+    // The 2d canvas was left in world coordinates.
+    var ctx = overview.Context2d;
+    /*
+    ctx.beginPath();
+    //ctx.strokeStyle="#E500E5";
+    ctx.rect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height); 
+    //ctx.fillStyle="#E500E5";
+    //ctx.fillRect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height); 
+    ctx.stroke();
+    */
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.strokeStyle="#4011E5";
+    ctx.beginPath();
+    ctx.rect(newCx-rx,newCy-ry,2*rx,2*ry); 
+    ctx.stroke();
+    ctx.restore();
   }
+  
 }
 
 

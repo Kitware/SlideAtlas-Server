@@ -51,9 +51,8 @@ app.register_blueprint(login.mod)
 
 from .views import tile
 app.register_blueprint(tile.mod)
-thispath = os.path.abspath(os.path.dirname(__file__)+"../glviewer/templates")
 import glviewer
-app.register_blueprint(glviewer.mod, template_folder=thispath)
+app.register_blueprint(glviewer.mod)
 
 from .views import sessions
 app.register_blueprint(sessions.mod)

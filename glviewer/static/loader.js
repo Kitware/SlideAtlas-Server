@@ -226,6 +226,7 @@ function LoadQueueLoaded(tile) {
 
 // This is called if their was a 404 image not found error.
 function LoadQueueError(tile) {
+  tile.LoadState = 4; // Error Loading
   --LOADING_COUNT;
   LoadQueueUpdate();
 }

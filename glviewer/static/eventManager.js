@@ -20,7 +20,7 @@
 
 
 function EventManager (canvas) {
-    this.Canvas = canvas;
+    this.Canvas = canvas[0];
     this.Viewers = [];
     this.CurrentViewer = null;
     this.ShiftKeyPressed = false;
@@ -69,7 +69,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     yOffset -= body[0].scrollTop;
 
     this.MouseX = event.clientX-xOffset;
-    this.MouseY = this.Canvas.clientHeight - (event.clientY-yOffset);
+    this.MouseY = CANVAS.innerHeight() - (event.clientY-yOffset);
   }
 }
 

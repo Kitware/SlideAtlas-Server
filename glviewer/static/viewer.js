@@ -433,10 +433,13 @@ Viewer.prototype.Draw = function() {
     GL.enable(GL.DEPTH_TEST);
   }
   
-  this.MainView.Camera.Draw(this.OverView.Camera, this.OverView.Viewport);
-  //
   this.MainView.DrawTiles();
   this.OverView.DrawTiles();
+
+  // Draw a rectangle in the overview representing the camera's view.
+  this.MainView.Camera.Draw(this.OverView);
+
+  // This is only necessary for webgl, Canvas2d just uses a border.
   this.MainView.DrawOutline(false);
   this.OverView.DrawOutline(true);
 

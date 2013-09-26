@@ -39,32 +39,18 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // Could we get away with just passing the camera?
 // No, we need the viewport too.
 // Could the viewport be part of the camera?
-Section.prototype.Draw = function (view) {
+Section.prototype.Draw = function (view, context) {
   if (GL) {
     var program = imageProgram;
-    GL.useProgram(program);
+    context.useProgram(program);
     // Draw tiles.
-    GL.viewport(view.Viewport[0], view.Viewport[1], 
+    context.viewport(view.Viewport[0], view.Viewport[1], 
                 view.Viewport[2], view.Viewport[3]);
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+    context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
   } else {
-    GC_save();
-
-    //GC.strokeStyle="#FF0000";
-    //GC.strokeRect(view.Viewport[0]+ 0.25*view.Viewport[2],
-    //              view.Viewport[1]+ 0.25*view.Viewport[3],
-    //              0.5*view.Viewport[2],0.5*view.Viewport[3]);
-
-    // Map (-1->1, -1->1) to the viewport.
-    //GC.transform(view.Viewport[2],0,0,view.Viewport[3],view.Viewport[0],view.Viewport[1]);
-    GC_transform(0.5*view.Viewport[2], 0.0,
-                 0.0, 0.5*view.Viewport[3], 
-                 view.Viewport[0] + 0.5*view.Viewport[2],
-                 view.Viewport[1] + 0.5*view.Viewport[3]);
-        
     // The camera maps the world coordinate system to (-1->1, -1->1). 
     var h = 1.0 / view.Camera.Matrix[15];
-    GC_transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h, 
+    context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h, 
                  view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
                  view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
   }
@@ -84,21 +70,22 @@ Section.prototype.Draw = function (view) {
     while (j < tiles.length) { // We add tiles in the loop so we need a while.
       if (tiles[j].LoadState == 3) {
         loadedTiles.push(tiles[j]);
-      } else if (tiles[j].parent) { // Queue up the parent.
-        // Note: Parents might be added multiple times by different siblings.
-        tiles.push_back(tiles[j].parent);
+      } else {
+        if (tiles[j].LoadState < 3) {
+          eventuallyRender();
+        }
+        if (tiles[j].Parent) { // Queue up the parent.
+          // Note: Parents might be added multiple times by different siblings.
+          tiles.push(tiles[j].Parent);
+        }
       }
       ++j;
     }
     
     // Reverse order to render low res tiles first.
     for (var j = tiles.length-1; j >= 0; --j) {
-      tiles[j].Draw(program);
+      tiles[j].Draw(program, context);
     }
-  }
-
-  if (GC) {
-    GC_restore();
   }
 }
 
