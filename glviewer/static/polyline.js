@@ -13,18 +13,18 @@ Polyline.prototype.destructor=function() {
 }
 
 Polyline.prototype.UpdateBuffers = function() {
-  var vertexPositionData = [];
+  this.PointBuffer = [];
   var cellData = [];
   var lineCellData = [];
 
   this.Matrix = mat4.create();
   mat4.identity(this.Matrix);
 
-  if (this.LineWidth == 0) {
+  if (this.LineWidth == 0 || !GL ) {
     for (var i = 0; i < this.Points.length; ++i) {
-      vertexPositionData.push(this.Points[i][0]);
-      vertexPositionData.push(this.Points[i][1]);
-      vertexPositionData.push(0.0);
+      this.PointBuffer.push(this.Points[i][0]);
+      this.PointBuffer.push(this.Points[i][1]);
+      this.PointBuffer.push(0.0);
     }
     // Not used for line width == 0.
     for (var i = 2; i < this.Points.length; ++i) {
@@ -47,39 +47,39 @@ Polyline.prototype.UpdateBuffers = function() {
       edgeNormals.push([-y/mag,x/mag]);
     }
 
-    if(end > 0){
+    if ( end > 0 ) {
       var half = this.LineWidth / 2.0;
       // 4 corners per point
       var dx = edgeNormals[0][0]*half;
       var dy = edgeNormals[0][1]*half;
-      vertexPositionData.push(this.Points[0][0] - dx);
-      vertexPositionData.push(this.Points[0][1] - dy);
-      vertexPositionData.push(0.0);
-      vertexPositionData.push(this.Points[0][0] + dx);
-      vertexPositionData.push(this.Points[0][1] + dy);
-      vertexPositionData.push(0.0);
+      this.PointBuffer.push(this.Points[0][0] - dx);
+      this.PointBuffer.push(this.Points[0][1] - dy);
+      this.PointBuffer.push(0.0);
+      this.PointBuffer.push(this.Points[0][0] + dx);
+      this.PointBuffer.push(this.Points[0][1] + dy);
+      this.PointBuffer.push(0.0);
       for (var i = 1; i < end; ++i) {
-        vertexPositionData.push(this.Points[i][0] - dx);
-        vertexPositionData.push(this.Points[i][1] - dy);
-        vertexPositionData.push(0.0);
-        vertexPositionData.push(this.Points[i][0] + dx);
-        vertexPositionData.push(this.Points[i][1] + dy);
-        vertexPositionData.push(0.0);
+        this.PointBuffer.push(this.Points[i][0] - dx);
+        this.PointBuffer.push(this.Points[i][1] - dy);
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(this.Points[i][0] + dx);
+        this.PointBuffer.push(this.Points[i][1] + dy);
+        this.PointBuffer.push(0.0);
         dx = edgeNormals[i][0]*half;
         dy = edgeNormals[i][1]*half;
-        vertexPositionData.push(this.Points[i][0] - dx);
-        vertexPositionData.push(this.Points[i][1] - dy);
-        vertexPositionData.push(0.0);
-        vertexPositionData.push(this.Points[i][0] + dx);
-        vertexPositionData.push(this.Points[i][1] + dy);
-        vertexPositionData.push(0.0);
+        this.PointBuffer.push(this.Points[i][0] - dx);
+        this.PointBuffer.push(this.Points[i][1] - dy);
+        this.PointBuffer.push(0.0);
+        this.PointBuffer.push(this.Points[i][0] + dx);
+        this.PointBuffer.push(this.Points[i][1] + dy);
+        this.PointBuffer.push(0.0);
       }
-      vertexPositionData.push(this.Points[end][0] - dx);
-      vertexPositionData.push(this.Points[end][1] - dy);
-      vertexPositionData.push(0.0);
-      vertexPositionData.push(this.Points[end][0] + dx);
-      vertexPositionData.push(this.Points[end][1] + dy);
-      vertexPositionData.push(0.0);
+      this.PointBuffer.push(this.Points[end][0] - dx);
+      this.PointBuffer.push(this.Points[end][1] - dy);
+      this.PointBuffer.push(0.0);
+      this.PointBuffer.push(this.Points[end][0] + dx);
+      this.PointBuffer.push(this.Points[end][1] + dy);
+      this.PointBuffer.push(0.0);
     }
     // Generate the triangles for a thick line
     for (var i = 0; i < end; ++i) {
@@ -99,23 +99,25 @@ Polyline.prototype.UpdateBuffers = function() {
     }
   }
 
-  this.VertexPositionBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
-  this.VertexPositionBuffer.itemSize = 3;
-  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+  if (GL) {
+    this.VertexPositionBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
+    this.VertexPositionBuffer.itemSize = 3;
+    this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-  this.CellBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-  this.CellBuffer.itemSize = 1;
-  this.CellBuffer.numItems = cellData.length;
+    this.CellBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    this.CellBuffer.itemSize = 1;
+    this.CellBuffer.numItems = cellData.length;
 
-  if (this.LineWidth != 0) {
-    this.LineCellBuffer = GL.createBuffer();
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
-    this.LineCellBuffer.itemSize = 1;
-    this.LineCellBuffer.numItems = lineCellData.length;
+    if (this.LineWidth != 0) {
+      this.LineCellBuffer = GL.createBuffer();
+      GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+      GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(lineCellData), GL.STATIC_DRAW);
+      this.LineCellBuffer.itemSize = 1;
+      this.LineCellBuffer.numItems = lineCellData.length;
+    }
   }
 }

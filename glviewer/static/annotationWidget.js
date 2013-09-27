@@ -104,8 +104,11 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
 // I would like to change the behavior of this.  
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget ) {
+    widget.Deactivate();
+  }
   this.SetVisibility(ANNOTATION_ON);
-
   var widget = new TextWidget(this.Viewer, "");
   // Set default color rom the last text widget setting.
   var hexcolor = document.getElementById("textcolor").value;
@@ -121,12 +124,21 @@ AnnotationWidget.prototype.NewText = function() {
 
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget && (widget instanceof PencilWidget)) {
+    widget.Deactivate();
+    return;
+  }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new PencilWidget(this.Viewer, true);
   this.Viewer.ActiveWidget = widget;
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget ) {
+    widget.Deactivate();
+  }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new PolylineWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
@@ -134,6 +146,10 @@ AnnotationWidget.prototype.NewPolyline = function() {
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget ) {
+    widget.Deactivate();
+  }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new CircleWidget(this.Viewer, true);
   widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);

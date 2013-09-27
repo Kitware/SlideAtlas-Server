@@ -24,7 +24,7 @@ function ShowViewEditMenu(x, y) {
       color = "#000000";
     }
  
-    $('#viewEditMenu').css({'top': y, 'left':x}).show();
+    $('#viewEditMenu').css({'top': y-15, 'left':x-15}).show();
 }
 
 function InitViewEditMenus() {

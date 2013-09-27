@@ -78,14 +78,15 @@ function Text() {
   // All text objects sare the same texture map.
   //if (TEXT_TEXTURE == undefined ) {
   //}
-  this.TextureLoaded = false;
-  this.Texture = GL.createTexture();
-  this.Image = new Image();
-  this.Image.onload = GetTextureLoadedFunction(this); 
-  //this.Image.onerror = TextError(); // Always fires for some reason.
-  // This starts the loading.
-  this.Image.src = IMAGE_PATH_URL +"letters.gif";
-  
+  if (GL) {
+    this.TextureLoaded = false;
+    this.Texture = GL.createTexture();
+    this.Image = new Image();
+    this.Image.onload = GetTextureLoadedFunction(this); 
+    //this.Image.onerror = TextError(); // Always fires for some reason.
+    // This starts the loading.
+    this.Image.src = IMAGE_PATH_URL +"letters.gif";
+  }
   this.Color = [0.5, 1.0, 1.0];
   this.Size = 30; // Height in pixels
   // Position of the anchor in the world coordinate system.
@@ -110,102 +111,122 @@ Text.prototype.destructor=function() {
 }
 
 Text.prototype.HandleLoadedTexture = function() {
-  //var texture = TEXT_TEXTURE;
-  var texture = this.Texture;
-  GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-  GL.bindTexture(GL.TEXTURE_2D, texture);
-  GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
-  GL.generateMipmap(GL.TEXTURE_2D); 
-  GL.bindTexture(GL.TEXTURE_2D, null);
-  this.TextureLoaded = true;
+  if (GL) {
+    var texture = this.Texture;
+    GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
+    GL.bindTexture(GL.TEXTURE_2D, texture);
+    GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
+    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
+    GL.generateMipmap(GL.TEXTURE_2D); 
+    GL.bindTexture(GL.TEXTURE_2D, null);
+    this.TextureLoaded = true;
+  }
   eventuallyRender();
 }
 
 Text.prototype.Draw = function (view) {
-  if (this.TextureLoaded == false) {
-    return;
-  }
-  if (this.Matrix == undefined) {
-    this.UpdateBuffers();
-    this.Matrix = mat4.create();
-    mat4.identity(this.Matrix);
-  }
-
-  var program = textProgram;
-
-  GL.useProgram(program);
-
-  //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
-  //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
-  //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-  //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-  GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-  GL.enable(GL.BLEND);
-  //GL.disable(GL.DEPTH_TEST);
-
-  // These are the same for every tile.
-  // Vertex points (shifted by tiles matrix)
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  // Needed for outline ??? For some reason, DrawOutline did not work
-  // without this call first.
-  GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                         this.VertexPositionBuffer.itemSize, 
-                         GL.FLOAT, false, 0, 0);     // Texture coordinates
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.vertexAttribPointer(program.textureCoordAttribute, 
-                         this.VertexTextureCoordBuffer.itemSize, 
-                         GL.FLOAT, false, 0, 0);
-  // Cell Connectivity
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  
-  // Color of text
-  if (this.Active) {
-    GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
-  } else {
-    GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
-  }
-  // Draw characters.
-  GL.viewport(view.Viewport[0], view.Viewport[1], 
-              view.Viewport[2], view.Viewport[3]);
-
-  var viewFrontZ = view.Camera.ZRange[0]+0.01; 
-
-  // Lets use the camera to change coordinate system to pixels.
-  // TODO: Put this camera in the view or viewer to avoid creating one each render.
-  var camMatrix = mat4.create();
-  mat4.identity(camMatrix);
-  camMatrix[0] = 2.0 / view.Viewport[2];
-  camMatrix[12] = -1.0;
-  camMatrix[5] = 2.0 / view.Viewport[3];
-  camMatrix[13] = -1.0;
-  camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-  GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-
   // Place the anchor of the text.
   // First transform the world anchor to view.
   var m = view.Camera.Matrix;
   var x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
   var y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
-  // convert view to pixels (view coordinate ssytem).
-  x = view.Viewport[2]*(0.5*(x+1.0));
-  y = view.Viewport[3]*(0.5*(y+1.0));
-  // Translate the anchor to x,y
-  this.Matrix[12] = x - this.Anchor[0];
-  this.Matrix[13] = y - this.Anchor[1];
-  GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+  // convert view to pixels (view coordinate system).
+  x = view.Viewport[2]*(0.5*(1.0+x));
 
-  GL.activeTexture(GL.TEXTURE0);
-  GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-  GL.uniform1i(program.samplerUniform, 0);
+  if (GL) {
+    y = view.Viewport[3]*(0.5*(1.0+y));
+    if (this.TextureLoaded == false) {
+      return;
+    }
+    if (this.Matrix == undefined) {
+      this.UpdateBuffers();
+      this.Matrix = mat4.create();
+      mat4.identity(this.Matrix);
+    }
+    var program = textProgram;
+    GL.useProgram(program);
 
-  GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
+    //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
+    //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
+    //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
+    //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
+    GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+    GL.enable(GL.BLEND);
+    //GL.disable(GL.DEPTH_TEST);
+
+    // These are the same for every tile.
+    // Vertex points (shifted by tiles matrix)
+    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    // Needed for outline ??? For some reason, DrawOutline did not work
+    // without this call first.
+    GL.vertexAttribPointer(program.vertexPositionAttribute, 
+                           this.VertexPositionBuffer.itemSize, 
+                           GL.FLOAT, false, 0, 0);     // Texture coordinates
+    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+    GL.vertexAttribPointer(program.textureCoordAttribute, 
+                           this.VertexTextureCoordBuffer.itemSize, 
+                           GL.FLOAT, false, 0, 0);
+    // Cell Connectivity
+    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    
+    // Color of text
+    if (this.Active) {
+      GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+    } else {
+      GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+    }
+    // Draw characters.
+    GL.viewport(view.Viewport[0], view.Viewport[1], 
+                view.Viewport[2], view.Viewport[3]);
+
+    var viewFrontZ = view.Camera.ZRange[0]+0.01; 
+  
+    // Lets use the camera to change coordinate system to pixels.
+    // TODO: Put this camera in the view or viewer to avoid creating one each render.
+    var camMatrix = mat4.create();
+    mat4.identity(camMatrix);
+    camMatrix[0] = 2.0 / view.Viewport[2];
+    camMatrix[12] = -1.0;
+    camMatrix[5] = 2.0 / view.Viewport[3];
+    camMatrix[13] = -1.0;
+    camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
+    GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+
+    // Translate the anchor to x,y
+    this.Matrix[12] = x - this.Anchor[0];
+    this.Matrix[13] = y - this.Anchor[1];
+    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+    GL.activeTexture(GL.TEXTURE0);
+    GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+    GL.uniform1i(program.samplerUniform, 0);
+
+    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
+  } else {
+    y = view.Viewport[3]*(0.5*(1.0-y));
+    x = x - this.Anchor[0];
+    y = y + this.Anchor[1];
+    var ctx = view.Context2d;
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.font = this.Size+'pt Calibri';
+    if (this.Active) {
+      ctx.fillStyle = ConvertColorToHex([1.0,1.0,0.0]);
+    } else {
+      ctx.fillStyle = ConvertColorToHex(this.Color);
+    }
+    var width = ctx.measureText(this.String).width;    
+    this.PixelBounds = [0, width, 0, this.Size];
+
+    ctx.fillText(this.String, x, y);
+    ctx.restore();
+  }
 }
 
 
-
 Text.prototype.UpdateBuffers = function() {
+  if ( ! GL) { return; }
   // Create a textured quad for each letter.
   var vertexPositionData = [];
   var textureCoordData = [];
@@ -229,7 +250,7 @@ Text.prototype.UpdateBuffers = function() {
       var tRight = (port[0]+port[2]) / 1024.0;
       var tBottom = port[1] / 512.0;
       var tTop =   (port[1]+port[3]) / 512.0;
-      // To place verticies
+      // To place vertices
       var charRight = charLeft + port[2]*this.Size / 98.0;
       var charTop = charBottom + port[3]*this.Size / 98.0;
       
@@ -298,11 +319,10 @@ Text.prototype.UpdateBuffers = function() {
 }
 
 Text.prototype.HandleMouseMove = function(event, dx,dy) {
-    // convert the position to screen pixel coordinates.
-    viewer = event.CurrentViewer;
-    //var screenPixelPoint = viewer.WorldPointToScreenPixelPoint(this. ..................
+  // convert the position to screen pixel coordinates.
+  viewer = event.CurrentViewer;
 
-    return false;
+  return false;
 }
 
 Text.prototype.SetColor = function (c) {

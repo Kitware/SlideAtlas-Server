@@ -119,6 +119,14 @@ PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 PolylineWidget.prototype.HandleDoubleClick = function(event) {
 }
 
+PolylineWidget.prototype.Deactivate = function() {
+  this.State = POLYLINE_WIDGET_WAITING;
+  this.Viewer.DeactivateWidget(this);
+  this.Shape.Active = false;
+  this.ActivateVertex(-1);
+  eventuallyRender();
+}
+
 // Mouse down does nothing. Mouse up causes all state changes.
 PolylineWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
@@ -142,11 +150,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
         // Remove the last duplicate point.
         this.Shape.Points.pop();
       }
-      this.State = POLYLINE_WIDGET_WAITING;
-      this.Viewer.DeactivateWidget(this);
-      this.Shape.Active = false;
-      this.ActivateVertex(-1);
-      eventuallyRender();
+      this.Deactivate();
       RecordState();
       return;
     }
@@ -249,7 +253,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
         this.Shape.Points[this.ActiveVertex] = pt;
         }
       this.Circle.Origin = pt;
-      this.Shape.Buffers();
+      this.Shape.UpdateBuffers();
       eventuallyRender();
     }
   }
@@ -374,11 +378,7 @@ PolylineWidget.prototype.SetActive = function(flag) {
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
   } else {
-    this.State = POLYLINE_WIDGET_WAITING;
-    this.Shape.Active = false;
-    this.ActivateVertex(-1);
-    this.Viewer.DeactivateWidget(this);
-    eventuallyRender();
+    this.Deactivate();
   }
 }
 
