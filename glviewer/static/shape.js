@@ -33,6 +33,7 @@ Shape.prototype.Draw = function (view) {
     var camMatrix = mat4.create();
     mat4.identity(camMatrix);
     if (this.FixedSize) {
+      var viewFrontZ = view.Camera.ZRange[0]+0.01;
       // This camera matric changes pixel/ screen coordinate sytem to
       // view [-1,1],[-1,1],z
       camMatrix[0] = 2.0 / view.Viewport[2];
@@ -88,8 +89,6 @@ Shape.prototype.Draw = function (view) {
     // Local view.
     GL.viewport(view.Viewport[0], view.Viewport[1], 
                 view.Viewport[2], view.Viewport[3]);
-
-    var viewFrontZ = view.Camera.ZRange[0]+0.01;
 
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
     if (this.FixedSize) {
