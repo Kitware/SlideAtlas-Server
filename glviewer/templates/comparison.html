@@ -237,22 +237,27 @@ shape has visibility and
   
   function handleResize() {
     if (GL) {
-      CANVAS.width = CANVAS.clientWidth;
-      CANVAS.height = CANVAS.clientHeight;
-      GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-      var halfWidth = CANVAS.width/2;
+      var width = CANVAS.innerWidth();
+      var height = CANVAS.innerHeight();
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
+    
+      var halfWidth = width/2;
       if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, halfWidth, CANVAS.height]);
+        VIEWER1.SetViewport([0, 0, halfWidth, height]);
         eventuallyRender();
       }
       if (VIEWER2) {
-        VIEWER2.SetViewport([halfWidth, 0, halfWidth, CANVAS.height]);
+        VIEWER2.SetViewport([halfWidth, 0, halfWidth, height]);
         eventuallyRender();
       }
     }
   };
 
   function initViews() {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
     var bds = [0,ARGS.Viewer1.dimensions[0], 0,ARGS.Viewer1.dimensions[1]];
     var source1 = new Cache(ARGS.Viewer1.db,
                             ARGS.Viewer1.image,  
@@ -261,10 +266,10 @@ shape has visibility and
     var section1 = new Section();
     section1.Caches.push(source1);
     section1.Bounds = [0,ARGS.Viewer1.dimensions[0],0,ARGS.Viewer1.dimensions[1],0,0];
-    var halfWidth = CANVAS.clientWidth/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], source1);
+    var halfWidth = width/2;
+    VIEWER1 = new Viewer([0,0, halfWidth,height], source1);
     VIEWER1.SetSection(section1);
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
+    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
 
     VIEWER1.SetCamera(ARGS.Viewer1.center, 
                       ARGS.Viewer1.rotation, 
@@ -387,11 +392,17 @@ function SetAnnotationVisibility(visibility) {
     initShaderPrograms();
     initOutlineBuffers();
 
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+   
+    
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
-    CANVAS.onmousedown = handleMouseDown;
-    CANVAS.onmousewheel = handleMouseWheel;
+    CANVAS[0].onmousedown = handleMouseDown;
+    CANVAS[0].onmousewheel = handleMouseWheel;
     document.onmouseup = handleMouseUp;
     document.onmousemove = handleMouseMove;
 
