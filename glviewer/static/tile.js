@@ -217,7 +217,8 @@ Tile.prototype.Draw = function (program, context) {
 
     // map pixels to Tile
     // assume tile is 256x256
-    context.transform(1.0/256.0, 0.0, 0.0, 1.0/256.0, 0.0, 0.0); 
+    // Shift a half pixel (white line fix) Draw tile one pixel bigger.
+    context.transform(1.0/255.5, 0.0, 0.0, 1.0/255.5, -0.25/255.0, -0.25/255.0);  
 
     context.drawImage(this.Image,0,0);
     //context.strokeStyle="green"; // I need to find the method that converts RBG array to hex color

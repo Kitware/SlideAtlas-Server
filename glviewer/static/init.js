@@ -70,7 +70,7 @@ function doesBrowserSupportWebGL(canvas) {
     } catch (e) {
     }
     if (!GL) {
-        alert("Could not initialise WebGL, sorry :-(");
+        //alert("Could not initialise WebGL, sorry :-(");
         return false;
     }
    return true;

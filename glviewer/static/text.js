@@ -204,6 +204,9 @@ Text.prototype.Draw = function (view) {
 
     GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
   } else {
+    var strArray = this.String.split("\n");
+    var width = 0;
+    var height = this.Size * strArray.length;
     y = view.Viewport[3]*(0.5*(1.0-y));
     x = x - this.Anchor[0];
     y = y + this.Anchor[1];
@@ -216,10 +219,13 @@ Text.prototype.Draw = function (view) {
     } else {
       ctx.fillStyle = ConvertColorToHex(this.Color);
     }
-    var width = ctx.measureText(this.String).width;    
-    this.PixelBounds = [0, width, 0, this.Size];
 
-    ctx.fillText(this.String, x, y);
+    for (var i = 0; i < strArray.length; ++i) {
+      var lineWidth = ctx.measureText(strArray[i]).width;
+      if (lineWidth > width) { width = lineWidth; }      
+      ctx.fillText(strArray[i], x, y + this.Size*i);
+    }
+    this.PixelBounds = [0, width, -height+this.Size, this.Size];
     ctx.restore();
   }
 }

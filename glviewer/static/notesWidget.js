@@ -1159,7 +1159,8 @@ function AnimateNotesWindow() {
     if (NOTES_VISIBILITY) {
       NOTE_WINDOW.fadeIn();
     }
-  return;
+    draw();
+    return;
   }
   
   var k = timeStep / NOTES_ANIMATION_DURATION;
@@ -1169,6 +1170,7 @@ function AnimateNotesWindow() {
   NOTES_FRACTION += (NOTES_ANIMATION_TARGET-NOTES_FRACTION) * k;
   
   handleResize();
+  draw();
   requestAnimFrame(AnimateNotesWindow);
 }
 
