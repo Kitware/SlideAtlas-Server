@@ -190,6 +190,13 @@ CircleWidget.prototype.GetActive = function() {
   return true;
 }
 
+CircleWidget.prototype.Deactivate = function() {  
+  this.State = CIRCLE_WIDGET_WAITING;
+  this.Shape.Active = false;
+  this.Viewer.DeactivateWidget(this);
+  eventuallyRender();
+}
+
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
 CircleWidget.prototype.SetActive = function(flag) {  
@@ -203,10 +210,7 @@ CircleWidget.prototype.SetActive = function(flag) {
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
   } else {
-    this.State = CIRCLE_WIDGET_WAITING;
-    this.Shape.Active = false;
-    this.Viewer.DeactivateWidget(this);
-    eventuallyRender();
+    this.Deactivate();
   }
 }
 

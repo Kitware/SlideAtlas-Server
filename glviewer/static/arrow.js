@@ -5,6 +5,7 @@ function Arrow() {
     this.Length = 50; // Length of the arrow in pixels
     this.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
     this.Origin = [10000,10000]; // Tip position in world coordinates.
+    this.OutlineColor = [0,0,0];
     this.ZOffset = -0.1;
 };
 Arrow.prototype = new Shape;
@@ -28,47 +29,49 @@ Arrow.prototype.PointInShape = function(x, y) {
   }
 }
 
+
 Arrow.prototype.UpdateBuffers = function() {
-    var vertexPositionData = [];
-    var cellData = [];
-    var hw = this.Width * 0.5;
-    var w2 = this.Width * 2.0;
+  this.PointBuffer = [];
+  var cellData = [];
+  var hw = this.Width * 0.5;
+  var w2 = this.Width * 2.0;
 
-    this.Matrix = mat4.create();
-    mat4.identity(this.Matrix);
+  this.Matrix = mat4.create();
+  mat4.identity(this.Matrix);
 
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(0.0);
+  this.PointBuffer.push(0.0);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(w2);
-    vertexPositionData.push(this.Width);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(w2);
+  this.PointBuffer.push(this.Width);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(w2);
-    vertexPositionData.push(hw);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(w2);
+  this.PointBuffer.push(hw);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(this.Length);
-    vertexPositionData.push(hw);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(this.Length);
+  this.PointBuffer.push(hw);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(this.Length);
-    vertexPositionData.push(-hw);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(this.Length);
+  this.PointBuffer.push(-hw);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(w2);
-    vertexPositionData.push(-hw);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(w2);
+  this.PointBuffer.push(-hw);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(w2);
-    vertexPositionData.push(-this.Width);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(w2);
+  this.PointBuffer.push(-this.Width);
+  this.PointBuffer.push(0.0);
 
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
-    vertexPositionData.push(0.0);
+  this.PointBuffer.push(0.0);
+  this.PointBuffer.push(0.0);
+  this.PointBuffer.push(0.0);
 
+  if (GL) {
     // Now create the triangles    
     cellData.push(0);
     cellData.push(1);
@@ -92,13 +95,16 @@ Arrow.prototype.UpdateBuffers = function() {
 
     this.VertexPositionBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
     this.VertexPositionBuffer.itemSize = 3;
-    this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+    this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
     
     this.CellBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
     GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
     this.CellBuffer.itemSize = 1;
     this.CellBuffer.numItems = cellData.length;
+  }
 }
+
+

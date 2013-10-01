@@ -2,7 +2,7 @@
 // Temporary drawing with a pencil.  It goes away as soon as the camera changes.
 // pencil icon (image as html) follows the cursor.
 // Middle mouse button (or properties menu item) drops pencil.
-// maybe option in properties menu to save the drawing permenantly.
+// maybe option in properties menu to save the drawing permanently.
 
 // TODO:
 // Break lines when the mouse is repressed.
@@ -80,6 +80,12 @@ PencilWidget.prototype.Load = function(obj) {
 PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
+
+PencilWidget.prototype.Deactivate = function() {
+  this.Cursor.hide();
+  this.Viewer.DeactivateWidget(this);
+}
+
 PencilWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
@@ -106,8 +112,7 @@ PencilWidget.prototype.HandleMouseUp = function(event) {
   // Middle mouse deactivates the widget.
   if (event.SystemEvent.which == 2) {
     // Middle mouse was pressed.
-    this.Cursor.hide();
-    this.Viewer.DeactivateWidget(this);
+    this.Deactivate();
   }
 
   // A stroke has just been finished.
@@ -119,8 +124,7 @@ PencilWidget.prototype.HandleMouseUp = function(event) {
 }
 
 PencilWidget.prototype.HandleDoubleClick = function(event) {
-  this.Cursor.hide();
-  this.Viewer.DeactivateWidget(this);
+  this.Deactivate();
 }
 
 PencilWidget.prototype.HandleMouseMove = function(event) {

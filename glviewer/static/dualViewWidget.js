@@ -111,6 +111,7 @@ function AnimateViewToggle() {
     VIEWER1_FRACTION = DUAL_ANIMATION_TARGET;
     handleResize();    
     DualViewUpdateGui();
+    draw();
     return;
     }
   
@@ -121,6 +122,8 @@ function AnimateViewToggle() {
   VIEWER1_FRACTION += (DUAL_ANIMATION_TARGET-VIEWER1_FRACTION) * k;
 
   handleResize();
+  // 2d canvas does not draw without this.
+  draw();
   requestAnimFrame(AnimateViewToggle);
 }
 

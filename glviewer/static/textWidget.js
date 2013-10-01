@@ -55,7 +55,7 @@ function TextWidget (viewer, string) {
   this.AnchorShape.Visibility = false;
   this.AnchorShape.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
   this.AnchorShape.FillColor = [0,0,1];
-  this.AnchorShape.OutlineColor = [1,1,1];
+  this.AnchorShape.OutlineColor = [1,1,0];
   this.AnchorShape.ZOffset = 0.2;
   this.AnchorShape.UpdateBuffers();
 
@@ -122,7 +122,8 @@ TextWidget.prototype.Load = function(obj) {
                          parseFloat(obj.position[2])];
   this.SetAnchorShapeVisibility(obj.anchorVisibility);
   this.AnchorShape.SetFillColor(rgb);
-
+  this.AnchorShape.ChooseOutlineColor();
+  
   this.Shape.UpdateBuffers();
   this.UpdateAnchorShape();
 }
@@ -295,6 +296,14 @@ TextWidget.prototype.GetActive = function() {
   return false;
 }
 
+TextWidget.prototype.Deactivate = function() {
+  this.State = TEXT_WIDGET_WAITING;
+  this.Shape.Active = false;
+  this.AnchorShape.Active = false;
+  this.Viewer.DeactivateWidget(this);
+  eventuallyRender();
+}
+
 TextWidget.prototype.SetActive = function(flag) {
   // Dialog state is tricky because the widget is still active.
   // SetActive is used to clear the dialog state.
@@ -315,11 +324,7 @@ TextWidget.prototype.SetActive = function(flag) {
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
   } else {
-    this.State = TEXT_WIDGET_WAITING;
-    this.Shape.Active = false;
-    this.AnchorShape.Active = false;
-    this.Viewer.DeactivateWidget(this);
-    eventuallyRender();
+    this.Deactivate();
   }
 }
 
@@ -364,6 +369,7 @@ function TextPropertyDialogApply() {
   widget.Shape.UpdateBuffers();
   widget.Shape.SetColor(hexcolor);
   widget.AnchorShape.SetFillColor(hexcolor);
+  widget.AnchorShape.ChooseOutlineColor();
   widget.SetAnchorShapeVisibility(markerFlag);
   
   RecordState();

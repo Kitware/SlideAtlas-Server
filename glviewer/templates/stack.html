@@ -163,6 +163,7 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
+  var TEMPLATE = "stack.html";
   var SESSION_DATABASE;
   var USER;
 
@@ -258,11 +259,13 @@ function saveStack() {
   
   function handleResize() {
     if (GL) {
-      CANVAS.width = CANVAS.clientWidth;
-      CANVAS.height = CANVAS.clientHeight;
-      GL.viewport(0, 0, CANVAS.width, CANVAS.height);
+      var width = CANVAS.innerWidth();
+      var height = CANVAS.innerHeight();
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
       if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, CANVAS.width, CANVAS.height]);
+        VIEWER1.SetViewport([0, 0, width, height]);
         eventuallyRender();
       }
     }
@@ -270,7 +273,9 @@ function saveStack() {
 
 
   function initViews() {
-    VIEWER1 = initView([0,0, CANVAS.clientWidth,CANVAS.clientHeight]);
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    VIEWER1 = initView([0,0, width,CANVAS.height]);
 
     // Preload all the sources.
     SECTIONS = [];
@@ -533,13 +538,19 @@ function ToggleAnnotationVisibility() {
     initImageTileBuffers();
     initViews();
 
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+   
+    
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
-    CANVAS.onmousedown = handleMouseDown;
-    // CANVAS.ondblclick = handleDoubleClick; // does not detect right button double clicks.
+    CANVAS[0].onmousedown = handleMouseDown;
+    // CANVAS[0].ondblclick = handleDoubleClick; // does not detect right button double clicks.
     // event manager will use up down events to detect double clicks.
-    CANVAS.onmousewheel = handleMouseWheel;
+    CANVAS[0].onmousewheel = handleMouseWheel;
     document.onmouseup = handleMouseUp;
     document.onmousemove = handleMouseMove;
 

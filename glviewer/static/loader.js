@@ -1,11 +1,42 @@
 
 // Make this a singlton (effectively) for now.
+// Two levels of caching and pruning.
+// Image without an associated texture map.
+// Texture maps (scarcer resource).
+
+
 
 var TIME_STAMP = 0;
 var NUMBER_OF_TILES = 0;
-var MAXIMUM_NUMBER_OF_TILES = 5000;
-var PRUNE_TIME = 0;
+var NUMBER_OF_TEXTURES = 0;
+var MAXIMUM_NUMBER_OF_TILES = 50000;
+var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
+var PRUNE_TIME_TILES = 0;
+var PRUNE_TIME_TEXTURES = 0;
 var CACHES = [];
+
+// Keep a queue of tiles to load so we can sort them as
+// new requests come in.
+var LOAD_QUEUE = [];
+var LOADING_COUNT = 0;
+var LOADING_MAXIMUM = 4;
+var LOAD_TIMEOUT_ID = 0;
+
+var LOAD_PROGRESS_MAX = 0;
+var PROGRESS_BAR = null;
+
+function InitProgressBar () {
+  if (PROGRESS_BAR) { return;}
+  PROGRESS_BAR = $("<div>")
+   .appendTo('body')
+   .css({"position":"absolute",
+         "z-index" : "2",
+         "bottom"     : "0px",
+         "left"    : "0px",
+         "height"  : "3px",
+         "width"   : "50%",
+         "background-color" : "#404060"});
+}
 
 
 
@@ -19,28 +50,35 @@ function GetCurrentTime() {
 
 // Prunning could be rethought to avoid so much depdency on the cache.
 function Prune() {
-  if (NUMBER_OF_TILES <= MAXIMUM_NUMBER_OF_TILES) {
-    return;
+  var prune = false;
+  if (NUMBER_OF_TILES >= MAXIMUM_NUMBER_OF_TILES) {
+    // Overflow may be possible after running for a while.
+    if (PRUNE_TIME_TILES > TIME_STAMP) {
+      PRUNE_TIME_TILES = 0;
+    } 
+    // Advance the prune threshold.
+    PRUNE_TIME_TILES += 0.05 * (TIME_STAMP - PRUNE_TIME_TILES);
+    prune = true;
   }
-  // Overflow may be possible after running for a while.
-  if (PRUNE_TIME > TIME_STAMP) {
-    PRUNE_TIME = 0;
-  } 
   
-  // Advance the prune threshold.
-  PRUNE_TIME += 0.05 * (TIME_STAMP - PRUNE_TIME);
-  for (i in CACHES) {
-    cache = CACHES[i];
-    cache.PruneTiles();
+  if (NUMBER_OF_TEXTURES >= MAXIMUM_NUMBER_OF_TEXTURES) {
+    // Overflow may be possible after running for a while.
+    if (PRUNE_TIME_TEXTURES > TIME_STAMP) {
+      PRUNE_TIME_TEXTURES = 0;
+    } 
+    // Advance the prune threshold.
+    PRUNE_TIME_TEXTURES += 0.05 * (TIME_STAMP - PRUNE_TIME_TEXTURES);
+    prune = true;
+  }
+  
+  if (prune) {  
+    for (i in CACHES) {
+      cache = CACHES[i];
+      cache.PruneTiles();
+    }
   }
 }
 
-
-// Keep a queue of tiles to load so we can sort them as
-// new requests come in.
-var LOAD_QUEUE = [];
-var LOADING_COUNT = 0;
-var LOADING_MAXIMUM = 4;
 
 // We could chop off the lowest priority tiles if the queue gets too long.
 function LoadQueueAdd(tile) {
@@ -122,11 +160,24 @@ function LoadQueueRemove(tile) {
   }
 }
 
+
+function LoadTimeout() {
+  // 4 images requests are too slow.  Reset
+  // I do not know which requests failed so I cannot mak another request.
+  // TODO: Remember loading tiles (even if only for debugging).
+  LOADING_COUNT = 0;
+  LoadQueueUpdate();
+}
+
 // We will have some number of tiles loading at one time.
 // Take the first N tiles from the queue and start loading them.
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
+  if (LOADING_COUNT < 0) {
+    // Tiles must have arrived after timeout.
+    LOADING_COUNT = 0;
+  }
   while (LOADING_COUNT < LOADING_MAXIMUM && 
          LOAD_QUEUE.length > 0) {
     PushBestToLast();     
@@ -137,6 +188,29 @@ function LoadQueueUpdate() {
       tile.StartLoad(tile.Cache);
       tile.LoadState = 2; // Loading.
       ++LOADING_COUNT;
+    }
+  }
+
+  // Observed bug: If 4 tile requests never return, loading stops.
+  // Do a time out to clear this hang.
+  if (LOAD_TIMEOUT_ID) {
+    clearTimeout(LOAD_TIMEOUT_ID);
+    LOAD_TIMEOUT_ID = 0;
+  }
+  if (LOADING_COUNT) {
+    LOAD_TIMEOUT_ID = setTimeout(function(){LoadTimeout();}, 1000);
+  }
+
+  if (PROGRESS_BAR) {
+    if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
+      LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+    }
+    var width = (100 * LOAD_QUEUE.length / LOAD_PROGRESS_MAX).toFixed();
+    width = width + "%";
+    PROGRESS_BAR.css({"width" : width});
+    // Reset maximum
+    if (LOAD_QUEUE.length == 0) {
+      LOAD_PROGRESS_MAX = 0;
     }
   }
 }
@@ -152,10 +226,8 @@ function LoadQueueLoaded(tile) {
 
 // This is called if their was a 404 image not found error.
 function LoadQueueError(tile) {
+  tile.LoadState = 4; // Error Loading
   --LOADING_COUNT;
   LoadQueueUpdate();
 }
-
-
-
 

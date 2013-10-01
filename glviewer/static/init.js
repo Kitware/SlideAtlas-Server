@@ -1,6 +1,7 @@
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
 
+var ROOT_DIV;
 
 var SLICE = 1;
 
@@ -20,6 +21,7 @@ var tileCellBuffer;
 // This global is used in every class that renders something.
 // I can not test multiple canvases until I modularize the canvas
 // and get rid of these globals.
+// WebGL context
 var GL;
 
 function GetUser() {
@@ -68,7 +70,7 @@ function doesBrowserSupportWebGL(canvas) {
     } catch (e) {
     }
     if (!GL) {
-        alert("Could not initialise WebGL, sorry :-(");
+        //alert("Could not initialise WebGL, sorry :-(");
         return false;
     }
    return true;
@@ -76,34 +78,25 @@ function doesBrowserSupportWebGL(canvas) {
 
 
 function initGL() {
-    // Add a new canvas.
-    $('<canvas>').appendTo('body').css({
-        'position': 'absolute',
-        'width': '100%',
-        'height': '100%',
-        'top' : '0px',
-        'left' : '0px',
-        'z-index': '1'
-    }).attr('id', 'viewer'); // class='fillin nodoubleclick'
-    CANVAS = $('#viewer')[0];
-    //this.canvas.onselectstart = function() {return false;};
-    //this.canvas.onmousedown = function() {return false;};
-    GL = CANVAS.getContext("webgl") || CANVAS.getContext("experimental-webgl");
-    
-    $(window).resize(function() {
-        // Update what you need in your webgl code to use the full size of the canvas again...
-        handleResize();
-    }).trigger('resize');
-
-    //canvas.width  = canvas.clientWidth;
-    //canvas.height = canvas.clientHeight;
-    //canvas.style.width =  canvas.clientWidth + "px";
-    //canvas.style.height= canvas.clientHeight+ "px";
-    //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-    //GL.viewportWidth = canvas.clientWidth;
-    //GL.viewportHeight = canvas.clientHeight;
-    //canvas.width =  canvas.clientWidth;
-    //canvas.height= canvas.clientHeight;
+  // Add a new canvas.
+  CANVAS = $('<canvas>').appendTo('body').css({
+      'position': 'absolute',
+      'width': '100%',
+      'height': '100%',
+      'top' : '0px',
+      'left' : '0px',
+      'z-index': '1'
+  }); // class='fillin nodoubleclick'
+  //this.canvas.onselectstart = function() {return false;};
+  //this.canvas.onmousedown = function() {return false;};
+  GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+  
+  // Defined in HTML
+  initShaderPrograms();
+  initOutlineBuffers();
+  initImageTileBuffers();
+  GL.clearColor(0.9, 0.9, 0.9, 1.0);
+  GL.enable(GL.DEPTH_TEST);
 }
 
 
@@ -337,3 +330,50 @@ function initView(viewport) {
            VIEWER1.AnimateZoom(2.0);});                
   return viewer;
 }
+
+
+//==============================================================================
+// Alternative to webgl, HTML5 2d canvas
+
+
+function initGC() {
+  // Add a new canvas.
+  CANVAS = $('<div>').appendTo('body').css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'top' : '0px',
+                'left' : '0px',
+                'z-index': '1'
+            });
+}
+
+
+var GC_STACK = [];
+var GCT = [1,0,0,1,0,0];
+function GC_save() {
+  var tmp = [GCT[0], GCT[1], GCT[2], GCT[3], GCT[4], GCT[5]];
+  GC_STACK.push(tmp);
+}
+function GC_restore() {
+  var tmp = GC_STACK.pop();
+  GCT = tmp;
+  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);  
+}
+function GC_setTransform(m00,m10,m01,m11,m02,m12) {
+  GCT = [m00,m10,m01,m11,m02,m12];
+  GC.setTransform(m00,m10,m01,m11,m02,m12);
+}
+function GC_transform(m00,m10,m01,m11,m02,m12) {
+  var n00 = m00*GCT[0] + m10*GCT[2]; 
+  var n10 = m00*GCT[1] + m10*GCT[3];
+  var n01 = m01*GCT[0] + m11*GCT[2]; 
+  var n11 = m01*GCT[1] + m11*GCT[3];
+  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4]; 
+  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5]; 
+
+  GCT = [n00,n10,n01,n11,n02,n12];
+  GC.setTransform(n00,n10,n01,n11,n02,n12);
+}
+
+

@@ -1,5 +1,5 @@
 // I want to avoid adding a Cache instance variable.
-// I need to create the temporary object to hold poitners
+// I need to create the temporary object to hold pointers
 // to both the cache and the tile which we are waiting for
 // the image to load.  The callback only gives a single reference.
 function LoadTileCallback(tile,cache) {
@@ -7,23 +7,23 @@ function LoadTileCallback(tile,cache) {
     this.Cache = cache;
 }
 
-// Which cache????????
-LoadTileCallback.prototype.HandleLoadedTexture = function () {
-    this.Tile.HandleLoadedTexture(this.Cache);
+// Cache is now saved in tile ivar.
+LoadTileCallback.prototype.HandleLoadedImage = function () {
+  LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
-LoadTileCallback.prototype.HandleErrorTexture = function () {
+LoadTileCallback.prototype.HandleErrorImage = function () {
     LoadQueueError(this.Tile);
 }
 
 
-function GetLoadTextureFunction (callback) {
-    return function () {callback.HandleLoadedTexture();}
+function GetLoadImageFunction (callback) {
+    return function () {callback.HandleLoadedImage();}
 }
-function GetErrorTextureFunction (callback) {
-    return function () {callback.HandleErrorTexture();}
+function GetErrorImageFunction (callback) {
+    return function () {callback.HandleErrorImage();}
 }
 
 
@@ -34,7 +34,7 @@ function GetErrorTextureFunction (callback) {
 
 
 
-// Three stages to loading a tile:
+// Three stages to loading a tile: (texture map is created when the tile is rendered.
 // 1: Create a tile object.
 // 2: Initialize the texture.
 // 3: onload is called indicating the image has been loaded.
@@ -86,10 +86,7 @@ function Tile(x, y, z, level, name, cache) {
 Tile.prototype.destructor=function()
 {
   --NUMBER_OF_TILES;
-  if (this.Texture) {
-    GL.deleteTexture(this.Texture);
-  }
-  this.Texture = null;
+  this.DeleteTexture();
   delete this.Matrix;
   this.Matrix = null;
   if (this.Image) {
@@ -104,6 +101,8 @@ Tile.prototype.destructor=function()
   }
 }
 
+// This is for connectome stitching.  It uses texture mapping
+// to dynamically warp images.  It only works with webGL.
 Tile.prototype.CreateWarpBuffer = function (warp) {
   // Compute the tile bounds.
   var tileDimensions = this.Cache.TileDimensions;
@@ -146,85 +145,112 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
-  if (this.Texture != null) {
+  if (this.LoadState >= 2) {
     return;
   }
 
   var imageSrc = cache.GetSource() + this.Name + ".jpg";
 
-  this.Texture = GL.createTexture();
   // Reusing the image caused problems.
   //if (this.Image == null) {
     this.Image = new Image();
     var callback = new LoadTileCallback(this, cache);
-    this.Image.onload = GetLoadTextureFunction(callback);
-    this.Image.onerror = GetErrorTextureFunction(callback);
+    this.Image.onload = GetLoadImageFunction(callback);
+    this.Image.onerror = GetErrorImageFunction(callback);
   //}
   // This starts the loading.
   this.Image.src = imageSrc;
 };
 
 
-Tile.prototype.Draw = function (program) {
+Tile.prototype.Draw = function (program, context) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
   // Load state 1 is: not loaded but in the load queue.
   if ( this.LoadState != 3) {
-    // The tile is not available.
-    // render the lower resolution tile as a place holder.
-    if (this.Parent) {
-        this.Parent.Draw(program);
-    }
-    // Keep rendering until all nodes are available.
-    eventuallyRender();
+    // This should never happen.
     return;
   }
-  
-  // These are the same for every tile.
-  // Vertex points (shifted by tiles matrix)
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  // Needed for outline ??? For some reason, DrawOutline did not work
-  // without this call first.
-  GL.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
-                        this.VertexPositionBuffer.itemSize, 
-                        GL.FLOAT, false, 0, 0);     // Texture coordinates
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.vertexAttribPointer(imageProgram.textureCoordAttribute, 
-                        this.VertexTextureCoordBuffer.itemSize, 
-                        GL.FLOAT, false, 0, 0);
-  // Cell Connectivity
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
-    // Texture
-  GL.activeTexture(GL.TEXTURE0);
-  GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+  if (GL) {
+    if (this.Texture == null) {
+      this.CreateTexture();
+    }      
+    // These are the same for every tile.
+    // Vertex points (shifted by tiles matrix)
+    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    // Needed for outline ??? For some reason, DrawOutline did not work
+    // without this call first.
+    context.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
+                          this.VertexPositionBuffer.itemSize, 
+                          GL.FLOAT, false, 0, 0);     // Texture coordinates
+    context.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+    context.vertexAttribPointer(imageProgram.textureCoordAttribute, 
+                          this.VertexTextureCoordBuffer.itemSize, 
+                          GL.FLOAT, false, 0, 0);
+    // Cell Connectivity
+    context.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
 
-  GL.uniform1i(program.samplerUniform, 0);
-  // Matrix that tranforms the vertex p
-  GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+      // Texture
+    context.activeTexture(GL.TEXTURE0);
+    context.bindTexture(GL.TEXTURE_2D, this.Texture);
 
-  GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+    context.uniform1i(program.samplerUniform, 0);
+    // Matrix that tranforms the vertex p
+    context.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+    context.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT, 0);
+  } else {
+    // It is harder to flip the y axis in 2d canvases because the image turns upside down too.
+    // WebGL handles this by flipping the texture coordinates.  Here we have to
+    // translate the tiles to the correct location.
+    context.save(); // Save the state of the transform so we can restore for the next tile.
+    
+    // Map tile to world.
+    // Matrix is world to 0-1.
+    context.transform(this.Matrix[0], this.Matrix[1],
+                      this.Matrix[4], this.Matrix[5],
+                      this.Matrix[12], this.Matrix[13]);
+
+
+    // Flip the tile upside down, but leave it in the same place
+    context.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
+
+    // map pixels to Tile
+    // assume tile is 256x256
+    // Shift a half pixel (white line fix) Draw tile one pixel bigger.
+    context.transform(1.0/255.5, 0.0, 0.0, 1.0/255.5, -0.25/255.0, -0.25/255.0);  
+
+    context.drawImage(this.Image,0,0);
+    //context.strokeStyle="green"; // I need to find the method that converts RBG array to hex color
+    //context.rect(0,0,256, 256); 
+    //context.stroke();    
+
+    //  Transform to map (0->1, 0->1)
+    context.restore();
+  }
 }
 
+Tile.prototype.CreateTexture = function () {
+  if (this.Texture != null) { return;}
 
-
-Tile.prototype.HandleLoadedTexture = function (cache) {
-    var texture = this.Texture;
-    //alert(tile);
-    GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
-    GL.bindTexture(GL.TEXTURE_2D, texture);
-    GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-    GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
-    GL.bindTexture(GL.TEXTURE_2D, null);
-    // There is an issue: Tiles call this method when their image gets loaded.
-    // How does the tile know which cache it belongs too.
-    LoadQueueLoaded(this);
+  ++NUMBER_OF_TEXTURES; // To determine when to prune textures.
+  this.Texture = GL.createTexture();
+  var texture = this.Texture;
+  //alert(tile);
+  GL.pixelStorei(GL.UNPACK_FLIP_Y_WEBGL, true);
+  GL.bindTexture(GL.TEXTURE_2D, texture);
+  GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+  GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+  GL.bindTexture(GL.TEXTURE_2D, null);
 }
 
-
-
-
-
-
+Tile.prototype.DeleteTexture = function () {
+  if (this.Texture) {
+    --NUMBER_OF_TEXTURES; // To determine when to prune textures.
+    GL.deleteTexture(this.Texture);
+    this.Texture = null;
+  }
+}

@@ -51,7 +51,6 @@ app.register_blueprint(login.mod)
 
 from .views import tile
 app.register_blueprint(tile.mod)
-
 import glviewer
 app.register_blueprint(glviewer.mod)
 

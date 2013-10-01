@@ -1159,7 +1159,8 @@ function AnimateNotesWindow() {
     if (NOTES_VISIBILITY) {
       NOTE_WINDOW.fadeIn();
     }
-  return;
+    draw();
+    return;
   }
   
   var k = timeStep / NOTES_ANIMATION_DURATION;
@@ -1169,6 +1170,7 @@ function AnimateNotesWindow() {
   NOTES_FRACTION += (NOTES_ANIMATION_TARGET-NOTES_FRACTION) * k;
   
   handleResize();
+  draw();
   requestAnimFrame(AnimateNotesWindow);
 }
 
@@ -1307,7 +1309,7 @@ function InitNotesWidget() {
                                       'position': 'relative',
                                       'float': 'right',
                                       'margin': '5px'})
-                                .click( NewCallback  );
+                                .click( NewCallback );
 
   // For less used buttons that appear when mouse is over the pulldown button.
   // I would like to make a dynamic bar that puts extra buttons into the pulldown as it resizes.

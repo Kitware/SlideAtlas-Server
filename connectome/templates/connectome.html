@@ -15,6 +15,8 @@
 <link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
+<link type="text/css" href="{{ url_for('glviewer.static', filename='nprogress/nprogress.css') }}" rel="stylesheet" />
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='nprogress/nprogress.js') }}"></script>
 
 <!-- used some objects, matrix as an array  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
@@ -30,6 +32,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loopWarp.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='meshWarp.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
@@ -64,6 +67,7 @@ shape has visibility and
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrow.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='circle.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='mesh.js') }}"></script>
 
 <!-- Text uses texture map and not superclass shape, shares same API -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='text.js') }}"></script>
@@ -72,7 +76,7 @@ shape has visibility and
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <!-- Stuff specific for connectome -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='connectome.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='connectome.js') }}"></script>
 
 
 
@@ -146,7 +150,6 @@ shape has visibility and
   }
 </script>
 <script type="text/javascript">
-  var TEMPLATE = "connectome.html";
   var DATABASE_NAME = "{{db}}";
   var COLLECTION_NAME = "{{col}}";
   
@@ -217,7 +220,9 @@ shape has visibility and
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
         // control: 17, z: 90, y: 89
-        if (event.keyCode == 34) { SessionAdvance();}
+        // Pageup , pagedown
+        if (event.keyCode == 33) { ConnectomeAdvance(-1);}
+        if (event.keyCode == 34) { ConnectomeAdvance(1);}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {

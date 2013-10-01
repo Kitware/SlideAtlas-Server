@@ -428,15 +428,20 @@ Viewer.prototype.Draw = function() {
   // The do not currently hav a viewport.
 
   // Rendering text uses blending / transparency.
-  GL.disable(GL.BLEND);
-  GL.enable(GL.DEPTH_TEST);
-
-  this.MainView.Camera.Draw(this.OverView.Camera, this.OverView.Viewport);
-  //
-  this.OverView.DrawOutline(true);
-  this.MainView.DrawOutline(false);
-  this.OverView.DrawTiles();
+  if (GL) {
+    GL.disable(GL.BLEND);
+    GL.enable(GL.DEPTH_TEST);
+  }
+  
   this.MainView.DrawTiles();
+  this.OverView.DrawTiles();
+
+  // Draw a rectangle in the overview representing the camera's view.
+  this.MainView.Camera.Draw(this.OverView);
+
+  // This is only necessary for webgl, Canvas2d just uses a border.
+  this.MainView.DrawOutline(false);
+  this.OverView.DrawOutline(true);
 
   if (this.AnnotationVisibility) {
     for(i=0; i<this.ShapeList.length; i++){
