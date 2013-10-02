@@ -5,7 +5,7 @@
 // Views can share a cache for tiles.
 
 // Cache is the source for the image tiles.
-function View (viewport) { // connectome: remove cache arg to constructor
+function View (viewport, layer) { // connectome: remove cache arg to constructor
   for (var i = 0; i < 4; ++i) {
     viewport[i] = Math.round(viewport[i]);
   }
@@ -33,7 +33,7 @@ function View (viewport) { // connectome: remove cache arg to constructor
         'width': viewport[2]+"px",
         'bottom' : viewport[1]+"px",
         'height': viewport[3]+"px",
-        'z-index': '1',
+        'z-index': layer.toString(),
         'border-style': 'solid',
         'border-width': '1px'
     });

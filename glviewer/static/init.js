@@ -17,6 +17,27 @@ var tileVertexPositionBuffer;
 var tileVertexTextureCoordBuffer;
 var tileCellBuffer;
 
+var MOBILE_DEVICE = false;
+
+
+
+function detectMobile() { 
+ if( navigator.userAgent.match(/Android/i)
+ || navigator.userAgent.match(/webOS/i)
+ || navigator.userAgent.match(/iPhone/i)
+ || navigator.userAgent.match(/iPad/i)
+ || navigator.userAgent.match(/iPod/i)
+ || navigator.userAgent.match(/BlackBerry/i)
+ || navigator.userAgent.match(/Windows Phone/i)
+ ){
+    return true;
+  }
+ else {
+    return false;
+  }
+}
+
+
 
 // This global is used in every class that renders something.
 // I can not test multiple canvases until I modularize the canvas
@@ -337,6 +358,9 @@ function initView(viewport) {
 
 
 function initGC() {
+
+  MOBILE_DEVICE = detectMobile();
+
   // Add a new canvas.
   CANVAS = $('<div>').appendTo('body').css({
                 'position': 'absolute',
