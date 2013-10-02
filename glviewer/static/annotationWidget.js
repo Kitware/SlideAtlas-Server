@@ -44,26 +44,28 @@ function AnnotationWidget (viewer) {
       'width': '130',
       'border-radius': '5px'});
 
-  $('<img>').appendTo(this.ToolsTable)
-    .css({'height': '28px'})
-    .attr('type','image')
-    .attr('src',"webgl-viewer/static/Text.gif")
-    .click(function(){self.NewText();});
-  $('<img>').appendTo(this.ToolsTable)
-    .css({'height': '28px'})
-    .attr('type','image')
-    .attr('src',"webgl-viewer/static/Circle.gif")
-    .click(function(){self.NewCircle();});
-  $('<img>').appendTo(this.ToolsTable)
-    .css({'height': '28px'})
-    .attr('type','image')
-    .attr('src',"webgl-viewer/static/FreeForm.gif")
-    .click(function(){self.NewPolyline();});
-  $('<img>').appendTo(this.ToolsTable)
-    .css({'height': '28px'})
-    .attr('type','image')
-    .attr('src',"webgl-viewer/static/Pencil-icon.jpg")
-    .click(function(){self.NewPencil();});
+  if ( ! MOBILE_DEVICE) {
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/Text.gif")
+      .click(function(){self.NewText();});
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/Circle.gif")
+      .click(function(){self.NewCircle();});
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/FreeForm.gif")
+      .click(function(){self.NewPolyline();});
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/Pencil-icon.jpg")
+      .click(function(){self.NewPencil();});
+  }
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {

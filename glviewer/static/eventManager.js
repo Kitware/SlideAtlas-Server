@@ -73,6 +73,53 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
   }
 }
 
+
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+EventManager.prototype.HandleTouchStart = function(e) {
+  if (!e) {
+    var e = event;
+  }
+  e.preventDefault();
+
+  this.SystemEvent = e;
+  this.LastTouches = this.Touches;
+  var can = this.Canvas;
+  this.Touches = [];
+  for (var i = 0; i < e.targetTouches.length; ++i) {
+    var x = e.targetTouches[i].pageX - can.offsetLeft;
+    var y = CANVAS.innerHeight() - (e.targetTouches[i].pageY - can.offsetTop);
+    this.Touches.push([x,y]);
+  }
+}
+
+EventManager.prototype.HandleTouchMove = function(e) {
+  this.HandleTouchStart(e);
+
+  this.MouseX = this.Touches[0][0];
+  this.MouseY = this.Touches[0][1];
+  this.ChooseViewer();
+  if (this.CurrentViewer) {
+    this.MouseDown = true;
+    this.CurrentViewer.HandleTouchMove(this);
+  }  
+}  
+
+EventManager.prototype.HandleTouchEnd = function(e) {
+  //console.log("touchEnd");
+  this.MouseDown = false;
+  if (this.CurrentViewer) {
+    e.preventDefault();
+    this.CurrentViewer.HandleTouchEnd(this);
+  }
+}
+
+EventManager.prototype.HandleTouchCancel = function(event) {
+  console.log("touchCancel");
+  this.MouseDown = false;
+}
+
+
 EventManager.prototype.HandleMouseDown = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
@@ -132,7 +179,7 @@ EventManager.prototype.HandleMouseUp = function(event) {
   }
 }
 
-// Forward even to view.
+// Forward event to view.
 EventManager.prototype.HandleMouseMove = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;

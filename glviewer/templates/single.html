@@ -327,7 +327,11 @@ shape has visibility and
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   
-  
+  function handleTouchStart(event) {EVENT_MANAGER.HandleTouchStart(event);}
+  function handleTouchMove(event) {EVENT_MANAGER.HandleTouchMove(event);}
+  function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}  
+  function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}  
+
   var E_DOWN = false;
   var D_DOWN = false;  
   function handleKeyDown(event) {
@@ -359,7 +363,7 @@ shape has visibility and
   function Start() {
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
-    if (doesBrowserSupportWebGL(testCanvas)) {
+    if (false && doesBrowserSupportWebGL(testCanvas)) {
       initGL(); // Sets CANVAS and GL global variables
     } else {
       initGC();
@@ -378,16 +382,20 @@ shape has visibility and
         handleResize();
     }).trigger('resize');
 
-    // Change to JQuery api
-    CANVAS[0].onmousedown =   handleMouseDown;
-    CANVAS[0].onmouseup =     handleMouseUp;
-    CANVAS[0].onmousewheel =  handleMouseWheel;
+    var can = CANVAS[0];
+    can.addEventListener("mousedown",  handleMouseDown,  false);
+    can.addEventListener("mousemove",  handleMouseMove,  false);
+    can.addEventListener("touchstart", handleTouchStart, false);
+    can.addEventListener("touchmove",  handleTouchMove,  true);
+    can.addEventListener("touchend",   handleTouchEnd,    false);
+    can.addEventListener("mousewheel", handleMouseWheel, false);
     
-    document.onmouseup =   handleMouseUp;
-    document.onmousemove = handleMouseMove;
+    document.body.addEventListener("mouseup", handleMouseUp, false);
+    document.body.addEventListener("touchcancel", handleTouchCancel, false);
+        
     document.onkeydown =   handleKeyDown;
     document.onkeyup =     handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
+    document.oncontextmenu = cancelContextMenu;
 
     
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
@@ -395,76 +403,77 @@ shape has visibility and
     handleResize();
     DualViewUpdateGui();
     
-    // Place the zoom in / out buttons.
-    // Todo: Make the button become more opaque when pressed.
-    // Associate with viewer (How???).
-    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '60px',
-        'right' : '5px',
-        'z-index': '2'
-    }).attr('id', 'zoomIn1')
-      .attr('class', 'viewer1')
-      .attr('type','image')
-      .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
-      .click(function(){VIEWER1.AnimateZoom(0.5);});
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '5px',
-        'right' : '5px',
-        'z-index': '2'
-    }).attr('id', 'zoomOut1')
-      .attr('class', 'viewer1')
-      .attr('type','image')
-      .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
-      .click(function(){VIEWER1.AnimateZoom(2.0);});
+    if ( ! MOBILE_DEVICE) {
+      // Place the zoom in / out buttons.
+      // Todo: Make the button become more opaque when pressed.
+      // Associate with viewer (How???).
+      // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '60px',
+          'right' : '5px',
+          'z-index': '2'
+      }).attr('id', 'zoomIn1')
+        .attr('class', 'viewer1')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
+        .click(function(){VIEWER1.AnimateZoom(0.5);});
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '5px',
+          'right' : '5px',
+          'z-index': '2'
+      }).attr('id', 'zoomOut1')
+        .attr('class', 'viewer1')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
+        .click(function(){VIEWER1.AnimateZoom(2.0);});
 
-    // Formalize this later (actual object and methods in viewer).
-    // Register these buttons with the viewer.
-    VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
-    VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
-     
-     
-    // Place the zoom in / out buttons. For the second viewer
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '60px',
-        'left' : '96%',
-        'z-index': '2'
-    }).attr('id', 'zoomIn2')
-      .attr('class', 'viewer2')
-      .attr('type','image')
-      .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
-      .click(function(){
-             VIEWER2.AnimateZoom(0.5);});
-    $('<img>').appendTo('body').css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'bottom' : '5px',
-        'left' : '96%',
-        'z-index': '2'
-    }).attr('id', 'zoomOut2')
-      .attr('class', 'viewer2')
-      .attr('type','image')
-      .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
-      .click(function(){
-             VIEWER2.AnimateZoom(2.0);});
-    $('.viewer2').hide();
-    VIEWER2.AddGuiElement("#zoomIn2", "Bottom", 60, "Right", 55);
-    VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
-
+      // Formalize this later (actual object and methods in viewer).
+      // Register these buttons with the viewer.
+      VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
+      VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
+       
+       
+      // Place the zoom in / out buttons. For the second viewer
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '60px',
+          'left' : '96%',
+          'z-index': '2'
+      }).attr('id', 'zoomIn2')
+        .attr('class', 'viewer2')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
+        .click(function(){
+               VIEWER2.AnimateZoom(0.5);});
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '5px',
+          'left' : '96%',
+          'z-index': '2'
+      }).attr('id', 'zoomOut2')
+        .attr('class', 'viewer2')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
+        .click(function(){
+               VIEWER2.AnimateZoom(2.0);});
+      $('.viewer2').hide();
+      VIEWER2.AddGuiElement("#zoomIn2", "Bottom", 60, "Right", 55);
+      VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
+    }
     eventuallyRender();
   }
 

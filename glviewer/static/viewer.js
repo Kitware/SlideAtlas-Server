@@ -26,14 +26,14 @@ function Viewer (viewport, cache) {
   this.AnimateDuration = 0.0;
   this.TranslateTarget = [0.0,0.0];
   
-  this.MainView = new View(viewport, cache);
+  this.MainView = new View(viewport, 1);
   this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
   var overViewport = [viewport[0] + viewport[2]*0.8, 
                       viewport[1] + viewport[3]*0.8,
                       viewport[2]*0.18, viewport[3]*0.18];
-  this.OverView = new View(overViewport, cache);
+  this.OverView = new View(overViewport, 2);
   this.OverView.Camera.ZRange = [-1,0];
   this.OverView.Camera.FocalPoint = [13000.0, 11000.0, 10.0];
   this.OverView.Camera.Height = 22000.0;
@@ -524,6 +524,116 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
     this.AnimateDuration = 100.0;
     eventuallyRender();
 }
+
+Viewer.prototype.HandleTouchMove = function(event) {
+  // Note, scale and rotation might behave odd if the number
+  // of touches changes in mid motion.
+  var numTouches = event.Touches.length;
+  if (event.LastTouches.length != numTouches || numTouches < 1) {
+    return;
+  }
+  // Use the average touch for panning.
+  var mid0 = [0,0];
+  var mid1 = [0,0];
+  for (var i = 0; i < numTouches; ++i) {
+    mid0[0] += event.LastTouches[i][0];
+    mid0[1] += event.LastTouches[i][1];
+    mid1[0] += event.Touches[i][0];
+    mid1[1] += event.Touches[i][1];
+  }
+  mid0[0] = mid0[0] / numTouches;
+  mid0[1] = mid0[1] / numTouches;
+  mid1[0] = mid1[0] / numTouches;
+  mid1[1] = mid1[1] / numTouches;
+  
+  // We need the world location of the mid points
+  // to constrain rotation and scale.
+  // Scale the mids to view coordinates [-1->1]
+  var viewport = this.GetViewport();
+  var v0 = [0,0];
+  var v1 = [0,0];
+  v0[0] = 2*(mid0[0]-viewport[0]) / viewport[2] - 1;
+  v0[1] = 2*(mid0[1]-viewport[1]) / viewport[3] - 1;
+  v1[0] = 2*(mid1[0]-viewport[0]) / viewport[2] - 1;
+  v1[1] = 2*(mid1[1]-viewport[1]) / viewport[3] - 1;
+  // Convert to world by inverting the camera matrix.
+  var cam = this.MainView.Camera;
+  var m = cam.Matrix;
+  v0[0] = (v0[0] * m[15]) - m[12];
+  v0[1] = (v0[1] * m[15]) - m[13];
+  v1[0] = (v1[0] * m[15]) - m[12];
+  v1[1] = (v1[1] * m[15]) - m[13];
+  var w0 = [0,0];
+  var w1 = [0,0];
+  var det = m[0]*m[5] - m[1]*m[4];
+  w0[0] = (v0[0]*m[5]-v0[1]*m[4]) / det;
+  w0[1] = (v0[1]*m[0]-v0[0]*m[1]) / det;
+  w1[0] = (v1[0]*m[5]-v1[1]*m[4]) / det;
+  w1[1] = (v1[1]*m[0]-v1[0]*m[1]) / det;
+  
+  // Compute scale and rotation.
+  // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+  // We could also take max.
+  // This should rarely be an issue and could only happen with 3 or more touches.
+  var a = 0;
+  var scale = 1;
+  if (numTouches > 1) {
+    var s0 = 0;
+    var s1 = 0;
+    for (var i = 0; i < numTouches; ++i) {
+      x = event.LastTouches[i][0] - mid0[0];
+      y = event.LastTouches[i][1] - mid0[1];
+      s0 += Math.sqrt(x*x + y*y);
+      var a1  = Math.atan2(y,x);
+      x = event.Touches[i][0] - mid1[0];
+      y = event.Touches[i][1] - mid1[1];
+      s1 += Math.sqrt(x*x + y*y);
+      a1 = a1 - Math.atan2(y,x);
+      if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
+      if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
+      a += a1;
+    }
+    scale = s1/ s0;
+    a = a / numTouches;
+  }
+  
+  // rotation and scale are around the mid point .....
+  // we need to compute focal point height and roll (not just a matrix).
+  // Focal point is the only difficult item.
+  w1[0] = cam.FocalPoint[0] - w1[0];
+  w1[1] = cam.FocalPoint[1] - w1[1];
+  var c = Math.cos(a);
+  var s = Math.sin(a);
+  var x = (w1[0]*c - w1[1]*s) / scale;
+  var y = (w1[0]*s + w1[1]*c) / scale;
+  cam.FocalPoint[0] = x + w0[0];  
+  cam.FocalPoint[1] = y + w0[1];
+  cam.Height = cam.Height / scale;
+  cam.Roll = cam.Roll - a;
+  cam.ComputeMatrix();  
+
+  eventuallyRender();
+}
+
+Viewer.prototype.HandleTouchEnd = function(event) {
+  // Forward the events to the widget if one is active.
+  //if (this.ActiveWidget != null) {
+    //this.ActiveWidget.HandleTouchEnd(event);
+    //return;
+  //}
+
+  if (this.InteractionState != INTERACTION_NONE) {
+    this.InteractionState = INTERACTION_NONE;
+    RecordState();
+  }
+  
+  return;
+}
+
+
+
+
+
 
 Viewer.prototype.HandleMouseDown = function(event) {
   // Forward the events to the widget if one is active.

@@ -1011,6 +1011,7 @@ function CloneCallback () {
 // TODO: Activate and inactivate save button based on user owning note
 // This callback is for both the edit and cancel behaviours.
 function EditCallback() {
+  if (MOBILE_DEVICE) { return; }
 
   NOTE_EDIT_ACTIVE = true;
 
