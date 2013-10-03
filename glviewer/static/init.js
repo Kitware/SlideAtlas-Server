@@ -22,19 +22,28 @@ var MOBILE_DEVICE = false;
 
 
 function detectMobile() { 
- if( navigator.userAgent.match(/Android/i)
- || navigator.userAgent.match(/webOS/i)
- || navigator.userAgent.match(/iPhone/i)
- || navigator.userAgent.match(/iPad/i)
- || navigator.userAgent.match(/iPod/i)
- || navigator.userAgent.match(/BlackBerry/i)
- || navigator.userAgent.match(/Windows Phone/i)
- ){
-    return true;
-  }
- else {
-    return false;
-  }
+  MOBILE_DEVICE = false;
+ if ( navigator.userAgent.match(/Android/i)) {
+   MOBILE_DEVICE = "Andriod";
+ }
+ if ( navigator.userAgent.match(/webOS/i)) {
+   MOBILE_DEVICE = "webOS";
+ } 
+ if ( navigator.userAgent.match(/iPhone/i)) {
+   MOBILE_DEVICE = "iPhone";
+ }
+ if ( navigator.userAgent.match(/iPad/i)) {
+   MOBILE_DEVICE = "iPad";
+ }
+ if ( navigator.userAgent.match(/iPod/i)) {
+   MOBILE_DEVICE = "iPod";
+ }
+ if ( navigator.userAgent.match(/BlackBerry/i)) {
+   MOBILE_DEVICE = "BlackBerry";
+ }
+ if ( navigator.userAgent.match(/Windows Phone/i)) {
+   MOBILE_DEVICE = "Windows Phone";
+ }
 }
 
 
@@ -359,7 +368,7 @@ function initView(viewport) {
 
 function initGC() {
 
-  MOBILE_DEVICE = detectMobile();
+  detectMobile();
 
   // Add a new canvas.
   CANVAS = $('<div>').appendTo('body').css({
