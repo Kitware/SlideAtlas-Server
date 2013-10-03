@@ -73,10 +73,32 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
   }
 }
 
+var GOFULLSCREEN = true;
+function Fullscreen() {
+  var isInFullScreen = (document.fullScreenElement && document.fullScreenElement !==  null) ||   
+          (document.mozFullScreen || document.webkitIsFullScreen);
+
+  var docElm = document.documentElement;
+  if (!isInFullScreen) {
+
+      if (docElm.requestFullscreen) {
+          docElm.requestFullscreen();
+      }
+      else if (docElm.mozRequestFullScreen) {
+          docElm.mozRequestFullScreen();
+      }
+      else if (docElm.webkitRequestFullScreen) {
+          docElm.webkitRequestFullScreen();
+      }
+  }
+  handleResize();
+  eventuallyRender();
+}
+
 
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
-EventManager.prototype.HandleTouchStart = function(e) {
+EventManager.prototype.HandleTouch = function(e) {
   if (!e) {
     var e = event;
   }
@@ -93,8 +115,26 @@ EventManager.prototype.HandleTouchStart = function(e) {
   }
 }
 
+
+EventManager.prototype.HandleTouchStart = function(e) {
+  if (GOFULLSCREEN) {
+    Fullscreen();
+    GOFULLSCREEN = false;
+  }
+
+  this.HandleTouch(e);
+  this.MouseX = this.Touches[0][0];
+  this.MouseY = this.Touches[0][1];
+  this.ChooseViewer();
+  if (this.CurrentViewer) {
+    this.MouseDown = true;
+    this.CurrentViewer.HandleTouchStart(this);
+  }  
+}
+
+
 EventManager.prototype.HandleTouchMove = function(e) {
-  this.HandleTouchStart(e);
+  this.HandleTouch(e);
 
   this.MouseX = this.Touches[0][0];
   this.MouseY = this.Touches[0][1];
@@ -106,7 +146,6 @@ EventManager.prototype.HandleTouchMove = function(e) {
 }  
 
 EventManager.prototype.HandleTouchEnd = function(e) {
-  //console.log("touchEnd");
   this.MouseDown = false;
   if (this.CurrentViewer) {
     e.preventDefault();
