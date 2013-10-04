@@ -30,7 +30,7 @@ def attachments():
 
     # TODO: Can we store this information in the session information (or a database information)
     conn.register([model.Database])
-    admindb = conn[app.config["CONFIGDB"]]
+    admindb = conn[current_app.config["CONFIGDB"]]
     try:
         dbid = ObjectId(db)
     except:
