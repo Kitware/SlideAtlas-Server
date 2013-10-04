@@ -131,6 +131,10 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.ActiveWidget.SetActive(false);  
   }
 
+  if ( ! this.Bounds) {
+    this.Bounds = [0, this.Dimensions[0], 0, this.Dimensions[1]];    
+  }
+
   var cache = viewer.GetCache();
   if ( ! cache || this.Image != cache.ImageId) {
     var newCache = new Cache(this.Database, 

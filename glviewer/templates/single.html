@@ -68,6 +68,7 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
 
 <!-- Shapes starting with superclass
 
@@ -361,6 +362,7 @@ shape has visibility and
 
 
   function Start() {
+    detectMobile();
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
     if (doesBrowserSupportWebGL(testCanvas)) {

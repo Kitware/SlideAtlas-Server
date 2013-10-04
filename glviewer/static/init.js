@@ -23,27 +23,27 @@ var MOBILE_DEVICE = false;
 
 function detectMobile() { 
   MOBILE_DEVICE = false;
- if ( navigator.userAgent.match(/Android/i)) {
+  if ( navigator.userAgent.match(/Android/i)) {
    MOBILE_DEVICE = "Andriod";
- }
- if ( navigator.userAgent.match(/webOS/i)) {
+  }
+  if ( navigator.userAgent.match(/webOS/i)) {
    MOBILE_DEVICE = "webOS";
- } 
- if ( navigator.userAgent.match(/iPhone/i)) {
+  } 
+  if ( navigator.userAgent.match(/iPhone/i)) {
    MOBILE_DEVICE = "iPhone";
- }
- if ( navigator.userAgent.match(/iPad/i)) {
+  }
+  if ( navigator.userAgent.match(/iPad/i)) {
    MOBILE_DEVICE = "iPad";
- }
- if ( navigator.userAgent.match(/iPod/i)) {
+  }
+  if ( navigator.userAgent.match(/iPod/i)) {
    MOBILE_DEVICE = "iPod";
- }
- if ( navigator.userAgent.match(/BlackBerry/i)) {
+  }
+  if ( navigator.userAgent.match(/BlackBerry/i)) {
    MOBILE_DEVICE = "BlackBerry";
- }
- if ( navigator.userAgent.match(/Windows Phone/i)) {
+  }
+  if ( navigator.userAgent.match(/Windows Phone/i)) {
    MOBILE_DEVICE = "Windows Phone";
- }
+  }
 }
 
 
@@ -125,7 +125,7 @@ function initGL() {
   initShaderPrograms();
   initOutlineBuffers();
   initImageTileBuffers();
-  GL.clearColor(0.9, 0.9, 0.9, 1.0);
+  GL.clearColor(1.0, 1.0, 1.0, 1.0);
   GL.enable(GL.DEPTH_TEST);
 }
 
