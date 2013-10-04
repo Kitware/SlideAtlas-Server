@@ -436,6 +436,7 @@ Viewer.prototype.Draw = function() {
     return;
   }
 
+  this.ConstrainCamera();
   // Should the camera have the viewport in them?
   // The do not currently hav a viewport.
 
@@ -571,6 +572,7 @@ Viewer.prototype.HandleTouchMove = function(event) {
   if (event.LastTouches.length != numTouches || numTouches < 1) {
     return;
   }
+  var viewport = this.GetViewport();
   // Use the average touch for panning.
   var mid0 = [0,0];
   var mid1 = [0,0];
@@ -584,17 +586,33 @@ Viewer.prototype.HandleTouchMove = function(event) {
   mid0[1] = mid0[1] / numTouches;
   mid1[0] = mid1[0] / numTouches;
   mid1[1] = mid1[1] / numTouches;
+
   
   // We need the world location of the mid points
   // to constrain rotation and scale.
   // Scale the mids to view coordinates [-1->1]
-  var viewport = this.GetViewport();
   var v0 = [0,0];
   var v1 = [0,0];
   v0[0] = 2*(mid0[0]-viewport[0]) / viewport[2] - 1;
   v0[1] = 2*(mid0[1]-viewport[1]) / viewport[3] - 1;
   v1[0] = 2*(mid1[0]-viewport[0]) / viewport[2] - 1;
   v1[1] = 2*(mid1[1]-viewport[1]) / viewport[3] - 1;
+
+  var t = new Date().getTime();
+  var dt = t - this.LastTime;
+  this.LastTime = t;
+  if (numTouches > 1) { // check for swipes.
+    // Compute speed
+    var xSpeed = (v1[0] - v0[0]) / dt;
+    var ySpeed = (v1[1] - v0[1]) / dt;
+    // off the top: go to full screen
+    // Checking speed off an edge is problematic.  Fast swipe misses edge.
+    // Lets move the boundary 10% and rely on direction
+    if (ySpeed > 2*Math.abs(xSpeed) && v1[1] > 0.9 && v0[1] <=0.9) {
+      GoFullScreen();
+    }
+  }
+
   // Convert to world by inverting the camera matrix.
   var cam = this.MainView.Camera;
   var m = cam.Matrix;
@@ -635,6 +653,17 @@ Viewer.prototype.HandleTouchMove = function(event) {
     scale = s1/ s0;
     a = a / numTouches;
   }
+  // Roll was too sensitive.  Lets restrict roll to three finger interaction.
+  if (numTouches == 2) { // Zoom only.
+    w1[0] = w0[0];
+    w1[1] = w0[1];
+    a = 0.0;
+  }
+  if (numTouches >= 3) { // Rotate only.
+    w1[0] = w0[0];
+    w1[1] = w0[1];
+    scale = 1.0;
+  }
   
   // rotation and scale are around the mid point .....
   // we need to compute focal point height and roll (not just a matrix).
@@ -648,9 +677,6 @@ Viewer.prototype.HandleTouchMove = function(event) {
   var y = w0[1] + (w1[0]*s + w1[1]*c) / scale;
 
   // Remember the last motion to implement momentum.
-  var t = new Date().getTime();
-  var dt = t - this.LastTime;
-  this.LastTime = t;
   this.MomentumX = (x - cam.FocalPoint[0])/dt;
   this.MomentumY = (y - cam.FocalPoint[1])/dt;
   this.MomentumRoll = a/dt;
@@ -686,7 +712,7 @@ Viewer.prototype.HandleMomentum = function(event) {
   var t = new Date().getTime();
   var dt = t - this.LastTime;
   this.LastTime = t;
-  var k = 300.0;
+  var k = 200.0;
   var decay = Math.exp(-dt/k);
   var integ = (-k * decay + k);
   
@@ -717,12 +743,55 @@ Viewer.prototype.HandleMomentum = function(event) {
       RecordState();
     }
   } else {
-  var self = this;
+    var self = this;
     this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
   }
 }
 
 
+Viewer.prototype.ConstrainCamera = function () {
+  var bounds = this.MainView.GetBounds();
+  if ( ! bounds) {
+    // Cache has not been set.
+    return;
+  }
+  var spacing = this.MainView.GetLeafSpacing();
+  var viewport = this.MainView.GetViewport();
+  var cam = this.MainView.Camera;
+
+  var modified = false;
+  if (cam.FocalPoint[0] < bounds[0]) {
+    cam.FocalPoint[0] = bounds[0];
+    modified = true;
+  }
+  if (cam.FocalPoint[0] > bounds[1]) {
+    cam.FocalPoint[0] = bounds[1];
+    modified = true;
+  }
+  if (cam.FocalPoint[1] < bounds[2]) {
+    cam.FocalPoint[1] = bounds[2];
+    modified = true;
+  }
+  if (cam.FocalPoint[1] > bounds[3]) {
+    cam.FocalPoint[1] = bounds[3];
+    modified = true;
+  }
+  if (cam.Height > 2*(bounds[3]-bounds[2])) {
+    cam.Height = 2*(bounds[3]-bounds[2]);
+    modified = true;
+  }  
+  if (cam.Height < viewport[3] * spacing) {
+    cam.Height = viewport[3] * spacing;
+    modified = true;
+  }
+  if (modified) {
+    cam.ComputeMatrix();
+  }
+}
+
+  
+  
+  
 
 
 Viewer.prototype.HandleMouseDown = function(event) {

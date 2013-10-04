@@ -73,8 +73,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
   }
 }
 
-var GOFULLSCREEN = true;
-function Fullscreen() {
+function GoFullScreen() {
   var isInFullScreen = (document.fullScreenElement && document.fullScreenElement !==  null) ||   
           (document.mozFullScreen || document.webkitIsFullScreen);
 
@@ -117,11 +116,6 @@ EventManager.prototype.HandleTouch = function(e) {
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
-  if (GOFULLSCREEN) {
-    Fullscreen();
-    GOFULLSCREEN = false;
-  }
-
   this.HandleTouch(e);
   this.MouseX = this.Touches[0][0];
   this.MouseY = this.Touches[0][1];

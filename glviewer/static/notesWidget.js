@@ -796,6 +796,7 @@ Note.prototype.LoadRootView = function(args) {
   this.Id = args.Viewer1.viewid;
   this.ParentId = "";
   var viewerRecord = new ViewerRecord();
+  viewerRecord.Dimensions = args.Viewer1.dimensions;
   viewerRecord.LoadRootViewer(args.Viewer1);
   this.ViewerRecords = [viewerRecord];
   
@@ -1200,20 +1201,22 @@ function InitNotesWidget() {
     .attr('src',"webgl-viewer/static/leftArrow2.png")
     .click(function(){PreviousNoteCallback();});
 
-  $('<button>').appendTo('body')
-    .css({
-      'opacity': '0.5',
-      'position': 'absolute',
-      'height': '35px',
-      'width': '80px',
-      'font-size': '18px',
-      'bottom' : '5px',
-      'left' : '45px',
-      'color' : '#379BFF',
-      'z-index': '2'})
-    .text("Notes")
-    .click(function(){ToggleNotesWindow();});
-
+  if ( ! MOBILE_DEVICE) {
+    $('<button>').appendTo('body')
+      .css({
+        'opacity': '0.5',
+        'position': 'absolute',
+        'height': '35px',
+        'width': '80px',
+        'font-size': '18px',
+        'bottom' : '5px',
+        'left' : '45px',
+        'color' : '#379BFF',
+        'z-index': '2'})
+      .text("Notes")
+      .click(function(){ToggleNotesWindow();});
+  }
+  
   NOTE_NEXT = $('<img>').appendTo('body')
     .css({
       'opacity': '0.5',

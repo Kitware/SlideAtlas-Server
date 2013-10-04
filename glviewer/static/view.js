@@ -42,6 +42,15 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
   }
 }
 
+
+View.prototype.GetBounds = function() {
+  return this.Section.GetBounds();
+}
+View.prototype.GetLeafSpacing = function() {
+  return this.Section.GetLeafSpacing();
+}
+
+
 // connectome
 View.prototype.AddCache = function(cache) {
   if ( ! cache) { return; }
@@ -62,6 +71,10 @@ View.prototype.GetCache = function() {
   // connectome: This makes less sense with a section with many caches.
   // TODO: try to get rid of this
   return this.Section.Caches[0];
+}
+
+View.prototype.GetViewport = function() {
+  return this.Viewport;
 }
 
 View.prototype.SetViewport = function(viewport) {
