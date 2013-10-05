@@ -6,6 +6,7 @@ var VIEWER1_FRACTION = 1.0;
 
   
 function InitDualViewWidget() {
+  if ( ! MOBILE_DEVICE) {
     // Todo: Make the button become more opaque when pressed.
     $('<img>').appendTo('body')
       .css({
@@ -38,6 +39,7 @@ function InitDualViewWidget() {
     
     VIEWER1.AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
     VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);    
+  }
 }
 
 // Called programatically. No animation.

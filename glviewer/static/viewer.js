@@ -448,11 +448,6 @@ Viewer.prototype.Draw = function() {
   
   this.MainView.DrawTiles();
 
-  // Draw a rectangle in the overview representing the camera's view.
-  if (this.OverView) {
-    this.MainView.Camera.Draw(this.OverView);
-  }
-  
   // This is only necessary for webgl, Canvas2d just uses a border.
   this.MainView.DrawOutline(false);
   if (this.OverView) {
@@ -466,6 +461,11 @@ Viewer.prototype.Draw = function() {
     for(i in this.WidgetList){
       this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
     }
+  }
+
+    // Draw a rectangle in the overview representing the camera's view.
+  if (this.OverView) {
+    this.MainView.Camera.Draw(this.OverView);
   }
 }
 
@@ -554,6 +554,19 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
 
 Viewer.prototype.HandleTouchStart = function(event) {
+  this.NewTouch = true;
+  // Four finger grab resets the view.
+  if ( event.Touches.length >= 4) {
+    var cam = this.GetCamera();
+    var bds = this.MainView.Section.GetBounds();
+    cam.FocalPoint = [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5];      
+    cam.Roll = 0.0;
+    cam.Height = bds[3]-bds[2];
+    cam.ComputeMatrix();
+    eventuallyRender();  
+    this.NewTouch = false;
+    return;            
+  }
   this.LastTime = new Date().getTime();
   this.MomentumX = 0.0;
   this.MomentumY = 0.0;
@@ -566,6 +579,10 @@ Viewer.prototype.HandleTouchStart = function(event) {
 }
 
 Viewer.prototype.HandleTouchMove = function(event) {
+  if ( ! this.NewTouch) {
+    // Keep a single sweep from firing multiple events.
+    return;
+  }
   // Note, scale and rotation might behave odd if the number
   // of touches changes in mid motion.
   var numTouches = event.Touches.length;
@@ -587,7 +604,6 @@ Viewer.prototype.HandleTouchMove = function(event) {
   mid1[0] = mid1[0] / numTouches;
   mid1[1] = mid1[1] / numTouches;
 
-  
   // We need the world location of the mid points
   // to constrain rotation and scale.
   // Scale the mids to view coordinates [-1->1]
@@ -608,11 +624,52 @@ Viewer.prototype.HandleTouchMove = function(event) {
     // off the top: go to full screen
     // Checking speed off an edge is problematic.  Fast swipe misses edge.
     // Lets move the boundary 10% and rely on direction
-    if (ySpeed > 2*Math.abs(xSpeed) && v1[1] > 0.9 && v0[1] <=0.9) {
+    if (ySpeed > 2*Math.abs(xSpeed) && v1[1] > 0.95 && v0[1] <=0.95) {
       GoFullScreen();
+      this.NewTouch = false;
+      return;
+    }
+    // Toggle dual view swipes.
+    if (! DUAL_VIEW && xSpeed < -2*Math.abs(ySpeed) &&
+        v0[0] > 0.95 && v1[0] <= 0.95) {
+      ToggleDualView();
+      this.NewTouch = false;
+      return;
+    }
+    if (DUAL_VIEW && xSpeed > 2*Math.abs(ySpeed)) {
+      if ( (v0[0] < 0.95 && v1[0] >= 0.95)) {
+        ToggleDualView();
+        this.NewTouch = false;
+        return;
+      }
+    }
+    // Toggle the notes window: Sweep left edge.
+    if (! NOTES_VISIBILITY && this == VIEWER1 && xSpeed > 2*Math.abs(ySpeed) &&
+        v0[0] < -0.95 && v1[0] >= -0.95) {
+      ToggleNotesWindow();
+      this.NewTouch = false;
+      return;
+    }
+    if (NOTES_VISIBILITY && this == VIEWER1 && xSpeed < -2*Math.abs(ySpeed) &&
+        v0[0] > -0.95 && v1[0] <= -0.95) {
+      ToggleNotesWindow();
+      this.NewTouch = false;
+      return;
+    }
+    // Sweep to advance note
+    // Todo: Show button for next/previous slide
+    if (xSpeed > 2*Math.abs(ySpeed) && xSpeed > 0.01) {
+      NextNoteCallback();
+      this.NewTouch = false;
+      return;
+    }
+    if (xSpeed < -2*Math.abs(ySpeed) && xSpeed < -0.005) {
+      PreviousNoteCallback();
+      this.NewTouch = false;
+      return;
     }
   }
-
+  
   // Convert to world by inverting the camera matrix.
   var cam = this.MainView.Camera;
   var m = cam.Matrix;
@@ -677,10 +734,15 @@ Viewer.prototype.HandleTouchMove = function(event) {
   var y = w0[1] + (w1[0]*s + w1[1]*c) / scale;
 
   // Remember the last motion to implement momentum.
-  this.MomentumX = (x - cam.FocalPoint[0])/dt;
-  this.MomentumY = (y - cam.FocalPoint[1])/dt;
-  this.MomentumRoll = a/dt;
-  this.MomentumScale = (scale-1)/dt;
+  var momentumX = (x - cam.FocalPoint[0])/dt;
+  var momentumY = (y - cam.FocalPoint[1])/dt;
+  var momentumRoll = a/dt;
+  var momentumScale = (scale-1)/dt;
+
+  this.MomentumX = (this.MomentumX + momentumX) * 0.5;
+  this.MomentumY = (this.MomentumY + momentumY) * 0.5;
+  this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
+  this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
 
   cam.FocalPoint[0] = x;  
   cam.FocalPoint[1] = y;
@@ -702,12 +764,15 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     //return;
   //}
 
-  this.HandleMomentum();  
-  
+  if (this.NewTouch) {
+    this.NewTouch = false;
+    this.HandleMomentum();  
+  }
   return;
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
+
   // Integrate the momentum.
   var t = new Date().getTime();
   var dt = t - this.LastTime;
@@ -735,7 +800,8 @@ Viewer.prototype.HandleMomentum = function(event) {
   this.MomentumScale *= decay;
   this.MomentumRoll *= decay; 
 
-  if (this.MomentumX < 0.01 && this.MomentumY < 0.01 && this.MomentumRoll < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+  if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 && 
+      Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
     // Change is small. Stop the motion.
     this.MomentumTimerId = 0;
     if (this.InteractionState != INTERACTION_NONE) {

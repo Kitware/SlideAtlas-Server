@@ -97,6 +97,9 @@ function NoteIterator(note) {
 }
 
 NoteIterator.prototype.UpdateButtons = function() {
+  if (MOBILE_DEVICE) {
+    return;
+  }
   // Disable and enable prev/next buttons so we cannot go past the end.
   if (this.IsStart()) {
     NOTE_PREV.css({'opacity': '0.1'});
@@ -1188,6 +1191,7 @@ function InitNotesWidget() {
     ROOT_NOTE.LoadViewId(NOTE_ID);
   }
   
+  if ( ! MOBILE_DEVICE) {
   // Nav buttons, to cycle around the notes.  
   NOTE_PREV = $('<img>').appendTo('body')
     .css({
@@ -1201,7 +1205,6 @@ function InitNotesWidget() {
     .attr('src',"webgl-viewer/static/leftArrow2.png")
     .click(function(){PreviousNoteCallback();});
 
-  if ( ! MOBILE_DEVICE) {
     $('<button>').appendTo('body')
       .css({
         'opacity': '0.5',
@@ -1215,20 +1218,20 @@ function InitNotesWidget() {
         'z-index': '2'})
       .text("Notes")
       .click(function(){ToggleNotesWindow();});
+      
+    NOTE_NEXT = $('<img>').appendTo('body')
+      .css({
+        'opacity': '0.5',
+        'position': 'absolute',
+        'height': '35px',
+        'width': '35x',
+        'bottom' : '5px',
+        'left' : '130px',
+        'z-index': '2'})
+    .attr('src',"webgl-viewer/static/rightArrow2.png")
+    .click(function(){NextNoteCallback();});
   }
-  
-  NOTE_NEXT = $('<img>').appendTo('body')
-    .css({
-      'opacity': '0.5',
-      'position': 'absolute',
-      'height': '35px',
-      'width': '35x',
-      'bottom' : '5px',
-      'left' : '130px',
-      'z-index': '2'})
-  .attr('src',"webgl-viewer/static/rightArrow2.png")
-  .click(function(){NextNoteCallback();});
-
+    
   NOTE_WINDOW = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',

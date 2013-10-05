@@ -40,6 +40,13 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
   this.Image = cache.ImageId;
   this.NumberOfLevels = cache.NumberOfLevels;
   
+  if ( ! this.Bounds) {
+    // Since this is legacy, just copy the bounds from the cache.
+    this.Bounds = cache.GetBounds();    
+  }
+  
+  
+  
   var cameraRecord = {};
   cameraRecord.FocalPoint = data.center;
   cameraRecord.Height = 900 << data.zoom;
@@ -131,7 +138,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.ActiveWidget.SetActive(false);  
   }
 
-  if ( ! this.Bounds) {
+  if ( ! this.Bounds && this.Dimensions) {
     this.Bounds = [0, this.Dimensions[0], 0, this.Dimensions[1]];    
   }
 
