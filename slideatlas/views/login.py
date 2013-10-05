@@ -69,7 +69,7 @@ def login_signup():
         userdoc.save()
 
         # Create email
-        emailfrom  = "dhanannjay.deo@kitware.com"
+        emailfrom  = current_app.config["EMAIL_FROM"]
 
         body = "Hello " + name + ",\n\n"
         body = body + "You recently created a new account at https://slide-atlas.org.  To proceed with your account creation please follow the link below:\n"
@@ -87,7 +87,7 @@ def login_signup():
         msg['Subject'] = 'Account email confirmation for slide-atlas.org'
         msg['From'] = emailfrom
         msg['To'] = emailto
-        s = smtplib.SMTP('public.kitware.com')
+        s = smtplib.SMTP(current_app.config["SMTP"])
         try:
             out = s.sendmail(emailfrom, [emailto], msg.as_string())
         except:
@@ -178,7 +178,7 @@ def login_resetrequest():
         userdoc.save()
 
         # Create email
-        emailfrom  = "dhanannjay.deo@kitware.com"
+        emailfrom  = current_app.config["EMAIL_FROM"] 
 
         body = "Hello " + name + ",\n\n"
         body = body + "You recently requested a password reset for your account at https://slide-atlas.org."
@@ -198,7 +198,7 @@ def login_resetrequest():
         msg['From'] = emailfrom
         msg['To'] = emailto
         print msg
-        s = smtplib.SMTP('public.kitware.com')
+        s = smtplib.SMTP(current_app.config["SMTP"])
         try:
             out = s.sendmail(emailfrom, [emailto], msg.as_string())
         except:
