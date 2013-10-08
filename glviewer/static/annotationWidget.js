@@ -15,36 +15,37 @@ function AnnotationWidget (viewer) {
   var self = this; // trick to set methods in callbacks. 
   this.Viewer = viewer;
   viewer.AnnotationWidget = this;
-  // We need unique names for the HTML elements.
-  this.Widget = $('<table>').appendTo('body')
-    .css({
-      'opacity': '0.6',
-      'position': 'absolute',
-      'height': '28px',
-      'bottom' : '5px',
-      'right' : '20px',
-      'z-index': '1'});;
-
-  viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 260);
-
-  var row = $('<tr>').appendTo(this.Widget)
-  var cell = $('<td>').appendTo(row)
-  this.VisibilityButton = $('<img>').appendTo(cell)
-    .css({
-      'opacity': '0.6',
-      'border-radius': '5px'})
-    .attr('type','image')
-    .attr('src',"webgl-viewer/static/pencil3.png")
-    .click(function(){self.ToggleVisibility();});
-  
-  this.ToolsTable = $('<td>').appendTo(row)
-    .hide()
-    .css({
-      'opacity': '0.6',
-      'width': '130',
-      'border-radius': '5px'});
 
   if ( ! MOBILE_DEVICE) {
+    // We need unique names for the HTML elements.
+    this.Widget = $('<table>').appendTo('body')
+      .css({
+        'opacity': '0.6',
+        'position': 'absolute',
+        'height': '28px',
+        'bottom' : '5px',
+        'right' : '20px',
+        'z-index': '1'});;
+
+    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 260);
+
+    var row = $('<tr>').appendTo(this.Widget)
+    var cell = $('<td>').appendTo(row)
+    this.VisibilityButton = $('<img>').appendTo(cell)
+      .css({
+        'opacity': '0.6',
+        'border-radius': '5px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/pencil3.png")
+      .click(function(){self.ToggleVisibility();});
+    
+    this.ToolsTable = $('<td>').appendTo(row)
+      .hide()
+      .css({
+        'opacity': '0.6',
+        'width': '130',
+        'border-radius': '5px'});
+
     $('<img>').appendTo(this.ToolsTable)
       .css({'height': '28px'})
       .attr('type','image')
@@ -72,15 +73,18 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
   if (this.Viewer.GetAnnotationVisibility() == visibility) {
     return;
   }
-  if (visibility == ANNOTATION_OFF) {
-    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")    
-    this.ToolsTable.fadeOut();
-  } else if (visibility == ANNOTATION_NO_TEXT) {
-    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")
-    this.ToolsTable.fadeIn();  
-  } else {
-    this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Up.png")
+  if (this.VisibilityButton) {
+    if (visibility == ANNOTATION_OFF) {
+      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")    
+      this.ToolsTable.fadeOut();
+    } else if (visibility == ANNOTATION_NO_TEXT) {
+      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")
+      this.ToolsTable.fadeIn();  
+    } else {
+      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Up.png")
+    }
   }
+  
   this.Viewer.SetAnnotationVisibility(visibility);
 
   eventuallyRender();    

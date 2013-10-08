@@ -363,11 +363,11 @@ function InitAnnotations(viewer, annotations)
 }
 
 function ToggleAnnotationVisibility() {
-    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+    SetAnnotationVisibility( ! VIEWER1.AnnotationVisibility);
 }
 
 function SetAnnotationVisibility(visibility) {
-    VIEWER1.ShapeVisibility = visibility;
+    VIEWER1.AnnotationVisibility = visibility;
     if (visibility) {
         $("#annotationButton").css({'opacity': '0.6'});
     } else {

@@ -96,7 +96,8 @@ function GetSessionDatabase() {
 
 function doesBrowserSupportWebGL(canvas) {
     try {
-        GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        GL = canvas.getContext("webgl");
     } catch (e) {
     }
     if (!GL) {

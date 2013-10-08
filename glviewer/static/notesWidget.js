@@ -83,6 +83,10 @@ var NOTE_NEXT;
 var POPUP_MENU_BUTTON;
 var POPUP_MENU;
 
+var NEXT_NOTE_SWEEP;
+var PREV_NOTE_SWEEP;
+var NOTES_HIDE_SWEEP;
+var NOTES_SHOW_SWEEP;
 
 //------------------------------------------------------------------------------
 // Iterator to perform depth first search through note tree.
@@ -97,19 +101,20 @@ function NoteIterator(note) {
 }
 
 NoteIterator.prototype.UpdateButtons = function() {
-  if (MOBILE_DEVICE) {
-    return;
-  }
   // Disable and enable prev/next buttons so we cannot go past the end.
   if (this.IsStart()) {
-    NOTE_PREV.css({'opacity': '0.1'});
+    if (NOTE_PREV) {NOTE_PREV.css({'opacity': '0.1'}); }
+    if (MOBILE_DEVICE) {PREV_NOTE_SWEEP.Active = false;}    
   } else {
-    NOTE_PREV.css({'opacity': '0.5'});
+    if (NOTE_PREV) {NOTE_PREV.css({'opacity': '0.5'}); }
+    if (MOBILE_DEVICE) {PREV_NOTE_SWEEP.Active = true;}
   }
   if (this.IsEnd()) {
-    NOTE_NEXT.css({'opacity': '0.1'});
+    if (NOTE_NEXT) {NOTE_NEXT.css({'opacity': '0.1'}); }
+    if (MOBILE_DEVICE) {NEXT_NOTE_SWEEP.Active = false;}
   } else {
-    NOTE_NEXT.css({'opacity': '0.5'});
+    if (NOTE_NEXT) {NOTE_NEXT.css({'opacity': '0.5'}); }
+    if (MOBILE_DEVICE) {NEXT_NOTE_SWEEP.Active = true;}
   }
 }
 
@@ -160,7 +165,6 @@ NoteIterator.prototype.GetParentNote = function() {
 
   return parent;
 }
-
 
 
 // We use this to see (peek) if next or previous should be disabled.
@@ -626,6 +630,10 @@ Note.prototype.Load = function(obj){
   }
 
   if ( ! obj.Type || obj.Type == "Note") {
+    // Hack to fix timing (Load after select)
+    if (this == NOTE_ITERATOR.GetNote()) {
+      this.Select();
+    }
     return;
   }
 
@@ -908,9 +916,13 @@ function ToggleNotesWindow() {
   RecordState();
 
   if (NOTES_VISIBILITY) {
+    NOTES_HIDE_SWEEP.Active = true;
+    NOTES_SHOW_SWEEP.Active = false;
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.2;
   } else {
+    NOTES_HIDE_SWEEP.Active = false;
+    NOTES_SHOW_SWEEP.Active = true;
     NOTE_WINDOW.hide();
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.0;
@@ -1370,6 +1382,25 @@ function InitNotesWidget() {
     .attr('src',"webgl-viewer/static/dropDown1.jpg")
     .mouseenter(function() {POPUP_MENU.fadeIn(); });
 
+  // Mobile GUI
+  if (MOBILE_DEVICE) {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    NEXT_NOTE_SWEEP = 
+      EVENT_MANAGER.AddSweepListener(width*0.60, height*0.7,  1,0, "Next Note", 
+                                     NextNoteCallback);
+    PREV_NOTE_SWEEP =
+      EVENT_MANAGER.AddSweepListener(width*0.40, height*0.7, -1,0, "Previous Note", 
+                                     PreviousNoteCallback);
+    NOTES_SHOW_SWEEP = 
+      EVENT_MANAGER.AddSweepListener(width*0.05, height*0.4,  1,0, "Note Window", 
+                                     ToggleNotesWindow);
+    NOTES_HIDE_SWEEP = 
+      EVENT_MANAGER.AddSweepListener(width*0.25, height*0.4,  -1,0, "Note Window", 
+                                     ToggleNotesWindow);
+    NOTES_HIDE_SWEEP.Active = false;
+  }
+        
   // Setup the iterator using the view as root.
   // Bookmarks (sub notes) are loaded next.
   NOTE_ITERATOR = ROOT_NOTE.NewIterator();

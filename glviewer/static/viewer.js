@@ -567,7 +567,6 @@ Viewer.prototype.HandleTouchStart = function(event) {
     this.NewTouch = false;
     return;            
   }
-  this.LastTime = new Date().getTime();
   this.MomentumX = 0.0;
   this.MomentumY = 0.0;
   this.MomentumRoll = 0.0;
@@ -578,6 +577,152 @@ Viewer.prototype.HandleTouchStart = function(event) {
   }
 }
 
+// Only one touch
+Viewer.prototype.HandleTouchPan = function(event) {
+  if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+    // Sanity check.
+    return;
+  }
+  
+  // Convert to world by inverting the camera matrix.
+  // I could simplify and just process the vector.  
+  w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+  w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    
+  // This is the new focal point.
+  var dx = w1[0] - w0[0];
+  var dy = w1[1] - w0[1];
+  var dt = event.Time - event.LastTime;
+
+  // Remember the last motion to implement momentum.
+  var momentumX = dx/dt;
+  var momentumY = dy/dt;
+
+  this.MomentumX = (this.MomentumX + momentumX) * 0.5;
+  this.MomentumY = (this.MomentumY + momentumY) * 0.5;
+  this.MomentumRoll = 0.0;
+  this.MomentumScale = 0.0;
+
+  var cam = this.GetCamera();
+  cam.FocalPoint[0] -= dx;  
+  cam.FocalPoint[1] -= dy;
+  cam.ComputeMatrix();  
+  eventuallyRender();  
+}
+
+Viewer.prototype.HandleTouchRotate = function(event) {
+  var numTouches = event.Touches.length;
+  if (event.LastTouches.length != numTouches || numTouches  != 3) {
+    // Sanity check.
+    return;
+  }
+
+  w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+  w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+  var dt = event.Time - event.LastTime;
+    
+  // Compute rotation.
+  // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+  // We could also take the maximum.
+  var x;
+  var y;
+  var a = 0;
+  for (var i = 0; i < numTouches; ++i) {
+    x = event.LastTouches[i][0] - event.LastMouseX;
+    y = event.LastTouches[i][1] - event.LastMouseY;
+    var a1  = Math.atan2(y,x);
+    x = event.Touches[i][0] - event.MouseX;
+    y = event.Touches[i][1] - event.MouseY;
+    a1 = a1 - Math.atan2(y,x);
+    if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
+    if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
+    a += a1;
+  }
+  a = a / numTouches;
+   
+  // rotation and scale are around the mid point .....
+  // we need to compute focal point height and roll (not just a matrix).
+  // Focal point is the only difficult item.
+  var cam = this.GetCamera();
+  w0[0] = cam.FocalPoint[0] - w1[0];
+  w0[1] = cam.FocalPoint[1] - w1[1];
+  var c = Math.cos(a);
+  var s = Math.sin(a);
+  // This is the new focal point.
+  x = w1[0] + (w0[0]*c - w0[1]*s);
+  y = w1[1] + (w0[0]*s + w0[1]*c);
+
+  // Remember the last motion to implement momentum.
+  var momentumRoll = a/dt;
+
+  this.MomentumX = 0.0;
+  this.MomentumY = 0.0;
+  this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
+  this.MomentumScale = 0.0;
+
+  cam.Roll = cam.Roll - a;
+  cam.ComputeMatrix();  
+  if (this.OverView) {
+    var cam2 = this.OverView.Camera;
+    cam2.Roll = cam.Roll;
+    cam2.ComputeMatrix();  
+  }
+  eventuallyRender();  
+}
+
+Viewer.prototype.HandleTouchPinch = function(event) {
+  var numTouches = event.Touches.length;
+  if (event.LastTouches.length != numTouches || numTouches  != 2) {
+    // Sanity check.
+    return;
+  }
+
+  w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+  w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+  var dt = event.Time - event.LastTime;
+  
+  // Compute scale.
+  // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+  // We could also take max.
+  // This should rarely be an issue and could only happen with 3 or more touches.
+  var scale = 1;
+  var s0 = 0;
+  var s1 = 0;
+  for (var i = 0; i < numTouches; ++i) {
+    x = event.LastTouches[i][0] - event.LastMouseX;
+    y = event.LastTouches[i][1] - event.LastMouseY;
+    s0 += Math.sqrt(x*x + y*y);
+    x = event.Touches[i][0] - event.MouseX;
+    y = event.Touches[i][1] - event.MouseY;
+    s1 += Math.sqrt(x*x + y*y);
+  }
+  scale = s1/ s0;
+    
+  // scale is around the mid point .....
+  // we need to compute focal point height and roll (not just a matrix).
+  // Focal point is the only difficult item.
+  var cam = this.GetCamera();
+  w0[0] = cam.FocalPoint[0] - w1[0];
+  w0[1] = cam.FocalPoint[1] - w1[1];
+  // This is the new focal point.
+  var x = w1[0] + w0[0] / scale;
+  var y = w1[1] + w0[1] / scale;
+
+  // Remember the last motion to implement momentum.
+  var momentumScale = (scale-1)/dt;
+
+  this.MomentumX = 0.0;
+  this.MomentumY = 0.0;
+  this.MomentumRoll = 0.0;
+  this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
+
+  cam.FocalPoint[0] = x;  
+  cam.FocalPoint[1] = y;
+  cam.Height = cam.Height / scale;
+  cam.ComputeMatrix();  
+  eventuallyRender();  
+}
+// Legacy  to be changed to handle sweep.
 Viewer.prototype.HandleTouchMove = function(event) {
   if ( ! this.NewTouch) {
     // Keep a single sweep from firing multiple events.
@@ -659,12 +804,12 @@ Viewer.prototype.HandleTouchMove = function(event) {
     // Sweep to advance note
     // Todo: Show button for next/previous slide
     if (xSpeed > 2*Math.abs(ySpeed) && xSpeed > 0.01) {
-      NextNoteCallback();
+      PreviousNoteCallback();
       this.NewTouch = false;
       return;
     }
     if (xSpeed < -2*Math.abs(ySpeed) && xSpeed < -0.005) {
-      PreviousNoteCallback();
+      NextNoteCallback();
       this.NewTouch = false;
       return;
     }
@@ -710,6 +855,19 @@ Viewer.prototype.HandleTouchMove = function(event) {
     scale = s1/ s0;
     a = a / numTouches;
   }
+
+  // I do not like scaling when I am trying to sweep.
+  //  If translation is larger than scaling, set scaling to 0.
+  if (numTouches == 2) {
+    // Only scale if touches are moving in opposite directions
+    // (the dot product of the two touches is negative).
+    var dot = (event.Touches[0][0]-event.LastTouches[0][0])*(event.Touches[1][0]-event.LastTouches[1][0]) +
+              (event.Touches[0][1]-event.LastTouches[0][1])*(event.Touches[1][1]-event.LastTouches[1][1]);
+    if (dot > 0.0) {
+      scale = 1.0;
+    }
+  }
+  
   // Roll was too sensitive.  Lets restrict roll to three finger interaction.
   if (numTouches == 2) { // Zoom only.
     w1[0] = w0[0];
@@ -758,32 +916,21 @@ Viewer.prototype.HandleTouchMove = function(event) {
 }
 
 Viewer.prototype.HandleTouchEnd = function(event) {
-  // Forward the events to the widget if one is active.
-  //if (this.ActiveWidget != null) {
-    //this.ActiveWidget.HandleTouchEnd(event);
-    //return;
-  //}
-
-  if (this.NewTouch) {
-    this.NewTouch = false;
-    this.HandleMomentum();  
-  }
-  return;
+  this.HandleMomentum(event);  
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
-
   // Integrate the momentum.
-  var t = new Date().getTime();
-  var dt = t - this.LastTime;
-  this.LastTime = t;
+  event.LastTime = event.Time;
+  event.Time = new Date().getTime();
+  var dt = event.Time - event.LastTime;
   var k = 200.0;
   var decay = Math.exp(-dt/k);
   var integ = (-k * decay + k);
   
   var cam = this.MainView.Camera;
-  cam.FocalPoint[0] += this.MomentumX * integ;  
-  cam.FocalPoint[1] += this.MomentumY * integ;
+  cam.FocalPoint[0] -= this.MomentumX * integ;  
+  cam.FocalPoint[1] -= this.MomentumY * integ;
   cam.Height = cam.Height / ((this.MomentumScale * integ) + 1);
   cam.Roll = cam.Roll - (this.MomentumRoll* integ);
   cam.ComputeMatrix();
@@ -810,7 +957,7 @@ Viewer.prototype.HandleMomentum = function(event) {
     }
   } else {
     var self = this;
-    this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
+    this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
   }
 }
 
