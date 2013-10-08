@@ -916,13 +916,17 @@ function ToggleNotesWindow() {
   RecordState();
 
   if (NOTES_VISIBILITY) {
-    NOTES_HIDE_SWEEP.Active = true;
-    NOTES_SHOW_SWEEP.Active = false;
+    if (MOBILE_DEVICE) {
+      NOTES_HIDE_SWEEP.Active = true;
+      NOTES_SHOW_SWEEP.Active = false;
+    }
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.2;
   } else {
-    NOTES_HIDE_SWEEP.Active = false;
-    NOTES_SHOW_SWEEP.Active = true;
+    if (MOBILE_DEVICE) {
+      NOTES_HIDE_SWEEP.Active = false;
+      NOTES_SHOW_SWEEP.Active = true;
+    }
     NOTE_WINDOW.hide();
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.0;
