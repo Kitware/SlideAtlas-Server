@@ -9,8 +9,47 @@ function Section () {
   this.Caches = [];
   // For debugging stitching.
   this.Markers = [];
-  
-  this.Bounds = [0,10000,0,10000];
+}
+
+// For limiting interaction.
+Section.prototype.GetBounds = function () { 
+  if ( ! this.Bounds) {
+    for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
+      var cache = this.Caches[cIdx];
+      var bds = cache.GetBounds();
+      if (cIdx == 0) {
+        this.Bounds = [bds[0], bds[1], bds[2], bds[3]];
+      } else {
+        if (bds[0] < this.Bounds[0]) {
+          this.Bounds[0] = bds[0];
+        }
+        if (bds[1] > this.Bounds[1]) {
+          this.Bounds[1] = bds[1];
+        }
+        if (bds[2] < this.Bounds[2]) {
+          this.Bounds[2] = bds[2];
+        }
+        if (bds[3] < this.Bounds[3]) {
+          this.Bounds[3] = bds[3];
+        }
+      }
+    }    
+  }
+  return this.Bounds;
+}
+
+// Size of a pixel at the highest resolution.
+Section.prototype.GetLeafSpacing = function () { 
+  if ( ! this.LeafSpacing) {
+    for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
+      var cache = this.Caches[cIdx];
+      var spacing = cache.GetLeafSpacing();
+      if ( ! this.LeafSpacing || spacing < this.LeafSpacing) {
+        this.LeafSpacing = spacing;
+      }
+    }
+  }
+  return this.LeafSpacing;
 }
 
 

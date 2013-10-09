@@ -17,6 +17,36 @@ var tileVertexPositionBuffer;
 var tileVertexTextureCoordBuffer;
 var tileCellBuffer;
 
+var MOBILE_DEVICE = false;
+
+
+
+function detectMobile() { 
+  MOBILE_DEVICE = false;
+  if ( navigator.userAgent.match(/Android/i)) {
+   MOBILE_DEVICE = "Andriod";
+  }
+  if ( navigator.userAgent.match(/webOS/i)) {
+   MOBILE_DEVICE = "webOS";
+  } 
+  if ( navigator.userAgent.match(/iPhone/i)) {
+   MOBILE_DEVICE = "iPhone";
+  }
+  if ( navigator.userAgent.match(/iPad/i)) {
+   MOBILE_DEVICE = "iPad";
+  }
+  if ( navigator.userAgent.match(/iPod/i)) {
+   MOBILE_DEVICE = "iPod";
+  }
+  if ( navigator.userAgent.match(/BlackBerry/i)) {
+   MOBILE_DEVICE = "BlackBerry";
+  }
+  if ( navigator.userAgent.match(/Windows Phone/i)) {
+   MOBILE_DEVICE = "Windows Phone";
+  }
+}
+
+
 
 // This global is used in every class that renders something.
 // I can not test multiple canvases until I modularize the canvas
@@ -66,7 +96,8 @@ function GetSessionDatabase() {
 
 function doesBrowserSupportWebGL(canvas) {
     try {
-        GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        GL = canvas.getContext("webgl");
     } catch (e) {
     }
     if (!GL) {
@@ -95,7 +126,7 @@ function initGL() {
   initShaderPrograms();
   initOutlineBuffers();
   initImageTileBuffers();
-  GL.clearColor(0.9, 0.9, 0.9, 1.0);
+  GL.clearColor(1.0, 1.0, 1.0, 1.0);
   GL.enable(GL.DEPTH_TEST);
 }
 
@@ -337,6 +368,9 @@ function initView(viewport) {
 
 
 function initGC() {
+
+  detectMobile();
+
   // Add a new canvas.
   CANVAS = $('<div>').appendTo('body').css({
                 'position': 'absolute',

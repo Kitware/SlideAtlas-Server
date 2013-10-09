@@ -35,6 +35,14 @@ Cache.prototype.destructor=function()
 {
 }
 
+Cache.prototype.GetLeafSpacing = function() {
+  return this.RootSpacing[0] / (1 << (this.NumberOfLevels-1));
+}
+
+Cache.prototype.GetBounds = function() {
+  return this.Bounds;
+}
+
 // This method converts a point in image coordinates to a point in world coordinates.
 Cache.prototype.ImageToWorld = function(imagePt) {
   if (this.Warp) {

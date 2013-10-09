@@ -378,8 +378,6 @@ def getchildnotes():
     dbid = request.args.get('db', "")
     user = session["user"]["email"]
     
-    #pdb.set_trace()
-
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
@@ -978,6 +976,19 @@ def saveviewnotes():
 
     return str(viewId);
 
+# add metadata from image object to view.
+def addviewimage(viewObj, db):
+    for record in viewObj["ViewerRecords"]:
+        imgid = record["Image"]
+        imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
+        if 'dimension' in imgObj:
+            record["Dimensions"] = imgObj["dimension"]
+        if 'dimensions' in imgObj:
+            record["Dimensions"] = imgObj["dimensions"]
+    for child in viewObj["Children"]:
+        addviewimage(child, db)
+
+
  
 # get a view as a tree of notes.
 @mod.route('/getview')
@@ -994,10 +1005,9 @@ def getview():
     # Right now, only notes use "Type"
     if "Type" in viewObj :
       viewObj["_id"] = str(viewObj["_id"]);
+      addviewimage(viewObj, db)
       return jsonify(viewObj)
       
     # Formating old views into the note structure is too much of a pain.
     return "";
 
-    
-    

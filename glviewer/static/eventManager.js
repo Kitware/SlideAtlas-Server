@@ -20,17 +20,35 @@
 
 
 function EventManager (canvas) {
-    this.Canvas = canvas[0];
-    this.Viewers = [];
-    this.CurrentViewer = null;
-    this.ShiftKeyPressed = false;
-    this.ControlKeyPressed = false;
-    this.Key = '';
-    this.MouseX = 0;
-    this.MouseY = 0;
-    this.LastMouseX = 0;
-    this.LastMouseY = 0;
-    this.MouseDown = false;
+  this.Canvas = canvas[0];
+  this.Viewers = [];
+  this.CurrentViewer = null;
+  this.ShiftKeyPressed = false;
+  this.ControlKeyPressed = false;
+  this.Key = '';
+  this.MouseX = 0;
+  this.MouseY = 0;
+  this.LastMouseX = 0;
+  this.LastMouseY = 0;
+  this.MouseDown = false;
+
+  this.SweepIcon = $('<div>').appendTo('body')
+                             .hide()
+                             .css({
+                               'position': 'absolute',
+                               'z-index': '1',
+                               'border-style': 'solid',
+                               'border-color': '#a0a0a0'});
+  this.SweepListeners = [];
+  this.SelectedSweepListener = undefined;
+  
+  if (MOBILE_DEVICE == 'Andriod') {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    var self = this;
+    this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen", 
+                                                 function(sweep) {self.GoFullScreen();});
+  }
 }
 
 EventManager.prototype.AddViewer = function(viewer) {
@@ -72,6 +90,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     this.MouseY = CANVAS.innerHeight() - (event.clientY-yOffset);
   }
 }
+
 
 EventManager.prototype.HandleMouseDown = function(event) {
   this.LastMouseX = this.MouseX;
@@ -132,7 +151,7 @@ EventManager.prototype.HandleMouseUp = function(event) {
   }
 }
 
-// Forward even to view.
+// Forward event to view.
 EventManager.prototype.HandleMouseMove = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
@@ -193,3 +212,320 @@ EventManager.prototype.HandleKeyUp = function(event) {
     this.ControlKeyPressed = false;
   }
 }
+
+
+//==============================================================================
+// Touch events.
+
+EventManager.prototype.IsFullScreen = function() {
+  return (document.fullScreenElement && document.fullScreenElement !==  null) ||   
+          (document.mozFullScreen || document.webkitIsFullScreen);
+}
+
+
+EventManager.prototype.GoFullScreen = function () {
+  // Deactivate the listener
+  this.FullScreenSweep.Active = false;
+
+  if (! this.IsFullScreen()) {
+    var docElm = document.documentElement;
+    if (docElm.requestFullscreen) {
+        docElm.requestFullscreen();
+    }
+    else if (docElm.mozRequestFullScreen) {
+        docElm.mozRequestFullScreen();
+    }
+    else if (docElm.webkitRequestFullScreen) {
+        docElm.webkitRequestFullScreen();
+    }
+  }
+  handleResize();
+  eventuallyRender();
+}
+
+
+EventManager.prototype.NextNote = function () {
+  NextNoteCallback();
+}
+EventManager.prototype.PreviousNote = function () {
+  PreviousNoteCallback();
+}
+
+
+
+function SweepListener () {
+  this.Active = true;
+  this.Location = [0,0];
+  this.Direction = [1,0];
+  this.Label = "Sweep Here";
+
+  this.Arrow = $('<img>').appendTo('body')
+                        .hide()
+                        .css({
+                          'position': 'absolute',
+                          'width': '20px',
+                          'z-index': '1',
+                          'opacity': '0.8'})
+                        .attr('src',"webgl-viewer/static/sweepArrowUp.png");
+
+  this.Div = 
+    $('<div>').appendTo('body')
+              .hide()
+              .text("sweep")
+              .attr('id','TEST')
+              .css({'opacity': '0.8',
+                    'z-index': '1',
+                    'position': 'absolute',
+                    'color': '#90b0ff',
+                    'background-color' : '#ffffff'
+                    });
+}
+
+SweepListener.prototype.Hide = function() {
+  this.Arrow.hide();
+  this.Div.hide();
+}
+    
+SweepListener.prototype.Show = function() {
+  if ( ! this.Active) { 
+    this.Hide(); 
+    return; 
+  }
+  this.Arrow.show();
+  this.Div.show();
+}
+
+SweepListener.prototype.Update = function() {
+  this.Div.text(this.Label);
+  var arrowWidth = this.Arrow.innerWidth();
+  var arrowHeight = this.Arrow.innerWidth();
+  var divWidth = this.Div.innerWidth();
+  var divHeight = this.Div.innerHeight();
+  
+  var x = this.Location[0];
+  var y = this.Location[1];
+  if (this.Direction[0] == 1) {
+    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowRight.png")
+              .css({'left': x+'px',
+                    'bottom' : (y-arrowWidth/2)+'px'});
+    // I cannot predict the location with rotated text.
+    //this.Div.css({'transform' : 'rotate(90deg)',
+    //              '-ms-transform' : 'rotate(90deg)',
+    //              '-webkit-transform' : 'rotate(90deg)'});
+    this.Div.css({'left': (x+(arrowWidth-divWidth)/2)+'px',
+                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
+  } else if (this.Direction[0] == -1) {
+    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowLeft.png")
+              .css({'left': (x-arrowWidth)+'px',
+                    'bottom' : (y-arrowWidth/2)+'px'});
+    this.Div.css({'left': (x+(-arrowWidth-divWidth)/2)+'px',
+                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
+  } else if (this.Direction[1] == 1) {
+    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowUp.png")
+              .css({'left': (x-arrowWidth/2)+'px',
+                    'bottom' : y+'px'});
+    this.Div.css({'left': (x-divWidth/2)+'px',
+                  'bottom' : (y-divHeight)+'px'});
+  } else if (this.Direction[1] == -1) {
+    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowDown.png");
+    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowUp.png")
+              .css({'left': (x-arrowWidth/2)+'px',
+                    'bottom' : (y-arrowHeight)+'px'});
+    this.Div.css({'left': (x-divWidth)+'px',
+                  'bottom' : y+'px'});
+  }
+}
+
+
+// Configurable sweep events.
+// Only horizontal and vertical sweep directions for now.
+EventManager.prototype.AddSweepListener = function(x, y, dx, dy, label, callback) {
+  var sweep = new SweepListener();
+  sweep.Location = [x,y];
+  sweep.Direction = [dx,dy];
+  sweep.Label = label;
+  sweep.Callback = callback;
+  sweep.Update();
+  this.SweepListeners.push(sweep);
+  return sweep;
+}
+
+EventManager.prototype.DetectSweepEvent = function(dx,dy) {
+  for (var i = 0; i < this.SweepListeners.length; ++i) {
+    var sweep = this.SweepListeners[i];
+    if (sweep.Active) {
+      if (dx*sweep.Direction[0] + dy*sweep.Direction[1] > 0.5) {
+        // The sweep is the correct direction.
+        if ((this.MouseX-sweep.Location[0])*sweep.Direction[0] +
+            (this.MouseY-sweep.Location[1])*sweep.Direction[1] >= 0.0) {
+          if ((this.LastMouseX-sweep.Location[0])*sweep.Direction[0] +
+              (this.LastMouseY-sweep.Location[1])*sweep.Direction[1] < 0.0) {
+            this.SelectedSweepListener = sweep;
+            console.log("sweep " + sweep.Label);
+          }
+        }
+      }
+    }
+  }  
+}
+
+EventManager.prototype.ShowSweepListeners = function() {
+  // User may have taken it out of fullscreen.
+  if ( ! this.IsFullScreen()) {
+    this.FullScreenSweep.Active = true;
+  }
+  
+  this.SweepIcon.show();
+  for (var i = 0; i < this.SweepListeners.length; ++i) {
+    var sweep = this.SweepListeners[i];
+    sweep.Show();
+  }  
+}
+
+EventManager.prototype.HideSweepListeners = function() {
+  this.SelectedSweepListener = undefined;
+  this.SweepIcon.hide();
+  for (var i = 0; i < this.SweepListeners.length; ++i) {
+    var sweep = this.SweepListeners[i];
+    sweep.Hide();
+  }
+}
+
+
+
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+EventManager.prototype.HandleTouch = function(e) {
+  if (!e) {
+    var e = event;
+  }
+  e.preventDefault();
+
+  this.SystemEvent = e;
+  this.LastTouches = this.Touches;
+  var can = this.Canvas;
+  this.Touches = [];
+  for (var i = 0; i < e.targetTouches.length; ++i) {
+    var x = e.targetTouches[i].pageX - can.offsetLeft;
+    var y = CANVAS.innerHeight() - (e.targetTouches[i].pageY - can.offsetTop);
+    this.Touches.push([x,y]);
+  }
+
+  this.LastMouseX = this.MouseX;
+  this.LastMouseY = this.MouseY;
+
+  // Compute the touch average.
+  var numTouches = this.Touches.length;
+  this.MouseX = this.MouseY = 0.0;
+  for (var i = 0; i < numTouches; ++i) {
+    this.MouseX += this.Touches[i][0];
+    this.MouseY += this.Touches[i][1];
+  }
+  this.MouseX = this.MouseX / numTouches;
+  this.MouseY = this.MouseY / numTouches;
+
+  this.LastTime = this.Time;  
+  this.Time = new Date().getTime();
+}
+
+
+EventManager.prototype.HandleTouchStart = function(e) {
+  this.SelectedSweepListener = undefined;
+  this.HandleTouch(e);
+  this.ChooseViewer();
+  if (this.CurrentViewer) {
+    this.MouseDown = true;
+    this.CurrentViewer.HandleTouchStart(this);
+  }  
+}
+
+
+EventManager.prototype.HandleTouchMove = function(e) {
+  this.HandleTouch(e);
+  this.ChooseViewer();
+
+  var numTouches = this.Touches.length;
+  // Distinguish between 1 finger pan, 2 finger pinch, 3 finger rotate and two finger swipe.
+  if (numTouches == 1) {
+    this.HideSweepListeners();
+    if (this.CurrentViewer) {
+      this.CurrentViewer.HandleTouchPan(this);
+    }
+    return;
+  }
+
+  if (numTouches >= 3) {
+    this.HideSweepListeners();
+    if (this.CurrentViewer) {
+      this.CurrentViewer.HandleTouchRotate(this);
+      return
+    }          
+  }
+  
+  if (numTouches == 2) {
+    // detect pinch
+    var dot = (this.Touches[0][0]-this.LastTouches[0][0])*(this.Touches[1][0]-this.LastTouches[1][0]) +
+              (this.Touches[0][1]-this.LastTouches[0][1])*(this.Touches[1][1]-this.LastTouches[1][1]);
+    if (dot <= 0.0) {
+      // Pinch
+      if (this.CurrentViewer) {
+        this.CurrentViewer.HandleTouchPinch(this);
+      }      
+      return
+    }
+    // Sweep
+    var dx = this.MouseX - this.LastMouseX;
+    var dy = this.MouseY - this.LastMouseY;
+    if (Math.abs(dx) > 2*Math.abs(dy) ) {
+      // place the sweep icon vertically.
+      this.SweepIcon.show()
+                    .css({
+                      'bottom' : '0%',
+                      'left' : this.MouseX+'px',
+                      'width' : '0px',
+                      'height' : '100%'});
+      this.ShowSweepListeners();
+      if (dx > 1) {this.DetectSweepEvent(1,0);}
+      if (dx < 1) {this.DetectSweepEvent(-1,0);}
+    } else if (Math.abs(dy) > 2*Math.abs(dx) ) {
+      // place the sweep icon horizontally.
+      this.SweepIcon.show()
+                    .css({
+                      'left' : '0%',
+                      'bottom' : this.MouseY+'px',
+                      'width' : '99%',
+                      'height' : '0px'});    
+      this.ShowSweepListeners();
+      if (dy > 1) {this.DetectSweepEvent(0,1);}
+      if (dy < 1) {this.DetectSweepEvent(0,-1);}
+    }
+  }
+}  
+
+EventManager.prototype.HandleTouchEnd = function(e) {
+  if (this.SelectedSweepListener) {
+    this.SelectedSweepListener.Callback(this.SelectedSweepListener);
+    // The sweep could be removed from the list.
+    this.SelectedSweepListener.Hide();
+  }
+  this.HideSweepListeners();
+
+
+  this.MouseDown = false;
+  if (this.CurrentViewer) {
+    e.preventDefault();
+    this.CurrentViewer.HandleTouchEnd(this);
+  }
+}
+
+EventManager.prototype.HandleTouchCancel = function(event) {
+  console.log("touchCancel");
+  this.MouseDown = false;
+}
+
+
+
+
+
+
+

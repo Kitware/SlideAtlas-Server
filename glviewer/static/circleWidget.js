@@ -16,6 +16,7 @@ function CircleWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
+  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
@@ -39,7 +40,6 @@ function CircleWidget (viewer, newFlag) {
 
   this.State = CIRCLE_WIDGET_WAITING;
 }
-
 
 CircleWidget.prototype.Draw = function(view) {
     this.Shape.Draw(view);
@@ -109,12 +109,7 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
 
 // returns false when it is finished doing its work.
 CircleWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == CIRCLE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    this.State = CIRCLE_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-  } else if ( this.State == CIRCLE_WIDGET_DRAG ||  this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+  if ( this.State == CIRCLE_WIDGET_DRAG ||  this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     this.SetActive(false);
     RecordState();
   }
@@ -190,7 +185,8 @@ CircleWidget.prototype.GetActive = function() {
   return true;
 }
 
-CircleWidget.prototype.Deactivate = function() {  
+CircleWidget.prototype.Deactivate = function() { 
+  this.Popup.StartHideTimer(); 
   this.State = CIRCLE_WIDGET_WAITING;
   this.Shape.Active = false;
   this.Viewer.DeactivateWidget(this);
@@ -209,6 +205,12 @@ CircleWidget.prototype.SetActive = function(flag) {
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
+    // Compute the location for the pop up and show it.
+    var roll = this.Viewer.GetCamera().Roll;
+    var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
+    var y = this.Shape.Origin[1] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
+    var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+    this.Popup.Show(pt[0],pt[1]);
   } else {
     this.Deactivate();
   }
