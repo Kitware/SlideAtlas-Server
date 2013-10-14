@@ -102,20 +102,21 @@ def sessions():
                     if imgid == 0 :
                         imgid = str(viewobj["img"])
                     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
-                    if label == "" :
-                        label = imgobj["label"]
-                    if imgobj.has_key("thumb"):
-                        del imgobj['thumb']
-                    animage = {}
-                    animage['db'] = str(dbobj["_id"])
-                    animage["img"] = imgid;
-                    animage["label"] = label
-                    animage["view"] = str(aview["ref"])
-                    if "type" in viewobj:
-                        if viewobj["type"] == "comparison":
-                            animage["comparison"] = 1
+                    if 'hide' not in imgobj :
+                      if label == "" :
+                          label = imgobj["label"]
+                      if imgobj.has_key("thumb"):
+                          del imgobj['thumb']
+                      animage = {}
+                      animage['db'] = str(dbobj["_id"])
+                      animage["img"] = imgid;
+                      animage["label"] = label
+                      animage["view"] = str(aview["ref"])
+                      if "type" in viewobj:
+                          if viewobj["type"] == "comparison":
+                              animage["comparison"] = 1
 
-                    images.append(animage)
+                      images.append(animage)
 
 #        for animageid in images.keys():
 #            print images[animageid]['label']
@@ -141,7 +142,6 @@ def sessions():
                  'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE)
                  }
 
-        #pdb.set_trace()
         if ajax:
             return jsonify(data)
         else:

@@ -31,7 +31,9 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
 
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
@@ -173,6 +175,7 @@ shape has visibility and
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
+  var NAVIGATION_WIDGET;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
@@ -379,6 +382,8 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
+    NAVIGATION_WIDGET = new NavigationWidget();
+    VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
 
     $(window).resize(function() {
         handleResize();

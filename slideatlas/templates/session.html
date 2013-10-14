@@ -43,7 +43,8 @@
                     <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                 </td>
                 {% if animage.label %}
-                  <td> <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></td>
+                  <td> <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}">                  
+                    <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
                 {% else %}                
                 {% endif %}
             </tr>
@@ -52,6 +53,23 @@
     {% endif %}
 </div>
 </div>
+
+<script>
+  $(document).ready(function(){
+    var imagelist = {{ data.images|tojson|safe }};
+
+    // Save the session in localStorage (needed for previous / next slide.
+    var views = [];
+    for (var i=0; i < imagelist.length; i++) 
+      {
+      views.push(imagelist[i].view);
+      }
+    localStorage.session = JSON.stringify(views);
+  });
+</script>
+
+
+
 
 {% endblock %}
 
@@ -62,7 +80,7 @@
 
     <script>
         var imagelist = {{ data.images|tojson|safe }};
-
+        
         $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');

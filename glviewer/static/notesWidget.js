@@ -34,11 +34,7 @@
 
 
 // How about a global lock / unlock button (like quick). Edit -> Clone, Save, Cancel.
-
-
-
-
-
+// hi (Gwenda)
 
 
 
@@ -76,17 +72,8 @@ var NOTE_MODIFIED = false;
 
 
 
-// Navigation buttons.
-var NOTE_PREV;
-var NOTE_NEXT;
-
 var POPUP_MENU_BUTTON;
 var POPUP_MENU;
-
-var NEXT_NOTE_SWEEP;
-var PREV_NOTE_SWEEP;
-var NOTES_HIDE_SWEEP;
-var NOTES_SHOW_SWEEP;
 
 //------------------------------------------------------------------------------
 // Iterator to perform depth first search through note tree.
@@ -98,24 +85,6 @@ function NoteIterator(note) {
   this.Note = note;
   this.IteratingAnswers = false;
   this.ChildIterator = null;
-}
-
-NoteIterator.prototype.UpdateButtons = function() {
-  // Disable and enable prev/next buttons so we cannot go past the end.
-  if (this.IsStart()) {
-    if (NOTE_PREV) {NOTE_PREV.css({'opacity': '0.1'}); }
-    if (MOBILE_DEVICE) {PREV_NOTE_SWEEP.Active = false;}    
-  } else {
-    if (NOTE_PREV) {NOTE_PREV.css({'opacity': '0.5'}); }
-    if (MOBILE_DEVICE) {PREV_NOTE_SWEEP.Active = true;}
-  }
-  if (this.IsEnd()) {
-    if (NOTE_NEXT) {NOTE_NEXT.css({'opacity': '0.1'}); }
-    if (MOBILE_DEVICE) {NEXT_NOTE_SWEEP.Active = false;}
-  } else {
-    if (NOTE_NEXT) {NOTE_NEXT.css({'opacity': '0.5'}); }
-    if (MOBILE_DEVICE) {NEXT_NOTE_SWEEP.Active = true;}
-  }
 }
 
 // Because of sorting, the child array gets reset on us.
@@ -538,7 +507,7 @@ Note.prototype.Select = function() {
   NOTE_TITLE_ENTRY.val(this.Title);
   NOTE_TEXT_ENTRY.val(this.Text);
   
-  NOTE_ITERATOR.UpdateButtons();
+  if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
   this.DisplayView();
 }
@@ -763,7 +732,7 @@ function SaveUserNote() {
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
   // which will also update the gui and viewers.
-  NextNoteCallback();
+  NAVIGATION_WIDGET.NextNote();
 }
 
 
@@ -823,14 +792,14 @@ Note.prototype.Collapse = function() {
     this.Select();
   }
   this.UpdateChildrenGUI();
-  NOTE_ITERATOR.UpdateButtons();
+  NAVIGATION_WIDGET.Update();
 }
 
 
 Note.prototype.Expand = function() {
   this.ChildrenVisibility = true;
   this.UpdateChildrenGUI();
-  NOTE_ITERATOR.UpdateButtons();
+  NAVIGATION_WIDGET.Update();
 }
 
 
@@ -862,22 +831,6 @@ function NoteModified() {
   NOTE_MODIFIED = true;
 }
 
-
-// Previous button
-function PreviousNoteCallback() {
-  if (NOTE_ITERATOR.IsStart()) { return; }
-
-  NOTE_ITERATOR.Previous();
-  NOTE_ITERATOR.GetNote().Select();
-}
-
-// Next button
-function NextNoteCallback() {
-  if (NOTE_ITERATOR.IsEnd()) { return; }
-
-  NOTE_ITERATOR.Next();
-  NOTE_ITERATOR.GetNote().Select();
-}
 
 
 // When bookmarks are eliminated, this method will be legacy.
@@ -916,17 +869,9 @@ function ToggleNotesWindow() {
   RecordState();
 
   if (NOTES_VISIBILITY) {
-    if (MOBILE_DEVICE) {
-      NOTES_HIDE_SWEEP.Active = true;
-      NOTES_SHOW_SWEEP.Active = false;
-    }
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.2;
   } else {
-    if (MOBILE_DEVICE) {
-      NOTES_HIDE_SWEEP.Active = false;
-      NOTES_SHOW_SWEEP.Active = true;
-    }
     NOTE_WINDOW.hide();
     NOTES_ANIMATION_CURRENT = NOTES_FRACTION;
     NOTES_ANIMATION_TARGET = 0.0;
@@ -1133,7 +1078,7 @@ function DeleteCallback () {
   
   // Move the current note off this note.
   // There is always a previous.
-  PreviousNoteCallback();
+  NAVIGATION_WIDGET.PreviousNote();
 
   // Get rid of the note.
   var index = parent.Children.indexOf(note);
@@ -1178,8 +1123,13 @@ function AnimateNotesWindow() {
     NOTES_FRACTION = NOTES_ANIMATION_TARGET;
     handleResize();
     if (NOTES_VISIBILITY) {
+      this.CloseNoteWindowButton.show();
+      this.OpenNoteWindowButton.hide();
       NOTE_WINDOW.fadeIn();
-    }
+    } else {
+      this.CloseNoteWindowButton.hide();
+      this.OpenNoteWindowButton.show();
+    }    
     draw();
     return;
   }
@@ -1208,46 +1158,34 @@ function InitNotesWidget() {
   }
   
   if ( ! MOBILE_DEVICE) {
-  // Nav buttons, to cycle around the notes.  
-  NOTE_PREV = $('<img>').appendTo('body')
-    .css({
-      'opacity': '0.5',
-      'position': 'absolute',
-      'height': '35px',
-      'width': '35x',
-      'bottom' : '5px',
-      'left' : '5px',
-      'z-index': '2'})
-    .attr('src',"webgl-viewer/static/leftArrow2.png")
-    .click(function(){PreviousNoteCallback();});
+    this.OpenNoteWindowButton = $('<img>')
+      .appendTo('body')
+      .css({'position': 'absolute',
+            'height': '20px',
+            'width': '20px',
+            'top' : '0px',
+            'right' : '0%',
+            'opacity': '0.6',
+            'z-index': '2'})
+      .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+      .click(ToggleNotesWindow);
+    VIEWER1.AddGuiObject(this.OpenNoteWindowButton, "Top", 0, "Left", 0);
 
-    $('<button>').appendTo('body')
-      .css({
-        'opacity': '0.5',
-        'position': 'absolute',
-        'height': '35px',
-        'width': '80px',
-        'font-size': '18px',
-        'bottom' : '5px',
-        'left' : '45px',
-        'color' : '#379BFF',
-        'z-index': '2'})
-      .text("Notes")
-      .click(function(){ToggleNotesWindow();});
-      
-    NOTE_NEXT = $('<img>').appendTo('body')
-      .css({
-        'opacity': '0.5',
-        'position': 'absolute',
-        'height': '35px',
-        'width': '35x',
-        'bottom' : '5px',
-        'left' : '130px',
-        'z-index': '2'})
-    .attr('src',"webgl-viewer/static/rightArrow2.png")
-    .click(function(){NextNoteCallback();});
+    this.CloseNoteWindowButton = $('<img>')
+      .appendTo('body')
+      .css({'position': 'absolute',
+            'height': '20px',
+            'width': '20x',
+            'top' : '0px',
+            'right' : '0%',
+            'opacity': '0.6',
+            'z-index': '2'})
+      .hide()
+      .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+      .click(ToggleNotesWindow);
+    VIEWER1.AddGuiObject(this.CloseNoteWindowButton, "Top", 0, "Left", -20);
   }
-    
+  
   NOTE_WINDOW = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',
@@ -1385,25 +1323,6 @@ function InitNotesWidget() {
           'opacity': '0.6'})
     .attr('src',"webgl-viewer/static/dropDown1.jpg")
     .mouseenter(function() {POPUP_MENU.fadeIn(); });
-
-  // Mobile GUI
-  if (MOBILE_DEVICE) {
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    NEXT_NOTE_SWEEP = 
-      EVENT_MANAGER.AddSweepListener(width*0.60, height*0.7,  1,0, "Next Note", 
-                                     NextNoteCallback);
-    PREV_NOTE_SWEEP =
-      EVENT_MANAGER.AddSweepListener(width*0.40, height*0.7, -1,0, "Previous Note", 
-                                     PreviousNoteCallback);
-    NOTES_SHOW_SWEEP = 
-      EVENT_MANAGER.AddSweepListener(width*0.05, height*0.4,  1,0, "Note Window", 
-                                     ToggleNotesWindow);
-    NOTES_HIDE_SWEEP = 
-      EVENT_MANAGER.AddSweepListener(width*0.25, height*0.4,  -1,0, "Note Window", 
-                                     ToggleNotesWindow);
-    NOTES_HIDE_SWEEP.Active = false;
-  }
         
   // Setup the iterator using the view as root.
   // Bookmarks (sub notes) are loaded next.
