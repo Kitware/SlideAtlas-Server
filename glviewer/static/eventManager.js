@@ -31,14 +31,6 @@ function EventManager (canvas) {
   this.LastMouseX = 0;
   this.LastMouseY = 0;
   this.MouseDown = false;
-
-  this.SweepIcon = $('<div>').appendTo('body')
-                             .hide()
-                             .css({
-                               'position': 'absolute',
-                               'z-index': '1',
-                               'border-style': 'solid',
-                               'border-color': '#a0a0a0'});
   this.SweepListeners = [];
   this.SelectedSweepListener = undefined;
   
@@ -374,8 +366,6 @@ EventManager.prototype.ShowSweepListeners = function() {
   if ( ! this.IsFullScreen()) {
     this.FullScreenSweep.Active = true;
   }
-  
-  this.SweepIcon.show();
   for (var i = 0; i < this.SweepListeners.length; ++i) {
     var sweep = this.SweepListeners[i];
     sweep.Show();
@@ -384,7 +374,6 @@ EventManager.prototype.ShowSweepListeners = function() {
 
 EventManager.prototype.HideSweepListeners = function() {
   this.SelectedSweepListener = undefined;
-  this.SweepIcon.hide();
   for (var i = 0; i < this.SweepListeners.length; ++i) {
     var sweep = this.SweepListeners[i];
     sweep.Hide();
@@ -430,6 +419,7 @@ EventManager.prototype.HandleTouch = function(e) {
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
+  this.Tap = true;
   this.SelectedSweepListener = undefined;
   this.HandleTouch(e);
   this.ChooseViewer();
@@ -441,6 +431,7 @@ EventManager.prototype.HandleTouchStart = function(e) {
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
+  this.Tap = false;
   this.HandleTouch(e);
   this.ChooseViewer();
 
@@ -478,23 +469,11 @@ EventManager.prototype.HandleTouchMove = function(e) {
     var dy = this.MouseY - this.LastMouseY;
     if (Math.abs(dx) > 2*Math.abs(dy) ) {
       // place the sweep icon vertically.
-      this.SweepIcon.show()
-                    .css({
-                      'bottom' : '0%',
-                      'left' : this.MouseX+'px',
-                      'width' : '0px',
-                      'height' : '100%'});
       this.ShowSweepListeners();
       if (dx > 1) {this.DetectSweepEvent(1,0);}
       if (dx < 1) {this.DetectSweepEvent(-1,0);}
     } else if (Math.abs(dy) > 2*Math.abs(dx) ) {
       // place the sweep icon horizontally.
-      this.SweepIcon.show()
-                    .css({
-                      'left' : '0%',
-                      'bottom' : this.MouseY+'px',
-                      'width' : '99%',
-                      'height' : '0px'});    
       this.ShowSweepListeners();
       if (dy > 1) {this.DetectSweepEvent(0,1);}
       if (dy < 1) {this.DetectSweepEvent(0,-1);}
@@ -503,6 +482,9 @@ EventManager.prototype.HandleTouchMove = function(e) {
 }  
 
 EventManager.prototype.HandleTouchEnd = function(e) {
+  if (this.Tap && MOBILE_DEVICE) {
+    NAVIGATION_WIDGET.ToggleVisibility();
+  }
   if (this.SelectedSweepListener) {
     this.SelectedSweepListener.Callback(this.SelectedSweepListener);
     // The sweep could be removed from the list.

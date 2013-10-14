@@ -26,19 +26,22 @@ function NavigationWidget() {
       this.Session = [];
     }
   }
-  
+
+  var size = '40px';
+  if (MOBILE_DEVICE) {
+    size = '80px';
+  }
   var self = this;
   this.Div = 
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
                     'left' : '120px',
                     'bottom' : '5px',
-                    'width': '130x',
                     'z-index': '2'});
   this.PreviousSlideButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': '40px',
-                    'width': '40x',
+              .css({'height': size,
+                    'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/previousSlide.png")
@@ -47,8 +50,8 @@ function NavigationWidget() {
 
   this.PreviousNoteButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': '40px',
-                    'width': '40x',
+              .css({'height': size,
+                    'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/previousNote.png")
@@ -57,8 +60,8 @@ function NavigationWidget() {
 
   this.NextNoteButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': '40px',
-                    'width': '40x',
+              .css({'height': size,
+                    'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/nextNote.png")
@@ -67,8 +70,8 @@ function NavigationWidget() {
 
   this.NextSlideButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': '40px',
-                    'width': '40x',
+              .css({'height': size,
+                    'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/nextSlide.png")
@@ -78,7 +81,18 @@ function NavigationWidget() {
   this.Update();
 }
 
+NavigationWidget.prototype.ToggleVisibility = function() {
+  this.SetVisibility( ! this.Visibility);
+}
 
+NavigationWidget.prototype.SetVisibility = function(v) {
+  this.Visibility = v;
+  if (v) {
+    this.Div.show();
+  } else {
+    this.Div.hide();
+  }
+}
 
 NavigationWidget.prototype.Update = function() {
   // Disable and enable prev/next note buttons so we cannot go past the end.
@@ -105,7 +119,7 @@ NavigationWidget.prototype.Update = function() {
     this.PreviousSlideButton.css({'opacity': '0.5'});
     this.PreviousSlideTip.SetActive(true);
   }
-  if (this.SlideIndex >= this.Session.length) {
+  if (this.SlideIndex >= this.Session.length-1) {
     this.NextSlideButton.css({'opacity': '0.1'});
     this.NextSlideTip.SetActive(false);
   } else {

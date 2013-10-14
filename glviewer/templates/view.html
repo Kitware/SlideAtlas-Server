@@ -295,6 +295,7 @@ shape has visibility and
     InitRecorderWidget();
     NAVIGATION_WIDGET = new NavigationWidget();
     VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
+    if (MOBILE_DEVICE) {NAVIGATION_WIDGET.SetVisibility(false);}
 
     $(window).resize(function() {
         handleResize();
