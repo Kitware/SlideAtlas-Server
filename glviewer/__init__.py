@@ -999,6 +999,7 @@ def getview():
         answer["ParentId"] = viewid
         vra = {}
         vra["AnnotationVisibility"] = 2
+        vra["Type"] = "Answer"
         vra["Dimensions"] = viewerRecord["Dimensions"]
         vra["Bounds"] = viewerRecord["Bounds"]
         vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]

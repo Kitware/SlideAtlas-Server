@@ -89,14 +89,14 @@ NavigationWidget.prototype.SetVisibility = function(v) {
 
 NavigationWidget.prototype.Update = function() {
   // Disable and enable prev/next note buttons so we cannot go past the end.
-  if (NOTE_ITERATOR.IsStart()) {
+  if (NOTES_WIDGET.Iterator.IsStart()) {
     this.PreviousNoteButton.css({'opacity': '0.1'});
     this.PreviousNoteTip.SetActive(false);
   } else {
     this.PreviousNoteButton.css({'opacity': '0.5'});
     this.PreviousNoteTip.SetActive(true);
   }
-  if (NOTE_ITERATOR.IsEnd()) {
+  if (NOTES_WIDGET.Iterator.IsEnd()) {
     this.NextNoteButton.css({'opacity': '0.1'});
     this.NextNoteTip.SetActive(false);
   } else {
@@ -122,42 +122,38 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-  if (NOTE_ITERATOR.IsStart()) { return; }
+  if (NOTES_WIDGET.Iterator.IsStart()) { return; }
 
-  NOTE_ITERATOR.Previous();
-  NOTE_ITERATOR.GetNote().Select();
+  NOTES_WIDGET.Iterator.Previous();
+  NOTES_WIDGET.Iterator.GetNote().Select();
 }
 
 NavigationWidget.prototype.NextNote = function() {
-  if (NOTE_ITERATOR.IsEnd()) { return; }
+  if (NOTES_WIDGET.Iterator.IsEnd()) { return; }
 
-  NOTE_ITERATOR.Next();
-  NOTE_ITERATOR.GetNote().Select();
+  NOTES_WIDGET.Iterator.Next();
+  NOTES_WIDGET.Iterator.GetNote().Select();
 }
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
   this.SlideIndex -= 1;
-  this.LoadViewId(this.Session[this.SlideIndex]);
+  NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
 }
 
 NavigationWidget.prototype.NextSlide = function() {
   this.SlideIndex += 1;
-  this.LoadViewId(this.Session[this.SlideIndex]);
+  NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
 }
 
 NavigationWidget.prototype.LoadViewId = function(viewId) {
   VIEW_ID = viewId;
-  ROOT_NOTE = new Note();
+  NOTES_WIDGET.RootNote = new Note();
   if (typeof(viewId) != "undefined" && viewId != "") {
-    ROOT_NOTE.LoadViewId(viewId);
+    NOTES_WIDGET.RootNote.LoadViewId(viewId);
   }
-  // Setup the iterator using the view as root.
-  // Bookmarks (sub notes) are loaded next.
-  NOTE_ITERATOR = ROOT_NOTE.NewIterator();
-
   // Since loading the view is asynchronous,
-  // the ROOT_NOTE is not complete at this point.  
+  // the NOTES_WIDGET.RootNote is not complete at this point.  
 }
 
 

@@ -76,8 +76,8 @@ function GetViewId () {
   if (typeof(ARGS) != "undefined") {
     return ARGS.Viewer1.viewid;
   }
-  if (typeof(ROOT_NOTE) != "undefined") {
-    return ROOT_NOTE._id;
+  if ( ! NOTES_WIDGET && ! NOTES_WIDGET.RootNote) {
+    return NOTES_WIDGET.RootNote._id;
   }
   alert ("Could not find view id");
   return "";

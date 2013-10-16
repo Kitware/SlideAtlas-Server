@@ -30,11 +30,13 @@ function ViewerRecord () {
 }
 
 // I am still trying to figure out a good pattern for loading
-// objects from mongo.  This one:
-// The mongo object is cast to a ViewerObject by setting its prototype.
-// This method then converts any instance variables that are stored
-// differently.
-ViewerRecord.prototype.Load = function() {
+// objects from mongo.  
+// Cast to a ViewerObject by setting its prototype does not work on IE
+ViewerRecord.prototype.Load = function(obj) {
+  for (ivar in obj) {
+    this[ivar] = obj[ivar];
+  }
+
   if (this.Annotations) {
     for (var i = 0; i < this.Annotations.length; ++ i) {
       var a = this.Annotations[i];

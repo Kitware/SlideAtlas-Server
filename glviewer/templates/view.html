@@ -175,6 +175,7 @@ shape has visibility and
   var VIEWER2;
   var DUAL_VIEW = false;
   var NAVIGATION_WIDGET;
+  var NOTES_WIDGET;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
@@ -194,7 +195,8 @@ shape has visibility and
     } // SetViewport does the work for 2d canvases.
     
     // we set the left border to leave space for the notes window.
-    var left = width * NOTES_FRACTION;
+    var left = 0;
+    if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
     // The remaining width is split between the two viewers.
     var width1 = (width-left) * VIEWER1_FRACTION;
     var width2 = (width-left) - width1;
