@@ -44,6 +44,9 @@ function detectMobile() {
   if ( navigator.userAgent.match(/Windows Phone/i)) {
    MOBILE_DEVICE = "Windows Phone";
   }
+  if (MOBILE_DEVICE) {
+    MAXIMUM_NUMBER_OF_TILES = 5000;
+  }
 }
 
 

@@ -10,7 +10,7 @@ import pdb
 
 
 
-
+# I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
     if 'Type' in viewobj :
@@ -70,102 +70,7 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
     
     
     
-# View that toggles between single and dual.
-# Note: I am working toward moving as much onto the client (single vs dual) as possbile.
-# The annoying thing here is the extent to which information is spread between view, image and bookmarks.
-# what is the point of an image?  Shouldn't the meta data be stored in the pyramid database info collection or the view?
-# This will change when I include bookmarks as annotation in the view.
-# a tree of views will make things more complex.
-def glsingle(db, dbid, viewid, viewobj):
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    
-    # I was going get the user id from the session, and pass it to the viewer.
-    # I think I will just try to retreive the user from the "Save Note" method.
-    if 'user' in session:
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        email = None
-    
-    # The base view is for the left panel
-    img = {}
-    img["db"] = dbid
-    img["viewid"] = viewid
-    img["image"] = str(imgobj["_id"])
-    img["origin"] = str(imgobj["origin"])
-    img["spacing"] = str(imgobj["spacing"])
-    img["levels"] = str(imgobj["levels"])
-    if 'dimensions' in imgobj:
-        img["dimensions"] = str(imgobj["dimensions"])
-    elif 'dimension' in imgobj:
-        img["dimensions"] = str(imgobj["dimension"])
-        
-    # I want to change the schema to get rid of this startup bookmark.
-    if 'startup_view' in viewobj:
-      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-      img["center"] = str(bookmarkobj["center"])
-      img["rotation"] = str(bookmarkobj["rotation"])
-      if 'zoom' in bookmarkobj:
-        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-      if 'viewHeight' in bookmarkobj:
-        img["viewHeight"] = str(bookmarkobj["viewHeight"])
 
-    # record the bookmarks as annotation.
-    annotations = []
-    if 'annotations' in viewobj:
-        for annotation in viewobj["annotations"]:
-            if 'type' in annotation:
-                if annotation["type"] == "text" :
-                    annotation["string"] = annotation["string"].replace("\n", "\\n")
-                    annotations.append(annotation)
-    img["annotations"] = annotations;
-
-    question = {}
-    question["viewer1"] = img;
-    if 'label' in imgobj:
-      question["label"] = imgobj["label"]
-    else:
-      question["label"] = "slide";
-      
-    # now create a list of options.
-    # this array will get saved back into the view
-    optionViews = []
-    # I am separating out the image information because we get it from the images
-    optionImages = []
-
-    # I am embedding views in the options array rather than referencing object ids.
-    if 'options' in viewobj:
-        for viewobj in viewobj["options"]:
-            # The optionView stores the image and anything that can change with the comparison view.
-            optionView = {}
-            optionView["label"] = str(viewobj["label"])
-            optionView["db"] = dbid
-            optionView["img"] = str(viewobj["img"])
-            optionView["viewHeight"] = str(viewobj["viewHeight"])
-            optionView["center"] = str(viewobj["center"])
-            optionView["rotation"] = str(viewobj["rotation"])
-            optionViews.append(optionView)
-
-
-            # now for the info needed for display, but not put back into the database view object
-            # get the option image database object to copy its info.
-            imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-            # Start of the info object
-            optionImage = {}
-            optionImage["origin"] = str(imgobj2["origin"])
-            optionImage["spacing"] = str(imgobj2["spacing"])
-            optionImage["levels"] = str(imgobj2["levels"])
-            if 'dimension' in imgobj2:
-                optionImage["dimension"] = str(imgobj2["dimension"])
-            elif 'dimensions' in imgobj2:
-                optionImage["dimension"] = str(imgobj2["dimensions"])
-            optionImages.append(optionImage)
-    question["options"] = optionViews;
-    question["optionInfo"] = optionImages;
-
-    return make_response(render_template('single.html', question=question, viewid = viewid, user=email))
     
 
 
@@ -361,12 +266,10 @@ def glview():
         
         
       if 'type' in viewobj:
-        if viewobj["type"] == "single" :
-          return glsingle(db,dbid,viewid,viewobj)
         if viewobj["type"] == "comparison" :
           return glcomparison(db,dbid,viewid,viewobj)
-      # default is now the single view (which can be switch to dual by the user).
-      return glsingle(db,dbid,viewid,viewobj)
+      # default
+      return glnote(db,dbid,viewid,viewobj)
 
 
 
@@ -1008,6 +911,105 @@ def getview():
       addviewimage(viewObj, db)
       return jsonify(viewObj)
       
-    # Formating old views into the note structure is too much of a pain.
-    return "";
+    #---------------------------------------------------------
+    # legacy: Rework bookmarks into the same structure.
+    # a pain, but necessary to generalize next/previous slide.
+    # An array of children and an array of ViewerRecords
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+    noteObj = {}
+    noteObj["Id"] = viewid
+    noteObj["ParentId"] = ""
+    noteObj["Title"] = imgobj["label"]
+
+    # Construct the ViewerRecord for the base view
+    viewerRecord = {}
+    viewerRecord["Annotations"] = []
+    if 'dimensions' in imgobj:
+      viewerRecord["Dimensions"] = imgobj["dimensions"]
+      viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
+    elif 'dimension' in imgobj:
+      viewerRecord["Dimensions"] = imgobj["dimension"]
+      viewerRecord["Bounds"] = [0,imgobj["dimension"][0],0,imgobj["dimension"][1]] 
+    viewerRecord["NumberOfLevels"] = imgobj["levels"]
+    viewerRecord["Image"] = str(imgobj["_id"])
+    viewerRecord["Database"] = dbid
+    
+    # camera object.
+    cam = {}
+    if 'startup_view' in viewObj:
+      bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
+      cam["FocalPoint"] = bookmark["center"]
+      cam["Roll"] = bookmark["rotation"]
+      if 'zoom' in bookmark:
+        cam["Height"] = 900 << int(bookmark["zoom"])
+      if 'viewHeight' in bookmark:
+        cam["Height"] = bookmark["viewHeight"]
+    else:
+      cam["Height"] = viewerRecord["Dimensions"][1]
+      cam["Roll"] = 0
+      cam["FocalPoint"] = [viewerRecord["Dimensions"][0]/2, viewerRecord["Dimensions"][1]/2,0]
+    viewerRecord["Camera"] = cam
+    noteObj["ViewerRecords"] = [viewerRecord]
+    
+    # Now for the children (Bookmarks).
+    children = [];
+    if 'bookmarks' in viewObj:
+      for bookmarkid in viewObj["bookmarks"]:
+        bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+        #bookmark["annotation"]["color"]
+        #                      ["displayname"]
+        #bookmark["center"]
+        question = {}
+        question["Title"] = "Question"
+        question["Text"] = ""
+        question["Type"] = "Bookmark"
+        question["Id"] = str(bookmark["_id"]);
+        question["ParentId"] = viewid
+        vrq = {}
+        vrq["AnnotationVisibility"] = 1
+        vrq["Dimensions"] = viewerRecord["Dimensions"]
+        vrq["Bounds"] = viewerRecord["Bounds"]
+        vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+        vrq["Image"] = viewerRecord["Image"]
+        vrq["Database"] = viewerRecord["Database"]
+        # camera object.
+        c = {}
+        c["FocalPoint"] = bookmark["center"]
+        c["Height"] = 900 << int(bookmark["zoom"])
+        c["Roll"] = bookmark["rotation"]
+        vrq["Camera"] = c
+        a = {};
+        a["type"] = "text"
+        a["color"] = bookmark["annotation"]["color"]
+        a["size"] = 30
+        a["position"] = bookmark["annotation"]["points"][0];
+        a["offset"] = [bookmark["annotation"]["points"][1][0]-a["position"][0], 
+                       bookmark["annotation"]["points"][1][1]-a["position"][1]]
+        a["string"] = bookmark["title"]
+        a["anchorVisibility"] = True
+        vrq["Annotations"] = [a];
+        question["ViewerRecords"] = [vrq]
+        children.append(question)
+        
+        answer = {}
+        answer["Title"] = bookmark["title"]
+        answer["Text"] = bookmark["details"]
+        answer["Type"] = "Bookmark"
+        answer["Id"] = str(bookmark["_id"]);
+        answer["ParentId"] = viewid
+        vra = {}
+        vra["AnnotationVisibility"] = 2
+        vra["Dimensions"] = viewerRecord["Dimensions"]
+        vra["Bounds"] = viewerRecord["Bounds"]
+        vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+        vra["Image"] = viewerRecord["Image"]
+        vra["Database"] = viewerRecord["Database"]
+        vra["Camera"] = c
+        vra["Annotations"] = [a];
+        answer["ViewerRecords"] = [vra]
+        question["Children"] = [answer]
+    noteObj["Children"] = children
+    
+    return jsonify(noteObj)
+
 

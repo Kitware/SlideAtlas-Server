@@ -1,15 +1,10 @@
 // VCR like buttons to get to next/previous note/slide.
-
-
-// Navigation buttons.
+// entwined with the notes widget at the moment.
 
 
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function NavigationWidget() {
-  // Get the note iterator.
-  this.NoteIterator = NOTE_ITERATOR;
-
   // Load the session slides from the localStorage
   this.SlideIndex = 0;
   this.Session = [];
@@ -77,8 +72,6 @@ function NavigationWidget() {
               .attr('src',"webgl-viewer/static/nextSlide.png")
               .click(function(){self.NextSlide();});
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
-  
-  this.Update();
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {
@@ -96,14 +89,14 @@ NavigationWidget.prototype.SetVisibility = function(v) {
 
 NavigationWidget.prototype.Update = function() {
   // Disable and enable prev/next note buttons so we cannot go past the end.
-  if (this.NoteIterator.IsStart()) {
+  if (NOTE_ITERATOR.IsStart()) {
     this.PreviousNoteButton.css({'opacity': '0.1'});
     this.PreviousNoteTip.SetActive(false);
   } else {
     this.PreviousNoteButton.css({'opacity': '0.5'});
     this.PreviousNoteTip.SetActive(true);
   }
-  if (this.NoteIterator.IsEnd()) {
+  if (NOTE_ITERATOR.IsEnd()) {
     this.NextNoteButton.css({'opacity': '0.1'});
     this.NextNoteTip.SetActive(false);
   } else {
@@ -128,32 +121,47 @@ NavigationWidget.prototype.Update = function() {
   }
 }
 
-
-NavigationWidget.prototype.PreviousSlide = function() {
-  // Load a new page with a different slide
-  window.location.href = "webgl-viewer?db="+SESSION_DATABASE
-                            +"&view="+this.Session[this.SlideIndex-1];
-}
-
-NavigationWidget.prototype.NextSlide = function() {
-  // Load a new page with a different slide
-  window.location.href = "webgl-viewer?db="+SESSION_DATABASE
-                            +"&view="+this.Session[this.SlideIndex+1];
-}
-
 NavigationWidget.prototype.PreviousNote = function() {
-  if (this.NoteIterator.IsStart()) { return; }
+  if (NOTE_ITERATOR.IsStart()) { return; }
 
-  this.NoteIterator.Previous();
-  this.NoteIterator.GetNote().Select();
+  NOTE_ITERATOR.Previous();
+  NOTE_ITERATOR.GetNote().Select();
 }
 
 NavigationWidget.prototype.NextNote = function() {
-  if (this.NoteIterator.IsEnd()) { return; }
+  if (NOTE_ITERATOR.IsEnd()) { return; }
 
-  this.NoteIterator.Next();
-  this.NoteIterator.GetNote().Select();
+  NOTE_ITERATOR.Next();
+  NOTE_ITERATOR.GetNote().Select();
 }
+
+
+NavigationWidget.prototype.PreviousSlide = function() {
+  this.SlideIndex -= 1;
+  this.LoadViewId(this.Session[this.SlideIndex]);
+}
+
+NavigationWidget.prototype.NextSlide = function() {
+  this.SlideIndex += 1;
+  this.LoadViewId(this.Session[this.SlideIndex]);
+}
+
+NavigationWidget.prototype.LoadViewId = function(viewId) {
+  VIEW_ID = viewId;
+  ROOT_NOTE = new Note();
+  if (typeof(viewId) != "undefined" && viewId != "") {
+    ROOT_NOTE.LoadViewId(viewId);
+  }
+  // Setup the iterator using the view as root.
+  // Bookmarks (sub notes) are loaded next.
+  NOTE_ITERATOR = ROOT_NOTE.NewIterator();
+
+  // Since loading the view is asynchronous,
+  // the ROOT_NOTE is not complete at this point.  
+}
+
+
+
 
 
 

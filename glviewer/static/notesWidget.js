@@ -595,30 +595,15 @@ Note.prototype.Load = function(obj){
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
     if (obj.ViewerRecords[i]) {
       obj.ViewerRecords[i].__proto__ = ViewerRecord.prototype;
+      obj.ViewerRecords[i].Load();
     }
   }
 
-  if ( ! obj.Type || obj.Type == "Note") {
-    // Hack to fix timing (Load after select)
-    if (this == NOTE_ITERATOR.GetNote()) {
-      this.Select();
-    }
-    return;
+  // Hack to fix timing (Load after select)
+  if (this == NOTE_ITERATOR.GetNote()) {
+    DisplayRootNote();
+    //this.Select();
   }
-
-  // I could try to combine bookmark and question, but bookmark
-  // is geared to interactive presentation not offline quiz. 
-  if (obj.Type == "Bookmark") {
-    // No difference yet.
-    return;
-  }
-  if (obj.Type == "Answer") {
-    // No difference yet.
-    return;
-  }
-
-  
-  alert("Cannot load note of type " + obj.Type);
 }
 
 
@@ -631,21 +616,6 @@ Note.prototype.LoadViewId = function(viewId) {
     data: {"viewid": viewId,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.Load(data);},
-    error: function() { alert( "AJAX - error()" ); },
-    });  
-}
-
-// This does not really work.  It was going to be a method to edit sessions ....
-Note.prototype.LoadSessionId = function(sessId) {
-  var self = this;
-  // Get the sessions this user has access to.
-  $.ajax({
-    type: "get",
-    url: "/sessions",
-    data: {"sessid": sessId,
-           "sessdb": GetSessionDatabase(),
-           "json"  : true},
-    success: function(data,status) { self.LoadSessionData(data);},
     error: function() { alert( "AJAX - error()" ); },
     });  
 }
@@ -765,25 +735,6 @@ Note.prototype.LoadUserNotes = function(data) {
   }
 }
 
-
-// Root view with default bookmark
-// Eventually all these loads will be the same.
-Note.prototype.LoadRootView = function(args) {
-  this.Title = args.Label;
-  if (args.Text) {
-    this.Text = args.Text;
-  }
-  this.Id = args.Viewer1.viewid;
-  this.ParentId = "";
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.Dimensions = args.Viewer1.dimensions;
-  viewerRecord.LoadRootViewer(args.Viewer1);
-  this.ViewerRecords = [viewerRecord];
-  
-  this.RequestUserNotes();
-}
-
-
 Note.prototype.Collapse = function() {
   this.ChildrenVisibility = false;
   if (this.Contains(SELECTED_NOTE)) {
@@ -795,17 +746,14 @@ Note.prototype.Collapse = function() {
   NAVIGATION_WIDGET.Update();
 }
 
-
 Note.prototype.Expand = function() {
   this.ChildrenVisibility = true;
   this.UpdateChildrenGUI();
   NAVIGATION_WIDGET.Update();
 }
 
-
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function() { 
-
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
   VIEWER2.Reset();
@@ -831,31 +779,6 @@ function NoteModified() {
   NOTE_MODIFIED = true;
 }
 
-
-
-// When bookmarks are eliminated, this method will be legacy.
-function BookmarksCallback (data, status) {
-  if (status == "success") {
-    var length = data.Bookmarks.length;
-    for(var i=0; i < length; i++){
-      var note = new Note();
-      note.LoadBookmark(data.Bookmarks[i]);
-      note.Title = "Question";
-      note.Text = "";
-      note.Type = "Bookmark";
-      note.ViewerRecords[0].AnnotationVisibility = ANNOTATION_NO_TEXT; 
-      ROOT_NOTE.AddChild(note);
-      var note2 = new Note();
-      note2.Type = "Answer";
-      note2.LoadBookmark(data.Bookmarks[i]);
-      note2.Title = "Answer";
-      note2.ViewerRecords[0].AnnotationVisibility = ANNOTATION_ON; 
-      note.AddChild(note2);
-      }
-    ROOT_NOTE.UpdateChildrenGUI();
-  } else { alert("ajax failed."); }
-  NOTE_ITERATOR.GetNote().Select();
-}
 
 
 // It would be nice to animate the transition
@@ -1146,17 +1069,7 @@ function AnimateNotesWindow() {
 }
 
 
-function InitNotesWidget() {
-  ROOT_NOTE = new Note();
-  if (typeof(ARGS) != "undefined") { // legacy
-    ROOT_NOTE.LoadRootView(ARGS);
-  }
-  if (typeof(SESSION_ID) != "undefined" && SESSION_ID != "") {
-    ROOT_NOTE.LoadSessionId(SESSION_ID);
-  } else if (typeof(NOTE_ID) != "undefined" && NOTE_ID != "") {
-    ROOT_NOTE.LoadViewId(NOTE_ID);
-  }
-  
+function InitNotesWidget() {  
   if ( ! MOBILE_DEVICE) {
     this.OpenNoteWindowButton = $('<img>')
       .appendTo('body')
@@ -1166,7 +1079,7 @@ function InitNotesWidget() {
             'top' : '0px',
             'right' : '0%',
             'opacity': '0.6',
-            'z-index': '2'})
+            'z-index': '3'})
       .attr('src',"webgl-viewer/static/dualArrowRight2.png")
       .click(ToggleNotesWindow);
     VIEWER1.AddGuiObject(this.OpenNoteWindowButton, "Top", 0, "Left", 0);
@@ -1179,7 +1092,7 @@ function InitNotesWidget() {
             'top' : '0px',
             'right' : '0%',
             'opacity': '0.6',
-            'z-index': '2'})
+            'z-index': '3'})
       .hide()
       .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
       .click(ToggleNotesWindow);
@@ -1194,7 +1107,7 @@ function InitNotesWidget() {
       'left' : '0%',
       'height' : '100%',
       'width': '20%',
-      'z-index': '1'})
+      'z-index': '2'})
     .hide()
     .attr('id', 'NoteWindow');
 
@@ -1207,7 +1120,6 @@ function InitNotesWidget() {
       'height' : '60%',
       'width': '100%',
       'overflow': 'auto',
-      'z-index': '1',
       'text-align': 'left',
       'color': '#303030',
       'font-size': '18px'})
@@ -1278,7 +1190,6 @@ function InitNotesWidget() {
                        .css({'position': 'absolute',
                              'left': '0px',
                              'bottom': '0px',
-                             'z-index': '2',
                              'background-color': 'white',
                              'padding': '5px 5px 30px 5px',
                              'border-radius': '8px',
@@ -1323,22 +1234,17 @@ function InitNotesWidget() {
           'opacity': '0.6'})
     .attr('src',"webgl-viewer/static/dropDown1.jpg")
     .mouseenter(function() {POPUP_MENU.fadeIn(); });
-        
-  // Setup the iterator using the view as root.
-  // Bookmarks (sub notes) are loaded next.
-  NOTE_ITERATOR = ROOT_NOTE.NewIterator();
 
-  // Load the root note.
+  // This sets "ROOT_NOTE" and "NOTE_ITERATOR"
+  NAVIGATION_WIDGET.LoadViewId(VIEW_ID);
+}
+
+// Called when a new slide/view is loaded.
+function DisplayRootNote() {
   NOTE_TREE_DIV.empty();
   ROOT_NOTE.DisplayGUI(NOTE_TREE_DIV);
   NOTE_ITERATOR.GetNote().Select();
-  
-  // Load the bookmarks, and encapsulate them into notes.
-  $.get(window.location.href + '&bookmarks=1',
-        BookmarksCallback);            
 }
-
-
 
 
 

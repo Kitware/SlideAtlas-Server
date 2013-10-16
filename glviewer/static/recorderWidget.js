@@ -29,6 +29,22 @@ function ViewerRecord () {
   this.NumberOfLevels = 0;
 }
 
+// I am still trying to figure out a good pattern for loading
+// objects from mongo.  This one:
+// The mongo object is cast to a ViewerObject by setting its prototype.
+// This method then converts any instance variables that are stored
+// differently.
+ViewerRecord.prototype.Load = function() {
+  if (this.Annotations) {
+    for (var i = 0; i < this.Annotations.length; ++ i) {
+      var a = this.Annotations[i];
+      if (a && a.color) {
+        a.color = ConvertColor(a.color);
+      }
+    }
+  }
+}
+
 // Bookmark is legacy schema
 ViewerRecord.prototype.LoadBookmark = function(data) {
   // Hack.  I should probably get the source from data.img
@@ -44,8 +60,6 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
     // Since this is legacy, just copy the bounds from the cache.
     this.Bounds = cache.GetBounds();    
   }
-  
-  
   
   var cameraRecord = {};
   cameraRecord.FocalPoint = data.center;
