@@ -87,8 +87,12 @@ def sessions():
 
         # iterate through the session objects
         images = []
-        if asession.has_key("views"):
+        if asession.has_key("views"):        
             for aview in asession['views']:
+                hide = False
+                if 'hide' in aview :
+                  if aview["hide"] :
+                    hide = True
                 viewobj = db["views"].find_one({"_id" : aview["ref"]})
                 # So I found a mismatch. Session had a viewid that did not exist.
                 # Should we clean up the broken reference?
@@ -102,7 +106,13 @@ def sessions():
                     if imgid == 0 :
                         imgid = str(viewobj["img"])
                     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
-                    if 'hide' not in imgobj :
+                    if 'hide' in imgobj :
+                      if imgobj["hide"] :
+                        hide = True
+                    if 'hide' in viewobj :
+                      if viewobj["hide"] :
+                        hide = True
+                    if not hide :
                       if label == "" :
                           label = imgobj["label"]
                       if imgobj.has_key("thumb"):
