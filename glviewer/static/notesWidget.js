@@ -214,7 +214,7 @@ function NotesWidget() {
                        .hide()
                        .mouseleave(function(){
                           var self = $(this),
-                          timeoutId = setTimeout(function(){this.PopupMenu.fadeOut();}, 650);
+                          timeoutId = setTimeout(function(){NOTES_WIDGET.PopupMenu.fadeOut();}, 650);
                           //set the timeoutId, allowing us to clear this trigger if the mouse comes back over
                           self.data('timeoutId', timeoutId);  })
                        .mouseenter(function(){
@@ -249,7 +249,7 @@ function NotesWidget() {
           'width': '30x',
           'opacity': '0.6'})
     .attr('src',"webgl-viewer/static/dropDown1.jpg")
-    .mouseenter(function() {this.PopupMenu.fadeIn(); });
+    .mouseenter(function() {NOTES_WIDGET.PopupMenu.fadeIn(); });
 
   // This sets "this.RootNote" and "this.Iterator"
   this.LoadViewId(VIEW_ID);
@@ -599,7 +599,7 @@ Note.prototype.ReorderChildren = function() {
     var note = this.Children[oldIndex];
     note.Div.data("index", newIndex);
     if (newIndex != oldIndex) {
-      NoteModified();
+      NOTES_WIDGET.NoteModified();
     }
     newChildren.push(note);
   }
@@ -648,7 +648,7 @@ Note.prototype.Select = function() {
     NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
     if (NOTES_WIDGET.EditActive && NOTES_WIDGET.SelectedNote.UserCanEdit()) {
       NOTES_WIDGET.SelectedNote.RecordGUIChanges();
-      NoteModified();     
+      NOTES_WIDGET.NoteModified();     
     }
   }
   
@@ -698,9 +698,9 @@ Note.prototype.Select = function() {
 
 
 Note.prototype.RecordGUIChanges = function () {
-  this.Title = this.TitleEntry.val();
-  this.TitleDiv.text(this.SelectedNote.Title);
-  this.Text = this.TextEntry.val();
+  this.Title = NOTES_WIDGET.TitleEntry.val();
+  this.TitleDiv.text(NOTES_WIDGET.SelectedNote.Title);
+  this.Text = NOTES_WIDGET.TextEntry.val();
   this.RecordView();
 }
 
@@ -869,7 +869,7 @@ Note.prototype.LoadUserNotes = function(data) {
 
 Note.prototype.Collapse = function() {
   this.ChildrenVisibility = false;
-  if (this.Contains(this.SelectedNote)) {
+  if (this.Contains(NOTES_WIDGET.SelectedNote)) {
     // Selected note should not be in collapsed branch.
     // Make the visible ancestor active.
     this.Select();
@@ -1159,7 +1159,7 @@ NotesWidget.prototype.SaveCallback = function() {
 NotesWidget.prototype.DeleteCallback = function() {
   this.PopupMenu.hide();
 
-  NoteModified();
+  this.NoteModified();
   
   var parent = this.Iterator.GetParentNote();
   if (parent == null) {
@@ -1196,7 +1196,7 @@ NotesWidget.prototype.DeleteCallback = function() {
 NotesWidget.prototype.CheckForSave = function() {
   if (this.EditActive && this.SelectedNote.UserCanEdit()) {
     this.SelectedNote.RecordGUIChanges();
-    NoteModified();
+    this.NoteModified();
   }
 
   if (this.Modified) {
