@@ -5,8 +5,8 @@
 
   <div class="container">
   <div class="row">
-  <h1>Displaying a session list for {{ name}} !</h1>
-
+  <h1> {{ data.session.label }} </h1>
+  <a href="sessionedit?sessdb={{data.db}}&sessid={{data.sessid}}" style='float:right' > Edit </a>
 
     {# data #}
     {%if data.attachments|length %}
@@ -33,20 +33,17 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                <td>
-                {% if animage.comparison %}
-                    <a href="webgl-viewer/comparison?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
-                {% else %}
-                    <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
-                {% endif %}
-                <td align="right">
-                    <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
-                </td>
                 {% if animage.label %}
-                  <td> <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}">                  
+                  <td> <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}">                  
                     <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
                 {% else %}                
                 {% endif %}
+                <td>
+                  <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
+                </td>
+                <td align="right">
+                  <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                </td>
             </tr>
          {% endfor %}
     </table>

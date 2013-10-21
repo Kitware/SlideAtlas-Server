@@ -766,7 +766,6 @@ Note.prototype.Load = function(obj){
     childNote.Load(childObj);
     this.Children[i] = childNote;
     childNote.Div.data("index", i);
-
   }
   // Because we are not using add child.
   if (this.Children.length > 1 && this.UserCanEdit() && NOTES_WIDGET.EditActive) {
@@ -792,7 +791,6 @@ Note.prototype.Load = function(obj){
 }
 
 
-
 Note.prototype.LoadViewId = function(viewId) {
   var self = this;
   $.ajax({
@@ -803,23 +801,6 @@ Note.prototype.LoadViewId = function(viewId) {
     success: function(data,status) { self.Load(data);},
     error: function() { alert( "AJAX - error()" ); },
     });  
-}
-
-Note.prototype.LoadSessionData = function(data) {
-  // This note (root) will be a session with no viewers.
-  this.Title = data.session.label;
-  this.TitleDiv.text(this.Title)
-  this.Text = data.session.name;
-  this.ViewerRecords = [];
-  this.Answers = [];
-  this.Children = [];
-  for (var i = 0; i < data.images.length; ++i) {
-    var child = new Note();
-    child.LoadViewId(data.images[i].view);
-    this.Children.push(child);
-  }
-  this.UpdateChildrenGUI();
-  this.Select();
 }
 
 Note.prototype.LoadBookmark = function(data) {
@@ -1108,8 +1089,6 @@ NotesWidget.prototype.SaveCallback = function() {
   // If user owns the root note, then upload all notes to the view.
   if (this.RootNote.UserCanEdit()) {
     // Save this users notes in the user specific collection.
-    var dbid = GetSessionDatabase();
-    
     var noteObj = JSON.stringify(this.RootNote.Serialize(true));
     $.ajax({
       type: "post",

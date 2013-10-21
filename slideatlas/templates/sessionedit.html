@@ -1,17 +1,114 @@
 <!doctype html>
- 
+
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
-  <title>jQuery UI Sortable - Default functionality</title>
+  <title>Session editor</title>
   <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
   <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+
+
   <style>
-  #sortable { list-style-type: none; margin: 0; padding: 0; width: 100%; }
-  #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 28px; }
-  #sortable li span { position: absolute; margin-left: -1.3em; }
+  #sortable { 
+    list-style-type: none; 
+    margin: 0; padding: 0;
+  }
+  #sortable li { 
+    margin: 0 3px 3px 3px; 
+    padding: 3px; 
+    padding-left: 1.5em; 
+    height: 37px; 
+    position: relative;
+  }
+  #sortable li span { 
+    position: absolute; 
+    margin-left: -1.3em; 
+  }
+  #sortable li img { 
+    margin: 0px;
+    padding: 0px;
+    width: 38px;
+    float: left;
+    height: 38px;
+  }
+  #sortable li input {
+    padding: 4px;
+    margin: 5px;
+    float: left;
+    width: 22em;
+  }
+  
+  
+  
+  body {
+    margin:0;
+  }
+
+  #wrapper {
+    width: auto;
+    overflow: hidden;
+  }
+
+  #session {
+    float: left;
+    height: 100%;
+    border: 1px solid #999;
+  }
+
+  #session div {
+    padding-bottom: 10px;
+  }
+
+  #slideScroll {
+    border: 1px solid #999;
+    overflow-y: scroll;
+  }
+  
+  #slideList {
+    padding-top: 3px; 
+  }
+  
+  
+  h2 {
+    text-align: center;
+    margin: 0;
+  }
+
+  #imagePanel {
+    height: 100%;
+    width: auto;
+  }
+
+  #gallery {
+    position:relative;
+    padding:0;
+    border:1px solid #CCC;
+    height: 100%;
+    list-style: none;
+    overflow-y: auto;
+  }
+  
+  #gallery li {
+    float:left;
+    padding: 2px;
+  }
+  
+  #gallery li img {
+    border: 2px solid #CCC;
+    padding:2px;
+  }
+
+  #gallery li img:hover {
+    border-color: #333;
+  }
+
+
+  
   </style>
+
+
   <script>
     $(function() {
       $( "#sortable" ).sortable();
@@ -26,74 +123,294 @@
 
     function save() {
       var views = [];
-      $('li', 'ul').each(function () {
-        //views.push($(this).text());
-        views.push($(this).attr('id'));
+      $('li', '#sortable').each(function () {
+        var view = {'view': $(this).attr('view'),
+                    'label' : $('input',this).val(),
+                    'db' : $(this).attr('db'),
+                    'img': $(this).attr('img') };
+        views.push(view); 
       });
       // Save the new order inthe database.
+      // Python will have to detect if any view objects have to be deleted.
       var args = {};
       args.views = views;
       args.db = "{{data.db}}";
       args.session = "{{data.sessid}}";
+      args.label = $("#title").val();
 
       $.ajax({
         type: "post",
         url: "/session-save",
         data: {"input" :  JSON.stringify( args )},
         success: function(data,status){
-           //alert(data + "\nStatus: " + status);
-           },
-        error: function() { alert( "AJAX - error()" ); },
-        });      
+                   window.location.href = "sessions?sessid="+"{{data.sessid}}"+"&sessdb="+"{{data.db}}";
+                 },
+        error: function() { alert( "AJAX - error: session-save" ); },
+      });
     }
 
     function updateOptions() {
-      var x=document.getElementById("search");
+      var x=document.getElementById("title");
       //x.value=x.value.toUpperCase();
     }
-        
+
+    function handleResize() {
+      // We need a dynamic resize
+      var height = window.innerHeight - 2;
+      $('#wrapper').css({"height": height});
+      // I am having trouble getting the scroll bar to appear.
+      var top = $('#slideScroll').position().top + 10;
+      $('#slideScroll').css({"height":(height-top)});
+      if ($('#slideList').outerHeight() < height-top) {
+        $('#slideScroll').css({'overflow-y':'hidden'});
+      }
+      
+      top = $('#gallery').position().top + 15;
+      $('#gallery').css({"height":(height-top)});
+    }
+    
+    var IMAGE_HOVER_LABEL;
+    $(document).ready(function(){
+      $(window).resize(function() {
+          handleResize();
+      }).trigger('resize');
+
+      $.get("./sessions?json=true",
+            function(data,status){
+              if (status == "success") {
+                LoadDatabases(data);
+              } else { alert("ajax failed."); }
+            });
+    });
+
+    var DATABASES;
+    function LoadDatabases(data) {
+      // The first "sessions" list is actually databases.
+      DATABASES = data.sessions;
+      // Populate the database menu.
+      for (var i = 0; i < DATABASES.length; ++i) {
+        var option = $('<option>').appendTo($('#databaseList'))
+                                  .attr('value', i)
+                                  .text(data.sessions[i].rule);
+      }
+      // Select the first as default.
+      if (DATABASES.length > 0) {
+        SelectDatabase(0);
+      }
+      handleResize();
+    }
+  
+    var SELECTED_DATABASE;
+    function SelectDatabase(idx) {
+      SELECTED_DATABASE = DATABASES[idx];
+      // Populate the sessions menu.
+      $("#sessionList").empty();
+      var sessions = SELECTED_DATABASE.sessions;
+      if (sessions.length > 0) {
+        for (var i = 0; i < sessions.length; ++i) {
+          $('<option>').appendTo($('#sessionList'))
+                       .attr('value', i)
+                       .text(sessions[i].label);
+        }
+        $('<option>').appendTo($('#sessionList'))
+                     .attr('value', sessions.length)
+                     .text("All Images");
+        SelectSession(0);
+      }
+      handleResize();
+    }
+
+    var SELECTED_SESSION;
+    function SelectSession(idx) {
+      if (idx == SELECTED_DATABASE.sessions.length) {
+        // Load all the images for a database.
+        SELECTED_SESSION = undefined; // delete SELECETED_SESSION
+        // Retrieve the database id from one of the sessions.
+        db = SELECTED_DATABASE.sessions[0].sessdb;
+        $.get("./webgl-viewer/getimagenames?db="+db,
+              function(data,status){
+                if (status == "success") {
+                  LoadImages(data);
+                } else { alert("ajax failed."); }
+              });
+      } else {
+        SELECTED_SESSION = SELECTED_DATABASE.sessions[idx];
+        $.get("./sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
+              function(data,status){
+                if (status == "success") {
+                  LoadSession(data);
+                } else { alert("ajax failed."); }
+              });
+      }
+    }
+
+    function ComputeGalleryImageSize(number) {
+      // Create a image label show appears on hover.
+      // A hack to create it here. Empty gets rid of it....
+      IMAGE_HOVER_LABEL = $('<p>').appendTo('#gallery')
+                                  .hide()
+                                  .css({'position':'absolute', 
+                                        'z-index':'2', 
+                                        'background-color':'#EEF',
+                                        'border':'1px solid #555',
+                                        'border-radius':'20px',
+                                        'padding':'3px 10px',
+                                        'font-size':'larger'});
+
+      // Lets compute an optimal size for images.
+      var w = $('#gallery').innerWidth();
+      var h = $('#gallery').innerHeight();
+      var size = Math.sqrt(w*h / number);
+      // This would be good images would 'wrap' ...
+      var nx = Math.ceil(w / size);
+      var ny = Math.ceil(h / size);
+      var xSize = w/nx;
+      var ySize = h/ny;
+      size = xSize;
+      if (size > ySize) { size = ySize; }
+      // Take some away for borders and padding.
+      size = size - 14; // more vertical padding than horizontal ?
+      // Not smaller than 72 or bigger than 256.
+      if (size < 72) { size = 72;}
+      if (size > 256) { size = 256;}
+      return size;
+    }
+    
+    function LoadImages(data) {
+      $('#gallery').empty();
+      // Lets compute an optimal size for images.
+      var size = ComputeGalleryImageSize(data.Images.length);
+      for (var i = 0; i < data.Images.length; ++i) {
+        var listItem = $('<li>').appendTo($('#gallery'));
+        var image = $('<img>').appendTo(listItem)
+                              .attr("db", data.Database)
+                              .attr("img", data.Images[i]._id)
+                              .attr("height", size+"px")
+                              .attr("width", size+"px")
+                              .attr("src", "tile?db="+data.Database+"&img="+data.Images[i]._id+"&name=t.jpg")
+                              .attr("alt", data.Images[i].label)
+                              .hover(function(){
+                                       var p = $(this).position();
+                                       var y = p.top-10+$('#gallery').scrollTop();
+                                       var label = $(this).attr('alt');
+                                       IMAGE_HOVER_LABEL.show().css({'left':p.left+10, 'top':y}).text(label);
+                                     },function(){IMAGE_HOVER_LABEL.hide();})
+                              .mousedown(function(event) {
+                                           AddImageToSession($(this).attr('db'),
+                                                             $(this).attr('img'),
+                                                             $(this).attr('alt'),
+                                                             event);
+                                         });
+      }
+    }
+
+    function LoadSession(data) {
+      $('#gallery').empty();
+      var size = ComputeGalleryImageSize(data.images.length);
+      // It is odd that sessions have separate image and view arrays.
+      // (The one I inspected had different number of elements).
+      for (var i = 0; i < data.images.length; ++i) {
+        var listItem = $('<li>').appendTo($('#gallery'));
+        var image = $('<img>').appendTo(listItem)
+                              .attr("db",data.db)
+                              .attr("img",data.images[i].img)
+                              .attr("height", size+"px")
+                              .attr("width", size+"px")
+                              .attr("src", "tile?db="+data.images[i].db+"&img="+data.images[i].img+"&name=t.jpg")
+                              .attr("alt", data.images[i].label)
+                              .hover(function(){
+                                       var p = $(this).position();
+                                       var y = p.top-10+$('#gallery').scrollTop();
+                                       var label = $(this).attr('alt');
+                                       IMAGE_HOVER_LABEL.show().css({'left':p.left+10, 'top':y})
+                                                               .text(label);
+                                     },
+                                     function(){IMAGE_HOVER_LABEL.hide();})
+                              .mousedown(function() {
+                                           AddImageToSession($(this).attr("db"),
+                                                             $(this).attr("img"),
+                                                             $(this).attr("alt"));
+                                         });
+      }
+    }
+
+    function DatabaseCallback(idx) {
+      $('#gallery').empty();
+      SelectDatabase(parseInt(idx));
+    }
+
+    function SessionCallback(idx) {
+      $('#gallery').empty();
+      SelectSession(parseInt(idx));
+    }
+
+
+    function AddImageToSession(db, img, label, event) {
+      var item = $('<li>').appendTo($('#sortable'))
+                          .attr("class", "ui-state-default")
+                          // We will have to create a new when id is not set.
+                          .attr("db",db)
+                          .attr("id",img)
+                          .attr("img",img);
+      $('<span>').appendTo(item)
+                 .attr("class","ui-icon ui-icon-circle-close")
+                 .click(function(){deleteView(img);});
+      $('<img>').appendTo(item)
+                .attr("src","tile?db="+db+"&img="+img+"&name=t.jpg")
+                .on('dragstart', function(event) { 
+                  event.preventDefault(); return false;});
+      $('<input type="text">').appendTo(item).val(label);
+      // How to start this dragging with the mouse?
+      //item.sortable('activate'); // not initialized yet ???
+    }
+
+    
     </script>
   
 </head>
 <body>
 
-<div style="position:fixed; margin-top:-40px; width:100%">
-  <table style="width:100%">
-    <tr>
-      <td style="width:100%;">
-        <input type="text" id="search" onkeyup="updateOptions()" name="views" style="width:100%">
-        <datalist id="views">
-          <!--<option value="Internet Explorer"> !-->
-        </datalist>
-      </td>
-      <td>
-        <button onclick="save()" style="float:right; margin-right:20px;">Save</button>
-      </td>
-    </tr>
-  </table>
-</div>
 
-
-
-
-
- 
-<div style="margin-top:50px;">
-  <ul id="sortable">
-    {% for animage in data.list %}
-      <li class="ui-state-default" id="{{animage.view}}">
-        <!-- <span class="ui-icon ui-icon-arrowthick-2-n-s"></span> !-->
-        <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
-
-        <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" height=32px></td> 
-        {{ animage.label}}
-      </li>
-    {% endfor %}
+<div id="wrapper">
+  <div id="session">
+    <h2>Session</h2>
+    <div>
+      <label>Title</label>
+      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:300px" value="{{data.session.label}}"/>
+      <button onclick="save()" >Save</button>
+    </div>
     
-  </ul>
+    <div id="slideScroll">
+      <div id="slideList">
+        <ul id="sortable">
+          {% for animage in data.list %}
+            <li class="ui-state-default" id="{{animage.view}}" view="{{animage.view}}" db="{{animage.db}}">
+              <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
+              <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg"></img> 
+              <input type="text" value="{{ animage.label}}"/>
+            </li>
+          {% endfor %}
+          
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div id="imagePanel">
+    <label>Database</label>
+    <select id = "databaseList" onchange="DatabaseCallback(this.value)">
+    </select>
+    
+    <label>Session</label>
+    <select id = "sessionList" onchange="SessionCallback(this.value)">
+    </select>
+
+    <ul id="gallery">
+    </ul>
+  </div>
+
+  </tr>
 </div>
 
- 
- 
+
 </body>
 </html>

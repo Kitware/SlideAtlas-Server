@@ -112,6 +112,7 @@ image data/pyramid collection (named *ObjectId*)
 
 - **'\_id'**: ObjectId
 - **'img'**: ObjectId (pointer to document in 'images' collection)
+- **'imgdb'**: Optional: For when the image is not in the same database as the view
 - **'label'**: str
 - **'startup\_view'**: ObjectId
 - **'bookmarks'**: array[n]

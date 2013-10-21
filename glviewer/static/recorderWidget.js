@@ -16,7 +16,7 @@
 
 // Design issue:
 // Should I save the state at the end of a move or the begining?  I chose end.  Although begining is easier,
-// I like just poping the last state off the TIME_LINE and pushing to the REDO_STACK
+// I like just popping the last state off the TIME_LINE and pushing to the REDO_STACK
 
 
 //------------------------------------------------------------------------------
@@ -89,27 +89,6 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
   this.Annotations = [obj];
 }
 
-// view args format. Get rid of this asap.
-ViewerRecord.prototype.LoadRootViewer = function(data) {
-  // Hack. data is in args  but ....
-  var bds = [0,data.dimensions[0], 0,data.dimensions[1]];
-  var cache = new Cache(data.db, 
-                        data.image, 
-                        data.levels,
-                        bds);
-
-  this.Database = data.db;
-  this.Image = data.image;
-  this.NumberOfLevels = data.levels;
-
-  var cameraRecord = {};
-  cameraRecord.FocalPoint = data.center;
-  cameraRecord.Height = data.viewHeight;
-  cameraRecord.Roll = data.rotation;
-  this.Camera = cameraRecord;
-  this.Annotations = [];
-}
-
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
@@ -151,7 +130,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
   // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
   if (viewer.ActiveWidget) {
     // Hackish way to deactivate.
-    viewer.ActiveWidget.SetActive(false);  
+    viewer.ActiveWidget.SetActive(false);
   }
 
   if ( ! this.Bounds && this.Dimensions) {
