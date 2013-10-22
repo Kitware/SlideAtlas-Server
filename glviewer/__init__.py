@@ -73,7 +73,7 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 # It becomes so simple!
 def glnote(db, dbid, viewid, viewobj):
     # I was going get the user id from the session, and pass it to the viewer.
-    # I think I will just try to retreive the user from the "Save Note" method.
+    # I think I will just try to retrieve the user from the "Save Note" method.
     if 'user' in session:
         email = session["user"]["email"]
     else:

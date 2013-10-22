@@ -348,14 +348,21 @@ def sessionsave():
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbId) })
     db = conn[dbobj["dbname"]]
 
+    if 'user' in session:
+      email = session["user"]["email"]
+      
+    #pdb.set_trace()
+    #if not user == "all_bev1_admin" :
+    #  return ""
+
     # get the session in the database to modify.
     # Todo: if session is undefined, create a new session (copy views when available).
-    session = db["sessions"].find_one({"_id" : ObjectId(sessId) })
-    session["label"] = label
-    session["name"] = label # Why a name and label?
+    sessObj = db["sessions"].find_one({"_id" : ObjectId(sessId) })
+    sessObj["label"] = label
+    sessObj["name"] = label # Why a name and label?
     
     # create a new list of sessions.
-    oldViews = session["views"]
+    oldViews = sessObj["views"]
     newViews = []
     newImages = []
     for viewData in views:
@@ -378,6 +385,10 @@ def sessionsave():
           image["pos"] = len(newImages)
           image["hide"] = False
           viewObj = db["views"].find_one({"_id" : ObjectId(viewId) })
+          # if copying a session, copy the view objects too.
+          if newFlag :
+            del viewObj["_id"]
+            view["ref"] = db["views"].save(viewObj);
           if "img" in viewObj :
             image["ref"] = viewObj["img"]
           else :
@@ -414,21 +425,23 @@ def sessionsave():
     # Delete the views that are left over.
     # Views are owned by the session.
     # Images can be shared.
-    for view in oldViews:
-      db["views"].remove({"_id" : view["ref"] })
+    if not newFlag :
+      for view in oldViews:
+        db["views"].remove({"_id" : view["ref"] })
 
-    session["views"] = newViews;
-    session["images"] = newImages;
+    sessObj["views"] = newViews;
+    sessObj["images"] = newImages;
 
     #pdb.set_trace()
     if newFlag :
-      del session["_id"]
-      sessid = db["sessions"].save(session);    
+      del sessObj["_id"]
+      sessObj["user"] = email;
+      sessid = db["sessions"].save(sessObj);    
     elif len(newViews) == 0 :
-      db["sessions"].remove({"_id":session["_id"]});
+      db["sessions"].remove({"_id":sessObj["_id"]});
       sessid = "";
     else :
-      sessid = db["sessions"].save(session);
+      sessid = db["sessions"].save(sessObj);
 
     return str(sessid);
 

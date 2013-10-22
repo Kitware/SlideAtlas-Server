@@ -120,6 +120,11 @@
       // A hack, but how should it be done right?
       var tmp = "#"+arg;
       $(tmp).remove();
+      
+      var numViews = $("#sortable").children().length;
+      if (numViews == 0) {
+        $('#saveButton').text("Delete");
+      }
     }
 
     function save(saveNew) {
@@ -374,6 +379,12 @@
       $('<input type="text">').appendTo(item).val(label);
       // How to start this dragging with the mouse?
       //item.sortable('activate'); // not initialized yet ???
+      
+      var numViews = $("#sortable").children().length;
+      if (numViews == 1) { // last was 0
+        $('#saveButton').text("Save");
+      }
+
     }
 
     
@@ -391,7 +402,7 @@
       <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{data.session.label}}"/>
     </div>
     <div class="center">
-      <button onclick="save(false)" >Save</button>
+      <button id="saveButton" onclick="save(false)" >Save</button>
       <button onclick="save(true)" >Save New</button>
       <button onclick="cancel()" >Cancel</button>
     </div>
