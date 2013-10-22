@@ -334,12 +334,11 @@ def sessionedit():
 # Saves comparison view back into the database.
 @mod.route('/session-save', methods=['GET', 'POST'])
 def sessionsave():
-    #pdb.set_trace()
-
     inputStr = request.form['input']  # for post
     #inputStr = request.args.get('input', "{}") # for get
 
     inputObj = json.loads(inputStr)
+    newFlag = inputObj["new"]
     dbId = inputObj["db"]
     sessId = inputObj["session"]
     label = inputObj["label"]
@@ -421,8 +420,15 @@ def sessionsave():
     session["views"] = newViews;
     session["images"] = newImages;
 
-    db["sessions"].save(session);
+    #pdb.set_trace()
+    if newFlag :
+      del session["_id"]
+      sessid = db["sessions"].save(session);    
+    elif len(newViews) == 0 :
+      db["sessions"].remove({"_id":session["_id"]});
+      sessid = "";
+    else :
+      sessid = db["sessions"].save(session);
 
-    # I should probably return success.  This is just a place holder.
-    return "success";
+    return str(sessid);
 

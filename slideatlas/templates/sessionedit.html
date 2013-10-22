@@ -39,9 +39,7 @@
     float: left;
     width: 22em;
   }
-  
-  
-  
+
   body {
     margin:0;
   }
@@ -70,12 +68,15 @@
     padding-top: 3px; 
   }
   
-  
   h2 {
     text-align: center;
     margin: 0;
   }
 
+  .center {
+    margin-left: 6em;
+  }
+  
   #imagePanel {
     height: 100%;
     width: auto;
@@ -121,7 +122,7 @@
       $(tmp).remove();
     }
 
-    function save() {
+    function save(saveNew) {
       var views = [];
       $('li', '#sortable').each(function () {
         var view = {'view': $(this).attr('view'),
@@ -133,6 +134,7 @@
       // Save the new order inthe database.
       // Python will have to detect if any view objects have to be deleted.
       var args = {};
+      args.new = saveNew;
       args.views = views;
       args.db = "{{data.db}}";
       args.session = "{{data.sessid}}";
@@ -143,12 +145,21 @@
         url: "/session-save",
         data: {"input" :  JSON.stringify( args )},
         success: function(data,status){
-                   window.location.href = "sessions?sessid="+"{{data.sessid}}"+"&sessdb="+"{{data.db}}";
+                   if (data != "") {
+                     window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                   } else {
+                     // Session was empty and deleted from the database.
+                     window.location.href = "sessions";
+                   }
                  },
         error: function() { alert( "AJAX - error: session-save" ); },
       });
     }
 
+    function cancel() {
+      window.location.href = "sessions?sessid="+"{{data.sessid}}"+"&sessdb="+"{{data.db}}";
+    }
+    
     function updateOptions() {
       var x=document.getElementById("title");
       //x.value=x.value.toUpperCase();
@@ -355,6 +366,7 @@
       $('<span>').appendTo(item)
                  .attr("class","ui-icon ui-icon-circle-close")
                  .click(function(){deleteView(img);});
+      // I am trying to stop the drag effect of the image.  This does not work.
       $('<img>').appendTo(item)
                 .attr("src","tile?db="+db+"&img="+img+"&name=t.jpg")
                 .on('dragstart', function(event) { 
@@ -376,9 +388,14 @@
     <h2>Session</h2>
     <div>
       <label>Title</label>
-      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:300px" value="{{data.session.label}}"/>
-      <button onclick="save()" >Save</button>
+      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{data.session.label}}"/>
     </div>
+    <div class="center">
+      <button onclick="save(false)" >Save</button>
+      <button onclick="save(true)" >Save New</button>
+      <button onclick="cancel()" >Cancel</button>
+    </div>
+
     
     <div id="slideScroll">
       <div id="slideList">
