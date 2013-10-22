@@ -353,7 +353,7 @@ def sessionsave():
     if 'user' in session:
       email = session["user"]["email"]
       
-    pdb.set_trace()
+    #pdb.set_trace()
     admin = False
     if email == "all_bev1_admin" :
       admin = True
