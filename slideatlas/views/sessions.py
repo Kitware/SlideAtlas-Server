@@ -124,7 +124,9 @@ def sessions():
                         hide = True
                     if not hide :
                       if label == "" :
-                          label = imgobj["label"]
+                        label = imgobj["label"]
+                      if "label" in aview :
+                        label = aview["label"]
                       if imgobj.has_key("thumb"):
                           del imgobj['thumb']
                       animage = {}
@@ -351,9 +353,14 @@ def sessionsave():
     if 'user' in session:
       email = session["user"]["email"]
       
-    #pdb.set_trace()
-    #if not user == "all_bev1_admin" :
-    #  return ""
+    pdb.set_trace()
+    admin = False
+    if email == "all_bev1_admin" :
+      admin = True
+    if email == "all_paul3_admin" :
+      admin = True
+    if not admin :
+      return ""
 
     # get the session in the database to modify.
     # Todo: if session is undefined, create a new session (copy views when available).
