@@ -16,7 +16,7 @@
 
 // Design issue:
 // Should I save the state at the end of a move or the begining?  I chose end.  Although begining is easier,
-// I like just poping the last state off the TIME_LINE and pushing to the REDO_STACK
+// I like just popping the last state off the TIME_LINE and pushing to the REDO_STACK
 
 
 //------------------------------------------------------------------------------
@@ -27,6 +27,24 @@ function ViewerRecord () {
   this.Database = "";
   this.Image = ""; // The image collection
   this.NumberOfLevels = 0;
+}
+
+// I am still trying to figure out a good pattern for loading
+// objects from mongo.  
+// Cast to a ViewerObject by setting its prototype does not work on IE
+ViewerRecord.prototype.Load = function(obj) {
+  for (ivar in obj) {
+    this[ivar] = obj[ivar];
+  }
+
+  if (this.Annotations) {
+    for (var i = 0; i < this.Annotations.length; ++ i) {
+      var a = this.Annotations[i];
+      if (a && a.color) {
+        a.color = ConvertColor(a.color);
+      }
+    }
+  }
 }
 
 // Bookmark is legacy schema
@@ -44,8 +62,6 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
     // Since this is legacy, just copy the bounds from the cache.
     this.Bounds = cache.GetBounds();    
   }
-  
-  
   
   var cameraRecord = {};
   cameraRecord.FocalPoint = data.center;
@@ -71,27 +87,6 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
   obj.string = data.title;
   obj.anchorVisibility = true;
   this.Annotations = [obj];
-}
-
-// view args format. Get rid of this asap.
-ViewerRecord.prototype.LoadRootViewer = function(data) {
-  // Hack. data is in args  but ....
-  var bds = [0,data.dimensions[0], 0,data.dimensions[1]];
-  var cache = new Cache(data.db, 
-                        data.image, 
-                        data.levels,
-                        bds);
-
-  this.Database = data.db;
-  this.Image = data.image;
-  this.NumberOfLevels = data.levels;
-
-  var cameraRecord = {};
-  cameraRecord.FocalPoint = data.center;
-  cameraRecord.Height = data.viewHeight;
-  cameraRecord.Roll = data.rotation;
-  this.Camera = cameraRecord;
-  this.Annotations = [];
 }
 
 
@@ -135,7 +130,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
   // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
   if (viewer.ActiveWidget) {
     // Hackish way to deactivate.
-    viewer.ActiveWidget.SetActive(false);  
+    viewer.ActiveWidget.SetActive(false);
   }
 
   if ( ! this.Bounds && this.Dimensions) {

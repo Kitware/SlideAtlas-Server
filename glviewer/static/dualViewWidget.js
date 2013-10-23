@@ -18,7 +18,6 @@ function InitDualViewWidget() {
         'right' : '0%',
         'z-index': '1'})
     .attr('id', 'dualWidgetLeft')
-    .attr('type','image')
     .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
     .click(function(){ToggleDualView();});
 
@@ -33,7 +32,6 @@ function InitDualViewWidget() {
         'left' : '50%',
         'z-index': '1'})
     .attr('id', 'dualWidgetRight')
-    .attr('type','image')
     .attr('src',"webgl-viewer/static/dualArrowRight2.png")
     .click(function(){ToggleDualView();});
     
@@ -42,7 +40,7 @@ function InitDualViewWidget() {
   }
 }
 
-// Called programatically. No animation.
+// Called programmatically. No animation.
 function SetNumberOfViews(numViews) {
   DUAL_VIEW = (numViews > 1);
 

@@ -31,7 +31,9 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
 
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
@@ -161,9 +163,9 @@ shape has visibility and
 <script type="text/javascript">
   var TEMPLATE = "view.html";
   var USER = "{{user}}";
-  var SESSION_ID = "{{sess}}";
-  var NOTE_ID = "{{view}}";
-  var SESSION_DATABASE = "{{db}}";
+  // A view has the same structure as a note.
+  var VIEW_ID = "{{view}}";
+  var SESSION_DATABASE = "{{sessdb}}";
   
   var EDIT = false; // Temporary way to hide editing.
   var CANVAS;
@@ -171,6 +173,8 @@ shape has visibility and
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
+  var NAVIGATION_WIDGET;
+  var NOTES_WIDGET;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
@@ -190,7 +194,8 @@ shape has visibility and
     } // SetViewport does the work for 2d canvases.
     
     // we set the left border to leave space for the notes window.
-    var left = width * NOTES_FRACTION;
+    var left = 0;
+    if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
     // The remaining width is split between the two viewers.
     var width1 = (width-left) * VIEWER1_FRACTION;
     var width2 = (width-left) - width1;
@@ -282,12 +287,15 @@ shape has visibility and
     }
     EVENT_MANAGER = new EventManager(CANVAS);
 
+    NAVIGATION_WIDGET = new NavigationWidget();
     InitViews();
     InitViewEditMenus();
     InitViewBrowser();
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
+    VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
+    if (MOBILE_DEVICE) {NAVIGATION_WIDGET.SetVisibility(false);}
 
     $(window).resize(function() {
         handleResize();

@@ -5,8 +5,7 @@
 
   <div class="container">
   <div class="row">
-  <h1>Displaying a session list for {{ name}} !</h1>
-
+  <h1> {{ data.session.label }} </h1>
 
     {# data #}
     {%if data.attachments|length %}
@@ -33,25 +32,40 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                <td>
-                {% if animage.comparison %}
-                    <a href="webgl-viewer/comparison?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
-                {% else %}
-                    <a href="webgl-viewer?db={{animage.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> </td>
-                {% endif %}
-                <td align="right">
-                    <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
-                </td>
                 {% if animage.label %}
-                  <td> <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></td>
+                  <td> <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}">                  
+                    <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
                 {% else %}                
                 {% endif %}
+                <td>
+                  <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
+                </td>
+                <td align="right">
+                  <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                </td>
             </tr>
          {% endfor %}
     </table>
     {% endif %}
 </div>
 </div>
+
+<script>
+  $(document).ready(function(){
+    var imagelist = {{ data.images|tojson|safe }};
+
+    // Save the session in localStorage (needed for previous / next slide.
+    var views = [];
+    for (var i=0; i < imagelist.length; i++) 
+      {
+      views.push(imagelist[i].view);
+      }
+    localStorage.session = JSON.stringify(views);
+  });
+</script>
+
+
+
 
 {% endblock %}
 
@@ -62,7 +76,7 @@
 
     <script>
         var imagelist = {{ data.images|tojson|safe }};
-
+        
         $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');
