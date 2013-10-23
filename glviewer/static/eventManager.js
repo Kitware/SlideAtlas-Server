@@ -217,8 +217,10 @@ EventManager.prototype.IsFullScreen = function() {
 
 EventManager.prototype.GoFullScreen = function () {
   // Deactivate the listener
-  this.FullScreenSweep.Active = false;
-
+  if (this.FullScreenSweep) {
+    this.FullScreenSweep.Active = false;
+  }
+  
   if (! this.IsFullScreen()) {
     var docElm = document.documentElement;
     if (docElm.requestFullscreen) {
@@ -363,7 +365,7 @@ EventManager.prototype.DetectSweepEvent = function(dx,dy) {
 
 EventManager.prototype.ShowSweepListeners = function() {
   // User may have taken it out of fullscreen.
-  if ( ! this.IsFullScreen()) {
+  if ( ! this.IsFullScreen() && this.FullScreenSweep) {
     this.FullScreenSweep.Active = true;
   }
   for (var i = 0; i < this.SweepListeners.length; ++i) {

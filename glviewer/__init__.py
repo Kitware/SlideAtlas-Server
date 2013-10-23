@@ -729,6 +729,7 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
+    #pdb.set_trace()
     viewid = request.args.get('viewid', "")
     viewdb = request.args.get('db', "")
     
@@ -800,56 +801,94 @@ def getview():
         #bookmark["annotation"]["color"]
         #                      ["displayname"]
         #bookmark["center"]
-        question = {}
-        question["Title"] = "Question"
-        question["Text"] = ""
-        question["Type"] = "Bookmark"
-        question["Id"] = str(bookmark["_id"]);
-        question["ParentId"] = viewid
-        vrq = {}
-        vrq["AnnotationVisibility"] = 1
-        vrq["Dimensions"] = viewerRecord["Dimensions"]
-        vrq["Bounds"] = viewerRecord["Bounds"]
-        vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
-        vrq["Image"] = viewerRecord["Image"]
-        vrq["Database"] = viewerRecord["Database"]
-        # camera object.
-        c = {}
-        c["FocalPoint"] = bookmark["center"]
-        c["Height"] = 900 << int(bookmark["zoom"])
-        c["Roll"] = bookmark["rotation"]
-        vrq["Camera"] = c
-        a = {};
-        a["type"] = "text"
-        a["color"] = bookmark["annotation"]["color"]
-        a["size"] = 30
-        a["position"] = bookmark["annotation"]["points"][0];
-        a["offset"] = [bookmark["annotation"]["points"][1][0]-a["position"][0], 
-                       bookmark["annotation"]["points"][1][1]-a["position"][1]]
-        a["string"] = bookmark["title"]
-        a["anchorVisibility"] = True
-        vrq["Annotations"] = [a];
-        question["ViewerRecords"] = [vrq]
-        children.append(question)
-        
-        answer = {}
-        answer["Title"] = bookmark["title"]
-        answer["Text"] = bookmark["details"]
-        answer["Type"] = "Bookmark"
-        answer["Id"] = str(bookmark["_id"]);
-        answer["ParentId"] = viewid
-        vra = {}
-        vra["AnnotationVisibility"] = 2
-        vra["Type"] = "Answer"
-        vra["Dimensions"] = viewerRecord["Dimensions"]
-        vra["Bounds"] = viewerRecord["Bounds"]
-        vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
-        vra["Image"] = viewerRecord["Image"]
-        vra["Database"] = viewerRecord["Database"]
-        vra["Camera"] = c
-        vra["Annotations"] = [a];
-        answer["ViewerRecords"] = [vra]
-        question["Children"] = [answer]
+        if bookmark["annotation"]["type"] == "pointer" :
+          question = {}
+          question["Title"] = "Question"
+          question["Text"] = ""
+          question["Type"] = "Bookmark"
+          question["Id"] = str(bookmark["_id"]);
+          question["ParentId"] = viewid
+          vrq = {}
+          vrq["AnnotationVisibility"] = 1
+          vrq["Dimensions"] = viewerRecord["Dimensions"]
+          vrq["Bounds"] = viewerRecord["Bounds"]
+          vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+          vrq["Image"] = viewerRecord["Image"]
+          vrq["Database"] = viewerRecord["Database"]
+          # camera object.
+          c = {}
+          c["FocalPoint"] = bookmark["center"]
+          c["Height"] = 900 << int(bookmark["zoom"])
+          c["Roll"] = bookmark["rotation"]
+          vrq["Camera"] = c
+          a = {};
+          a["type"] = "text"
+          a["color"] = bookmark["annotation"]["color"]
+          a["size"] = 30
+          a["position"] = bookmark["annotation"]["points"][0];
+          a["offset"] = [bookmark["annotation"]["points"][1][0]-a["position"][0], 
+                         bookmark["annotation"]["points"][1][1]-a["position"][1]]
+          a["string"] = bookmark["title"]
+          a["anchorVisibility"] = True
+          vrq["Annotations"] = [a];
+          question["ViewerRecords"] = [vrq]
+          children.append(question)
+          
+          answer = {}
+          answer["Title"] = bookmark["title"]
+          answer["Text"] = bookmark["details"]
+          answer["Type"] = "Bookmark"
+          answer["Id"] = str(bookmark["_id"]);
+          answer["ParentId"] = viewid
+          vra = {}
+          vra["AnnotationVisibility"] = 2
+          vra["Type"] = "Answer"
+          vra["Dimensions"] = viewerRecord["Dimensions"]
+          vra["Bounds"] = viewerRecord["Bounds"]
+          vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+          vra["Image"] = viewerRecord["Image"]
+          vra["Database"] = viewerRecord["Database"]
+          vra["Camera"] = c
+          vra["Annotations"] = [a];
+          answer["ViewerRecords"] = [vra]
+          question["Children"] = [answer]
+
+        if bookmark["annotation"]["type"] == "circle" :
+          note = {}
+          note["Title"] = bookmark["title"] 
+          note["Text"] = bookmark["details"] 
+          note["Type"] = "Bookmark"
+          note["Id"] = str(bookmark["_id"]);
+          note["ParentId"] = viewid
+          vr = {}
+          vr["AnnotationVisibility"] = 1
+          vr["Dimensions"] = viewerRecord["Dimensions"]
+          vr["Bounds"] = viewerRecord["Bounds"]
+          vr["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+          vr["Image"] = viewerRecord["Image"]
+          vr["Database"] = viewerRecord["Database"]
+          # camera object.
+          c = {}
+          c["FocalPoint"] = bookmark["center"]
+          c["Height"] = 900 << int(bookmark["zoom"])
+          c["Roll"] = bookmark["rotation"]
+          vrq["Camera"] = c
+          a = {};
+          a["type"] = "circle"
+          a["color"] = bookmark["annotation"]["color"]
+          a["outlinecolor"] = bookmark["annotation"]["color"]
+          a["origin"] = bookmark["annotation"]["points"][0]
+          # why does radius have value False?
+          if bookmark["annotation"]["radius"] :
+            a["radius"] = bookmark["annotation"]["radius"]
+          else :
+            a["radius"] = 1000.0
+          a["linewidth"] = a["radius"] / 20
+          
+          vr["Annotations"] = [a];
+          note["ViewerRecords"] = [vr]
+          children.append(note)
+
     noteObj["Children"] = children
     
     return jsonify(noteObj)

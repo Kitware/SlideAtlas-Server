@@ -680,6 +680,10 @@ Viewer.prototype.HandleTouchPinch = function(event) {
   w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
   w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
   var dt = event.Time - event.LastTime;
+  // iPad / iPhone must have low precision time
+  if (dt == 0) {
+    return;
+  }
   
   // Compute scale.
   // Consider weighting rotation by vector length to avoid over contribution of short vectors.
@@ -696,8 +700,12 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     y = event.Touches[i][1] - event.MouseY;
     s1 += Math.sqrt(x*x + y*y);
   }
+  // This should not happen, but I am having trouble with NaN camera parameters.
+  if (s0 < 2 || s1 < 2) {
+    return;
+  }
   scale = s1/ s0;
-    
+        
   // scale is around the mid point .....
   // we need to compute focal point height and roll (not just a matrix).
   // Focal point is the only difficult item.
@@ -722,208 +730,24 @@ Viewer.prototype.HandleTouchPinch = function(event) {
   cam.ComputeMatrix();  
   eventuallyRender();  
 }
-// Legacy  to be changed to handle sweep.
-Viewer.prototype.HandleTouchMove = function(event) {
-  if ( ! this.NewTouch) {
-    // Keep a single sweep from firing multiple events.
-    return;
-  }
-  // Note, scale and rotation might behave odd if the number
-  // of touches changes in mid motion.
-  var numTouches = event.Touches.length;
-  if (event.LastTouches.length != numTouches || numTouches < 1) {
-    return;
-  }
-  var viewport = this.GetViewport();
-  // Use the average touch for panning.
-  var mid0 = [0,0];
-  var mid1 = [0,0];
-  for (var i = 0; i < numTouches; ++i) {
-    mid0[0] += event.LastTouches[i][0];
-    mid0[1] += event.LastTouches[i][1];
-    mid1[0] += event.Touches[i][0];
-    mid1[1] += event.Touches[i][1];
-  }
-  mid0[0] = mid0[0] / numTouches;
-  mid0[1] = mid0[1] / numTouches;
-  mid1[0] = mid1[0] / numTouches;
-  mid1[1] = mid1[1] / numTouches;
-
-  // We need the world location of the mid points
-  // to constrain rotation and scale.
-  // Scale the mids to view coordinates [-1->1]
-  var v0 = [0,0];
-  var v1 = [0,0];
-  v0[0] = 2*(mid0[0]-viewport[0]) / viewport[2] - 1;
-  v0[1] = 2*(mid0[1]-viewport[1]) / viewport[3] - 1;
-  v1[0] = 2*(mid1[0]-viewport[0]) / viewport[2] - 1;
-  v1[1] = 2*(mid1[1]-viewport[1]) / viewport[3] - 1;
-
-  var t = new Date().getTime();
-  var dt = t - this.LastTime;
-  this.LastTime = t;
-  if (numTouches > 1) { // check for swipes.
-    // Compute speed
-    var xSpeed = (v1[0] - v0[0]) / dt;
-    var ySpeed = (v1[1] - v0[1]) / dt;
-    // off the top: go to full screen
-    // Checking speed off an edge is problematic.  Fast swipe misses edge.
-    // Lets move the boundary 10% and rely on direction
-    if (ySpeed > 2*Math.abs(xSpeed) && v1[1] > 0.95 && v0[1] <=0.95) {
-      GoFullScreen();
-      this.NewTouch = false;
-      return;
-    }
-    // Toggle dual view swipes.
-    if (! DUAL_VIEW && xSpeed < -2*Math.abs(ySpeed) &&
-        v0[0] > 0.95 && v1[0] <= 0.95) {
-      ToggleDualView();
-      this.NewTouch = false;
-      return;
-    }
-    if (DUAL_VIEW && xSpeed > 2*Math.abs(ySpeed)) {
-      if ( (v0[0] < 0.95 && v1[0] >= 0.95)) {
-        ToggleDualView();
-        this.NewTouch = false;
-        return;
-      }
-    }
-    // Toggle the notes window: Sweep left edge.
-    if (! NOTES_VISIBILITY && this == VIEWER1 && xSpeed > 2*Math.abs(ySpeed) &&
-        v0[0] < -0.95 && v1[0] >= -0.95) {
-      ToggleNotesWindow();
-      this.NewTouch = false;
-      return;
-    }
-    if (NOTES_VISIBILITY && this == VIEWER1 && xSpeed < -2*Math.abs(ySpeed) &&
-        v0[0] > -0.95 && v1[0] <= -0.95) {
-      ToggleNotesWindow();
-      this.NewTouch = false;
-      return;
-    }
-    // Sweep to advance note
-    // Todo: Show button for next/previous slide
-    if (xSpeed > 2*Math.abs(ySpeed) && xSpeed > 0.01) {
-      PreviousNoteCallback();
-      this.NewTouch = false;
-      return;
-    }
-    if (xSpeed < -2*Math.abs(ySpeed) && xSpeed < -0.005) {
-      NextNoteCallback();
-      this.NewTouch = false;
-      return;
-    }
-  }
-  
-  // Convert to world by inverting the camera matrix.
-  var cam = this.MainView.Camera;
-  var m = cam.Matrix;
-  v0[0] = (v0[0] * m[15]) - m[12];
-  v0[1] = (v0[1] * m[15]) - m[13];
-  v1[0] = (v1[0] * m[15]) - m[12];
-  v1[1] = (v1[1] * m[15]) - m[13];
-  var w0 = [0,0];
-  var w1 = [0,0];
-  var det = m[0]*m[5] - m[1]*m[4];
-  w0[0] = (v0[0]*m[5]-v0[1]*m[4]) / det;
-  w0[1] = (v0[1]*m[0]-v0[0]*m[1]) / det;
-  w1[0] = (v1[0]*m[5]-v1[1]*m[4]) / det;
-  w1[1] = (v1[1]*m[0]-v1[0]*m[1]) / det;
-  
-  // Compute scale and rotation.
-  // Consider weighting rotation by vector length to avoid over contribution of short vectors.
-  // We could also take max.
-  // This should rarely be an issue and could only happen with 3 or more touches.
-  var a = 0;
-  var scale = 1;
-  if (numTouches > 1) {
-    var s0 = 0;
-    var s1 = 0;
-    for (var i = 0; i < numTouches; ++i) {
-      x = event.LastTouches[i][0] - mid0[0];
-      y = event.LastTouches[i][1] - mid0[1];
-      s0 += Math.sqrt(x*x + y*y);
-      var a1  = Math.atan2(y,x);
-      x = event.Touches[i][0] - mid1[0];
-      y = event.Touches[i][1] - mid1[1];
-      s1 += Math.sqrt(x*x + y*y);
-      a1 = a1 - Math.atan2(y,x);
-      if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
-      if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
-      a += a1;
-    }
-    scale = s1/ s0;
-    a = a / numTouches;
-  }
-
-  // I do not like scaling when I am trying to sweep.
-  //  If translation is larger than scaling, set scaling to 0.
-  if (numTouches == 2) {
-    // Only scale if touches are moving in opposite directions
-    // (the dot product of the two touches is negative).
-    var dot = (event.Touches[0][0]-event.LastTouches[0][0])*(event.Touches[1][0]-event.LastTouches[1][0]) +
-              (event.Touches[0][1]-event.LastTouches[0][1])*(event.Touches[1][1]-event.LastTouches[1][1]);
-    if (dot > 0.0) {
-      scale = 1.0;
-    }
-  }
-  
-  // Roll was too sensitive.  Lets restrict roll to three finger interaction.
-  if (numTouches == 2) { // Zoom only.
-    w1[0] = w0[0];
-    w1[1] = w0[1];
-    a = 0.0;
-  }
-  if (numTouches >= 3) { // Rotate only.
-    w1[0] = w0[0];
-    w1[1] = w0[1];
-    scale = 1.0;
-  }
-  
-  // rotation and scale are around the mid point .....
-  // we need to compute focal point height and roll (not just a matrix).
-  // Focal point is the only difficult item.
-  w1[0] = cam.FocalPoint[0] - w1[0];
-  w1[1] = cam.FocalPoint[1] - w1[1];
-  var c = Math.cos(a);
-  var s = Math.sin(a);
-  // This is the new focal point.
-  var x = w0[0] + (w1[0]*c - w1[1]*s) / scale;
-  var y = w0[1] + (w1[0]*s + w1[1]*c) / scale;
-
-  // Remember the last motion to implement momentum.
-  var momentumX = (x - cam.FocalPoint[0])/dt;
-  var momentumY = (y - cam.FocalPoint[1])/dt;
-  var momentumRoll = a/dt;
-  var momentumScale = (scale-1)/dt;
-
-  this.MomentumX = (this.MomentumX + momentumX) * 0.5;
-  this.MomentumY = (this.MomentumY + momentumY) * 0.5;
-  this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
-  this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
-
-  cam.FocalPoint[0] = x;  
-  cam.FocalPoint[1] = y;
-  cam.Height = cam.Height / scale;
-  cam.Roll = cam.Roll - a;
-  cam.ComputeMatrix();  
-  if (this.OverView) {
-    var cam2 = this.OverView.Camera;
-    cam2.Roll = cam.Roll;
-    cam2.ComputeMatrix();  
-  }
-  eventuallyRender();  
-}
 
 Viewer.prototype.HandleTouchEnd = function(event) {
   this.HandleMomentum(event);  
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
+  // Sanity check
+  if (isNaN(this.MomentumScale)) { return; }
+
   // Integrate the momentum.
   event.LastTime = event.Time;
   event.Time = new Date().getTime();
   var dt = event.Time - event.LastTime;
+  // iPad / iPhone must have low precision time.
+  if (dt == 0) {
+    return;
+  }
+
   var k = 200.0;
   var decay = Math.exp(-dt/k);
   var integ = (-k * decay + k);
