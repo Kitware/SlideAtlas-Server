@@ -386,7 +386,15 @@ EventManager.prototype.HideSweepListeners = function() {
 
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
-EventManager.prototype.HandleTouch = function(e) {
+EventManager.prototype.HandleTouch = function(e, startFlag) {
+  var t = new Date().getTime();
+  // I have had trouble on the iPad with 0 delta times.
+  // Lets see how it behaves with fewer events.
+  if (t-this.Time < 20 && ! startFlag) { return false; }
+  
+  this.LastTime = this.Time;  
+  this.Time = t;
+
   if (!e) {
     var e = event;
   }
@@ -415,15 +423,14 @@ EventManager.prototype.HandleTouch = function(e) {
   this.MouseX = this.MouseX / numTouches;
   this.MouseY = this.MouseY / numTouches;
 
-  this.LastTime = this.Time;  
-  this.Time = new Date().getTime();
+  return true;
 }
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
   this.Tap = true;
   this.SelectedSweepListener = undefined;
-  this.HandleTouch(e);
+  this.HandleTouch(e, true);
   this.ChooseViewer();
   if (this.CurrentViewer) {
     this.MouseDown = true;
@@ -433,8 +440,10 @@ EventManager.prototype.HandleTouchStart = function(e) {
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
+// Put a throttle on events
+  if ( ! this.HandleTouch(e, false)) { return; }
+    
   this.Tap = false;
-  this.HandleTouch(e);
   this.ChooseViewer();
 
   var numTouches = this.Touches.length;

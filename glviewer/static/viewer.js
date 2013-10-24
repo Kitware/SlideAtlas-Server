@@ -736,17 +736,17 @@ Viewer.prototype.HandleTouchEnd = function(event) {
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
-  // Sanity check
-  if (isNaN(this.MomentumScale)) { return; }
+  var t = new Date().getTime();
+  if (t - event.LastTime < 50) {
+    var self = this;
+    this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+    return;
+  }
 
   // Integrate the momentum.
   event.LastTime = event.Time;
-  event.Time = new Date().getTime();
+  event.Time = t;
   var dt = event.Time - event.LastTime;
-  // iPad / iPhone must have low precision time.
-  if (dt == 0) {
-    return;
-  }
 
   var k = 200.0;
   var decay = Math.exp(-dt/k);
