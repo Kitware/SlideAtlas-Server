@@ -796,7 +796,8 @@ Note.prototype.LoadViewId = function(viewId) {
   $.ajax({
     type: "get",
     url: "/webgl-viewer/getview",
-    data: {"viewid": viewId,
+    data: {"sessid": localStorage.sessionId,
+           "viewid": viewId,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.Load(data);},
     error: function() { alert( "AJAX - error()" ); },

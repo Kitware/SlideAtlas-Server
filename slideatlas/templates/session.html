@@ -32,13 +32,13 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                {% if animage.label %}
-                  <td> <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}">                  
-                    <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
-                {% else %}                
-                {% endif %}
+                <td> <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}">                  
+                  <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
                 <td>
-                  <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
+                  {% if animage.label %}
+                    <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
+                  {% else %}                
+                  {% endif %}
                 </td>
                 <td align="right">
                   <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
@@ -61,6 +61,7 @@
       views.push(imagelist[i].view);
       }
     localStorage.session = JSON.stringify(views);
+    localStorage.sessionId = "{{data.sessid}}";
   });
 </script>
 

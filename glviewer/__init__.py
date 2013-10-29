@@ -730,18 +730,32 @@ def getimagenames():
 @mod.route('/getview')
 def getview():
     #pdb.set_trace()
+    sessid = request.args.get('sessid', None)
     viewid = request.args.get('viewid', "")
     viewdb = request.args.get('db', "")
     
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
     db = conn[dbobj["dbname"]]
-    
+
+    # check the session to see if notes are hidden
+    hideAnnotations = False
+    if sessid :
+      sessObj = db["sessions"].find_one({ "_id" : ObjectId(sessid) })
+      if sessObj.has_key("hideAnnotations") :
+        if sessObj["hideAnnotations"] :
+          hideAnnotations = True
+
     viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
     # Right now, only notes use "Type"
     if "Type" in viewObj :
       viewObj["_id"] = str(viewObj["_id"]);
       addviewimage(viewObj)
+      if hideAnnotations :
+        # use a cryptic label
+        viewObj["Title"] = viewObj["HiddenTitle"]
+        viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
+        viewObj["Children"] = []
       return jsonify(viewObj)
       
     #---------------------------------------------------------
@@ -890,7 +904,15 @@ def getview():
           children.append(note)
 
     noteObj["Children"] = children
-    
+
+    # it is easier to delete annotations than not generate them in the first place.
+    if hideAnnotations :
+      # use a cryptic label
+      noteObj["Title"] = viewObj["HiddenTitle"]
+      noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
+      noteObj["ViewerRecords"] = []
+      noteObj["Children"] = []
+
     return jsonify(noteObj)
 
 

@@ -19,6 +19,12 @@
 
 
 
+var TOUCH_NONE = 0;
+var TOUCH_PAN = 1;
+var TOUCH_PINCH = 2;
+var TOUCH_SWEEP = 3;
+var TOUCH_ROTATE = 4;
+
 function EventManager (canvas) {
   this.Canvas = canvas[0];
   this.Viewers = [];
@@ -38,9 +44,11 @@ function EventManager (canvas) {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var self = this;
-    this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen", 
-                                                 function(sweep) {self.GoFullScreen();});
+    //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen", 
+    //                                             function(sweep) {self.GoFullScreen();});
   }
+
+  this.TouchState = TOUCH_NONE;
 }
 
 EventManager.prototype.AddViewer = function(viewer) {
@@ -95,8 +103,8 @@ EventManager.prototype.HandleMouseDown = function(event) {
     event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
 
-    var d = new Date();
-    var dTime = d.getTime() - this.MouseUpTime;
+    var date = new Date();
+    var dTime = date.getTime() - this.MouseUpTime;
     if (dTime < 200.0) { // 200 milliseconds
       PENDING_SHOW_PROPERTIES_MENU = false;
       this.CurrentViewer.HandleDoubleClick(this);
@@ -131,7 +139,8 @@ EventManager.prototype.HandleMouseUp = function(event) {
   }
 
   // Record time so we can detect double click.
-  this.MouseUpTime = new Date().getTime();
+  var date = new Date();
+  this.MouseUpTime = date.getTime();
 
   // Should we let the viewer handle this?
   // Can it supress on double click?
@@ -387,7 +396,8 @@ EventManager.prototype.HideSweepListeners = function() {
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
 EventManager.prototype.HandleTouch = function(e, startFlag) {
-  var t = new Date().getTime();
+  var date = new Date();
+  var t = date.getTime();
   // I have had trouble on the iPad with 0 delta times.
   // Lets see how it behaves with fewer events.
   if (t-this.Time < 20 && ! startFlag) { return false; }
@@ -428,8 +438,20 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
-  this.Tap = true;
-  this.SelectedSweepListener = undefined;
+  if ( this.TouchState != TOUCH_NONE) {
+    return;
+  }
+  var numTouches = this.Touches.length;
+  if (numTouches == 1) {
+    this.TouchState = TOUCH_PAN;
+  } else if (numTouches == 2) {
+    this.TouchState = TOUCH_PINCH;
+  } else if (numTouches == 3) {
+    this.TouchState = TOUCH_ROTATE;
+  } else if (numTouches >= 4) {
+    this.TouchState = TOUCH_NONE;
+  }
+
   this.HandleTouch(e, true);
   this.ChooseViewer();
   if (this.CurrentViewer) {
@@ -440,70 +462,36 @@ EventManager.prototype.HandleTouchStart = function(e) {
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
-// Put a throttle on events
+  if (this.TouchState == TOUCH_NONE) { return; }
+
+  // Put a throttle on events
   if ( ! this.HandleTouch(e, false)) { return; }
     
-  this.Tap = false;
   this.ChooseViewer();
-
-  var numTouches = this.Touches.length;
-  // Distinguish between 1 finger pan, 2 finger pinch, 3 finger rotate and two finger swipe.
-  if (numTouches == 1) {
-    this.HideSweepListeners();
-    if (this.CurrentViewer) {
-      this.CurrentViewer.HandleTouchPan(this);
-    }
+  
+  if (this.TouchState == TOUCH_PAN && this.CurrentViewer) {
+    this.CurrentViewer.HandleTouchPan(this);
     return;
   }
 
-  if (numTouches >= 3) {
-    this.HideSweepListeners();
-    if (this.CurrentViewer) {
-      this.CurrentViewer.HandleTouchRotate(this);
-      return
-    }          
+  if (this.TouchState == TOUCH_PINCH && this.CurrentViewer) {
+    this.CurrentViewer.HandleTouchPinch(this);
+    return
   }
-  
-  if (numTouches == 2) {
-    // detect pinch
-    var dot = (this.Touches[0][0]-this.LastTouches[0][0])*(this.Touches[1][0]-this.LastTouches[1][0]) +
-              (this.Touches[0][1]-this.LastTouches[0][1])*(this.Touches[1][1]-this.LastTouches[1][1]);
-    if (dot <= 0.0) {
-      // Pinch
-      if (this.CurrentViewer) {
-        this.CurrentViewer.HandleTouchPinch(this);
-      }      
-      return
-    }
-    // Sweep
-    var dx = this.MouseX - this.LastMouseX;
-    var dy = this.MouseY - this.LastMouseY;
-    if (Math.abs(dx) > 2*Math.abs(dy) ) {
-      // place the sweep icon vertically.
-      this.ShowSweepListeners();
-      if (dx > 1) {this.DetectSweepEvent(1,0);}
-      if (dx < 1) {this.DetectSweepEvent(-1,0);}
-    } else if (Math.abs(dy) > 2*Math.abs(dx) ) {
-      // place the sweep icon horizontally.
-      this.ShowSweepListeners();
-      if (dy > 1) {this.DetectSweepEvent(0,1);}
-      if (dy < 1) {this.DetectSweepEvent(0,-1);}
-    }
+
+  if (this.TouchState == TOUCH_ROTATE && this.CurrentViewer) {
+    this.CurrentViewer.HandleTouchRotate(this);
+    return
   }
 }  
 
 EventManager.prototype.HandleTouchEnd = function(e) {
-  if (this.Tap && MOBILE_DEVICE) {
+  if (this.TouchState == TOUCH_NONE && MOBILE_DEVICE) {
     NAVIGATION_WIDGET.ToggleVisibility();
+    return;
   }
-  if (this.SelectedSweepListener) {
-    this.SelectedSweepListener.Callback(this.SelectedSweepListener);
-    // The sweep could be removed from the list.
-    this.SelectedSweepListener.Hide();
-  }
-  this.HideSweepListeners();
 
-
+  this.TouchState == TOUCH_NONE;
   this.MouseDown = false;
   if (this.CurrentViewer) {
     e.preventDefault();
@@ -513,6 +501,7 @@ EventManager.prototype.HandleTouchEnd = function(e) {
 
 EventManager.prototype.HandleTouchCancel = function(event) {
   console.log("touchCancel");
+  this.TouchState = TOUCH_NONE;
   this.MouseDown = false;
 }
 

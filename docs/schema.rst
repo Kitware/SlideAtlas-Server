@@ -126,6 +126,7 @@ Note (a recursive structure, which replaces view):
 - Date  : When this view was created (javascript Date.getTime();)
 - Type  : To find out scheme.  Currently set to "Note".
 - Title : The short label used in note list or session list of views.
+- HiddenTitle : Coded title for students.
 - Text  : More descriptive and longer text.
 - ViewerRecords: An array of objects defining views.  The client currently supports an array of up to two views for the dual viewer.
 - Children: An array of notes objects that replaces bookmarks.

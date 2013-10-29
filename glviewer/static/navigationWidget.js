@@ -23,8 +23,15 @@ function NavigationWidget() {
   }
 
   var size = '40px';
+  var left = '120px';
+  var bottom = '10px';
   if (MOBILE_DEVICE) {
     size = '80px';
+    if (MOBILE_DEVICE == "iPhone") {
+      size = '100px';
+      bottom = '100px';
+      left = '220px';
+    }
   }
   var self = this;
   this.Div = 

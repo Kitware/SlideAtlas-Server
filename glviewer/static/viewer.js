@@ -554,7 +554,15 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
 
 Viewer.prototype.HandleTouchStart = function(event) {
-  this.NewTouch = true;
+  this.MomentumX = 0.0;
+  this.MomentumY = 0.0;
+  this.MomentumRoll = 0.0;
+  this.MomentumScale = 0.0;
+  if (this.MomentumTimerId) {
+    window.cancelAnimationFrame(this.MomentumTimerId)
+    this.MomentumTimerId = 0;
+  }
+
   // Four finger grab resets the view.
   if ( event.Touches.length >= 4) {
     var cam = this.GetCamera();
@@ -564,16 +572,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
     cam.Height = bds[3]-bds[2];
     cam.ComputeMatrix();
     eventuallyRender();  
-    this.NewTouch = false;
     return;            
-  }
-  this.MomentumX = 0.0;
-  this.MomentumY = 0.0;
-  this.MomentumRoll = 0.0;
-  this.MomentumScale = 0.0;
-  if (this.MomentumTimerId) {
-    window.cancelAnimationFrame(this.MomentumTimerId)
-    this.MomentumTimerId = 0;
   }
 }
 
