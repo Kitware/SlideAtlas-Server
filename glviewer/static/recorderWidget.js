@@ -136,7 +136,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
   if ( ! this.Bounds && this.Dimensions) {
     this.Bounds = [0, this.Dimensions[0], 0, this.Dimensions[1]];    
   }
-
+  
   var cache = viewer.GetCache();
   if ( ! cache || this.Image != cache.ImageId) {
     var newCache = new Cache(this.Database, 

@@ -1,3 +1,4 @@
+import math
 import mongokit
 from bson import ObjectId
 from flask import Blueprint, Response, abort, request, render_template, url_for, session, current_app, make_response
@@ -812,9 +813,6 @@ def getview():
     if 'bookmarks' in viewObj:
       for bookmarkid in viewObj["bookmarks"]:
         bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmark["annotation"]["color"]
-        #                      ["displayname"]
-        #bookmark["center"]
         if bookmark["annotation"]["type"] == "pointer" :
           question = {}
           question["Title"] = "Question"
@@ -830,21 +828,34 @@ def getview():
           vrq["Image"] = viewerRecord["Image"]
           vrq["Database"] = viewerRecord["Database"]
           # camera object.
-          c = {}
-          c["FocalPoint"] = bookmark["center"]
-          c["Height"] = 900 << int(bookmark["zoom"])
-          c["Roll"] = bookmark["rotation"]
-          vrq["Camera"] = c
-          a = {};
-          a["type"] = "text"
-          a["color"] = bookmark["annotation"]["color"]
-          a["size"] = 30
-          a["position"] = bookmark["annotation"]["points"][0];
-          a["offset"] = [bookmark["annotation"]["points"][1][0]-a["position"][0], 
-                         bookmark["annotation"]["points"][1][1]-a["position"][1]]
-          a["string"] = bookmark["title"]
-          a["anchorVisibility"] = True
-          vrq["Annotations"] = [a];
+          cam = {}
+          cam["FocalPoint"] = bookmark["center"]
+          cam["Height"] = 900 << int(bookmark["zoom"])
+          cam["Roll"] = bookmark["rotation"]
+          vrq["Camera"] = cam
+          annot = {};
+          annot["type"] = "text"
+          # colors are wrong
+          #annot["color"] = bookmark["annotation"]["color"]
+          annot["color"] = "#1030FF"
+          annot["size"] = 30
+          annot["position"] = bookmark["annotation"]["points"][0];
+          annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0], 
+                             bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+          # problem with offsets too big or small.  (Screen pixels / fixed size)
+          mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
+          if mag == 0 :
+            annot["offset"][1] = 1
+            mag = 1
+          if mag > 200 :
+            annot["offset"][0] = annot["offset"][0] * 200 / mag
+            annot["offset"][1] = annot["offset"][1] * 200 / mag
+          if mag < 10 :
+            annot["offset"][0] = annot["offset"][0] * 10 / mag
+            annot["offset"][1] = annot["offset"][1] * 10 / mag
+          annot["string"] = bookmark["title"]
+          annot["anchorVisibility"] = True
+          vrq["Annotations"] = [annot]
           question["ViewerRecords"] = [vrq]
           children.append(question)
           
@@ -852,7 +863,7 @@ def getview():
           answer["Title"] = bookmark["title"]
           answer["Text"] = bookmark["details"]
           answer["Type"] = "Bookmark"
-          answer["Id"] = str(bookmark["_id"]);
+          answer["Id"] = str(bookmark["_id"])
           answer["ParentId"] = viewid
           vra = {}
           vra["AnnotationVisibility"] = 2
@@ -862,8 +873,8 @@ def getview():
           vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
           vra["Image"] = viewerRecord["Image"]
           vra["Database"] = viewerRecord["Database"]
-          vra["Camera"] = c
-          vra["Annotations"] = [a];
+          vra["Camera"] = cam
+          vra["Annotations"] = [annot]
           answer["ViewerRecords"] = [vra]
           question["Children"] = [answer]
 
@@ -872,7 +883,7 @@ def getview():
           note["Title"] = bookmark["title"] 
           note["Text"] = bookmark["details"] 
           note["Type"] = "Bookmark"
-          note["Id"] = str(bookmark["_id"]);
+          note["Id"] = str(bookmark["_id"])
           note["ParentId"] = viewid
           vr = {}
           vr["AnnotationVisibility"] = 1
@@ -882,24 +893,24 @@ def getview():
           vr["Image"] = viewerRecord["Image"]
           vr["Database"] = viewerRecord["Database"]
           # camera object.
-          c = {}
-          c["FocalPoint"] = bookmark["center"]
-          c["Height"] = 900 << int(bookmark["zoom"])
-          c["Roll"] = bookmark["rotation"]
-          vrq["Camera"] = c
-          a = {};
-          a["type"] = "circle"
-          a["color"] = bookmark["annotation"]["color"]
-          a["outlinecolor"] = bookmark["annotation"]["color"]
-          a["origin"] = bookmark["annotation"]["points"][0]
+          cam = {}
+          cam["FocalPoint"] = bookmark["center"]
+          cam["Height"] = 900 << int(bookmark["zoom"])
+          cam["Roll"] = bookmark["rotation"]
+          vrq["Camera"] = cam
+          annot = {};
+          annot["type"] = "circle"
+          annot["color"] = bookmark["annotation"]["color"]
+          annot["outlinecolor"] = bookmark["annotation"]["color"]
+          annot["origin"] = bookmark["annotation"]["points"][0]
           # why does radius have value False?
           if bookmark["annotation"]["radius"] :
-            a["radius"] = bookmark["annotation"]["radius"]
+            annot["radius"] = bookmark["annotation"]["radius"]
           else :
-            a["radius"] = 1000.0
-          a["linewidth"] = a["radius"] / 20
+            annot["radius"] = 1000.0
+          annot["linewidth"] = annot["radius"] / 20
           
-          vr["Annotations"] = [a];
+          vr["Annotations"] = [annot];
           note["ViewerRecords"] = [vr]
           children.append(note)
 
