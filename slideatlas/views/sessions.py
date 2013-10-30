@@ -96,21 +96,16 @@ def sessions():
         # Crash here. Session had a viewid that did not exist.
         # Should we clean up the broken reference? Just skip for now.
         if viewobj :
-          imgdb = sessdb
           imgid = 0
-          label = ""
+          imgdb = ""
+          imgobj = None
           if "Type" in viewobj:
+            # my new notes make it difficult to get the image.
             if viewobj["Type"] == "Note" :
               imgid = viewobj["ViewerRecords"][0]["Image"]
               imgdb = viewobj["ViewerRecords"][0]["Database"]
-              label = viewobj["Title"]
-          else :
-            if "label" in aview :
-              label = viewObj["label"]
-          if "hideAnnotations" in asession:
-            if asession["hideAnnotations"] :
-              label = viewobj["HiddenTitle"]
           if imgid == 0 :
+            imgdb = sessdb
             imgid = str(viewobj["img"])
           if "imgdb" in viewobj :
             imgdb = viewobj["imgdb"]
@@ -121,10 +116,19 @@ def sessions():
             #TODO: make sure the connection to host is available
             db2 = conn[dbobj2["dbname"]]
             imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
-          if "type" in viewobj:
-            if viewobj["type"] == "comparison" :
-                # legacy
-                label = imgobj["label"]
+
+          # so many legacy schemas (plus hiding annotation)
+          label = ""          
+          if "label" in imgobj:
+            label = imgobj["label"]
+          if "label" in aview :
+            label = aview["label"]
+          if "Title" in viewobj :
+            label = viewobj["Title"]
+          if "hideAnnotations" in asession:
+            if asession["hideAnnotations"] :
+              label = viewobj["HiddenTitle"]
+
           if 'hide' in imgobj :
             if imgobj["hide"] :
               hide = True
