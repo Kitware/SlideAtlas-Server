@@ -294,8 +294,11 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
-    VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
-    if (MOBILE_DEVICE) {NAVIGATION_WIDGET.SetVisibility(false);}
+    if (MOBILE_DEVICE) {
+      NAVIGATION_WIDGET.SetVisibility(false);
+    } else {
+      VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
+    }
 
     $(window).resize(function() {
         handleResize();

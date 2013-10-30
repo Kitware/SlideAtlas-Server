@@ -37,8 +37,8 @@ function NavigationWidget() {
   this.Div = 
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
-                    'left' : '120px',
-                    'bottom' : '5px',
+                    'left' : left,
+                    'bottom' : bottom,
                     'z-index': '2'});
   this.PreviousSlideButton =
     $('<img>').appendTo(this.Div)

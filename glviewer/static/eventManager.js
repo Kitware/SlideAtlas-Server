@@ -408,7 +408,6 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
   if (!e) {
     var e = event;
   }
-  e.preventDefault();
 
   this.SystemEvent = e;
   this.LastTouches = this.Touches;
@@ -438,10 +437,11 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
+  e.preventDefault();
   if ( this.TouchState != TOUCH_NONE) {
     return;
   }
-  var numTouches = this.Touches.length;
+  var numTouches = e.targetTouches.length;
   if (numTouches == 1) {
     this.TouchState = TOUCH_PAN;
   } else if (numTouches == 2) {
@@ -462,6 +462,7 @@ EventManager.prototype.HandleTouchStart = function(e) {
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
+  e.preventDefault();
   if (this.TouchState == TOUCH_NONE) { return; }
 
   // Put a throttle on events
@@ -486,6 +487,7 @@ EventManager.prototype.HandleTouchMove = function(e) {
 }  
 
 EventManager.prototype.HandleTouchEnd = function(e) {
+  e.preventDefault();
   if (this.TouchState == TOUCH_NONE && MOBILE_DEVICE) {
     NAVIGATION_WIDGET.ToggleVisibility();
     return;
