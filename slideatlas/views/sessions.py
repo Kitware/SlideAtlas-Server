@@ -266,55 +266,60 @@ def sessionedit():
     # iterate through the view objects and record image information.
     viewList = []
     if session.has_key("views"):
-        for aview in session['views']:
-            view = db["views"].find_one({"_id" : aview["ref"]})
-            # missing view ????
-            if view :
-              descriptiveLabel = ""
-              hiddenLabel = ""
-              imgdb = sessdb
-              if "imgdb" in view :
-                imgdb = view["imgdb"]
-              if "img" in view :
-                imgid = view["img"]
-              else :
-                # an assumption that view is of type note.
-                imgid = view["ViewerRecords"][0]["Image"]
-                imgdb = view["ViewerRecords"][0]["Database"]
+      # Sort the list of views based on position.
+      # this should not be necessary.
+      views = session['views'];
+      sorted(views, key= lambda x: x["pos"])
+  
+      for aview in session['views']:
+        view = db["views"].find_one({"_id" : aview["ref"]})
+        # missing view ????
+        if view :
+          descriptiveLabel = ""
+          hiddenLabel = ""
+          imgdb = sessdb
+          if "imgdb" in view :
+            imgdb = view["imgdb"]
+          if "img" in view :
+            imgid = view["img"]
+          else :
+            # an assumption that view is of type note.
+            imgid = view["ViewerRecords"][0]["Image"]
+            imgdb = view["ViewerRecords"][0]["Database"]
 
-              # support for images from different database than the session.
-              if imgdb == sessdb :
-                image = db["images"].find_one({'_id' : ObjectId(imgid)})
-              else :
-                dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
-                db2 = conn[dbobj2["dbname"]]
-                image = db2["images"].find_one({'_id' : ObjectId(imgid)})
+          # support for images from different database than the session.
+          if imgdb == sessdb :
+            image = db["images"].find_one({'_id' : ObjectId(imgid)})
+          else :
+            dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
+            db2 = conn[dbobj2["dbname"]]
+            image = db2["images"].find_one({'_id' : ObjectId(imgid)})
 
-              # if nothing else, used the image label.
-              if "label" in image :
-                descriptiveLabel = image["label"]
-              # Legacy label of view overrides image label.
-              if "label" in view :
-                descriptiveLabel = view["label"]
-              # Use the note label if the view has one.
-              if "Title" in view :
-                descriptiveLabel = view["Title"]
-              if "HiddenTitle" in view :
-                hiddenLabel = view["HiddenTitle"]
-                
-              # thumb should be stored with the tiles, not in the image meta data.
-              if image.has_key("thumb"):
-                del image['thumb']
-                db["images"].save(image)
+          # if nothing else, used the image label.
+          if "label" in image :
+            descriptiveLabel = image["label"]
+          # Legacy label of view overrides image label.
+          if "label" in view :
+            descriptiveLabel = view["label"]
+          # Use the note label if the view has one.
+          if "Title" in view :
+            descriptiveLabel = view["Title"]
+          if "HiddenTitle" in view :
+            hiddenLabel = view["HiddenTitle"]
+            
+          # thumb should be stored with the tiles, not in the image meta data.
+          if image.has_key("thumb"):
+            del image['thumb']
+            db["images"].save(image)
 
-              item = {}
-              item['db'] = str(dbobj["_id"])
-              item['session'] = sessid;
-              item["img"] = str(imgid)
-              item["descriptiveLabel"] = descriptiveLabel
-              item["hiddenLabel"] = hiddenLabel
-              item["view"] = str(aview["ref"])
-              viewList.append(item)    
+          item = {}
+          item['db'] = str(dbobj["_id"])
+          item['session'] = sessid;
+          item["img"] = str(imgid)
+          item["descriptiveLabel"] = descriptiveLabel
+          item["hiddenLabel"] = hiddenLabel
+          item["view"] = str(aview["ref"])
+          viewList.append(item)    
     
     data = {
              'success': 1,

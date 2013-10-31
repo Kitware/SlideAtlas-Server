@@ -106,11 +106,12 @@
 
   <script>
     $(function() {
-      $( "#sortable" ).sortable();
+      $( "#sortable" ).sortable({change:modified});
       $( "#sortable" ).disableSelection();
     });
 
     function deleteView(arg) {
+      modified();
       // A hack, but how should it be done right?
       var tmp = "#"+arg;
       $(tmp).remove();
@@ -132,7 +133,7 @@
                       'img': $(this).attr('img') };
           views.push(view); 
         });
-      // Save the new order inthe database.
+      // Save the new order in the database.
       // Python will have to detect if any view objects have to be deleted.
       var args = {};
       args.new = saveNew;
@@ -148,7 +149,10 @@
         data: {"input" :  JSON.stringify( args )},
         success: function(data,status){
                    if (data != "") {
-                     window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                     // Redirect is problematic because I want to save multiple times
+                     // and back in browser does not reload page completely
+                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                     $('#saveButton').css({"color":"#000"});
                    } else {
                      // Session was empty and deleted from the database.
                      window.location.href = "sessions";
@@ -182,7 +186,12 @@
       $('#gallery').css({"height":(height-top)});
     }
 
+    function modified () {
+      $('#saveButton').css({"color":"#E00"}); 
+    }
+    
     function hideAnnotation (flag) {
+      modified();
       if (flag) {
         $(".descriptiveLabel" ).hide();
         $(".hiddenLabel" ).show();
@@ -193,7 +202,7 @@
     }
     
     var IMAGE_HOVER_LABEL;
-    $(document).ready(function(){    
+    $(document).ready(function(){
       if ( {{data.hideAnnotations}} ) {
         $('#hideCheck').attr('checked','checked');
         hideAnnotation(true);
@@ -233,6 +242,10 @@
                 LoadDatabases(data);
               } else { alert("ajax failed."); }
             });
+      $('#saveButton').css({"color":"#000"}); 
+      $("#title").on("input", modified);
+      $(".descriptiveLabel").on("input", modified);
+      $(".hiddenLabel").on("input", modified);
     });
 
     var DATABASES;
@@ -398,6 +411,8 @@
 
 
     function AddImageToSession(db, img, label, event) {
+      // Indicate the session needs saving
+      modified();
       var item = $('<li>').appendTo($('#sortable'))
                           .attr("class", "ui-state-default")
                           // We will have to create a new when id is not set.
@@ -425,7 +440,7 @@
       
       var numViews = $("#sortable").children().length;
       if (numViews == 1) { // last was 0
-        $('#saveButton').text("Save");
+        $("#saveButton").text("Save");
       }
 
     }

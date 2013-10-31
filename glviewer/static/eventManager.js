@@ -468,7 +468,7 @@ EventManager.prototype.HandleTouchEnd = function(e) {
   console.log("TouchEnd "+t);
   this.LastTime = this.Time;
   this.Time = t;
-  if (t - this.StartTouchTime < 200 && MOBILE_DEVICE) {
+  if (t - this.StartTouchTime < 100 && MOBILE_DEVICE) {
     NAVIGATION_WIDGET.ToggleVisibility();
   }
 
