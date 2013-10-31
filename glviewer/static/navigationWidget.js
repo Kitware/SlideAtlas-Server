@@ -29,8 +29,8 @@ function NavigationWidget() {
     size = '80px';
     if (MOBILE_DEVICE == "iPhone") {
       size = '100px';
-      bottom = '100px';
-      left = '220px';
+      bottom = '80px';
+      left = '80px';
     }
   }
   var self = this;

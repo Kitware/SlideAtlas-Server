@@ -19,12 +19,6 @@
 
 
 
-var TOUCH_NONE = 0;
-var TOUCH_PAN = 1;
-var TOUCH_PINCH = 2;
-var TOUCH_SWEEP = 3;
-var TOUCH_ROTATE = 4;
-
 function EventManager (canvas) {
   this.Canvas = canvas[0];
   this.Viewers = [];
@@ -47,8 +41,6 @@ function EventManager (canvas) {
     //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen", 
     //                                             function(sweep) {self.GoFullScreen();});
   }
-
-  this.TouchState = TOUCH_NONE;
 }
 
 EventManager.prototype.AddViewer = function(viewer) {
@@ -396,6 +388,7 @@ EventManager.prototype.HideSweepListeners = function() {
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
 EventManager.prototype.HandleTouch = function(e, startFlag) {
+  e.preventDefault();
   var date = new Date();
   var t = date.getTime();
   // I have had trouble on the iPad with 0 delta times.
@@ -437,50 +430,32 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
 
 
 EventManager.prototype.HandleTouchStart = function(e) {
-  e.preventDefault();
-  if ( this.TouchState != TOUCH_NONE) {
-    return;
-  }
-  var numTouches = e.targetTouches.length;
-  if (numTouches == 1) {
-    this.TouchState = TOUCH_PAN;
-  } else if (numTouches == 2) {
-    this.TouchState = TOUCH_PINCH;
-  } else if (numTouches == 3) {
-    this.TouchState = TOUCH_ROTATE;
-  } else if (numTouches >= 4) {
-    this.TouchState = TOUCH_NONE;
-  }
-
   this.HandleTouch(e, true);
+  this.StartTouchTime = this.Time;
   this.ChooseViewer();
   if (this.CurrentViewer) {
-    this.MouseDown = true;
     this.CurrentViewer.HandleTouchStart(this);
   }  
 }
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
-  e.preventDefault();
-  if (this.TouchState == TOUCH_NONE) { return; }
-
   // Put a throttle on events
   if ( ! this.HandleTouch(e, false)) { return; }
     
   this.ChooseViewer();
   
-  if (this.TouchState == TOUCH_PAN && this.CurrentViewer) {
+  if (this.Touches.length == 1 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPan(this);
     return;
   }
 
-  if (this.TouchState == TOUCH_PINCH && this.CurrentViewer) {
+  if (this.Touches.length == 2 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPinch(this);
     return
   }
 
-  if (this.TouchState == TOUCH_ROTATE && this.CurrentViewer) {
+  if (this.Touches.length == 3 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchRotate(this);
     return
   }
@@ -488,13 +463,15 @@ EventManager.prototype.HandleTouchMove = function(e) {
 
 EventManager.prototype.HandleTouchEnd = function(e) {
   e.preventDefault();
-  if (this.TouchState == TOUCH_NONE && MOBILE_DEVICE) {
+
+  var t = new Date().getTime();
+  console.log("TouchEnd "+t);
+  this.LastTime = this.Time;
+  this.Time = t;
+  if (t - this.StartTouchTime < 200 && MOBILE_DEVICE) {
     NAVIGATION_WIDGET.ToggleVisibility();
-    return;
   }
 
-  this.TouchState == TOUCH_NONE;
-  this.MouseDown = false;
   if (this.CurrentViewer) {
     e.preventDefault();
     this.CurrentViewer.HandleTouchEnd(this);

@@ -582,6 +582,13 @@ Viewer.prototype.HandleTouchPan = function(event) {
     // Sanity check.
     return;
   }
+
+  // I see an odd intermittent camera matrix problem 
+  // on the iPad that looks like a thread safety issue.
+  if (this.MomentumTimerId) {
+    window.cancelAnimationFrame(this.MomentumTimerId)
+    this.MomentumTimerId = 0;
+  }
   
   // Convert to world by inverting the camera matrix.
   // I could simplify and just process the vector.  
@@ -614,6 +621,13 @@ Viewer.prototype.HandleTouchRotate = function(event) {
   if (event.LastTouches.length != numTouches || numTouches  != 3) {
     // Sanity check.
     return;
+  }
+
+  // I see an odd intermittent camera matrix problem 
+  // on the iPad that looks like a thread safety issue.
+  if (this.MomentumTimerId) {
+    window.cancelAnimationFrame(this.MomentumTimerId)
+    this.MomentumTimerId = 0;
   }
 
   w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
@@ -676,6 +690,13 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     return;
   }
 
+  // I see an odd intermittent camera matrix problem 
+  // on the iPad that looks like a thread safety issue.
+  if (this.MomentumTimerId) {
+    window.cancelAnimationFrame(this.MomentumTimerId)
+    this.MomentumTimerId = 0;
+  }
+
   w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
   w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
   var dt = event.Time - event.LastTime;
@@ -735,6 +756,13 @@ Viewer.prototype.HandleTouchEnd = function(event) {
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
+  // I see an odd intermittent camera matrix problem 
+  // on the iPad that looks like a thread safety issue.
+  if (this.MomentumTimerId) {
+    window.cancelAnimationFrame(this.MomentumTimerId)
+    this.MomentumTimerId = 0;
+  }
+
   var t = new Date().getTime();
   if (t - event.LastTime < 50) {
     var self = this;
