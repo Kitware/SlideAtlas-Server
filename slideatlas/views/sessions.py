@@ -419,6 +419,9 @@ def sessionsave():
           if viewData["db"] != dbId :
             viewObj["imgdb"] = viewData["db"]
           viewObj["label"] = viewData["label"]
+          # need to clean up the schema: viewObj:label, Title, view:label
+          viewObj["Title"] = viewData["label"]
+          viewObj["HiddenTitle"] = viewData["hiddenLabel"]
           viewId = db["views"].save(viewObj)
           # make a view entry on the session list
           view = {}

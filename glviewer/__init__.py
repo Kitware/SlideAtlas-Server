@@ -777,6 +777,8 @@ def getview():
     noteObj["Id"] = viewid
     noteObj["ParentId"] = ""
     noteObj["Title"] = imgobj["label"]
+    if viewObj.has_key("Title") :
+      noteObj["Title"] = viewObj["Title"]
 
     # Construct the ViewerRecord for the base view
     viewerRecord = {}
@@ -921,7 +923,6 @@ def getview():
       # use a cryptic label
       noteObj["Title"] = viewObj["HiddenTitle"]
       noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
-      noteObj["ViewerRecords"] = []
       noteObj["Children"] = []
 
     return jsonify(noteObj)

@@ -33,6 +33,7 @@ function EventManager (canvas) {
   this.MouseDown = false;
   this.SweepListeners = [];
   this.SelectedSweepListener = undefined;
+  this.StartTouchTime = 0;
   
   if (MOBILE_DEVICE == 'Andriod') {
     var width = CANVAS.innerWidth();
@@ -431,7 +432,14 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
 
 EventManager.prototype.HandleTouchStart = function(e) {
   this.HandleTouch(e, true);
-  this.StartTouchTime = this.Time;
+  if (this.StartTouchTime == 0) {
+    this.StartTouchTime = this.Time;
+  }
+  if (NAVIGATION_WIDGET.Visibility) {
+    // No slide interaction with the interface up.
+    // I had bad interaction with events going to browser.
+    return;
+  }
   this.ChooseViewer();
   if (this.CurrentViewer) {
     this.CurrentViewer.HandleTouchStart(this);
@@ -442,19 +450,22 @@ EventManager.prototype.HandleTouchStart = function(e) {
 EventManager.prototype.HandleTouchMove = function(e) {
   // Put a throttle on events
   if ( ! this.HandleTouch(e, false)) { return; }
+
+  if (NAVIGATION_WIDGET.Visibility) {
+    // No slide interaction with the interface up.
+    // I had bad interaction with events going to browser.
+    return;
+  }
     
-  this.ChooseViewer();
-  
+  this.ChooseViewer();  
   if (this.Touches.length == 1 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPan(this);
     return;
   }
-
   if (this.Touches.length == 2 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPinch(this);
     return
   }
-
   if (this.Touches.length == 3 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchRotate(this);
     return
@@ -468,13 +479,17 @@ EventManager.prototype.HandleTouchEnd = function(e) {
   console.log("TouchEnd "+t);
   this.LastTime = this.Time;
   this.Time = t;
-  if (t - this.StartTouchTime < 100 && MOBILE_DEVICE) {
-    NAVIGATION_WIDGET.ToggleVisibility();
-  }
 
-  if (this.CurrentViewer) {
-    e.preventDefault();
-    this.CurrentViewer.HandleTouchEnd(this);
+  t = t - this.StartTouchTime;
+  if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
+    this.StartTouchTime = 0;
+    if (t < 100) {
+      NAVIGATION_WIDGET.ToggleVisibility();
+      return;
+    }
+    if (this.CurrentViewer) {
+      this.CurrentViewer.HandleTouchEnd(this);
+    }
   }
 }
 
