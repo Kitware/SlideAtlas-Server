@@ -13,6 +13,7 @@ from slideatlas import model, app
 from slideatlas  import slconn as conn
 
 
+
 mod = Blueprint('login', __name__)
 oid = OpenID()
 oauth = OAuth()
@@ -256,9 +257,13 @@ def login_passwd():
     Logs the user tryign to login with valid password.
     follows up with do_user_login
     """
+
     conn.register([model.User])
     admindb = conn[current_app.config["CONFIGDB"]]
 
+    figure = False
+    if request.form.has_key('figure') :
+      figure = request.form['figure']
     user = admindb["users"].User.find_one({"name" : request.form['username'], "type" : "passwd"})
     if user == None:
         flash('User not found ' + request.form['username'], "error")
@@ -284,6 +289,8 @@ def login_passwd():
         return redirect('/login')
     else:
         do_user_login(user)
+        if figure :
+          return redirect(figure)
         return redirect('/sessions')
 
 @mod.route('/login.facebook')

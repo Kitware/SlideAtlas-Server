@@ -3,6 +3,7 @@ import mongokit
 from bson import ObjectId
 from flask import Blueprint, Response, abort, request, render_template, url_for, session, current_app, make_response
 from slideatlas import slconn as conn, admindb, model
+from slideatlas.model import Image, Session, Rule, User, Database
 import json
 from slideatlas.common_utils import jsonify
 
@@ -178,8 +179,30 @@ def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
-    
     #pdb.set_trace()
+    
+    # Check the user is logged in.
+    rules = []
+    # Compile the rules
+    conn.register([Image, Session, User, Rule, Database])
+    admindb = conn[current_app.config["CONFIGDB"]]
+    # Assert the user is logged in
+    if 'user' in session:
+      name = session['user']['label']
+      id = session['user']['id']
+      userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
+      if userobj == None:
+        # If the user is not found then something wrong 
+        # Redirect the user to home with error message 
+        flash("Invalid login", "error")
+        return redirect(url_for('login.login'))
+    else:
+      # Send the user back to login page
+      # with some message
+      flash("You must be logged in to see that resource", "error")
+      return redirect(url_for('login.login'))
+    
+    
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
@@ -730,201 +753,199 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
-    #pdb.set_trace()
-    sessid = request.args.get('sessid', None)
-    viewid = request.args.get('viewid', "")
-    viewdb = request.args.get('db', "")
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
-    db = conn[dbobj["dbname"]]
+  #pdb.set_trace()
+  sessid = request.args.get('sessid', None)
+  viewid = request.args.get('viewid', "")
+  viewdb = request.args.get('db', "")
+  
+  admindb = conn[current_app.config["CONFIGDB"]]
+  dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
+  db = conn[dbobj["dbname"]]
 
-    # check the session to see if notes are hidden
-    hideAnnotations = False
-    if sessid :
-      sessObj = db["sessions"].find_one({ "_id" : ObjectId(sessid) })
-      if sessObj.has_key("hideAnnotations") :
-        if sessObj["hideAnnotations"] :
-          hideAnnotations = True
+  # check the session to see if notes are hidden
+  hideAnnotations = False
+  if sessid :
+    sessObj = db["sessions"].find_one({ "_id" : ObjectId(sessid) })
+    if sessObj.has_key("hideAnnotations") :
+      if sessObj["hideAnnotations"] :
+        hideAnnotations = True
 
-    viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
-    # Right now, only notes use "Type"
-    if "Type" in viewObj :
-      viewObj["_id"] = str(viewObj["_id"]);
-      addviewimage(viewObj)
-      if hideAnnotations :
-        # use a cryptic label
-        viewObj["Title"] = viewObj["HiddenTitle"]
-        viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
-        viewObj["Children"] = []
-      return jsonify(viewObj)
-      
-    #---------------------------------------------------------
-    # legacy: Rework bookmarks into the same structure.
-    # a pain, but necessary to generalize next/previous slide.
-    # An array of children and an array of ViewerRecords
-    imgdb = viewdb
-    if "imgdb" in viewObj :
-      # support for images in database different than view
-      imgdb = viewObj["imgdb"]
-      dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
-      db2 = conn[dbobj2["dbname"]]
-      imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
-    else :
-      imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
-
-    noteObj = {}
-    noteObj["Id"] = viewid
-    noteObj["ParentId"] = ""
-    noteObj["Title"] = imgobj["label"]
-    if viewObj.has_key("Title") :
-      noteObj["Title"] = viewObj["Title"]
-
-    # Construct the ViewerRecord for the base view
-    viewerRecord = {}
-    viewerRecord["Annotations"] = []
-    if 'dimensions' in imgobj:
-      viewerRecord["Dimensions"] = imgobj["dimensions"]
-      viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
-    elif 'dimension' in imgobj:
-      viewerRecord["Dimensions"] = imgobj["dimension"]
-      viewerRecord["Bounds"] = [0,imgobj["dimension"][0],0,imgobj["dimension"][1]] 
-    viewerRecord["NumberOfLevels"] = imgobj["levels"]
-    viewerRecord["Image"] = str(imgobj["_id"])
-    viewerRecord["Database"] = imgdb
-    
-    # camera object.
-    cam = {}
-    if 'startup_view' in viewObj:
-      bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
-      cam["FocalPoint"] = bookmark["center"]
-      cam["Roll"] = bookmark["rotation"]
-      if 'zoom' in bookmark:
-        cam["Height"] = 900 << int(bookmark["zoom"])
-      if 'viewHeight' in bookmark:
-        cam["Height"] = bookmark["viewHeight"]
-    else:
-      cam["Height"] = viewerRecord["Dimensions"][1]
-      cam["Roll"] = 0
-      cam["FocalPoint"] = [viewerRecord["Dimensions"][0]/2, viewerRecord["Dimensions"][1]/2,0]
-    viewerRecord["Camera"] = cam
-    noteObj["ViewerRecords"] = [viewerRecord]
-    
-    # Now for the children (Bookmarks).
-    children = [];
-    if 'bookmarks' in viewObj:
-      for bookmarkid in viewObj["bookmarks"]:
-        bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        if bookmark["annotation"]["type"] == "pointer" :
-          question = {}
-          question["Title"] = "Question"
-          question["Text"] = ""
-          question["Type"] = "Bookmark"
-          question["Id"] = str(bookmark["_id"]);
-          question["ParentId"] = viewid
-          vrq = {}
-          vrq["AnnotationVisibility"] = 1
-          vrq["Dimensions"] = viewerRecord["Dimensions"]
-          vrq["Bounds"] = viewerRecord["Bounds"]
-          vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
-          vrq["Image"] = viewerRecord["Image"]
-          vrq["Database"] = viewerRecord["Database"]
-          # camera object.
-          cam = {}
-          cam["FocalPoint"] = bookmark["center"]
-          cam["Height"] = 900 << int(bookmark["zoom"])
-          cam["Roll"] = bookmark["rotation"]
-          vrq["Camera"] = cam
-          annot = {};
-          annot["type"] = "text"
-          # colors are wrong
-          #annot["color"] = bookmark["annotation"]["color"]
-          annot["color"] = "#1030FF"
-          annot["size"] = 30
-          annot["position"] = bookmark["annotation"]["points"][0];
-          annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0], 
-                             bookmark["annotation"]["points"][1][1]-annot["position"][1]]
-          # problem with offsets too big or small.  (Screen pixels / fixed size)
-          mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
-          if mag == 0 :
-            annot["offset"][1] = 1
-            mag = 1
-          if mag > 200 :
-            annot["offset"][0] = annot["offset"][0] * 200 / mag
-            annot["offset"][1] = annot["offset"][1] * 200 / mag
-          if mag < 10 :
-            annot["offset"][0] = annot["offset"][0] * 10 / mag
-            annot["offset"][1] = annot["offset"][1] * 10 / mag
-          annot["string"] = bookmark["title"]
-          annot["anchorVisibility"] = True
-          vrq["Annotations"] = [annot]
-          question["ViewerRecords"] = [vrq]
-          children.append(question)
-          
-          answer = {}
-          answer["Title"] = bookmark["title"]
-          answer["Text"] = bookmark["details"]
-          answer["Type"] = "Bookmark"
-          answer["Id"] = str(bookmark["_id"])
-          answer["ParentId"] = viewid
-          vra = {}
-          vra["AnnotationVisibility"] = 2
-          vra["Type"] = "Answer"
-          vra["Dimensions"] = viewerRecord["Dimensions"]
-          vra["Bounds"] = viewerRecord["Bounds"]
-          vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
-          vra["Image"] = viewerRecord["Image"]
-          vra["Database"] = viewerRecord["Database"]
-          vra["Camera"] = cam
-          vra["Annotations"] = [annot]
-          answer["ViewerRecords"] = [vra]
-          question["Children"] = [answer]
-
-        if bookmark["annotation"]["type"] == "circle" :
-          note = {}
-          note["Title"] = bookmark["title"] 
-          note["Text"] = bookmark["details"] 
-          note["Type"] = "Bookmark"
-          note["Id"] = str(bookmark["_id"])
-          note["ParentId"] = viewid
-          vr = {}
-          vr["AnnotationVisibility"] = 1
-          vr["Dimensions"] = viewerRecord["Dimensions"]
-          vr["Bounds"] = viewerRecord["Bounds"]
-          vr["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
-          vr["Image"] = viewerRecord["Image"]
-          vr["Database"] = viewerRecord["Database"]
-          # camera object.
-          cam = {}
-          cam["FocalPoint"] = bookmark["center"]
-          cam["Height"] = 900 << int(bookmark["zoom"])
-          cam["Roll"] = bookmark["rotation"]
-          vrq["Camera"] = cam
-          annot = {};
-          annot["type"] = "circle"
-          annot["color"] = bookmark["annotation"]["color"]
-          annot["outlinecolor"] = bookmark["annotation"]["color"]
-          annot["origin"] = bookmark["annotation"]["points"][0]
-          # why does radius have value False?
-          if bookmark["annotation"]["radius"] :
-            annot["radius"] = bookmark["annotation"]["radius"]
-          else :
-            annot["radius"] = 1000.0
-          annot["linewidth"] = annot["radius"] / 20
-          
-          vr["Annotations"] = [annot];
-          note["ViewerRecords"] = [vr]
-          children.append(note)
-
-    noteObj["Children"] = children
-
-    # it is easier to delete annotations than not generate them in the first place.
+  viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
+  # Right now, only notes use "Type"
+  if "Type" in viewObj :
+    viewObj["_id"] = str(viewObj["_id"]);
+    addviewimage(viewObj)
     if hideAnnotations :
       # use a cryptic label
-      noteObj["Title"] = viewObj["HiddenTitle"]
-      noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
-      noteObj["Children"] = []
+      viewObj["Title"] = viewObj["HiddenTitle"]
+      viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
+      viewObj["Children"] = []
+    return jsonify(viewObj)
+    
+  #---------------------------------------------------------
+  # legacy: Rework bookmarks into the same structure.
+  # a pain, but necessary to generalize next/previous slide.
+  # An array of children and an array of ViewerRecords
+  imgdb = viewdb
+  if "imgdb" in viewObj :
+    # support for images in database different than view
+    imgdb = viewObj["imgdb"]
+    dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
+    db2 = conn[dbobj2["dbname"]]
+    imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+  else :
+    imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
 
-    return jsonify(noteObj)
+  noteObj = {}
+  noteObj["Id"] = viewid
+  noteObj["ParentId"] = ""
+  noteObj["Title"] = imgobj["label"]
+  if viewObj.has_key("Title") :
+    noteObj["Title"] = viewObj["Title"]
 
+  # Construct the ViewerRecord for the base view
+  viewerRecord = {}
+  viewerRecord["Annotations"] = []
+  if 'dimensions' in imgobj:
+    viewerRecord["Dimensions"] = imgobj["dimensions"]
+    viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
+  elif 'dimension' in imgobj:
+    viewerRecord["Dimensions"] = imgobj["dimension"]
+    viewerRecord["Bounds"] = [0,imgobj["dimension"][0],0,imgobj["dimension"][1]] 
+  viewerRecord["NumberOfLevels"] = imgobj["levels"]
+  viewerRecord["Image"] = str(imgobj["_id"])
+  viewerRecord["Database"] = imgdb
+  
+  # camera object.
+  cam = {}
+  if 'startup_view' in viewObj:
+    bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
+    cam["FocalPoint"] = bookmark["center"]
+    cam["Roll"] = bookmark["rotation"]
+    if 'zoom' in bookmark:
+      cam["Height"] = 900 << int(bookmark["zoom"])
+    if 'viewHeight' in bookmark:
+      cam["Height"] = bookmark["viewHeight"]
+  else:
+    cam["Height"] = viewerRecord["Dimensions"][1]
+    cam["Roll"] = 0
+    cam["FocalPoint"] = [viewerRecord["Dimensions"][0]/2, viewerRecord["Dimensions"][1]/2,0]
+  viewerRecord["Camera"] = cam
+  noteObj["ViewerRecords"] = [viewerRecord]
+  
+  # Now for the children (Bookmarks).
+  children = [];
+  if 'bookmarks' in viewObj:
+    for bookmarkid in viewObj["bookmarks"]:
+      bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+      if bookmark["annotation"]["type"] == "pointer" :
+        question = {}
+        question["Title"] = "Question"
+        question["Text"] = ""
+        question["Type"] = "Bookmark"
+        question["Id"] = str(bookmark["_id"]);
+        question["ParentId"] = viewid
+        vrq = {}
+        vrq["AnnotationVisibility"] = 1
+        vrq["Dimensions"] = viewerRecord["Dimensions"]
+        vrq["Bounds"] = viewerRecord["Bounds"]
+        vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+        vrq["Image"] = viewerRecord["Image"]
+        vrq["Database"] = viewerRecord["Database"]
+        # camera object.
+        cam = {}
+        cam["FocalPoint"] = bookmark["center"]
+        cam["Height"] = 900 << int(bookmark["zoom"])
+        cam["Roll"] = bookmark["rotation"]
+        vrq["Camera"] = cam
+        annot = {};
+        annot["type"] = "text"
+        # colors are wrong
+        #annot["color"] = bookmark["annotation"]["color"]
+        annot["color"] = "#1030FF"
+        annot["size"] = 30
+        annot["position"] = bookmark["annotation"]["points"][0];
+        annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0], 
+                           bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+        # problem with offsets too big or small.  (Screen pixels / fixed size)
+        mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
+        if mag == 0 :
+          annot["offset"][1] = 1
+          mag = 1
+        if mag > 200 :
+          annot["offset"][0] = annot["offset"][0] * 200 / mag
+          annot["offset"][1] = annot["offset"][1] * 200 / mag
+        if mag < 10 :
+          annot["offset"][0] = annot["offset"][0] * 10 / mag
+          annot["offset"][1] = annot["offset"][1] * 10 / mag
+        annot["string"] = bookmark["title"]
+        annot["anchorVisibility"] = True
+        vrq["Annotations"] = [annot]
+        question["ViewerRecords"] = [vrq]
+        children.append(question)
+        
+        answer = {}
+        answer["Title"] = bookmark["title"]
+        answer["Text"] = bookmark["details"]
+        answer["Type"] = "Bookmark"
+        answer["Id"] = str(bookmark["_id"])
+        answer["ParentId"] = viewid
+        vra = {}
+        vra["AnnotationVisibility"] = 2
+        vra["Type"] = "Answer"
+        vra["Dimensions"] = viewerRecord["Dimensions"]
+        vra["Bounds"] = viewerRecord["Bounds"]
+        vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+        vra["Image"] = viewerRecord["Image"]
+        vra["Database"] = viewerRecord["Database"]
+        vra["Camera"] = cam
+        vra["Annotations"] = [annot]
+        answer["ViewerRecords"] = [vra]
+        question["Children"] = [answer]
 
+      if bookmark["annotation"]["type"] == "circle" :
+        note = {}
+        note["Title"] = bookmark["title"] 
+        note["Text"] = bookmark["details"] 
+        note["Type"] = "Bookmark"
+        note["Id"] = str(bookmark["_id"])
+        note["ParentId"] = viewid
+        vr = {}
+        vr["AnnotationVisibility"] = 1
+        vr["Dimensions"] = viewerRecord["Dimensions"]
+        vr["Bounds"] = viewerRecord["Bounds"]
+        vr["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
+        vr["Image"] = viewerRecord["Image"]
+        vr["Database"] = viewerRecord["Database"]
+        # camera object.
+        cam = {}
+        cam["FocalPoint"] = bookmark["center"]
+        cam["Height"] = 900 << int(bookmark["zoom"])
+        cam["Roll"] = bookmark["rotation"]
+        vrq["Camera"] = cam
+        annot = {};
+        annot["type"] = "circle"
+        annot["color"] = bookmark["annotation"]["color"]
+        annot["outlinecolor"] = bookmark["annotation"]["color"]
+        annot["origin"] = bookmark["annotation"]["points"][0]
+        # why does radius have value False?
+        if bookmark["annotation"]["radius"] :
+          annot["radius"] = bookmark["annotation"]["radius"]
+        else :
+          annot["radius"] = 1000.0
+        annot["linewidth"] = annot["radius"] / 20
+        
+        vr["Annotations"] = [annot];
+        note["ViewerRecords"] = [vr]
+        children.append(note)
+
+  noteObj["Children"] = children
+
+  # it is easier to delete annotations than not generate them in the first place.
+  if hideAnnotations :
+    # use a cryptic label
+    noteObj["Title"] = viewObj["HiddenTitle"]
+    noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
+    noteObj["Children"] = []
+
+  return jsonify(noteObj)

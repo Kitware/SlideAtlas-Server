@@ -800,7 +800,7 @@ Note.prototype.LoadViewId = function(viewId) {
            "viewid": viewId,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.Load(data);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error() : getview" ); },
     });  
 }
 
@@ -832,7 +832,7 @@ Note.prototype.RequestUserNotes = function() {
     data: {"parentid": this.Id,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.LoadUserNotes(data);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error() : getchildnotes" ); },
     });  
 }
 
@@ -929,7 +929,7 @@ NotesWidget.prototype.SaveUserNote = function() {
            "db"  : SESSION_DB,
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error() : saveusernote" ); },
     });  
   
   // Redraw the GUI. should we make the parent or the new child active?
@@ -1099,7 +1099,7 @@ NotesWidget.prototype.SaveCallback = function() {
              "view" : GetViewId(),
              "date" : d.getTime()},
       success: function(data,status) {},
-      error: function() { alert( "AJAX - error()" ); },
+      error: function() { alert( "AJAX - error() : saveviewnotes" ); },
       });  
   } else {
     // Save just the users notes to the notes collection.    
@@ -1116,7 +1116,7 @@ NotesWidget.prototype.SaveCallback = function() {
                  "db"  : GetSessionDatabase(),
                  "date": d.getTime()},
           success: function(data,status) { note.Id = data;},
-          error: function() { alert( "AJAX - error()" ); },
+          error: function() { alert( "AJAX - error(): saveusernote" ); },
           });  
       }
     } while(iter.IsEnd());

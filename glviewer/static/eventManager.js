@@ -435,14 +435,12 @@ EventManager.prototype.HandleTouchStart = function(e) {
   if (this.StartTouchTime == 0) {
     this.StartTouchTime = this.Time;
   }
-  if (NAVIGATION_WIDGET.Visibility) {
-    // No slide interaction with the interface up.
-    // I had bad interaction with events going to browser.
-    return;
-  }
+
   this.ChooseViewer();
   if (this.CurrentViewer) {
-    this.CurrentViewer.HandleTouchStart(this);
+    if (this.CurrentViewer.HandleTouchStart(this) && NAVIGATION_WIDGET.Visibility) {
+      NAVIGATION_WIDGET.ToggleVisibility();
+    }
   }  
 }
 
@@ -454,7 +452,7 @@ EventManager.prototype.HandleTouchMove = function(e) {
   if (NAVIGATION_WIDGET.Visibility) {
     // No slide interaction with the interface up.
     // I had bad interaction with events going to browser.
-    return;
+    NAVIGATION_WIDGET.ToggleVisibility();
   }
     
   this.ChooseViewer();  
@@ -483,7 +481,7 @@ EventManager.prototype.HandleTouchEnd = function(e) {
   t = t - this.StartTouchTime;
   if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
     this.StartTouchTime = 0;
-    if (t < 100) {
+    if (t < 70) {
       NAVIGATION_WIDGET.ToggleVisibility();
       return;
     }

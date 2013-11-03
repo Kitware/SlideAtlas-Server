@@ -572,8 +572,10 @@ Viewer.prototype.HandleTouchStart = function(event) {
     cam.Height = bds[3]-bds[2];
     cam.ComputeMatrix();
     eventuallyRender();  
-    return;            
+    return true;           
   }
+  
+  return false;
 }
 
 // Only one touch
