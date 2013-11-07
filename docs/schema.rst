@@ -84,23 +84,25 @@ image data/pyramid collection (named *ObjectId*)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **'\_id'**: ObjectId (has a collection named the same)
-- **'filename'**: str
-- **'label'**: str
-- **'copyright'**: str
-- **'levels'**: int
-- **'spacing'**: array[3]
-
-   - float (x / y / z nanometers/pixel or "1.0" if unknown)
-
-- **'dimension'**: array[3] (size of non-padded region of base layer)
-
-   -  int (x / y / z pixel coords)
-
+- **'type'**: If this is not set, then assume pyramid2. 'stack' is a simple array of images named 1.png, 2.png ...
+- **'filename'**: str file name of uploaded image
 - **'origin'**: array[3] (necessary to import NDPA annotations)
 
    -  int/float (x / y / z world coords)
 
-- **'thumb'**: binary (JPEG thumbnail) (Not implemented )
+- **'spacing'**: array[3]
+
+   - float (x / y / z nanometers/pixel or "1.0" if unknown)
+
+- **'dimension'**: array[3] (size of non-padded region of base layer. Z dimensions is 1 for pyramid2 and stack size for pyramid3 and stack types)
+
+   -  int (x / y / z pixel coords)
+
+- **'levels'**: int (specific to pyramid2 and pyrmid3 types)
+
+- **'label'**: str
+- **'copyright'**: str
+
 - **'extents'**: array[6] (deprecated)
 
    -  int (x / y / z start / end pixel coords)

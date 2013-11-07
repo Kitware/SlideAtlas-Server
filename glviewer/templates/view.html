@@ -167,7 +167,7 @@ shape has visibility and
   var VIEW_ID = "{{view}}";
   var SESSION_DATABASE = "{{sessdb}}";
   
-  var EDIT = false; // Temporary way to hide editing.
+  var EDIT = "{{edit}}"; // Temporary way to hide editing.
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -248,25 +248,11 @@ shape has visibility and
   function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}  
   function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}  
 
-  var E_DOWN = false;
-  var D_DOWN = false;
   function handleKeyDown(event) {
-        if (event.keyCode == 68) { D_DOWN = true;}
-        if (event.keyCode == 69) { E_DOWN = true;}
-        if (D_DOWN && E_DOWN) {
-            EDIT = ! EDIT; 
-            alert("Edit: " + EDIT);
-            E_DOWN = false;
-            D_DOWN = false;
-        }
-
         // control: 17, z: 90, y: 89
         if (event.keyCode == 34) { SessionAdvance();}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {
-        if (event.keyCode == 68) { D_DOWN = false;}
-        if (event.keyCode == 69) { E_DOWN = false;}
-  
         EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
     //alert("Try to cancel context menu");

@@ -105,6 +105,7 @@
 
 
   <script>
+    var SESSION_ID = "{{data.sessid}}";
     $(function() {
       $( "#sortable" ).sortable({change:modified});
       $( "#sortable" ).disableSelection();
@@ -139,7 +140,7 @@
       args.new = saveNew;
       args.views = views;
       args.db = "{{data.db}}";
-      args.session = "{{data.sessid}}";
+      args.session = SESSION_ID;
       args.label = $("#title").val();
       args.hideAnnotation = $('#hideCheck').is(':checked');
 
@@ -152,6 +153,7 @@
                      // Redirect is problematic because I want to save multiple times
                      // and back in browser does not reload page completely
                      //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                     SESSION_ID = data;
                      $('#saveButton').css({"color":"#000"});
                    } else {
                      // Session was empty and deleted from the database.
@@ -163,7 +165,7 @@
     }
 
     function cancel() {
-      window.location.href = "sessions?sessid="+"{{data.sessid}}"+"&sessdb="+"{{data.db}}";
+      window.location.href = "sessions?sessid="+SESSION_ID+"&sessdb="+"{{data.db}}";
     }
     
     function updateOptions() {

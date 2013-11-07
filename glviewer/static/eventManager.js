@@ -481,7 +481,7 @@ EventManager.prototype.HandleTouchEnd = function(e) {
   t = t - this.StartTouchTime;
   if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
     this.StartTouchTime = 0;
-    if (t < 70) {
+    if (t < 90) {
       NAVIGATION_WIDGET.ToggleVisibility();
       return;
     }

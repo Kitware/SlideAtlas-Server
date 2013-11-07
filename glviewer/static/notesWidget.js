@@ -730,6 +730,7 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.Date = this.Date;
   obj.ParentId = this.ParentId;
   obj.Title = this.Title;
+  obj.HiddenTitle = this.HiddenTitle;
   obj.Text = this.Text;
   // We should probably serialize the ViewerRecords too.
   obj.ViewerRecords = this.ViewerRecords;

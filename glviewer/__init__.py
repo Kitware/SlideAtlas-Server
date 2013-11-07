@@ -73,7 +73,7 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, dbid, viewid, viewobj):
+def glnote(db, dbid, viewid, viewobj, edit):
     # I was going get the user id from the session, and pass it to the viewer.
     # I think I will just try to retrieve the user from the "Save Note" method.
     if 'user' in session:
@@ -84,7 +84,7 @@ def glnote(db, dbid, viewid, viewobj):
         flash("You are not logged in..", "info")
         email = None
     
-    return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email))
+    return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email, edit=edit))
 
 
 def glcomparison(db, dbid, viewid, viewobj):
@@ -202,7 +202,8 @@ def glview():
       flash("You must be logged in to see that resource", "error")
       return redirect(url_for('login.login'))
     
-    
+    # See if editing will be enabled.
+    edit = request.args.get('edit', False)
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
@@ -231,7 +232,7 @@ def glview():
         if viewobj["type"] == "comparison" :
           return glcomparison(db,dbid,viewid,viewobj)
       # default
-      return glnote(db,dbid,viewid,viewobj)
+      return glnote(db,dbid,viewid,viewobj,edit)
 
 
 
@@ -802,6 +803,9 @@ def getview():
   noteObj["Title"] = imgobj["label"]
   if viewObj.has_key("Title") :
     noteObj["Title"] = viewObj["Title"]
+  noteObj["HiddenTitle"] = imgobj["label"]
+  if viewObj.has_key("HiddenTitle") :
+    noteObj["HiddenTitle"] = viewObj["HiddenTitle"]
 
   # Construct the ViewerRecord for the base view
   viewerRecord = {}

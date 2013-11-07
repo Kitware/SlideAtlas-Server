@@ -37,12 +37,14 @@
                 <td>
                   {% if animage.label %}
                     <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
-                  {% else %}                
                   {% endif %}
                 </td>
-                <td align="right">
-                  <a href="" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
-                </td>
+                {% if data.session.hideAnnotations %}
+                {% else %}
+                  <td align="right">
+                    <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}&edit=true" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                  </td>
+                {% endif %}
             </tr>
          {% endfor %}
     </table>

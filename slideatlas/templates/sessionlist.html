@@ -17,9 +17,11 @@
             {% else %}
             <tr> <td><a href="sessions?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead">{{ asession.label}}</td>
                 {% if asession.canadmin %}
-                  <td> <a href="sessionedit?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead"> 
-                    <button type="button" class="btn btn-danger" >Admin</button> 
-                  </td></a>
+                  <td>
+                    <a href="sessionedit?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead"> 
+                      <button type="button" class="btn btn-danger" >Admin</button> 
+                    </a>
+                  </td>
                 {% else %}
                 {% endif %}
             </tr>

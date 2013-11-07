@@ -84,6 +84,14 @@ def sessions():
     coll = db["sessions"]
     asession = coll.find_one({'_id' : ObjectId(sessid)} , {'images':{ '$slice' : [next, NUMBER_ON_PAGE] }, '_id' : 0})
 
+    # Hide notes and descriptive title for student review
+    hideAnnotations = False
+    if "hideAnnotations" in asession:
+      if asession["hideAnnotations"] :
+        hideAnnotations = True
+      else :
+        asession["hideAnnotations"] = False
+    
     # iterate through the session objects
     images = []
     if asession.has_key("views"):        
@@ -125,9 +133,8 @@ def sessions():
             label = aview["label"]
           if "Title" in viewobj :
             label = viewobj["Title"]
-          if "hideAnnotations" in asession:
-            if asession["hideAnnotations"] :
-              label = viewobj["HiddenTitle"]
+          if hideAnnotations :
+            label = viewobj["HiddenTitle"]
 
           if 'hide' in imgobj :
             if imgobj["hide"] :
