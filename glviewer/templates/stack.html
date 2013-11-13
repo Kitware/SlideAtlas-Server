@@ -291,7 +291,10 @@ function saveStack() {
         }
         if ( ! source) {
             var bds = [0,view.img.dimensions[0], 0,view.img.dimensions[1]];
-            source = new Cache(view.db, view.img._id, view.img.levels, bds);
+            source = new Cache({'database':view.db, 
+                                '_id':view.img._id, 
+                                'levels':view.img.levels}, 
+                               bds);
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};

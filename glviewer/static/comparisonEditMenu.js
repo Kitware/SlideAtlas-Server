@@ -263,7 +263,11 @@ function changeOption(index) {
         var option = ARGS.Options[index];
         var optionInfo = ARGS.OptionInfo[index];
         var bds = [0,optionInfo.dimensions[0], 0,optionInfo.dimensions[1]];
-        var source = new Cache( option.db, option.img, optionInfo.levels, bds);
+        var imgobj = {};
+        imgobj._id = option.img;
+        imgobj.database = option.db;
+        imgobj.levels = optionInfo.levels;
+        var source = new Cache(imgobj, bds);
         VIEWER2.SetCache(source);
         VIEWER2.SetCamera(option.center, option.rotation, option.viewHeight);
         VIEWER2.SetDimensions(optionInfo.dimensions);

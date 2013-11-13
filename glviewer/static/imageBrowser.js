@@ -114,7 +114,13 @@ function ImageBrowserLoadImage(viewData) {
   if ( typeof(viewData.image) != undefined) {
     image = viewData.image;
   }
-  var source = new Cache(viewData.db, image, viewData.levels);
+  var imgobj = {};
+  imgobj._id = image;
+  imgobj.database = viewData.db;
+  imgobj.levels = viewData.levels;
+  // missing bounds ????
+  var bds = [0,10000, 0,10000];
+  var source = new Cache(imgobj, bds);
 
   ACTIVE_VIEWER.SetCache(source);
    

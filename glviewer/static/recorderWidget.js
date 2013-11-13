@@ -24,9 +24,6 @@
 // information about current note, I am using ViewerRecord as a shared object.
 
 function ViewerRecord () {
-  this.Database = "";
-  this.Image = ""; // The image collection
-  this.NumberOfLevels = 0;
 }
 
 // I am still trying to figure out a good pattern for loading
@@ -47,66 +44,19 @@ ViewerRecord.prototype.Load = function(obj) {
   }
 }
 
-// Bookmark is legacy schema
-ViewerRecord.prototype.LoadBookmark = function(data) {
-  // Hack.  I should probably get the source from data.img
-  // However, this would require a post to get info.
-  // Since booksmarks are slated to be depreciated,
-  // I will just hack this. (copy from viewer).
-  var cache = VIEWER1.GetCache();    
-  this.Database = cache.DatabaseId;
-  this.Image = cache.ImageId;
-  this.NumberOfLevels = cache.NumberOfLevels;
-  
-  if ( ! this.Bounds) {
-    // Since this is legacy, just copy the bounds from the cache.
-    this.Bounds = cache.GetBounds();    
-  }
-  
-  var cameraRecord = {};
-  cameraRecord.FocalPoint = data.center;
-  cameraRecord.Height = 900 << data.zoom;
-  cameraRecord.Roll = data.rotation;
-  this.Camera = cameraRecord;
-
-  // I cannot use a temporary widget to get a serialization because the constructor
-  // adds the widget to the viewer.  I hate complext constructors!
-  // Hack the serialization too.
-  var obj = {};
-  obj.type = "text";
-
-  obj.color = ConvertColor(data.annotation.color);
-  obj.size = 30;
-  obj.position = data.annotation.points[0];
-  obj.offset = [data.annotation.points[1][0]-obj.position[0], 
-                data.annotation.points[1][1]-obj.position[1]];
-  // Try to convert from world to pixels
-  obj.offset[0] = obj.offset[0] * 900 / cameraRecord.Height;
-  obj.offset[1] = obj.offset[1] * 900 / cameraRecord.Height;
-
-  obj.string = data.title;
-  obj.anchorVisibility = true;
-  this.Annotations = [obj];
-}
-
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
   if ( ! cache) { 
     this.Bounds = [0,10000,0,10000];
-    this.Database = "";
-    this.Image = "";
-    this.NumberOfLevels = 0;
     this.Camera = null;
     this.AnnotationVisibility = false;
     this.Annotations = [];
     return;
   }
     
-  this.Database = cache.DatabaseId;
-  this.Image = cache.ImageId;
-  // I could get this from the image / collection.
-  this.NumberOfLevels = cache.NumberOfLevels;
+  this.Image = cache.Image;
+  // Bounds should be in the image
   this.Bounds = cache.Bounds;
   
   var cam = viewer.GetCamera();
@@ -138,11 +88,8 @@ ViewerRecord.prototype.Apply = function (viewer) {
   }
   
   var cache = viewer.GetCache();
-  if ( ! cache || this.Image != cache.ImageId) {
-    var newCache = new Cache(this.Database, 
-                             this.Image, 
-                             this.NumberOfLevels,
-                             this.Bounds);
+  if ( ! cache || this.Image._id != cache.Image._id) {
+    var newCache = new Cache(this.Image, this.Bounds);
     viewer.SetCache(newCache);
   }
 

@@ -1,18 +1,17 @@
 
 
 // Source is the directory that contains the tile files.
-function Cache(dbId, imageId, numLevels, bounds) {
+function Cache(image, bounds) {
   // Look through existing caches and reuse one if possible
   for (var i = 0; i < CACHES.length; ++i) {
-    if (CACHES[i].ImageId == imageId) {
+    if (CACHES[i].Image._id == image._id) {
       return CACHES[i];
     }
   }
   
-  var sourceStr = "/tile?img="+imageId+"&db="+dbId+"&name=";
-
-  this.ImageId = imageId;
-  this.DatabaseId = dbId;
+  var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
+  
+  this.Image = image;
 
   // For debugging
   //this.PendingTiles = [];
@@ -20,10 +19,13 @@ function Cache(dbId, imageId, numLevels, bounds) {
 
   this.Warp = null;
   this.Bounds = bounds;
-  this.TileDimensions = [256, 256];
-  this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
+  if (image.type && image.type == "stack") {
+    this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
+  } else {
+    this.TileDimensions = [256, 256];
+  }
+  this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
   this.NumberOfSections = 1;
-  this.NumberOfLevels = numLevels;
   
   this.RootTiles = [];
 
@@ -36,7 +38,7 @@ Cache.prototype.destructor=function()
 }
 
 Cache.prototype.GetLeafSpacing = function() {
-  return this.RootSpacing[0] / (1 << (this.NumberOfLevels-1));
+  return this.RootSpacing[0] / (1 << (this.Image.levels-1));
 }
 
 Cache.prototype.GetBounds = function() {
@@ -308,8 +310,13 @@ Cache.prototype.GetTile = function(slice, level, id) {
   var y = id >> level;
   if (this.RootTiles[slice] == null) {
     var tile;
-    //var name = slice + "/t";
-    var name = "t";
+    var name;
+    if (this.Image.type && this.Image.type == "stack") {
+      // name = slice + "/t";
+      name = slice.toString();
+    } else {
+      name = "t";
+    }
     tile = new Tile(0,0,slice, 0, name, this);
     this.RootTiles[slice] = tile;
   }

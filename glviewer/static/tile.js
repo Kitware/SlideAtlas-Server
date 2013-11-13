@@ -149,8 +149,13 @@ Tile.prototype.StartLoad = function (cache) {
     return;
   }
 
-  var imageSrc = cache.GetSource() + this.Name + ".jpg";
-
+  var imageSrc;
+  if (cache.Image.type && cache.Image.type == "stack") {
+    imageSrc = cache.GetSource() + this.Name + ".png";
+  } else {
+    imageSrc = cache.GetSource() + this.Name + ".jpg";
+  }
+  
   // Reusing the image caused problems.
   //if (this.Image == null) {
     this.Image = new Image();

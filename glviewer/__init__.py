@@ -36,7 +36,9 @@ def jsonifyView(db,dbid,viewid,viewobj):
     img["image"] = str(imgobj["_id"])
     img["origin"] = imgobj["origin"]
     img["spacing"] = imgobj["spacing"]
-    img["levels"] = imgobj["levels"]
+    img["levels"] = 1
+    if imgobj.has_key("levels") :
+      img["levels"] = imgobj["levels"]
     if 'dimensions' in imgobj:
       img["dimensions"] = imgobj["dimensions"]
     elif 'dimension' in imgobj:
@@ -714,19 +716,22 @@ def saveviewnotes():
 
     return str(viewId);
 
-# add metadata from image object to view.
+# Replace the image reference with an image object.
 def addviewimage(viewObj):
     for record in viewObj["ViewerRecords"]:
+        # database and object (and server) should be packaged into a reference object.
         imgid = record["Image"]
         imgdb = record["Database"]
         admindb = conn[current_app.config["CONFIGDB"]]
         dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
         db = conn[dbobj["dbname"]]
         imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
+        imgObj["_id"] = str(imgObj["_id"])
+        imgObj["database"] = record["Database"]
         if 'dimension' in imgObj:
-            record["Dimensions"] = imgObj["dimension"]
-        if 'dimensions' in imgObj:
-            record["Dimensions"] = imgObj["dimensions"]
+            imgObj["dimensions"] = imgObj["dimension"]
+        record["Image"] = imgObj
+
     for child in viewObj["Children"]:
         addviewimage(child)
 
@@ -797,6 +802,12 @@ def getview():
   else :
     imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
 
+  # mold image object to have the keys the viewer expects.
+  imgobj["_id"] = str(imgobj["_id"])
+  imgobj["database"] = imgdb
+  if imgobj.has_key("dimension") :
+    imgobj["dimensions"] = imgobj["dimension"]
+    
   noteObj = {}
   noteObj["Id"] = viewid
   noteObj["ParentId"] = ""
@@ -810,15 +821,8 @@ def getview():
   # Construct the ViewerRecord for the base view
   viewerRecord = {}
   viewerRecord["Annotations"] = []
-  if 'dimensions' in imgobj:
-    viewerRecord["Dimensions"] = imgobj["dimensions"]
-    viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
-  elif 'dimension' in imgobj:
-    viewerRecord["Dimensions"] = imgobj["dimension"]
-    viewerRecord["Bounds"] = [0,imgobj["dimension"][0],0,imgobj["dimension"][1]] 
-  viewerRecord["NumberOfLevels"] = imgobj["levels"]
-  viewerRecord["Image"] = str(imgobj["_id"])
-  viewerRecord["Database"] = imgdb
+  viewerRecord["Image"] = imgobj
+  viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
   
   # camera object.
   cam = {}
@@ -831,9 +835,9 @@ def getview():
     if 'viewHeight' in bookmark:
       cam["Height"] = bookmark["viewHeight"]
   else:
-    cam["Height"] = viewerRecord["Dimensions"][1]
+    cam["Height"] = imgobj["dimensions"][1]
     cam["Roll"] = 0
-    cam["FocalPoint"] = [viewerRecord["Dimensions"][0]/2, viewerRecord["Dimensions"][1]/2,0]
+    cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
   viewerRecord["Camera"] = cam
   noteObj["ViewerRecords"] = [viewerRecord]
   
@@ -851,11 +855,8 @@ def getview():
         question["ParentId"] = viewid
         vrq = {}
         vrq["AnnotationVisibility"] = 1
-        vrq["Dimensions"] = viewerRecord["Dimensions"]
         vrq["Bounds"] = viewerRecord["Bounds"]
-        vrq["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
         vrq["Image"] = viewerRecord["Image"]
-        vrq["Database"] = viewerRecord["Database"]
         # camera object.
         cam = {}
         cam["FocalPoint"] = bookmark["center"]
@@ -897,11 +898,8 @@ def getview():
         vra = {}
         vra["AnnotationVisibility"] = 2
         vra["Type"] = "Answer"
-        vra["Dimensions"] = viewerRecord["Dimensions"]
         vra["Bounds"] = viewerRecord["Bounds"]
-        vra["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
         vra["Image"] = viewerRecord["Image"]
-        vra["Database"] = viewerRecord["Database"]
         vra["Camera"] = cam
         vra["Annotations"] = [annot]
         answer["ViewerRecords"] = [vra]
@@ -916,11 +914,8 @@ def getview():
         note["ParentId"] = viewid
         vr = {}
         vr["AnnotationVisibility"] = 1
-        vr["Dimensions"] = viewerRecord["Dimensions"]
         vr["Bounds"] = viewerRecord["Bounds"]
-        vr["NumberOfLevels"] = viewerRecord["NumberOfLevels"]
         vr["Image"] = viewerRecord["Image"]
-        vr["Database"] = viewerRecord["Database"]
         # camera object.
         cam = {}
         cam["FocalPoint"] = bookmark["center"]

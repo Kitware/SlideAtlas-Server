@@ -805,22 +805,6 @@ Note.prototype.LoadViewId = function(viewId) {
     });  
 }
 
-Note.prototype.LoadBookmark = function(data) {
-  if ( ! ARGS) { return; }
-  
-  // What should we do about date? I do not think Bookmarks record the date.
-  this.Id = data._id;
-  this.ParentId = ARGS.Viewer1.viewid;
-
-  this.Title = data.title;
-  this.Text = data.title;
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.LoadBookmark(data);
-  this.ViewerRecords = [viewerRecord];
-
-  this.RequestUserNotes();
-}
-
 // Get any children notes (this note as parent)
 // Authored by the current user.
 // The notes will have no order.

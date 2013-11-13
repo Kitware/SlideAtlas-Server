@@ -92,7 +92,9 @@ function ViewBrowserAddSessionViews(sessionData) {
     for (var i = 0; i < sessionData.images.length; ++i) {
       var image = sessionData.images[i];
       var item = $('<li>').appendTo(viewList)
-          .attr('db', image.db).attr('viewid', image.view)
+          .attr('db', image.db)
+          .attr('sessid', sessionData.sessid)
+          .attr('viewid', image.view)
           .click(function(){ViewBrowserImageCallback(this);});
       $('<img>').appendTo(item)
           .attr('src', "tile?db="+image.db+"&img="+image.img+"&name=t.jpg")     // all images should have thumb.jpg
@@ -115,35 +117,25 @@ function ViewBrowserImageCallback(obj) {
   var db = $(obj).attr('db');
   var viewid = $(obj).attr('viewid');
 
-  $.get("./webgl-viewer?json=true"+"&db="+$(obj).attr('db')+"&view="+$(obj).attr('viewid'),
-        function(data,status){
-          if (status == "success") {
-            ViewBrowserLoadImage(data);
-          } else { alert("ajax failed."); }
-        });
+  $.ajax({
+    type: "get",
+    url: "/webgl-viewer/getview",
+    data: {"sessid": $(obj).attr('sessid'),
+           "viewid": $(obj).attr('viewid'),
+           "db"  : $(obj).attr('db')},
+    success: function(data,status) { ViewBrowserLoadImage(data);},
+    error: function() { alert( "AJAX - error() : getview (browser)" ); },
+  });  
 }
 
 function ViewBrowserLoadImage(viewData) {
   // If we want to take origin and spacing into account, then we need to change tile geometry computation.
-  var bds = [0, viewData.dimensions[0], 0, viewData.dimensions[1]];
-  var image = viewData.collection;
-  if ( typeof(viewData.image) != undefined) {
-    image = viewData.image;
-  }
-  var source = new Cache(viewData.db, image, viewData.levels);
+  var bds = viewData.ViewerRecords[0].Bounds;
+  var imgobj = viewData.ViewerRecords[0].Image;
+  var source = new Cache(imgobj, bds);
 
   ACTIVE_VIEWER.SetCache(source);
-   
-  // all this does is set the default camera.
-  ACTIVE_VIEWER.SetDimensions(viewData.dimensions);
-
-    // Handle exceptions in database schema.
-  if ( viewData.center) {
-    ACTIVE_VIEWER.SetCamera(viewData.center, 
-                            viewData.rotation, 
-                            viewData.viewHeight);
-  }
-  
+     
   RecordState();
 
   eventuallyRender();

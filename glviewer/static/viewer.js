@@ -846,8 +846,8 @@ Viewer.prototype.ConstrainCamera = function () {
     cam.Height = 2*(bounds[3]-bounds[2]);
     modified = true;
   }  
-  if (cam.Height < viewport[3] * spacing) {
-    cam.Height = viewport[3] * spacing;
+  if (cam.Height < viewport[3] * spacing * 0.5) {
+    cam.Height = viewport[3] * spacing * 0.5;
     modified = true;
   }
   if (modified) {
