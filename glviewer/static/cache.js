@@ -19,18 +19,22 @@ function Cache(image, bounds) {
 
   this.Warp = null;
   this.Bounds = bounds;
-  if (image.type && image.type == "stack") {
-    this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
-  } else {
-    this.TileDimensions = [256, 256];
-  }
   this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
-  this.NumberOfSections = 1;
-  
   this.RootTiles = [];
-
   // Keep a global list for pruning tiles.
   CACHES.push(this);
+  if (image.type && image.type == "stack") {
+    this.NumberOfSections = image.dimensions[2];
+    this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
+    var qTile;
+    for (var slice = 1; slice <= this.NumberOfSections; ++slice) {
+      qTile = this.GetTile(slice, 0, 0);
+      LoadQueueAdd(qTile);
+    }
+  } else {
+    this.TileDimensions = [256, 256];
+    this.NumberOfSections = 1;
+  }
 }
 
 Cache.prototype.destructor=function()
@@ -81,11 +85,12 @@ Cache.prototype.GetSource=function()
 
 Cache.prototype.LoadRoots = function () {
     var qTile;
-    for (var slice = 1; slice < 2; ++slice) {
+    for (var slice = 1; slice <= this.Image.dimensions[2]; ++slice) {
         qTile = this.GetTile(slice, 0, 0);
         LoadQueueAdd(qTile);
     }
     return;
+    
     // Theses were for a demo (preload).
     for (var slice = 201; slice < 251; ++slice) {
         for (var j = 0; j < 4; ++j) {

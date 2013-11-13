@@ -1058,6 +1058,22 @@ Viewer.prototype.HandleMouseWheel = function(event) {
 }
 
 Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
+  // Handle stack (page up  / down)
+  var cache = this.GetCache();
+  if (cache && cache.Image.type && cache.Image.type == "stack") {
+    if (keyCode == 33) {
+      SLICE = SLICE - 1;
+      if (SLICE < 1) { SLICE = 1;}
+      eventuallyRender();
+    } else if (keyCode == 34) {
+      SLICE = SLICE + 1;
+      if (SLICE > cache.Image.dimensions[2]) { 
+        SLICE = cache.Image.dimensions[2];
+      }
+      eventuallyRender();
+    }    
+  }
+  
   // Handle connectome volume stuff.
   // TODO: integrate this with the 3d renal stack stuff.
   // connectome
