@@ -192,6 +192,8 @@ def sessions():
       for arule in userobj["rules"]:
         rule = {}
         ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+        if ruleobj == None:
+            continue
         #flash(str(ruleobj), 'success')
         rule["rule"] = ruleobj["label"]
 
@@ -244,8 +246,6 @@ def sessions():
       return jsonify(sessions=sessionlist, name=name, ajax=1)
     else:
       return render_template('sessionlist.html', sessions=sessionlist, name=name)
-
-
 
 
 

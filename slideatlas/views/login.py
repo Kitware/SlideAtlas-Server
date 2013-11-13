@@ -389,7 +389,7 @@ def do_user_login(user):
     user.save()
 
     session['user'] = {
-        'id': user["_id"],
+        'id': str(user["_id"]),
         'label': user["label"],
         'email' : user["name"],
         }
