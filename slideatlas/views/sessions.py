@@ -110,8 +110,13 @@ def sessions():
           if "Type" in viewobj:
             # my new notes make it difficult to get the image.
             if viewobj["Type"] == "Note" :
-              imgid = viewobj["ViewerRecords"][0]["Image"]
-              imgdb = viewobj["ViewerRecords"][0]["Database"]
+              if viewobj["ViewerRecords"][0].has_key("Database") :
+                imgid = viewobj["ViewerRecords"][0]["Image"]
+                imgdb = viewobj["ViewerRecords"][0]["Database"]
+              else :
+                imgid = viewobj["ViewerRecords"][0]["Image"]["_id"]
+                imgdb = viewobj["ViewerRecords"][0]["Image"]["database"]
+
           if imgid == 0 :
             imgdb = sessdb
             imgid = str(viewobj["img"])

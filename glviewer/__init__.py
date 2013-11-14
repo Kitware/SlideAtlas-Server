@@ -720,14 +720,21 @@ def saveviewnotes():
 def addviewimage(viewObj):
     for record in viewObj["ViewerRecords"]:
         # database and object (and server) should be packaged into a reference object.
-        imgid = record["Image"]
-        imgdb = record["Database"]
+        if record.has_key("Database") :
+          imgid = record["Image"]
+          imgdb = record["Database"]
+        else :
+          imgid = record["Image"]["_id"]
+          imgdb = record["Image"]["database"]
+        
         admindb = conn[current_app.config["CONFIGDB"]]
         dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
         db = conn[dbobj["dbname"]]
         imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
         imgObj["_id"] = str(imgObj["_id"])
-        imgObj["database"] = record["Database"]
+        if imgObj.has_key("thumb") :
+          imgObj["thumb"] = None
+        imgObj["database"] = imgdb
         if 'dimension' in imgObj:
             imgObj["dimensions"] = imgObj["dimension"]
         record["Image"] = imgObj
