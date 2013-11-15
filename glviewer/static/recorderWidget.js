@@ -33,7 +33,7 @@ ViewerRecord.prototype.Load = function(obj) {
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
-
+  
   if (this.Annotations) {
     for (var i = 0; i < this.Annotations.length; ++ i) {
       var a = this.Annotations[i];
@@ -48,7 +48,6 @@ ViewerRecord.prototype.Load = function(obj) {
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
   if ( ! cache) { 
-    this.Bounds = [0,10000,0,10000];
     this.Camera = null;
     this.AnnotationVisibility = false;
     this.Annotations = [];
@@ -56,8 +55,6 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   }
     
   this.Image = cache.Image;
-  // Bounds should be in the image
-  this.Bounds = cache.Bounds;
   
   var cam = viewer.GetCamera();
   var cameraRecord = {};
@@ -82,14 +79,10 @@ ViewerRecord.prototype.Apply = function (viewer) {
     // Hackish way to deactivate.
     viewer.ActiveWidget.SetActive(false);
   }
-
-  if ( ! this.Bounds && this.Dimensions) {
-    this.Bounds = [0, this.Dimensions[0], 0, this.Dimensions[1]];    
-  }
   
   var cache = viewer.GetCache();
   if ( ! cache || this.Image._id != cache.Image._id) {
-    var newCache = new Cache(this.Image, this.Bounds);
+    var newCache = new Cache(this.Image);
     viewer.SetCache(newCache);
   }
 

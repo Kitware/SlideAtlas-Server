@@ -109,7 +109,6 @@ function ImageBrowserImageCallback(obj) {
 
 function ImageBrowserLoadImage(viewData) {
   // If we want to take origin and spacing into account, then we need to change tile geometry computation.
-  var bds = [0, viewData.dimensions[0], 0, viewData.dimensions[1]];
   var image = viewData.collection;
   if ( typeof(viewData.image) != undefined) {
     image = viewData.image;
@@ -118,9 +117,8 @@ function ImageBrowserLoadImage(viewData) {
   imgobj._id = image;
   imgobj.database = viewData.db;
   imgobj.levels = viewData.levels;
-  // missing bounds ????
-  var bds = [0,10000, 0,10000];
-  var source = new Cache(imgobj, bds);
+  imgobj.bounds = [0, viewData.dimensions[0], 0, viewData.dimensions[1]];
+  var source = new Cache(imgobj);
 
   ACTIVE_VIEWER.SetCache(source);
    

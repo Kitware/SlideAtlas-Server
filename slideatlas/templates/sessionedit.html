@@ -125,8 +125,12 @@
 
     function save(saveNew) {
       var views = [];
+      var guiViews = [];
       $('li', '#sortable').each(
         function () {
+          // This is a pain keeping an extra array to update with new view ids.
+          // Better would be initializing with ajax call in the first place...
+          guiViews.push($(this));
           var view = {'view': $(this).attr('view'),
                       'label' : $('.descriptiveLabel',this).val(),
                       'hiddenLabel' : $('.hiddenLabel',this).val(),
@@ -153,7 +157,11 @@
                      // Redirect is problematic because I want to save multiple times
                      // and back in browser does not reload page completely
                      //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
-                     SESSION_ID = data;
+                     SESSION_ID = data._id;
+                     // View ids changed (were copied). (Pain pain pain)
+                     for (var i = 0; i < data.images.length; ++i) {
+                       guiViews[i].attr('view', data.views[i].ref);
+                     }
                      $('#saveButton').css({"color":"#000"});
                    } else {
                      // Session was empty and deleted from the database.

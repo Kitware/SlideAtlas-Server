@@ -262,8 +262,8 @@ shape has visibility and
     var bds = [0,ARGS.Viewer1.dimensions[0], 0,ARGS.Viewer1.dimensions[1]];
     var source1 = new Cache({'database':ARGS.Viewer1.db,
                              '_id':ARGS.Viewer1.image,  
-                             'levels':ARGS.Viewer1.levels},
-                            bds);
+                             'levels':ARGS.Viewer1.levels,
+                             'bounds':bds});
     var section1 = new Section();
     section1.Caches.push(source1);
     section1.Bounds = [0,ARGS.Viewer1.dimensions[0],0,ARGS.Viewer1.dimensions[1],0,0];

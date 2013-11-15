@@ -130,9 +130,8 @@ function ViewBrowserImageCallback(obj) {
 
 function ViewBrowserLoadImage(viewData) {
   // If we want to take origin and spacing into account, then we need to change tile geometry computation.
-  var bds = viewData.ViewerRecords[0].Bounds;
   var imgobj = viewData.ViewerRecords[0].Image;
-  var source = new Cache(imgobj, bds);
+  var source = new Cache(imgobj);
 
   ACTIVE_VIEWER.SetCache(source);
      

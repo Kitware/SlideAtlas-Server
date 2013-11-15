@@ -737,6 +737,7 @@ def addviewimage(viewObj):
         imgObj["database"] = imgdb
         if 'dimension' in imgObj:
             imgObj["dimensions"] = imgObj["dimension"]
+        imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
         record["Image"] = imgObj
 
     for child in viewObj["Children"]:
@@ -814,6 +815,7 @@ def getview():
   imgobj["database"] = imgdb
   if imgobj.has_key("dimension") :
     imgobj["dimensions"] = imgobj["dimension"]
+  imgobj["bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
     
   noteObj = {}
   noteObj["Id"] = viewid
@@ -829,7 +831,6 @@ def getview():
   viewerRecord = {}
   viewerRecord["Annotations"] = []
   viewerRecord["Image"] = imgobj
-  viewerRecord["Bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
   
   # camera object.
   cam = {}
@@ -862,7 +863,6 @@ def getview():
         question["ParentId"] = viewid
         vrq = {}
         vrq["AnnotationVisibility"] = 1
-        vrq["Bounds"] = viewerRecord["Bounds"]
         vrq["Image"] = viewerRecord["Image"]
         # camera object.
         cam = {}
@@ -905,7 +905,6 @@ def getview():
         vra = {}
         vra["AnnotationVisibility"] = 2
         vra["Type"] = "Answer"
-        vra["Bounds"] = viewerRecord["Bounds"]
         vra["Image"] = viewerRecord["Image"]
         vra["Camera"] = cam
         vra["Annotations"] = [annot]
@@ -921,7 +920,6 @@ def getview():
         note["ParentId"] = viewid
         vr = {}
         vr["AnnotationVisibility"] = 1
-        vr["Bounds"] = viewerRecord["Bounds"]
         vr["Image"] = viewerRecord["Image"]
         # camera object.
         cam = {}

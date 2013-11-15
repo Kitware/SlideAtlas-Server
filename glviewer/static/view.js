@@ -64,8 +64,6 @@ View.prototype.SetCache = function(cache) {
     this.Section.Caches = [];
   } else {
     this.Section.Caches = [cache];
-    // By reference: Bounds are static in section ...
-    this.Section.Bounds = cache.Bounds;
   }
 }
 

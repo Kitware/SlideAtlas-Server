@@ -13,29 +13,30 @@ function Section () {
 
 // For limiting interaction.
 Section.prototype.GetBounds = function () { 
-  if ( ! this.Bounds) {
-    for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
-      var cache = this.Caches[cIdx];
-      var bds = cache.GetBounds();
-      if (cIdx == 0) {
-        this.Bounds = [bds[0], bds[1], bds[2], bds[3]];
-      } else {
-        if (bds[0] < this.Bounds[0]) {
-          this.Bounds[0] = bds[0];
-        }
-        if (bds[1] > this.Bounds[1]) {
-          this.Bounds[1] = bds[1];
-        }
-        if (bds[2] < this.Bounds[2]) {
-          this.Bounds[2] = bds[2];
-        }
-        if (bds[3] < this.Bounds[3]) {
-          this.Bounds[3] = bds[3];
-        }
+  var bounds = [0,10000,0,10000];
+
+  for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
+    var cache = this.Caches[cIdx];
+    var bds = cache.GetBounds();
+    if (cIdx == 0) {
+      bounds = [bds[0], bds[1], bds[2], bds[3]];
+    } else {
+      if (bds[0] < bounds[0]) {
+        bounds[0] = bds[0];
       }
-    }    
-  }
-  return this.Bounds;
+      if (bds[1] > bounds[1]) {
+        bounds[1] = bds[1];
+      }
+      if (bds[2] < bounds[2]) {
+        bounds[2] = bds[2];
+      }
+      if (bds[3] < bounds[3]) {
+        bounds[3] = bds[3];
+      }
+    }
+  }    
+
+  return bounds;
 }
 
 // Size of a pixel at the highest resolution.

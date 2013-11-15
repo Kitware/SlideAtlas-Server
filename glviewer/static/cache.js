@@ -1,7 +1,7 @@
 
 
 // Source is the directory that contains the tile files.
-function Cache(image, bounds) {
+function Cache(image) {
   // Look through existing caches and reuse one if possible
   for (var i = 0; i < CACHES.length; ++i) {
     if (CACHES[i].Image._id == image._id) {
@@ -18,7 +18,6 @@ function Cache(image, bounds) {
   this.Source = sourceStr;
 
   this.Warp = null;
-  this.Bounds = bounds;
   this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
   this.RootTiles = [];
   // Keep a global list for pruning tiles.
@@ -46,7 +45,10 @@ Cache.prototype.GetLeafSpacing = function() {
 }
 
 Cache.prototype.GetBounds = function() {
-  return this.Bounds;
+  if (this.Image && this.Image.bounds) {
+    return this.Image.bounds;
+  }
+  return [0,10000,0,10000]
 }
 
 // This method converts a point in image coordinates to a point in world coordinates.
