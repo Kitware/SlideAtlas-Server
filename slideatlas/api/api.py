@@ -398,6 +398,9 @@ class DataSessionItemsAPI(MethodView):
                 # Find the index
                 # Remove that index
                 sessobj["attachments"] = attachments
+		if not "images" in sessobj:
+			sessobj["images"] = []
+
                 sessobj.validate()
                 sessobj.save()
                 return Response("{ \"Success \" : \" \"}", status=200)
@@ -484,19 +487,23 @@ class DataSessionItemsAPI(MethodView):
                 afile.close()
                 if not sessobj.has_key("attachments"):
                     sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
+		    if not "images" in sessobj:
+			sessobj["images"] = []
                     sessobj.validate()
                     sessobj.save()
     #                print "Inserted attachments", str(sessobj["attachments"])
                 else:
                     size_before = len(sessobj["attachments"])
+		    if not "images" in sessobj:
+			sessobj["images"] = []
                     sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
                     sessobj.validate()
                     sessobj.save()
 
                 return Response("{\"success\" : \" - \"}", status=200)
 
-            except:
-                return Response("{\"error\" : \" Error processing single chunk header \"}", status=405)
+            except Exception as e:
+                return Response("{\"error\" : \" Error processing single chunk header" + e.message + " \"}", status=405)
 
 
         # No need to return conventional file list 
