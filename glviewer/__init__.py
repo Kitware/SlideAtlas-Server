@@ -812,6 +812,8 @@ def getview():
 
   # mold image object to have the keys the viewer expects.
   imgobj["_id"] = str(imgobj["_id"])
+  if imgobj.has_key("thumb") :
+    imgobj["thumb"] = None
   imgobj["database"] = imgdb
   if imgobj.has_key("dimension") :
     imgobj["dimensions"] = imgobj["dimension"]
