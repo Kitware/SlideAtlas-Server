@@ -223,8 +223,8 @@ Tile.prototype.Draw = function (program, context) {
     // map pixels to Tile
     // assume tile is 256x256
     // Shift a half pixel (white line fix) Draw tile one pixel bigger.
-    if (MOBILE_DEVICE == "iPad") {
-      context.transform(1.0/256, 0.0, 0.0, 1.0/256, -0.5/255.0, -0.5/255.0);  
+    if (I_PAD_FLAG) {
+      context.transform(1.0/256.0, 0.0, 0.0, 1.0/256.0, 0.0, 0.0);  
     } else {
       context.transform(1.0/255.5, 0.0, 0.0, 1.0/255.5, -0.25/255.0, -0.25/255.0);  
     }
