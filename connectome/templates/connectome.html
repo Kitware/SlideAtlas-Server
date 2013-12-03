@@ -169,8 +169,8 @@ shape has visibility and
   // Might consider interactive resize feature too.
   function handleResize() {
     if (GL) {
-      CANVAS.width = CANVAS.clientWidth;
-      CANVAS.height = CANVAS.clientHeight;
+      CANVAS.width = CANVAS.innerWidth();
+      CANVAS.height = CANVAS.innerHeight();
       GL.viewport(0, 0, CANVAS.width, CANVAS.height);
 
       var left = 0;
@@ -191,11 +191,12 @@ shape has visibility and
 
   function InitViews() {
 
-    var halfWidth = CANVAS.clientWidth/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], null);
+    var halfWidth = CANVAS.innerWidth()/2;
+    var height = CANVAS.innerHeight();
+    VIEWER1 = new Viewer([0,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
+    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();

@@ -243,7 +243,10 @@ function ConnectomeLoadSection (data, showFlag) {
     var imageData = data.images[i];
     // TODO: Take bounds out of cache and keep it in section.
     // Or make cache have bounds of only its image (if this is useful).
-    var cache = new Cache(data.imageDatabaseName, imageData.collectionName, 8, data.bounds);
+    var cache = new Cache({"database" : data.imageDatabaseName, 
+                           "_id"      : imageData.collectionName, 
+                           "levels"   : 8, 
+                           "bounds"   : data.bounds});
     cache.Source = "/tile?db="+data.imageDatabaseName+"&img="+imageData.collectionName+"&name=";
     //var warp = ConnectomeCreateLoopWarp(imageData, worldPoints);
 
