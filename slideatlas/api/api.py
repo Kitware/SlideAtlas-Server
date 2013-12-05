@@ -246,7 +246,13 @@ class DataSessionsAPI(MethodView):
             # Dereference the views 
             for aview in sessobj["views"]:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
-                viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                # Viewdetails might not be a view
+                if "img" in viewdetails:
+                    viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                else:
+                    if "ViewerRecords" in viewdetails:
+                        viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
+
                 aview["details"] = viewdetails
 
             # Dereference the attachments
