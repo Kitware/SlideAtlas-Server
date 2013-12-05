@@ -235,7 +235,7 @@ class DataSessionsAPI(MethodView):
             if len(sessionlist) > 0:
                 return jsonify({'sessions' : sessionlist})
             else:
-                return Response("{ \"error \" : \"You want You want a list of sessions in %s, but there are no sessions in it \"}" % (dbid), status=405)
+                return jsonify({'sessions' : sessionlist, "error" : "You want You want a list of sessions in %s, but there are no sessions in it" %(dbid)})
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
