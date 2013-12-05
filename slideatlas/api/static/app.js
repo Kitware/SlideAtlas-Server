@@ -6,9 +6,9 @@
     config(
      function ($routeProvider) {
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
-        $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
-        $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
-        $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBNewCtrl"});
+        $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
         // $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
 
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userList.html"});
@@ -18,11 +18,11 @@
         $routeProvider.when("/roles/edit/:idx", {templateUrl: "/apiv1/static/partials/roleEdit.html", controller:"RoleEditCtrl"});
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
+        $routeProvider.when("/:dbid/sessions/new", {templateUrl: "/apiv1/static/partials/sessNew.html", controller:"SessNewCtrl"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
-        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
-        $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/sessnew.html", controller:"SessNewCtrl"});
+        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sessList.html"});
 
         $routeProvider.otherwise({ redirectTo: "/"});
     });
@@ -31,7 +31,7 @@ app.factory('Database', function($resource) {
     return $resource('databases/:dbid', {dbid:'@_id'},
                  {
             query: { method: 'GET', params: {}, isArray: false },
-            update:{ method: 'PUT'}
+            save :{ method: 'PUT', params: {"charge" : true} }
               });
   });
 
@@ -48,6 +48,7 @@ app.factory('Session', function($resource) {
     return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@sessid'},
                  {
             query: { method: 'GET', params: {}, isArray: true },
+            update: { method: 'PUT'}
               });
   });
 
@@ -228,6 +229,20 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         //);
     });
 
+app.controller("SessNewCtrl", function ($scope, $location, Session, $routeParams, Data)
+    {
+        // Start with a blank database
+        $scope.label = "B Session";
+
+        console.log($scope.label);
+
+        $scope.save = function () {
+            Session.save({dbid: $routeParams.dbid, insert : { "label" : $scope.label }}, function(data) {
+                console.log(data);
+                $location.path("/" + $routeParams.dbid + "/sessions");
+            });
+            }
+    });
 
 
 app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
@@ -300,8 +315,8 @@ app.controller("dbListCtrl", function ($scope, Database, $location, Data)
         }
     });
 
-app.controller("SessListCtrl", function ($scope, Session, $location, Data)
-    {
+app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
+
     console.log("Refreshing SessListCtrl")
 
     Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
@@ -323,7 +338,7 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     //             });
     //         }
     //     };
-    });
+});
 
 
 app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
