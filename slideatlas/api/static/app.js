@@ -168,7 +168,6 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         $scope.dbid = $routeParams.dbid;
         $scope.sessid = $routeParams.sessid;
         $scope.type = $routeParams.type;
-
         $scope.$evalAsync( function () {
             var urlstr = "/apiv1/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
             var _id = ""
@@ -180,7 +179,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                 $('#fileupload').fileupload({
                     type:'PUT',
                     url: urlstr + get_id(),
-                    dataType: 'json',
+//                    dataType: 'json',
                     maxChunkSize: 1048576, // 10 MB
                     add: function (e, data) {
                         $('#status').text('Uploading...');
@@ -207,20 +206,26 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                             progress + '%'
                         );
                     },
-
-                    done: function (e, data) {
-                        $("status").text('Upload finished.');
-                    },
                     progressall: function (e, data) {
+                        console.log([e,data])
                         var progress = parseInt(data.loaded / data.total * 100, 10);
                         $('#status').text("Progress = " + progress / 2.0+ '%');
                         $('#progress .bar').css(
                             'width',
                             progress + '%'
                         );
+                    },
+                    done: function (e, data) {
+                        console.log(["Done: ", data]);
+                        $("#status").text('Upload finished.');
+                        console.log("/" + $routeParams.dbid + "/sessions/" + $routeParams.sessid);
                     }
                 });
         });
+
+        $scope.back = function() {
+            $location.path("/" + $routeParams.dbid + "/sessions/" + $routeParams.sessid);
+        }
 
         //Session.get({dbid: $routeParams.dbid}, function(data) {
         //    Data.setList(data.sessions);
