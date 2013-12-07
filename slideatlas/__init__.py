@@ -108,6 +108,24 @@ def logout():
     return redirect(url_for('home'))
 
 
+
+
+@app.route('/about')
+def about():
+    if 'user' in session:
+        #        print session["user"]
+        label = session["user"]["label"]
+        email = session["user"]["email"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        label = None
+        email = None
+
+    return render_template('about.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_SERVER"])
+
+
 @app.route('/')
 @app.route('/home')
 def home():
