@@ -90,6 +90,13 @@
 
 <body>
 
+    {% set navigation_bar = [ ('home', '/', 'Home'),
+        ('sesions', '/sessions', 'Sessions'),
+        ('admin', '/apiv1/admin#/', 'Admin'),
+        ('about', '/about', 'About'),
+    ] -%}
+
+
 <div class="navbar navbar-inverse navbar-fixed-top">
   <div class="navbar-inner ">
     <div class="container">
@@ -98,13 +105,19 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </a>
-      <a class="brand" href="/home">Digital Slide Atlas</a>
+      <a class="brand active" href="/home"> Slide Atlas</a>
       <div class="nav-collapse collapse">
         <ul class="nav">
-          <li class="active"> <a href="/home">Home</a></li>
-          <li><a href="/apiv1/admin#/">admin</a></li>
-          <li><a href="/sessions">sessions</a></li>
-          <li><a href="/about">about</a></li>
+            {% for id, href, label in navigation_bar %}
+            <li {% if id == active_page %} class="active"{% endif %}>
+                <a href="{{ href|escape }}">{{ label|escape }}</a>
+            </li>
+            {% endfor %}
+
+{#          <li class="active"> <a href="/home">Home</a></li>#}
+{#          <li><a href="/apiv1/admin#/">admin</a></li>#}
+{#          <li><a href="/sessions">sessions</a></li>#}
+{#          <li><a href="/about">about</a></li>#}
         </ul>
 
         {% if not 'user' in session %}
@@ -116,7 +129,7 @@
         {% endif %}
 
         <ul class="nav pull-right">
-            <li class="pull-right">
+            <li class="pull-right {% if 'login' == active_page %} active{% endif %}">
             <a href="{{ login_url }} "> {{ login_text|safe }} </a>
             </li>
         </ul>
