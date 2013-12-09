@@ -68,6 +68,29 @@ Administrative database (always named "slideatlas")
       - **'created\_at'**: Time
       - **'valid\_until'**: Time
 
+
+'meta' collection
+~~~~~~~~~~~~~~~~~
+
+A location to store confidential configuration parameters in database, so config file can be obsolete,
+the run can optionally request parameters for config database.
+
+Storing
+
+- **'\_id'**: ObjectId
+- **'key'**: str
+- **'value'**: BSON object
+
+Suggested variables for now
+
+# Guest user id
+# Guest rules that need to be applied to
+# Facebook key for localhost and facebook key for servers etc
+
+
+
+
+
 Data database ("bev1", etc.)
 ----------------------------
 
