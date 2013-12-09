@@ -102,13 +102,25 @@
       <div class="nav-collapse collapse">
         <ul class="nav">
           <li class="active"> <a href="/home">Home</a></li>
-          <li><a href="/login">login</a></li>
           <li><a href="/apiv1/admin#/">admin</a></li>
           <li><a href="/sessions">sessions</a></li>
           <li><a href="/about">about</a></li>
-          <li><a href="/logout">logout</a></li>
         </ul>
-      </div> 
+
+        {% if not 'user' in session %}
+            {% set login_url = url_for('login.login') %}
+            {% set login_text = 'login' %}
+        {% else %}
+            {% set login_url = url_for('login.logout') %}
+            {% set login_text = session.user.label + ' ~ logout' %}
+        {% endif %}
+
+        <ul class="nav pull-right">
+            <li class="pull-right">
+            <a href="{{ login_url }} "> {{ login_text|safe }} </a>
+            </li>
+        </ul>
+      </div>
   </div>
   </div>
 </div>

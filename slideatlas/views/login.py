@@ -435,3 +435,16 @@ def do_user_login(user):
 
 
     flash('You are successfully logged in.', 'success')
+
+@mod.route('/logout', methods=['GET', 'POST'])
+def logout():
+    """Does the login via OpenID. Has to call into `oid.try_login`
+    to start the OpenID machinery.
+    """
+    # if we are already logged in, go back to were we came from
+    flask.g.logged_in = False
+    session.clear()
+
+    return redirect(url_for('home'))
+
+
