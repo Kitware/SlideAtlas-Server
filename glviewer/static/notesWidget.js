@@ -1047,8 +1047,10 @@ NotesWidget.prototype.EditCallback = function() {
   this.NewButton.show();
   this.SaveButton.show();
   // This handles making the note editable (including showing and hiding the delete button).
-  this.SelectedNote.Select();
-
+  if (this.SelectedNote) {
+    this.SelectedNote.Select();
+  }
+  
   // This handles making children sortable.
   var iter = this.RootNote.NewIterator();
   do {
