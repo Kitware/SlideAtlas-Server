@@ -788,8 +788,11 @@ Viewer.prototype.HandleMomentum = function(event) {
     cam2.Roll = cam.Roll;
     cam2.ComputeMatrix();  
   }
-  eventuallyRender();
-  
+  // I think the problem with the ipad is thie asynchronous render.
+  // Maybe two renders occur at the same time.
+  //eventuallyRender();
+  draw();  
+
   // Decay the momentum.
   this.MomentumX *= decay;
   this.MomentumY *= decay;
@@ -919,13 +922,6 @@ Viewer.prototype.HandleMouseUp = function(event) {
     return;
   }
 
-  // Dragging is handled by the camera.  This needs to 
-  // change before I can use momentum.
-  //if (this.InteractionState == INTERACTION_DRAG) {
-  //  this.HandleMomentum();
-  //  return;
-  //}
-  
   if (this.InteractionState != INTERACTION_NONE) {
     this.InteractionState = INTERACTION_NONE;
     RecordState();
