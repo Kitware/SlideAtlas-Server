@@ -498,8 +498,8 @@ Viewer.prototype.Animate = function() {
     var currentCenter = this.MainView.Camera.GetFocalPoint();
     var currentRoll   = this.MainView.Camera.Roll;
     this.MainView.Camera.SetHeight(
-          currentHeight + (this.ZoomTarget-currentHeight))
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
+          currentHeight + (this.ZoomTarget-currentHeight)
+            *(timeNow-this.AnimateLast)/this.AnimateDuration);
     this.MainView.Camera.Roll
       = currentRoll + (this.RollTarget-currentRoll)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
