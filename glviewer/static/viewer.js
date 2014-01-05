@@ -487,8 +487,8 @@ Viewer.prototype.Animate = function() {
     if (this.OverView) {
       this.OverView.Camera.Roll = this.RollTarget;
     }
-    this.MainView.Camera.FocalPoint[0] = this.TranslateTarget[0];
-    this.MainView.Camera.FocalPoint[1] = this.TranslateTarget[1];
+    this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
+                                       this.TranslateTarget[1]);
 
     // Save the state when the animation is finished.
     RecordState();

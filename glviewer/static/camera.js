@@ -166,13 +166,6 @@ Camera.prototype.Reset = function () {
     this.ComputeMatrix();
 }
 
-Camera.prototype.Translate = function (dx,dy,dz) {
-    this.FocalPoint[0] += dx;
-    this.FocalPoint[1] += dy;
-    this.FocalPoint[2] += dz;
-    this.ComputeMatrix();
-}
-
 // Currenly assumes parallel projection and display z range = [-1,1].
 // Also no rotation!
 // a.k.a. This method does not work.
