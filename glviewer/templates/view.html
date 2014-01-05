@@ -222,7 +222,12 @@ shape has visibility and
     handleResize();
   }
 
+  // Hack mutex.  iPad2 must execute multiple draw callbacks at the same time 
+  // in different threads.
+  var DRAWING = false;
   function draw() {
+    if (DRAWING) { return; }
+    DRAWING = true;
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     }
@@ -232,6 +237,7 @@ shape has visibility and
     if (DUAL_VIEW) { VIEWER2.Animate(); }
     VIEWER1.Draw();
     if (DUAL_VIEW) { VIEWER2.Draw(); }
+    DRAWING = false;
   }
   
   // The event manager detects single right click and double right click.
