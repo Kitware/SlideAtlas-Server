@@ -327,9 +327,8 @@ function eventuallyRender() {
 }
 
 function tick() {
-    draw();
-    // Puttiong this after the draw might be enough to fix the iPad2 problem.
     RENDER_PENDING = false;
+    draw();
 }
 
 
