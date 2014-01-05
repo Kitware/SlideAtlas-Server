@@ -30,6 +30,15 @@ Camera.prototype.GetFocalPoint = function () {
   return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]]; 
 }
 
+Camera.prototype.SetFocalPoint = function (x, y) {
+  this.FocalPoint[0] = x;
+  this.FocalPoint[1] = y;
+  // Ignore z on purpose.
+  if (isNaN(this.FocalPoint[0]) || isNaN(this.FocalPoint[1])) {
+    console.log("iPad bug: Camera went crazy.");
+  }
+}
+
 // dx, dy are in view coordinates [-0.5,0.5].  
 // The camera matrix converts world to view.
 Camera.prototype.HandleTranslate = function (dx,dy) {
@@ -136,8 +145,8 @@ Camera.prototype.Reset = function () {
     bounds[3] = TILE_DIMENSIONS[1] * ROOT_SPACING[1];
     bounds[5] = NUMBER_OF_SECTIONS * ROOT_SPACING[2];
 
-    this.FocalPoint[0] = (bounds[0] + bounds[1]) * 0.5;
-    this.FocalPoint[1] = (bounds[2] + bounds[3]) * 0.5;
+    this.SetFocalPoint((bounds[0] + bounds[1]) * 0.5,
+                       (bounds[2] + bounds[3]) * 0.5);
     // We would need to set slice as well.
     //this.FocalPoint[2] = (bounds[4] + bounds[5]) * 0.5;
     this.Height = bounds[3]-bounds[2];

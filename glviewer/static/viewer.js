@@ -106,8 +106,8 @@ Viewer.prototype.SetSection = function(section) {
     //this.ShapeList = section.Markers;
     var bounds = section.GetBounds();
     this.OverView.Camera.Height = bounds[3]-bounds[2];
-    this.OverView.Camera.FocalPoint[0] = 0.5*(bounds[0]+bounds[1]);
-    this.OverView.Camera.FocalPoint[1] = 0.5*(bounds[2]+bounds[3]);
+    this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
+                                       0.5*(bounds[2]+bounds[3]));
     this.OverView.Camera.ComputeMatrix();
   }
   eventuallyRender();
@@ -122,8 +122,8 @@ Viewer.prototype.SetCache = function(cache) {
     if (cache) {
       var bds = cache.GetBounds();
       if (bds) {
-        this.OverView.Camera.FocalPoint[0] = (bds[0] + bds[1]) / 2;
-        this.OverView.Camera.FocalPoint[1] = (bds[2] + bds[3]) / 2;
+        this.OverView.Camera.SetFocalPoint((bds[0] + bds[1]) / 2,
+                                           (bds[2] + bds[3]) / 2);
         var height = (bds[3]-bds[2]);
         // See if the view is constrained by the width.
         var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
@@ -271,9 +271,7 @@ Viewer.prototype.SetCamera = function(center, rotation, height) {
   this.MainView.Camera.Height = height;
   this.ZoomTarget = height;    
 
-  this.MainView.Camera.FocalPoint[0] = center[0];
-  this.MainView.Camera.FocalPoint[1] = center[1];
-  //this.MainView.Camera.FocalPoint[2] = center[2];
+  this.MainView.Camera.SetFocalPoint(center[0], center[1]);
   this.TranslateTarget[0] = center[0];
   this.TranslateTarget[1] = center[1];
   
@@ -497,7 +495,7 @@ Viewer.prototype.Animate = function() {
   } else {
     // Interpolate
     var currentHeight = this.MainView.Camera.GetHeight();
-    var currentCenter = this.MainView.Camera.FocalPoint;
+    var currentCenter = this.MainView.Camera.GetFocalPoint();
     var currentRoll   = this.MainView.Camera.Roll;
     this.MainView.Camera.Height
       = currentHeight + (this.ZoomTarget-currentHeight)
@@ -508,12 +506,11 @@ Viewer.prototype.Animate = function() {
     if (this.OverView) {
       this.OverView.Camera.Roll = this.MainView.Camera.Roll;
     }
-    this.MainView.Camera.FocalPoint[0]
-      = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
-    this.MainView.Camera.FocalPoint[1]
-      = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
+    this.MainView.Camera.SetFocalPoint(
+        currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+            *(timeNow-this.AnimateLast)/this.AnimateDuration,
+        currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+            *(timeNow-this.AnimateLast)/this.AnimateDuration);
     // We are not finished yet.
     // Schedule another render
     eventuallyRender();
@@ -563,7 +560,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
   if ( event.Touches.length >= 4) {
     var cam = this.GetCamera();
     var bds = this.MainView.Section.GetBounds();
-    cam.FocalPoint = [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5];      
+    cam.SetFocalPoint( (bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5);      
     cam.Roll = 0.0;
     cam.Height = bds[3]-bds[2];
     cam.ComputeMatrix();
@@ -608,8 +605,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
   this.MomentumScale = 0.0;
 
   var cam = this.GetCamera();
-  cam.FocalPoint[0] -= dx;  
-  cam.FocalPoint[1] -= dy;
+  cam.Translate( -dx, -dy, 0);  
   cam.ComputeMatrix();  
   eventuallyRender();  
 }
@@ -778,8 +774,7 @@ Viewer.prototype.HandleMomentum = function(event) {
   var integ = (-k * decay + k);
   
   var cam = this.MainView.Camera;
-  cam.FocalPoint[0] -= this.MomentumX * integ;  
-  cam.FocalPoint[1] -= this.MomentumY * integ;
+  cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ));
   cam.Height = cam.Height / ((this.MomentumScale * integ) + 1);
   cam.Roll = cam.Roll - (this.MomentumRoll* integ);
   cam.ComputeMatrix();
@@ -826,19 +821,19 @@ Viewer.prototype.ConstrainCamera = function () {
 
   var modified = false;
   if (cam.FocalPoint[0] < bounds[0]) {
-    cam.FocalPoint[0] = bounds[0];
+    cam.SetFocalPoint(bounds[0], cam.FocalPoint[1]);
     modified = true;
   }
   if (cam.FocalPoint[0] > bounds[1]) {
-    cam.FocalPoint[0] = bounds[1];
+    cam.SetFocalPoint(bounds[1], cam.FocalPoint[1]);
     modified = true;
   }
   if (cam.FocalPoint[1] < bounds[2]) {
-    cam.FocalPoint[1] = bounds[2];
+    cam.SetFocalPoint(cam.FocalPoint[1], bounds[2]);
     modified = true;
   }
   if (cam.FocalPoint[1] > bounds[3]) {
-    cam.FocalPoint[1] = bounds[3];
+    cam.SetFocalPoint(cam.FocalPoint[1], bounds[3]);
     modified = true;
   }
   if (cam.Height > 2*(bounds[3]-bounds[2])) {
