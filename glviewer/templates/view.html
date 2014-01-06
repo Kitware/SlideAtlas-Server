@@ -215,10 +215,10 @@ shape has visibility and
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,height], null);
+    VIEWER1 = new Viewer([0,0, width,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
+    VIEWER2 = new Viewer([width,0, 0,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
