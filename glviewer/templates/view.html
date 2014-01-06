@@ -191,7 +191,7 @@ shape has visibility and
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
       GL.viewport(0, 0, width, height);
-    } // SetViewport does the work for 2d canvases.
+    } // GL.SetViewport does the work for 2d canvases.
     
     // we set the left border to leave space for the notes window.
     var left = 0;
@@ -199,7 +199,9 @@ shape has visibility and
     // The remaining width is split between the two viewers.
     var width1 = (width-left) * VIEWER1_FRACTION;
     var width2 = (width-left) - width1;
+
     if (VIEWER1) {
+      console.log("Viewer1 resize width " + width1 + ", height " + height);
       VIEWER1.SetViewport([left, 0, width1, height]);
       eventuallyRender();
     }

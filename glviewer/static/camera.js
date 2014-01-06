@@ -20,6 +20,17 @@ function Camera (viewportWidth, viewportHeight) {
 }
 
 
+Camera.prototype.SetViewport = function (viewport) {
+  if (10*viewport[3] < viewport[2]) {
+    console.log("Suspect viewport " + viewport[3]);
+    return;
+  }
+  this.ViewportWidth = viewport[2];
+  this.ViewportHeight = viewport[3];
+}
+
+
+
 Camera.prototype.GetRotation = function () {
     return this.Roll * 180.0 / 3.1415926535;
 }
