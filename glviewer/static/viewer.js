@@ -774,7 +774,7 @@ Viewer.prototype.HandleMomentum = function(event) {
   var integ = (-k * decay + k);
   
   var cam = this.MainView.Camera;
-  cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ));
+  cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
   cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
   cam.Roll = cam.Roll - (this.MomentumRoll* integ);
   cam.ComputeMatrix();
