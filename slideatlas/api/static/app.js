@@ -24,7 +24,7 @@
 
         $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sessList.html"});
 
-        $routeProvider.otherwise({ redirectTo: "/"});
+        $routeProvider.otherwise({ redirectTo: "/databases"});
     });
 
 app.factory('Database', function($resource) {
