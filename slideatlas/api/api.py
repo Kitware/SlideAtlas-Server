@@ -36,6 +36,7 @@ class AdminDBAPI(MethodView):
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
             objs = conn[current_app.config["CONFIGDB"]][restype].find()
+            # TODO: need to paginate in near future
             objarray = list()
             for anobj in objs:
                 # Filter the list with passwd if type is user
@@ -76,6 +77,41 @@ class AdminDBAPI(MethodView):
     def put(self, restype, resid):
         # update some information
         pass
+
+
+
+
+# The urls for getting users for rules, posting grant / revoke etc
+class AdminDBItemsAPI(MethodView):
+    decorators = []
+
+    @site_admin_required(False)
+    def get(self, restype, resid, listtype):
+        # Restype has to be between allowed ones or the request will not come here
+        # only rules and users is supported now
+
+        # create a new user
+        result = {}
+        result["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
+
+        if restype not in ["rules"] or listtype not in ["users"]:
+            return Response("{\"error\" : \"Only restype itemtype supported is rules, users\"}" , status=405)
+
+        # ruleobj or dbobj
+        objarray = list()
+        for anobj in conn[current_app.config["CONFIGDB"]][listtype].find({"rules" : ObjectId(resid)}):
+            if "passwd" in anobj:
+                del anobj["passwd"]
+            objarray.append(anobj)
+        result[listtype] = objarray
+        return jsonify(result)
+
+    def post(self, restype, resid, listtype):
+        # create a new user
+        obj = {}
+        obj["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
+
+        return jsonify(obj)
 
 # The url valid for databases, rules and users with supported queries
 
@@ -206,6 +242,10 @@ mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseA
 
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"), methods=['get'])
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))
+
+mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>/<regex("(users)"):listtype>', view_func=AdminDBItemsAPI.as_view("show_resource_list_or_post"), methods=["get", "post"])
+
+
 
 # The url valid for databases, rules and users with supported queries
 class DataSessionsAPI(MethodView):
