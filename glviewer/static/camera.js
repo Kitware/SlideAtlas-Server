@@ -135,8 +135,6 @@ Camera.prototype.GetWidth = function () {
 // X:(-1->1)
 // Y:(-1->1) (-1 is bottom)
 // Z:(-1->1) (-1 is front)
-var DEBUG_WIDTH;
-var DEBUG_HEIGHT;
 Camera.prototype.ComputeMatrix = function () {
     var s = Math.sin(this.Roll);
     var c = Math.cos(this.Roll);
@@ -145,9 +143,7 @@ Camera.prototype.ComputeMatrix = function () {
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
     var h = this.GetHeight();
-
-DEBUG_WIDTH = h;
-DEBUG_HEIGHT = w;
+    if (w < 0) { return; }
 
     if (this.Mirror) { h = -h; }
     
@@ -162,6 +158,16 @@ DEBUG_HEIGHT = w;
     this.Matrix[13]= (w/h)*(-s*x - c*y);
     this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
     this.Matrix[15]=  0.5*w;
+
+  if (Math.abs(this.Matrix[5]) < 0.01 &&
+      Math.abs(this.Matrix[4]) < 0.01) {
+    StartLogging();
+    LogMessage("m[4] " + this.Matrix[4]);
+    LogMessage("m[5] " + this.Matrix[4]);
+    LogMessage("c = " + c);
+    LogMessage("w = " + w);
+    LogMessage("h = " + h);
+  }
 }
 
 // TODO: ROOT_SPACING IS UNDEFINED.
