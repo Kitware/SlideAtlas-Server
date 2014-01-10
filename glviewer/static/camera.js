@@ -22,7 +22,7 @@ function Camera (viewportWidth, viewportHeight) {
 
 Camera.prototype.SetViewport = function (viewport) {
   if (10*viewport[3] < viewport[2]) {
-    console.log("Suspect viewport " + viewport[3]);
+    alert("Unusual viewport " + viewport[3]);
     return;
   }
   this.ViewportWidth = viewport[2];
@@ -135,6 +135,8 @@ Camera.prototype.GetWidth = function () {
 // X:(-1->1)
 // Y:(-1->1) (-1 is bottom)
 // Z:(-1->1) (-1 is front)
+var DEBUG_WIDTH;
+var DEBUG_HEIGHT;
 Camera.prototype.ComputeMatrix = function () {
     var s = Math.sin(this.Roll);
     var c = Math.cos(this.Roll);
@@ -143,6 +145,9 @@ Camera.prototype.ComputeMatrix = function () {
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
     var h = this.GetHeight();
+
+DEBUG_WIDTH = h;
+DEBUG_HEIGHT = w;
 
     if (this.Mirror) { h = -h; }
     
