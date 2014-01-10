@@ -56,9 +56,6 @@ app.factory('SessionItem', function($resource) {
     return $resource('/apiv1/:dbid/sessions/:sessid/:restype/:resid', {dbid:'@dbid', sessid:'@sessid', restype:'@restype', resid:'@resid'});
   });
 
-
-
-
 app.factory('Data', function() {
     var methods = {};
 
@@ -396,7 +393,7 @@ app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter)
 
     });
 
-app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter) {
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter, $http) {
 
         var items = Data.getList()
         var role = Data.getItem($routeParams.idx);
@@ -417,7 +414,19 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
             if(!$scope.role.hasOwnProperty("users")) {
                 $scope.role.users = [];
             }
+
+            $http({method: "get", url: "/apiv1/rules/" + role._id + "/users"}).
+            success(function(data, status) {
+                    $scope.role.users = data.users;
+            }).
+            error(function(data, status) {
+                $scope.role.users = [];
+            });
+
         });
+
+
+        $scope.role.users =
 
 
         $scope.save = function () {
