@@ -142,20 +142,26 @@ Camera.prototype.ComputeMatrix = function () {
     var y = this.FocalPoint[1];
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
-    var h = this.GetHeight();
+    // var ht = this.GetHeight();  The iPad got this wrong?????
+    var ht = this.Height;
+
+    if (ht > 1000000) {
+      StartLogging();
+      LogMessage("First height is big " + this.height);
+    }
     if (w < 0) { return; }
 
-    if (this.Mirror) { h = -h; }
+    if (this.Mirror) { ht = -ht; }
     
     mat4.identity(this.Matrix);
 
     this.Matrix[0] = c;
-    this.Matrix[1] = s*w/h;
+    this.Matrix[1] = s*w/ht;
     this.Matrix[4] =  -s;
-    this.Matrix[5] =  c*w/h;
+    this.Matrix[5] =  c*w/ht;
     this.Matrix[10]=  (this.ZRange[1]-this.ZRange[0])*0.5;
     this.Matrix[12]= -c*x + s*y;
-    this.Matrix[13]= (w/h)*(-s*x - c*y);
+    this.Matrix[13]= (w/ht)*(-s*x - c*y);
     this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
     this.Matrix[15]=  0.5*w;
 
@@ -166,7 +172,8 @@ Camera.prototype.ComputeMatrix = function () {
     LogMessage("m[5] " + this.Matrix[4]);
     LogMessage("c = " + c);
     LogMessage("w = " + w);
-    LogMessage("h = " + h);
+    LogMessage("ht = " + ht);
+    LogMessage("height = " + this.Height);
   }
 }
 
