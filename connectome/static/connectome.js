@@ -164,26 +164,51 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
 
 
 
-// Mesh from loop data.
+// Mesh from points and connectivity.
 function ConnectomeCreateMeshWarp (imageData, worldPoints) {
+  // Create the points array.
+  var points = [];
+  for (var j = 0; j < imageData.meshPoints.length; ++j) {
+    var meshPt = new Object();
+    meshPt.ImagePt = imageData.meshPoints[j].pixelLocation;
+    meshPt.WorldPt = worldPoints[imageData.meshPoints[j].worldPointId].coordinates;
+    points.push(meshPt);
+  }
+  // Create the triangle array.
+  var triangles = [];
+  for (var j = 0; j < imageData.meshTriangles.length; ++j) {
+    triangles.push([imageData.meshTriangles[j][0],
+                    imageData.meshTriangles[j][1],
+                    imageData.meshTriangles[j][2]]);
+  }
+
+  return new meshWarp(points, triangles);
+}
+
+// Mesh from points and connectivity.
+function ConnectomeCreateMeshWarpFromLoop (imageData, worldPoints) {
   var centerPt = new Object();
   centerPt.ImagePt = imageData.center.pixelLocation;
   centerPt.WorldPt = worldPoints[imageData.center.worldPointId].coordinates;
+
   // Create the points array.
   var points = [centerPt];
+
   for (var j = 0; j < imageData.loop.length; ++j) {
     var loopPt = new Object();
     loopPt.ImagePt = imageData.loop[j].pixelLocation;
     loopPt.WorldPt = worldPoints[imageData.loop[j].worldPointId].coordinates;
     points.push(loopPt);
   }
+
   // Create the triangle array.
   var triangles = [];
-  for (var j = 2; j < points.length; ++j) {
-    triangles.push([0, j-1, j]);
+  for (var j = 1; j < imageData.loop.length; ++j) {
+    triangles.push([0,j,j+1]);
   }
-  // Special case: last triangle.
-  triangles.push([0, points.length-1, 1]);
+  // create the last triangle. (loops around).
+  triangles.push([0, imageData.loop.length, 1]);
+
 
   return new meshWarp(points, triangles);
 }
@@ -221,8 +246,12 @@ function ConnectomeLoadSection (data, showFlag) {
     var cache = new Cache(data.imageDatabaseName, imageData.collectionName, 8, data.bounds);
     cache.Source = "/tile?db="+data.imageDatabaseName+"&img="+imageData.collectionName+"&name=";
     //var warp = ConnectomeCreateLoopWarp(imageData, worldPoints);
-    var warp = ConnectomeCreateMeshWarp(imageData, worldPoints);
-    cache.Warp = warp;
+
+    if (imageData.center) {
+      cache.Warp = ConnectomeCreateMeshWarpFromLoop(imageData, worldPoints);
+    } else {
+      cache.Warp = ConnectomeCreateMeshWarp(imageData, worldPoints);
+    }
     section.Caches.push(cache);
   }
   

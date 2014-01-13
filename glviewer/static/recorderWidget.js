@@ -12,10 +12,10 @@
 
 // Maybe students can link to the instructor recording session.  The could add notes which are added to the recording.
 
-// It might be nice to know where the mouse is pointing at all times.  We need a pointing tool. That is alot of events though.  LATER....
+// It might be nice to know where the mouse is pointing at all times.  We need a pointing tool. That is many events though.  LATER....
 
 // Design issue:
-// Should I save the state at the end of a move or the begining?  I chose end.  Although begining is easier,
+// Should I save the state at the end of a move or the beginning?  I chose end.  Although beginning is easier,
 // I like just popping the last state off the TIME_LINE and pushing to the REDO_STACK
 
 

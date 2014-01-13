@@ -18,7 +18,8 @@ var tileVertexTextureCoordBuffer;
 var tileCellBuffer;
 
 var MOBILE_DEVICE = false;
-
+// Hack to get rid of white lines.
+var I_PAD_FLAG = false;
 
 
 function detectMobile() { 
@@ -34,6 +35,7 @@ function detectMobile() {
   }
   if ( navigator.userAgent.match(/iPad/i)) {
    MOBILE_DEVICE = "iPad";
+   I_PAD_FLAG = true;
   }
   if ( navigator.userAgent.match(/iPod/i)) {
    MOBILE_DEVICE = "iPod";

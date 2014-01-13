@@ -1,9 +1,6 @@
 Uploads and Tasks
 =================
 
-.. meta::
-   :http-equiv=refresh: 5
-
 User can use web interface to upload their supported image files.
 Images are always uploaded to a session.
 

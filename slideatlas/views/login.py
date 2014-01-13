@@ -27,7 +27,7 @@ facebook = oauth.remote_app('facebook',
     authorize_url='https://www.facebook.com/dialog/oauth',
     consumer_key=app.config['FACEBOOK_APP_ID'],
     consumer_secret=app.config['FACEBOOK_APP_SECRET'],
-    request_token_params={'scope': 'email'}
+    request_token_params={'scope': 'email,user_groups'}
 )
 
 @mod.route("/login")
@@ -435,3 +435,16 @@ def do_user_login(user):
 
 
     flash('You are successfully logged in.', 'success')
+
+@mod.route('/logout', methods=['GET', 'POST'])
+def logout():
+    """Does the login via OpenID. Has to call into `oid.try_login`
+    to start the OpenID machinery.
+    """
+    # if we are already logged in, go back to were we came from
+    flask.g.logged_in = False
+    session.clear()
+
+    return redirect(url_for('home'))
+
+

@@ -96,16 +96,21 @@ def after_request(response):
     session.pop('openid', None)
     return response
 
-@app.route('/logout', methods=['GET', 'POST'])
-def logout():
-    """Does the login via OpenID. Has to call into `oid.try_login`
-    to start the OpenID machinery.
-    """
-    # if we are already logged in, go back to were we came from
-    g.logged_in = False
-    session.clear()
 
-    return redirect(url_for('home'))
+@app.route('/about')
+def about():
+    if 'user' in session:
+        #        print session["user"]
+        label = session["user"]["label"]
+        email = session["user"]["email"]
+    else:
+        # Send the user back to login page
+        # with some message
+        flash("You are not logged in..", "info")
+        label = None
+        email = None
+
+    return render_template('about.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_SERVER"])
 
 
 @app.route('/')
