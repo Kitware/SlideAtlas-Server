@@ -18,6 +18,7 @@
                     <br/>
                         <span ng-show="auser.can_see.length > 0"  class="label label-info"> can_see :  {{ auser.can_see.length }} </span>
                         <span ng-show="auser.can_admin==true" class="label label-success"> can_admin :  {{ auser.can_admin.length }} </span>
+                        <span ng-show="auser.db_admin==true" class="label label-danger"> db_admin </span>
                         <span ng-show="auser.can_see_all > 0" class="label label-important"> can_see_all </span>
                 </td>
                 <td><a href="#/roles/edit/{{$index}}"><i class="icon-edit"></i> edit </a> </td>
