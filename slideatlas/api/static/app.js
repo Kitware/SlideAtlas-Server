@@ -473,10 +473,22 @@ app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items, sel
   $scope.toggle = function(id) {
 
       if (_.contains($scope.selected,id )){
-        // Remove
-        $scope.selected = _.without($scope.selected, id);
+        // Revoke
+        console.log("Revoking:" + id);
+        $http({method: "post", url: "/apiv1/rules/" + $scope.role._id + "/users"}, payload={"revoke" : id}).
+            success(function(data, status) {
+                    console.log("Succsess in revoked");
+                    $scope.selected = _.without($scope.selected, id);
+            }).
+            error(function(data, status) {
+                console.log("Error in revoke");
+            });
+
+
       }
       else {
+        // Grant
+        console.log("Granting:" + id);
         $scope.selected.push(id);
       }
   };
