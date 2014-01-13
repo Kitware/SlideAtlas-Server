@@ -430,7 +430,7 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
         $scope.grant = function () {
 
             var modalInstance = $modal.open({
-              templateUrl: '/apiv1/static/partials/userSelectModal.html',
+              templateUrl: 'userSelectModal.html',
               controller: "ModalInstanceCtrl",
               resolve: {
                 items: function () {
@@ -440,6 +440,7 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
             });
 
             modalInstance.result.then(function (selectedItem) {
+              alert("Selected: " + selectedItem);
               $scope.selected = selectedItem;
             }, function () {
               alert('Modal dismissed at: ' + new Date());
