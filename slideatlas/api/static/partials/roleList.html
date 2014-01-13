@@ -20,8 +20,8 @@
                         <span ng-show="auser.can_admin==true" class="label label-success"> can_admin :  {{ auser.can_admin.length }} </span>
                         <span ng-show="auser.can_see_all > 0" class="label label-important"> can_see_all </span>
                 </td>
-                <td><a href="#/roles/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
-                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
+                <td><a href="#/roles/edit/{{$index}}"><i class="icon-edit"></i> edit </a> </td>
+                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i>remove </a> </td>
             </tr>
          </table>
 

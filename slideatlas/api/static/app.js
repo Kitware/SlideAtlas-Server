@@ -2,7 +2,7 @@
  * @author dhanannjay.deo
  */
 
- var app = angular.module('adminapi',["ngResource" ]).
+ var app = angular.module('adminapi',["ngResource", "ngRoute", 'ui.bootstrap']).
     config(
      function ($routeProvider) {
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
@@ -393,9 +393,9 @@ app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter)
 
     });
 
-app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter, $http) {
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter, $http, $modal) {
 
-        var items = Data.getList()
+        var items = Data.getList();
         var role = Data.getItem($routeParams.idx);
         if(typeof role === 'undefined')
             {
@@ -425,9 +425,26 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
 
         });
 
+        $scope.items = ["One", "two", "Three"];
 
-        $scope.role.users =
+        $scope.grant = function () {
 
+            var modalInstance = $modal.open({
+              templateUrl: '/apiv1/static/partials/userSelectModal.html',
+              controller: "ModalInstanceCtrl",
+              resolve: {
+                items: function () {
+                  return $scope.items;
+                }
+              }
+            });
+
+            modalInstance.result.then(function (selectedItem) {
+              $scope.selected = selectedItem;
+            }, function () {
+              alert('Modal dismissed at: ' + new Date());
+            });
+        };
 
         $scope.save = function () {
             $scope.role.$update({id:$scope.role._id}, function(data){
@@ -435,3 +452,19 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
             });
         }
     });
+
+app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items) {
+
+  $scope.items = items;
+  $scope.selected = {
+    item: $scope.items[0]
+  };
+
+  $scope.ok = function () {
+    $modalInstance.close($scope.selected.item);
+  };
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});

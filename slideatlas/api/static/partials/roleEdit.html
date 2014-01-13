@@ -52,9 +52,20 @@
 
         <h5> Applied to users: {{ role.users.length }} </h5>
 
-        <ul class="" ng-hide="role.users.length < 1">
-            <li ng-repeat="adb in role.users"> {{ adb.name }}: {{ adb.label }}</li>
-        </ul>
+        <table class="table table-striped" ng-hide="role.users.length < 1">
+            <thead>
+                <tr>
+                <td><h4> User name </h4></td>
+                <td> </td>
+                <td><a ng-click="grant()"><i class="icon-plus-sign"></i> grant </a> </td>
+               </tr>
+            </thead>
+            <tr ng-repeat ="adb in role.users" >
+                <td> {{ adb.label }} ({{ adb.name }}) </td>
+                <td> </td>
+                <td><a ng-click="revoke($index)"><i class="icon-remove-sign"></i> revoke </a> </td>
+            </tr>
+        </table>
 
          <button ng-click="save()" class="btn-primary"> Update </button>
             </form>
