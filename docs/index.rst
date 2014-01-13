@@ -7,17 +7,18 @@ Welcome to SlideAtlas's documentation!
 ======================================
 
 .. toctree::
-   :titlesonly:
+    :titlesonly:
 
-   get-started
-   schema
-   admin-rights
-   web-api
-   web-interface
-   common-utilities
-   ui-design
-   testing
-   tasks
+    get-started
+    schema
+    admin-rights
+    user-workflow
+    web-api
+    web-interface
+    common-utilities
+    ui-design
+    testing
+    tasks
 
 
 Indices and tables
