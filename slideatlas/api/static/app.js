@@ -442,6 +442,10 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
               resolve: {
                 items: function () {
                   return $scope.users;
+                },
+                selected : function () {
+
+                    return _.pluck($scope.role.users,"_id");
                 }
               }
             });
@@ -461,10 +465,10 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
         }
     });
 
-app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items) {
+app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items, selected) {
 
   $scope.items = items;
-  $scope.selected = [];
+  $scope.selected = selected;
 
   $scope.toggle = function(id) {
 
@@ -482,7 +486,8 @@ app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items) {
           return "success";
       }
       return "";
-  }
+  };
+
   $scope.ok = function () {
     $modalInstance.close($scope.selected);
   };
