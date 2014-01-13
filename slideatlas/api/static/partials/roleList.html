@@ -1,32 +1,32 @@
-     <div ng-controller="RoleListCtrl">
-         <br/>
-         <h2> Admin Console: Roles </h2>
-         <br/>
-         Total Roles : {{roles.length }}
-         <br/>
-         Filter by: <input type="text" ng-model="query" />
-         <table class="table">
-            <thead>
-                <tr>
-                <td><h4>Role label</h4></td>
-                <td><h4>Edit </h4> </td>
-                <td><a href="#/new"><i class="icon-plus-sign"></i></a> </td>
-               </tr>
-           </thead>
-            <tr ng-repeat ="auser in roles | filter:query">
-                <td>{{ auser.label }}
-                    <br/>
-                        <span ng-show="auser.can_see.length > 0"  class="label label-info"> can_see :  {{ auser.can_see.length }} </span>
-                        <span ng-show="auser.can_admin==true" class="label label-success"> can_admin :  {{ auser.can_admin.length }} </span>
-                        <span ng-show="auser.db_admin==true" class="label label-danger"> db_admin </span>
-                        <span ng-show="auser.can_see_all > 0" class="label label-important"> can_see_all </span>
-                </td>
-                <td><a href="#/roles/edit/{{$index}}"><i class="icon-edit"></i> edit </a> </td>
-                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i>remove </a> </td>
-            </tr>
-         </table>
+<div ng-controller="RoleListCtrl">
+    <br/>
+    <h2> Admin Console: Roles </h2>
+    <br/>
+    Total Roles : {{roles.length }}
+    <br/>
+    Filter by: <input type="text" ng-model="query" />
+    <table class="table table-hover">
+    <thead>
+        <tr>
+            <td><h4>Role label</h4></td>
+            <td><h4>Edit </h4> </td>
+            <td><a href="#/new"><span class="glyphicon glyphicon-plus"></span></a> </td>
+        </tr>
+    </thead>
+    <tr ng-repeat ="auser in roles | filter:query">
+        <td>{{ auser.label }}
+            <br/>
+                <span ng-show="auser.can_see.length > 0"  class="label label-info"> can_see :  {{ auser.can_see.length }} </span>
+                <span ng-show="auser.can_admin==true" class="label label-warning"> can_admin :  {{ auser.can_admin.length }} </span>
+                <span ng-show="auser.db_admin==true" class="label label-danger"> db_admin </span>
+                <span ng-show="auser.can_see_all > 0" class="label label-success"> can_see_all </span>
+        </td>
+        <td><a href="#/roles/edit/{{$index}}"><span class="glyphicon glyphicon-edit"> </span> edit </a> </td>
+        <td><a ng-click="delete($index)"><span class="glyphicon glyphicon-trash"></span> remove </a> </td>
+    </tr>
+    </table>
 
-         <!--pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre-->
+    <!--pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre-->
 
-     </div>
+</div>
 

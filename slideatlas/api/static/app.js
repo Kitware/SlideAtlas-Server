@@ -397,6 +397,15 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
 
         var items = Data.getList();
         var role = Data.getItem($routeParams.idx);
+
+        $http({method: "get", url: "/apiv1/users"}).
+            success(function(data, status) {
+                    $scope.users = data.users;
+            }).
+            error(function(data, status) {
+                $scope.users = [];
+            });
+
         if(typeof role === 'undefined')
             {
 //            alert("Item not found for editing");
@@ -434,7 +443,7 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
               controller: "ModalInstanceCtrl",
               resolve: {
                 items: function () {
-                  return $scope.items;
+                  return $scope.users;
                 }
               }
             });
@@ -457,12 +466,10 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
 app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items) {
 
   $scope.items = items;
-  $scope.selected = {
-    item: $scope.items[0]
-  };
+  $scope.selected = { "item" : null };
 
   $scope.ok = function () {
-    $modalInstance.close($scope.selected.item);
+    $modalInstance.close($scope.selected);
   };
 
   $scope.cancel = function () {

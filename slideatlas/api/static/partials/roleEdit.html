@@ -76,12 +76,13 @@
 
      <script type="text/ng-template" id="userSelectModal.html">
         <div class="modal-header">
-            <h3>I'm a modal!</h3>
+            <h3> Select user/s</h3>
         </div>
+        Selected: <b>{{ selected.item }}</b>
         <div class="modal-body">
             <ul>
                 <li ng-repeat="item in items">
-                    <a ng-click="selected.item = item">{{ item }}</a>
+                    <a ng-click="selected.item = item">{{ item.label }} ({{ item.name }})</a>
                 </li>
             </ul>
             Selected: <b>{{ selected.item }}</b>
