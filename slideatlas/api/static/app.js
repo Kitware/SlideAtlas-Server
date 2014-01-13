@@ -434,8 +434,6 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
 
         });
 
-        $scope.items = ["One", "two", "Three"];
-
         $scope.grant = function () {
 
             var modalInstance = $modal.open({
@@ -452,7 +450,7 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
               alert("Selected: " + selectedItem);
               $scope.selected = selectedItem;
             }, function () {
-              alert('Modal dismissed at: ' + new Date());
+              console.log('Modal dismissed at: ' + new Date());
             });
         };
 
@@ -466,8 +464,25 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
 app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items) {
 
   $scope.items = items;
-  $scope.selected = { "item" : null };
+  $scope.selected = [];
 
+  $scope.toggle = function(id) {
+
+      if (_.contains($scope.selected,id )){
+        // Remove
+        $scope.selected = _.without($scope.selected, id);
+      }
+      else {
+        $scope.selected.push(id);
+      }
+  };
+
+  $scope.classof = function(item) {
+      if(_.contains($scope.selected, item._id)) {
+          return "success";
+      }
+      return "";
+  }
   $scope.ok = function () {
     $modalInstance.close($scope.selected);
   };

@@ -78,18 +78,27 @@
         <div class="modal-header">
             <h3> Select user/s</h3>
         </div>
-        Selected: <b>{{ selected.item }}</b>
+        <br/>
+        Filter by: <input type="text" ng-model="query" />
+        <br/>
         <div class="modal-body">
-            <ul>
-                <li ng-repeat="item in items">
-                    <a ng-click="selected.item = item">{{ item.label }} ({{ item.name }})</a>
-                </li>
-            </ul>
-            Selected: <b>{{ selected.item }}</b>
+            <div style="overflow:auto;height:400px!important">
+                <table class="table table-hover" ng-hide="role.users.length < 1">
+                    <tr ng-repeat="item in items | filter:query" ng-class="classof(item)">
+                        <td> {{ item.label }} ({{ item.name }}) </td>
+                        <td> </td>
+                        <td><a ng-click="toggle(item._id)"})"> select  </a> </td>
+                    </tr>
+                </table>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" ng-click="ok()">OK</button>
             <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
         </div>
+        <div style="overflow:auto;height:200px!important">
+            <pre>{{ selected | json}}</pre>
+        </div>
+
     </script>
 
