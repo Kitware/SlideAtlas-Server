@@ -8,6 +8,111 @@ var CONNECTOME_POPUP_MENU_BUTTON;
 var CONNECTOME_POPUP_MENU;
 
 
+byteArrayToInt32 = function(byteArray) {
+    var parser = new BinaryParser(true,true);
+    var value = 0;
+    var numInts = byteArray.length / 4;
+    var output = new Array(numInts);
+    var data = new Uint8Array(4);
+    for (var i = 0, j = 0; j < numInts; ++j) {
+      //value = byteArray[i++];
+      //value = (value * 256) + byteArray[i++];
+      //value = (value * 256) + byteArray[i++];
+      //value = (value * 256) + byteArray[i++];
+      //output[j] = value;
+      data[0] = byteArray[i++];
+      data[1] = byteArray[i++];
+      data[2] = byteArray[i++];
+      data[3] = byteArray[i++];
+      output[j] = parser.toInt(data);
+    }
+
+    return output;
+};
+
+byteArrayToFloat64 = function(byteArray) {
+    var parser = new BinaryParser(true,true);
+    var value = 0;
+    var numFloats = byteArray.length / 8;
+    var output = new Array(numFloats);
+    var data = new Uint8Array(8);
+    for (var i = 0, j = 0; j < numFloats; ++j) {
+      data[0] = byteArray[i++];
+      data[1] = byteArray[i++];
+      data[2] = byteArray[i++];
+      data[3] = byteArray[i++];
+      data[4] = byteArray[i++];
+      data[5] = byteArray[i++];
+      data[6] = byteArray[i++];
+      data[7] = byteArray[i++];
+      output[j] = parser.toDouble(data);
+    }
+
+    return output;
+};
+
+
+
+function b64ToUint6 (nChr) {
+
+  return nChr > 64 && nChr < 91 ?
+      nChr - 65
+	: nChr > 96 && nChr < 123 ?
+      nChr - 71
+	: nChr > 47 && nChr < 58 ?
+      nChr + 4
+	: nChr === 43 ?
+      62
+	: nChr === 47 ?
+      63
+	:
+	0;
+
+}
+
+function base64DecToArr (sBase64, nBlocksSize) {
+
+  var
+    sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
+    nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
+
+    for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
+	nMod4 = nInIdx & 3;
+	nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
+	if (nMod4 === 3 || nInLen - nInIdx === 1) {
+	    for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
+		taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
+	    }
+	    nUint24 = 0;
+
+	}
+    }
+
+    return taBytes;
+}
+
+function base64DecToArr (sBase64, nBlocksSize) {
+
+  var
+    sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
+    nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
+
+    for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
+	nMod4 = nInIdx & 3;
+	nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
+	if (nMod4 === 3 || nInLen - nInIdx === 1) {
+	    for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
+		taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
+	    }
+	    nUint24 = 0;
+
+	}
+    }
+
+    return taBytes;
+}
+
+
 
 function InitConnectome () {
 
@@ -88,7 +193,7 @@ function InitConnectome () {
            "col" : COLLECTION_NAME,
            "type": "Section"},
     success: function(data,status) { ConnectomeLoadSectionIds(data);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error(): getsections ids" ); },
     });  
 }
 
@@ -146,6 +251,9 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
   section = new Section();
   section.Index = sectionIndex; // for debugging
   CONNECTOME_SECTIONS[sectionIndex] = section;
+
+  var t = new Date().getTime();
+  console.log("Start loading " + t);
   
   var sectionId = CONNECTOME_SECTION_IDS[sectionIndex]._id;
   $.ajax({
@@ -157,7 +265,7 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
            "idx" : sectionIndex,
            "type": "Section"},
     success: function(data,status) { ConnectomeLoadSection(data, true);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error(): getsections " + sectionId ); },
     });  
 }
 
@@ -235,12 +343,51 @@ function ConnectomeLoadSection (data, showFlag) {
 
   // for debugging
   CONNECTOME_SECTION_META_DATA = data;
+
+  var t = new Date().getTime();
+  console.log("Received section data " + t);
+
+
+  if (data.worldPointsFloat64) {
+    var tmp = base64DecToArr(data.worldPointsFloat64);
+    var numPts = tmp.length / 16;
+    tmp = byteArrayToFloat64(tmp);
+    data.worldPoints = new Array(numPts);
+    for (var i=0, j=0; i < numPts; ++i) {
+      data.worldPoints[i] = {"coordinates": [tmp[j++],tmp[j++]]};
+    }    
+  }
   
   section.Bounds = data.bounds;
   var worldPoints = data.worldPoints;
 
-  for (var i = 0; i < data.images.length; ++i) {
-    var imageData = data.images[i];
+  for (var imIdx = 0; imIdx < data.images.length; ++imIdx) {
+    var imageData = data.images[imIdx];
+    if (imageData.meshPointsInt32) {
+      var tmp = base64DecToArr(imageData.meshPointsInt32);
+      var numPts = tmp.length / 8;
+      tmp = byteArrayToInt32(tmp);
+      tmpIds = byteArrayToInt32(base64DecToArr(imageData.meshPointIdsInt32));      
+      imageData.meshPoints = new Array(numPts);
+      for (var i = 0, j=0; i < numPts; ++i) {
+        imageData.meshPoints[i] = {"worldPointId":tmpIds[i], "pixelLocation": [tmp[j++],tmp[j++]]};
+      }    
+    }
+
+    if (imageData.meshTrianglesInt32) {
+      var tmp = base64DecToArr(imageData.meshTrianglesInt32);
+      var numTris = tmp.length / 12;
+      tmp = byteArrayToInt32(tmp);
+      imageData.meshTriangles = new Array(numTris);
+      for (var i = 0, j=0; i < numTris; ++i) {
+        imageData.meshTriangles[i] = [tmp[j++],tmp[j++],tmp[j++]];
+      }    
+    }
+
+    var t2 = new Date().getTime();
+    console.log("Decoded binary data " + t2);
+
+
     // TODO: Take bounds out of cache and keep it in section.
     // Or make cache have bounds of only its image (if this is useful).
     var cache = new Cache({"database" : data.imageDatabaseName, 
@@ -275,6 +422,9 @@ function ConnectomeLoadSection (data, showFlag) {
     // Load the tiles for the current view but do not show them.
     section.LoadTilesInView2(VIEWER1.MainView);
   }
+
+  var t3 = new Date().getTime();
+  console.log("done setting up caches " + t3);
 }
 
 // Load 100 sections after the current section.
@@ -309,7 +459,7 @@ function LoadNextNeighborSection() {
            "idx" : i,
            "type": "Section"},
         success: function(data,status) { ConnectomeLoadSection(data, false);},
-        error: function() { alert( "AJAX - error()" ); },
+        error: function() { alert( "AJAX - error(): getsections (next) " + CONNECTOME_SECTION_IDS[i]._id ); },
       });  
 
   --CONNECTOME_SECTION_TO_LOAD;
@@ -340,7 +490,7 @@ function RemoveSectionCallback() {
            "col"   : COLLECTION_NAME,
            "id"    : info._id},
     success: function(data,status) { ConnectomeAdvance(1);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error(): removeobject " + info._id ); },
     });  
 }
 
@@ -362,7 +512,7 @@ function ShowCorrelationsCallback() {
            "wafer" : info.waferName,
            "sect"  : info.section},
     success: function(data,status) { ConnectomeLoadCorrelations(data);},
-    error: function() { alert( "AJAX - error()" ); },
+    error: function() { alert( "AJAX - error(): getcorrelations" ); },
     });  
 }
 
