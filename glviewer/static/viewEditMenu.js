@@ -119,7 +119,7 @@ function CopyZoom() {
     var copyCam = VIEWER1.GetCamera();
   }
   
-  viewer.AnimateCamera(cam.FocalPoint, cam.Roll, copyCam.Height);
+  viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
 }
 
 
@@ -132,7 +132,7 @@ function FlipHorizontal() {
 
     var cam = viewer.GetCamera();
     viewer.ToggleMirror();
-    viewer.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
+    viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
     RecordState();
 }
 

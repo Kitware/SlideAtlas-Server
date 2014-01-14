@@ -167,7 +167,7 @@ shape has visibility and
   var VIEW_ID = "{{view}}";
   var SESSION_DATABASE = "{{sessdb}}";
   
-  var EDIT = "{{edit}}"; // Temporary way to hide editing.
+  var EDIT = {{edit}}; // Temporary way to hide editing.
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -191,7 +191,7 @@ shape has visibility and
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
       GL.viewport(0, 0, width, height);
-    } // SetViewport does the work for 2d canvases.
+    } // GL.SetViewport does the work for 2d canvases.
     
     // we set the left border to leave space for the notes window.
     var left = 0;
@@ -199,7 +199,9 @@ shape has visibility and
     // The remaining width is split between the two viewers.
     var width1 = (width-left) * VIEWER1_FRACTION;
     var width2 = (width-left) - width1;
+
     if (VIEWER1) {
+      console.log("Viewer1 resize width " + width1 + ", height " + height);
       VIEWER1.SetViewport([left, 0, width1, height]);
       eventuallyRender();
     }
@@ -213,16 +215,21 @@ shape has visibility and
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,height], null);
+    VIEWER1 = new Viewer([0,0, width,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
+    VIEWER2 = new Viewer([width,0, 0,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
   }
 
+  // Hack mutex.  iPad2 must execute multiple draw callbacks at the same time 
+  // in different threads.
+  var DRAWING = false;
   function draw() {
+    if (DRAWING) { return; }
+    DRAWING = true;
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     }
@@ -232,6 +239,7 @@ shape has visibility and
     if (DUAL_VIEW) { VIEWER2.Animate(); }
     VIEWER1.Draw();
     if (DUAL_VIEW) { VIEWER2.Draw(); }
+    DRAWING = false;
   }
   
   // The event manager detects single right click and double right click.

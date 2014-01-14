@@ -144,13 +144,27 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-  this.SlideIndex -= 1;
-  NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+  if (this.SlideIndex <= 0) { return; }
+  var check = true;
+  if (EDIT) {
+    check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
+  }
+  if (check) {
+    this.SlideIndex -= 1;
+    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+    }
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-  this.SlideIndex += 1;
-  NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+  if (this.SlideIndex >= this.Session.length - 1) { return; }
+  var check = true;
+  if (EDIT) {
+    check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
+  }
+  if (check) {
+    this.SlideIndex += 1;
+    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+  }
 }
 
 NavigationWidget.prototype.LoadViewId = function(viewId) {

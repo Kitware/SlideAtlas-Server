@@ -101,8 +101,7 @@ View.prototype.SetViewport = function(viewport) {
   }
   
   this.Viewport = viewport;
-  this.Camera.ViewportWidth = viewport[2];
-  this.Camera.ViewportHeight = viewport[3];
+  this.Camera.SetViewport(viewport);
 }
 
 // Note: Tile in the list may not be loaded yet.
