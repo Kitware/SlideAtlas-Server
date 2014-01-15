@@ -11,7 +11,7 @@ Determine the login
 
 - Users need to register using their offical email
 - TODO: Alternatively accounts for important users can be created by site administrators
-- TODO: Associate the account with the Philips scanner at bidmc, so your slides will be automatically
+- User accounts have a field for corresponding "5alphabet" code for the Philips scanner at bidmc, so your slides will be automatically
   transferred to slide-atas as they are ready.
 
 
@@ -40,7 +40,6 @@ DB administrators
 - Have a database to manage, can create new sessions
 - See only one database (or others if have access)
 - Useful for keeping their images together and organized
-
 
 Images coming from philips are put in single database in multiple sessions based on the id's of users
 

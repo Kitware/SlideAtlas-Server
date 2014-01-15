@@ -227,7 +227,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         //Session.get({dbid: $routeParams.dbid}, function(data) {
         //    Data.setList(data.sessions);
         //    $scope.sessions = Data.getList();
-        //    }
+        //    }https://www.google.com/search?client=ubuntu&channel=fs&q=yout&ie=utf-8&oe=utf-8
         //);
     });
 
@@ -380,7 +380,7 @@ app.factory('Role', function($resource) {
 
 
 app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
-        console.log("Refreshing RoleListCtrl");
+        console.log("Refreshing RoleListCtrl + ");
 
         Role.get({}, function(data) {
                 Data.setList(data.rules);
