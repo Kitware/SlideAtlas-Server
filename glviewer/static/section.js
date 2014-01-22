@@ -67,7 +67,7 @@ Section.prototype.LoadRoots = function () {
 Section.prototype.FindImage = function (imageCollectionName) {
   for (var i = 0; i < this.Caches.length; ++i) {
     var cache = this.Caches[i];
-    if (cache.ImageId == imageCollectionName) {
+    if (cache.Image._id == imageCollectionName) {
       return cache;
     }
   }

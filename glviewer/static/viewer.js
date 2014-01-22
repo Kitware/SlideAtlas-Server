@@ -37,7 +37,7 @@ function Viewer (viewport, cache) {
     this.OverView = new View(overViewport, 2);
     this.OverView.Camera.ZRange = [-1,0];
     this.OverView.Camera.FocalPoint = [13000.0, 11000.0, 10.0];
-    this.OverView.Camera.Height = 22000.0;
+    this.OverView.Camera.SetHeight(22000.0);
     this.OverView.Camera.ComputeMatrix();
   }
   this.ZoomTarget = this.MainView.Camera.GetHeight();
@@ -105,9 +105,9 @@ Viewer.prototype.SetSection = function(section) {
     this.OverView.Section = section;
     //this.ShapeList = section.Markers;
     var bounds = section.GetBounds();
-    this.OverView.Camera.Height = bounds[3]-bounds[2];
-    this.OverView.Camera.FocalPoint[0] = 0.5*(bounds[0]+bounds[1]);
-    this.OverView.Camera.FocalPoint[1] = 0.5*(bounds[2]+bounds[3]);
+    this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+    this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
+                                       0.5*(bounds[2]+bounds[3]));
     this.OverView.Camera.ComputeMatrix();
   }
   eventuallyRender();
@@ -122,15 +122,15 @@ Viewer.prototype.SetCache = function(cache) {
     if (cache) {
       var bds = cache.GetBounds();
       if (bds) {
-        this.OverView.Camera.FocalPoint[0] = (bds[0] + bds[1]) / 2;
-        this.OverView.Camera.FocalPoint[1] = (bds[2] + bds[3]) / 2;
+        this.OverView.Camera.SetFocalPoint((bds[0] + bds[1]) / 2,
+                                           (bds[2] + bds[3]) / 2);
         var height = (bds[3]-bds[2]);
         // See if the view is constrained by the width.
         var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
         if (height2 > height) {
           height = height2;
         }
-        this.OverView.Camera.Height = height;
+        this.OverView.Camera.SetHeight(height);
         this.OverView.Camera.ComputeMatrix();
       }
     }
@@ -268,12 +268,10 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 // This is used to set the default camera so the complexities 
 // of the target and overview are hidden.
 Viewer.prototype.SetCamera = function(center, rotation, height) {
-  this.MainView.Camera.Height = height;
+  this.MainView.Camera.SetHeight(height);
   this.ZoomTarget = height;    
 
-  this.MainView.Camera.FocalPoint[0] = center[0];
-  this.MainView.Camera.FocalPoint[1] = center[1];
-  //this.MainView.Camera.FocalPoint[2] = center[2];
+  this.MainView.Camera.SetFocalPoint(center[0], center[1]);
   this.TranslateTarget[0] = center[0];
   this.TranslateTarget[1] = center[1];
   
@@ -296,16 +294,16 @@ Viewer.prototype.GetCamera = function() {
 Viewer.prototype.GetSpacing = function() {
   var cam = this.GetCamera();
   var viewport = this.GetViewport();
-  return cam.Height / viewport[3];
+  return cam.GetHeight() / viewport[3];
 }
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
-  this.ZoomTarget = this.MainView.Camera.Height * factor;
+  this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
   if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
-  factor = this.ZoomTarget / this.MainView.Camera.Height; // Actual factor after limit.
+  factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
   
   // Compute traslate target to keep position in the same place.
   this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
@@ -319,7 +317,7 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
 }
 
 Viewer.prototype.AnimateZoom = function(factor) {
-  this.ZoomTarget = this.MainView.Camera.Height * factor;
+  this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
   if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
@@ -337,7 +335,7 @@ Viewer.prototype.AnimateTranslate = function(dx, dy) {
   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
 
-  this.ZoomTarget = this.MainView.Camera.Height;
+  this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
   
   this.AnimateLast = new Date().getTime();
@@ -349,7 +347,7 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
   dRoll *= Math.PI / 180.0;
   this.RollTarget = this.MainView.Camera.Roll + dRoll;
  
-  this.ZoomTarget = this.MainView.Camera.Height;
+  this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
 
@@ -484,36 +482,35 @@ Viewer.prototype.Animate = function() {
   var timeNow = new Date().getTime();
   if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
     // We have past the target. Just set the target values.
-    this.MainView.Camera.Height = this.ZoomTarget;
+    this.MainView.Camera.SetHeight(this.ZoomTarget);
     this.MainView.Camera.Roll = this.RollTarget;
     if (this.OverView) {
       this.OverView.Camera.Roll = this.RollTarget;
     }
-    this.MainView.Camera.FocalPoint[0] = this.TranslateTarget[0];
-    this.MainView.Camera.FocalPoint[1] = this.TranslateTarget[1];
+    this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
+                                       this.TranslateTarget[1]);
 
     // Save the state when the animation is finished.
     RecordState();
   } else {
     // Interpolate
     var currentHeight = this.MainView.Camera.GetHeight();
-    var currentCenter = this.MainView.Camera.FocalPoint;
+    var currentCenter = this.MainView.Camera.GetFocalPoint();
     var currentRoll   = this.MainView.Camera.Roll;
-    this.MainView.Camera.Height
-      = currentHeight + (this.ZoomTarget-currentHeight)
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
+    this.MainView.Camera.SetHeight(
+          currentHeight + (this.ZoomTarget-currentHeight)
+            *(timeNow-this.AnimateLast)/this.AnimateDuration);
     this.MainView.Camera.Roll
       = currentRoll + (this.RollTarget-currentRoll)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     if (this.OverView) {
       this.OverView.Camera.Roll = this.MainView.Camera.Roll;
     }
-    this.MainView.Camera.FocalPoint[0]
-      = currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
-    this.MainView.Camera.FocalPoint[1]
-      = currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-            *(timeNow-this.AnimateLast)/this.AnimateDuration;
+    this.MainView.Camera.SetFocalPoint(
+        currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+            *(timeNow-this.AnimateLast)/this.AnimateDuration,
+        currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+            *(timeNow-this.AnimateLast)/this.AnimateDuration);
     // We are not finished yet.
     // Schedule another render
     eventuallyRender();
@@ -563,9 +560,9 @@ Viewer.prototype.HandleTouchStart = function(event) {
   if ( event.Touches.length >= 4) {
     var cam = this.GetCamera();
     var bds = this.MainView.Section.GetBounds();
-    cam.FocalPoint = [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5];      
+    cam.SetFocalPoint( (bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5);      
     cam.Roll = 0.0;
-    cam.Height = bds[3]-bds[2];
+    cam.SetHeight(bds[3]-bds[2]);
     cam.ComputeMatrix();
     eventuallyRender();  
     return true;           
@@ -608,8 +605,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
   this.MomentumScale = 0.0;
 
   var cam = this.GetCamera();
-  cam.FocalPoint[0] -= dx;  
-  cam.FocalPoint[1] -= dy;
+  cam.Translate( -dx, -dy, 0);  
   cam.ComputeMatrix();  
   eventuallyRender();  
 }
@@ -744,7 +740,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 
   cam.FocalPoint[0] = x;  
   cam.FocalPoint[1] = y;
-  cam.Height = cam.Height / scale;
+  cam.SetHeight(cam.GetHeight() / scale);
   cam.ComputeMatrix();  
   eventuallyRender();  
 }
@@ -778,9 +774,8 @@ Viewer.prototype.HandleMomentum = function(event) {
   var integ = (-k * decay + k);
   
   var cam = this.MainView.Camera;
-  cam.FocalPoint[0] -= this.MomentumX * integ;  
-  cam.FocalPoint[1] -= this.MomentumY * integ;
-  cam.Height = cam.Height / ((this.MomentumScale * integ) + 1);
+  cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+  cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
   cam.Roll = cam.Roll - (this.MomentumRoll* integ);
   cam.ComputeMatrix();
   if (this.OverView) {
@@ -788,8 +783,11 @@ Viewer.prototype.HandleMomentum = function(event) {
     cam2.Roll = cam.Roll;
     cam2.ComputeMatrix();  
   }
-  eventuallyRender();
-  
+  // I think the problem with the ipad is thie asynchronous render.
+  // Maybe two renders occur at the same time.
+  //eventuallyRender();
+  draw();  
+
   // Decay the momentum.
   this.MomentumX *= decay;
   this.MomentumY *= decay;
@@ -823,27 +821,27 @@ Viewer.prototype.ConstrainCamera = function () {
 
   var modified = false;
   if (cam.FocalPoint[0] < bounds[0]) {
-    cam.FocalPoint[0] = bounds[0];
+    cam.SetFocalPoint(bounds[0], cam.FocalPoint[1]);
     modified = true;
   }
   if (cam.FocalPoint[0] > bounds[1]) {
-    cam.FocalPoint[0] = bounds[1];
+    cam.SetFocalPoint(bounds[1], cam.FocalPoint[1]);
     modified = true;
   }
   if (cam.FocalPoint[1] < bounds[2]) {
-    cam.FocalPoint[1] = bounds[2];
+    cam.SetFocalPoint(cam.FocalPoint[1], bounds[2]);
     modified = true;
   }
   if (cam.FocalPoint[1] > bounds[3]) {
-    cam.FocalPoint[1] = bounds[3];
+    cam.SetFocalPoint(cam.FocalPoint[1], bounds[3]);
     modified = true;
   }
-  if (cam.Height > 2*(bounds[3]-bounds[2])) {
-    cam.Height = 2*(bounds[3]-bounds[2]);
+  if (cam.GetHeight() > 2*(bounds[3]-bounds[2])) {
+    cam.SetHeight(2*(bounds[3]-bounds[2]));
     modified = true;
   }  
-  if (cam.Height < viewport[3] * spacing * 0.5) {
-    cam.Height = viewport[3] * spacing * 0.5;
+  if (cam.GetHeight() < viewport[3] * spacing * 0.5) {
+    cam.SetHeight(viewport[3] * spacing * 0.5);
     modified = true;
   }
   if (modified) {
@@ -919,13 +917,6 @@ Viewer.prototype.HandleMouseUp = function(event) {
     return;
   }
 
-  // Dragging is handled by the camera.  This needs to 
-  // change before I can use momentum.
-  //if (this.InteractionState == INTERACTION_DRAG) {
-  //  this.HandleMomentum();
-  //  return;
-  //}
-  
   if (this.InteractionState != INTERACTION_NONE) {
     this.InteractionState = INTERACTION_NONE;
     RecordState();
@@ -966,7 +957,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   }
   
   // See if any widget became active.
-  if (event.SystemEvent.which == 0 && this.AnnotationVisibility) {
+  if (this.AnnotationVisibility) {
     for (var i = 0; i < this.WidgetList.length; ++i) {
       if (this.WidgetList[i].CheckActive(event)) {
         this.ActivateWidget(this.WidgetList[i]);
@@ -1007,8 +998,9 @@ Viewer.prototype.HandleMouseMove = function(event) {
     this.RollTarget = this.MainView.Camera.Roll;
   } else if (this.InteractionState == INTERACTION_ZOOM) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
-    this.MainView.Camera.Height *= (1.0 + (dy* 5.0));
-    this.ZoomTarget = this.MainView.Camera.Height;
+    this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight() 
+                                    * (1.0 + (dy* 5.0)));
+    this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.MainView.Camera.ComputeMatrix();
   } else if (this.InteractionState == INTERACTION_DRAG) {
     // Translate

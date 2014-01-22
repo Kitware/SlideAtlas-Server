@@ -387,7 +387,7 @@ function FlipHorizontal() {
 
     var cam = VIEWER1.GetCamera();
     VIEWER1.ToggleMirror();
-    VIEWER1.SetCamera(cam.FocalPoint, cam.GetRotation()+180.0, cam.Height);
+    VIEWER1.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
 }
 
 // Todo: Convert this from dual view comparison to standard viewer.

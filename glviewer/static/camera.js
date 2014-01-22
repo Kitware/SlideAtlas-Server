@@ -20,6 +20,17 @@ function Camera (viewportWidth, viewportHeight) {
 }
 
 
+Camera.prototype.SetViewport = function (viewport) {
+  if (10*viewport[3] < viewport[2]) {
+    alert("Unusual viewport " + viewport[3]);
+    return;
+  }
+  this.ViewportWidth = viewport[2];
+  this.ViewportHeight = viewport[3];
+}
+
+
+
 Camera.prototype.GetRotation = function () {
     return this.Roll * 180.0 / 3.1415926535;
 }
@@ -28,6 +39,16 @@ Camera.prototype.GetFocalPoint = function () {
   // Copy to avoid bugs because arrays are shared.
   // These are nasty to find.
   return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]]; 
+}
+
+Camera.prototype.SetFocalPoint = function (x, y) {
+  if (isNaN(x) || isNaN(y)) {
+    console.log("iPad bug: Camera went crazy.");
+    return;
+  }
+  this.FocalPoint[0] = x;
+  this.FocalPoint[1] = y;
+  // Ignore z on purpose.
 }
 
 // dx, dy are in view coordinates [-0.5,0.5].  
@@ -80,9 +101,11 @@ Camera.prototype.HandleRoll = function (x,y, dx, dy) {
 }
 
 
-
-
 Camera.prototype.Translate = function (dx,dy,dz) {
+  if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
+    console.log("iPad bug: Camera went crazy.");
+    return;
+  }
   this.FocalPoint[0] += dx;
   this.FocalPoint[1] += dy;
   this.FocalPoint[2] += dz;
@@ -93,6 +116,16 @@ Camera.prototype.Translate = function (dx,dy,dz) {
 Camera.prototype.GetHeight = function () {
   return this.Height;
 }
+
+
+Camera.prototype.SetHeight = function (height) {
+  if (isNaN(height)) {
+    console.log("iPad bug: Camera went crazy.");
+    return;
+  }
+  this.Height = height;
+}
+
 
 Camera.prototype.GetWidth = function () {
   return this.Height * this.ViewportWidth / this.ViewportHeight;
@@ -109,21 +142,39 @@ Camera.prototype.ComputeMatrix = function () {
     var y = this.FocalPoint[1];
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
-    var h = this.GetHeight();
+    // var ht = this.GetHeight();  The iPad got this wrong?????
+    var ht = this.Height;
 
-    if (this.Mirror) { h = -h; }
+    if (ht > 1000000) {
+      StartLogging();
+      LogMessage("First height is big " + this.height);
+    }
+    if (w < 0) { return; }
+
+    if (this.Mirror) { ht = -ht; }
     
     mat4.identity(this.Matrix);
 
     this.Matrix[0] = c;
-    this.Matrix[1] = s*w/h;
+    this.Matrix[1] = s*w/ht;
     this.Matrix[4] =  -s;
-    this.Matrix[5] =  c*w/h;
+    this.Matrix[5] =  c*w/ht;
     this.Matrix[10]=  (this.ZRange[1]-this.ZRange[0])*0.5;
     this.Matrix[12]= -c*x + s*y;
-    this.Matrix[13]= (w/h)*(-s*x - c*y);
+    this.Matrix[13]= (w/ht)*(-s*x - c*y);
     this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
     this.Matrix[15]=  0.5*w;
+
+  if (Math.abs(this.Matrix[5]) < 0.01 &&
+      Math.abs(this.Matrix[4]) < 0.01) {
+    StartLogging();
+    LogMessage("m[4] " + this.Matrix[4]);
+    LogMessage("m[5] " + this.Matrix[4]);
+    LogMessage("c = " + c);
+    LogMessage("w = " + w);
+    LogMessage("ht = " + ht);
+    LogMessage("height = " + this.Height);
+  }
 }
 
 // TODO: ROOT_SPACING IS UNDEFINED.
@@ -136,18 +187,11 @@ Camera.prototype.Reset = function () {
     bounds[3] = TILE_DIMENSIONS[1] * ROOT_SPACING[1];
     bounds[5] = NUMBER_OF_SECTIONS * ROOT_SPACING[2];
 
-    this.FocalPoint[0] = (bounds[0] + bounds[1]) * 0.5;
-    this.FocalPoint[1] = (bounds[2] + bounds[3]) * 0.5;
+    this.SetFocalPoint((bounds[0] + bounds[1]) * 0.5,
+                       (bounds[2] + bounds[3]) * 0.5);
     // We would need to set slice as well.
     //this.FocalPoint[2] = (bounds[4] + bounds[5]) * 0.5;
-    this.Height = bounds[3]-bounds[2];
-    this.ComputeMatrix();
-}
-
-Camera.prototype.Translate = function (dx,dy,dz) {
-    this.FocalPoint[0] += dx;
-    this.FocalPoint[1] += dy;
-    this.FocalPoint[2] += dz;
+    this.SetHeight(bounds[3]-bounds[2]);
     this.ComputeMatrix();
 }
 
