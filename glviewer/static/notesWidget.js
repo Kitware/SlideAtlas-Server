@@ -40,6 +40,9 @@
 // Time to make this an object to get rid of all these global variables.
 function InitNotesWidget() {  
   NOTES_WIDGET = new NotesWidget();
+  if (EDIT) {
+    NOTES_WIDGET.EditCallback();  
+  }
 }
 
 
@@ -68,7 +71,7 @@ function NotesWidget() {
   this.DeleteButton;
   this.SaveButton;
   this.EditButton;
-  // We need this flag to record view and text into notes when advancing notees.
+  // We need this flag to record view and text into notes when advancing notes.
   this.EditActive = false;
   // We need this flag so cancel will get rid of a pending new note.
   // User can be editing an old note, or a new note.
@@ -1044,8 +1047,10 @@ NotesWidget.prototype.EditCallback = function() {
   this.NewButton.show();
   this.SaveButton.show();
   // This handles making the note editable (including showing and hiding the delete button).
-  this.SelectedNote.Select();
-
+  if (this.SelectedNote) {
+    this.SelectedNote.Select();
+  }
+  
   // This handles making children sortable.
   var iter = this.RootNote.NewIterator();
   do {

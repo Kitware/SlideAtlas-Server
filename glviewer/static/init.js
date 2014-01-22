@@ -416,3 +416,29 @@ function GC_transform(m00,m10,m01,m11,m02,m12) {
 }
 
 
+
+
+
+//----------------------------------------------------------
+// Log to trackdown iPad bug.  Console does not log until
+// debugger is running.  Bug does not occur when debugger 
+// is running.
+
+LOGGING = false;
+DEBUG_LOG = [];
+
+function StartLogging (message) {
+  if (LOGGING) return;
+  LOGGING = true;
+  alert("Error: Check log");
+}
+
+function LogMessage (message) {
+  if (LOGGING) {
+    DEBUG_LOG.push(message);
+  }
+}
+
+
+
+

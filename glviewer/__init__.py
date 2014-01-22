@@ -205,7 +205,7 @@ def glview():
       return redirect(url_for('login.login'))
     
     # See if editing will be enabled.
-    edit = request.args.get('edit', False)
+    edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
