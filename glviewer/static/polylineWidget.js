@@ -294,6 +294,17 @@ PolylineWidget.prototype.WhichVertexShouldBeActive = function(pt) {
   
   return -1;
 }
+
+
+
+PolylineWidget.prototype.HandleTouchPan = function(event) {
+}
+PolylineWidget.prototype.HandleTouchPinch = function(event) {
+}
+PolylineWidget.prototype.HandleTouchEnd = function(event) {
+}
+
+
     
 PolylineWidget.prototype.CheckActive = function(event) {
   var x = event.MouseX;

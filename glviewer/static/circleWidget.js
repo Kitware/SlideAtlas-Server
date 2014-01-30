@@ -13,6 +13,11 @@ var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving ev
 var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 function CircleWidget (viewer, newFlag) {
+  this.Tolerance = 0.05;
+  if (MOBILE_DEVICE) {
+    this.Tolerance = 0.1;
+  }
+
   if (viewer == null) {
     return;
   }
@@ -38,11 +43,11 @@ function CircleWidget (viewer, newFlag) {
     return;
   }
 
-  this.State = CIRCLE_WIDGET_WAITING;
+  this.State = CIRCLE_WIDGET_WAITING;  
 }
 
 CircleWidget.prototype.Draw = function(view) {
-    this.Shape.Draw(view);
+   this.Shape.Draw(view);
 }
 
 // This needs to be put in the Viewer.
@@ -145,6 +150,31 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
   } 
 }
 
+
+CircleWidget.prototype.HandleTouchPan = function(event) {
+  w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+  w1 = this.Viewer.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    
+  // This is the translation.
+  var dx = w1[0] - w0[0];
+  var dy = w1[1] - w0[1];
+  
+  this.Shape.Origin[0] += dx;
+  this.Shape.Origin[1] += dy;
+  eventuallyRender();
+}
+
+CircleWidget.prototype.HandleTouchPinch = function(event) {  
+  this.Shape.Radius *= event.PinchScale;
+  this.Shape.UpdateBuffers();
+  eventuallyRender();
+}
+
+CircleWidget.prototype.HandleTouchEnd = function(event) {
+  this.SetActive(false);
+}
+
+
 CircleWidget.prototype.CheckActive = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
@@ -164,11 +194,13 @@ CircleWidget.prototype.CheckActive = function(event) {
   this.NormalizedActiveDistance = d;
   
   if (this.Shape.FillColor == undefined) { // Circle 
-    if ((d < (1.05+lineWidth) && d > 0.95)  || d < (0.02+lineWidth)) {
+    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance))  || 
+         d < (this.Tolerance+lineWidth)) {
       active = true;
     }
   } else { // Disk
-    if (d < (1.05+lineWidth) && d > (0.1+lineWidth) || d < lineWidth) {
+    if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) || 
+        d < lineWidth) {
 	    active = true;
     }
   }
@@ -214,6 +246,7 @@ CircleWidget.prototype.SetActive = function(flag) {
   } else {
     this.Deactivate();
   }
+  eventuallyRender();
 }
 
 // Can we bind the dialog apply callback to an objects method?

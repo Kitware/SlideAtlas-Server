@@ -147,6 +147,15 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
   
 }
 
+
+PencilWidget.prototype.HandleTouchPan = function(event) {
+}
+PencilWidget.prototype.HandleTouchPinch = function(event) {
+}
+PencilWidget.prototype.HandleTouchEnd = function(event) {
+}
+
+
 PencilWidget.prototype.CheckActive = function(event) {
 }
 
