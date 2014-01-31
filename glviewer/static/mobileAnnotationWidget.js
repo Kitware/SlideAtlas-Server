@@ -30,7 +30,7 @@ function MobileAnnotationWidget() {
                     'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/circle.gif")
+              .attr('src',"webgl-viewer/static/Circle128.jpg")
               .click(function(){self.CircleCallback();});
   this.CircleTip = new ToolTip(this.CircleButton, "Circle Annotation");
 
@@ -40,7 +40,7 @@ function MobileAnnotationWidget() {
                     'width': size,
                     'padding' : '5px',
                     'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/Text.gif")
+              .attr('src',"webgl-viewer/static/Text128.jpg")
               .click(function(){self.TextCallback();});
   this.TextTip = new ToolTip(this.TextButton, "Text Anntation");
   this.Visibility = false;
