@@ -223,9 +223,12 @@ shape has visibility and
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
         // control: 17, z: 90, y: 89
+        // left arrow, right arrow
+        if (event.keyCode == 37) { ConnectomeAdvance(-1);}
+        if (event.keyCode == 39) { ConnectomeAdvance(1);}
         // Pageup , pagedown
-        if (event.keyCode == 33) { ConnectomeAdvance(-1);}
-        if (event.keyCode == 34) { ConnectomeAdvance(1);}
+        if (event.keyCode == 33) { ConnectomeAdvance(-100);}
+        if (event.keyCode == 34) { ConnectomeAdvance(100);}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {

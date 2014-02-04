@@ -199,3 +199,8 @@ def removeobject():
     
     return
 
+
+@app.route('/correlation')
+def debugcorrelation():
+    return render_template('correlation.html')
+
