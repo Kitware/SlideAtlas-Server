@@ -247,7 +247,14 @@ TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
 
 TextWidget.prototype.HandleMouseMove = function(event) {
   if (this.State == TEXT_WIDGET_DRAG) {
-    this.Shape.Position = this.Viewer.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
+    w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.Viewer.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    // This is the translation.
+    var dx = w1[0] - w0[0];
+    var dy = w1[1] - w0[1];
+
+    this.Shape.Position[0] += dx;
+    this.Shape.Position[1] += dy;
     this.AnchorShape.Origin = this.Shape.Position;
     eventuallyRender();
     return true;
@@ -265,6 +272,36 @@ TextWidget.prototype.HandleMouseMove = function(event) {
   }
   return true;
 }
+
+
+
+
+
+TextWidget.prototype.HandleTouchPan = function(event) {
+  // We should probably have a handle touch start too.
+  // Touch start calls CheckActive() ...
+  if (this.State == TEXT_WIDGET_ACTIVE) {
+    if (this.AnchorShape.Visibility && this.ActiveReason == 0) {
+      this.State = TEXT_WIDGET_DRAG_TEXT;
+    } else {
+      this.State = TEXT_WIDGET_DRAG;
+    }
+  }
+  event.MouseDeltaX = event.MouseX - event.LastMouseX;
+  event.MouseDeltaY = event.MouseY - event.LastMouseY;
+  this.HandleMouseMove(event);
+}
+TextWidget.prototype.HandleTouchPinch = function(event) {
+}
+TextWidget.prototype.HandleTouchEnd = function(event) {
+  this.State = TEXT_WIDGET_ACTIVE;
+  this.SetActive(false);
+}
+
+
+
+
+
 
 TextWidget.prototype.CheckActive = function(event) {
   var tMouse = this.ScreenPixelToTextPixelPoint(event.MouseX, event.MouseY);
@@ -339,16 +376,25 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   ta.value = this.Shape.String;
   var tm = document.getElementById("TextMarker");
   tm.checked = this.AnchorShape.Visibility;
+  $("#textwidgetcontent").keyup(function (e) { TextPropertyDialogApplyCheck();});
   
-  // hack to supress viewer key events.
+  // hack to suppress viewer key events.
   DIALOG_OPEN = true;
   // Can we bind the dialog apply callback to an objects method?
-  ARROW_WIDGET_DIALOG_SELF = this;
+  TEXT_WIDGET_DIALOG_SELF = this;
   $("#text-properties-dialog").dialog("open");
 }    
 
+// Two returns in a row is the same as apply.
+function TextPropertyDialogApplyCheck() {
+  var string = document.getElementById("textwidgetcontent").value;
+  if (string.length > 1 && string.slice(-2) == "\n\n") {
+    TextPropertyDialogApply();
+  }
+}
+
 function TextPropertyDialogApply() {
-  var widget = ARROW_WIDGET_DIALOG_SELF;
+  var widget = TEXT_WIDGET_DIALOG_SELF;
   if ( ! widget) { 
     return; 
   }
@@ -375,6 +421,8 @@ function TextPropertyDialogApply() {
   RecordState();
   
   eventuallyRender();
+  
+  $("#text-properties-dialog").dialog("close");
 }
 
 function TextPropertyDialogCancel() {

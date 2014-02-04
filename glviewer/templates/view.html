@@ -32,6 +32,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
@@ -174,6 +175,7 @@ shape has visibility and
   var VIEWER2;
   var DUAL_VIEW = false;
   var NAVIGATION_WIDGET;
+  var MOBILE_ANNOTATION_WIDGET;
   var NOTES_WIDGET;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
@@ -201,7 +203,6 @@ shape has visibility and
     var width2 = (width-left) - width1;
 
     if (VIEWER1) {
-      console.log("Viewer1 resize width " + width1 + ", height " + height);
       VIEWER1.SetViewport([left, 0, width1, height]);
       eventuallyRender();
     }
@@ -282,6 +283,9 @@ shape has visibility and
     EVENT_MANAGER = new EventManager(CANVAS);
 
     NAVIGATION_WIDGET = new NavigationWidget();
+    if (MOBILE_DEVICE) {
+      MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+    }
     InitViews();
     InitViewEditMenus();
     InitViewBrowser();
@@ -290,6 +294,7 @@ shape has visibility and
     InitRecorderWidget();
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
+      MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     } else {
       VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
     }
@@ -401,6 +406,7 @@ shape has visibility and
           autoOpen:false,
           height:250,
           width:350,
+          position: ['center', 'top'],
           modal:true,
           buttons:{
               Delete: function() {
@@ -409,7 +415,6 @@ shape has visibility and
               },
               Apply: function() {
                   TextPropertyDialogApply();
-                  $(this).dialog("close");
               }
           },
           close: function(event,ui) {

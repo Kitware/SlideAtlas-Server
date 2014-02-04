@@ -564,10 +564,27 @@ Viewer.prototype.HandleTouchStart = function(event) {
     cam.Roll = 0.0;
     cam.SetHeight(bds[3]-bds[2]);
     cam.ComputeMatrix();
-    eventuallyRender();  
+    eventuallyRender();
+    // Return value hides navigation widget  
     return true;           
   }
   
+  // See if any widget became active.
+  if (this.AnnotationVisibility) {
+    for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
+      event.MouseX = event.Touches[touchIdx][0];
+      event.MouseY = event.Touches[touchIdx][1];
+      this.ComputeMouseWorld(event);
+      for (var i = 0; i < this.WidgetList.length; ++i) {
+        if ( ! this.WidgetList[i].GetActive() && 
+               this.WidgetList[i].CheckActive(event)) {
+          this.ActivateWidget(this.WidgetList[i]);
+          return true;
+        }
+      }
+    }
+  }
+    
   return false;
 }
 
@@ -578,6 +595,12 @@ Viewer.prototype.HandleTouchPan = function(event) {
     return;
   }
 
+  // Forward the events to the widget if one is active.
+  if (this.ActiveWidget != null) {
+    this.ActiveWidget.HandleTouchPan(event);
+    return;
+  }
+    
   // I see an odd intermittent camera matrix problem 
   // on the iPad that looks like a thread safety issue.
   if (this.MomentumTimerId) {
@@ -719,7 +742,17 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     return;
   }
   scale = s1/ s0;
-        
+
+
+  // Forward the events to the widget if one is active.
+  if (this.ActiveWidget != null) {
+    event.PinchScale = scale;
+    this.ActiveWidget.HandleTouchPinch(event);
+    return;
+  }
+
+
+  
   // scale is around the mid point .....
   // we need to compute focal point height and roll (not just a matrix).
   // Focal point is the only difficult item.
@@ -746,6 +779,10 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 }
 
 Viewer.prototype.HandleTouchEnd = function(event) {
+  if (this.ActiveWidget != null) {
+    this.ActiveWidget.HandleTouchEnd(event);
+    return;
+  }
   this.HandleMomentum(event);  
 }
 
@@ -829,11 +866,11 @@ Viewer.prototype.ConstrainCamera = function () {
     modified = true;
   }
   if (cam.FocalPoint[1] < bounds[2]) {
-    cam.SetFocalPoint(cam.FocalPoint[1], bounds[2]);
+    cam.SetFocalPoint(cam.FocalPoint[0], bounds[2]);
     modified = true;
   }
   if (cam.FocalPoint[1] > bounds[3]) {
-    cam.SetFocalPoint(cam.FocalPoint[1], bounds[3]);
+    cam.SetFocalPoint(cam.FocalPoint[0], bounds[3]);
     modified = true;
   }
   if (cam.GetHeight() > 2*(bounds[3]-bounds[2])) {
@@ -926,8 +963,7 @@ Viewer.prototype.HandleMouseUp = function(event) {
 }
 
 
-
-Viewer.prototype.HandleMouseMove = function(event) {
+Viewer.prototype.ComputeMouseWorld = function(event) {
   // Many shapes, widgets and interactors will need the mouse in world coodinates.
   var x = event.MouseX;
   var y = event.MouseY;
@@ -949,6 +985,10 @@ Viewer.prototype.HandleMouseMove = function(event) {
   var det = m[0]*m[5] - m[1]*m[4];
   event.MouseWorldX = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
   event.MouseWorldY = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+}
+
+Viewer.prototype.HandleMouseMove = function(event) {
+  this.ComputeMouseWorld(event);
     
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
