@@ -43,4 +43,33 @@ Which loads
    USERNAME = "put_user_name_here"
    PASSWORD = "put_password_here"
       
-      
+Starting with empty database
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After the upload workflow is complete, it should be okay to start with a blank database, with creation of an site-admin account.
+
+If the designated database is empty, the user will be informed so, and the wizard will allow creation of one site administrator from the "about" page.
+
+Later on when the database is not empty, the about page will show the name of current administrator and a button to possibly contact / email the administrator for support.
+
+The structure that needs to be created is
+
+- databases
+- users
+- rules
+
+The main tasks to be implemented
+
+- The admin user will perhaps create a new database (register a pre-existing database with the system).
+- Create password users, or wait for email users to create accounts here
+- Grant them db_admin previleges
+- Create sessions in database and grant session admin previlege to other user
+- Add images there
+- Monitor upload process (the users that are db_admins, should also see the processing messages related with their database)
+
+
+
+
+
+
+

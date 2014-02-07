@@ -93,6 +93,7 @@ class AdminDBItemsAPI(MethodView):
         # create a new user
         result = {}
         result["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
+AttributeError: 'Blueprint' object has no attribute 'url_map'
 
         if restype not in ["rules"] or listtype not in ["users"]:
             return Response("{\"error\" : \"Only restype itemtype supported is rules, users\"}" , status=405)
@@ -210,7 +211,40 @@ class DatabaseAPI(AdminDBAPI):
         try:
             if data["_id"] != resid:
                 raise Exception(1)
-        except:
+        except:    #
+    # def delete(self, dbid, sessid, restype, resid=None):
+    #     if resid == None:
+    #         return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
+    #     else:
+    #         datadb = self.get_data_db(dbid)
+    #         if datadb == None:
+    #             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+    #
+    #         # TODO: This block of code to common and can be abstrated
+    #         conn.register([Session])
+    #         sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+    #         if sessobj == None:
+    #             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+    #
+    #         if restype == "attachments" or restype == "rawfiles":
+    #             # Remove from the gridfs
+    #             gf = gridfs.GridFS(datadb , restype)
+    #             gf.delete(ObjectId(resid))
+    #
+    #             # Remove the reference from session
+    #             attachments = [value for value in sessobj["attachments"] if value["ref"] != ObjectId(resid)]
+    #             # Find the index
+    #             # Remove that index
+    #             sessobj["attachments"] = attachments
+    #
+    #     if not "images" in sessobj:
+    #         sessobj["images"] = []
+    #         sessobj.validate()
+    #         sessobj.save()
+    #         return Response("{ \"Success \" : \" \"}", status=200)
+    #     else:
+    #         return "You want %s from views in %s/%s" % (resid, dbid, sessid)
+
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # Try to see if the data can create valid object 
