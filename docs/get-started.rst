@@ -1,22 +1,10 @@
 Gettting started
 ================
 
-.. include:: ../README.rst
+.. include:: ../readme.rst
     
 Before running
 --------------
-Setting up Database
-~~~~~~~~~~~~~~~~~~~
-A good place to start  is setup mongodb, and restore demo database from backups
-
-The database schema keeps evolving and the restored database might not work out of box,
-though DJ will take care that the most recent database is backed up.
-
-Admin database also needs setup, there is create_new_slideatlasdb to start with a template. Otherswise it Configuration
-
-In the long run it should be possible to start from a blank admin databse, create site administrator and
-add the availabel database to automatically insert all metadata needed with
-
 
 Configuring database connection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,14 +31,20 @@ Which loads
    USERNAME = "put_user_name_here"
    PASSWORD = "put_password_here"
       
-Starting with empty database
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Setting up empty database
+-------------------------
 
-After the upload workflow is complete, it should be okay to start with a blank database, with creation of an site-admin account.
+This is work in progress
 
-If the designated database is empty, the user will be informed so, and the wizard will allow creation of one site administrator from the "about" page.
+It is possible to start from an empty admin databse, create site administrator and
+register new or already existing image databases to it.
 
-Later on when the database is not empty, the about page will show the name of current administrator and a button to possibly contact / email the administrator for support.
+ This will make it possible to accommodate several slide-atlas instances on a single mongodb server, each having a separate admin database. Or as the current schema allows, distribute a single slide-atlas instance over several accessible mongodb servers.
+
+Workflow
+~~~~~~~~
+
+If the designated database is empty, the user will be informed so, and the wizard will allow creation of one site administrator from the "about" page. Later on when the database is not empty, the about page will show the name of current administrator and a button to possibly contact / email the administrator for support.
 
 The structure that needs to be created is
 
@@ -58,7 +52,10 @@ The structure that needs to be created is
 - users
 - rules
 
-The main tasks to be implemented
+tasks
+~~~~~
+
+tasks to be implemented are as follows
 
 - The admin user will perhaps create a new database (register a pre-existing database with the system).
 - Create password users, or wait for email users to create accounts here
