@@ -2,13 +2,13 @@
  * @author dhanannjay.deo
  */
 
- var app = angular.module('adminapi',["ngResource" ]).
+ var app = angular.module('adminapi',["ngResource", "ngRoute", 'ui.bootstrap']).
     config(
      function ($routeProvider) {
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
-        $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBNewCtrl"});
-        $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
-        $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbnew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBNewCtrl"});
+        $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
+        $routeProvider.when("/databases/details/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
         // $routeProvider.when("/databases/delete/:idx", {templateUrl: "/apiv1/static/partials/confirm.html", controller:"DBDeleteCtrl"});
 
         $routeProvider.when("/users", {templateUrl: "/apiv1/static/partials/userList.html"});
@@ -18,20 +18,20 @@
         $routeProvider.when("/roles/edit/:idx", {templateUrl: "/apiv1/static/partials/roleEdit.html", controller:"RoleEditCtrl"});
 
         $routeProvider.when("/:dbid/sessions", {templateUrl: "/apiv1/static/partials/dbDetails.html"});
+        $routeProvider.when("/:dbid/sessions/new", {templateUrl: "/apiv1/static/partials/sessNew.html", controller:"SessNewCtrl"});
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
-        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sesslist.html"});
-        $routeProvider.when("/sessions/new", {templateUrl: "/apiv1/static/partials/sessnew.html", controller:"SessNewCtrl"});
+        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sessList.html"});
 
-        $routeProvider.otherwise({ redirectTo: "/"});
+        $routeProvider.otherwise({ redirectTo: "/databases"});
     });
 
 app.factory('Database', function($resource) {
     return $resource('databases/:dbid', {dbid:'@_id'},
                  {
             query: { method: 'GET', params: {}, isArray: false },
-            update:{ method: 'PUT'}
+            save :{ method: 'PUT', params: {"charge" : true} }
               });
   });
 
@@ -48,15 +48,13 @@ app.factory('Session', function($resource) {
     return $resource('/apiv1/:dbid/sessions/:sessid', {dbid:'@dbid', sessid:'@sessid'},
                  {
             query: { method: 'GET', params: {}, isArray: true },
+            update: { method: 'PUT'}
               });
   });
 
 app.factory('SessionItem', function($resource) {
     return $resource('/apiv1/:dbid/sessions/:sessid/:restype/:resid', {dbid:'@dbid', sessid:'@sessid', restype:'@restype', resid:'@resid'});
   });
-
-
-
 
 app.factory('Data', function() {
     var methods = {};
@@ -167,7 +165,6 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         $scope.dbid = $routeParams.dbid;
         $scope.sessid = $routeParams.sessid;
         $scope.type = $routeParams.type;
-
         $scope.$evalAsync( function () {
             var urlstr = "/apiv1/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
             var _id = ""
@@ -179,7 +176,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                 $('#fileupload').fileupload({
                     type:'PUT',
                     url: urlstr + get_id(),
-                    dataType: 'json',
+//                    dataType: 'json',
                     maxChunkSize: 1048576, // 10 MB
                     add: function (e, data) {
                         $('#status').text('Uploading...');
@@ -206,28 +203,48 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                             progress + '%'
                         );
                     },
-
-                    done: function (e, data) {
-                        $("status").text('Upload finished.');
-                    },
                     progressall: function (e, data) {
+                        console.log([e,data])
                         var progress = parseInt(data.loaded / data.total * 100, 10);
                         $('#status').text("Progress = " + progress / 2.0+ '%');
                         $('#progress .bar').css(
                             'width',
                             progress + '%'
                         );
+                    },
+                    done: function (e, data) {
+                        console.log(["Done: ", data]);
+                        $("#status").text('Upload finished.');
+                        console.log("/" + $routeParams.dbid + "/sessions/" + $routeParams.sessid);
                     }
                 });
         });
 
+        $scope.back = function() {
+            $location.path("/" + $routeParams.dbid + "/sessions/" + $routeParams.sessid);
+        }
+
         //Session.get({dbid: $routeParams.dbid}, function(data) {
         //    Data.setList(data.sessions);
         //    $scope.sessions = Data.getList();
-        //    }
+        //    }https://www.google.com/search?client=ubuntu&channel=fs&q=yout&ie=utf-8&oe=utf-8
         //);
     });
 
+app.controller("SessNewCtrl", function ($scope, $location, Session, $routeParams, Data)
+    {
+        // Start with a blank database
+        $scope.label = "B Session";
+
+        console.log($scope.label);
+
+        $scope.save = function () {
+            Session.save({dbid: $routeParams.dbid, insert : { "label" : $scope.label }}, function(data) {
+                console.log(data);
+                $location.path("/" + $routeParams.dbid + "/sessions");
+            });
+            }
+    });
 
 
 app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
@@ -300,8 +317,8 @@ app.controller("dbListCtrl", function ($scope, Database, $location, Data)
         }
     });
 
-app.controller("SessListCtrl", function ($scope, Session, $location, Data)
-    {
+app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
+
     console.log("Refreshing SessListCtrl")
 
     Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
@@ -323,7 +340,7 @@ app.controller("SessListCtrl", function ($scope, Session, $location, Data)
     //             });
     //         }
     //     };
-    });
+});
 
 
 app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
@@ -363,7 +380,7 @@ app.factory('Role', function($resource) {
 
 
 app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
-        console.log("Refreshing RoleListCtrl");
+        console.log("Refreshing RoleListCtrl + ");
 
         Role.get({}, function(data) {
                 Data.setList(data.rules);
@@ -376,10 +393,19 @@ app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter)
 
     });
 
-app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter) {
+app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, Data, $filter, $http, $modal) {
 
-        var items = Data.getList()
+        var items = Data.getList();
         var role = Data.getItem($routeParams.idx);
+
+        $http({method: "get", url: "/apiv1/users"}).
+            success(function(data, status) {
+                    $scope.users = data.users;
+            }).
+            error(function(data, status) {
+                $scope.users = [];
+            });
+
         if(typeof role === 'undefined')
             {
 //            alert("Item not found for editing");
@@ -397,8 +423,40 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
             if(!$scope.role.hasOwnProperty("users")) {
                 $scope.role.users = [];
             }
+
+            $http({method: "get", url: "/apiv1/rules/" + role._id + "/users"}).
+            success(function(data, status) {
+                    $scope.role.users = data.users;
+            }).
+            error(function(data, status) {
+                $scope.role.users = [];
+            });
+
         });
 
+        $scope.grant = function () {
+
+            var modalInstance = $modal.open({
+              templateUrl: 'userSelectModal.html',
+              controller: "ModalInstanceCtrl",
+              resolve: {
+                items: function () {
+                  return $scope.users;
+                },
+                selected : function () {
+
+                    return _.pluck($scope.role.users,"_id");
+                }
+              }
+            });
+
+            modalInstance.result.then(function (selectedItem) {
+              alert("Selected: " + selectedItem);
+              $scope.selected = selectedItem;
+            }, function () {
+              console.log('Modal dismissed at: ' + new Date());
+            });
+        };
 
         $scope.save = function () {
             $scope.role.$update({id:$scope.role._id}, function(data){
@@ -406,3 +464,47 @@ app.controller("RoleEditCtrl", function ($scope, Role, $routeParams, $location, 
             });
         }
     });
+
+app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items, selected) {
+
+  $scope.items = items;
+  $scope.selected = selected;
+
+  $scope.toggle = function(id) {
+
+      if (_.contains($scope.selected,id )){
+        // Revoke
+        console.log("Revoking:" + id);
+        $http({method: "post", url: "/apiv1/rules/" + $scope.role._id + "/users"}, payload={"revoke" : id}).
+            success(function(data, status) {
+                    console.log("Succsess in revoked");
+                    $scope.selected = _.without($scope.selected, id);
+            }).
+            error(function(data, status) {
+                console.log("Error in revoke");
+            });
+
+
+      }
+      else {
+        // Grant
+        console.log("Granting:" + id);
+        $scope.selected.push(id);
+      }
+  };
+
+  $scope.classof = function(item) {
+      if(_.contains($scope.selected, item._id)) {
+          return "success";
+      }
+      return "";
+  };
+
+  $scope.ok = function () {
+    $modalInstance.close($scope.selected);
+  };
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});

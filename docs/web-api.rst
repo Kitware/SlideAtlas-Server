@@ -243,17 +243,45 @@ administrative database
       - /apiv1/rules?facebook_group=<facebookid>
       - /apiv1/rules/<ruleid>
 
-- Add new rule or database or user
-- A custom validate method over generic object schema checking
 
-   - Whether the database with that dbname exists (and is it slideatlas
-     database)
-   - Whether the rule existed
+
+Get all the users to which given rule is applied
+
+.. code-block:: none
+
+   - GET
+      - /apiv1/rules/<ruleid>/users
+
+Apply / Revoke the access the rule users to which given rule is applied
+
+.. code-block:: none
+
+   - POST
+
+      - /apiv1/rules/<ruleid>/users
+        {"grant" : <userid> }
+
+      - /apiv1/rules/<ruleid>/users
+        {"revoke" : <userid> }
+
+- Add new rule or database or user
 
 .. code-block:: none
 
    - POST /apiv1/databases
       { 'insert' : {'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}}
+
+
+   - POST /apiv1/rules
+      { 'insert' : {'label' : <label>, 'dbid' : <dbid>, 'can_see' : [ <sessid>, .. ], 'db_admin' : <truefalse> .. etc}}
+
+- A custom validate method over generic object schema checking
+
+   - Whether the database with that dbname exists (and is it slideatlas
+     database)
+   - Whether the rule exists
+   - validity is checked before applying the rules
+
 
 To fully replace a known database record
 

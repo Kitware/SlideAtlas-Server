@@ -238,6 +238,74 @@ def glview():
       return glnote(db,dbid,viewid,viewobj,edit)
 
 
+@mod.route('/bookmark')
+def bookmark():
+    """
+    - /bookmark?key=0295cf24-6d51-4ce8-a923-772ebc71abb5
+    """
+    key = request.args.get('key', "0295cf24-6d51-4ce8-a923-772ebc71abb5")
+    # find the view and the db
+
+
+    return jsonify({"key" : key })
+
+    # Check the user is logged in.
+    rules = []
+    # Compile the rules
+    conn.register([Image, Session, User, Rule, Database])
+    admindb = conn[current_app.config["CONFIGDB"]]
+    # Assert the user is logged in
+    if 'user' in session:
+      name = session['user']['label']
+      id = session['user']['id']
+      userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
+      if userobj == None:
+        # If the user is not found then something wrong
+        # Redirect the user to home with error message
+        flash("Invalid login", "error")
+        return redirect(url_for('login.login'))
+    else:
+      # Send the user back to login page
+      # with some message
+      flash("You must be logged in to see that resource", "error")
+      return redirect(url_for('login.login'))
+
+
+    # See if editing will be enabled.
+    edit = request.args.get('edit', False)
+    # See if the user is requesting a view or session
+    viewid = request.args.get('view', None)
+    # get all the metadata to display a view in the webgl viewer.
+    ajax = request.args.get('json', None)
+    # get bookmarks. (Legacy)
+    bookmarks = request.args.get('bookmarks', None)
+
+    # this is the same as the sessions db in the sessions page.
+    # TODO: Store database in the view and do not pass as arg.
+    dbid = request.args.get('db', None)
+
+    admindb = conn[current_app.config["CONFIGDB"]]
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    db = conn[dbobj["dbname"]]
+    conn.register([model.Database])
+
+    if viewid :
+      viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+      if ajax:
+        return jsonifyView(db,dbid,viewid,viewobj);
+      if bookmarks:
+        return jsonifyBookmarks(db,dbid,viewid,viewobj);
+
+      # This will be the only path in the future. Everything else is legacy.
+      if 'type' in viewobj:
+        if viewobj["type"] == "comparison" :
+          return glcomparison(db,dbid,viewid,viewobj)
+      # default
+      return glnote(db,dbid,viewid,viewobj,edit)
+
+
+
+
 
 # get all the children notes for a parent (authord by a specific user).
 @mod.route('/getchildnotes')

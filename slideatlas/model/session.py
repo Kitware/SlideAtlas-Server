@@ -12,6 +12,7 @@ class RefList(Document):
 
 
 class Session(Document):
+    use_schemaless = True
     structure = {
         'name' : basestring,
         'label' : basestring,
