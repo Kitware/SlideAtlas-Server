@@ -35,7 +35,7 @@ def login():
     """
     Displays various login options, including signup
     """
-    return render_template('login.html')
+    return render_template('login.html', next=flask.request.args.get("next","/sessions"))
 
 @mod.route("/login.signup", methods=['GET', 'POST'])
 def login_signup():
@@ -291,7 +291,8 @@ def login_passwd():
         do_user_login(user)
         if figure :
           return redirect(figure)
-        return redirect('/sessions')
+
+        return redirect(flask.request.form["next"])
 
 @mod.route('/login.facebook')
 def login_facebook():

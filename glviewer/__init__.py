@@ -5,7 +5,7 @@ from flask import Blueprint, Response, abort, request, render_template, url_for,
 from slideatlas import slconn as conn, admindb, model
 from slideatlas.model import Image, Session, Rule, User, Database
 import json
-from slideatlas.common_utils import jsonify
+from slideatlas.common_utils import jsonify, login_required
 
 import pdb
 
@@ -177,6 +177,7 @@ mod = Blueprint('glviewer', __name__,
                 )
 
 @mod.route('')
+@login_required
 def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827

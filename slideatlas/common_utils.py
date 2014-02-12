@@ -8,6 +8,9 @@ except ImportError:
 import datetime
 from bson.objectid import ObjectId
 from flask import Response, session, abort, flash, redirect
+import flask
+from functools import wraps
+import urllib2
 
 class MongoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -21,6 +24,18 @@ def jsonify(*args, **kwargs):
     """ jsonify with support for MongoDB ObjectId
     """
     return Response(json.dumps(dict(*args, **kwargs), cls=MongoJsonEncoder), mimetype='application/json')
+
+# Decorator for urls that require login
+def login_required(f):
+    """Checks whether user is logged in or redirects to login with possible next url on success"""
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        if not 'user' in flask.session:
+            flask.flash("Login required !", "error")
+            return flask.redirect(flask.url_for("login.login") + "?next=" + urllib2.quote(flask.request.url))
+        else:
+            return f(*args, **kwargs)
+    return decorator
 
 
 # Decorator for urls that require login
