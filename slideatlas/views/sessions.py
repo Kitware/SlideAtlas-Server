@@ -48,34 +48,36 @@ def sessions():
   # This code gets executed only if the user information is available
   # See if the user is requesting any session id
   sessid = request.args.get('sessid', None)
-  sessdb = request.args.get('sessdb', None)
+  sessdb = request.args.get('sessdb', "")
   ajax = request.args.get('json', None)
   next = int(request.args.get('next', 0))
 
-  if sessid and sessdb:
+  if sessid :
     # Find and return image list from single session
     # TODO: Refactor this into a function 
-    access = False
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
-
-    #TODO: make sure the connection to host is available
-    db = conn[dbobj["dbname"]]
-
-    # From rules pertaining to current user
-    try:
-      for arule in userobj["rules"]:
-        ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
-        if str(ruleobj["db"]) == sessdb:
-          if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
-            access = True
-          elif 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
-            access = True
-          elif len(ruleobj["can_see"]) > 0:
-            for asession in ruleobj["can_see"]:
-              if str(asession) == sessid:
-                access = True
-    except:
-      pass
+    db = admindb
+    access = True
+    # eventually sessdb will go away.
+    if sessdb != "" :
+      access = False
+      dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(sessdb) })
+      db = conn[dbobj["dbname"]]
+      # From rules pertaining to current user
+      try:
+        for arule in userobj["rules"]:
+          ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
+          if str(ruleobj["db"]) == sessdb:
+            if 'db_admin' in ruleobj and ruleobj["db_admin"] == True:
+              access = True
+            elif 'can_see_all' in ruleobj and ruleobj["can_see_all"] == True:
+              access = True
+            elif len(ruleobj["can_see"]) > 0:
+              for asession in ruleobj["can_see"]:
+                if str(asession) == sessid:
+                  access = True
+      except:
+        pass
+    
     # Confirm that the user has access
     if access == False :
       flash("Unauthorized access", "error")
@@ -192,6 +194,19 @@ def sessions():
     # Compile a list of session names / ids
     sessionlist = []
 
+    # sessions owned by this user.
+    rule = {}
+    rule["rule"] = ""
+    sessions = []
+    for sessionobj in admindb["sessions"].find():
+      thissession = {'sessid' : str(sessionobj["_id"]),
+                     'label' : sessionobj["label"],
+                     'sessdb': ""
+                    }
+      sessions.append(thissession)
+    rule["sessions"] = sessions
+    sessionlist.append(rule)  
+    
     # From rules pertaining to current user
     if "rules" in userobj:
       for arule in userobj["rules"]:
@@ -481,4 +496,44 @@ def sessionsave():
       db["sessions"].save(sessObj);
 
     return jsonify(sessObj)
+
+
+
+
+
+@mod.route('/notes')
+def notes():
+  rules = []
+
+  # Compile the rules
+  conn.register([Image, Session, User, Rule, Database])
+  admindb = conn[current_app.config["CONFIGDB"]]
+
+  # Assert the user is logged in
+  if 'user' in session:
+    name = session['user']['label']
+    id = session['user']['id']
+    userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
+    if userobj == None:
+      # If the user is not found then something wrong 
+      # Redirect the user to home with error message 
+      flash("Invalid login", "error")
+      return redirect(url_for('login.login'))
+  else:
+    # Send the user back to login page
+    # with some message
+    flash("You must be logged in to see that resource", "error")
+    return redirect(url_for('login.login'))
+
+  #pdb.set_trace()
+  noteArray = []
+  for noteObj in admindb["views"].find({"User":ObjectId(id), "Type":"UserNote"}):
+    noteData = {"noteid": str(noteObj["_id"]),
+                "imgid": noteObj["ViewerRecords"][0]["Image"]["_id"],
+                "imgdb": noteObj["ViewerRecords"][0]["Image"]["database"],
+                "title": noteObj["Title"]}
+    noteArray.append(noteData);
+
+  data = {"notes": noteArray}
+  return render_template('notes.html', data=data)
 
