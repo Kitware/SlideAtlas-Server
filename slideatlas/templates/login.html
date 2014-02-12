@@ -25,6 +25,9 @@
                     <label for="passwd">Password:<a href="login.reset.request"> Forgot password </a> </label>
                     <input type="password" name="passwd" id="passwd" value="">
                 </div>
+                <div class="control-group">
+                    <input type="hidden" name="next" value="{{next | safe}}">
+                </div>
                 <div>
                     <button class="btn" type="submit">Sign In</button>
                 </div>

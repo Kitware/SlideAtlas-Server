@@ -10,6 +10,7 @@ from bson.objectid import ObjectId
 from flask import Response, session, abort, flash, redirect
 import flask
 from functools import wraps
+import urllib2
 
 class MongoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -31,7 +32,7 @@ def login_required(f):
     def decorator(*args, **kwargs):
         if not 'user' in flask.session:
             flask.flash("Login required !", "error")
-            return flask.redirect(flask.url_for("login.login") + "?next=" + flask.request.url)
+            return flask.redirect(flask.url_for("login.login") + "?next=" + urllib2.quote(flask.request.url))
         else:
             return f(*args, **kwargs)
     return decorator
