@@ -93,7 +93,6 @@ class AdminDBItemsAPI(MethodView):
         # create a new user
         result = {}
         result["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
-AttributeError: 'Blueprint' object has no attribute 'url_map'
 
         if restype not in ["rules"] or listtype not in ["users"]:
             return Response("{\"error\" : \"Only restype itemtype supported is rules, users\"}" , status=405)
