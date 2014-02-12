@@ -1,4 +1,4 @@
-// Testing annotaiton widget with touch events.
+// Testing annotation widget with touch events.
 
 
 //------------------------------------------------------------------------------
@@ -42,11 +42,22 @@ function MobileAnnotationWidget() {
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/Text128.jpg")
               .click(function(){self.TextCallback();});
-  this.TextTip = new ToolTip(this.TextButton, "Text Anntation");
+  this.TextTip = new ToolTip(this.TextButton, "Text Annotation");
+
+  this.SaveButton =
+    $('<img>').appendTo(this.Div)
+              .css({'height': size,
+                    'width': size,
+                    'padding' : '5px',
+                    'opacity': '0.6'})
+              .attr('src',"webgl-viewer/static/save.png")
+              .click(function(){NOTES_WIDGET.SaveUserNote();});
+  this.TextTip = new ToolTip(this.SaveButton, "Save Note");
+
   this.Visibility = false;
 }
 
-MobileAnnotationWidget.prototype.CircleCallback = function(event) {
+MobileAnnotationWidget.prototype.CircleCallback = function() {
   console.log("New circle");
 
   // Hard code only a single view for now.
@@ -112,4 +123,9 @@ MobileAnnotationWidget.prototype.SetVisibility = function(v) {
 MobileAnnotationWidget.prototype.ToggleVisibility = function() {
   this.SetVisibility( ! this.Visibility);
 }
+
+
+
+
+
 

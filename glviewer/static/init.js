@@ -430,7 +430,7 @@ DEBUG_LOG = [];
 function StartLogging (message) {
   if (LOGGING) return;
   LOGGING = true;
-  alert("Error: Check log");
+  //alert("Error: Check log");
 }
 
 function LogMessage (message) {

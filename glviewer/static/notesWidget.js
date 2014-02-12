@@ -874,9 +874,6 @@ Note.prototype.DisplayView = function() {
 }
 
 
-//------------------------------------------------------------------------------
-
-
 NotesWidget.prototype.SaveUserNote = function() {
   // Create a new note.
   var childNote = new Note();
@@ -908,13 +905,11 @@ NotesWidget.prototype.SaveUserNote = function() {
 
   // Save the note in the database for this specific user.
   // TODO: If author privileges, save note in the actual session / view.
-  var dbid = ARGS.Viewer1.db;
   var bug = JSON.stringify( childNote );
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(childNote.Serialize(false)),
-           "db"  : SESSION_DB,
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
     error: function() { alert( "AJAX - error() : saveusernote" ); },
@@ -925,6 +920,30 @@ NotesWidget.prototype.SaveUserNote = function() {
   // which will also update the gui and viewers.
   NAVIGATION_WIDGET.NextNote();
 }
+
+
+NotesWidget.prototype.SaveBrownNote = function() {
+  // Create a new note.
+  var note = new Note();
+  note.RecordGUIChanges();
+  
+  // The note will want to know its context
+  parentNote = this.Iterator.GetNote();
+  note.ParentId = parentNote.Id;
+
+  // Save the note in the admin database for this specific user.
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/saveusernote",
+    data: {"note": JSON.stringify(note.Serialize(false))},
+    success: function(data,status) { note.Id = data;},
+    error: function() { alert( "AJAX - error() : saveusernote" ); },
+    });  
+}
+
+
+
+
 
 NotesWidget.prototype.NoteModified = function () {
   this.Modified = true;

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block body_content %}
+{{ super() }}
+
+<div class="container">
+  <div class="row">
+  <h1> Notes </h1>
+
+    {%if data.notes|length %}
+    <h2> {{ data.notes|length }} Notes </h2>
+    <table class="table table-bordered table-hover" >
+        {% for note in data.notes %}
+            <tr imageid="{{note.imgid}}">
+                <td> <a href="webgl-viewer?view={{note.noteid}}">                  
+                  <img src="{{url_for('tile.tile')}}?db={{note.imgdb}}&img={{note.imgid}}&name=t.jpg" width=100px></a></td>
+                <td>
+                  {% if note.title %}
+                    <a href="webgl-viewer?view={{note.noteid}}" class="lead" imageid={{note.imgid}}>{{ note.title}}</a> 
+                  {% endif %}
+                </td>
+            </tr>
+         {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
