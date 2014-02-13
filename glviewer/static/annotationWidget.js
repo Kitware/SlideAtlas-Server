@@ -66,7 +66,22 @@ function AnnotationWidget (viewer) {
       .attr('type','image')
       .attr('src',"webgl-viewer/static/Pencil-icon.jpg")
       .click(function(){self.NewPencil();});
+    this.SaveButton = $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"webgl-viewer/static/save.png")
+      .click(function(){self.SaveBrownNote();});
   }
+}
+
+
+AnnotationWidget.prototype.SaveBrownNote = function() {
+  NOTES_WIDGET.SaveBrownNote(); 
+  this.SaveButton.hide();
+  var button = this.SaveButton;
+  setTimeout(function(){
+               button.show();
+             }, 1000); // one second
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {

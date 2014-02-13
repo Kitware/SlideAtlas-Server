@@ -251,6 +251,11 @@ function RecordState() {
       error: function() { alert( "AJAX - error()" ); },
       });
   }
+  
+  if (MOBILE_ANNOTATION_WIDGET) {
+    this.SaveButton.show();
+  }
+  
 }
 
 

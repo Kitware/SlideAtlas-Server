@@ -406,7 +406,9 @@ def sessionsave():
     sessObj["label"] = label
     
     # create a new list of sessions.
-    oldViews = sessObj["views"]
+    oldViews = []
+    if sessObj.has_key("views") :
+      oldViews = sessObj["views"]
     newViews = []
     newImages = []
     for viewData in views:
@@ -492,6 +494,7 @@ def sessionsave():
     elif len(newViews) == 0 :
       db["sessions"].remove({"_id":sessObj["_id"]});
       sessObj = {};
+      return ""
     else :
       db["sessions"].save(sessObj);
 

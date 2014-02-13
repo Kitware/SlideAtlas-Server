@@ -659,6 +659,7 @@ def getcomment():
 # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+    #pdb.set_trace()
     noteStr = request.form['note'] # for post  
 
     note    = json.loads(noteStr)
@@ -800,6 +801,7 @@ def getview():
         hideAnnotations = True
 
   viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
+  viewObj["Id"] = viewid
   # Right now, only notes use "Type"
   if "Type" in viewObj :
     viewObj["_id"] = str(viewObj["_id"]);

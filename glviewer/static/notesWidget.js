@@ -1,36 +1,36 @@
-// Notes canbe nested (tree structure) to allow for student questions, comments or discussion.
+// Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
 // Notes within the same level are ordered.
-// Question answers can be subnotes.
+// Question answers can be sub notes.
 
 // Students can save comments that are not seen by other students.
 // A separate "Notes" collection is used.
 // Notes keep an ID of their parent in the database.
 // The recording API is used to save the state of viewers (ViewerRecord)
-// Notes just add a tree structure ontop of these states (with GUI).
+// Notes just add a tree structure on top of these states (with GUI).
 
 // Right now we are loading the view and bookmarks as notes.
 // Bookmarks have two notes: Question and a child answer.  
-// I want to hide the answer in the quesetion note (not show the answer in the GUI).
+// I want to hide the answer in the question note (not show the answer in the GUI).
 // My problem is that the answer note does not have enough information to draw
-// the Question GUI.  It is burried in the iterator.  I could have a state
+// the Question GUI.  It is buried in the iterator.  I could have a state
 // internal to the question note, but this breaks the iterator pattern.
 // I am backing out of using the Answer array, but I am not removing it from the code.
 
 // TODO:
 // Save order of user notes.
-// Detect whether user has permision to save notes.
+// Detect whether user has permission to save notes.
 // Automatically save view changes into application note.
 // Automatically save note text and title into application.
 // Refresh button to reload the current note. (Reload from database.) (should I refresh children?).
 // Link the Save button to store all application notes into database.
 // Keep track of whether application notes have been modified.
-// Warning popup message to save notes when navigating off page.
+// Warning pop-up message to save notes when navigating off page.
 
 
-// Discusion:  We have a local (not saved to server) edit state (turned on by edit and off by cancel).
+// Discussion:  We have a local (not saved to server) edit state (turned on by edit and off by cancel).
 // Edit is turned off by advancing to the next note or adding a note.  This is confusing.
-// Changes are automatically saved locally. Save buttun saves to server.  This is confusing.
+// Changes are automatically saved locally. Save button saves to server.  This is confusing.
 
 
 // How about a global lock / unlock button (like quick). Edit -> Clone, Save, Cancel.
