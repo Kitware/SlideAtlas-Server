@@ -253,7 +253,7 @@ function RecordState() {
   }
   
   if (MOBILE_ANNOTATION_WIDGET) {
-    this.SaveButton.show();
+    MOBILE_ANNOTATION_WIDGET.SaveButton.show();
   }
   
 }

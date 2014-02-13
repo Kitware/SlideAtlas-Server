@@ -52,13 +52,22 @@ function MobileAnnotationWidget() {
                     'padding' : '5px',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/save.png")
-              .click(function(){
-                  self.SaveButton.hide();
-                  NOTES_WIDGET.SaveBrownNote();});
+              .click(function(){self.SaveBrownNote();});
   this.TextTip = new ToolTip(this.SaveButton, "Save Note");
 
   this.Visibility = false;
 }
+
+
+MobileAnnotationWidget.prototype.SaveBrownNote = function() {
+  NOTES_WIDGET.SaveBrownNote(); 
+  this.SaveButton.hide();
+  var button = this.SaveButton;
+  setTimeout(function(){
+               button.show();
+             }, 1000); // one second
+}
+
 
 MobileAnnotationWidget.prototype.CircleCallback = function() {
   console.log("New circle");
