@@ -44,28 +44,7 @@ function MobileAnnotationWidget() {
               .click(function(){self.TextCallback();});
   this.TextTip = new ToolTip(this.TextButton, "Text Annotation");
 
-  this.SaveButton =
-    $('<img>').appendTo(this.Div)
-              .hide()
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/save.png")
-              .click(function(){self.SaveBrownNote();});
-  this.TextTip = new ToolTip(this.SaveButton, "Save Note");
-
   this.Visibility = false;
-}
-
-
-MobileAnnotationWidget.prototype.SaveBrownNote = function() {
-  NOTES_WIDGET.SaveBrownNote(); 
-  this.SaveButton.hide();
-  var button = this.SaveButton;
-  setTimeout(function(){
-               button.show();
-             }, 1000); // one second
 }
 
 
@@ -92,7 +71,6 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
   
   //this.Viewer.ActiveWidget = widget;
   this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
-  this.SaveButton.show();
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
@@ -122,7 +100,6 @@ MobileAnnotationWidget.prototype.TextCallback = function() {
 
   // The dialog is used to set the initial text.
   widget.ShowPropertiesDialog();
-  this.SaveButton.show();
 }
 
 MobileAnnotationWidget.prototype.SetVisibility = function(v) {

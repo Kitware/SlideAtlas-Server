@@ -27,6 +27,16 @@ function ShowViewEditMenu(x, y) {
     $('#viewEditMenu').css({'top': y-15, 'left':x-15}).show();
 }
 
+
+function ShowViewerEditMenu(viewer) {
+    EVENT_MANAGER.CurrentViewer = viewer;
+    var viewport = viewer.GetViewport();
+    $('#viewEditMenu').css({'top': viewport[1]+viewport[3]-180, 
+                            'left': viewport[0]+viewport[2]-230})
+                      .show();
+}
+
+
 function InitViewEditMenus() {
     // Create the menu of edit options.
     $('<div>').appendTo('body').css({

@@ -504,8 +504,8 @@ def sessionsave():
 
 
 
-@mod.route('/notes')
-def notes():
+@mod.route('/bookmarks')
+def bookmarks():
   rules = []
 
   # Compile the rules
