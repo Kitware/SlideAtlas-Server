@@ -16,7 +16,7 @@ Determine the login
 
 
 New users / Session administrators
--------------------------------------
+----------------------------------
 
 - Normal users will see atleast one session in one database Name + Images (can we directly take the user there ?)
 - Users can create a session

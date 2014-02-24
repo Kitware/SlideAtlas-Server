@@ -14,6 +14,7 @@ Welcome to SlideAtlas's documentation!
     schema
     admin-rights
     user-workflow
+    image-workflow
     web-api
     web-interface
     common-utilities
