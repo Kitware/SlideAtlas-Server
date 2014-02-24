@@ -7,7 +7,7 @@ over the web. Following tutorial enlists the steps assumes that you have already
 
 
 Determine the login
-----------------
+-------------------
 
 - Users need to register using their offical email
 - TODO: Alternatively accounts for important users can be created by site administrators

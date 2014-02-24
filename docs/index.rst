@@ -10,6 +10,7 @@ Welcome to SlideAtlas's documentation!
     :titlesonly:
 
     get-started
+    deploy
     schema
     admin-rights
     user-workflow
