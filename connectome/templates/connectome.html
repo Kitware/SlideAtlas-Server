@@ -3,8 +3,8 @@
 <title>Connectome Viewer</title>
 
 
-<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 
 
 
@@ -15,8 +15,6 @@
 <link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
-<link type="text/css" href="{{ url_for('glviewer.static', filename='nprogress/nprogress.css') }}" rel="stylesheet" />
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='nprogress/nprogress.js') }}"></script>
 
 <!-- used some objects, matrix as an array  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
@@ -77,6 +75,7 @@ shape has visibility and
 
 <!-- Stuff specific for connectome -->
 <script type="text/javascript" src="{{ url_for('static', filename='connectome.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='binary-parser.js') }}"></script>
 
 
 
@@ -152,7 +151,7 @@ shape has visibility and
 <script type="text/javascript">
   var DATABASE_NAME = "{{db}}";
   var COLLECTION_NAME = "{{col}}";
-  
+  var NOTES_WIDGET = false;
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
@@ -166,36 +165,40 @@ shape has visibility and
   function ShowAnnotationEditMenu(x, y) {
   }
   
-  // Might consider interactive resize feature too.
   function handleResize() {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
     if (GL) {
-      CANVAS.width = CANVAS.clientWidth;
-      CANVAS.height = CANVAS.clientHeight;
-      GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-
-      var left = 0;
-      // The remaining width is split between the two viewers.
-      var width1 = (CANVAS.width-left) * VIEWER1_FRACTION;
-      var width2 = (CANVAS.width-left) - width1;
-      if (VIEWER1) {
-        VIEWER1.SetViewport([left, 0, width1, CANVAS.height]);
-        eventuallyRender();
-      }
-      if (VIEWER2) {
-        VIEWER2.SetViewport([left+width1, 0, width2, CANVAS.height]);
-        eventuallyRender();
-      }
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
+    } // SetViewport does the work for 2d canvases.
+    
+    // we set the left border to leave space for the notes window.
+    var left = 0;
+    if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
+    // The remaining width is split between the two viewers.
+    var width1 = (width-left) * VIEWER1_FRACTION;
+    var width2 = (width-left) - width1;
+    if (VIEWER1) {
+      VIEWER1.SetViewport([left, 0, width1, height]);
+      eventuallyRender();
+    }
+    if (VIEWER2) {
+      VIEWER2.SetViewport([left+width1, 0, width2, height]);
+      eventuallyRender();
     }
   };
 
 
   function InitViews() {
 
-    var halfWidth = CANVAS.clientWidth/2;
-    VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], null);
+    var halfWidth = CANVAS.innerWidth()/2;
+    var height = CANVAS.innerHeight();
+    VIEWER1 = new Viewer([0,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
                   
-    VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
+    VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
@@ -220,9 +223,12 @@ shape has visibility and
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
   function handleKeyDown(event) {
         // control: 17, z: 90, y: 89
+        // left arrow, right arrow
+        if (event.keyCode == 37) { ConnectomeAdvance(-1);}
+        if (event.keyCode == 39) { ConnectomeAdvance(1);}
         // Pageup , pagedown
-        if (event.keyCode == 33) { ConnectomeAdvance(-1);}
-        if (event.keyCode == 34) { ConnectomeAdvance(1);}
+        if (event.keyCode == 33) { ConnectomeAdvance(-100);}
+        if (event.keyCode == 34) { ConnectomeAdvance(100);}
         EVENT_MANAGER.HandleKeyDown(event);}
   function handleKeyUp(event) {EVENT_MANAGER.HandleKeyUp(event);}
   function cancelContextMenu(e) {
@@ -249,18 +255,19 @@ shape has visibility and
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
-    CANVAS.onmousedown =   handleMouseDown;
-    CANVAS.onmouseup =     handleMouseUp;
-    CANVAS.onmousewheel =  handleMouseWheel;
-    document.onmouseup =   handleMouseUp;
-    document.onmousemove = handleMouseMove;
+
+    var can = CANVAS[0];
+    can.addEventListener("mousedown",  handleMouseDown,  false);
+    can.addEventListener("mousemove",  handleMouseMove,  false);
+    can.addEventListener("mousewheel", handleMouseWheel, false);
+    
+    document.body.addEventListener("mouseup", handleMouseUp, false);
+        
     document.onkeydown =   handleKeyDown;
     document.onkeyup =     handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
+    document.oncontextmenu = cancelContextMenu;
 
-    // Create the annotations for viewer1 
-    //InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
-    
+
     InitConnectome();
     InitViews();
     InitDualViewWidget();

@@ -437,8 +437,13 @@ EventManager.prototype.HandleTouchStart = function(e) {
 
   this.ChooseViewer();
   if (this.CurrentViewer) {
-    if (this.CurrentViewer.HandleTouchStart(this) && NAVIGATION_WIDGET.Visibility) {
-      NAVIGATION_WIDGET.ToggleVisibility();
+    if (this.CurrentViewer.HandleTouchStart(this)) {
+      if (NAVIGATION_WIDGET.Visibility) {
+        NAVIGATION_WIDGET.ToggleVisibility();
+      }
+      if (MOBILE_ANNOTATION_WIDGET.Visibility) {
+        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+      }
     }
   }  
 }
@@ -447,11 +452,17 @@ EventManager.prototype.HandleTouchStart = function(e) {
 EventManager.prototype.HandleTouchMove = function(e) {
   // Put a throttle on events
   if ( ! this.HandleTouch(e, false)) { return; }
-
+  
   if (NAVIGATION_WIDGET.Visibility) {
     // No slide interaction with the interface up.
     // I had bad interaction with events going to browser.
     NAVIGATION_WIDGET.ToggleVisibility();
+  }
+    
+  if (MOBILE_ANNOTATION_WIDGET.Visibility) {
+    // No slide interaction with the interface up.
+    // I had bad interaction with events going to browser.
+    MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
   }
     
   this.ChooseViewer();  
@@ -481,6 +492,7 @@ EventManager.prototype.HandleTouchEnd = function(e) {
     this.StartTouchTime = 0;
     if (t < 90) {
       NAVIGATION_WIDGET.ToggleVisibility();
+      MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
       return;
     }
     if (this.CurrentViewer) {
@@ -490,7 +502,6 @@ EventManager.prototype.HandleTouchEnd = function(e) {
 }
 
 EventManager.prototype.HandleTouchCancel = function(event) {
-  this.TouchState = TOUCH_NONE;
   this.MouseDown = false;
 }
 

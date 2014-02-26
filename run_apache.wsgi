@@ -1,6 +1,6 @@
 import sys
-sys.path.append("/var/slideatlas-admin")
+sys.path.append("/home/claw/SlideAtlas-Server")
 import logging
 logging.basicConfig(stream=sys.stderr)
-from slideatlas import app as application
+from connectome import app as application
 

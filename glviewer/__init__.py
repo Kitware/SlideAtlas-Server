@@ -5,7 +5,7 @@ from flask import Blueprint, Response, abort, request, render_template, url_for,
 from slideatlas import slconn as conn, admindb, model
 from slideatlas.model import Image, Session, Rule, User, Database
 import json
-from slideatlas.common_utils import jsonify
+from slideatlas.common_utils import jsonify, login_required
 
 import pdb
 
@@ -16,7 +16,7 @@ import pdb
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
     if 'Type' in viewobj :
-      if viewobj["Type"] == "Note" :
+      if viewobj["Type"] == "Note" or viewobj["Type"] == "UserNote":
         imgid = viewobj["ViewerRecords"][0]["Image"]
     if imgid == 0 :
       imgid = viewobj["img"]
@@ -177,6 +177,7 @@ mod = Blueprint('glviewer', __name__,
                 )
 
 @mod.route('')
+@login_required
 def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
@@ -217,9 +218,13 @@ def glview():
     # TODO: Store database in the view and do not pass as arg.
     dbid = request.args.get('db', None)
 
+    # in the future, the admin database will contain everything except
+    # the image data and attachments.
     admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    db = admindb
+    if dbid :
+      dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+      db = conn[dbobj["dbname"]]
     conn.register([model.Database])    
 
     if viewid :
@@ -238,18 +243,20 @@ def glview():
 
 
 
-# get all the children notes for a parent (authord by a specific user).
+# get all the children notes for a parent (authored by a specific user).
 @mod.route('/getchildnotes')
 def getchildnotes():
     parentid = request.args.get('parentid', "")
     dbid = request.args.get('db', "")
-    user = session["user"]["email"]
+    user = session["user"]["id"]
     
     admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    db = admindb
+    #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+    #db = conn[dbobj["dbname"]]
     
-    notecursor = db["notes"].find({ "ParentId" : ObjectId(parentid) })
+    notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
+                                    "User" :     ObjectId(user)})
     # make a new structure to return.  Convert the ids to strings.
     noteArray = [];
     for note in notecursor:
@@ -652,22 +659,28 @@ def getcomment():
 # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
-    dbid    = request.form['db']  # for post
-    noteStr = request.form['note']  
+    #pdb.set_trace()
+    noteStr = request.form['note'] # for post  
 
     note    = json.loads(noteStr)
-    note["ParentId"] = ObjectId(note["ParentId"]);
-    # user should be set by flask so it cannot be faked.
-    note["User"] = session["user"]["email"]
-  
+    note["ParentId"] = ObjectId(note["ParentId"])
+    note["User"] = ObjectId(session["user"]["id"])
+    note["Type"] = "UserNote"
+    
+    # Saving notes in admin db now.
     admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
 
-    noteId = db["notes"].save(note);
+    noteId = admindb["views"].save(note);
     return str(noteId);
  
+# Save the note in a "notes" session.
+# Create a notes session if it does not already exist.
 
+# Where should we put this notes session?
+# it has to be user specific. We need a rule for this specific user. 
+# If each user does not have his own database,
+# them maybe they should have their own collection.
+# There is already a user collection.  How do we get it?
  
 
 def recursiveSetUser(note, user):
@@ -739,9 +752,10 @@ def addviewimage(viewObj):
             imgObj["dimensions"] = imgObj["dimension"]
         imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
         record["Image"] = imgObj
-
-    for child in viewObj["Children"]:
-        addviewimage(child)
+    
+    if viewObj.has_key("Children") :
+      for child in viewObj["Children"]:
+          addviewimage(child)
 
 # Get all the images in a database.  Return them as json.
 @mod.route('/getimagenames')
@@ -773,18 +787,21 @@ def getview():
   viewdb = request.args.get('db', "")
   
   admindb = conn[current_app.config["CONFIGDB"]]
-  dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
-  db = conn[dbobj["dbname"]]
+  db = admindb
+  if viewdb and viewdb != "None" :
+    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
+    db = conn[dbobj["dbname"]]
 
   # check the session to see if notes are hidden
   hideAnnotations = False
   if sessid :
     sessObj = db["sessions"].find_one({ "_id" : ObjectId(sessid) })
-    if sessObj.has_key("hideAnnotations") :
+    if sessObj and sessObj.has_key("hideAnnotations") :
       if sessObj["hideAnnotations"] :
         hideAnnotations = True
 
   viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
+  viewObj["Id"] = viewid
   # Right now, only notes use "Type"
   if "Type" in viewObj :
     viewObj["_id"] = str(viewObj["_id"]);

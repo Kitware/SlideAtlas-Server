@@ -12,6 +12,8 @@ from bson import ObjectId
 import json
 from slideatlas.common_utils import jsonify
 
+import base64
+
 import pdb
 
 
@@ -87,9 +89,26 @@ def viewer():
     collectionName = request.args.get('col', '')
 
     return render_template('connectome.html', db=dbName, col=collectionName)
+
+
+
+def encodeSection(sectionObj) :
+    sectionObj["_id"] = str(sectionObj["_id"])
+    if sectionObj.has_key("worldPointsFloat64") :
+      sectionObj["worldPointsFloat64"] = base64.b64encode(str(sectionObj["worldPointsFloat64"]))
+    for imageObj in sectionObj["images"] :
+      if imageObj.has_key("meshPointsInt32") :
+        imageObj["meshPointsInt32"] = base64.b64encode(str(imageObj["meshPointsInt32"]))
+      if imageObj.has_key("meshPointIdsInt32") :
+        imageObj["meshPointIdsInt32"] = base64.b64encode(str(imageObj["meshPointIdsInt32"]))
+      if imageObj.has_key("meshTrianglesInt32") :
+        imageObj["meshTrianglesInt32"] = base64.b64encode(str(imageObj["meshTrianglesInt32"]))
+
+    return jsonify(sectionObj)    
     
-    
-    
+
+
+
 # List of sections (with id, waferName and section)
 @app.route('/getsections')
 def getsections():
@@ -105,10 +124,10 @@ def getsections():
     
     if sectionId :
       sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
-      sectionObj["_id"] = str(sectionObj["_id"])
       if sectionIndex :
         sectionObj["index"] = int(sectionIndex)
-      return jsonify(sectionObj)
+        r = encodeSection(sectionObj)
+        return r
     else :
       sectionCursor = db[collectionName].find({"type":objType},{"waferName":1, "section":1}).sort([("waferName", 1), ("section", 1)])
       # make a new structure to return.  Convert the ids to strings.
@@ -159,7 +178,7 @@ def getcorrelations():
       if "correlations" in sectionObj0 :
         data["CorrelationArray0"] = sectionObj0["correlations"];
     
-    sectionObj1 = db[collectionName].find_one({'montage1.waferName':wafer, 'montage0.sectionNumber':section})
+    sectionObj1 = db[collectionName].find_one({'montage1.waferName':wafer, 'montage1.sectionNumber':section})
     if sectionObj1 :
       if "correlations" in sectionObj1 :
         data["CorrelationArray1"] = sectionObj1["correlations"];
@@ -179,4 +198,9 @@ def removeobject():
     db[collectionName].remove({'_id': ObjectId(idStr)})
     
     return
+
+
+@app.route('/correlation')
+def debugcorrelation():
+    return render_template('correlation.html')
 

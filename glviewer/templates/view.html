@@ -32,6 +32,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
@@ -174,6 +175,7 @@ shape has visibility and
   var VIEWER2;
   var DUAL_VIEW = false;
   var NAVIGATION_WIDGET;
+  var MOBILE_ANNOTATION_WIDGET;
   var NOTES_WIDGET;
   
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
@@ -201,7 +203,6 @@ shape has visibility and
     var width2 = (width-left) - width1;
 
     if (VIEWER1) {
-      console.log("Viewer1 resize width " + width1 + ", height " + height);
       VIEWER1.SetViewport([left, 0, width1, height]);
       eventuallyRender();
     }
@@ -244,7 +245,8 @@ shape has visibility and
   
   // The event manager detects single right click and double right click.
   // This gets galled on the single.
-  function ShowPropertiesMenu(x, y) { ShowViewEditMenu(x, y);}
+  function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
+  // I am getting rid of the right click feature now.
 
   function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
   function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
@@ -282,6 +284,9 @@ shape has visibility and
     EVENT_MANAGER = new EventManager(CANVAS);
 
     NAVIGATION_WIDGET = new NavigationWidget();
+    if (MOBILE_DEVICE) {
+      MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+    }
     InitViews();
     InitViewEditMenus();
     InitViewBrowser();
@@ -290,6 +295,7 @@ shape has visibility and
     InitRecorderWidget();
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
+      MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     } else {
       VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
     }
@@ -350,10 +356,27 @@ shape has visibility and
         .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
         .click(function(){VIEWER1.AnimateZoom(2.0);});
 
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'width': '40px',
+          'bottom' : '5px',
+          'right' : '60px',
+          'z-index': '2'
+      }).attr('id', 'viewMenu1')
+        .attr('class', 'viewer1')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='Menu.jpg')}}")
+        .click(function(){ 
+                  ShowViewerEditMenu(VIEWER1);
+                });
+
+
       // Formalize this later (actual object and methods in viewer).
       // Register these buttons with the viewer.
       VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
       VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
+      VIEWER1.AddGuiElement("#viewMenu1", "Bottom", 5, "Right", 105);
        
        
       // Place the zoom in / out buttons. For the second viewer
@@ -386,8 +409,23 @@ shape has visibility and
         .click(function(){
                VIEWER2.AnimateZoom(2.0);});
       $('.viewer2').hide();
+
+      $('<img>').appendTo('body').css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'width': '40px',
+          'bottom' : '5px',
+          'right' : '60px',
+          'z-index': '2'
+      }).attr('id', 'viewMenu2')
+        .attr('class', 'viewer2')
+        .attr('type','image')
+        .attr('src',"{{ url_for('glviewer.static', filename='Menu.jpg')}}")
+        .click(function(){ShowViewerEditMenu(VIEWER2);});
+
       VIEWER2.AddGuiElement("#zoomIn2", "Bottom", 60, "Right", 55);
       VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
+      VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
     }
     
     eventuallyRender();
@@ -401,6 +439,7 @@ shape has visibility and
           autoOpen:false,
           height:250,
           width:350,
+          position: ['center', 'top'],
           modal:true,
           buttons:{
               Delete: function() {
@@ -409,7 +448,6 @@ shape has visibility and
               },
               Apply: function() {
                   TextPropertyDialogApply();
-                  $(this).dialog("close");
               }
           },
           close: function(event,ui) {

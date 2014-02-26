@@ -40,6 +40,17 @@ function NavigationWidget() {
                     'left' : left,
                     'bottom' : bottom,
                     'z-index': '2'});
+
+  this.BookmarkButton =
+    $('<img>').appendTo(this.Div)
+              .css({'height': size,
+                    'width': size,
+                    'padding' : '5px',
+                    'opacity': '0.6'})
+              .attr('src',"webgl-viewer/static/saveNew.png")
+              .click(function(){self.SaveBookmark();});
+  this.TextTip = new ToolTip(this.BookmarkButton, "Save Bookmark");
+
   this.PreviousSlideButton =
     $('<img>').appendTo(this.Div)
               .css({'height': size,
@@ -79,6 +90,16 @@ function NavigationWidget() {
               .attr('src',"webgl-viewer/static/nextSlide.png")
               .click(function(){self.NextSlide();});
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
+}
+
+NavigationWidget.prototype.SaveBookmark = function() {
+  NOTES_WIDGET.SaveBrownNote();
+  // Hide shifts the other buttons to the left to fill the gap.
+  this.BookmarkButton.css({'opacity': '0.0'});
+  var button = this.BookmarkButton;
+  setTimeout(function(){
+               button.css({'opacity': '0.6'});
+             }, 1000); // one second
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {

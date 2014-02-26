@@ -36,11 +36,23 @@ Which loads
 
 .. code-block:: python 
 
-   MONGO_SERVER = "localhost:27017"
-   CONFIGDB = "slideatlasv2"
-   
-   LOGIN_REQUIRED = False
-   USERNAME = "put_user_name_here"
-   PASSWORD = "put_password_here"
-      
-      
+    MONGO_SERVER = "slide-atlas.org:27017"
+    CONFIGDB = "slideatlasv2"
+
+    LOGIN_REQUIRED = True
+    USERNAME = "put_user_name_here"
+    PASSWORD = "put_password_here"
+
+    # Facebook with correct redirection
+    FACEBOOK_APP_ID = '#################'
+    FACEBOOK_APP_SECRET = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
+    # Rule corresponding to the data which is to be made public
+    # ObjectId string
+    DEMO_RULE = "123456789012345678901234"
+
+    # Settings for sending email out
+    # Following settings would work from within kitware
+    EMAIL_FROM = "dhanannjay.deo@kitware.com"
+    SMTP = "public.kitware.com"
+

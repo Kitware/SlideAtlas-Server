@@ -35,7 +35,7 @@ def login():
     """
     Displays various login options, including signup
     """
-    return render_template('login.html')
+    return render_template('login.html', next=flask.request.args.get("next","/sessions"))
 
 @mod.route("/login.signup", methods=['GET', 'POST'])
 def login_signup():
@@ -291,7 +291,8 @@ def login_passwd():
         do_user_login(user)
         if figure :
           return redirect(figure)
-        return redirect('/sessions')
+
+        return redirect(flask.request.form["next"])
 
 @mod.route('/login.facebook')
 def login_facebook():
@@ -403,6 +404,20 @@ def do_user_login(user):
 
     # Loop over the rules
     accesses = { }
+
+    if user["type"] == "passwd" and (user["name"].endswith("brown.edu") or user["name"].endswith("kitware.com")):
+        # Here grant the user with the demo_brown rule
+        # flash("You used password login, and you get donut ! ")
+        # ObjectId("529d244959a3aee20f8a00ae")
+        brownrule = ObjectId("529d244959a3aee20f8a00ae")
+        if brownrule in user["rules"]:
+            # flash("You already have the rule")
+            pass
+        else:
+            # flash("Rule must be added")
+            user["rules"].append(ObjectId("529d244959a3aee20f8a00ae"))
+            user.save()
+
     for arule in user["rules"]:
         ruleobj = admindb["rules"].Rule.find_one({"_id" : arule})
         if ruleobj == None:
