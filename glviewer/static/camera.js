@@ -156,12 +156,13 @@ Camera.prototype.ComputeMatrix = function () {
     mat4.identity(this.Matrix);
 
     this.Matrix[0] = c;
-    this.Matrix[1] = s*w/ht;
+    this.Matrix[1] = -s*w/ht;
     this.Matrix[4] =  -s;
-    this.Matrix[5] =  c*w/ht;
+    this.Matrix[5] =  -c*w/ht;
+    this.Matrix[9] =  0;
     this.Matrix[10]=  (this.ZRange[1]-this.ZRange[0])*0.5;
     this.Matrix[12]= -c*x + s*y;
-    this.Matrix[13]= (w/ht)*(-s*x - c*y);
+    this.Matrix[13]= -(w/ht)*(-s*x - c*y);
     this.Matrix[14]=  -z + (this.ZRange[1]+this.ZRange[0])*0.25*w;
     this.Matrix[15]=  0.5*w;
 

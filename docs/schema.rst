@@ -94,6 +94,9 @@ image data/pyramid collection (named *ObjectId*)
 
    - float (x / y / z nanometers/pixel or "1.0" if unknown)
 
+- **'bounds'**: array[4]
+   - float (xMin / xMax / yMin / yMax nanometers or "Units" if unknown)
+
 - **'dimension'**: array[3] (size of non-padded region of base layer. Z dimensions is 1 for pyramid2 and stack size for pyramid3 and stack types)
 
    -  int (x / y / z pixel coords)

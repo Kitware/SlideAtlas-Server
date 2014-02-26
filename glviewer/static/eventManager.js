@@ -65,7 +65,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
   if (event.clientX && event.clientY) {
     // Translate to coordinate of canvas
     // There has to be a better what to get the offset of the canvas relative to the body (or screen even).
-    // Here I loop through the parents accumilating the offset.
+    // Here I loop through the parents accumulating the offset.
     var docObj = this.Canvas;
     var xOffset = docObj.offsetLeft;
     var yOffset = docObj.offsetTop;
@@ -80,7 +80,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     yOffset -= body[0].scrollTop;
 
     this.MouseX = event.clientX-xOffset;
-    this.MouseY = CANVAS.innerHeight() - (event.clientY-yOffset);
+    this.MouseY = event.clientY-yOffset;
   }
 }
 

@@ -135,7 +135,7 @@ Text.prototype.Draw = function (view) {
   x = view.Viewport[2]*(0.5*(1.0+x));
 
   if (GL) {
-    y = view.Viewport[3]*(0.5*(1.0+y));
+    y = view.Viewport[3]*(0.5*(1.0-y));
     if (this.TextureLoaded == false) {
       return;
     }
@@ -188,8 +188,8 @@ Text.prototype.Draw = function (view) {
     mat4.identity(camMatrix);
     camMatrix[0] = 2.0 / view.Viewport[2];
     camMatrix[12] = -1.0;
-    camMatrix[5] = 2.0 / view.Viewport[3];
-    camMatrix[13] = -1.0;
+    camMatrix[5] = -2.0 / view.Viewport[3];
+    camMatrix[13] = 1.0;
     camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
     GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
 
@@ -209,7 +209,7 @@ Text.prototype.Draw = function (view) {
     var height = this.Size * strArray.length;
     y = view.Viewport[3]*(0.5*(1.0-y));
     x = x - this.Anchor[0];
-    y = y + this.Anchor[1];
+    y = y - this.Anchor[1];
     var ctx = view.Context2d;
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
@@ -223,9 +223,9 @@ Text.prototype.Draw = function (view) {
     for (var i = 0; i < strArray.length; ++i) {
       var lineWidth = ctx.measureText(strArray[i]).width;
       if (lineWidth > width) { width = lineWidth; }      
-      ctx.fillText(strArray[i], x, y + this.Size*i);
+      ctx.fillText(strArray[i], x, y + this.Size*(i+1));
     }
-    this.PixelBounds = [0, width, -height+this.Size, this.Size];
+    this.PixelBounds = [0, width, 0, height];
     ctx.restore();
   }
 }
@@ -240,7 +240,7 @@ Text.prototype.UpdateBuffers = function() {
   // 128 for power of 2, but 98 to top of characters.
   var top = 98.0 / 128.0; // Top texture coordinate value
   var charLeft = 0;
-  var charBottom = 0;
+  var charTop = 0;
   var ptId = 0;
   this.PixelBounds = [0,0,0,this.Size];
 
@@ -248,7 +248,7 @@ Text.prototype.UpdateBuffers = function() {
     var idx = this.String.charCodeAt(i);
     if (idx == 10 || idx == 13) { // newline
       charLeft = 0;
-      charBottom -= this.Size;
+      charTop += this.Size;
     } else {
       var port = ASCII_LOOKUP[idx];
       // Convert to texture coordinate values.
@@ -258,13 +258,13 @@ Text.prototype.UpdateBuffers = function() {
       var tTop =   (port[1]+port[3]) / 512.0;
       // To place vertices
       var charRight = charLeft + port[2]*this.Size / 98.0;
-      var charTop = charBottom + port[3]*this.Size / 98.0;
+      var charBottom = charTop + port[3]*this.Size / 98.0;
       
       // Accumulate bounds;
       if (this.PixelBounds[0] > charLeft)   {this.PixelBounds[0] = charLeft;}
       if (this.PixelBounds[1] < charRight)  {this.PixelBounds[1] = charRight;}
-      if (this.PixelBounds[2] > charBottom) {this.PixelBounds[2] = charBottom;}
-      if (this.PixelBounds[3] < charTop)    {this.PixelBounds[3] = charTop;}
+      if (this.PixelBounds[2] > charTop)    {this.PixelBounds[2] = charTop;}
+      if (this.PixelBounds[3] < charBottom) {this.PixelBounds[3] = charBottom;}
 
       // Make 4 points, We could share points.
       textureCoordData.push(tLeft);

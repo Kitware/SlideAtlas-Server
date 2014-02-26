@@ -13,12 +13,16 @@
 // Color (property window).
 
 
+var PENCIL_WIDGET_DRAWING = 0;
+var PENCIL_WIDGET_ACTIVE = 1;
+var PENCIL_WIDGET_WAITING = 2;
 
 
 function PencilWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
+  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;    
   this.Viewer.WidgetList.push(this);
 
@@ -28,11 +32,23 @@ function PencilWidget (viewer, newFlag) {
         'height': '28px',
         'z-index': '1'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Pencil-icon.png");  
+      .attr('src',"webgl-viewer/static/Pencil-icon.png");
+
+  var self = this;
+  // I am trying to stop images from getting move events and displaying a circle/slash.
+  // This did not work.  preventDefault did not either.
+  //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
+  //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
+  //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})    
+  //.preventDefault();  
 
   this.Shapes = [];
   
+  this.ActiveCenter = [0,0];
+
+  this.State = PENCIL_WIDGET_DRAWING;
   if ( ! newFlag) {
+      this.State = PENCIL_WIDGET_WAITING;
       this.Cursor.hide();
   }
 }
@@ -80,10 +96,15 @@ PencilWidget.prototype.Load = function(obj) {
 PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
-
 PencilWidget.prototype.Deactivate = function() {
+  this.Popup.StartHideTimer(); 
   this.Cursor.hide();
   this.Viewer.DeactivateWidget(this);
+  this.State = PENCIL_WIDGET_WAITING;
+  for (var i = 0; i < this.Shapes.length; ++i) {
+    this.Shapes[i].Active = false;
+  }
+  eventuallyRender();
 }
 
 PencilWidget.prototype.HandleMouseDown = function(event) {
@@ -93,7 +114,8 @@ PencilWidget.prototype.HandleMouseDown = function(event) {
   if (event.SystemEvent.which == 1) {
     // Start drawing.
     var shape = new Polyline();
-    shape.OutlineColor = [0.9, 1.0, 0.0];
+    //shape.OutlineColor = [0.9, 1.0, 0.0];
+    shape.OutlineColor = [0.0, 0.0, 0.0];
     shape.FixedSize = false;
     shape.LineWidth = 0;
     this.Shapes.push(shape);
@@ -120,6 +142,7 @@ PencilWidget.prototype.HandleMouseUp = function(event) {
     var spacing = this.Viewer.GetSpacing();
     this.Decimate(this.Shapes[this.Shapes.length - 1], spacing);
     RecordState();
+    this.ComputeActiveCenter();
   }
 }
 
@@ -132,10 +155,10 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
   var y = event.MouseY;
 
   // Move the pencil icon to follow the mouse.
-  this.Cursor.css({'left': x, 'bottom': y});  
+  this.Cursor.css({'left': (x+4), 'top': (y-32)});  
     
   if (event.MouseDown == true) {
-    if (event.SystemEvent.which == 1) {
+    if (event.SystemEvent.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
       var shape = this.Shapes[this.Shapes.length-1];
       var pt = this.Viewer.ConvertPointViewerToWorld(x,y);  
       shape.Points.push([pt[0], pt[1]]); // avoid same reference.
@@ -144,10 +167,58 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
       return;
     }
   }
+
+  if (this.State == PENCIL_WIDGET_ACTIVE &&  
+      event.SystemEvent.which == 0) {
+      // Deactivate 
+      this.SetActive(this.CheckActive(event));
+      return;
+    }
   
 }
 
+PencilWidget.prototype.ComputeActiveCenter = function() {
+  var count = 0;
+  var sx = 0.0;
+  var sy = 0.0;
+  for (var i = 0; i < this.Shapes.length; ++i) {
+    var shape = this.Shapes[i];
+    var points = [];
+    for (var j = 0; j < shape.Points.length; ++j) {
+      sx += shape.Points[j][0];
+      sy += shape.Points[j][1];
+    } 
+    count += shape.Points.length;
+  }
+
+  this.ActiveCenter[0] = sx / count;
+  this.ActiveCenter[1] = sy / count;
+}
+
+//This also shows the popup if it is not visible already.
+PencilWidget.prototype.PlacePopup = function () {
+  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0], 
+                                                 this.ActiveCenter[1]);
+  pt[0] += 40;
+  pt[1] -= 40;
+  this.Popup.Show(pt[0],pt[1]);
+}
+
 PencilWidget.prototype.CheckActive = function(event) {
+  if (this.State == PENCIL_WIDGET_DRAWING) { return; }
+
+  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0], 
+                                                 this.ActiveCenter[1]);
+
+  var dx = event.MouseX - pt[0];
+  var dy = event.MouseY - pt[1];
+  var active = false;
+
+  if (dx*dx + dy*dy < 1600) {
+    active = true;
+  }
+ this.SetActive(active);
+ return active;
 }
 
 PencilWidget.prototype.GetActive = function() {
@@ -159,17 +230,78 @@ PencilWidget.prototype.GetActive = function() {
 PencilWidget.prototype.SetActive = function(flag) {  
   if (flag) {
     this.Viewer.ActivateWidget(this);
+    this.State = PENCIL_WIDGET_ACTIVE;
+    for (var i = 0; i < this.Shapes.length; ++i) {
+      this.Shapes[i].Active = true;
+    }
+    this.PlacePopup();
     eventuallyRender();
   } else {
-    this.Cursor.hide();
+    this.Deactivate();
     this.Viewer.DeactivateWidget(this);
-    eventuallyRender();
   }  
+}
+
+PencilWidget.prototype.RemoveFromViewer = function() {
+  if (this.Viewer == null) {
+    return;
+  }
+  var idx = this.Viewer.WidgetList.indexOf(this);
+  if(idx!=-1) { 
+    this.Viewer.WidgetList.splice(idx, 1); 
+  }
 }
 
 // Can we bind the dialog apply callback to an objects method?
 PencilWidget.prototype.ShowPropertiesDialog = function () {
-  //do this later.
+  this.PropertiesDialog = 
+    $('<img>').appendTo(body)
+              .attr("title", "Pencil Annotation Dialog");
+  var form = $('<form>').appendTo(this.PropertiesDialog);
+  var field = $('<form>').appendTo(this.PropertiesDialog);
+
+  
+
+
+
+  <div id="polyline-properties-dialog"  >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
+        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
+        Line Width:<input id="polylinewidth" ></input>
+      </fieldset>
+    </form>
+  </div>
+
+  
+  
+    $("#polyline-properties-dialog").dialog({
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          PolylinePropertyDialogDelete();
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          PolylinePropertyDialogApply();
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          PolylinePropertyDialogCancel();
+          $(this).dialog("close");
+        }
+      }
+    });
+  
+  
+  
+  
 }
 
 function PencilPropertyDialogApply() {

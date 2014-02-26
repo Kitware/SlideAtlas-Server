@@ -1,3 +1,13 @@
+// for debugging
+function MOVE_TO(x,y) {
+  VIEWER1.MainView.Camera.SetFocalPoint(x,y);
+  VIEWER1.MainView.Camera.ComputeMatrix();
+  eventuallyRender();
+}
+
+
+
+
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
 

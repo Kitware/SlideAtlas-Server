@@ -18,10 +18,10 @@ Arrow.prototype.destructor=function() {
 // Point origin is anchor and units pixels.
 Arrow.prototype.PointInShape = function(x, y) {
   // Rotate point so arrow lies along the x axis.
-  var tmp = this.Orientation * Math.PI / 180.0;
+  var tmp = -(this.Orientation * Math.PI / 180.0);
   var ct = Math.cos(tmp);
   var st = Math.sin(tmp);
-  xNew = x*ct + y*st;
+  xNew =  x*ct + y*st;
   yNew = -x*st + y*ct;
   tmp = this.Width / 2.0;
   if (xNew > 0.0 && xNew < this.Length && yNew < tmp && yNew > -tmp) {
