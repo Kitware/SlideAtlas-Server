@@ -88,6 +88,57 @@ def glnote(db, dbid, viewid, viewobj, edit):
     
     return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email, edit=edit))
 
+    
+    
+# Flip the y-axis of a view from origin lower left, to origin upper right.
+# When this is working well, I will apply it to all views in the database. 
+def flipAnnotation(annot, paddedHeight) :
+  if annot["type"] == "text" :
+    annot["offset"][1] = -annot["offset"][1] - annot["size"];
+    annot["position"][1] = paddedHeight - annot["position"][1] 
+  if annot["type"] == "circle" :
+    annot["origin"][1] = paddedHeight - annot["origin"][1]
+  if annot["type"] == "polyline" :
+    for point in annot["points"] :
+      point[1] = paddedHeight - point[1]
+  if annot["type"] == "pencil" :
+    for shape in annot["shapes"] :
+      for point in shape :
+        point[1] = paddedHeight - point[1]
+    
+  
+  
+def flipViewerRecord(viewerRecord) :
+  paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
+  viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
+  viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
+  if viewerRecord.has_key("Annotations") :
+    for annotation in viewerRecord["Annotations"] :
+      flipAnnotation(annotation, paddedHeight)
+
+def convertImageToPixelCoordinateSystem(imageObj) :
+  # origin ?
+  # Skip startup view.  GetView handles this old format
+  if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Pixel" :
+    return
+  # the only other option is "Photo", lower left origin.
+  if imageObj.has_key("bounds") :
+    # tile dimension should be stored in image schema
+    paddedHeight = 256 << (imageObj["levels"] - 1)
+    tmp = imageObj["bounds"][2]
+    imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
+    imageObj["bounds"][3] = paddedHeight-tmp
+    imageObj["CoordinateSystem"] = "Pixel"
+  
+def convertViewToPixelCoordinateSystem(viewObj) :
+  if viewObj.has_key("Children") :
+    for child in viewObj["Children"] :
+      convertViewToPixelCoordinateSystem(child)
+  if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Pixel" :
+    return;
+  for record in viewObj["ViewerRecords"] :
+    flipViewerRecord(record)
+  viewObj["CoordinateSystem"] = "Pixel"
 
 def glcomparison(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
@@ -655,7 +706,7 @@ def getcomment():
     
     return jsonify(comment)
 
-    
+
 # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
@@ -750,7 +801,9 @@ def addviewimage(viewObj):
         imgObj["database"] = imgdb
         if 'dimension' in imgObj:
             imgObj["dimensions"] = imgObj["dimension"]
-        imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
+        if not imgObj.has_key("bounds") :
+          imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
+        convertImageToPixelCoordinateSystem(imgObj)
         record["Image"] = imgObj
     
     if viewObj.has_key("Children") :
@@ -811,6 +864,8 @@ def getview():
       viewObj["Title"] = viewObj["HiddenTitle"]
       viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
       viewObj["Children"] = []
+
+    convertViewToPixelCoordinateSystem(viewObj)
     return jsonify(viewObj)
     
   #---------------------------------------------------------
@@ -834,7 +889,10 @@ def getview():
   imgobj["database"] = imgdb
   if imgobj.has_key("dimension") :
     imgobj["dimensions"] = imgobj["dimension"]
-  imgobj["bounds"] = [0, imgobj["dimensions"][0], 0, imgobj["dimensions"][1]] 
+  # open layers images are bottom justified.
+  paddedHeight = 256 << (imgobj["levels"]-1)
+  if not imgobj.has_key("bounds") :
+    imgobj["bounds"] = [0, imgobj["dimensions"][0], paddedHeight-imgobj["dimensions"][1], paddedHeight] 
     
   noteObj = {}
   noteObj["Id"] = viewid
@@ -856,7 +914,9 @@ def getview():
   if 'startup_view' in viewObj:
     bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
     cam["FocalPoint"] = bookmark["center"]
-    cam["Roll"] = bookmark["rotation"]
+    # flip y axis
+    cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
+    cam["Roll"] = -bookmark["rotation"]
     if 'zoom' in bookmark:
       cam["Height"] = 900 << int(bookmark["zoom"])
     if 'viewHeight' in bookmark:
@@ -886,8 +946,10 @@ def getview():
         # camera object.
         cam = {}
         cam["FocalPoint"] = bookmark["center"]
+        # flip y axis
+        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
         cam["Height"] = 900 << int(bookmark["zoom"])
-        cam["Roll"] = bookmark["rotation"]
+        cam["Roll"] = -bookmark["rotation"]
         vrq["Camera"] = cam
         annot = {};
         annot["type"] = "text"
@@ -898,6 +960,10 @@ def getview():
         annot["position"] = bookmark["annotation"]["points"][0];
         annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0], 
                            bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+        # flip y axis
+        annot["position"][1] = paddedHeight-annot["position"][1] 
+        annot["offset"][1] = -annot["offset"][1]-30
+        
         # problem with offsets too big or small.  (Screen pixels / fixed size)
         mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
         if mag == 0 :
@@ -943,14 +1009,19 @@ def getview():
         # camera object.
         cam = {}
         cam["FocalPoint"] = bookmark["center"]
+        # flip y axis
+        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
         cam["Height"] = 900 << int(bookmark["zoom"])
-        cam["Roll"] = bookmark["rotation"]
+        cam["Roll"] = -bookmark["rotation"]
         vrq["Camera"] = cam
         annot = {};
         annot["type"] = "circle"
         annot["color"] = bookmark["annotation"]["color"]
         annot["outlinecolor"] = bookmark["annotation"]["color"]
         annot["origin"] = bookmark["annotation"]["points"][0]
+        # flip y axis
+        annot["origin"][1] = paddedHeight-annot["origin"][1] 
+        
         # why does radius have value False?
         if bookmark["annotation"]["radius"] :
           annot["radius"] = bookmark["annotation"]["radius"]
@@ -972,3 +1043,31 @@ def getview():
     noteObj["Children"] = []
 
   return jsonify(noteObj)
+
+  
+  
+# The Bioformats uploader justified images upper left.
+# fix the bounds for an image.
+@mod.route('/fixjustification', methods=['GET', 'POST'])
+def fixjustification():
+    #pdb.set_trace()
+
+    dbid    = request.form['db']  # for post
+    imgid  = request.form['img']
+    
+    admindb = conn[current_app.config["CONFIGDB"]]
+    db = admindb
+    if dbid != "None" :
+      dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
+      db = conn[dbobj["dbname"]]
+
+    imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
+    #imgObj["CoordinateSystem"] = "Pixel"
+    #imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
+    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2;     
+    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2;     
+    imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
+
+    db["images"].save(imgObj)
+    return "success"
+ 

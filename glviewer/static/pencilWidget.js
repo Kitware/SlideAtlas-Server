@@ -254,54 +254,6 @@ PencilWidget.prototype.RemoveFromViewer = function() {
 
 // Can we bind the dialog apply callback to an objects method?
 PencilWidget.prototype.ShowPropertiesDialog = function () {
-  this.PropertiesDialog = 
-    $('<img>').appendTo(body)
-              .attr("title", "Pencil Annotation Dialog");
-  var form = $('<form>').appendTo(this.PropertiesDialog);
-  var field = $('<form>').appendTo(this.PropertiesDialog);
-
-  
-
-
-
-  <div id="polyline-properties-dialog"  >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
-        Line Width:<input id="polylinewidth" ></input>
-      </fieldset>
-    </form>
-  </div>
-
-  
-  
-    $("#polyline-properties-dialog").dialog({
-      autoOpen:false,
-      height:250,
-      width:350,
-      modal:true,
-      buttons:{
-        Delete: function() {
-          PolylinePropertyDialogDelete();
-          $(this).dialog("close");
-        },
-        Apply: function() {
-          PolylinePropertyDialogApply();
-          $(this).dialog("close");
-        }
-      },
-      close: function(event,ui) {
-        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          PolylinePropertyDialogCancel();
-          $(this).dialog("close");
-        }
-      }
-    });
-  
-  
-  
-  
 }
 
 function PencilPropertyDialogApply() {
