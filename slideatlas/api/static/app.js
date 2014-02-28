@@ -380,11 +380,19 @@ app.factory('Role', function($resource) {
 
 
 app.controller("RoleListCtrl", function ($scope, Role, $location, Data, $filter) {
-        console.log("Refreshing RoleListCtrl + ");
+        console.log("Refreshing RoleListCtrl + " +  $scope.dbid);
 
         Role.get({}, function(data) {
                 Data.setList(data.rules);
-                $scope.roles = Data.getList();
+                roles = []
+
+                for(var i=0; i < data.rules.length; i ++) {
+                    if(data.rules[i].db == $scope.dbid) {
+                        roles.push(data.rules[i])
+                    }
+                }
+
+                $scope.roles = roles;
            });
 
         $scope.$watch('query',function(val){
