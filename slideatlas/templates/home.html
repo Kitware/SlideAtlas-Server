@@ -3,29 +3,28 @@
 
 {% block body_content %}
 
-<div class="container-fluid" style="float:none; width: 80%;margin: auto;">
-
+<div class="container" style="float:none; width: 80%;margin: auto;">
     </br>
     <h2> Welcome to Digital Slide Atlas </h2>
     </br>
 
     <!-- Example row of columns -->
-    <div class="row-fluid" style="float:none; width: 80%;text-align: center;margin: auto;">
+    <div class="row" style="float:none; width: 80%;text-align: center;margin: auto;">
         <center>
 
-        <div class="span6">
+        <div class="col-md-6">
             <img src="/static/img/whole_slide.png" width="80%" style="border-radius: 10px" >
             <br/><br/>
             <h3> Interactive whole slide viewer </h3>
             <p> Store and interactively share whole slide images over web </p>
-            <p> <a class="btn" href="/sessions"> Try it out !  </a></p>
+            <p> <a class="btn btn-info" href="/sessions"> Try it out !  </a></p>
         </div>
 
-        <div class="span6">
+        <div class="col-md-6">
             <br>
             <img src="/static/img/word_cloud.png" width="100%">
             <h3> Full featured </h3>
-            <div class="row-fluid">
+            <div class="row">
                 <div class="span2"></div>
                 <ul class="span10" style="text-align: left;">
                     <li> Online annotation tools </li>
@@ -35,9 +34,7 @@
                 </ul>
             </div>
 
-
-
-            <p><a class="btn" href="/about"> Explore features and applications </a></p>
+            <p><a class="btn btn-info" href="/about"> Explore features and applications </a></p>
         </div>
 
         </center>
