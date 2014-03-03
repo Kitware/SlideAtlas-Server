@@ -38,14 +38,17 @@ tmp_tile = np.zeros(tile_width * tile_length * 3, dtype=np.uint8)
 tmp_tile = np.ascontiguousarray(tmp_tile)
 y = 0
 count = 0
+done = 0
 while y < image_length:
     x = 0
     while x < image_width:
         x += tile_width
-        print x, y
-        print type(tif)
         r = libtiff.TIFFReadRawTile(tif, count, tmp_tile.ctypes.data, tile_width * tile_length * 3)
         count = count + 1
+        if r.value > 0:
+            done = done + 1
+            print done, r.value
+
     y += tile_length
 
 tif.close()
