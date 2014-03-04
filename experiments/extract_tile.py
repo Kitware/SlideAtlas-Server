@@ -70,13 +70,21 @@ r2 = libtiff.TIFFReadRawTile(tif, tileno, tmp_tile, tile_size)
 print "Valid size in tile: ", r2.value
 # Experiment with the file output
 fname = "output_%d.jpg"%tileno
-
+print "TABLES"
+print jpegtables
 of = open(fname,"wb")
-of.write(jpegtables)
-of.write(tmp_tile)
+of.write(ctypes.string_at(jpegtables, jpegtable_size.value))
+#of.write(tmp_tile[:r2.value])
 of.close()
 
-img = Image.open(fname)
+i = open(fname,"rb")
+buf = i.read()
+print "Bytes read: ", len(buf)
+print "Bytes expected: ", jpegtable_size.value + r2.value
+
+print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
+
+#img = Image.open(fname)
 sys.exit(0)
 
 image_width = tif.GetField("ImageWidth")
