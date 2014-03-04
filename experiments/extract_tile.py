@@ -73,18 +73,23 @@ fname = "output_%d.jpg"%tileno
 print "TABLES"
 print jpegtables
 of = open(fname,"wb")
-of.write(ctypes.string_at(jpegtables, jpegtable_size.value))
-#of.write(tmp_tile[:r2.value])
+of.write(ctypes.string_at(jpegtables, jpegtable_size.value)[:-2])
+# Write padding
+padding = "%c"%(255) * 4
+of.write(padding)
+of.write(ctypes.string_at(tmp_tile, r2.value)[2:])
 of.close()
-
+a = [1,2,3,4,5]
+print a[2:]
+print a[:-2]
 i = open(fname,"rb")
 buf = i.read()
 print "Bytes read: ", len(buf)
-print "Bytes expected: ", jpegtable_size.value + r2.value
+print "Bytes expected: ", jpegtable_size.value + r2.value - 4
 
 print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
 
-#img = Image.open(fname)
+img = Image.open(fname)
 sys.exit(0)
 
 image_width = tif.GetField("ImageWidth")
