@@ -73,7 +73,10 @@ fname = "output_%d.jpg"%tileno
 print "TABLES"
 print jpegtables
 of = open(fname,"wb")
-of.write(ctypes.string_at(jpegtables, jpegtable_size.value)[:-2])
+
+app0 = 'ffd8ffe000104a46494600010101004800480000'.decode('hex')
+of.write(app0)
+of.write(ctypes.string_at(jpegtables, jpegtable_size.value)[2:-2])
 # Write padding
 padding = "%c"%(255) * 4
 of.write(padding)
