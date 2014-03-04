@@ -7,7 +7,7 @@ uncompressing them.
 On windows requires C:\Python27\Lib\site-packages\libtiff in PATH, on might
 require that in LD_LIBRARY_PATH
 """
-
+import sys
 # Code to debug library loading
 #libname = find_library("libtiff")
 #print libname
@@ -27,12 +27,33 @@ from libtiff_ctypes import TIFF
 tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
 #    print atag
 
+#table = tif.GetField("JPEGTables", count=2)
+#table = tif.GetField("colormap")
+#print table
+#sys.exit(0)
+import numpy as np
+import ctypes
+
+from ctypes import  create_string_buffer
+
+buf = create_string_buffer("\000" * 100000)
+
+size = ctypes.c_uint16()
+
+libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
+print libtiff.TIFFGetField.argtypes
+r = libtiff.TIFFGetField(tif, 347, ctypes.byref(size), ctypes.byref(ctypes.cast(buf, ctypes.c_void_p)))
+print size.value, repr(buf.raw)
+#for i in range(size.value):
+#    print i
+
+print r
+sys.exit(0)
+
 image_width = tif.GetField("ImageWidth")
 image_length = tif.GetField("ImageLength")
 tile_width = tif.GetField("TileWidth")
 tile_length = tif.GetField("TileLength")
-import numpy as np
-import ctypes
 
 tmp_tile = np.zeros(tile_width * tile_length * 3, dtype=np.uint8)
 tmp_tile = np.ascontiguousarray(tmp_tile)
