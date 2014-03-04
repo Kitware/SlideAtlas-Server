@@ -36,18 +36,21 @@ import ctypes
 
 from ctypes import  create_string_buffer
 
-buf = create_string_buffer("\000" * 100000)
-
+#buf = create_string_buffer(574)
 size = ctypes.c_uint16()
+buf = ctypes.c_voidp()
 
 libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
 print libtiff.TIFFGetField.argtypes
-r = libtiff.TIFFGetField(tif, 347, ctypes.byref(size), ctypes.byref(ctypes.cast(buf, ctypes.c_void_p)))
-print size.value, repr(buf.raw)
-#for i in range(size.value):
-#    print i
+r = libtiff.TIFFGetField(tif, 347, size, ctypes.byref(buf))
+#r = libtiff.TIFFGetField(tif, 347, ctypes.byref(size), ctypes.byref(buf))
 
-print r
+buf2 = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ubyte))
+#out = buf.raw
+print size.value, repr(buf2)
+
+print ':'.join(hex(buf2[i])for i in range(size.value))
+
 sys.exit(0)
 
 image_width = tif.GetField("ImageWidth")
