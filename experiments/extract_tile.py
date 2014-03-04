@@ -36,30 +36,39 @@ import ctypes
 
 from ctypes import  create_string_buffer
 
-#buf = create_string_buffer(574)
+
+#Code to get jpeg tables
 size = ctypes.c_uint16()
 buf = ctypes.c_voidp()
 
 libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
-print libtiff.TIFFGetField.argtypes
+#print libtiff.TIFFGetField.argtypes
 r = libtiff.TIFFGetField(tif, 347, size, ctypes.byref(buf))
-#r = libtiff.TIFFGetField(tif, 347, ctypes.byref(size), ctypes.byref(buf))
-
 buf2 = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ubyte))
-#out = buf.raw
-print size.value, repr(buf2)
+print buf2
+#print size.value, repr(buf2)
+# To print
+#print ':'.join("%02X"%buf2[i] for i in range(size.value))
 
-print ':'.join(hex(buf2[i])for i in range(size.value))
 
+tile_width = tif.GetField("TileWidth")
+tile_length = tif.GetField("TileLength")
+tmp_tile = create_string_buffer(tile_width * tile_length * 3)
+
+# Getting a single tile
+tileno = 10660
+r = libtiff.TIFFReadRawTile(tif, tileno, tmp_tile, 512 * 512* 3)
+print r.value
+
+# Experiment with the file output
+of = open("output_%d.jpg"%tileno,"wb")
+of.write(buf2)
+of.write(tmp_tile)
 sys.exit(0)
 
 image_width = tif.GetField("ImageWidth")
 image_length = tif.GetField("ImageLength")
-tile_width = tif.GetField("TileWidth")
-tile_length = tif.GetField("TileLength")
 
-tmp_tile = np.zeros(tile_width * tile_length * 3, dtype=np.uint8)
-tmp_tile = np.ascontiguousarray(tmp_tile)
 y = 0
 count = 0
 done = 0
