@@ -74,6 +74,8 @@
                 console.log(message)
                 console.log(alerttype)
 
+                if(alerttype == "error") { alerttype = "danger";}
+
                 $('#alert_placeholder').append('<div id="alertdiv" class="alert alert-' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
 
                 // Uncomment following snippet to remove flashed messages after certain timeout
