@@ -292,7 +292,10 @@ def login_passwd():
         if figure :
           return redirect(figure)
 
-        return redirect(flask.request.form["next"])
+        if "next" in flask.request.form:
+            return redirect(flask.request.form["next"])
+        else:
+            return flask.jsonify({"success" : 1})
 
 @mod.route('/login.facebook')
 def login_facebook():
