@@ -10,7 +10,7 @@
     {% block head_bootstrap %}
         <link rel="stylesheet" href="/static/css/bootstrap.min.css">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="/static/css/bootstrap-responsive.min.css" rel="stylesheet">
+        <!--link href="/static/css/bootstrap-responsive.min.css" rel="stylesheet"!-->
         <script src="/static/js/bootstrap.min.js"></script>
 
         <style type="text/css">
@@ -74,6 +74,8 @@
                 console.log(message)
                 console.log(alerttype)
 
+                if(alerttype == "error") { alerttype = "danger";}
+
                 $('#alert_placeholder').append('<div id="alertdiv" class="alert alert-' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
 
                 // Uncomment following snippet to remove flashed messages after certain timeout
@@ -90,27 +92,49 @@
 
 <body>
 
-<div class="navbar navbar-inverse navbar-fixed-top">
-  <div class="navbar-inner ">
+    {% set navigation_bar = [ ('home', '/', 'Home'),
+        ('sesions', '/sessions', 'Sessions'),
+        ('admin', '/apiv1/admin#/', 'Admin'),
+        ('about', '/about', 'About'),
+    ] -%}
+
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="container">
-      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </a>
-      <a class="brand" href="/home">Digital Slide Atlas</a>
-      <div class="nav-collapse collapse">
-        <ul class="nav">
-          <li class="active"> <a href="/home">Home</a></li>
-          <li><a href="/login">login</a></li>
-          <li><a href="/apiv1/admin#/">admin</a></li>
-          <li><a href="/sessions">sessions</a></li>
-          <li><a href="/bookmarks">bookmarks</a></li>
-          <li><a href="/logout">logout</a></li>
-        </ul>
-      </div> 
-  </div>
-  </div>
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle Navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/home">Slide Atlas</a>
+        </div>
+        <div class="collapse navbar-collapse ">
+
+            <ul class="nav navbar-nav">
+                {% for id, href, label in navigation_bar %}
+                <li {% if id == active_page %} class="active"{% endif %}>
+                    <a href="{{ href|escape }}">{{ label|escape }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% if not 'user' in session %}
+                {% set login_url = url_for('login.login') %}
+                {% set login_text = 'login' %}
+            {% else %}
+                {% set login_url = url_for('login.logout') %}
+                {% set login_text = session.user.label + ' ~ logout' %}
+            {% endif %}
+
+            <ul class="nav navbar-nav pull-right">
+                <li class="pull-right {% if 'login' == active_page %} active{% endif %}">
+                <a href="{{ login_url }} "> {{ login_text|safe }} </a>
+                </li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 <div class="container">

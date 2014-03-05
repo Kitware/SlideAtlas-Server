@@ -1,20 +1,45 @@
 {% extends "base.html" %}
+{% set active_page = "home" %}
 
-{% block body_content %}    
-{{ super() }}
-<div class="container">
+{% block body_content %}
 
-<h2> Welcome to SlideAtlas </h2>
-<table class="table table-bordered table-hover">
-<tr> <td> Version </td> <td> {{git}} </td></tr>
-<tr> <td> Host </td> <td> {{host}} </td></tr>
-</table>  
+<div class="container" style="float:none; width: 80%;margin: auto;">
+    </br>
+    <h2> Welcome to Digital Slide Atlas </h2>
+    </br>
 
-{% if label %}
-<table class="table table-bordered table-hover">
-<tr> <td> Username </td><td> {{username}} </td></tr>
-<tr> <td> Label </td><td> {{label}} </td></tr>
-</table`>
-{% endif %}
+    <!-- Example row of columns -->
+    <div class="row" style="float:none; width: 80%;text-align: center;margin: auto;">
+        <center>
+
+        <div class="col-md-6">
+            <img src="/static/img/whole_slide.png" width="80%" style="border-radius: 10px" >
+            <br/><br/>
+            <h3> Interactive whole slide viewer </h3>
+            <p> Store and interactively share whole slide images over web </p>
+            <p> <a class="btn btn-info" href="/sessions"> Try it out !  </a></p>
+        </div>
+
+        <div class="col-md-6">
+            <br>
+            <img src="/static/img/word_cloud.png" width="100%">
+            <h3> Full featured </h3>
+            <div class="row">
+                <div class="span2"></div>
+                <ul class="span10" style="text-align: left;">
+                    <li> Online annotation tools </li>
+                    <li> Access management and selective sharing </li>
+                    <li> Support for many large microscopy images </li>
+                    <li> Custom plugin development </li>
+                </ul>
+            </div>
+
+            <p><a class="btn btn-info" href="/about"> Explore features and applications </a></p>
+        </div>
+
+        </center>
+    </div>
+
 </div>
+
 {% endblock %}

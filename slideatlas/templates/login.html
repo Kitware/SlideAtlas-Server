@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% set active_page = "login" %}
 
 {% block body_content %}
 {{ super() }}
@@ -10,26 +10,32 @@
            <h1>Welcome to Slide Atlas</h1>
             <br/>
             <br/>
-           <h3> Please sign in </h3>
+           <h3> Please sign in or <a class="btn btn-primary" href="login.signup"> Sign Up </a> </h3>
         </div>
     </div>
     <br/>
     <div class="row">
-        <div class="span8 offset2 ">
-            <form action="/login.passwd" method="POST">
-                <div>
-                    <label for="username">Username (email):<a href="login.signup"> Create account </a> </label>
-                    <input type="text" name="username" id="username" value="">
+        <div class="col-md-8 col-md-offset-1">
+            <form action="/login.passwd" method="POST" role="form" class="form-horizontal">
+                <div class="form-group">
+                    <label for="username" class="col-sm-2  control-label">Username (email):</label>
+                    <div class="col-sm-8">
+                        <input type="text"  class="form-control" name="username" id="username" value="">
+                    </div>
                 </div>
-                <div>
-                    <label for="passwd">Password:<a href="login.reset.request"> Forgot password </a> </label>
-                    <input type="password" name="passwd" id="passwd" value="">
+                <div class="form-group">
+                    <label for="passwd" class="col-sm-2  control-label">Password:</label>
+                    <div class="col-sm-8">
+                        <input type="password" class="form-control" name="passwd" id="passwd" value="">
+                    </div>
                 </div>
-                <div class="control-group">
-                    <input type="hidden" name="next" value="{{next | safe}}">
-                </div>
-                <div>
-                    <button class="btn" type="submit">Sign In</button>
+                <input type="hidden" name="next" value="{{next | safe}}">
+                <div class="form-group">
+                    <label for="passwd" class="col-sm-2  control-label"> </label>
+                    <div class="col-sm-8">
+                        <button class="btn btn-default" type="submit">Sign In</button>
+                        <a href="login.reset.request"> Forgot password </a>
+                    </div>
                 </div>
             </form>
         </div>
@@ -42,9 +48,9 @@
     </div>
 
     <div class="row">
-        <div class="span8 offset2">
-            <a href="/login.facebook" class="btn">Facebook login</a>
-            <a href="/login.google" class="btn">Google login</a>
+        <div class="col-md-8 col-md-offset-2">
+            <a href="/login.facebook" class="btn btn-default">Facebook login</a>
+            <a href="/login.google" class="btn btn-default">Google login</a>
         </div>
     </div>
 </div>

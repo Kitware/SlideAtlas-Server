@@ -36,6 +36,7 @@ class AdminDBAPI(MethodView):
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
             objs = conn[current_app.config["CONFIGDB"]][restype].find()
+            # TODO: need to paginate in near future
             objarray = list()
             for anobj in objs:
                 # Filter the list with passwd if type is user
@@ -76,6 +77,41 @@ class AdminDBAPI(MethodView):
     def put(self, restype, resid):
         # update some information
         pass
+
+
+
+
+# The urls for getting users for rules, posting grant / revoke etc
+class AdminDBItemsAPI(MethodView):
+    decorators = []
+
+    @site_admin_required(False)
+    def get(self, restype, resid, listtype):
+        # Restype has to be between allowed ones or the request will not come here
+        # only rules and users is supported now
+
+        # create a new user
+        result = {}
+        result["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
+
+        if restype not in ["rules"] or listtype not in ["users"]:
+            return Response("{\"error\" : \"Only restype itemtype supported is rules, users\"}" , status=405)
+
+        # ruleobj or dbobj
+        objarray = list()
+        for anobj in conn[current_app.config["CONFIGDB"]][listtype].find({"rules" : ObjectId(resid)}):
+            if "passwd" in anobj:
+                del anobj["passwd"]
+            objarray.append(anobj)
+        result[listtype] = objarray
+        return jsonify(result)
+
+    def post(self, restype, resid, listtype):
+        # create a new user
+        obj = {}
+        obj["query"] = { "restype" : restype, "resid" : resid, "listtype" : listtype}
+
+        return jsonify(obj)
 
 # The url valid for databases, rules and users with supported queries
 
@@ -174,7 +210,40 @@ class DatabaseAPI(AdminDBAPI):
         try:
             if data["_id"] != resid:
                 raise Exception(1)
-        except:
+        except:    #
+    # def delete(self, dbid, sessid, restype, resid=None):
+    #     if resid == None:
+    #         return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
+    #     else:
+    #         datadb = self.get_data_db(dbid)
+    #         if datadb == None:
+    #             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+    #
+    #         # TODO: This block of code to common and can be abstrated
+    #         conn.register([Session])
+    #         sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+    #         if sessobj == None:
+    #             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
+    #
+    #         if restype == "attachments" or restype == "rawfiles":
+    #             # Remove from the gridfs
+    #             gf = gridfs.GridFS(datadb , restype)
+    #             gf.delete(ObjectId(resid))
+    #
+    #             # Remove the reference from session
+    #             attachments = [value for value in sessobj["attachments"] if value["ref"] != ObjectId(resid)]
+    #             # Find the index
+    #             # Remove that index
+    #             sessobj["attachments"] = attachments
+    #
+    #     if not "images" in sessobj:
+    #         sessobj["images"] = []
+    #         sessobj.validate()
+    #         sessobj.save()
+    #         return Response("{ \"Success \" : \" \"}", status=200)
+    #     else:
+    #         return "You want %s from views in %s/%s" % (resid, dbid, sessid)
+
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # Try to see if the data can create valid object 
@@ -207,6 +276,10 @@ mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseA
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>', defaults={"resid" : None}, view_func=AdminDBAPI.as_view("show_resource_list"), methods=['get'])
 mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>', view_func=AdminDBAPI.as_view("show_resource"))
 
+mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{24}"):resid>/<regex("(users)"):listtype>', view_func=AdminDBItemsAPI.as_view("show_resource_list_or_post"), methods=["get", "post"])
+
+
+
 # The url valid for databases, rules and users with supported queries
 class DataSessionsAPI(MethodView):
     decorators = [user_required]
@@ -235,7 +308,7 @@ class DataSessionsAPI(MethodView):
             if len(sessionlist) > 0:
                 return jsonify({'sessions' : sessionlist})
             else:
-                return Response("{ \"error \" : \"You want You want a list of sessions in %s, but there are no sessions in it \"}" % (dbid), status=405)
+                return jsonify({'sessions' : sessionlist, "error" : "You want You want a list of sessions in %s, but there are no sessions in it" %(dbid)})
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
@@ -246,7 +319,13 @@ class DataSessionsAPI(MethodView):
             # Dereference the views 
             for aview in sessobj["views"]:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
-                viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                # Viewdetails might not be a view
+                if "img" in viewdetails:
+                    viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                else:
+                    if "ViewerRecords" in viewdetails:
+                        viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
+
                 aview["details"] = viewdetails
 
             # Dereference the attachments
@@ -398,6 +477,9 @@ class DataSessionItemsAPI(MethodView):
                 # Find the index
                 # Remove that index
                 sessobj["attachments"] = attachments
+		if not "images" in sessobj:
+			sessobj["images"] = []
+
                 sessobj.validate()
                 sessobj.save()
                 return Response("{ \"Success \" : \" \"}", status=200)
@@ -484,19 +566,23 @@ class DataSessionItemsAPI(MethodView):
                 afile.close()
                 if not sessobj.has_key("attachments"):
                     sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
+		    if not "images" in sessobj:
+			sessobj["images"] = []
                     sessobj.validate()
                     sessobj.save()
     #                print "Inserted attachments", str(sessobj["attachments"])
                 else:
                     size_before = len(sessobj["attachments"])
+		    if not "images" in sessobj:
+			sessobj["images"] = []
                     sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
                     sessobj.validate()
                     sessobj.save()
 
                 return Response("{\"success\" : \" - \"}", status=200)
 
-            except:
-                return Response("{\"error\" : \" Error processing single chunk header \"}", status=405)
+            except Exception as e:
+                return Response("{\"error\" : \" Error processing single chunk header" + e.message + " \"}", status=405)
 
 
         # No need to return conventional file list 
