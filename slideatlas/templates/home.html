@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% set active_page = "home" %}
 
+{% block head_scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function (){
+
+             $("#tryit").click(function(event) {
+                $.post("login.passwd",{
+                      username : "all_demo",
+                      passwd : "",
+                  }).done(function(data) {
+                      window.location = "/sessions";
+                  }).error(function() {
+                    console.log("Error: Guest login rejected")
+                  });
+                });
+        });
+
+    </script>
+}
+{% endblock %}
+
+
 {% block body_content %}
 
 <div class="container" style="float:none; width: 80%;margin: auto;">
@@ -17,7 +39,7 @@
             <br/><br/>
             <h3> Interactive whole slide viewer </h3>
             <p> Store and interactively share whole slide images over web </p>
-            <p> <a class="btn btn-info" href="/sessions"> Try it out !  </a></p>
+            <p> <a id="tryit" class="btn btn-info"> Try it out !  </a></p>
         </div>
 
         <div class="col-md-6">
