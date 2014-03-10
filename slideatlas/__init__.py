@@ -1,4 +1,4 @@
-from flask import Flask, render_template, escape, g, request, redirect, session, url_for, flash
+from flask import Flask, render_template, session, flash
 from version import get_git_name
 from werkzeug.routing import BaseConverter
 
@@ -6,8 +6,10 @@ from flask_bootstrap import Bootstrap
 import mongokit
 import pymongo
 
-import model
+import models
 import sys, os
+
+import model
 
 # Create App
 sys.path.append(os.path.dirname(__file__))
@@ -20,8 +22,8 @@ app = Flask(__name__)
 # Configure here teh path to put downloaded folders
 # (should be big and with write access to web server user)
 app.config['UPLOAD_FOLDER'] = "d:/docs"
-app.config.from_object("site_slideatlas")
-#app.config.from_object("site_local")
+#app.config.from_object("site_slideatlas")
+app.config.from_object("site_local")
 
 # Connect if replica set
 if not app.config["MONGO_IS_REPLICA_SET"]:
@@ -35,6 +37,9 @@ admindb = slconn["admin"]
 
 if app.config["LOGIN_REQUIRED"]:
     admindb.authenticate(app.config["USERNAME"], app.config["PASSWORD"])
+
+models.registerAdminDb(app.config['MONGO_URL'], app.config['CONFIGDB'],
+                           app.config['USERNAME'], app.config['PASSWORD'], 'admin')
 
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
@@ -51,10 +56,8 @@ app.url_map.converters['regex'] = RegexConverter
 
 Bootstrap(app)
 
-from .views import login
-
-login.oid.init_app(app)
-app.register_blueprint(login.mod)
+import security
+security.registerWithApp(app)
 
 from .views import tile
 app.register_blueprint(tile.mod)
@@ -85,17 +88,7 @@ def favicon():
 
 @app.before_request
 def before_request():
-
-    #digitalpath.init_admin_db('zomm', 'slideatlas_test')
-
-    g.logged_in = False
-
-    # Find out if any openid information in the sesssion
-    if 'openid' in session:
-        g.logged_in = True
-        #g.user = session['user']
-#        return
-    #print "I am here .. in before request"
+    pass
 
 
 @app.after_request
@@ -106,18 +99,7 @@ def after_request(response):
 
 @app.route('/about')
 def about():
-    if 'user' in session:
-        #        print session["user"]
-        label = session["user"]["label"]
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        label = None
-        email = None
-
-    return render_template('about.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_URL"])
+    return render_template('about.html', git=get_git_name(), host=app.config["MONGO_URL"])
 
 
 @app.route('/')
@@ -129,16 +111,4 @@ def home():
     - /<name> Says Hello <name>
 
     """
-    if 'user' in session:
-        #        print session["user"]
-        label = session["user"]["label"]
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        label = None
-        email = None
-
-    return render_template('home.html', label=label, username=email, git=get_git_name(), host=app.config["MONGO_URL"])
-
+    return render_template('home.html', git=get_git_name(), host=app.config["MONGO_URL"])

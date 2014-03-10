@@ -44,8 +44,8 @@ Two kinds API for two kinds of database types. those in image database, and
 those in administrative database. Those in image database require a database id
 (to locate the database) in each request.
 
-A common decorator to check the access @user_required, and @site_admin required
-implemented so far.
+A common decorator to check the access @security.login_required, and @site_admin
+required implemented so far.
 
 Put requests are used for putting entities e.g. file where the destination is
 known. POST requests are used for posting new resources, in particular complete

@@ -3,23 +3,16 @@ rest api for administrative interface
 refer to documentation
 """
 from werkzeug.wsgi import wrap_file
-from flask import Blueprint, render_template, request, url_for, current_app, Response, abort
+from flask import Blueprint, render_template, request, current_app, Response, abort
 from flask.views import MethodView
 from bson import ObjectId
-from slideatlas import slconn as conn
-from slideatlas import admindb
-from slideatlas import model
-from celery.platforms import resource
 from slideatlas.common_utils import jsonify
-from slideatlas.model.database import Database
-from slideatlas.model import Session
 from gridfs import GridFS
 from slideatlas.common_utils import site_admin_required
-from slideatlas.common_utils import user_required
+from slideatlas import models, security
 import re
 import gridfs
 
-from json import dumps
 from bson.binary import Binary
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -33,9 +26,10 @@ class AdminDBAPI(MethodView):
 
     @site_admin_required(False)
     def get(self, restype, resid=None):
+        admin_db = models.Database._get_db()
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
-            objs = conn[current_app.config["CONFIGDB"]][restype].find()
+            objs = admin_db[restype].find()
             # TODO: need to paginate in near future
             objarray = list()
             for anobj in objs:
@@ -46,7 +40,7 @@ class AdminDBAPI(MethodView):
                 objarray.append(anobj)
             return jsonify({ restype : objarray})
         else:
-            obj = conn[current_app.config["CONFIGDB"]][restype].find_one({"_id" : ObjectId(resid)})
+            obj = admin_db[restype].find_one({"_id" : ObjectId(resid)})
             if obj :
                 if restype == "users":
                     if "passwd" in obj:
@@ -87,6 +81,7 @@ class AdminDBItemsAPI(MethodView):
 
     @site_admin_required(False)
     def get(self, restype, resid, listtype):
+        admin_db = models.Database._get_db()
         # Restype has to be between allowed ones or the request will not come here
         # only rules and users is supported now
 
@@ -99,7 +94,7 @@ class AdminDBItemsAPI(MethodView):
 
         # ruleobj or dbobj
         objarray = list()
-        for anobj in conn[current_app.config["CONFIGDB"]][listtype].find({"rules" : ObjectId(resid)}):
+        for anobj in admin_db[listtype].find({"rules" : ObjectId(resid)}):
             if "passwd" in anobj:
                 del anobj["passwd"]
             objarray.append(anobj)
@@ -118,77 +113,78 @@ class AdminDBItemsAPI(MethodView):
 class DatabaseAPI(AdminDBAPI):
 
     def delete(self, resid):
-        obj = conn[current_app.config["CONFIGDB"]]["databases"].find_one({"_id" : ObjectId(resid)})
+        obj = models.Database.objects.with_id(resid)
         if obj :
-            conn[current_app.config["CONFIGDB"]]["databases"].remove({"_id" : obj["_id"]})
+            obj.delete()
             return Response("{}", status=200)
         else:
             # Invalid request if the object is not found
             return Response("{\"error\" : \"Id Not found \"} ", status=405)
 
+
     def post(self, resid=None):
         # post requires admin access
 
-        # Parse the data in json format 
+        # Parse the data in json format
         data = request.json
 
-        # Unknown request if no parameters 
+        # Unknown request if no parameters
         if data == None:
             abort(400)
 
-        conn.register([Database])
-
         # Only insert command is supported
-        if data.has_key("insert") :
-            # Create the database object from the supplied parameters  
+        if data.has_key("insert"):
+            # Create the database object from the supplied parameters
 
             try:
-                if resid <> None:
+                if resid is not None:
                     raise Exception("Trying to create new resource at existing resource")
 
-                newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database()
-                newdb["label"] = data["insert"]["label"]
-                newdb["host"] = data["insert"]["host"]
-                newdb["dbname"] = data["insert"]["dbname"]
-                newdb["copyright"] = data["insert"]["copyright"]
-                newdb.validate()
-                newdb.save()
+                database = models.Database(
+                    label=data["insert"]["label"],
+                    host=data["insert"]["host"],
+                    dbname=data["insert"]["dbname"],
+                    copyright=data["insert"]["copyright"]
+                )
+                database.save()
             except Exception as inst:
-                # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
 
-            return jsonify(newdb)
+            return jsonify(database.to_mongo())
         elif data.has_key("modify"):
             # Resid must be supplied
-            if resid == None :
+            if resid is None :
                 return Response("{\"error\" : \"No resource id supplied for modification\"}" , status=405)
 
             try:
-                # Locate the resource 
-                newdb = conn[current_app.config["CONFIGDB"]]["databases"].Database.find_one({"_id" : ObjectId(resid)})
-                if newdb == None:
+                # Locate the resource
+                database = models.Database.objects.with_id(resid)
+                if database == None:
                     raise Exception(" Resource %s not found" % (resid))
             except Exception as inst:
-                # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
 
-            # Now update 
+            # Now update
             try:
                 for akey in data["modify"]:
                     if akey == "_id":
                         return Response("{\"error\" : \"Cannot modify _id \"}" , status=405)
 
                     # Update other keys
-                    if akey in newdb:
-                        newdb[akey] = data["modify"][akey]
+                    if akey in database:
+                        try:
+                            setattr(database, akey, data["modify"][akey])
+                        except AttributeError:
+                            pass
 
-                    newdb.validate()
-                    newdb.save()
+                    database.save()
             except Exception as inst:
-                # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
 
-            return jsonify(newdb)
+            return jsonify(database.to_mongo())
 
         else:
             # Only insert and modify commands supported so far
@@ -198,12 +194,12 @@ class DatabaseAPI(AdminDBAPI):
     def put(self, resid):
         # put requires admin access
 
-        # Get json supplied 
+        # Get json supplied
         data = request.json
 
-        # Check for valid parameters 
-        # Check if no parameters 
-        if data == None:
+        # Check for valid parameters
+        # Check if no parameters
+        if data is None:
             return Response("{\"error\" : \"No parameters ? \"}", status=405)
 
         # See if id matches the resource being modified
@@ -215,30 +211,28 @@ class DatabaseAPI(AdminDBAPI):
     #     if resid == None:
     #         return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
     #     else:
-    #         datadb = self.get_data_db(dbid)
+    #         datadb = models.Database.objects.with_id(dbid)
     #         if datadb == None:
     #             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
     #
     #         # TODO: This block of code to common and can be abstrated
-    #         conn.register([Session])
-    #         sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+    #         with datadb:
+    #             sessobj = models.Session.objects.with_id(sessid)
     #         if sessobj == None:
     #             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
     #
     #         if restype == "attachments" or restype == "rawfiles":
     #             # Remove from the gridfs
-    #             gf = gridfs.GridFS(datadb , restype)
+    #             gf = gridfs.GridFS(datadb.to_pymongo() , restype)
     #             gf.delete(ObjectId(resid))
     #
     #             # Remove the reference from session
-    #             attachments = [value for value in sessobj["attachments"] if value["ref"] != ObjectId(resid)]
+    #             attachments = [value for value in sessobj.attachments if value["ref"] != ObjectId(resid)]
     #             # Find the index
     #             # Remove that index
-    #             sessobj["attachments"] = attachments
+    #             sessobj.attachments = attachments
     #
-    #     if not "images" in sessobj:
-    #         sessobj["images"] = []
-    #         sessobj.validate()
+    #     if not sessobj.images:
     #         sessobj.save()
     #         return Response("{ \"Success \" : \" \"}", status=200)
     #     else:
@@ -246,29 +240,25 @@ class DatabaseAPI(AdminDBAPI):
 
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
-        # Try to see if the data can create valid object 
-        conn.register([Database])
-
         # The object should exist
-        dbobj = conn[current_app.config["CONFIGDB"]]["databases"].Database.find_one({"_id" : ObjectId(resid)})
+        database = models.Database.objects.with_id(id=resid)
 
-        # Unknown request if no parameters 
-        if dbobj == None:
+        # Unknown request if no parameters
+        if database == None:
             return Response("{\"error\" : \"Resource _id: %s  doesnot exist\"}" % (resid), status=403)
 
-        # Create the database object from the supplied parameters  
+        # Create the database object from the supplied parameters
         try:
-            dbobj["label"] = data["label"]
-            dbobj["host"] = data["host"]
-            dbobj["dbname"] = data["dbname"]
-            dbobj["copyright"] = data["copyright"]
-            dbobj.validate()
-            dbobj.save()
+            database.label = data["label"]
+            database.host = data["host"]
+            database.dbname = data["dbname"]
+            database.copyright = data["copyright"]
+            database.save()
         except Exception as inst:
-            # If valid database object cannot be constructed it is invalid request 
+            # If valid database object cannot be constructed it is invalid request
             return Response("{\"error\" : %s}" % str(inst), status=405)
 
-        return jsonify(dbobj)
+        return jsonify(database.to_mongo())
 
 mod.add_url_rule('/databases', view_func=DatabaseAPI.as_view("show_database_list"), methods=['post'])
 mod.add_url_rule('/databases/<regex("[a-f0-9]{24}"):resid>', view_func=DatabaseAPI.as_view("show_database"), methods=['DELETE', 'put', 'post'])
@@ -282,28 +272,25 @@ mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{2
 
 # The url valid for databases, rules and users with supported queries
 class DataSessionsAPI(MethodView):
-    decorators = [user_required]
+    decorators = [security.login_required]
     def get_data_db(self, dbid):
-            conn.register([Database])
-            admindb = conn[current_app.config["CONFIGDB"]]
-            dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
-            if dbobj == None:
-                return None
-            # TODO: have an application or module level connection pooling
-            return conn[dbobj["dbname"]]
+        database = models.Database.objects.with_id(dbid)
+        if database == None:
+            return None
+        return database.to_pymongo()
 
     def get(self, dbid, sessid=None):
-        conn.register([Session, Database])
         datadb = self.get_data_db(dbid)
         if datadb == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
         if sessid == None:
-            sessions = datadb["sessions"].Session.find({}, {'images':0, 'views':0, 'attachments':0})
+            with datadb:
+                sessions = models.Session.objects(images=0, views=0, attachments=0)
             sessionlist = list()
 
             for asession in sessions:
-                sessionlist.append(asession)
+                sessionlist.append(asession.to_mongo())
 
             if len(sessionlist) > 0:
                 return jsonify({'sessions' : sessionlist})
@@ -312,12 +299,13 @@ class DataSessionsAPI(MethodView):
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
-            sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
+            with datadb:
+                sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
-            # Dereference the views 
-            for aview in sessobj["views"]:
+            # Dereference the views
+            for aview in sessobj.views:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
                 # Viewdetails might not be a view
                 if "img" in viewdetails:
@@ -330,19 +318,18 @@ class DataSessionsAPI(MethodView):
 
             # Dereference the attachments
             attachments = []
-            if "attachments" in sessobj:
+            if sessobj.attachments:
                 gfs = GridFS(datadb, "attachments")
-                for anattach in sessobj['attachments']:
+                for anattach in sessobj.attachments:
                     fileobj = gfs.get(anattach["ref"])
                     anattach["details"] = ({'name': fileobj.name, 'length' : fileobj.length})
             else:
-                sessobj["attachments"] = []
+                sessobj.attachments = []
 
-            return jsonify(sessobj)
+            return jsonify(sessobj.to_mongo())
 
 
     def delete(self, dbid, sessid=None):
-        conn.register([Session, Database])
         datadb = self.get_data_db(dbid)
         if datadb == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
@@ -351,30 +338,25 @@ class DataSessionsAPI(MethodView):
             return Response("{ \"error \" : \"No session to delete\"}", status=405)
         else:
             # TODO: Important, Not all users are allowed to delete
-            sessobj = datadb["sessions"].find_one({"_id" : ObjectId(sessid)})
+            with datadb:
+                sessobj = models.Session.objects.with_id(sessid)
 
-            if sessobj <> None:
+            if sessobj:
                 # Delete if empty
                 empty = True
 
-                if "images" in sessobj:
-                    if len(sessobj["images"]) > 0:
-                        empty = False
+                if sessobj.images:
+                    empty = False
 
-                if "attachments" in sessobj:
-                    if len(sessobj["attachments"]) > 0:
-                        empty = False
-
-                if "attachments" in sessobj:
-                    if len(sessobj["attachments"]) > 0:
-                        empty = False
+                if sessobj.attachments:
+                    empty = False
 
                 if not empty:
                     return Response("{ \"error \" : \"Session %s in db %s not empty\"}" % (sessid, dbid), status=405)
                 else:
                     # Perform the delete
                     try:
-                        datadb["sessions"].remove({"_id" : ObjectId(sessid)})
+                        sessobj.delete()
                         print "DELETED from application"
                     except Exception as inst:
                         return Response("{\"error\" : %s}" % str(inst), status=405)
@@ -384,25 +366,22 @@ class DataSessionsAPI(MethodView):
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
     def post(self, dbid, sessid=None):
-        # Parse the data in json format 
+        # Parse the data in json format
         data = request.json
 
-        # Unknown request if no parameters 
+        # Unknown request if no parameters
         if data == None:
             abort(400)
 
-        conn.register([Session])
         db = self.get_data_db(dbid)
         if data.has_key("insert"):
             # Create the database object from the supplied parameters
             try:
-                newsession = db["sessions"].Session()
-                newsession["label"] = data["insert"]["label"]
-                newsession["images"] = []
-                newsession.validate()
+                with db:
+                    newsession = models.Session(label=data["insert"]["label"])
                 newsession.save()
             except Exception as inst:
-    #            # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : %s}" % str(inst), status=405)
 
             return jsonify(newsession)
@@ -413,74 +392,68 @@ class DataSessionsAPI(MethodView):
                 return Response("{\"error\" : \"No session _id supplied for modification\"}" , status=405)
 
             try:
-                # Locate the resource 
-                newdb = db["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+                # Locate the resource
+                with db:
+                    newdb = models.Session.objects.with_id(sessid)
                 if newdb == None:
                     raise Exception(" Resource %s not found" % (sessid))
             except Exception as inst:
-                # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
 
-            # Now update 
+            # Now update
             try:
                 for akey in data["modify"]:
                     # Presently updating only label is supported
-                    if akey <> "label":
+                    if akey != "label":
                         return Response("{\"error\" : \"Cannot modify %s \"}" % (akey) , status=405)
 
-                    newdb[akey] = data["modify"][akey]
-                    newdb.validate()
+                    setattr(newdb, akey, data["modify"][akey])
                     newdb.save()
             except Exception as inst:
-                # If valid database object cannot be constructed it is invalid request 
+                # If valid database object cannot be constructed it is invalid request
                 return Response("{\"error\" : \"%s\"}" % str(inst), status=405)
 
-            return jsonify(newdb)
+            return jsonify(newdb.to_mongo())
 
         else:
             # Only insert and modify commands are supported
             abort(400)
 
 class DataSessionItemsAPI(MethodView):
-    decorators = [user_required]
+    decorators = [security.login_required]
 
     def get_data_db(self, dbid):
-            conn.register([Database])
-            admindb = conn[current_app.config["CONFIGDB"]]
-            dbobj = admindb["databases"].Database.find_one({'_id' : ObjectId(dbid)})
-            if dbobj == None:
-                return None
-            # TODO: have an application or module level connection pooling
-            return conn[dbobj["dbname"]]
+        database = models.Database.objects.with_id(dbid)
+        if database == None:
+            return None
+        return database.to_pymongo()
 
     def delete(self, dbid, sessid, restype, resid=None):
-        if resid == None:
+        if resid is None:
             return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
         else:
             datadb = self.get_data_db(dbid)
-            if datadb == None:
+            if datadb is None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
             # TODO: This block of code to common and can be abstrated
-            conn.register([Session])
-            sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
-            if sessobj == None:
+            with datadb:
+                sessobj = models.Session.objects.with_id(sessid)
+            if sessobj is None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
             if restype == "attachments" or restype == "rawfiles":
                 # Remove from the gridfs
-                gf = gridfs.GridFS(datadb , restype)
+                gf = gridfs.GridFS(datadb.toPymongo() , restype)
                 gf.delete(ObjectId(resid))
 
                 # Remove the reference from session
-                attachments = [value for value in sessobj["attachments"] if value["ref"] != ObjectId(resid)]
+                attachments = [value for value in sessobj.attachments if value["ref"] != ObjectId(resid)]
                 # Find the index
                 # Remove that index
-                sessobj["attachments"] = attachments
-		if not "images" in sessobj:
-			sessobj["images"] = []
+                sessobj.attachments = attachments
 
-                sessobj.validate()
                 sessobj.save()
                 return Response("{ \"Success \" : \" \"}", status=200)
             else:
@@ -494,15 +467,15 @@ class DataSessionItemsAPI(MethodView):
             if datadb == None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
-            conn.register([Session])
-            sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+            with datadb:
+                sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
             # TODO: Make sure that resid exists in this session before being obtained from gridfs
 
             if restype == "attachments" or restype == "rawfiles":
-                gf = gridfs.GridFS(datadb , restype)
+                gf = gridfs.GridFS(datadb.toPymongo() , restype)
 
                 fileobj = gf.get(ObjectId(resid))
                 data = wrap_file(request.environ, fileobj)
@@ -533,14 +506,14 @@ class DataSessionItemsAPI(MethodView):
         datadb = self.get_data_db(dbid)
         if datadb == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        conn.register([Session])
-        sessobj = datadb["sessions"].Session.find_one({"_id" : ObjectId(sessid)})
+        with datadb:
+            sessobj = models.Session.objects.with_id(sessid)
         if sessobj == None:
             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
-        # Parse headers 
+        # Parse headers
         try:
-            #Get filename from content disposition 
+            #Get filename from content disposition
             fnameheader = request.headers["Content-Disposition"]
             disposition = re.search(r'filename="(.+?)"', fnameheader)
             filename = disposition.group(0)[10:-1]
@@ -555,28 +528,21 @@ class DataSessionItemsAPI(MethodView):
         except:
             success = False
 
-        # Headers cannot be parsed, so try 
+        # Headers cannot be parsed, so try
         if not success:
             try:
                 bfile = request.files['file']
 
-                gf = gridfs.GridFS(datadb , restype)
+                gf = gridfs.GridFS(datadb.toPymongo() , restype)
                 afile = gf.new_file(chunk_size=1048576, filename=bfile.filename, _id=ObjectId(resid))
                 afile.write(bfile.read())
                 afile.close()
-                if not sessobj.has_key("attachments"):
-                    sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
-		    if not "images" in sessobj:
-			sessobj["images"] = []
-                    sessobj.validate()
+                if not sessobj.attachments:
+                    sessobj.attachments = [ {"ref" : ObjectId(resid), "pos" : 0}]
                     sessobj.save()
-    #                print "Inserted attachments", str(sessobj["attachments"])
                 else:
-                    size_before = len(sessobj["attachments"])
-		    if not "images" in sessobj:
-			sessobj["images"] = []
-                    sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
-                    sessobj.validate()
+                    size_before = len(sessobj.attachments)
+                    sessobj.attachments.append({"ref" : ObjectId(resid), "pos" : size_before + 1})
                     sessobj.save()
 
                 return Response("{\"success\" : \" - \"}", status=200)
@@ -585,7 +551,7 @@ class DataSessionItemsAPI(MethodView):
                 return Response("{\"error\" : \" Error processing single chunk header" + e.message + " \"}", status=405)
 
 
-        # No need to return conventional file list 
+        # No need to return conventional file list
         # Expect _id in the form
         try:
             jsonresponse["_id"] = request.form['_id']
@@ -593,7 +559,7 @@ class DataSessionItemsAPI(MethodView):
             return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
 
         n = int(start / 1048576.0)
-        # Craft the response json 
+        # Craft the response json
         jsonresponse["start"] = start
         jsonresponse["end"] = end
         jsonresponse["total"] = total
@@ -608,7 +574,7 @@ class DataSessionItemsAPI(MethodView):
             first = True
             jsonresponse["first"] = 1
             # Create a file
-            gf = gridfs.GridFS(datadb , restype)
+            gf = gridfs.GridFS(datadb.toPymongo() , restype)
             afile = gf.new_file(chunk_size=1048576, filename=filename, _id=ObjectId(resid))
             afile.write(bfile.read())
             afile.close()
@@ -616,28 +582,26 @@ class DataSessionItemsAPI(MethodView):
         if total == end + 1:
             last = True
             jsonresponse["last"] = 1
-            # Add the attachment id to the 
-            if not sessobj.has_key("attachments"):
-                sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
-                sessobj.validate()
+            # Add the attachment id to the
+            if not sessobj.attachments:
+                sessobj.attachments = [ {"ref" : ObjectId(resid), "pos" : 0}]
                 sessobj.save()
-#                print "Inserted attachments", str(sessobj["attachments"])
             else:
                 size_before = len(sessobj["attachments"])
-                sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
-                sessobj.validate()
+                sessobj.attachments.append({"ref" : ObjectId(resid), "pos" : size_before + 1})
                 sessobj.save()
-#                print "Appended to  attachments", str(sessobj["attachments"])
 
         if not first:
-            obj = {}
-            obj["n"] = n
-            obj["files_id"] = ObjectId(resid)
-            obj["data"] = Binary(bfile.read())
+            obj = {
+                'n': n,
+                'files_id': ObjectId(resid),
+                'data': Binary(bfile.read())
+            }
 
-            datadb["attachments.chunks"].insert(obj)
-            fileobj = datadb["attachments.files"].find_one({"_id" : obj["files_id"]})
-            datadb["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
+            datadb_pymongo = datadb.toPymongo()
+            datadb_pymongo["attachments.chunks"].insert(obj)
+            fileobj = datadb_pymongo["attachments.files"].find_one({"_id" : obj["files_id"]})
+            datadb_pymongo["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
 
         # Finalize
         # Append to the chunks collection
@@ -646,7 +610,7 @@ class DataSessionItemsAPI(MethodView):
 
     def post(self, dbid, sessid, restype, resid=None):
         if resid == None:
-            # Supported for new creations 
+            # Supported for new creations
             if restype == "attachments" or restype == "rawfiles":
                 data = request.form
                 # Only insert command is supported
@@ -655,7 +619,7 @@ class DataSessionItemsAPI(MethodView):
 
                 if data.has_key("insert") :
                     id = ObjectId()
-                    # No need to return conventional file list 
+                    # No need to return conventional file list
                     jsonresponse = {}
                     jsonresponse["_id"] = id
                     jsonresponse["type"] = restype

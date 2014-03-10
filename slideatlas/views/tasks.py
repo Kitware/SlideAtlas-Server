@@ -1,9 +1,8 @@
 from flask import Blueprint, Response, abort, request, session, flash
-from slideatlas import slconn as conn
 from bson import ObjectId
-from slideatlas import model, celery
+from slideatlas import celery
 
-""" Useful routines for task administration 
+""" Useful routines for task administration
     might go in utils and may be imported from sessions view which initiates or find status of the included images
 """
 mod = Blueprint('tasks', __name__)
@@ -39,4 +38,3 @@ def status():
     flash("No worker found ", "error")
 
     return Response(str(docImage['file']), mimetype="image/jpeg")
-

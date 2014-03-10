@@ -1,31 +1,28 @@
-from flask import Blueprint, Response, abort, request, session, current_app
-from slideatlas import slconn as conn
-from bson import ObjectId
-from slideatlas import model
+from flask import Blueprint, Response, abort, request
+from slideatlas import models
+from slideatlas import security
 
 mod = Blueprint('tile', __name__)
 
 @mod.route('/tile')
+@security.login_required
 def tile():
     """
     - /tile/4e695114587718175c000006/t.jpg  searches and returns the image
     """
     # Get variables
-    img = request.args.get('img', None)
-    db = request.args.get('db', None)
-    name = request.args.get('name', None)
+    img = request.args.get('img')
+    db = request.args.get('db')
+    name = request.args.get('name')
 
-    if not 'user' in session:
+    if not models.User().is_authenticated():
         abort(403)
 
-    conn.register([model.Database])
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].find_one({"_id" : ObjectId(db)})
-    imgdb = conn[dbobj['dbname']]
+    database = models.Database.objects.get_or_404(id=db)
+    imgdb = database.to_pymongo()
     colImage = imgdb[img]
     docImage = colImage.find_one({'name':name})
 
     if docImage == None:
-        abort(403)
+        abort(404)
     return Response(str(docImage['file']), mimetype="image/jpeg")
-

@@ -4,40 +4,42 @@
 {{ super() }}
 
 <style>
-button 
+button
 {
 float:right;
 }
 </style>
 
 <div class="container">
+    <h1>Displaying a session list for {{ current_user.full_name }} !</h1>
 
-  <h1>Displaying a session list for {{ name}} !</h1>
-
-  {% for arule in sessions %}
-    <h2> {{ arule.rule }}</h2>
+    {% for (role, sessions) in all_sessions %}
+    <h2> {{ role.name }}</h2>
     <table class="table table-bordered table-hover" >
-        {% for asession in arule.sessions %}
-            <tr>
-              <td>            
-                {% if asession.stack %}
-                <a href="/webgl-viewer/stack?sess={{asession.sessid}}&db={{asession.sessdb}}" class="lead">{{ asession.label}}
-                {% else %}
-                <a href="sessions?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead">{{ asession.label}}
-                {% endif %}
-                {% if asession.canadmin %}
-                <a href="sessionedit?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead"> 
-                  <button type="button" class="btn btn-danger" >Edit</button> 
+        {% for session in sessions %}
+        {% if session.type == 'stack' %}
+        <tr>
+            <td>
+                <a href="/webgl-viewer/stack?db={{ role.db|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td>
+                <a href="{{ url_for('.sessions', sessdb=role.db.id, sessid=session.id) }}" class="lead">{{ session.label}}</a>
+            </td>
+            {% if role.db_admin %}
+            <td>
+                <a href="{{ url_for('.sessionedit', sessdb=role.db.id, sessid=session.id) }}" class="lead">
+                    <button type="button" class="btn btn-danger">Admin</button>
                 </a>
-                {% else %}
-                {% endif %}
-              </td>
-            </tr>
+            </td>
+            {% endif %}
+        </tr>
+        {% endif %}
         {% endfor %}
     </table>
- <br>
-
- {% endfor %}
+    <br>
+    {% endfor %}
 </div>
-
 {% endblock %}
