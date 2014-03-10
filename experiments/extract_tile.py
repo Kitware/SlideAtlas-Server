@@ -8,7 +8,7 @@ On windows requires C:\Python27\Lib\site-packages\libtiff in PATH, on might
 require that in LD_LIBRARY_PATH
 """
 import sys
-import Image
+from PIL import Image
 # Code to debug library loading
 #libname = find_library("libtiff")
 #print libname
@@ -74,7 +74,7 @@ print "TABLES"
 print jpegtables
 of = open(fname,"wb")
 
-app0 = 'ffd8ffe000104a46494600010101004800480000'.decode('hex')
+app0 = 'ffd8ffe000104a4600010200006400640000ffec'.decode('hex')
 of.write(app0)
 of.write(ctypes.string_at(jpegtables, jpegtable_size.value)[2:-2])
 # Write padding
@@ -91,6 +91,7 @@ print "Bytes read: ", len(buf)
 print "Bytes expected: ", jpegtable_size.value + r2.value - 4
 
 print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
+i.close()
 
 img = Image.open(fname)
 sys.exit(0)
