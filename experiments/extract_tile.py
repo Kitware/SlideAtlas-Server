@@ -44,6 +44,12 @@ class TileReader():
         self.buf = ctypes.c_voidp()
         self.jpegtables = None
 
+    def select_dir(self, dir):
+        """
+        :param dir: Number of Directory to select
+        """
+        libtiff.TIFFSetDirectory(self.tif, dir)
+
 
     def _read_JPEG_tables(self):
         """
@@ -90,6 +96,20 @@ class TileReader():
         fp.write(padding)
         fp.write(ctypes.string_at(tmp_tile, r2.value)[2:])
 
+    def tile_number(self,x,y):
+        """
+        Returns tile number from current directory
+
+        :param x: x coordinates of an example pixel in the tile
+        :type y: y coordinates of an example pixel in the tile
+        :returns:  int -- the return code.
+        """
+
+        if libtiff.TIFFCheckTile(self.tif, x, y,0,0) == 0:
+            return -1
+        else:
+            return libtiff.TIFFComputeTile(self.tif, x, y,0,0).value
+
     def dump_tile(self,x,y,fp):
         """
         This function does something.
@@ -105,29 +125,31 @@ class TileReader():
 
         self.get_file_from_number(tileno, fp)
 
-    def update(self):
+    def update_image_info(self):
         """
         Reads width / height etc
         Must be called after the set_input_params is called
         """
         self.tile_width = tif.GetField("TileWidth")
         self.tile_length = tif.GetField("TileLength")
+        self.image_width = tif.GetField("ImageWidth")
+        self.image_length = tif.GetField("ImageLength")
 
-def some():
-    #Code to get jpeg tables
-    i = open(fname,"rb")
-    buf = i.read()
-    print "Bytes read: ", len(buf)
-    print "Bytes expected: ", jpegtable_size.value + r2.value - 4
+def list_tiles():
+    tile = TileReader()
+    tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
+    tile.update_image_info()
 
-    print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
-    i.close()
+    image_length = tile.image_length
+    image_width = tile.image_width
+    tile_length = tile.tile_length
+    tile_width = tile.tile_width
 
-    img = Image.open(fname)
-    sys.exit(0)
+    image_width = tile.image_width
 
-    image_width = tif.GetField("ImageWidth")
-    image_length = tif.GetField("ImageLength")
+    print "Width+Height :", tile.tile_width,
+
+    #print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
 
     y = 0
     count = 0
@@ -135,22 +157,27 @@ def some():
     while y < image_length:
         x = 0
         while x < image_width:
+            tile_no = tile.tile_number(x,y)
             x += tile_width
-            r = libtiff.TIFFReadRawTile(tif, count, tmp_tile, tile_width * tile_length * 3)
-            count = count + 1
-            if r.value > 0:
-                done = done + 1
-                print count, done, r.value
+            #print "Tile number for (%d,%d): "%(x,y), tile_no
+
+            #r = tile.tile()
+            #count = count + 1
+            #if r.value > 0:
+            #    done = done + 1
+            #    print count, done, r.value
 
         y += tile_length
 
     tif.close()
 
-
-if __name__ == "__main__":
+def extract_tile():
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
     of = open("test.jpg","wb")
     tile.get_tile_from_number(27372, of)
     of.close()
 
+
+if __name__ == "__main__":
+    list_tiles()
