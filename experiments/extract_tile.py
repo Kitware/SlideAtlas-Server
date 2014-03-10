@@ -7,7 +7,19 @@ uncompressing them.
 On windows requires C:\Python27\Lib\site-packages\libtiff in PATH, on might
 require that in LD_LIBRARY_PATH
 """
+
 import sys
+
+class writer(object):
+    log = []
+
+    def write(self, data):
+        self.log.append(data)
+
+logger = writer()
+#sys.stderr = logger
+from xml.etree import cElementTree as ET
+
 from PIL import Image
 # Code to debug library loading
 #libname = find_library("libtiff")
@@ -49,7 +61,9 @@ class TileReader():
         :param dir: Number of Directory to select
         """
         libtiff.TIFFSetDirectory(self.tif, dir)
-
+        self.dir = libtiff.TIFFCurrentDirectory(self.tif)
+        #libtiff.TIFFReadDirectory(self.tif)
+        self.update_image_info()
 
     def _read_JPEG_tables(self):
         """
@@ -132,25 +146,33 @@ class TileReader():
         """
         self.tile_width = tif.GetField("TileWidth")
         self.tile_length = tif.GetField("TileLength")
-        self.image_width = tif.GetField("ImageWidth")
-        self.image_length = tif.GetField("ImageLength")
+        xml = ET.fromstring(tif.GetField("ImageDescription"))
+        self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
+        self.image_height = int(xml.find(".//*[@Name='PIM_DP_IMAGE_ROWS']").text)
 
-def list_tiles():
+        #self.image_width = tif.GetField("ImageWidth")
+        #self.image_length = tif.GetField("ImageLength")
+        #print tif.GetField("ImageDescription")
+
+
+
+def list_tiles(dir):
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
-    tile.update_image_info()
+    print "HERE"
+    tile.select_dir(dir)
 
-    image_length = tile.image_length
+    image_length = tile.image_height
     image_width = tile.image_width
     tile_length = tile.tile_length
     tile_width = tile.tile_width
 
-    image_width = tile.image_width
-
-    print "Width+Height :", tile.tile_width,
+    print "Selected Dir: ", dir, "Actual: ", tile.dir.value
+    print "Image: ", image_width, image_length
+    print "Width+Height :", tile_width, tile_length
 
     #print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
-
+    return
     y = 0
     count = 0
     done = 0
@@ -159,7 +181,8 @@ def list_tiles():
         while x < image_width:
             tile_no = tile.tile_number(x,y)
             x += tile_width
-            #print "Tile number for (%d,%d): "%(x,y), tile_no
+
+            print "Tile number for (%d,%d): "%(x,y), tile_no
 
             #r = tile.tile()
             #count = count + 1
@@ -180,4 +203,17 @@ def extract_tile():
 
 
 if __name__ == "__main__":
-    list_tiles()
+    list_tiles(1)
+    list_tiles(2)
+    list_tiles(3)
+    list_tiles(4)
+    list_tiles(5)
+    list_tiles(6)
+    list_tiles(7)
+    list_tiles(8)
+    list_tiles(9)
+    list_tiles(10)
+    list_tiles(11)
+    list_tiles(12)
+    list_tiles(13)
+    list_tiles(14)
