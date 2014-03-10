@@ -36,82 +36,121 @@ import numpy as np
 import ctypes
 
 from ctypes import  create_string_buffer
+import logging
+
+class TileReader():
+    def __init__(self):
+        self.jpegtable_size = ctypes.c_uint16()
+        self.buf = ctypes.c_voidp()
+        self.jpegtables = None
 
 
-#Code to get jpeg tables
-jpegtable_size = ctypes.c_uint16()
-buf = ctypes.c_voidp()
+    def _read_JPEG_tables(self):
+        """
+        """
+        libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
+        r = libtiff.TIFFGetField(tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
+        assert(r==1)
+        self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
+        logging.log(logging.INFO, "Size of jpegtables: %d"%(self.jpegtable_size.value))
 
-libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
-#print libtiff.TIFFGetField.argtypes
-r = libtiff.TIFFGetField(tif, 347, jpegtable_size, ctypes.byref(buf))
-jpegtables = ctypes.cast(buf, ctypes.POINTER(ctypes.c_ubyte))
+    def set_input_params(self, params):
+        """
+        The source specific input parameters
+        right now just a pointer to the file
+        """
 
-assert(r == 1)
-print "Size of jpegtables: ", jpegtable_size.value
+        self.tif = TIFF.open(params["fname"], "r")
+        self.params = params
+        self._read_JPEG_tables()
 
-#print size.value, repr(buf2)
-# To print
-#print ':'.join("%02X"%buf2[i] for i in range(size.value))
+    def get_tile_from_number(self, tileno, fp):
+        """
+        This function does something.
 
-tile_width = tif.GetField("TileWidth")
-tile_length = tif.GetField("TileLength")
+        :param tileno: number of tile to fetch
+        :param fp: file pointer to which tile data is written
+        :returns:  int -- the return code.
+        :raises: AttributeError, KeyError
+        """
+        # Getting a single tile
+        tile_size = libtiff.TIFFTileSize(tif, tileno)
 
-# Getting a single tile
-tileno = 27372
+        print "TileSize: ", tile_size.value
 
-tile_size = libtiff.TIFFTileSize(tif, tileno)
+        tmp_tile = create_string_buffer(tile_size.value)
 
-print "TileSize: ", tile_size.value
+        r2 = libtiff.TIFFReadRawTile(tif, tileno, tmp_tile, tile_size)
+        print "Valid size in tile: ", r2.value
+        # Experiment with the file output
 
-tmp_tile = create_string_buffer(tile_size.value)
+        fp.write(ctypes.string_at(self.jpegtables, self.jpegtable_size.value)[:-2])
+        # Write padding
+        padding = "%c"%(255) * 4
+        fp.write(padding)
+        fp.write(ctypes.string_at(tmp_tile, r2.value)[2:])
 
-r2 = libtiff.TIFFReadRawTile(tif, tileno, tmp_tile, tile_size)
-print "Valid size in tile: ", r2.value
-# Experiment with the file output
-fname = "output_%d.jpg"%tileno
-print "TABLES"
-print jpegtables
-of = open(fname,"wb")
+    def dump_tile(self,x,y,fp):
+        """
+        This function does something.
 
-app0 = 'ffd8ffe000104a4600010200006400640000ffec'.decode('hex')
-of.write(app0)
-of.write(ctypes.string_at(jpegtables, jpegtable_size.value)[2:-2])
-# Write padding
-padding = "%c"%(255) * 4
-of.write(padding)
-of.write(ctypes.string_at(tmp_tile, r2.value)[2:])
-of.close()
-a = [1,2,3,4,5]
-print a[2:]
-print a[:-2]
-i = open(fname,"rb")
-buf = i.read()
-print "Bytes read: ", len(buf)
-print "Bytes expected: ", jpegtable_size.value + r2.value - 4
+        :param x: x coordinates of an example pixel in the tile
+        :type y: y coordinates of an example pixel in the tile
+        :param fp: file pointer to which tile data is written
+        :returns:  int -- the return code.
+        :raises: AttributeError, KeyError
+        """
+        # Getting a single tile
+        tileno = 27372
 
-print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
-i.close()
+        self.get_file_from_number(tileno, fp)
 
-img = Image.open(fname)
-sys.exit(0)
+    def update(self):
+        """
+        Reads width / height etc
+        Must be called after the set_input_params is called
+        """
+        self.tile_width = tif.GetField("TileWidth")
+        self.tile_length = tif.GetField("TileLength")
 
-image_width = tif.GetField("ImageWidth")
-image_length = tif.GetField("ImageLength")
+def some():
+    #Code to get jpeg tables
+    i = open(fname,"rb")
+    buf = i.read()
+    print "Bytes read: ", len(buf)
+    print "Bytes expected: ", jpegtable_size.value + r2.value - 4
 
-y = 0
-count = 0
-done = 0
-while y < image_length:
-    x = 0
-    while x < image_width:
-        x += tile_width
-        r = libtiff.TIFFReadRawTile(tif, count, tmp_tile, tile_width * tile_length * 3)
-        count = count + 1
-        if r.value > 0:
-            done = done + 1
-            print count, done, r.value
+    print ':'.join("%02X" % ord(buf[i])for i in range(len(buf)))
+    i.close()
 
-    y += tile_length
+    img = Image.open(fname)
+    sys.exit(0)
 
-tif.close()
+    image_width = tif.GetField("ImageWidth")
+    image_length = tif.GetField("ImageLength")
+
+    y = 0
+    count = 0
+    done = 0
+    while y < image_length:
+        x = 0
+        while x < image_width:
+            x += tile_width
+            r = libtiff.TIFFReadRawTile(tif, count, tmp_tile, tile_width * tile_length * 3)
+            count = count + 1
+            if r.value > 0:
+                done = done + 1
+                print count, done, r.value
+
+        y += tile_length
+
+    tif.close()
+
+
+if __name__ == "__main__":
+    tile = TileReader()
+    tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
+    of = open("test.jpg","wb")
+    tile.get_tile_from_number(27372, of)
+    of.close()
+
