@@ -55,13 +55,19 @@ class TileReader():
         self.jpegtable_size = ctypes.c_uint16()
         self.buf = ctypes.c_voidp()
         self.jpegtables = None
+        self.dir = 0
+        self.levels = []
 
     def select_dir(self, dir):
         """
         :param dir: Number of Directory to select
         """
+        if not (len(self.levels) > dir):
+            raise Exception("Level not stored in file")
+        else:
+            print "Len: ", len(self.levels), dir
         libtiff.TIFFSetDirectory(self.tif, dir)
-        self.dir = libtiff.TIFFCurrentDirectory(self.tif)
+        self.dir = libtiff.TIFFCurrentDirectory(self.tif).value
         #libtiff.TIFFReadDirectory(self.tif)
         self.update_image_info()
 
@@ -74,6 +80,18 @@ class TileReader():
         self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
         logging.log(logging.INFO, "Size of jpegtables: %d"%(self.jpegtable_size.value))
 
+    def _compute_levels(self):
+        """
+        Attempts to compute the dimensions of each resolution by
+        """
+        self.levels = {}
+        xml = ET.parse("meta.xml")
+        for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
+            level = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_NUMBER']").text)
+            columns = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS']").text)
+            rows = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_ROWS']").text)
+            self.levels[level] = [columns, rows]
+
     def set_input_params(self, params):
         """
         The source specific input parameters
@@ -83,6 +101,7 @@ class TileReader():
         self.tif = TIFF.open(params["fname"], "r")
         self.params = params
         self._read_JPEG_tables()
+        self._compute_levels()
 
     def get_tile_from_number(self, tileno, fp):
         """
@@ -144,11 +163,17 @@ class TileReader():
         Reads width / height etc
         Must be called after the set_input_params is called
         """
+
         self.tile_width = tif.GetField("TileWidth")
-        self.tile_length = tif.GetField("TileLength")
-        xml = ET.fromstring(tif.GetField("ImageDescription"))
-        self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
-        self.image_height = int(xml.find(".//*[@Name='PIM_DP_IMAGE_ROWS']").text)
+        self.tile_height = tif.GetField("TileLength")
+
+        # Grab the image dimensions through the metadata
+        self.width = self.levels[self.dir][0]
+        self.height = self.levels[self.dir][1]
+
+        #xml = ET.fromstring(tif.GetField("ImageDescription"))
+        #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
+        #self.image_height = int(xml.find(".//*[@Name='PIM_DP_IMAGE_ROWS']").text)
 
         #self.image_width = tif.GetField("ImageWidth")
         #self.image_length = tif.GetField("ImageLength")
@@ -159,15 +184,14 @@ class TileReader():
 def list_tiles(dir):
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
-    print "HERE"
     tile.select_dir(dir)
 
-    image_length = tile.image_height
-    image_width = tile.image_width
-    tile_length = tile.tile_length
+    image_length = tile.height
+    image_width = tile.width
+    tile_length = tile.tile_height
     tile_width = tile.tile_width
 
-    print "Selected Dir: ", dir, "Actual: ", tile.dir.value
+    print "Selected Dir: ", dir, "Actual: ", tile.dir
     print "Image: ", image_width, image_length
     print "Width+Height :", tile_width, tile_length
 
@@ -203,6 +227,7 @@ def extract_tile():
 
 
 if __name__ == "__main__":
+    list_tiles(0)
     list_tiles(1)
     list_tiles(2)
     list_tiles(3)
@@ -212,8 +237,3 @@ if __name__ == "__main__":
     list_tiles(7)
     list_tiles(8)
     list_tiles(9)
-    list_tiles(10)
-    list_tiles(11)
-    list_tiles(12)
-    list_tiles(13)
-    list_tiles(14)
