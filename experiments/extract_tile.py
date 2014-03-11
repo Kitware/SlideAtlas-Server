@@ -185,12 +185,13 @@ class TileReader():
         #self.image_length = tif.GetField("ImageLength")
         #print tif.GetField("ImageDescription")
 
-def write_svg(scale=100.0):
+def write_svg(scale=100.0, toextract=False):
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
 
 
-    for dir in [0,1,2,3,4]:
+    #for dir in [0,1,2,3,4]:
+    for dir in [5,6,7,8,9]:
         tile.select_dir(dir)
         print "Reading level: ", dir
 
@@ -208,14 +209,20 @@ def write_svg(scale=100.0):
         count = 0
         done = 0
         y = 5
+        yc = 0
         while y < image_length:
             x = 5
+            xc = 0
             while x < image_width:
                 #print "Tile number for (%d,%d): "%(x,y), tile_no
                 fp = StringIO.StringIO()
                 r = tile.dump_tile(x,y,fp)
                 count = count + 1
                 if r > 0:
+                    if(toextract):
+                        fp2 = open("d:\\output\\%d\\%d_%d.jpg"%(dir,xc,yc), "wb")
+                        fp2.write(fp.getvalue())
+                        fp2.close()
                     done = done + 1
                     #print count, done, r
                     color = "purple"
@@ -224,11 +231,14 @@ def write_svg(scale=100.0):
                     #dwg.add(dwg.circle(center=(x/scale*px, y/scale*px), r=(2*px), stroke='red', stroke_width=2*px))
                 else:
                     pass
+                fp.close()
                 #dwg.add(dwg.rect(insert=(x/10.0*px, y/10.*px), size=(512./10*px, 512.0/10*px),
                 #    fill="purple", opacity="0.5", stroke='red', stroke_width=1*px))
+                xc = xc + 1
                 x += tile_width
 
             y += tile_length
+            yc = yc + 1
         dwg.save()
         print "Done .."
     tif.close()
@@ -262,4 +272,4 @@ if __name__ == "__main__":
     #for i in range(5):
     #    list_tiles(i)
 
-    write_svg()
+    write_svg(toextract=True)
