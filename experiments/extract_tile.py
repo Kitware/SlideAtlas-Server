@@ -255,7 +255,7 @@ def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Do
 
         print "Selected Dir: ", dir, "Actual: ", tile.dir
         print "Image: ", image_width, image_length
-        #print "Width+Height :", tile_width, tile_length
+        print "isBigTIFF: ", tile.isBigTIFF
 
         count = 0
         done = 0
@@ -291,7 +291,7 @@ def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Do
             y += tile_length
             yc = yc + 1
         dwg.save()
-        print "Done ..", done, " out of: "
+        print "Done ..", done, " out of: ", tile.num_tiles
 
 
 def list_tiles(dir, fname="d:\\data\\phillips\\20140313T130524-183511.ptif"):
