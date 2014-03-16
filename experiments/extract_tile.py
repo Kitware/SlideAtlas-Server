@@ -39,7 +39,7 @@ from libtiff.utils import bytes2str
 from libtiff_ctypes import libtiff
 from libtiff_ctypes import TIFF
 
-tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
+#tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
 #    print atag
 
 #table = tif.GetField("JPEGTables", count=2)
@@ -71,32 +71,45 @@ class TileReader():
             #print "Len: ", len(self.levels), dir
         libtiff.TIFFSetDirectory(self.tif, dir)
         self.dir = libtiff.TIFFCurrentDirectory(self.tif).value
-        #libtiff.TIFFReadDirectory(self.tif)
-        self.update_image_info()
 
     def _read_JPEG_tables(self):
         """
         """
         libtiff.TIFFGetField.argtypes = libtiff.TIFFGetField.argtypes[:2] + [ctypes.POINTER(ctypes.c_uint16), ctypes.POINTER(ctypes.c_void_p)]
-        r = libtiff.TIFFGetField(tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
+        r = libtiff.TIFFGetField(self.tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
         assert(r==1)
         self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
         logging.log(logging.INFO, "Size of jpegtables: %d"%(self.jpegtable_size.value))
 
-    def _compute_levels(self):
-        """
-        Attempts to compute the dimensions of each resolution by
-        """
-        self.tile_width = tif.GetField("TileWidth")
-        self.tile_height = tif.GetField("TileLength")
-
+    def _parse_image_description(self):
+        self.meta = self.tif.GetField("ImageDescription")
         self.levels = {}
-        xml = ET.parse("meta.xml")
-        for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
-            level = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_NUMBER']").text)
-            columns = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS']").text)
-            rows = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_ROWS']").text)
-            self.levels[level] = [columns, rows]
+
+        try:
+            xml = ET.fromstring(self.meta)
+
+            # Parse the attribute named "DICOM_DERIVATION_DESCRIPTION"
+            # tiff-useBigTIFF=1-clip=2-gain=10-useRgb=0-levels=10003,10002,10000,10001-q75;PHILIPS UFS V1.6.5574
+            descstr = xml.find(".//*[@Name='DICOM_DERIVATION_DESCRIPTION']").text
+            if descstr.find("useBigTIFF=1") > 0:
+                self.isBigTIFF = True
+
+            logging.log(logging.ERROR, descstr)
+
+            for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
+                level = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_NUMBER']").text)
+                columns = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS']").text)
+                rows = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_ROWS']").text)
+                self.levels[level] = [columns, rows]
+
+
+            # Write the meta file
+            fout = open(self.params["fname"] + ".meta.xml","w")
+            fout.write(self.meta)
+            fout.close()
+        except:
+            logging.log(logging.ERROR, "Image Description not valid XML")
+
 
     def set_input_params(self, params):
         """
@@ -107,7 +120,7 @@ class TileReader():
         self.tif = TIFF.open(params["fname"], "r")
         self.params = params
         self._read_JPEG_tables()
-        self._compute_levels()
+        self.update_image_info()
 
     def get_tile_from_number(self, tileno, fp):
         """
@@ -150,6 +163,7 @@ class TileReader():
         else:
             return libtiff.TIFFComputeTile(self.tif, x, y,0,0).value
 
+
     def dump_tile(self,x,y,fp):
         """
         This function does something.
@@ -172,10 +186,17 @@ class TileReader():
         Reads width / height etc
         Must be called after the set_input_params is called
         """
+        self.tile_width = self.tif.GetField("TileWidth")
+        self.tile_height = self.tif.GetField("TileLength")
+        self.width = self.tif.GetField("ImageWidth")
+        self.height = self.tif.GetField("ImageLength")
 
+        self.isBigTIFF = False
+
+        self._parse_image_description()
         # Grab the image dimensions through the metadata
-        self.width = self.levels[self.dir][0]
-        self.height = self.levels[self.dir][1]
+
+        self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif).value
 
         #xml = ET.fromstring(tif.GetField("ImageDescription"))
         #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
@@ -240,14 +261,12 @@ def write_svg(scale=100.0, toextract=False):
             y += tile_length
             yc = yc + 1
         dwg.save()
-        print "Done .."
-    tif.close()
+        print "Done ..", done, " out of: "
 
 
-def list_tiles(dir):
-
+def list_tiles(dir, fname="d:\\data\\phillips\\20140313T130524-183511.ptif"):
     tile = TileReader()
-    tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
+    tile.set_input_params({"fname" : fname})
     tile.select_dir(dir)
 
     image_length = tile.height
@@ -258,8 +277,8 @@ def list_tiles(dir):
     print "Selected Dir: ", dir, "Actual: ", tile.dir
     print "Image: ", image_width, image_length
     print "Width+Height :", tile_width, tile_length
-
-
+    print "NoTiles: ", tile.num_tiles
+    print "isBigTIFF: ", tile.isBigTIFF
 def extract_tile():
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
@@ -269,7 +288,7 @@ def extract_tile():
 
 
 if __name__ == "__main__":
-    #for i in range(5):
-    #    list_tiles(i)
+    for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
+        list_tiles(0,fname=i)
 
-    write_svg(toextract=True)
+    #write_svg(toextract=False)
