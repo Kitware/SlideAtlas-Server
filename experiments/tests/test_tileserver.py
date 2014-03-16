@@ -13,6 +13,9 @@ class testTileReader(unittest.TestCase):
         self.reader = TileReader()
         self.reader.SetInputParams({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
 
+    def test_label_images(self):
+
+
     def test_dump_tile(self):
         pass
 

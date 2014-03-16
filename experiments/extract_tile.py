@@ -61,13 +61,13 @@ class TileReader():
         self.buf = ctypes.c_voidp()
         self.jpegtables = None
         self.dir = 0
-        self.levels = []
+        self.levels = {}
 
     def select_dir(self, dir):
         """
         :param dir: Number of Directory to select
         """
-        if not (len(self.levels) > dir):
+        if not (len(self.levels.keys()) > dir):
             raise Exception("Level not stored in file")
         else:
             pass
@@ -87,7 +87,6 @@ class TileReader():
 
     def _parse_image_description(self):
         self.meta = self.tif.GetField("ImageDescription")
-        self.levels = {}
 
         try:
             xml = ET.fromstring(self.meta)
@@ -98,7 +97,7 @@ class TileReader():
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
 
-            logging.log(logging.ERROR, descstr)
+            logging.log(logging.INFO, descstr)
 
             for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
                 level = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_NUMBER']").text)
@@ -130,8 +129,10 @@ class TileReader():
             fout = open(self.params["fname"] + ".meta.xml","w")
             fout.write(self.meta)
             fout.close()
-        except:
+
+        except Exception as E:
             logging.log(logging.ERROR, "Image Description failed for valid Phillips XML")
+            logging.log(logging.ERROR, E.message)
 
     def get_embedded_image(self, imagetype):
         """
@@ -162,13 +163,13 @@ class TileReader():
         :raises: AttributeError, KeyError
         """
         # Getting a single tile
-        tile_size = libtiff.TIFFTileSize(tif, tileno)
+        tile_size = libtiff.TIFFTileSize(self.tif, tileno)
 
         #print "TileSize: ", tile_size.value
 
         tmp_tile = create_string_buffer(tile_size.value)
 
-        r2 = libtiff.TIFFReadRawTile(tif, tileno, tmp_tile, tile_size)
+        r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         #print "Valid size in tile: ", r2.value
         # Experiment with the file output
 
@@ -236,13 +237,12 @@ class TileReader():
         #self.image_length = tif.GetField("ImageLength")
         #print tif.GetField("ImageDescription")
 
-def write_svg(scale=100.0, toextract=False):
+def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"):
     tile = TileReader()
-    tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
-
+    tile.set_input_params({"fname" : fname})
 
     #for dir in [0,1,2,3,4]:
-    for dir in [5,6,7,8,9]:
+    for dir in tile.levels.keys():
         tile.select_dir(dir)
         print "Reading level: ", dir
 
@@ -329,8 +329,8 @@ def extract_tile():
 
 
 if __name__ == "__main__":
-    for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
-        list_tiles(0,fname=i)
-        test_embedded_images(i)
+    #for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
+    #    list_tiles(0,fname=i)
+        #test_embedded_images(i)
 
-    #write_svg(toextract=False)
+    write_svg(toextract=False, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
