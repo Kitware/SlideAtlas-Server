@@ -12,6 +12,9 @@ import sys
 import svgwrite
 from svgwrite import px
 import cStringIO as StringIO
+import base64
+import os
+
 class writer(object):
     log = []
 
@@ -71,6 +74,7 @@ class TileReader():
             #print "Len: ", len(self.levels), dir
         libtiff.TIFFSetDirectory(self.tif, dir)
         self.dir = libtiff.TIFFCurrentDirectory(self.tif).value
+        self.update_dir_info()
 
     def _read_JPEG_tables(self):
         """
@@ -102,14 +106,38 @@ class TileReader():
                 rows = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_ROWS']").text)
                 self.levels[level] = [columns, rows]
 
+            self.embedded_images = {}
+            # Extract macro and label images
+            for animage in xml.findall(".//*[@ObjectType='DPScannedImage']"):
+                typestr = animage.find(".//*[@Name='PIM_DP_IMAGE_TYPE']").text
+                if typestr == "LABELIMAGE":
+                    self.embedded_images["label"] = animage.find(".//*[@Name='PIM_DP_IMAGE_DATA']").text
+                    pass
+                elif typestr == "MACROIMAGE":
+                    self.embedded_images["macro"] = animage.find(".//*[@Name='PIM_DP_IMAGE_DATA']").text
+                    pass
+                elif typestr =="WSI":
+                    pass
+                else:
+                    logging.log(logging.ERROR, "Unforeseen embedded image: %s"%(typestr))
+
+                #columns = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS']").text)
+
+            if descstr.find("useBigTIFF=1") > 0:
+                self.isBigTIFF = True
 
             # Write the meta file
             fout = open(self.params["fname"] + ".meta.xml","w")
             fout.write(self.meta)
             fout.close()
         except:
-            logging.log(logging.ERROR, "Image Description not valid XML")
+            logging.log(logging.ERROR, "Image Description failed for valid Phillips XML")
 
+    def get_embedded_image(self, imagetype):
+        """
+
+        """
+        return self.embedded_images[imagetype]
 
     def set_input_params(self, params):
         """
@@ -120,7 +148,9 @@ class TileReader():
         self.tif = TIFF.open(params["fname"], "r")
         self.params = params
         self._read_JPEG_tables()
-        self.update_image_info()
+        self._parse_image_description()
+        # Get started with first image in the dir
+        self.select_dir(0)
 
     def get_tile_from_number(self, tileno, fp):
         """
@@ -181,7 +211,7 @@ class TileReader():
         else:
             return self.get_tile_from_number(tileno, fp)
 
-    def update_image_info(self):
+    def update_dir_info(self):
         """
         Reads width / height etc
         Must be called after the set_input_params is called
@@ -279,6 +309,17 @@ def list_tiles(dir, fname="d:\\data\\phillips\\20140313T130524-183511.ptif"):
     print "Width+Height :", tile_width, tile_length
     print "NoTiles: ", tile.num_tiles
     print "isBigTIFF: ", tile.isBigTIFF
+
+def test_embedded_images(fname):
+    tile = TileReader()
+    tile.set_input_params({"fname" : fname})
+    imageprefix = os.path.split(fname)[1]
+
+    for imagetype in ["label", "macro"]:
+        fout = open(imageprefix + "_" + imagetype + ".jpg", "wb")
+        fout.write(base64.b64decode(tile.get_embedded_image(imagetype)))
+        fout.close()
+
 def extract_tile():
     tile = TileReader()
     tile.set_input_params({"fname" : "c:\\Users\\dhanannjay.deo\\Downloads\\example.tif"})
@@ -290,5 +331,6 @@ def extract_tile():
 if __name__ == "__main__":
     for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
         list_tiles(0,fname=i)
+        test_embedded_images(i)
 
     #write_svg(toextract=False)
