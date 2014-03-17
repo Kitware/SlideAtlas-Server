@@ -47,102 +47,80 @@ def register_with_app(app):
 ################################################################################
 def add_config(app):
     """
-    Set Flask application configuration options for Flask-Security and Flask-Mail
+    Set Flask application configuration options.
+
+    These are options that should never change.
     """
     # Flask-Security configuration
-    app.config.update({
+    app.config.update(
         ### Frontend ###
-        'SECURITY_FLASH_MESSAGES': True,
-        'SECURITY_LOGIN_URL': '/login',
-        'SECURITY_LOGIN_USER_TEMPLATE': 'security/login.html',
-        'SECURITY_LOGOUT_URL': '/logout',
-        'SECURITY_POST_LOGIN_VIEW': '/sessions',
-        'SECURITY_POST_LOGOUT_VIEW': '/',
+        SECURITY_FLASH_MESSAGES=True,
+        SECURITY_LOGIN_URL='/login',
+        SECURITY_LOGIN_USER_TEMPLATE='security/login.html',
+        SECURITY_LOGOUT_URL='/logout',
+        SECURITY_POST_LOGIN_VIEW='/sessions',
+        SECURITY_POST_LOGOUT_VIEW='/',
 
         ### Password login options ###
-        'SECURITY_PASSWORD_HASH': 'plaintext',  # TODO: migrate to 'pbkdf2_sha512'
-        'SECURITY_PASSWORD_SALT': None,  # TODO: set this when SECURITY_PASSWORD_HASH is changed
-        'SECURITY_DEFAULT_REMEMBER_ME': False,
-
-        ### Password account management / email features ###
-        'SECURITY_EMAIL_SENDER': app.config['EMAIL_FROM'],  # TODO: update config file to set this directly
+        SECURITY_DEFAULT_REMEMBER_ME=False,
 
         ## New account registration
-        'SECURITY_REGISTERABLE': True,
-        'SECURITY_REGISTER_URL': '/login/password/register',
-        'SECURITY_REGISTER_USER_TEMPLATE': 'security/signup.html',
-        'SECURITY_SEND_REGISTER_EMAIL': True,
-        'SECURITY_EMAIL_SUBJECT_REGISTER': 'slide-atlas.org: Account Created',
+        SECURITY_REGISTERABLE=True,
+        SECURITY_REGISTER_URL='/login/password/register',
+        SECURITY_REGISTER_USER_TEMPLATE='security/signup.html',
+        SECURITY_SEND_REGISTER_EMAIL=True,
+        SECURITY_EMAIL_SUBJECT_REGISTER='slide-atlas.org: Account Created',
         # uses 'welcome' email body template
         # TODO: change the email body template, as the default contains a password confirmation link, and we want non-password users to receive a welcome email too
 
         ## Confirmation of user's email address
-        'SECURITY_CONFIRMABLE': True,
-        'SECURITY_CONFIRM_URL': '/login/password/confirm',
-        'SECURITY_SEND_CONFIRMATION_TEMPLATE': 'security/resend_confirmation.html',
-        'SECURITY_EMAIL_SUBJECT_CONFIRM': 'slide-atlas.org: Account Confirmation',
+        SECURITY_CONFIRMABLE=True,
+        SECURITY_CONFIRM_URL='/login/password/confirm',
+        SECURITY_SEND_CONFIRMATION_TEMPLATE='security/resend_confirmation.html',
+        SECURITY_EMAIL_SUBJECT_CONFIRM='slide-atlas.org: Account Confirmation',
         # uses 'confirmation_instructions' email body template
-        'SECURITY_CONFIRM_EMAIL_WITHIN': '5 days',
-        'SECURITY_LOGIN_WITHOUT_CONFIRMATION': False,
+        SECURITY_CONFIRM_EMAIL_WITHIN='5 days',
+        SECURITY_LOGIN_WITHOUT_CONFIRMATION=False,
 
         ## Recover / reset a lost password
-        'SECURITY_RECOVERABLE': True,
-        'SECURITY_RESET_URL': '/login/password/reset',
-        'SECURITY_FORGOT_PASSWORD_TEMPLATE': 'security/password_reset_1.html',  # step 1
-        'SECURITY_RESET_PASSWORD_TEMPLATE': 'security/password_reset_2.html',  # step 2
-        'SECURITY_EMAIL_SUBJECT_PASSWORD_RESET': 'slide-atlas.org: Password Reset Instructions',
+        SECURITY_RECOVERABLE=True,
+        SECURITY_RESET_URL='/login/password/reset',
+        SECURITY_FORGOT_PASSWORD_TEMPLATE='security/password_reset_1.html',  # step 1
+        SECURITY_RESET_PASSWORD_TEMPLATE='security/password_reset_2.html',  # step 2
+        SECURITY_EMAIL_SUBJECT_PASSWORD_RESET='slide-atlas.org: Password Reset Instructions',
         # uses 'reset_instructions' email body template
-        'SECURITY_RESET_PASSWORD_WITHIN': '5 days',
-        'SECURITY_SEND_PASSWORD_RESET_NOTICE_EMAIL': False,  # TODO: do we want to send a confirmation email?
-        'SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE': 'slide-atlas.org: Password Reset Successful',
+        SECURITY_RESET_PASSWORD_WITHIN='5 days',
+        SECURITY_SEND_PASSWORD_RESET_NOTICE_EMAIL=False,  # TODO: do we want to send a confirmation email?
+        SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE='slide-atlas.org: Password Reset Successful',
         # uses 'reset_notice' email body template
 
         ## Change a password
-        'SECURITY_CHANGEABLE': True,
-        'SECURITY_CHANGE_URL': '/login/password/change',
-        'SECURITY_CHANGE_PASSWORD_TEMPLATE': 'security/password_change.html',
-        'SECURITY_SEND_PASSWORD_CHANGE_EMAIL': False,  # TODO: do we want to send a confirmation email?
-        'SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE': 'slide-atlas.org: Password Change Successful',
+        SECURITY_CHANGEABLE=True,
+        SECURITY_CHANGE_URL='/login/password/change',
+        SECURITY_CHANGE_PASSWORD_TEMPLATE='security/password_change.html',
+        SECURITY_SEND_PASSWORD_CHANGE_EMAIL=False,  # TODO: do we want to send a confirmation email?
+        SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE='slide-atlas.org: Password Change Successful',
         # uses 'change notice' email body template
 
         ### Other options ###
-        'SECURITY_TRACKABLE': True,  # record login statistics in User model
-        'SECURITY_PASSWORDLESS': False,  # an experimental feature
+        SECURITY_TRACKABLE=True,  # record login statistics in User model
+        SECURITY_PASSWORDLESS=False,  # an experimental feature
         # custom salts can also be set for several other tokens, but this shouldn't be necessary
 
         # TODO: there are a few other undocumented config settings in Flask-Security, explore them
-    })
+    )
 
     # Flask-Login configuration
-    app.config.update({
-        'SESSION_PROTECTION': 'basic',  # some extra security for cookies, see documentation for details
+    app.config.update(
+        SESSION_PROTECTION='basic',  # some extra security for cookies, see documentation for details
 
-        # 'SECRET_KEY'  # TODO: verify that this is always set by site config, as it's required
+        REMEMBER_COOKIE_DOMAIN = app.session_interface.get_cookie_domain(app),
 
-        ## TODO: some cookie settings that can be changed
-        # 'REMEMBER_COOKIE_NAME'
-        # 'REMEMBER_COOKIE_DURATION'
-        # 'REMEMBER_COOKIE_DOMAIN'
-        # 'REMEMBER_COOKIE_SECURE'
-        # 'REMEMBER_COOKIE_HTTPONLY'
+        REMEMBER_COOKIE_HTTPONLY = True,
 
-        ## if either of these is True, logins are no longer required
-        'TESTING': False,
-        'LOGIN_DISABLED': False,
-    })
+        REMEMBER_COOKIE_SECURE = app.config['SLIDEATLAS_HTTPS'],
+    )
 
-    # Flask-Mail configuration
-    app.config.update({  # TODO: review these settings
-        'MAIL_SERVER': app.config['SMTP'],  # TODO: set this directly
-        'MAIL_PORT': 25,
-        'MAIL_USE_TLS': False,
-        'MAIL_USE_SSL': False,
-        'MAIL_DEBUG': app.debug,
-        'MAIL_USERNAME': None,
-        'MAIL_PASSWORD': None,
-        'MAIL_MAX_EMAILS': None,
-        'MAIL_SUPPRESS_SEND': app.testing,
-    })
 
 
 ################################################################################

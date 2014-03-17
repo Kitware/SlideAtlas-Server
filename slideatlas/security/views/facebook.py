@@ -18,14 +18,14 @@ facebook = oauth.remote_app('facebook',
     access_token_url='/oauth/access_token',
     authorize_url='https://www.facebook.com/dialog/oauth',
     request_token_params={'scope': 'email,user_groups'},
-    app_key='FACEBOOK'
+    app_key='SLIDEATLAS_FACEBOOK_OAUTH'
 )
 
 
 def register_with_app(app):
-    app.config['FACEBOOK'] = {
-        'consumer_key': app.config['FACEBOOK_APP_ID'],
-        'consumer_secret': app.config['FACEBOOK_APP_SECRET']
+    app.config['SLIDEATLAS_FACEBOOK_OAUTH'] = {
+        'consumer_key': app.config['SLIDEATLAS_FACEBOOK_APP_ID'],
+        'consumer_secret': app.config['SLIDEATLAS_FACEBOOK_APP_SECRET']
     }
     oauth.init_app(app)
 
