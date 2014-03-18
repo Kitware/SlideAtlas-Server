@@ -28,9 +28,14 @@ if app.config["LOGIN_REQUIRED"]:
 @app.route("/tile")
 def tile():
     # Get variables
-    x = request.args.get('x', 0)
-    y = request.args.get('y', 0)
-    z = request.args.get('z', 0)
+    x = int(request.args.get('x', 0))
+    y = int(request.args.get('y', 0))
+    z = int(request.args.get('z', 0))
+
+    # Locate the tilename from x and y
+    locx = x * 512
+    locx = x * 512
+
 
     docImage = colImage.find_one({'name': "t.jpg"})
 
