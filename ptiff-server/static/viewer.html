@@ -10,16 +10,26 @@
     <script src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
 
     <script>
-        var map = L.map('map').setView([0, 0], 2);
+        var map = L.map('map', {
+            maxZoom:4,
+            minZoom:0,
+            crs: L.CRS.Simple
+            })
+
+        var southWest = map.unproject([0, 4000], map.getMaxZoom());
+        var northEast = map.unproject([10680, 0], map.getMaxZoom());
+
+        map.setMaxBounds([[-1000,5000],[12680,-1000]]);
+        map.setView([0, 0], 0);
+
         L.tileLayer('/tile?z={z}&x={x}&y={y}', {
-            minZoom: 1,
-            maxZoom: 6,
-            zoom: 1,
-            bounds: [[0,0,] , [10680, 4000]],
+            tileSize:512,
+            crs: L.CRS.Simple,
             attribution: 'http://slide-atlas.org',
-            tms: false,
-            noWrap : true
+//            tms: false,
+//            continuousWorld : true
         }).addTo(map);
+
     </script>
 </body>
 </html>

@@ -25,6 +25,10 @@ colImage = imgdb["531656dea86480a4e608caf9"]
 if app.config["LOGIN_REQUIRED"]:
     admindb.authenticate(app.config["USERNAME"], app.config["PASSWORD"])
 
+from common_utils import get_tile_name_slideatlas
+import logging
+blank = open("blank_512.jpg","rb").read()
+
 @app.route("/tile")
 def tile():
     # Get variables
@@ -36,14 +40,13 @@ def tile():
     locx = x * 512
     locx = x * 512
 
-
-    docImage = colImage.find_one({'name': "t.jpg"})
-
+    docImage = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
+    logging.log(logging.ERROR,get_tile_name_slideatlas(x,y,z))
     if docImage == None:
-        flask.abort(403)
+        return flask.Response(blank, mimetype="image/jpeg")
     return flask.Response(str(docImage['file']), mimetype="image/jpeg")
 
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0", port=8080, debug=True)
