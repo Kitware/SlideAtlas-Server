@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet"
+          href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.css" />
+</head>
+<body>
+    <div id="map" style="width: 700px; height: 500px"></div>
+
+    <script src="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.js"></script>
+
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('/tile?z={z}&x={x}&y={y}', {
+            minZoom: 1,
+            maxZoom: 6,
+            attribution: 'http://slide-atlas.org',
+            tms: true
+        }).addTo(map);
+    </script>
+</body>
+</html>
