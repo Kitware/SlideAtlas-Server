@@ -1,6 +1,6 @@
 from bson.objectid import ObjectId
 import flask
-from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app
+from flask import Blueprint, redirect, render_template, request, session, flash, url_for, current_app, abort
 from flask_openid import OpenID
 from flask_oauth import OAuth
 import smtplib
@@ -382,6 +382,49 @@ def login_google(oid_response=None):
         return redirect('/sessions')
 
 
+mod.add_url_rule('/login.shibboleth/<path:handler>', endpoint='login_shibboleth_handler', build_only=True)
+
+@mod.route('/login/shibboleth')
+def login_shibboleth():
+    # this could be set by other CGI-compatible auth methods, but is a quick
+    # check to ensure Shibboleth protection is enabled
+    if not request.environ.get('Shib-Application-ID'):
+        abort(503)  # Service Unavailable
+
+    eppn = request.environ.get('Shib-Attribute-eduPersonPrincipalName')
+    email = request.environ.get('Shib-Attribute-mail')
+    display_name = request.environ.get('Shib-Attribute-displayName')
+
+    if not eppn:
+        abort(401)  # Unauthorized
+
+    # Check if the user exists
+    conn.register([model.User])
+    dbobj = conn[current_app.config["CONFIGDB"]]
+    userdoc = dbobj["users"].User.find_one(
+                            {'type' : 'shibboleth',
+                            'name' : eppn
+                            })
+
+    if userdoc == None:
+        # Not found, create one
+        userdoc = dbobj["users"].User()
+        userdoc["type"] = 'shibboleth'
+        userdoc["name"] = eppn
+        userdoc["label"] = display_name
+        userdoc["email"] = email
+        userdoc.save()
+        flash('New Shibboleth user account created', 'info')
+    else:
+        flash('Shibboleth account exists', 'info')
+        # label and email fields could have changed
+        userdoc["label"] = display_name
+        userdoc["email"] = email
+        userdoc.save()
+
+    do_user_login(userdoc)
+    return redirect('/sessions')
+
 
 def do_user_login(user):
     """
@@ -408,7 +451,9 @@ def do_user_login(user):
     # Loop over the rules
     accesses = { }
 
-    if user["type"] == "passwd" and (user["name"].endswith("brown.edu") or user["name"].endswith("kitware.com")):
+    if (user['type'] == 'shibboleth') or \
+        (user["type"] == "passwd" and user["name"].endswith("brown.edu")) or \
+        (user["name"].endswith("kitware.com")):
         # Here grant the user with the demo_brown rule
         # flash("You used password login, and you get donut ! ")
         # ObjectId("529d244959a3aee20f8a00ae")
