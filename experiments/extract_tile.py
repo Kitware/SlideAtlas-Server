@@ -39,8 +39,9 @@ from libtiff.utils import bytes2str
 
 #tif = libtiff.tiff.TIFFfile("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif")
 #for atag in tiff.IFD:
-from libtiff_ctypes import libtiff
-from libtiff_ctypes import TIFF
+from libtiff.libtiff_ctypes import libtiff
+from libtiff.libtiff_ctypes import TIFF
+from libtiff.libtiff_ctypes import c_ttag_t
 
 #tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
 #    print atag
@@ -86,6 +87,8 @@ class TileReader():
         logging.log(logging.INFO, "Size of jpegtables: %d"%(self.jpegtable_size.value))
 
     def _parse_image_description(self):
+        libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
+
         self.meta = self.tif.GetField("ImageDescription")
 
         try:
@@ -167,7 +170,7 @@ class TileReader():
 
         #print "TileSize: ", tile_size.value
 
-        tmp_tile = create_string_buffer(tile_size.value)
+        tmp_tile = create_string_buffer(tile_size)
 
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         #print "Valid size in tile: ", r2.value
@@ -177,8 +180,8 @@ class TileReader():
         # Write padding
         padding = "%c"%(255) * 4
         fp.write(padding)
-        fp.write(ctypes.string_at(tmp_tile, r2.value)[2:])
-        return r2.value
+        fp.write(ctypes.string_at(tmp_tile, r2)[2:])
+        return r2
 
     def tile_number(self,x,y):
         """
@@ -192,7 +195,7 @@ class TileReader():
         if libtiff.TIFFCheckTile(self.tif, x, y,0,0) == 0:
             return -1
         else:
-            return libtiff.TIFFComputeTile(self.tif, x, y,0,0).value
+            return libtiff.TIFFComputeTile(self.tif, x, y,0,0)
 
 
     def dump_tile(self,x,y,fp):
@@ -227,7 +230,7 @@ class TileReader():
         self._parse_image_description()
         # Grab the image dimensions through the metadata
 
-        self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif).value
+        self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif)
 
         #xml = ET.fromstring(tif.GetField("ImageDescription"))
         #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)

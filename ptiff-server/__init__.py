@@ -2,6 +2,12 @@ __author__ = 'dhanannjay.deo'
 
 import flask
 from flask import request
+import sys
+import os
+tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
+print tilereaderpath
+
+sys.path.append(tilereaderpath)
 app = flask.Flask(__name__)
 
 @app.route('/')
@@ -29,7 +35,7 @@ from common_utils import get_tile_name_slideatlas
 import logging
 blank = open("blank_512.jpg","rb").read()
 
-@app.route("/tile")
+@app.route("/tile_mongo")
 def tile():
     # Get variables
     x = int(request.args.get('x', 0))
@@ -46,6 +52,30 @@ def tile():
         return flask.Response(blank, mimetype="image/jpeg")
     return flask.Response(str(docImage['file']), mimetype="image/jpeg")
 
+
+os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
+# os.chdir('D:\\projects\\tiff-4.0.3\\libtiff')
+from extract_tile import TileReader
+
+reader = TileReader()
+
+@app.route("/tile_ptiff")
+def tile():
+    # Get variables
+    x = int(request.args.get('x', 0))
+    y = int(request.args.get('y', 0))
+    z = int(request.args.get('z', 0))
+        # Locate the tilename from x and y
+    locx = x * 512
+    locy = y * 512
+
+
+
+    docImage = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
+    logging.log(logging.ERROR,get_tile_name_slideatlas(x,y,z))
+    if docImage == None:
+        return flask.Response(blank, mimetype="image/jpeg")
+    return flask.Response(str(docImage['file']), mimetype="image/jpeg")
 
 
 if __name__ == '__main__':

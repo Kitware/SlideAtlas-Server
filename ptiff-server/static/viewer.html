@@ -22,7 +22,7 @@
         map.setMaxBounds([[-1000,5000],[12680,-1000]]);
         map.setView([0, 0], 0);
 
-        L.tileLayer('/tile?z={z}&x={x}&y={y}', {
+        L.tileLayer('/tile_mongo?z={z}&x={x}&y={y}', {
             tileSize:512,
             crs: L.CRS.Simple,
             attribution: 'http://slide-atlas.org',
