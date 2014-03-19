@@ -84,10 +84,10 @@ class TileReader():
         r = libtiff.TIFFGetField(self.tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
         assert(r==1)
         self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
-        logging.log(logging.INFO, "Size of jpegtables: %d"%(self.jpegtable_size.value))
+        logging.log(logging.ERROR, "Size of jpegtables: %d"%(self.jpegtable_size.value))
+        libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
     def _parse_image_description(self):
-        libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
         self.meta = self.tif.GetField("ImageDescription")
 
@@ -245,7 +245,8 @@ def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Do
     tile.set_input_params({"fname" : fname})
 
     #for dir in [0,1,2,3,4]:
-    for dir in tile.levels.keys():
+    #for dir in tile.levels.keys():
+    for dir in [5]:
         tile.select_dir(dir)
         print "Reading level: ", dir
 
@@ -336,4 +337,4 @@ if __name__ == "__main__":
     #    list_tiles(0,fname=i)
         #test_embedded_images(i)
 
-    write_svg(toextract=False, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
+    write_svg(toextract=True, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
