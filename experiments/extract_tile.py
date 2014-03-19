@@ -84,7 +84,7 @@ class TileReader():
         r = libtiff.TIFFGetField(self.tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
         assert(r==1)
         self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
-        logging.log(logging.ERROR, "Size of jpegtables: %d"%(self.jpegtable_size.value))
+        #logging.log(logging.ERROR, "Size of jpegtables: %d"%(self.jpegtable_size.value))
         libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
     def _parse_image_description(self):
@@ -227,6 +227,7 @@ class TileReader():
 
         self.isBigTIFF = False
 
+        self._read_JPEG_tables()
         self._parse_image_description()
         # Grab the image dimensions through the metadata
 

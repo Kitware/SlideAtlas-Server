@@ -58,6 +58,12 @@ os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
 from extract_tile import TileReader
 
 reader = TileReader()
+reader.set_input_params({"fname" : "d:\\data\\phillips\\20140313T180859-805105.ptif"})
+import StringIO
+#
+#from extract_tile import list_tiles
+#list_tiles(0, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
+
 
 @app.route("/tile_ptiff")
 def tile():
@@ -68,15 +74,28 @@ def tile():
         # Locate the tilename from x and y
     locx = x * 512
     locy = y * 512
+    if reader.dir != z:
+        reader.select_dir(z)
+        logging.log(logging.ERROR, "Switched to %d zoom"%(reader.dir))
 
+    fp = StringIO.StringIO()
+    try:
+        r = reader.dump_tile(locx,locy, fp)
+        if r > 0:
+            logging.log(logging.ERROR, "Read %d bytes"%(r))
 
-
-    docImage = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
-    logging.log(logging.ERROR,get_tile_name_slideatlas(x,y,z))
-    if docImage == None:
+    except Exception as e:
+        #docIma ge = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
+        logging.log(logging.ERROR, "Tile not loaded", e.message)
+        fp.close()
         return flask.Response(blank, mimetype="image/jpeg")
-    return flask.Response(str(docImage['file']), mimetype="image/jpeg")
 
+    #s = fp.getvalue()
+    #logging.log(logging.ERROR, "Got %d bytes in buffer"%(len(s)))
+    fp2 = open("test_output.jpg","wb")
+    fp2.write(fp.getvalue())
+    fp2.close()
+    return flask.Response(fp.getvalue(), mimetype="image/jpeg")
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080, debug=True)
