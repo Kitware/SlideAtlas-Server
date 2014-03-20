@@ -30,6 +30,10 @@ function CrossWidget (viewer, newFlag) {
   this.State = CROSS_WIDGET_WAITING;
 }
 
+CrossWidget.prototype.Draw = function(view) {
+   this.Shape.Draw(view);
+}
+
 CrossWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;

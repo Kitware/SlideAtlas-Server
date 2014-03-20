@@ -119,6 +119,14 @@ def flipViewerRecord(viewerRecord) :
 def convertImageToPixelCoordinateSystem(imageObj) :
   # origin ?
   # Skip startup view.  GetView handles this old format
+  
+  if 'dimensions' in imageObj:
+    imageObj["dimensions"] = imageObj["dimensions"]
+  elif 'dimension' in imageObj:
+    imageObj["dimensions"] = imageObj["dimension"]
+  if not imageObj.has_key("bounds") :
+    imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
+
   if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Pixel" :
     return
   # the only other option is "Photo", lower left origin.
@@ -469,7 +477,7 @@ def glstacksession():
     """
     - /webgl-viewer/stack-session?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
     """
-
+    #pdb.set_trace();
     # Comparison is a modified view.
     sessid = request.args.get('sess', None)
     if not sessid:
@@ -483,28 +491,48 @@ def glstacksession():
 
     sessobj = db["sessions"].find_one({"_id" : ObjectId(sessid) })
     views = [];
+    viewIdx = 0;
     for view in sessobj["views"]:
         viewid = view["ref"]
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-        #viewobj["rotation"] = 0
+        
         # Having issues with jsonify
         imgdbid = dbid
         if 'db' in viewobj:
             imgdbid = str(viewobj["db"])
+        imgobj = db["images"].find_one({"_id" : viewobj["img"] })
+        convertImageToPixelCoordinateSystem(imgobj)
+        
+        # flip the coordinate system to image
+        flip = True
+        if viewobj.has_key("CoordinateSystem") and viewobj["CoordinateSystem"] == "Pixel" :
+            flip = False
+        if flip :
+            paddedHeight = 256 << (imgobj["levels"] - 1)
+            viewobj["center"][1] = paddedHeight - viewobj["center"][1]
+            if viewIdx < len(sessobj["transformations"]) :
+              pair = sessobj["transformations"][viewIdx]
+              for correlation in pair["Correlations"] :
+                  correlation["point0"][1] = paddedHeight - correlation["point0"][1]
+            if viewIdx > 0 :
+                pair = sessobj["transformations"][viewIdx-1]
+                for correlation in pair["Correlations"] :
+                    correlation["point1"][1] = paddedHeight - correlation["point1"][1]
+
+        # package up variables for template
         myview = {"_id": str(viewobj["_id"]),
                   "center": viewobj["center"],
                   "height": viewobj["height"],
                   "rotation": 0,
                   "db": imgdbid}
-        imgobj = db["images"].find_one({"_id" : viewobj["img"] })
-        #imgobj["_id"] = str(imgobj["_id"])
-        #imgobj["thumb"] = ""
         myimg = {"dimensions": imgobj["dimension"],
+                 "bounds": imgobj["bounds"],
                  "_id": str(imgobj["_id"]),
                  "levels": imgobj["levels"]}
                  
         myview["img"] = myimg
         views.append(myview)
+        viewIdx += 1;
 
     for pair in sessobj["transformations"]:
         if 'view0' in pair:
