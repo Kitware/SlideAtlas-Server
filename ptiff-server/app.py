@@ -23,10 +23,13 @@ sys.path.append(tilereaderpath)
 app = flask.Flask(__name__)
 
 @app.route('/')
-def viewer():
+def index():
 
-    return "Helllo"
-    # flask.send_from_directory("static","index.html")
+    # return "Helllo"
+    return flask.send_from_directory("static","index.html")
+
+
+
 
 ##############################3
 # for loading tiles
@@ -116,3 +119,21 @@ def tile_ptiff():
     # fp2.write(fp.getvalue())
     # fp2.close()
     return flask.Response(fp.getvalue(), mimetype="image/jpeg")
+
+from werkzeug.routing import BaseConverter
+
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+
+app.url_map.converters['regex'] = RegexConverter
+
+@app.route('/<fname>/<regex("(thumb|macro|meta)"):itype>/')
+def example(fname, itype):
+    return "fname: %s, itype: %s" % (fname, itype)
+
+
+# @app.route("/")
+# def index():
+#     flask.render_template("index.html")
