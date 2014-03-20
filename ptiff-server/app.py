@@ -129,8 +129,11 @@ class RegexConverter(BaseConverter):
 
 import base64
 app.url_map.converters['regex'] = RegexConverter
-@app.route('/<fname>/<regex("(label|macro|thumb)"):itype>/')
+@app.route('/<fname>/<regex("(label|macro)"):itype>/')
 def example(fname, itype):
+    """
+    Returns label or macro image from associated file
+    """
     # See if label name exists
     tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
     oimagepath = tiffpath + "." + itype + ".jpg"

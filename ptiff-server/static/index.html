@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="myApp">
 <head>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
     <title>Pyramidal TIFF viewer </title>
@@ -7,6 +7,47 @@
 
 <body>
 
+    <h1> Slides available </h1>
+    <div class="container">
+
+        <div ng-controller="MyCtrl">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="ingredient in ingredients" ng-click="setSelected();">
+                        <td>{{ ingredient.name }}</td>
+                        <td>{{ ingredient.status }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"> </script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js"></script>
+    <script>
+    var myApp = angular.module('myApp',[]);
+
+    function MyCtrl($scope) {
+
+        $scope.ingredients = [
+            {'name': 'potato'},
+            {'name': 'tomato'}
+        ];
+
+        $scope.setSelected = function() {
+            $scope.selected = this.ingredient;
+            console.log($scope.selected);
+        };
+
+    }
+    </script>
+
 </body>
 </html>
