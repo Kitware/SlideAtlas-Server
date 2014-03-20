@@ -162,6 +162,9 @@ def slidelist():
     searchpath = os.path.join(app.config["FILES_ROOT"], "*.ptif")
     logging.log(logging.INFO, searchpath)
     for aslide in glob.glob(searchpath):
-        slides.append({"name" : aslide})
+        obj = {}
+        obj["name"] = os.path.split(aslide)[1]
+        obj["barcode"] = ""
+        slides.append(obj)
 
     return flask.jsonify({"slides" : slides})

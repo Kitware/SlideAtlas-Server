@@ -2,6 +2,19 @@
 <html ng-app="myApp">
 <head>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+    <style>
+        .rotated {
+             transform:rotate(-90deg);
+            -ms-transform:rotate(-90deg); /* IE 9 */
+            -webkit-transform:rotate(-90deg); /* Opera, Chrome, and Safari */
+        }
+
+        }
+
+
+
+    </style>
     <title>Pyramidal TIFF viewer </title>
 </head>
 
@@ -20,8 +33,15 @@
                 </thead>
                 <tbody>
                     <tr ng-repeat="slide in slides" ng-click="setSelected();">
-                        <td>{{ slide.name }}</td>
-                        <td>{{ slide.status }}</td>
+                        <td>
+                            <a href="/ptiff-server?image={{slide.name}}" class="lead">{{slide.barcode}}{{slide.name}}</a>
+                        </td>
+                        <td>
+                            <img ng-src="/apiv1/slides/{{slide.name}}/label" width=100px class="rotated">
+                        </td>
+                        <td>
+                            <img ng-src="/apiv1/slides/{{slide.name}}/macro" width=200px>
+                        </td>
                     </tr>
                 </tbody>
             </table>
