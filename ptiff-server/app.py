@@ -152,11 +152,16 @@ def example(fname, itype):
     fin = open(oimagepath,"rb")
     return flask.Response(fin.read(), mimetype="image/jpeg")
 
+import glob
 @app.route('/apiv1/slides')
 def slidelist():
     """
     return a json list describing files in FILES_ROOT
     """
-    obj = [{"name" : "potato"}, {"name" : "tomato"}]
+    slides = []
+    searchpath = os.path.join(app.config["FILES_ROOT"], "*.ptif")
+    logging.log(logging.INFO, searchpath)
+    for aslide in glob.glob(searchpath):
+        slides.append({"name" : aslide})
 
-    return flask.jsonify({"slides" : obj})
+    return flask.jsonify({"slides" : slides})
