@@ -11,15 +11,15 @@
 
     <script>
         var map = L.map('map', {
-            crs: L.CRS.Simple
-            })
+            crs: L.CRS.Simple,
+            maxZoom:9,
+            minZoom:0
+            });
 
 
-        var southWest = map.unproject([0, 4000], map.getMaxZoom());
-        var northEast = map.unproject([10680, 0], map.getMaxZoom());
         // 167936 88064
         map.setMaxBounds([[-1000, 90000],[169000,-1000]]);
-        map.setView([0, 0], 2);
+        map.setView([0, 0], 0);
 
         L.tileLayer('/tile_ptiff?z={z}&x={x}&y={y}', {
             tileSize:512,
@@ -28,8 +28,8 @@
             crs: L.CRS.Simple,
             attribution: 'http://slide-atlas.org',
             zoomReverse: true,
-//            tms: false,
-//            continuousWorld : true
+            tms: false,
+            continuousWorld : true,
         }).addTo(map);
 
     </script>

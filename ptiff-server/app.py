@@ -45,7 +45,7 @@ if app.config["LOGIN_REQUIRED"]:
 
 from common_utils import get_tile_name_slideatlas
 import logging
-blank = open("blank_512.jpg","rb").read()
+blank = open("512_bird.jpg","rb").read()
 
 @app.route("/tile_mongo")
 def tile_mongo():
@@ -75,9 +75,9 @@ myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
 reader = TileReader()
 reader.set_input_params({"fname" : myfname})
 import StringIO
-#
-from extract_tile import list_tiles
-list_tiles(0, fname=myfname)
+# #
+# from extract_tile import list_tiles
+# list_tiles(0, fname=myfname)
 
 
 @app.route("/tile_ptiff")
@@ -89,9 +89,6 @@ def tile_ptiff():
         # Locate the tilename from x and y
     locx = x * 512 + 5
     locy = y * 512 + 5
-
-    if z < 3:
-        return flask.Response(blank, mimetype="image/jpeg")
 
     if reader.dir != z:
         reader.select_dir(z)
