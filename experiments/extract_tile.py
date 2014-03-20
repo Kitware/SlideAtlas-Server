@@ -253,7 +253,7 @@ class TileReader():
         # Grab the image dimensions through the metadata
 
         self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif)
-        if isinstance(self.num_tiles, (int, long)):
+        if not isinstance(self.num_tiles, (int, long)):
             self.num_tiles = self.num_tiles.value
 
 
@@ -271,7 +271,7 @@ def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Do
 
     #for dir in [0,1,2,3,4]:
     #for dir in tile.levels.keys():
-    for dir in [5]:
+    for dir in [1,2,3,4,5,6]:
         tile.select_dir(dir)
         print "Reading level: ", dir
 
@@ -300,7 +300,10 @@ def write_svg(scale=100.0, toextract=False, fname="c:\\Users\\dhanannjay.deo\\Do
                 count = count + 1
                 if r > 0:
                     if(toextract):
-                        fp2 = open("d:\\output\\%d\\%d_%d.jpg"%(dir,xc,yc), "wb")
+                        outputpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"output"))
+                        fname = os.path.join(outputpath, str(dir),"%d_%d.jpg"%(xc,yc) )
+                        logging.log(logging.ERROR, fname)
+                        fp2 = open(fname, "wb")
                         fp2.write(fp.getvalue())
                         fp2.close()
                     done = done + 1
