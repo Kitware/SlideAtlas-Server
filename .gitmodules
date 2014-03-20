@@ -1,0 +1,6 @@
+[submodule "libtiff"]
+	path = tpl/tiff-4.0.3
+	url = https://github.com/vadz/libtiff.git
+[submodule "pylibtiff"]
+	path = tpl/pylibtiff-read-only
+	url = https://github.com/brianhelba/pylibtiff.git

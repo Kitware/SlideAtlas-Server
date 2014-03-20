@@ -5,6 +5,15 @@ import flask
 from flask import request
 import sys
 import os
+
+tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
+pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
+print pylibtiffpath
+print tplpath
+
+sys.path = [pylibtiffpath] + sys.path
+
+import os
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
 print tilereaderpath
 import logging
@@ -39,7 +48,7 @@ import logging
 blank = open("blank_512.jpg","rb").read()
 
 @app.route("/tile_mongo")
-def tile():
+def tile_mongo():
     # Get variables
     x = int(request.args.get('x', 0))
     y = int(request.args.get('y', 0))
@@ -60,16 +69,19 @@ os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
 # os.chdir('D:\\projects\\tiff-4.0.3\\libtiff')
 from extract_tile import TileReader
 
+# myfname = "d:\\data\\phillips\\20140313T180859-805105.ptif"
+myfname = "/home/dhan/data/philips/20140313T165829-545675.ptif"
+
 reader = TileReader()
-reader.set_input_params({"fname" : "d:\\data\\phillips\\20140313T180859-805105.ptif"})
+reader.set_input_params({"fname" : myfname})
 import StringIO
 #
 from extract_tile import list_tiles
-list_tiles(0, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
+list_tiles(0, fname=myfname)
 
 
 @app.route("/tile_ptiff")
-def tile():
+def tile_ptiff():
     # Get variables
     x = int(request.args.get('x', 0))
     y = int(request.args.get('y', 0))
