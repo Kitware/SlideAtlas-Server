@@ -21,7 +21,7 @@ class writer(object):
     def write(self, data):
         self.log.append(data)
 
-logger = writer()
+#logger = writer()
 #sys.stderr = logger
 from xml.etree import cElementTree as ET
 
@@ -314,6 +314,7 @@ def list_tiles(dir, fname="d:\\data\\phillips\\20140313T130524-183511.ptif"):
     print "Width+Height :", tile_width, tile_length
     print "NoTiles: ", tile.num_tiles
     print "isBigTIFF: ", tile.isBigTIFF
+    print "Levels: ", len(tile.levels.keys())
 
 def test_embedded_images(fname):
     tile = TileReader()

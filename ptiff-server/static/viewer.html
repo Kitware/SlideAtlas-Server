@@ -11,8 +11,6 @@
 
     <script>
         var map = L.map('map', {
-            maxZoom:4,
-            minZoom:0,
             crs: L.CRS.Simple
             })
 
@@ -25,6 +23,8 @@
 
         L.tileLayer('/tile_ptiff?z={z}&x={x}&y={y}', {
             tileSize:512,
+            maxZoom:9,
+            minZoom:0,
             crs: L.CRS.Simple,
             attribution: 'http://slide-atlas.org',
             zoomReverse: true,
