@@ -129,7 +129,8 @@ class RegexConverter(BaseConverter):
 
 import base64
 app.url_map.converters['regex'] = RegexConverter
-@app.route('/<fname>/<regex("(label|macro)"):itype>/')
+
+@app.route('/apiv1/slides/<fname>/<regex("(label|macro)"):itype>/')
 def example(fname, itype):
     """
     Returns label or macro image from associated file
@@ -150,11 +151,12 @@ def example(fname, itype):
 
     fin = open(oimagepath,"rb")
     return flask.Response(fin.read(), mimetype="image/jpeg")
-    #
-    # if itype in ["macro", "meta"]:
-    #     return "fname: %s, itype: %s" % (fname, itype)
-    #
 
-# @app.route("/")
-# def index():
-#     flask.render_template("index.html")
+@app.route('/apiv1/slides')
+def slidelist():
+    """
+    return a json list describing files in FILES_ROOT
+    """
+    obj = [{"name" : "potato"}, {"name" : "tomato"}]
+
+    return flask.jsonify({"slides" : obj})
