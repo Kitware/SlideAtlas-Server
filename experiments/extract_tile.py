@@ -1,3 +1,5 @@
+from mx.DateTime.Locale import _TimeLocale
+
 __author__ = 'dhanannjay.deo'
 
 """
@@ -14,6 +16,15 @@ from svgwrite import px
 import cStringIO as StringIO
 import base64
 import os
+
+tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
+pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
+print pylibtiffpath
+print tplpath
+
+sys.path = [pylibtiffpath] + sys.path
+
+
 
 class writer(object):
     log = []
@@ -169,8 +180,12 @@ class TileReader():
         tile_size = libtiff.TIFFTileSize(self.tif, tileno)
 
         #print "TileSize: ", tile_size.value
+        if not isinstance( tile_size, ( int, long ) ):
+            tile_size = tile_size.value
 
         tmp_tile = create_string_buffer(tile_size)
+
+
 
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         #print "Valid size in tile: ", r2.value
@@ -181,7 +196,9 @@ class TileReader():
         padding = "%c"%(255) * 4
         fp.write(padding)
         fp.write(ctypes.string_at(tmp_tile, r2)[2:])
-        return r2
+        if isinstance( r2, ( int, long ) ):
+            return r2
+        return r2.value
 
     def tile_number(self,x,y):
         """
@@ -195,7 +212,11 @@ class TileReader():
         if libtiff.TIFFCheckTile(self.tif, x, y,0,0) == 0:
             return -1
         else:
-            return libtiff.TIFFComputeTile(self.tif, x, y,0,0)
+            tileno = libtiff.TIFFComputeTile(self.tif, x, y,0,0)
+            if isinstance( tileno, ( int, long ) ):
+                return tileno
+
+            return tileno.value
 
 
     def dump_tile(self,x,y,fp):
@@ -232,6 +253,9 @@ class TileReader():
         # Grab the image dimensions through the metadata
 
         self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif)
+        if isinstance(self.num_tiles, (int, long)):
+            self.num_tiles = self.num_tiles.value
+
 
         #xml = ET.fromstring(tif.GetField("ImageDescription"))
         #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
@@ -338,5 +362,5 @@ if __name__ == "__main__":
     #for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
     #    list_tiles(0,fname=i)
         #test_embedded_images(i)
-
-    write_svg(toextract=True, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
+    write_svg(toextract=True, fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
+    # write_svg(toextract=True, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")

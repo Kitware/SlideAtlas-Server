@@ -6,12 +6,12 @@ from flask import request
 import sys
 import os
 
-tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
-pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-print pylibtiffpath
-print tplpath
-
-sys.path = [pylibtiffpath] + sys.path
+# tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
+# pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
+# print pylibtiffpath
+# print tplpath
+#
+# sys.path = [pylibtiffpath] + sys.path
 
 import os
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
@@ -70,7 +70,7 @@ os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
 from extract_tile import TileReader
 
 # myfname = "d:\\data\\phillips\\20140313T180859-805105.ptif"
-myfname = "/home/dhan/data/philips/20140313T165829-545675.ptif"
+myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
 
 reader = TileReader()
 reader.set_input_params({"fname" : myfname})
@@ -98,6 +98,8 @@ def tile_ptiff():
         logging.log(logging.ERROR, "Switched to %d zoom"%(reader.dir))
 
     fp = StringIO.StringIO()
+    r = reader.dump_tile(locx,locy, fp)
+
     try:
         r = reader.dump_tile(locx,locy, fp)
         if r > 0:
