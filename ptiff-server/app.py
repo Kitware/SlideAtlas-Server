@@ -127,12 +127,30 @@ class RegexConverter(BaseConverter):
         super(RegexConverter, self).__init__(url_map)
         self.regex = items[0]
 
+import base64
 app.url_map.converters['regex'] = RegexConverter
-
-@app.route('/<fname>/<regex("(thumb|macro|meta)"):itype>/')
+@app.route('/<fname>/<regex("(label|macro|thumb)"):itype>/')
 def example(fname, itype):
-    return "fname: %s, itype: %s" % (fname, itype)
+    # See if label name exists
+    tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
+    oimagepath = tiffpath + "." + itype + ".jpg"
 
+    logging.log(logging.INFO, "Getting fname: %s, itype: %s" % (fname, itype))
+
+    if not os.path.exists(oimagepath):
+        logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
+        reader = TileReader()
+        reader.set_input_params({ "fname" : tiffpath })
+        fout = open(oimagepath, "wb")
+        fout.write(base64.b64decode(reader.get_embedded_image(itype)))
+        fout.close()
+
+    fin = open(oimagepath,"rb")
+    return flask.Response(fin.read(), mimetype="image/jpeg")
+    #
+    # if itype in ["macro", "meta"]:
+    #     return "fname: %s, itype: %s" % (fname, itype)
+    #
 
 # @app.route("/")
 # def index():

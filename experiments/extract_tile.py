@@ -364,6 +364,6 @@ def extract_tile():
 if __name__ == "__main__":
     #for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
     #    list_tiles(0,fname=i)
-        #test_embedded_images(i)
-    write_svg(toextract=True, fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
+    test_embedded_images(fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
+    # write_svg(toextract=True, fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
     # write_svg(toextract=True, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
