@@ -75,21 +75,52 @@ from extract_tile import TileReader
 # myfname = "d:\\data\\phillips\\20140313T180859-805105.ptif"
 myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
 
-reader = TileReader()
-reader.set_input_params({"fname" : myfname})
 import StringIO
-# #
-# from extract_tile import list_tiles
-# list_tiles(0, fname=myfname)
+import cPickle
+
+class MemoizeMutable:
+    def __init__(self, fn):
+        self.fn = fn
+        self.memo = {}
+    def __call__(self, *args, **kwds):
+        import cPickle
+        str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
+        if not self.memo.has_key(str):
+            print "miss"  # DEBUG INFO
+            self.memo[str] = self.fn(*args, **kwds)
+        else:
+            print "hit"  # DEBUG INFO
+
+        return self.memo[str]
+
+class ReaderPool():
+    def __init__(self):
+        self.readers = {}
+
+    def get_reader(self, tiffpath, level):
+        reader = TileReader()
+        reader.set_input_params({"fname" : myfname})
+        pass
 
 
-@app.route("/tile_ptiff")
-def tile_ptiff():
+@app.route("/apiv1/slides/<fname>/<x>/<y>/<z>")
+def tile_ptiff(fname,x,y,z):
+    """
+    Serves tiles for fname at zoom level z and tiles col / row x, y
+    """
+
     # Get variables
-    x = int(request.args.get('x', 0))
-    y = int(request.args.get('y', 0))
-    z = int(request.args.get('z', 0))
-        # Locate the tilename from x and y
+    x = int(x)
+    y = int(y)
+    z = int(z)
+
+    tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
+
+
+
+    logging.log(logging.INFO, "Viewing fname: %s" % (fname))
+
+    # Locate the tilename from x and y
     locx = x * 512 + 5
     locy = y * 512 + 5
 
@@ -168,3 +199,28 @@ def slidelist():
         slides.append(obj)
 
     return flask.jsonify({"slides" : slides})
+
+@app.route('/ptiff-viewer')
+def viewer():
+    """
+    Creates meta information for the viewer
+    """
+
+    fname = request.args.get('image', '')
+
+    tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
+    logging.log(logging.INFO, "Viewing fname: %s" % (fname))
+
+    if not os.path.exists(tiffpath):
+        logging.log(logging.INFO, "Unknown file: %s" % (fname))
+        return flask.Response('Unknown image, please click here to go <a href="/"> back </a>', 403)
+
+    reader = TileReader()
+    reader.set_input_params({ "fname" : tiffpath })
+    meta = {}
+    meta["height"] = reader.height
+    meta["width"] = reader.width
+    meta["levels"] = len(reader.levels.keys())
+    meta["name"] = fname
+
+    return flask.render_template("viewer.html", meta=meta)

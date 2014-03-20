@@ -28,13 +28,14 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Status</th>
+                        <th>barcode</th>
+                        <th>overview</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr ng-repeat="slide in slides" ng-click="setSelected();">
                         <td>
-                            <a href="/ptiff-server?image={{slide.name}}" class="lead">{{slide.barcode}}{{slide.name}}</a>
+                            <a href="/ptiff-viewer?image={{slide.name}}" class="lead">{{slide.barcode}}{{slide.name}}</a>
                         </td>
                         <td>
                             <img ng-src="/apiv1/slides/{{slide.name}}/label" width=100px class="rotated">
