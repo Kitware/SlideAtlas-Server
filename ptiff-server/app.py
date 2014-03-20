@@ -45,7 +45,7 @@ if app.config["LOGIN_REQUIRED"]:
 
 from common_utils import get_tile_name_slideatlas
 import logging
-blank = open("512_bird.jpg","rb").read()
+blank = open("blank_512.jpg","rb").read()
 
 @app.route("/tile_mongo")
 def tile_mongo():
@@ -112,7 +112,7 @@ def tile_ptiff():
 
     #s = fp.getvalue()
     #logging.log(logging.ERROR, "Got %d bytes in buffer"%(len(s)))
-    fp2 = open("test_output.jpg","wb")
-    fp2.write(fp.getvalue())
-    fp2.close()
+    # fp2 = open("test_output.jpg","wb")
+    # fp2.write(fp.getvalue())
+    # fp2.close()
     return flask.Response(fp.getvalue(), mimetype="image/jpeg")
