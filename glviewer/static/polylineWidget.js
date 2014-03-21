@@ -22,6 +22,7 @@ function PolylineWidget (viewer, newFlag) {
   if (viewer === undefined) {
     return;
   }
+  this.Popup = new WidgetPopup(this);
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
 
@@ -96,8 +97,6 @@ PolylineWidget.prototype.Load = function(obj) {
   this.Shape.UpdateBuffers();
 }
 
-
-
 PolylineWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;
@@ -113,13 +112,14 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
 }
 
-PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+PolylineWidget.prototype.HandleKeyPEventuallress = function(keyCode, shift) {
 }
 
 PolylineWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 PolylineWidget.prototype.Deactivate = function() {
+  this.Popup.StartHideTimer(); 
   this.State = POLYLINE_WIDGET_WAITING;
   this.Viewer.DeactivateWidget(this);
   this.Shape.Active = false;
@@ -238,6 +238,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
       }
       this.LastMouseWorld = pt;
       this.Shape.UpdateBuffers();
+      this.PlacePopup();
       eventuallyRender();
       return;
     }
@@ -254,6 +255,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
         }
       this.Circle.Origin = pt;
       this.Shape.UpdateBuffers();
+      this.PlacePopup();
       eventuallyRender();
     }
   }
@@ -311,7 +313,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
   var y = event.MouseY;
   var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
 
-  // First check if any verticies are active.
+  // First check if any vertices are active.
   var idx = this.WhichVertexShouldBeActive(pt);
   this.ActivateVertex(idx);
   if (idx != -1) {
@@ -341,6 +343,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
     if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.Shape.LineWidth)) {
       this.State = POLYLINE_WIDGET_ACTIVE;
       this.Shape.Active = true;
+      this.PlacePopup();
       return true;
     }
   }
@@ -387,11 +390,47 @@ PolylineWidget.prototype.SetActive = function(flag) {
     this.State = POLYLINE_WIDGET_ACTIVE;  
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
+    this.PlacePopup();
     eventuallyRender();
   } else {
     this.Deactivate();
   }
 }
+
+
+
+
+//This also shows the popup if it is not visible already.
+PolylineWidget.prototype.PlacePopup = function () {
+  var roll = this.Viewer.GetCamera().Roll;
+  var s = Math.sin(roll + (Math.PI*0.25));
+  var c = Math.cos(roll + (Math.PI*0.25));
+
+  if (this.Shape.Points.length < 1) { return; }
+  // Find the upper right most vertex.
+  var x = this.Shape.Points[0][0];
+  var y = this.Shape.Points[0][1];
+  var best = (c*x)-(s*y);
+  for (idx = 1; idx < this.Shape.Points.length; ++idx) {
+    var tx = this.Shape.Points[idx][0];
+    var ty = this.Shape.Points[idx][1];
+    var tmp = (c*tx)-(s*ty);
+    if (tmp > best) {
+      best = tmp;
+      x = tx;
+      y = ty;
+    }
+  }
+  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+
+  pt[0] += 20;
+  pt[1] -= 10;
+
+  this.Popup.Show(pt[0],pt[1]);
+}
+
+
+
 
 // Can we bind the dialog apply callback to an objects method?
 var POLYLINE_WIDGET_DIALOG_SELF;

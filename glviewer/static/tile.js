@@ -59,16 +59,18 @@ function Tile(x, y, z, level, name, cache) {
   mat4.identity(this.Matrix);
   this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
 
-  // Default path is to place shared geometry with the matrix.
+  // Default path is to shared geometry and move/scale it with the matrix.
+  // The shared polygon is a square [(0,0),(1,0),(1,1),(0,1)]
+  // The matrix transforms it into world coordinates.
   if ( ! cache.Warp) {
     // TODO: We should have a simple version of warp that creates this matrix for us.
     // Use shared buffers and place them with the matrix transformation.
     var xScale = cache.TileDimensions[0] * cache.RootSpacing[0] / (1 << this.Level);
     var yScale = cache.TileDimensions[1] * cache.RootSpacing[1] / (1 << this.Level);
     this.Matrix[0] = xScale;
-    this.Matrix[5] = yScale;
+    this.Matrix[5] = -yScale;
     this.Matrix[12] = this.X * xScale;
-    this.Matrix[13] = this.Y * yScale;
+    this.Matrix[13] = (this.Y+1) * yScale;
     this.Matrix[15] = 1.0;
 
     // These tiles share the same buffers.  Do not crop when there is no warp.

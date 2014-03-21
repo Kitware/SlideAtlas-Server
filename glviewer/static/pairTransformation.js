@@ -14,11 +14,11 @@ PairTransformation.prototype.AddCorrelation = function(pt0, pt1) {
 
 // Nearest neighbor.
 PairTransformation.prototype.ForwardTransform = function(pt0) {
-    if (this.Correlations.length < 2) {
-        alert("I need at least two correlations");
-        this.DeltaRotation = 0;
+    this.DeltaRotation = 0;
+    if (this.Correlations.length == 0) {
         return pt0;
     }
+
     // Find the two nearest correlations.
     // Nearest for translation, second nearest for rotation.
     var correlation1;
@@ -52,22 +52,22 @@ PairTransformation.prototype.ForwardTransform = function(pt0) {
     var x = pt0[0] - correlation1.point0[0] + correlation1.point1[0];
     var y = pt0[1] - correlation1.point0[1] + correlation1.point1[1];
     
-    // Compute the delta rotation.
-    var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
-                            correlation2.point0[1] - correlation1.point0[1]);    
-    var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
-                            correlation2.point1[1] - correlation1.point1[1]);    
-    this.DeltaRotation = (angle1 - angle0) * 180.0 / 3.14159;
-    
+    if (this.Correlations.length > 1) {
+        // Compute the delta rotation.
+        var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
+                                correlation2.point0[1] - correlation1.point0[1]);    
+        var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
+                                correlation2.point1[1] - correlation1.point1[1]);    
+        this.DeltaRotation = (angle1 - angle0) * 180.0 / 3.14159;
+    }
     
     return [x,y];
 }
 
 // Nearest neighbor.
 PairTransformation.prototype.ReverseTransform = function(pt1) {
-    if (this.Correlations.length < 2) {
-        alert("I need at least two correlations");
-        this.DeltaRotation = 0;
+    this.DeltaRotation = 0;
+    if (this.Correlations.length == 0) {
         return pt1;
     }
     // Find the two nearest correlations.
@@ -103,13 +103,14 @@ PairTransformation.prototype.ReverseTransform = function(pt1) {
     var x = pt1[0] - correlation1.point1[0] + correlation1.point0[0];
     var y = pt1[1] - correlation1.point1[1] + correlation1.point0[1];
     
-    // Compute the delta rotation.
-    var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
-                            correlation2.point1[1] - correlation1.point1[1]);    
-    var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
-                            correlation2.point0[1] - correlation1.point0[1]);    
-    this.DeltaRotation = (angle0 - angle1) * 180.0 / 3.14159;
-    
+    if (this.Correlations.length > 1) {
+      // Compute the delta rotation.
+      var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
+                              correlation2.point1[1] - correlation1.point1[1]);    
+      var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
+                              correlation2.point0[1] - correlation1.point0[1]);    
+      this.DeltaRotation = (angle0 - angle1) * 180.0 / 3.14159;
+    }
     
     return [x,y];
 }

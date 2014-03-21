@@ -28,6 +28,7 @@ function TextWidget (viewer, string) {
   if (viewer == null) {
     return null;
   }
+  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   // Text widgets are created with the dialog open (to set the string).
   this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
@@ -176,7 +177,7 @@ TextWidget.prototype.UpdateAnchorShape = function() {
   // Compute the angle of the arrow.
   var dx = this.Shape.Anchor[0]-xMid;
   var dy = this.Shape.Anchor[1]-yMid;
-  this.AnchorShape.Orientation = 180.0 + Math.atan2(dy, dx) * 180.0 / Math.PI;
+  this.AnchorShape.Orientation = -(180.0 + Math.atan2(dy, dx) * 180.0 / Math.PI);
   // Compute the length of the arrow.
   var length = Math.sqrt(dx*dx + dy*dy);
   // Find the intersection of the vector and the bounding box.
@@ -237,6 +238,8 @@ TextWidget.prototype.HandleMouseUp = function(event) {
 
 // I need to convert mouse screen point to coordinates of text buffer
 // to see if the mouse position is in the bounds of the text.
+// Screen y vector point down (up is negative).
+// Text coordinate system will match canvas text: origin upper left, Y point down.
 TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
   var textOriginScreenPixelPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Position[0],this.Shape.Position[1]);
   x = (x - textOriginScreenPixelPosition[0]) + this.Shape.Anchor[0];  
@@ -256,6 +259,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
     this.Shape.Position[0] += dx;
     this.Shape.Position[1] += dy;
     this.AnchorShape.Origin = this.Shape.Position;
+    this.PlacePopup();
     eventuallyRender();
     return true;
   }
@@ -263,6 +267,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
     this.Shape.Anchor[0] -= event.MouseDeltaX;
     this.Shape.Anchor[1] -= event.MouseDeltaY;
     this.UpdateAnchorShape();
+    this.PlacePopup();
     eventuallyRender();
     return true;
   }
@@ -334,6 +339,7 @@ TextWidget.prototype.GetActive = function() {
 }
 
 TextWidget.prototype.Deactivate = function() {
+  this.Popup.StartHideTimer(); 
   this.State = TEXT_WIDGET_WAITING;
   this.Shape.Active = false;
   this.AnchorShape.Active = false;
@@ -359,10 +365,23 @@ TextWidget.prototype.SetActive = function(flag) {
       this.AnchorShape.Active = true;
     }
     this.Viewer.ActivateWidget(this);
+    this.PlacePopup();
     eventuallyRender();
   } else {
     this.Deactivate();
   }
+}
+
+//This also shows the popup if it is not visible already.
+TextWidget.prototype.PlacePopup = function () {
+  var x = this.Shape.Position[0];
+  var y = this.Shape.Position[1];
+  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+
+  pt[0] += (this.Shape.PixelBounds[1] - this.Shape.Anchor[0]);
+  pt[1] -= (this.Shape.Anchor[1] + 10);
+
+  this.Popup.Show(pt[0],pt[1]);
 }
 
 // Can we bind the dialog apply callback to an objects method?

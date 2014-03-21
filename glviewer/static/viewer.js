@@ -1,5 +1,5 @@
 //==============================================================================
-// There is only one viewer that handles events.  It can forwad events
+// There is only one viewer that handles events.  It can forward events
 // to other objects as it see fit however.
 
 // I am changing this to support three states of annotation visibility:
@@ -103,6 +103,7 @@ Viewer.prototype.SetSection = function(section) {
   this.MainView.Section = section;
   if (this.OverView) {
     this.OverView.Section = section;
+    //this.ShapeList = section.Markers;
     //this.ShapeList = section.Markers;
     var bounds = section.GetBounds();
     this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
@@ -305,7 +306,7 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
   }
   factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
   
-  // Compute traslate target to keep position in the same place.
+  // Compute translate target to keep position in the same place.
   this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
   this.TranslateTarget[1] = position[1] - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
   
@@ -873,12 +874,16 @@ Viewer.prototype.ConstrainCamera = function () {
     cam.SetFocalPoint(cam.FocalPoint[0], bounds[3]);
     modified = true;
   }
-  if (cam.GetHeight() > 2*(bounds[3]-bounds[2])) {
-    cam.SetHeight(2*(bounds[3]-bounds[2]));
+  var heightMax = 2*(bounds[3]-bounds[2]);
+  if (cam.GetHeight() > heightMax) {
+    cam.SetHeight(heightMax);
+    this.ZoomTarget = heightMax;
     modified = true;
   }  
-  if (cam.GetHeight() < viewport[3] * spacing * 0.5) {
-    cam.SetHeight(viewport[3] * spacing * 0.5);
+  var heightMin = viewport[3] * spacing * 0.5;
+  if (cam.GetHeight() < heightMin) {
+    cam.SetHeight(heightMin);
+    this.ZoomTarget = heightMin;
     modified = true;
   }
   if (modified) {
@@ -899,10 +904,15 @@ Viewer.prototype.HandleMouseDown = function(event) {
   }
    
   // Are we in the overview or the main view?
+  // Event x,y are now have upper left origin.
+  // I am keeping Viewport lower left origin 
+  // for now because GL uses this system
+  // and it is a pain to convert (cache does not have viewer viewport).
   var x = event.MouseX;
   var y = event.MouseY;
   this.OverViewEventFlag = false;
   if (this.OverView) {
+    y = this.MainView.Viewport[3] - y;
     if (x > this.OverView.Viewport[0] && y > this.OverView.Viewport[1] &&
         x < this.OverView.Viewport[0]+this.OverView.Viewport[2] &&
         y < this.OverView.Viewport[1]+this.OverView.Viewport[3]) {
@@ -967,7 +977,7 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
   // Many shapes, widgets and interactors will need the mouse in world coodinates.
   var x = event.MouseX;
   var y = event.MouseY;
-    
+
   var viewport = this.GetViewport();
   // Convert mouse to viewer coordinate system.
   // It would be nice to have this before this method.
@@ -980,7 +990,9 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
   var cam = this.MainView.Camera;
 
   x = (x*2.0 - 1.0)*cam.Matrix[15];
-  y = (y*2.0 - 1.0)*cam.Matrix[15];
+  // View coordinates are defined by GL and have y=+1 at the top.
+  // I have pixel coordinates y=0 at top to match standard image coordinates.
+  y = (1 - y*2.0)*cam.Matrix[15];
   var m = cam.Matrix;
   var det = m[0]*m[5] - m[1]*m[4];
   event.MouseWorldX = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
@@ -995,18 +1007,18 @@ Viewer.prototype.HandleMouseMove = function(event) {
     this.ActiveWidget.HandleMouseMove(event);
     return;
   }
-  
-  // See if any widget became active.
-  if (this.AnnotationVisibility) {
-    for (var i = 0; i < this.WidgetList.length; ++i) {
-      if (this.WidgetList[i].CheckActive(event)) {
-        this.ActivateWidget(this.WidgetList[i]);
-        return;
+      
+  if (event.MouseDown == false) {
+    // See if any widget became active.
+    if (this.AnnotationVisibility) {
+      for (var i = 0; i < this.WidgetList.length; ++i) {
+        if (this.WidgetList[i].CheckActive(event)) {
+          this.ActivateWidget(this.WidgetList[i]);
+          return;
+        }
       }
     }
-  }
-    
-  if (event.MouseDown == false) {
+
     return;
   }
   
@@ -1015,6 +1027,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
 
   if (this.OverViewEventFlag) {
     x = x - this.OverView.Viewport[0];
+    y = this.MainView.Viewport[3]-y
     y = y - this.OverView.Viewport[1];
     this.OverViewPlaceCamera(x, y);
     // Animation handles the render.
@@ -1039,7 +1052,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   } else if (this.InteractionState == INTERACTION_ZOOM) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
     this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight() 
-                                    * (1.0 + (dy* 5.0)));
+                                    / (1.0 + (dy* 5.0)));
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.MainView.Camera.ComputeMatrix();
   } else if (this.InteractionState == INTERACTION_DRAG) {
@@ -1059,12 +1072,9 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     //this.ActiveWidget.HandleMouseDown(event);
     return;
   }
-  // Compute traslate target to keep position in the same place.
-  this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-  this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-  this.RollTarget = this.MainView.Camera.Roll;
 
-  // we want to acumilate the target, but not the duration.
+
+  // We want to accumulate the target, but not the duration.
   var tmp = event.SystemEvent.wheelDelta;
   while (tmp > 0) {
     this.ZoomTarget *= 1.1;
@@ -1075,11 +1085,16 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     tmp += 120;
   }
 
-  // Artificial limit (fixme).
-  if (this.ZoomTarget < 0.9 / (1 << 5)) {
-    this.ZoomTarget = 0.9 / (1 << 5);
-  }
+  // Compute translate target to keep position in the same place.  
+  //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+  //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+  var position = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);  
+  var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+  this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+  this.TranslateTarget[1] = position[1] - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
+  this.RollTarget = this.MainView.Camera.Roll;
+  
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
   eventuallyRender();    
@@ -1180,8 +1195,8 @@ Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
   var xNew = (x*m[0] + y*m[4] + m[12]) / h;
   var yNew = (x*m[1] + y*m[5] + m[13]) / h;
   // Convert from view to screen pixel coordinates.
-  xNew = (xNew + 1.0)*0.5*viewport[2] + viewport[0];
-  yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
+  xNew = (1.0+xNew)*0.5*viewport[2] + viewport[0];
+  yNew = (1.0-yNew)*0.5*viewport[3] + viewport[1];
     
   return [xNew, yNew];
 }   
@@ -1201,7 +1216,7 @@ Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
   x = x/viewport[2];
   y = y/viewport[3];
   x = (x*2.0 - 1.0)*cam.Matrix[15];
-  y = (y*2.0 - 1.0)*cam.Matrix[15];
+  y = (1.0 - y*2.0)*cam.Matrix[15];
   var m = cam.Matrix;
   var det = m[0]*m[5] - m[1]*m[4];
   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;

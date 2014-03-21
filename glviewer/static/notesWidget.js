@@ -738,6 +738,9 @@ Note.prototype.Serialize = function(includeChildren) {
   // We should probably serialize the ViewerRecords too.
   obj.ViewerRecords = this.ViewerRecords;
 
+  // upper left pixel
+  obj.CoordinateSystem = "Pixel";
+
   //obj.Answers = [];
   //for (var i = 0; i < this.Answers.length; ++i) {
   //  obj.Answers.push(this.Answers[i].Serialize());

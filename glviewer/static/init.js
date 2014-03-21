@@ -1,3 +1,13 @@
+// for debugging
+function MOVE_TO(x,y) {
+  VIEWER1.MainView.Camera.SetFocalPoint(x,y);
+  VIEWER1.MainView.Camera.ComputeMatrix();
+  eventuallyRender();
+}
+
+
+
+
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
 
@@ -417,8 +427,6 @@ function GC_transform(m00,m10,m01,m11,m02,m12) {
 
 
 
-
-
 //----------------------------------------------------------
 // Log to trackdown iPad bug.  Console does not log until
 // debugger is running.  Bug does not occur when debugger 
@@ -439,6 +447,18 @@ function LogMessage (message) {
   }
 }
 
+function FixJustification () {
+  cache = VIEWER1.GetCache()
+
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/fixjustification",
+    data: {"img": cache.Image._id,
+           "db": cache.Image.database},
+    success: function(data,status) {},
+    error: function() { alert( "AJAX - error() : fixjustification" ); },
+    });  
+}
 
 
 

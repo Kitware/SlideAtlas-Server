@@ -38,8 +38,8 @@ Shape.prototype.Draw = function (view) {
       // view [-1,1],[-1,1],z
       camMatrix[0] = 2.0 / view.Viewport[2];
       camMatrix[12] = -1.0;
-      camMatrix[5] = 2.0 / view.Viewport[3];
-      camMatrix[13] = -1.0;
+      camMatrix[5] = -2.0 / view.Viewport[3];
+      camMatrix[13] = 1.0;
       camMatrix[14] = viewFrontZ; // In front of tiles in this view
     }
 
@@ -47,8 +47,8 @@ Shape.prototype.Draw = function (view) {
     // Rotate based on ivar orientation.
     var theta = this.Orientation * 3.1415926536 / 180.0;
     this.Matrix[0] =  Math.cos(theta);
-    this.Matrix[1] =  Math.sin(theta);
-    this.Matrix[4] = -Math.sin(theta);
+    this.Matrix[1] = -Math.sin(theta);
+    this.Matrix[4] =  Math.sin(theta);
     this.Matrix[5] =  Math.cos(theta);
     // Place the origin of the shape.
     x = this.Origin[0];
@@ -60,8 +60,8 @@ Shape.prototype.Draw = function (view) {
       var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
       var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
       // convert view to pixels (view coordinate ssytem).
-      x = view.Viewport[2]*(0.5*(x+1.0));
-      y = view.Viewport[3]*(0.5*(y+1.0));
+      x = view.Viewport[2]*(0.5*(1.0+x));
+      y = view.Viewport[3]*(0.5*(1.0-y));
     }
     // Translate to place the origin.
     this.Matrix[12] = x;
@@ -141,12 +141,16 @@ Shape.prototype.Draw = function (view) {
     }
   } else { // 2d Canvas -----------------------------------------------
     view.Context2d.save();
-    // Flip y axis
-    view.Context2d.setTransform(1,0,0,-1,0,view.Viewport[3]); 
-    var theta = this.Orientation * 3.1415926536 / 180.0;
+    // Identity.
+    view.Context2d.setTransform(1,0,0,1,0,0); 
+
+    var theta = (this.Orientation * 3.1415926536 / 180.0);
+    if ( ! this.FixedSize) {
+      theta -= view.Camera.Roll;
+    }
     this.Matrix[0] =  Math.cos(theta);
-    this.Matrix[1] =  Math.sin(theta);
-    this.Matrix[4] = -Math.sin(theta);
+    this.Matrix[1] = -Math.sin(theta);
+    this.Matrix[4] =  Math.sin(theta);
     this.Matrix[5] =  Math.cos(theta);
     // Place the origin of the shape.
     x = this.Origin[0];
@@ -161,9 +165,10 @@ Shape.prototype.Draw = function (view) {
     var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
     var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
     // convert origin-view to pixels (view coordinate system).
-    x = view.Viewport[2]*(0.5*(x+1.0));
-    y = view.Viewport[3]*(0.5*(y+1.0));
+    x = view.Viewport[2]*(0.5*(1.0+x));
+    y = view.Viewport[3]*(0.5*(1.0-y));
     view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);
+
     view.Context2d.beginPath();
     view.Context2d.moveTo(this.PointBuffer[0]*scale,this.PointBuffer[1]*scale);
     var i = 3;
@@ -194,7 +199,7 @@ Shape.prototype.Draw = function (view) {
       }
       view.Context2d.fill();
     }
-    
+      
     view.Context2d.restore();
   }
 }

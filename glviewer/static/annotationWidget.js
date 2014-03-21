@@ -158,6 +158,11 @@ AnnotationWidget.prototype.NewCircle = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new CircleWidget(this.Viewer, true);
+
+  // Use the mouse position to place the circle.
+  widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+                                                              EVENT_MANAGER.LastMouseY);
+
   widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Viewer.ActiveWidget = widget;
 }

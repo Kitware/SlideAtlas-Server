@@ -356,10 +356,10 @@ Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
   var child = node.Children[childIdx];
   if (child == null) {
     var childName = node.Name;
-    if (childIdx == 0) {childName += "t";} 
-    if (childIdx == 1) {childName += "s";} 
-    if (childIdx == 2) {childName += "q";} 
-    if (childIdx == 3) {childName += "r";} 
+    if (childIdx == 0) {childName += "q";} 
+    if (childIdx == 1) {childName += "r";} 
+    if (childIdx == 2) {childName += "t";} 
+    if (childIdx == 3) {childName += "s";} 
     child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
                      (node.Level + 1),
                      childName, this);

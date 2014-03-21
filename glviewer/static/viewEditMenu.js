@@ -60,6 +60,9 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Load View")
              .click(function(){ShowViewBrowser();});
+    $('<li>').appendTo(viewEditSelector)
+             .text("Slide Info")
+             .click(function(){ShowSlideInformation();});
     // Hack until we have some sort of scale.
     $('<li>').appendTo(viewEditSelector)
              .attr('id', 'dualViewCopyZoom')
@@ -113,6 +116,22 @@ function InitViewEditMenus() {
     }).attr('id', 'viewMenu').hide()
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
+
+    $('<div>').appendTo('body').css({
+        'background-color': 'white',
+        'border-style': 'solid',
+        'border-width': '1px',
+        'border-radius': '5px',
+        'position': 'absolute',
+        'top' : '30%',
+        'left' : '30%',
+        'width': '40%',
+        'height': '40%',
+        'z-index': '2',
+        'color': '#303030',
+        'font-size': '20px'
+    }).attr('id', 'slideInformation').hide()
+      .mouseleave(function(){$(this).fadeOut();});
 }
 
 
@@ -130,6 +149,37 @@ function CopyZoom() {
   }
   
   viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
+}
+
+function ShowSlideInformation() {
+  $('#viewEditMenu').hide();
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+  
+  imageObj = viewer.MainView.Section.Caches[0].Image;
+
+  $('#slideInformation')
+    .html("File Name: " + imageObj.filename
+          + "<br>Dimensions: " + imageObj.dimensions[0] + ", " 
+                               + imageObj.dimensions[1]
+          + "<br>Levels: " + imageObj.levels)
+    .show();
+}
+
+
+function ShowSlideInformation() {
+  $('#viewEditMenu').hide();
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+  
+  imageObj = viewer.MainView.Section.Caches[0].Image;
+
+  $('#slideInformation')
+    .html("File Name: " + imageObj.filename
+          + "<br>Dimensions: " + imageObj.dimensions[0] + ", " 
+                               + imageObj.dimensions[1]
+          + "<br>Levels: " + imageObj.levels)
+    .show();
 }
 
 

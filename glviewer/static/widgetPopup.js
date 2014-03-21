@@ -48,8 +48,8 @@ WidgetPopup.prototype.PropertiesCallback = function() {
 WidgetPopup.prototype.Show = function(x, y) {
   this.CancelHideTimer(); // Just in case: Show trumps previous hide.
   this.ButtonDiv.css({
-                   'left'  : x+'px',
-                   'bottom': y+'px'})
+                   'left' : x+'px',
+                   'top'  : y+'px'})
                 .show();
 }
 

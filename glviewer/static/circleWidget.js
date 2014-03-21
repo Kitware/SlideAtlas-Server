@@ -131,6 +131,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
   
   if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
     this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
+    this.PlacePopup();
     eventuallyRender();
   }
   
@@ -142,6 +143,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     // Change units from pixels to world.
     this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
     this.Shape.UpdateBuffers();
+    this.PlacePopup();
     eventuallyRender();
   }
   
@@ -238,15 +240,22 @@ CircleWidget.prototype.SetActive = function(flag) {
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
     // Compute the location for the pop up and show it.
-    var roll = this.Viewer.GetCamera().Roll;
-    var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
-    var y = this.Shape.Origin[1] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
-    var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
-    this.Popup.Show(pt[0],pt[1]);
+    this.PlacePopup();
   } else {
     this.Deactivate();
   }
   eventuallyRender();
+}
+
+
+//This also shows the popup if it is not visible already.
+CircleWidget.prototype.PlacePopup = function () {
+  // Compute the location for the pop up and show it.
+  var roll = this.Viewer.GetCamera().Roll;
+  var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
+  var y = this.Shape.Origin[1] - 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
+  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+  this.Popup.Show(pt[0],pt[1]);
 }
 
 // Can we bind the dialog apply callback to an objects method?

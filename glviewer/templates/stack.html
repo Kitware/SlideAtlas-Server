@@ -28,7 +28,6 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossWidget.js') }}"></script>
 
 <!-- Actor for tile -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
@@ -76,7 +75,6 @@ shape has visibility and
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
 
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrow.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='circle.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
@@ -207,7 +205,7 @@ shape has visibility and
           //alert(data + "\nStatus: " + status);
           VIEWS = data["views"];
           ANNOTATION_STACKS = data["annotations"];
-          // To bad jason does not save the object type.  Need to cast.
+          // To bad json does not save the object type.  Need to cast.
           var transformations = data["transformations"];
           TRANSFORMATIONS = [];
           for (var i=0; i <transformations.length; ++i) {
@@ -232,7 +230,6 @@ shape has visibility and
           //  trans.AddCorrelation(VIEWS[i-1].center, VIEWS[i].center);
           //  TRANSFORMATIONS.push(trans);
           //}
-
 
           webGLStart();
           },
@@ -290,11 +287,10 @@ function saveStack() {
             }
         }
         if ( ! source) {
-            var bds = [0,view.img.dimensions[0], 0,view.img.dimensions[1]];
             source = new Cache({'database':view.db, 
                                 '_id':view.img._id, 
                                 'levels':view.img.levels,
-                                'bounds':bds});
+                                'bounds':view.img.bounds});
         }
 
         var section = {"Source": source, "View": view._id, "Annotations": []};
@@ -363,24 +359,25 @@ function saveStack() {
         var trans = TRANSFORMATIONS[SECTION_INDEX];
         for (i in trans.Correlations) {
             var c = trans.Correlations[i];
-            var crossWidget = new CrossWidget(VIEWER1, false);
-            var cross = crossWidget.Shape;
+            var cross = new CrossHairs();
             cross.FillColor    = [1,0,0]; 
             cross.OutlineColor = [0,1,1];
             cross.Origin       = c.point0; // I expect reference will update transform automatically.
+            VIEWER1.AddShape(cross);
         }
     }    
     if (SECTION_INDEX > 0) {
         var trans = TRANSFORMATIONS[SECTION_INDEX-1];
         for (i in trans.Correlations) {
             var c = trans.Correlations[i];
-            var crossWidget = new CrossWidget(VIEWER1, false);
-            var cross = crossWidget.Shape;
+            var cross = new CrossHairs();
             cross.FillColor    = [0,1,1]; 
             cross.OutlineColor = [1,0,0];
             cross.Origin       = c.point1; // I expect reference will update transform automatically.
+            VIEWER1.AddShape(cross);
         }
     }
+    eventuallyRender();
   }
   
 var FeatureChainEndCross;
@@ -388,12 +385,13 @@ var FeatureChainEndIndex;
 // x, y are in world coordinates
 function FeatureChainStart(x,y) {
     // Create a widget just for show.
-    var crossWidget = new CrossWidget(VIEWER1, false);
-    var cross = crossWidget.Shape;
+    var cross = new CrossHairs();
     cross.FillColor    = [1,0,0]; 
     cross.OutlineColor = [0,1,1];
     cross.Origin       = [x, y];
     // Save for the position for the next link.
+    VIEWER1.AddShape(cross);
+    VIEWER1.SetAnnotationVisibility(ANNOTATION_ON);
     FeatureChainEndCross = cross;
     FeatureChainEndIndex = SECTION_INDEX;
     eventuallyRender();
@@ -418,13 +416,15 @@ function FeatureChainAdd(x,y) {
     trans.Correlations.push({"point0": [FeatureChainEndCross.Origin[0],FeatureChainEndCross.Origin[1]],
                              "point1": [x,y]});
     // Create a widget just for show.
-    var crossWidget = new CrossWidget(VIEWER1, false);
-    var cross = crossWidget.Shape;
+    var cross = new CrossHairs();
     cross.FillColor    = [0,1,1]; 
     cross.OutlineColor = [1,0,0];
     // A dance to set cross origin as pointer to correlation array.
     var correlation = trans.Correlations[trans.Correlations.length-1];
     cross.Origin       = correlation.point1;
+    VIEWER1.AddShape(cross);
+    VIEWER1.SetAnnotationVisibility(ANNOTATION_ON);
+
     // Save for the position for the next link.
     FeatureChainEndCross = cross;
     FeatureChainEndIndex = SECTION_INDEX;
