@@ -275,7 +275,7 @@ def sessionedit():
     """
     - /session-edit?sessid=10239094124
     """
-    pdb.set_trace()
+    #pdb.set_trace()
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
     sessdb = request.args.get('sessdb', None)
