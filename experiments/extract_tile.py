@@ -165,7 +165,10 @@ class TileReader():
         self._read_JPEG_tables()
         self._parse_image_description()
         # Get started with first image in the dir
-        self.select_dir(0)
+        if "dir" in params:
+            self.select_dir(params["dir"])
+        else:
+            self.select_dir(0)
 
     def get_tile_from_number(self, tileno, fp):
         """

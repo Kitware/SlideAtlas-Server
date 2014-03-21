@@ -21,18 +21,19 @@ class MemoizeMutable:
             logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
         else:
             logging.log(logging.ERROR,"hit")  # DEBUG INFO
+            logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
         return self.memo[str]
 
     def status(self):
         logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
 
 make_reader = MemoizeMutable(make_reader)
-
-a = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
-b = make_reader({"fname" : "/home/dhan/data/phillips/20140313T123120-174321.ptif"})
-c = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
-print a is b
-print b is c
-print a is c
+#
+# a = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
+# b = make_reader({"fname" : "/home/dhan/data/phillips/20140313T123120-174321.ptif"})
+# c = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
+# print a is b
+# print b is c
+# print a is c
 
 

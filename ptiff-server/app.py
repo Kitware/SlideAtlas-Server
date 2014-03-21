@@ -15,7 +15,6 @@ import os
 
 import os
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
-print tilereaderpath
 import logging
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig()
@@ -76,31 +75,8 @@ from extract_tile import TileReader
 myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
 
 import StringIO
-import cPickle
 
-class MemoizeMutable:
-    def __init__(self, fn):
-        self.fn = fn
-        self.memo = {}
-    def __call__(self, *args, **kwds):
-        import cPickle
-        str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
-        if not self.memo.has_key(str):
-            print "miss"  # DEBUG INFO
-            self.memo[str] = self.fn(*args, **kwds)
-        else:
-            print "hit"  # DEBUG INFO
-
-        return self.memo[str]
-
-class ReaderPool():
-    def __init__(self):
-        self.readers = {}
-
-    def get_reader(self, tiffpath, level):
-        reader = TileReader()
-        reader.set_input_params({"fname" : myfname})
-        pass
+from readers import make_reader
 
 
 @app.route("/apiv1/slides/<fname>/<x>/<y>/<z>")
@@ -116,17 +92,16 @@ def tile_ptiff(fname,x,y,z):
 
     tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
 
-
-
+    reader = make_reader({"fname" : tiffpath, "dir" : z})
     logging.log(logging.INFO, "Viewing fname: %s" % (fname))
 
     # Locate the tilename from x and y
     locx = x * 512 + 5
     locy = y * 512 + 5
 
-    if reader.dir != z:
-        reader.select_dir(z)
-        logging.log(logging.ERROR, "Switched to %d zoom"%(reader.dir))
+    # if reader.dir != z:
+    #     reader.select_dir(z)
+    #     logging.log(logging.ERROR, "Switched to %d zoom"%(reader.dir))
 
     fp = StringIO.StringIO()
     r = reader.dump_tile(locx,locy, fp)
@@ -174,7 +149,7 @@ def example(fname, itype):
 
     if not os.path.exists(oimagepath):
         logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
-        reader = TileReader()
+        reader = make_reader({"fname" : tiffpath, "dir" : 0})
         reader.set_input_params({ "fname" : tiffpath })
         fout = open(oimagepath, "wb")
         fout.write(base64.b64decode(reader.get_embedded_image(itype)))
@@ -215,8 +190,7 @@ def viewer():
         logging.log(logging.INFO, "Unknown file: %s" % (fname))
         return flask.Response('Unknown image, please click here to go <a href="/"> back </a>', 403)
 
-    reader = TileReader()
-    reader.set_input_params({ "fname" : tiffpath })
+    reader = make_reader({ "fname" : tiffpath , "dir" : 0})
     meta = {}
     meta["height"] = reader.height
     meta["width"] = reader.width
