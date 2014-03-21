@@ -2,6 +2,14 @@
 
 {% block body_content %}
 {{ super() }}
+
+<style>
+button 
+{
+float:right;
+}
+</style>
+
 <div class="container">
 
   <h1>Displaying a session list for {{ name}} !</h1>
@@ -10,23 +18,22 @@
     <h2> {{ arule.rule }}</h2>
     <table class="table table-bordered table-hover" >
         {% for asession in arule.sessions %}
-            {% if asession.stack %}
-            <tr> 
-              <td><a href="/webgl-viewer/stack?sess={{asession.sessid}}&db={{asession.sessdb}}" class="lead">{{ asession.label}}</td>
-            </tr>
-            {% else %}
-            <tr> <td><a href="sessions?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead">{{ asession.label}}</td>
+            <tr>
+              <td>            
+                {% if asession.stack %}
+                <a href="/webgl-viewer/stack?sess={{asession.sessid}}&db={{asession.sessdb}}" class="lead">{{ asession.label}}
+                {% else %}
+                <a href="sessions?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead">{{ asession.label}}
+                {% endif %}
                 {% if asession.canadmin %}
-                  <td>
-                    <a href="sessionedit?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead"> 
-                      <button type="button" class="btn btn-danger" >Admin</button> 
-                    </a>
-                  </td>
+                <a href="sessionedit?sessid={{asession.sessid}}&sessdb={{asession.sessdb}}" class="lead"> 
+                  <button type="button" class="btn btn-danger" >Edit</button> 
+                </a>
                 {% else %}
                 {% endif %}
+              </td>
             </tr>
-            {% endif %}
-         {% endfor %}
+        {% endfor %}
     </table>
  <br>
 

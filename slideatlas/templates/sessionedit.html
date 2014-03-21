@@ -147,6 +147,7 @@
       args.session = SESSION_ID;
       args.label = $("#title").val();
       args.hideAnnotation = $('#hideCheck').is(':checked');
+      args.stack = $('#stackCheck').is(':checked');
 
       $.ajax({
         type: "post",
@@ -477,6 +478,12 @@
         Hide Markup
         <div id="hideCheckTip" hidden> 
           Hide annotation and notes from student.  Use alternative slide labels.
+        </div>    
+      </div>
+      <div style="float:right"> <input type="checkbox" id="stackCheck">
+        Stack
+        <div id="stackCheckTip" hidden> 
+          3D stack of sections
         </div>    
       </div>
 

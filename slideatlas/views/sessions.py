@@ -275,6 +275,7 @@ def sessionedit():
     """
     - /session-edit?sessid=10239094124
     """
+    pdb.set_trace()
     # See if the user is requesting any session id
     sessid = request.args.get('sessid', None)
     sessdb = request.args.get('sessdb', None)
@@ -327,32 +328,33 @@ def sessionedit():
             db2 = conn[dbobj2["dbname"]]
             image = db2["images"].find_one({'_id' : ObjectId(imgid)})
 
-          # if nothing else, used the image label.
-          if "label" in image :
-            descriptiveLabel = image["label"]
-          # Legacy label of view overrides image label.
-          if "label" in view :
-            descriptiveLabel = view["label"]
-          # Use the note label if the view has one.
-          if "Title" in view :
-            descriptiveLabel = view["Title"]
-          if "HiddenTitle" in view :
-            hiddenLabel = view["HiddenTitle"]
+          if image :
+            # if nothing else, used the image label.
+            if "label" in image :
+              descriptiveLabel = image["label"]
+            # Legacy label of view overrides image label.
+            if "label" in view :
+              descriptiveLabel = view["label"]
+            # Use the note label if the view has one.
+            if "Title" in view :
+              descriptiveLabel = view["Title"]
+            if "HiddenTitle" in view :
+              hiddenLabel = view["HiddenTitle"]
             
-          # thumb should be stored with the tiles, not in the image meta data.
-          if image.has_key("thumb"):
-            del image['thumb']
-            db["images"].save(image)
+            # thumb should be stored with the tiles, not in the image meta data.
+            if image.has_key("thumb"):
+              del image['thumb']
+              db["images"].save(image)
 
-          item = {}
-          item['db'] = str(dbobj["_id"])
-          item['session'] = sessid;
-          item["img"] = str(imgid)
-          item["descriptiveLabel"] = descriptiveLabel
-          item["hiddenLabel"] = hiddenLabel
-          item["view"] = str(aview["ref"])
-          viewList.append(item)    
-    
+            item = {}
+            item['db'] = imgdb
+            item['session'] = sessid
+            item["img"] = str(imgid)
+            item["descriptiveLabel"] = descriptiveLabel
+            item["hiddenLabel"] = hiddenLabel
+            item["view"] = str(aview["ref"])
+            viewList.append(item)    
+     
     data = {
              'success': 1,
              'db' : sessdb,
@@ -382,7 +384,7 @@ def sessionsave():
     label = inputObj["label"]
     views = inputObj["views"]
     hideAnnotation = inputObj["hideAnnotation"]  
-    
+    stack = inputObj["stack"]  
     
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbId) })
@@ -485,7 +487,11 @@ def sessionsave():
     sessObj["views"] = newViews
     sessObj["images"] = newImages
     sessObj["hideAnnotations"] = hideAnnotation
-
+    if stack :
+      sessObj["type"] = "stack"
+    else :
+      sessObj["type"] = "session"
+    
     #pdb.set_trace()
     if newFlag :
       del sessObj["_id"]

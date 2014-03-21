@@ -477,7 +477,6 @@ def glstacksession():
     """
     - /webgl-viewer/stack-session?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
     """
-    #pdb.set_trace();
     # Comparison is a modified view.
     sessid = request.args.get('sess', None)
     if not sessid:
@@ -490,54 +489,76 @@ def glstacksession():
     db = conn[dbobj["dbname"]]
 
     sessobj = db["sessions"].find_one({"_id" : ObjectId(sessid) })
+    # Make a transformation if one does not exist.
+    if not sessobj.has_key("transformations") :
+      sessobj["transformations"] = []
+      num = len(sessobj["views"])
+      for idx in range(0,num-1) :
+        pair = {"Correlations": []}
+        pair["View0"] = sessobj["views"][idx]["ref"]
+        pair["View1"] = sessobj["views"][idx+1]["ref"]
+        sessobj["transformations"].append(pair)
+
     views = [];
-    viewIdx = 0;
-    for view in sessobj["views"]:
-        viewid = view["ref"]
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-        
-        # Having issues with jsonify
-        imgdbid = dbid
-        if 'db' in viewobj:
-            imgdbid = str(viewobj["db"])
-        imgobj = db["images"].find_one({"_id" : viewobj["img"] })
-        convertImageToPixelCoordinateSystem(imgobj)
-        
-        # flip the coordinate system to image
-        flip = True
-        if viewobj.has_key("CoordinateSystem") and viewobj["CoordinateSystem"] == "Pixel" :
-            flip = False
-        if flip :
-            paddedHeight = 256 << (imgobj["levels"] - 1)
-            viewobj["center"][1] = paddedHeight - viewobj["center"][1]
-            if viewIdx < len(sessobj["transformations"]) :
-              pair = sessobj["transformations"][viewIdx]
-              for correlation in pair["Correlations"] :
-                  correlation["point0"][1] = paddedHeight - correlation["point0"][1]
-            if viewIdx > 0 :
-                pair = sessobj["transformations"][viewIdx-1]
-                for correlation in pair["Correlations"] :
-                    correlation["point1"][1] = paddedHeight - correlation["point1"][1]
+    viewIdx = 0;    
+    #pdb.set_trace();
+    for view in sessobj['views']:
+      viewobj = db["views"].find_one({"_id" : view["ref"]})
+      imgdb = dbid
+      if viewobj.has_key("db") :
+        imgdb = viewobj["db"]
+      if "imgdb" in viewobj :
+        imgdb = viewobj["imgdb"]
+      if "img" in viewobj :
+        imgid = viewobj["img"]
+      else :
+        # an assumption that view is of type note.
+        viewerRecord = viewobj["ViewerRecords"][0]
+        if viewerRecord.has_key("Database") :
+          imgid = viewerRecord["Image"]
+          imgdb = viewerRecord["Database"]
+        else :
+          imgid = viewerRecord["Image"]["_id"]
+          imgdb = viewerRecord["Image"]["database"]          
+      # support for images from different database than the session.
+      if imgdb == dbid :
+        imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
+      else :
+        dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
+        db2 = conn[dbobj2["dbname"]]
+        imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
+      convertImageToPixelCoordinateSystem(imgobj)                                    
+                  
+      center = [0.0,0.0]
+      height = 10000.0
+      # center is a legacy schema for stack.
+      if viewobj.has_key("center") :
+        center = viewobj["center"]
+        height = viewobj["height"]
+      elif imgobj.has_key("bounds") :
+        center[0] = 0.5*(imgobj["bounds"][0]+imgobj["bounds"][1])
+        center[1] = 0.5*(imgobj["bounds"][2]+imgobj["bounds"][3])
+        height = imgobj["bounds"][3]-imgobj["bounds"][2]
 
-        # package up variables for template
-        myview = {"_id": str(viewobj["_id"]),
-                  "center": viewobj["center"],
-                  "height": viewobj["height"],
-                  "rotation": 0,
-                  "db": imgdbid}
-        myimg = {"dimensions": imgobj["dimension"],
-                 "bounds": imgobj["bounds"],
-                 "_id": str(imgobj["_id"]),
-                 "levels": imgobj["levels"]}
-                 
-        myview["img"] = myimg
-        views.append(myview)
-        viewIdx += 1;
-
+      # package up variables for template
+      myview = {"_id": str(viewobj["_id"]),
+                "center": center,
+                "height": height,
+                "rotation": 0,
+                "db": imgdb}
+      myimg = {"dimensions": imgobj["dimensions"],
+               "bounds": imgobj["bounds"],
+               "_id": str(imgobj["_id"]),
+               "levels": imgobj["levels"]}
+               
+      myview["img"] = myimg
+      views.append(myview)
+      viewIdx += 1;
+      
     for pair in sessobj["transformations"]:
-        if 'view0' in pair:
-            pair["view0"] = str(pair["view0"])
-            pair["view1"] = str(pair["view1"])
+        if 'View0' in pair:
+            pair["View0"] = str(pair["View0"])
+            pair["View1"] = str(pair["View1"])
 
     if not 'annotations' in sessobj:
         sessobj["annotations"] = []
@@ -561,12 +582,13 @@ def glstacksave():
     admindb = conn[current_app.config["CONFIGDB"]]
     dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
     db = conn[dbobj["dbname"]]
-
+    
+    #pdb.set_trace()
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
-            pair["view0"] = ObjectId(pair["view0"])
-            pair["view1"] = ObjectId(pair["view1"])
+            pair["View0"] = ObjectId(pair["View0"])
+            pair["View1"] = ObjectId(pair["View1"])
         # Save the transformations in mongo
         db["sessions"].update({"_id": ObjectId(sessid)}, 
                               {"$set": {"transformations": stackObj["transformations"]}})
