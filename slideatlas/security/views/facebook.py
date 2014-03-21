@@ -7,7 +7,7 @@ from slideatlas import models
 from .common import login_user
 
 ################################################################################
-__all__ = ('login_facebook', 'facebookAuthorized')
+__all__ = ('register', 'login_facebook', 'facebookAuthorized')
 
 ################################################################################
 oauth = OAuth()
@@ -22,7 +22,8 @@ facebook = oauth.remote_app('facebook',
 )
 
 
-def register_with_app(app):
+################################################################################
+def register(app, blueprint):
     app.config['SLIDEATLAS_FACEBOOK_OAUTH'] = {
         'consumer_key': app.config['SLIDEATLAS_FACEBOOK_APP_ID'],
         'consumer_secret': app.config['SLIDEATLAS_FACEBOOK_APP_SECRET']

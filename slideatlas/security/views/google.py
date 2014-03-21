@@ -7,13 +7,14 @@ from slideatlas import models
 from .common import login_user
 
 ################################################################################
-__all__ = ('login_google',)
+__all__ = ('register', 'login_google',)
 
 ################################################################################
 oid = OpenID()
 
 
-def register_with_app(app):
+################################################################################
+def register(app, blueprint):
     oid.init_app(app)
 
 
