@@ -24,11 +24,12 @@ app.config.from_object("site_slideatlas")
 #app.config.from_object("site_local")
 
 # Connect if replica set
-if app.config["MONGO_IS_REPLICA_SET"]:
+if not app.config["MONGO_IS_REPLICA_SET"]:
     slconn = mongokit.MongoClient(app.config["MONGO_URL"], tz_aware=False, auto_start_request=False)
-
 else:
-    slconn = mongokit.MongoReplicaSetClient(app.config["MONGO_URL"], tz_aware=False, auto_start_request=False, read_preference=pymongo.ReadPreference.NEAREST)
+    slconn = mongokit.MongoReplicaSetClient(app.config["MONGO_URL"], tz_aware=False, auto_start_request=False, read_preference=pymongo.ReadPreference.NEAREST,
+                                            replicaSet=app.config["MONGO_REPLICA_SET_NAME"])
+
 
 admindb = slconn["admin"]
 
