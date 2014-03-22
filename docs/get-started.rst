@@ -24,10 +24,15 @@ Which loads
 
 .. code-block:: python 
 
-    MONGO_SERVER = "slide-atlas.org:27017"
-    CONFIGDB = "slideatlasv2"
+    # For mongodb server connections
+    # MONGO_IS_REPLICA_SET = False
+    # MONGO_URL = "slide-atlas.org:27017"
+    # CONFIGDB = "slideatlasv2"
 
+    # For replica set connection
     LOGIN_REQUIRED = True
+    MONGO_IS_REPLICA_SET = True
+    MONGO_URL = "slide-atlas.org:27017,mini.slide-atlas.org:27021,new.slide-atlas.org:27017"
     USERNAME = "put_user_name_here"
     PASSWORD = "put_password_here"
 
