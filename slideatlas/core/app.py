@@ -3,7 +3,7 @@
 from flask import Flask
 from flask.ext.bootstrap import Bootstrap
 
-from .url_processing import add_url_converters
+from .url_processing import add_url_converters, add_url_value_preprocessors
 
 
 ################################################################################
@@ -23,6 +23,7 @@ def create_app():
     add_config(app)
 
     add_url_converters(app)
+    add_url_value_preprocessors(app)
 
     create_blueprints(app)
 

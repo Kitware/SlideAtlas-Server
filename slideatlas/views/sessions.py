@@ -14,6 +14,8 @@ NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
 
+
+################################################################################
 @mod.route('/sessions')
 @security.login_required
 def sessions():
@@ -25,11 +27,15 @@ def sessions():
     sessdb = request.args.get('sessdb')
 
     if sessdb and sessid:
-        return view_a_session(sessdb, sessid)
+        database_obj = models.Database.objects.get_or_404(id=sessdb)
+        with database_obj:
+            session_obj = models.Session.objects.get_or_404(id=sessid)
+        return view_a_session(database_obj, session_obj)
     else:
         return view_all_sessions()
 
 
+################################################################################
 def view_all_sessions():
     all_sessions = list()
     for role in security.current_user.roles:
@@ -54,11 +60,9 @@ def view_all_sessions():
         return render_template('sessionlist.html', all_sessions=all_sessions)
 
 
-def view_a_session(sessdb, sessid, next=None):
-    database_obj = models.Database.objects.get_or_404(id=sessdb)
-    with database_obj:
-        session_obj = models.Session.objects.get_or_404(id=sessid)
-
+################################################################################
+@mod.route('/sessions/<Database:database_obj>/<Session:session_obj>')
+def view_a_session(database_obj, session_obj, next=None):
     # TODO: the old code seemed to have a bug where it sliced the 'images' field,
     #  but iterated through the 'views' field; since the template doesn't seem use 'next'
     #  lets not change any behavior yet
@@ -96,11 +100,11 @@ def view_a_session(sessdb, sessid, next=None):
                         imgdb = viewobj["ViewerRecords"][0]["Image"]["database"]
 
             if imgid == 0 :
-                imgdb = sessdb
+                imgdb = str(database_obj.id)
                 imgid = str(viewobj["img"])
             if "imgdb" in viewobj :
-                imgdb = viewobj["imgdb"]
-            if imgdb == sessdb :
+                imgdb = viewobj["imgdb"]  # TODO: this is already stored as a string for zome reason
+            if imgdb == database_obj.id :
                 imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
             else :
                 # this is a pymongo Database that we can use until all models are complete
@@ -155,9 +159,9 @@ def view_a_session(sessdb, sessid, next=None):
         'session' : session_json,
         'images' : images,
         'attachments' :attachments,
-        'db' : sessdb,
-        'sessid' : sessid,
-        'next' : url_for('session.sessions', sessid=sessid, ajax=1, next=next + NUMBER_ON_PAGE)
+        'db' : str(database_obj.id),
+        'sessid' : str(session_obj.id),
+        'next' : url_for('.sessions', sessid=str(session_obj.id), ajax=1, next=next + NUMBER_ON_PAGE)
         }
 
     if request.args.get('json'):
