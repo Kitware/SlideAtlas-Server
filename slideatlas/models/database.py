@@ -58,8 +58,7 @@ class Database(ModelDocument):
                 port=int(port) if port else None,
                 name=self.dbname,
                 username=self.username,
-                password=self.password,
-                authentication_source=self.auth_db)
+                password=self.password)
 
     def __enter__(self):
         self.register()

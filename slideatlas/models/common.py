@@ -19,8 +19,7 @@ def register_admin_db(host, dbname, username=None, password=None, auth_db=None):
         port=int(port) if port else None,
         name=dbname,
         username=username,
-        password=password,
-        authentication_source=auth_db)
+        password=password)
 
 
 ################################################################################
