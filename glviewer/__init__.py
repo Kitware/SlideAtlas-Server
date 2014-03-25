@@ -1,15 +1,9 @@
 import math
-import mongokit
 from bson import ObjectId
-from flask import Blueprint, Response, abort, request, render_template, url_for, session, current_app, make_response
-from slideatlas import slconn as conn, admindb, model
-from slideatlas.model import Image, Session, Rule, User, Database
+from flask import Blueprint, request, render_template, session, make_response
+from slideatlas import models, security
 import json
-from slideatlas.common_utils import jsonify, login_required
-
-import pdb
-
-
+from slideatlas.common_utils import jsonify
 
 
 # I am going to make this ajax call the standard way to load a view.
@@ -20,16 +14,15 @@ def jsonifyView(db,dbid,viewid,viewobj):
         imgid = viewobj["ViewerRecords"][0]["Image"]
     if imgid == 0 :
       imgid = viewobj["img"]
-      
+
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
-    
-    #pdb.set_trace()
+
     # the official schema says dimension not dimensions. correct the schema later.
     #if 'dimension' in imgobj:
     #  imgobj['dimensions'] = imgobj['dimension']
     #  delete imgobj.dimension
     #  db["images"].save(imgobj);
-    
+
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
@@ -53,7 +46,7 @@ def jsonifyView(db,dbid,viewid,viewobj):
         img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
       if 'viewHeight' in bookmarkobj:
         img["viewHeight"] = bookmarkobj["viewHeight"]
-      
+
     return jsonify(img)
 
 
@@ -76,26 +69,17 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 # view and note are the same in the new schema.
 # It becomes so simple!
 def glnote(db, dbid, viewid, viewobj, edit):
-    # I was going get the user id from the session, and pass it to the viewer.
-    # I think I will just try to retrieve the user from the "Save Note" method.
-    if 'user' in session:
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        email = None
-    
+    email = security.current_user.email
     return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email, edit=edit))
 
-    
-    
+
+
 # Flip the y-axis of a view from origin lower left, to origin upper right.
-# When this is working well, I will apply it to all views in the database. 
+# When this is working well, I will apply it to all views in the database.
 def flipAnnotation(annot, paddedHeight) :
   if annot["type"] == "text" :
     annot["offset"][1] = -annot["offset"][1] - annot["size"];
-    annot["position"][1] = paddedHeight - annot["position"][1] 
+    annot["position"][1] = paddedHeight - annot["position"][1]
   if annot["type"] == "circle" :
     annot["origin"][1] = paddedHeight - annot["origin"][1]
   if annot["type"] == "polyline" :
@@ -105,9 +89,9 @@ def flipAnnotation(annot, paddedHeight) :
     for shape in annot["shapes"] :
       for point in shape :
         point[1] = paddedHeight - point[1]
-    
-  
-  
+
+
+
 def flipViewerRecord(viewerRecord) :
   paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
   viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
@@ -119,7 +103,7 @@ def flipViewerRecord(viewerRecord) :
 def convertImageToPixelCoordinateSystem(imageObj) :
   # origin ?
   # Skip startup view.  GetView handles this old format
-  
+
   if 'dimensions' in imageObj:
     imageObj["dimensions"] = imageObj["dimensions"]
   elif 'dimension' in imageObj:
@@ -137,7 +121,7 @@ def convertImageToPixelCoordinateSystem(imageObj) :
     imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
     imageObj["bounds"][3] = paddedHeight-tmp
     imageObj["CoordinateSystem"] = "Pixel"
-  
+
 def convertViewToPixelCoordinateSystem(viewObj) :
   if viewObj.has_key("Children") :
     for child in viewObj["Children"] :
@@ -236,34 +220,11 @@ mod = Blueprint('glviewer', __name__,
                 )
 
 @mod.route('')
-@login_required
+@security.login_required
 def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
-    #pdb.set_trace()
-    
-    # Check the user is logged in.
-    rules = []
-    # Compile the rules
-    conn.register([Image, Session, User, Rule, Database])
-    admindb = conn[current_app.config["CONFIGDB"]]
-    # Assert the user is logged in
-    if 'user' in session:
-      name = session['user']['label']
-      id = session['user']['id']
-      userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
-      if userobj == None:
-        # If the user is not found then something wrong 
-        # Redirect the user to home with error message 
-        flash("Invalid login", "error")
-        return redirect(url_for('login.login'))
-    else:
-      # Send the user back to login page
-      # with some message
-      flash("You must be logged in to see that resource", "error")
-      return redirect(url_for('login.login'))
-    
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session
@@ -279,12 +240,11 @@ def glview():
 
     # in the future, the admin database will contain everything except
     # the image data and attachments.
-    admindb = conn[current_app.config["CONFIGDB"]]
+    admindb = models.Database._get_db()
     db = admindb
     if dbid :
-      dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-      db = conn[dbobj["dbname"]]
-    conn.register([model.Database])    
+      database = models.Database.objects.with_id(dbid)
+      db = database.to_pymongo()
 
     if viewid :
       viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -302,6 +262,7 @@ def glview():
 
 
 @mod.route('/bookmark')
+@security.login_required
 def bookmark():
     """
     - /bookmark?key=0295cf24-6d51-4ce8-a923-772ebc71abb5
@@ -311,27 +272,6 @@ def bookmark():
 
 
     return jsonify({"key" : key })
-
-    # Check the user is logged in.
-    rules = []
-    # Compile the rules
-    conn.register([Image, Session, User, Rule, Database])
-    admindb = conn[current_app.config["CONFIGDB"]]
-    # Assert the user is logged in
-    if 'user' in session:
-      name = session['user']['label']
-      id = session['user']['id']
-      userobj = admindb["users"].User.find_one({"_id":  ObjectId(id)})
-      if userobj == None:
-        # If the user is not found then something wrong
-        # Redirect the user to home with error message
-        flash("Invalid login", "error")
-        return redirect(url_for('login.login'))
-    else:
-      # Send the user back to login page
-      # with some message
-      flash("You must be logged in to see that resource", "error")
-      return redirect(url_for('login.login'))
 
 
     # See if editing will be enabled.
@@ -345,12 +285,9 @@ def bookmark():
 
     # this is the same as the sessions db in the sessions page.
     # TODO: Store database in the view and do not pass as arg.
-    dbid = request.args.get('db', None)
+    dbid = request.args.get('db')
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    conn.register([model.Database])
+    db = models.Database.objects.get_or_404(id=dbid).to_pymongo()
 
     if viewid :
       viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -367,23 +304,20 @@ def bookmark():
       return glnote(db,dbid,viewid,viewobj,edit)
 
 
-
-
-
 # get all the children notes for a parent (authored by a specific user).
 @mod.route('/getchildnotes')
 def getchildnotes():
     parentid = request.args.get('parentid', "")
     dbid = request.args.get('db', "")
-    user = session["user"]["id"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
+    user = security.current_user.id
+
+    admindb = models.Database._get_db()
     db = admindb
-    #dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    #db = conn[dbobj["dbname"]]
-    
+    #database = models.Database.objects.get_or_404(id=dbid)
+    #db = database.to_pymongo()
+
     notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
-                                    "User" :     ObjectId(user)})
+                                    "User" :     user})
     # make a new structure to return.  Convert the ids to strings.
     noteArray = [];
     for note in notecursor:
@@ -391,10 +325,10 @@ def getchildnotes():
       note["_id"] = None
       note["ParentId"] = str(note["ParentId"])
       noteArray.append(note)
-      
+
     data = {};
     data["Notes"] = noteArray
-    
+
     return jsonify(data)
 
 
@@ -407,13 +341,12 @@ def glcomparisonoption():
     """
 
     # Comparison is a modified view.
-    viewid = request.args.get('viewid', None)
+    viewid = request.args.get('viewid')
     # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db', None)
+    dbid = request.args.get('db')
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
@@ -461,9 +394,8 @@ def glcomparisonsave():
     dbid = inputObj["Viewer1"]["db"]
     viewid = inputObj["Viewer1"]["viewid"]
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     if operation == "options" :
         optionArray = inputObj["Options"]
@@ -491,11 +423,9 @@ def glcomparisonsave():
         #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
         #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
         #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
-        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj) 
-
+        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
 
     return operation
-
 
 
 # Converts a view into a comparison.
@@ -504,17 +434,16 @@ def glcomparisonconvert():
     dbid = request.args.get('db', "") # for get
     viewid = request.args.get('view', "") # for get
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     viewobj = db["views"].update({"_id" : ObjectId(viewid) },
                                  { "$set" : { "type" : "comparison" } })
 
     return viewid
- 
 
- 
+
+
 # Stack viewer.
 @mod.route('/stack')
 def glstack():
@@ -523,21 +452,20 @@ def glstack():
     """
 
     # Comparison is a modified view.
-    sessid = request.args.get('sess', None)
+    sessid = request.args.get('sess')
     if not sessid:
         sessid = "51256ae6894f5931098069d5"
     # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db', None)
+    dbid = request.args.get('db')
     if not dbid:
         dbid = "5123c81782778fd2f954a34a"
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
 
-    return make_response(render_template('stack.html', 
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
+
+    return make_response(render_template('stack.html',
                          db = dbid, sess = sessid))
-    
+
 
 # stack viewer gets the stack info with ajax.
 @mod.route('/stack-session')
@@ -546,99 +474,97 @@ def glstacksession():
     - /webgl-viewer/stack-session?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
     """
     # Comparison is a modified view.
-    sessid = request.args.get('sess', None)
+    sessid = request.args.get('sess')
     if not sessid:
         sessid = "51256ae6894f5931098069d5"
     # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db', None)
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    dbid = request.args.get('db')
 
-    sessobj = db["sessions"].find_one({"_id" : ObjectId(sessid) })
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
+
+    with database:
+        sessobj = models.Session.objects.get_or_404(sessid)
+
     # Make a transformation if one does not exist.
-    if not sessobj.has_key("transformations") :
-      sessobj["transformations"] = []
-      num = len(sessobj["views"])
-      for idx in range(0,num-1) :
-        pair = {"Correlations": []}
-        pair["View0"] = sessobj["views"][idx]["ref"]
-        pair["View1"] = sessobj["views"][idx+1]["ref"]
-        sessobj["transformations"].append(pair)
+    if not sessobj.transformations :
+        sessobj.transformations = []
+        num = len(sessobj.views)
+        for idx in range(0,num-1) :
+            pair = {"Correlations": []}
+            pair["View0"] = sessobj["views"][idx]["ref"]
+            pair["View1"] = sessobj["views"][idx+1]["ref"]
+            sessobj["transformations"].append(pair)
 
     views = [];
-    viewIdx = 0;    
+    viewIdx = 0;
     #pdb.set_trace();
-    for view in sessobj['views']:
-      viewobj = db["views"].find_one({"_id" : view["ref"]})
-      imgdb = dbid
-      if viewobj.has_key("db") :
-        imgdb = viewobj["db"]
-      if "imgdb" in viewobj :
-        imgdb = viewobj["imgdb"]
-      if "img" in viewobj :
-        imgid = viewobj["img"]
-      else :
-        # an assumption that view is of type note.
-        viewerRecord = viewobj["ViewerRecords"][0]
-        if viewerRecord.has_key("Database") :
-          imgid = viewerRecord["Image"]
-          imgdb = viewerRecord["Database"]
+    for view in sessobj.views:
+        viewobj = db["views"].find_one({"_id" : view["ref"]})
+        imgdb = dbid
+        if viewobj.has_key("db") :
+            imgdb = viewobj["db"]
+        if "imgdb" in viewobj :
+            imgdb = viewobj["imgdb"]
+        if "img" in viewobj :
+            imgid = viewobj["img"]
         else :
-          imgid = viewerRecord["Image"]["_id"]
-          imgdb = viewerRecord["Image"]["database"]          
-      # support for images from different database than the session.
-      if imgdb == dbid :
-        imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
-      else :
-        dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
-        db2 = conn[dbobj2["dbname"]]
-        imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
-      convertImageToPixelCoordinateSystem(imgobj)                                    
-                  
-      center = [0.0,0.0]
-      height = 10000.0
-      # center is a legacy schema for stack.
-      if viewobj.has_key("center") :
-        center = viewobj["center"]
-        height = viewobj["height"]
-      elif imgobj.has_key("bounds") :
-        center[0] = 0.5*(imgobj["bounds"][0]+imgobj["bounds"][1])
-        center[1] = 0.5*(imgobj["bounds"][2]+imgobj["bounds"][3])
-        height = imgobj["bounds"][3]-imgobj["bounds"][2]
+            # an assumption that view is of type note.
+            viewerRecord = viewobj["ViewerRecords"][0]
+            if viewerRecord.has_key("Database") :
+                imgid = viewerRecord["Image"]
+                imgdb = viewerRecord["Database"]
+            else :
+                imgid = viewerRecord["Image"]["_id"]
+                imgdb = viewerRecord["Image"]["database"]
+        # support for images from different database than the session.
+        if imgdb == dbid :
+            imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
+        else :
+            dbobj2 = models.Database.objects.with_id(imgdb)
+            db2 = dbobj2.to_pymongo()
+            imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
+        convertImageToPixelCoordinateSystem(imgobj)
 
-      # package up variables for template
-      myview = {"_id": str(viewobj["_id"]),
-                "center": center,
-                "height": height,
-                "rotation": 0,
-                "db": imgdb}
-      myimg = {"dimensions": imgobj["dimensions"],
-               "bounds": imgobj["bounds"],
-               "_id": str(imgobj["_id"]),
-               "levels": imgobj["levels"]}
-               
-      myview["img"] = myimg
-      views.append(myview)
-      viewIdx += 1;
-      
-    for pair in sessobj["transformations"]:
+        center = [0.0,0.0]
+        height = 10000.0
+        # center is a legacy schema for stack.
+        if viewobj.has_key("center") :
+            center = viewobj["center"]
+            height = viewobj["height"]
+        elif imgobj.has_key("bounds") :
+            center[0] = 0.5*(imgobj["bounds"][0]+imgobj["bounds"][1])
+            center[1] = 0.5*(imgobj["bounds"][2]+imgobj["bounds"][3])
+            height = imgobj["bounds"][3]-imgobj["bounds"][2]
+
+        # package up variables for template
+        myview = {"_id": str(viewobj["_id"]),
+                  "center": center,
+                  "height": height,
+                  "rotation": 0,
+                  "db": imgdb}
+        myimg = {"dimensions": imgobj["dimensions"],
+                 "bounds": imgobj["bounds"],
+                 "_id": str(imgobj["_id"]),
+                 "levels": imgobj["levels"]}
+
+        myview["img"] = myimg
+        views.append(myview)
+        viewIdx += 1;
+
+    for pair in sessobj.transformations:
         if 'View0' in pair:
             pair["View0"] = str(pair["View0"])
             pair["View1"] = str(pair["View1"])
 
-    if not 'annotations' in sessobj:
-        sessobj["annotations"] = []
-
-    for markup in sessobj["annotations"]:
+    for markup in sessobj.annotations:
         markup["view"] = str(markup["view"])
 
-    return jsonify({"views":views, 
-                    "transformations": sessobj["transformations"], 
-                    "annotations": sessobj["annotations"]})
+    return jsonify({"views":views,
+                    "transformations": sessobj.transformations,
+                    "annotations": sessobj.annotations})
 
-    
+
 # This method saves transformations and/or annotations (whatever exists in data.
 @mod.route('/stack-save', methods=['GET', 'POST'])
 def glstacksave():
@@ -647,30 +573,28 @@ def glstacksave():
     dataStr = request.form['data']  # for post
     stackObj = json.loads(dataStr)
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
-    #pdb.set_trace()
+    database = models.Database.objects.get_or_404(id=dbid)
+
+    with database:
+        session = models.Session.objects.get_or_404(id=sessid)
+
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
             pair["View0"] = ObjectId(pair["View0"])
             pair["View1"] = ObjectId(pair["View1"])
         # Save the transformations in mongo
-        db["sessions"].update({"_id": ObjectId(sessid)}, 
-                              {"$set": {"transformations": stackObj["transformations"]}})
+            session.transformations = stackObj["transformations"]
     if 'annotations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for annotation in stackObj["annotations"]:
             annotation["view"] = ObjectId(annotation["view"])
-        db["sessions"].update({"_id": ObjectId(sessid)}, 
-                              {"$set": {"annotations": stackObj["annotations"]}})
+        session.annotations = stackObj["annotations"]
+    session.save()
 
     return "Success"
-    
-    
-    
+
+
 # For initial creation of the stack.  Add a view to the stack.
 @mod.route('/stack-insert', methods=['GET', 'POST'])
 def glstackinsert():
@@ -681,29 +605,23 @@ def glstackinsert():
 
     viewObj = json.loads(camStr)
     viewObj["img"] = ObjectId(imgid)
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     # add the view
     view_id = db["views"].insert(viewObj)
 
     # I do not know the insert toan array so I will just set the whole thing
-    session = db["sessions"].find_one({"name": "RenalStack" })
+    with database:
+        session = models.Session.objects.first(name='RenalStack')
     #num = session["views"].length
-    num = len(session["views"])
+    num = len(session.views)
     section = {"ref": view_id, "hide": False, "pos": num}
-    session["views"].append(section);
-    db["sessions"].update({"name" : "RenalStack" },
-                          { "$set" : { "views" : session["views"] } })
+    session.views.append(section);
+    session.save()
 
     return "Success"
-
-
-
-
-
 
 
 # I need to unify.  Comparison, stack and single view.
@@ -716,9 +634,8 @@ def glsaveview():
     dbid = messageObj["db"]
     viewid = inputObj["viewid"]
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     if operation == "view" :
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -741,43 +658,39 @@ def glsaveview():
         #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
         #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
         #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
-        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj) 
-
+        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
 
     return operation
 
 
-
-
 # Starts a recording
 # name is a way to identify a recording session.
-
 @mod.route('/record-save', methods=['GET', 'POST'])
 def glrecordsave():
-    user = session["user"]["email"]
+    user = security.current_user.email
 
     dbid      = request.form['db']  # for post
-    name      = request.form['name']  
+    name      = request.form['name']
     date      = request.form['date']  # used only when creating a new recording
-    recordStr = request.form['record']  
+    recordStr = request.form['record']
     record = json.loads(recordStr)
 
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     recordingobj = db["recordings"].find_one({"name" : name })
-    
+
     if not recordingobj:
-      # construct a new object.
-      recordingobj = {}
-      recordingobj["name"] = name
-      recordingobj["user"] = user
-      recordingobj["date"] = int(date)
-      recordingobj["records"] = [record]
-      db["recordings"].save( recordingobj );
+        # construct a new object.
+        recordingobj = {
+            'name': name,
+            'user': user,
+            'date': int(date),
+            'records': [record]
+        }
+        db["recordings"].save( recordingobj )
     else :
-      db["recordings"].update( {"name": name}, { "$push" : { 'records': record}}) 
+        db["recordings"].update( {"name": name}, { "$push" : { 'records': record}})
 
     return "success"
 
@@ -792,18 +705,15 @@ def glrecordsave():
 def getparentcomments():
     dbid = request.form['db']
     noteid = request.form["id"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
+
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
+
     toplevelcomments = db["comments"].find({ "parent": noteid })
-    
-    
-     
+
     for obj in toplevelcomments:
-      obj["_id"] = str(obj["_id"])
-    
+        obj["_id"] = str(obj["_id"])
+
     return jsonify(toplevelcomments)
 
 
@@ -812,85 +722,76 @@ def getparentcomments():
 def getcomment():
     dbid = request.form["db"]
     commentid = request.form["id"]
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
-    
+
+    database = models.Database.objects.get_or_404(id=bid)
+    db = database.to_pymongo()
+
     comment = db["comments"].find_one({"_id": ObjectId(commentid) })
-    
+
     if comment:
       comment["_id"] = str(comment["_id"])
-    
+
     return jsonify(comment)
 
 
 # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
-    #pdb.set_trace()
-    noteStr = request.form['note'] # for post  
+    noteStr = request.form['note'] # for post
 
     note    = json.loads(noteStr)
     note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = ObjectId(session["user"]["id"])
     note["Type"] = "UserNote"
-    
+
     # Saving notes in admin db now.
-    admindb = conn[current_app.config["CONFIGDB"]]
+    admindb = models.Database._get_db()
 
     noteId = admindb["views"].save(note);
-    return str(noteId);
- 
+    return str(noteId)
+
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.
 
 # Where should we put this notes session?
-# it has to be user specific. We need a rule for this specific user. 
+# it has to be user specific. We need a rule for this specific user.
 # If each user does not have his own database,
 # them maybe they should have their own collection.
 # There is already a user collection.  How do we get it?
- 
+
 
 def recursiveSetUser(note, user):
     note["user"] = user;
     if 'Children ' in note:
-      for child in note["Children"]:
-          recursiveSetUser(child, user)
-      
- 
+        for child in note["Children"]:
+            recursiveSetUser(child, user)
+
+
  # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
+@security.login_required
 def saveviewnotes():
     dbid    = request.form['db']  # for post
     viewId  = request.form['view']
-    noteObj = request.form['note']  
+    noteObj = request.form['note']
     note    = json.loads(noteObj);
 
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
 
     # I was going get the user id from the session, and pass it to the viewer.
     # I think I will just try to retreive the user from the "Save Note" method.
-    if 'user' in session:
-        email = session["user"]["email"]
-    else:
-        # Send the user back to login page
-        # with some message
-        flash("You are not logged in..", "info")
-        email = None
-    # user should be set by flask so it cannot be faked.
+    email = security.current_user.email
+
     recursiveSetUser(note, email);
-    
+
     # the root note is the view
-    
+
     # Replace the viewobject with one of type 'notes'
     #viewobj = db["views"].find_one({"_id" : ObjectId(viewId) })
     # nothing to copy over except the id.
-    note["_id"] = ObjectId(viewId) 
-    
+    note["_id"] = ObjectId(viewId)
+
     # Save the notes
     #db["views"].update({"_id" : ObjectId(viewId) },
     #                   { "$set" : { "notes" : notes } })
@@ -903,19 +804,18 @@ def addviewimage(viewObj):
     for record in viewObj["ViewerRecords"]:
         # database and object (and server) should be packaged into a reference object.
         if record.has_key("Database") :
-          imgid = record["Image"]
-          imgdb = record["Database"]
+            imgid = record["Image"]
+            imgdb = record["Database"]
         else :
-          imgid = record["Image"]["_id"]
-          imgdb = record["Image"]["database"]
-        
-        admindb = conn[current_app.config["CONFIGDB"]]
-        dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
-        db = conn[dbobj["dbname"]]
+            imgid = record["Image"]["_id"]
+            imgdb = record["Image"]["database"]
+
+        database = models.Database.objects.get_or_404(id=imgdb)
+        db = database.to_pymongo()
         imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
         imgObj["_id"] = str(imgObj["_id"])
         if imgObj.has_key("thumb") :
-          imgObj["thumb"] = None
+            imgObj["thumb"] = None
         imgObj["database"] = imgdb
         if 'dimension' in imgObj:
             imgObj["dimensions"] = imgObj["dimension"]
@@ -923,18 +823,17 @@ def addviewimage(viewObj):
           imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
         convertImageToPixelCoordinateSystem(imgObj)
         record["Image"] = imgObj
-    
+
     if viewObj.has_key("Children") :
-      for child in viewObj["Children"]:
-          addviewimage(child)
+        for child in viewObj["Children"]:
+            addviewimage(child)
 
 # Get all the images in a database.  Return them as json.
 @mod.route('/getimagenames')
 def getimagenames():
     dbid = request.args.get('db', "")
-    admindb = conn[current_app.config["CONFIGDB"]]
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-    db = conn[dbobj["dbname"]]
+    database = models.Database.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
     #imgObj = db["images"].find_one()
 
     imgItr = db["images"].find({}, {"label":1})
@@ -942,250 +841,243 @@ def getimagenames():
     for img in imgItr:
       img["_id"] = str(img["_id"])
       imgArray.append(img)
-      
+
     data = {};
     data["Database"] = dbid
     data["Images"] = imgArray
-    return jsonify(data)    
+    return jsonify(data)
 
- 
+
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
-  #pdb.set_trace()
-  sessid = request.args.get('sessid', None)
-  viewid = request.args.get('viewid', "")
-  viewdb = request.args.get('db', "")
-  
-  admindb = conn[current_app.config["CONFIGDB"]]
-  db = admindb
-  if viewdb and viewdb != "None" :
-    dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(viewdb) })
-    db = conn[dbobj["dbname"]]
+    sessid = request.args.get('sessid', None)
+    viewid = request.args.get('viewid', "")
+    viewdb = request.args.get('db', "")
 
-  # check the session to see if notes are hidden
-  hideAnnotations = False
-  if sessid :
-    sessObj = db["sessions"].find_one({ "_id" : ObjectId(sessid) })
-    if sessObj and sessObj.has_key("hideAnnotations") :
-      if sessObj["hideAnnotations"] :
-        hideAnnotations = True
+    admindb = models.Database._get_db
+    db = admindb
+    if viewdb and viewdb != "None" :
+        database = models.Database.objects.get_or_404(id=viewdb)
+        db = database.to_pymongo()
 
-  viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
-  viewObj["Id"] = viewid
-  # Right now, only notes use "Type"
-  if "Type" in viewObj :
-    viewObj["_id"] = str(viewObj["_id"]);
-    addviewimage(viewObj)
+    # check the session to see if notes are hidden
+    hideAnnotations = False
+    if sessid :
+        with database:
+            sessObj = models.Session.objects.with_id(sessid)
+        if sessObj and sessObj.hideAnnotations :
+            hideAnnotations = True
+
+    viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
+    viewObj["Id"] = viewid
+    # Right now, only notes use "Type"
+    if "Type" in viewObj :
+        viewObj["_id"] = str(viewObj["_id"]);
+        addviewimage(viewObj)
+        if hideAnnotations :
+            # use a cryptic label
+            viewObj["Title"] = viewObj["HiddenTitle"]
+            viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
+            viewObj["Children"] = []
+
+        convertViewToPixelCoordinateSystem(viewObj)
+        return jsonify(viewObj)
+
+    #---------------------------------------------------------
+    # legacy: Rework bookmarks into the same structure.
+    # a pain, but necessary to generalize next/previous slide.
+    # An array of children and an array of ViewerRecords
+    imgdb = viewdb
+    if "imgdb" in viewObj :
+        # support for images in database different than view
+        imgdb = viewObj["imgdb"]
+        database2 = models.Database.objects.get_or_404(id=imgdb)
+        db2 = database2.to_pymongo()
+        imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+    else :
+        imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+
+    # mold image object to have the keys the viewer expects.
+    imgobj["_id"] = str(imgobj["_id"])
+    if imgobj.has_key("thumb") :
+        imgobj["thumb"] = None
+    imgobj["database"] = imgdb
+    if imgobj.has_key("dimension") :
+        imgobj["dimensions"] = imgobj["dimension"]
+    # open layers images are bottom justified.
+    paddedHeight = 256 << (imgobj["levels"]-1)
+    if not imgobj.has_key("bounds") :
+        imgobj["bounds"] = [0, imgobj["dimensions"][0], paddedHeight-imgobj["dimensions"][1], paddedHeight]
+
+    noteObj = {}
+    noteObj["Id"] = viewid
+    noteObj["ParentId"] = ""
+    noteObj["Title"] = imgobj["label"]
+    if viewObj.has_key("Title") :
+        noteObj["Title"] = viewObj["Title"]
+    noteObj["HiddenTitle"] = imgobj["label"]
+    if viewObj.has_key("HiddenTitle") :
+        noteObj["HiddenTitle"] = viewObj["HiddenTitle"]
+
+    # Construct the ViewerRecord for the base view
+    viewerRecord = {}
+    viewerRecord["Annotations"] = []
+    viewerRecord["Image"] = imgobj
+
+    # camera object.
+    cam = {}
+    if 'startup_view' in viewObj:
+        bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
+        cam["FocalPoint"] = bookmark["center"]
+        # flip y axis
+        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
+        cam["Roll"] = -bookmark["rotation"]
+        if 'zoom' in bookmark:
+            cam["Height"] = 900 << int(bookmark["zoom"])
+        if 'viewHeight' in bookmark:
+            cam["Height"] = bookmark["viewHeight"]
+    else:
+        cam["Height"] = imgobj["dimensions"][1]
+        cam["Roll"] = 0
+        cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
+    viewerRecord["Camera"] = cam
+    noteObj["ViewerRecords"] = [viewerRecord]
+
+    # Now for the children (Bookmarks).
+    children = []
+    if 'bookmarks' in viewObj:
+        for bookmarkid in viewObj["bookmarks"]:
+            bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+            if bookmark["annotation"]["type"] == "pointer" :
+                question = {}
+                question["Title"] = "Question"
+                question["Text"] = ""
+                question["Type"] = "Bookmark"
+                question["Id"] = str(bookmark["_id"]);
+                question["ParentId"] = viewid
+                vrq = {}
+                vrq["AnnotationVisibility"] = 1
+                vrq["Image"] = viewerRecord["Image"]
+                # camera object.
+                cam = {}
+                cam["FocalPoint"] = bookmark["center"]
+                # flip y axis
+                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
+                cam["Height"] = 900 << int(bookmark["zoom"])
+                cam["Roll"] = -bookmark["rotation"]
+                vrq["Camera"] = cam
+                annot = {};
+                annot["type"] = "text"
+                # colors are wrong
+                #annot["color"] = bookmark["annotation"]["color"]
+                annot["color"] = "#1030FF"
+                annot["size"] = 30
+                annot["position"] = bookmark["annotation"]["points"][0];
+                annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
+                                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+                # flip y axis
+                annot["position"][1] = paddedHeight-annot["position"][1]
+                annot["offset"][1] = -annot["offset"][1]-30
+
+                # problem with offsets too big or small.  (Screen pixels / fixed size)
+                mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
+                if mag == 0 :
+                    annot["offset"][1] = 1
+                    mag = 1
+                if mag > 200 :
+                    annot["offset"][0] = annot["offset"][0] * 200 / mag
+                    annot["offset"][1] = annot["offset"][1] * 200 / mag
+                if mag < 10 :
+                    annot["offset"][0] = annot["offset"][0] * 10 / mag
+                    annot["offset"][1] = annot["offset"][1] * 10 / mag
+                annot["string"] = bookmark["title"]
+                annot["anchorVisibility"] = True
+                vrq["Annotations"] = [annot]
+                question["ViewerRecords"] = [vrq]
+                children.append(question)
+
+                answer = {}
+                answer["Title"] = bookmark["title"]
+                answer["Text"] = bookmark["details"]
+                answer["Type"] = "Bookmark"
+                answer["Id"] = str(bookmark["_id"])
+                answer["ParentId"] = viewid
+                vra = {}
+                vra["AnnotationVisibility"] = 2
+                vra["Type"] = "Answer"
+                vra["Image"] = viewerRecord["Image"]
+                vra["Camera"] = cam
+                vra["Annotations"] = [annot]
+                answer["ViewerRecords"] = [vra]
+                question["Children"] = [answer]
+
+            if bookmark["annotation"]["type"] == "circle" :
+                note = {}
+                note["Title"] = bookmark["title"]
+                note["Text"] = bookmark["details"]
+                note["Type"] = "Bookmark"
+                note["Id"] = str(bookmark["_id"])
+                note["ParentId"] = viewid
+                vr = {}
+                vr["AnnotationVisibility"] = 1
+                vr["Image"] = viewerRecord["Image"]
+                # camera object.
+                cam = {}
+                cam["FocalPoint"] = bookmark["center"]
+                # flip y axis
+                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
+                cam["Height"] = 900 << int(bookmark["zoom"])
+                cam["Roll"] = -bookmark["rotation"]
+                vrq["Camera"] = cam
+                annot = {};
+                annot["type"] = "circle"
+                annot["color"] = bookmark["annotation"]["color"]
+                annot["outlinecolor"] = bookmark["annotation"]["color"]
+                annot["origin"] = bookmark["annotation"]["points"][0]
+                # flip y axis
+                annot["origin"][1] = paddedHeight-annot["origin"][1]
+
+                # why does radius have value False?
+                if bookmark["annotation"]["radius"] :
+                    annot["radius"] = bookmark["annotation"]["radius"]
+                else :
+                    annot["radius"] = 1000.0
+                annot["linewidth"] = annot["radius"] / 20
+
+                vr["Annotations"] = [annot];
+                note["ViewerRecords"] = [vr]
+                children.append(note)
+
+    noteObj["Children"] = children
+
+    # it is easier to delete annotations than not generate them in the first place.
     if hideAnnotations :
-      # use a cryptic label
-      viewObj["Title"] = viewObj["HiddenTitle"]
-      viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
-      viewObj["Children"] = []
+        # use a cryptic label
+        noteObj["Title"] = viewObj["HiddenTitle"]
+        noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
+        noteObj["Children"] = []
 
-    convertViewToPixelCoordinateSystem(viewObj)
-    return jsonify(viewObj)
-    
-  #---------------------------------------------------------
-  # legacy: Rework bookmarks into the same structure.
-  # a pain, but necessary to generalize next/previous slide.
-  # An array of children and an array of ViewerRecords
-  imgdb = viewdb
-  if "imgdb" in viewObj :
-    # support for images in database different than view
-    imgdb = viewObj["imgdb"]
-    dbobj2 = admindb["databases"].Database.find_one({ "_id" : ObjectId(imgdb) })
-    db2 = conn[dbobj2["dbname"]]
-    imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
-  else :
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+    return jsonify(noteObj)
 
-  # mold image object to have the keys the viewer expects.
-  imgobj["_id"] = str(imgobj["_id"])
-  if imgobj.has_key("thumb") :
-    imgobj["thumb"] = None
-  imgobj["database"] = imgdb
-  if imgobj.has_key("dimension") :
-    imgobj["dimensions"] = imgobj["dimension"]
-  # open layers images are bottom justified.
-  paddedHeight = 256 << (imgobj["levels"]-1)
-  if not imgobj.has_key("bounds") :
-    imgobj["bounds"] = [0, imgobj["dimensions"][0], paddedHeight-imgobj["dimensions"][1], paddedHeight] 
-    
-  noteObj = {}
-  noteObj["Id"] = viewid
-  noteObj["ParentId"] = ""
-  noteObj["Title"] = imgobj["label"]
-  if viewObj.has_key("Title") :
-    noteObj["Title"] = viewObj["Title"]
-  noteObj["HiddenTitle"] = imgobj["label"]
-  if viewObj.has_key("HiddenTitle") :
-    noteObj["HiddenTitle"] = viewObj["HiddenTitle"]
 
-  # Construct the ViewerRecord for the base view
-  viewerRecord = {}
-  viewerRecord["Annotations"] = []
-  viewerRecord["Image"] = imgobj
-  
-  # camera object.
-  cam = {}
-  if 'startup_view' in viewObj:
-    bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
-    cam["FocalPoint"] = bookmark["center"]
-    # flip y axis
-    cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
-    cam["Roll"] = -bookmark["rotation"]
-    if 'zoom' in bookmark:
-      cam["Height"] = 900 << int(bookmark["zoom"])
-    if 'viewHeight' in bookmark:
-      cam["Height"] = bookmark["viewHeight"]
-  else:
-    cam["Height"] = imgobj["dimensions"][1]
-    cam["Roll"] = 0
-    cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
-  viewerRecord["Camera"] = cam
-  noteObj["ViewerRecords"] = [viewerRecord]
-  
-  # Now for the children (Bookmarks).
-  children = [];
-  if 'bookmarks' in viewObj:
-    for bookmarkid in viewObj["bookmarks"]:
-      bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-      if bookmark["annotation"]["type"] == "pointer" :
-        question = {}
-        question["Title"] = "Question"
-        question["Text"] = ""
-        question["Type"] = "Bookmark"
-        question["Id"] = str(bookmark["_id"]);
-        question["ParentId"] = viewid
-        vrq = {}
-        vrq["AnnotationVisibility"] = 1
-        vrq["Image"] = viewerRecord["Image"]
-        # camera object.
-        cam = {}
-        cam["FocalPoint"] = bookmark["center"]
-        # flip y axis
-        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
-        cam["Height"] = 900 << int(bookmark["zoom"])
-        cam["Roll"] = -bookmark["rotation"]
-        vrq["Camera"] = cam
-        annot = {};
-        annot["type"] = "text"
-        # colors are wrong
-        #annot["color"] = bookmark["annotation"]["color"]
-        annot["color"] = "#1030FF"
-        annot["size"] = 30
-        annot["position"] = bookmark["annotation"]["points"][0];
-        annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0], 
-                           bookmark["annotation"]["points"][1][1]-annot["position"][1]]
-        # flip y axis
-        annot["position"][1] = paddedHeight-annot["position"][1] 
-        annot["offset"][1] = -annot["offset"][1]-30
-        
-        # problem with offsets too big or small.  (Screen pixels / fixed size)
-        mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
-        if mag == 0 :
-          annot["offset"][1] = 1
-          mag = 1
-        if mag > 200 :
-          annot["offset"][0] = annot["offset"][0] * 200 / mag
-          annot["offset"][1] = annot["offset"][1] * 200 / mag
-        if mag < 10 :
-          annot["offset"][0] = annot["offset"][0] * 10 / mag
-          annot["offset"][1] = annot["offset"][1] * 10 / mag
-        annot["string"] = bookmark["title"]
-        annot["anchorVisibility"] = True
-        vrq["Annotations"] = [annot]
-        question["ViewerRecords"] = [vrq]
-        children.append(question)
-        
-        answer = {}
-        answer["Title"] = bookmark["title"]
-        answer["Text"] = bookmark["details"]
-        answer["Type"] = "Bookmark"
-        answer["Id"] = str(bookmark["_id"])
-        answer["ParentId"] = viewid
-        vra = {}
-        vra["AnnotationVisibility"] = 2
-        vra["Type"] = "Answer"
-        vra["Image"] = viewerRecord["Image"]
-        vra["Camera"] = cam
-        vra["Annotations"] = [annot]
-        answer["ViewerRecords"] = [vra]
-        question["Children"] = [answer]
-
-      if bookmark["annotation"]["type"] == "circle" :
-        note = {}
-        note["Title"] = bookmark["title"] 
-        note["Text"] = bookmark["details"] 
-        note["Type"] = "Bookmark"
-        note["Id"] = str(bookmark["_id"])
-        note["ParentId"] = viewid
-        vr = {}
-        vr["AnnotationVisibility"] = 1
-        vr["Image"] = viewerRecord["Image"]
-        # camera object.
-        cam = {}
-        cam["FocalPoint"] = bookmark["center"]
-        # flip y axis
-        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1] 
-        cam["Height"] = 900 << int(bookmark["zoom"])
-        cam["Roll"] = -bookmark["rotation"]
-        vrq["Camera"] = cam
-        annot = {};
-        annot["type"] = "circle"
-        annot["color"] = bookmark["annotation"]["color"]
-        annot["outlinecolor"] = bookmark["annotation"]["color"]
-        annot["origin"] = bookmark["annotation"]["points"][0]
-        # flip y axis
-        annot["origin"][1] = paddedHeight-annot["origin"][1] 
-        
-        # why does radius have value False?
-        if bookmark["annotation"]["radius"] :
-          annot["radius"] = bookmark["annotation"]["radius"]
-        else :
-          annot["radius"] = 1000.0
-        annot["linewidth"] = annot["radius"] / 20
-        
-        vr["Annotations"] = [annot];
-        note["ViewerRecords"] = [vr]
-        children.append(note)
-
-  noteObj["Children"] = children
-
-  # it is easier to delete annotations than not generate them in the first place.
-  if hideAnnotations :
-    # use a cryptic label
-    noteObj["Title"] = viewObj["HiddenTitle"]
-    noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
-    noteObj["Children"] = []
-
-  return jsonify(noteObj)
-
-  
-  
 # The Bioformats uploader justified images upper left.
 # fix the bounds for an image.
 @mod.route('/fixjustification', methods=['GET', 'POST'])
 def fixjustification():
-    #pdb.set_trace()
-
-    dbid    = request.form['db']  # for post
+    dbid = request.form['db']  # for post
     imgid  = request.form['img']
-    
-    admindb = conn[current_app.config["CONFIGDB"]]
-    db = admindb
+
+    db = models.Database._get_db().to_pydas()
     if dbid != "None" :
-      dbobj = admindb["databases"].Database.find_one({ "_id" : ObjectId(dbid) })
-      db = conn[dbobj["dbname"]]
+        db = models.Database.objects.with_id(dbid).to_pydas()
 
     imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
     #imgObj["CoordinateSystem"] = "Pixel"
     #imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
-    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2;     
-    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2;     
+    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2;
+    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2;
     imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
 
     db["images"].save(imgObj)
     return "success"
- 

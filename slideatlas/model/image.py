@@ -1,4 +1,4 @@
-from  mongokit import Document, IS
+from mongokit import Document, IS
 from bson import Binary
 
 class StartupView(Document):
