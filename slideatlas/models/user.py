@@ -31,12 +31,12 @@ class User(ModelDocument, UserMixin):
     active = BooleanField(required=True, default=True,
         verbose_name='Active', help_text='An inactive user may not log in, but is retained in the database.')
 
-    email = EmailField(required=True, max_length=255,
+    # TODO: make this an EmailField, but remove validation for 'bev_1'-type users
+    email = StringField(required=True, max_length=255,
         verbose_name='E-Mail Address', help_text='The user\'s current email address.')
 
     full_name = StringField(required=True, db_field='label',
         verbose_name='Full Name', help_text='The user\'s full name.')
-
 
     created_at = DateTimeField(required=True, default=datetime.datetime.utcnow, db_field='first_login',
         verbose_name='Creation Time', help_text='The time of the user\'s account creation.')
@@ -55,7 +55,6 @@ class User(ModelDocument, UserMixin):
 
     login_count = IntField(required=True, default=0,
         verbose_name='Login Count', help_text='The total number of logins by the user.')
-
 
     roles = ListField(ReferenceField(Role, dbref=False), required=False, db_field='rules',
         verbose_name='Roles', help_text='A list of access roles for the user.')
