@@ -127,7 +127,7 @@ Modifying the properties of the session are made possible by
 
 .. code-block:: none
 
-   POST /apiv1/<dbid>/sesisons
+   POST /apiv1/<dbid>/sesisons/<sessid>
    { 'modify' : { 'label' : "label string }}
 
 
@@ -244,6 +244,70 @@ administrative database
       - /apiv1/rules/<ruleid>
 
 
+API for access grant / revole take 2
+====================================
+
+.. code-block:: none
+
+   - GET
+      - /apiv1/roles
+      - /apiv1/roles/<roleid>
+
+
+To Grant / Revoke
+=================
+
+
+API Grant operation involves
+
+ - Permission (can_admin, db_admin, can_see, site_admin)
+ - Target resource
+ - Target UserRole / GroupRole
+
+
+Applying a role to a user
+-------------------------
+
+.. code-block:: python
+
+   - POST
+     /apiv1/users/<userid>/roles
+     { "grant" | "revoke"  : <roleid> }
+
+Create a new Role
+------------------
+
+.. code-block:: python
+
+   - POST
+     /apiv1/roles
+     { "create" : { "label" : "somelabel",
+                    "users" : [ <userid> , .. ],
+                    "permissions" : ["array or none"]
+                  }
+      }
+
+      returns : { 302, /apiv1/roles/<newroleid> }
+
+To modify a role
+----------------
+.. code-block:: python
+
+    - POST
+
+     /apiv1/roles/<roleid>
+     { partial list of fields to modify, perhals push to permissions "grant" | "revoke"  : <roleid> }
+
+        { "target" : [ "user" | "group" ],
+          "to" : [ "_id",  ], ,
+          "type" : ["allow" | "deny"],
+          "permission" : { "dbid" : "_permission_object_",
+                           "can_see" : [ "a" ]     }
+        }
+
+
+.. warning::
+    Anything below this is not edited
 
 Get all the users to which given rule is applied
 

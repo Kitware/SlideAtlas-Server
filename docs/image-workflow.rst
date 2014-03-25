@@ -16,7 +16,7 @@ Image upload workflow
     - Bookkeeping tasks collection based on date
 
 User notification
-==============
+=================
 
 - Sees ongoing task progress that are started in the admin access of site / databases / sessions in the same hierarchy
 - When the task is complete, see the session with available images

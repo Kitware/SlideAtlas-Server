@@ -2,46 +2,71 @@
 Administrative roles
 ####################
 
-Following are the use cases accordng to different privileges
+Following are the use cases according to different privileges
 
-Site Admin
-==========
-- Everything that DB admins can do
+0 Superuser Site Admin
+======================
+
 - Register / Create new databases in slide atlas system
-- Grant and revoke DB level admin accesses
-- DB to user
+- Grant / revoke level 0 accesses
 
-DB Admin
-========
+1 Collaborators or course instructors
+=====================================
 
-- Everything that session admins can do
-- Create new sessions
-- By default admin them
-- Grant admin access
-- Create and revoke database licenses (see below)
+(Database administrators)
 
-Session Admin
-=============
+- Get new database of their own
+- Grant / revoke level 1 access for their database
 
-- Upload / delete annotations
-- Lead a session
-- Set / Change / delete startup view
-- Grant view access to this session to
-- Groups of users
-- specific user
-- Create a rule involving this session
+2 Trusted user (Like TA or researcher)
+======================================
 
-No admin
-========
+- No quota for uploading
+- Grant / revoke level 2 access to the sessions that they can admin
 
-- Currently only view access
+3 Trial users (Content creator Session Admin)
+=============================================
+**TODO** copyright and fair use issues
+
+- Create sessions
+- Upload images / files to their sessions (Quota restrictions, and limited)
+- Compose sessions from existing sessions that they have admin access to
+- Can grant / revoke level 4 access to others for which they have admin access
+
+4 Common account user
+=====================
+**depricated**
+
+(Student using password login)
+
+4 Unverified user
+=================
+
+(Normal students or friends of trial users)
+
+- Currently only view sessions that are explicitly granted
+- Add annotations to any image, make annotations public or share link with others
+
+
+5 Anonymous user
+================
+
+- Currently only view demo sessions
 
 
 Additional Notes
 ----------------
 
+Image / file owners always retain admin permission to their content
+
 Currently considering only db_admin, and no admin access rights are implemented
 for simplicity.
+
+.. note::
+
+    Anything below this line is slighly outdated and needs to be rewritten
+
+
 
 Uploading files
 ===============

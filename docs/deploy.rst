@@ -8,7 +8,7 @@ This guide demonstrates how to install Installing multiple mongo databases on a 
 
 - First install supervisord
 
-.. code-block:: shell
+.. code-block:: shell-session
 
     $ sudo apt-get install supervisor
 
@@ -25,7 +25,7 @@ Create the supervisor configuration file for new mongodb, say mongodb2.conf in /
 
 - then create the db-path and log file location for mongodb
 
-.. code-block:: shell
+.. code-block:: shell-session
 
     $ sudo touch /var/log/mongodb/mongodb2.log
     $ sudo chown mongodb:mongodb /var/log/mongodb/mongodb2.log
@@ -34,7 +34,7 @@ Create the supervisor configuration file for new mongodb, say mongodb2.conf in /
 
 - Restart supervisord
 
-.. code-block:: shell
+.. code-block:: shell-session
 
     $ sudo /etc/init.d/supervisor restart
 
