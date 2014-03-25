@@ -1,15 +1,15 @@
-celery
-tornado
-Twisted
+celery==3.1.9
+tornado==3.2
+Twisted==13.2.0
 
-Flask
-Flask-Admin
-Flask-Bootstrap
-Flask-OAuthlib
-Flask-OpenID
-Flask-Security
+Flask==0.10.1
+Flask-Admin==1.0.7
+Flask-Bootstrap==3.1.1.2
+Flask-OAuthlib==0.4.3
+Flask-OpenID==1.2.1
+Flask-Security==1.7.1
 
-pymongo
-mongoengine
+pymongo==2.6.3
+mongoengine==0.8.7
 
-Sphinx
+Sphinx==1.2.2
