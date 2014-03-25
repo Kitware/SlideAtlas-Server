@@ -19,16 +19,14 @@ def create_app():
     """
     app = Flask('slideatlas')
 
-    load_default_config(app )
+    load_default_config(app)
+    load_site_config(app)
     add_config(app)
 
     add_url_converters(app)
     add_url_value_preprocessors(app)
 
     create_blueprints(app)
-
-    # do this after blueprints are created, to allow overwriting any config values
-    load_site_config(app)
 
     # do this after site configuration is loaded
     setup_models(app)
@@ -124,7 +122,6 @@ def load_site_config(app):
     Load site-specific configuration options from the path in the environment
     variable 'SLIDEATLAS_CONFIG_PATH'.
     """
-    # let this have the absolute final chance to overwrite anything
     app.config.from_envvar('SLIDEATLAS_CONFIG_PATH', silent=True)
 
 
