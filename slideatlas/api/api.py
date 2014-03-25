@@ -277,7 +277,7 @@ class DataSessionsAPI(MethodView):
         database = models.Database.objects.with_id(dbid)
         if database == None:
             return None
-        return database.to_pymongo()
+        return database
 
     def get(self, dbid, sessid=None):
         datadb = self.get_data_db(dbid)
@@ -286,7 +286,7 @@ class DataSessionsAPI(MethodView):
 
         if sessid == None:
             with datadb:
-                sessions = models.Session.objects(images=0, views=0, attachments=0)
+                sessions = models.Session.objects.exclude("images","attachments", "views")
             sessionlist = list()
 
             for asession in sessions:
@@ -306,10 +306,10 @@ class DataSessionsAPI(MethodView):
 
             # Dereference the views
             for aview in sessobj.views:
-                viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
+                viewdetails = datadb.to_pymongo()["views"].find_one({"_id" : aview["ref"]})
                 # Viewdetails might not be a view
                 if "img" in viewdetails:
-                    viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                    viewdetails["image"] = datadb.to_pymongo()["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                 else:
                     if "ViewerRecords" in viewdetails:
                         viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
@@ -319,7 +319,7 @@ class DataSessionsAPI(MethodView):
             # Dereference the attachments
             attachments = []
             if sessobj.attachments:
-                gfs = GridFS(datadb, "attachments")
+                gfs = GridFS(datadb.to_pymongo(), "attachments")
                 for anattach in sessobj.attachments:
                     fileobj = gfs.get(anattach["ref"])
                     anattach["details"] = ({'name': fileobj.name, 'length' : fileobj.length})

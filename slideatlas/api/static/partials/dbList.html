@@ -6,14 +6,14 @@
                 <td><h4>Database name </h4></td>
                 <td><h4>Host</h4></td>
                 <td> </td>
-                <td><a href="#/databases/new"><i class="icon-plus-sign"></i></a> </td>
+                <td><a href="#/databases/new"><i class="glyphicon glyphicon-plus"></i></a> </td>
                </tr>
            </thead>
             <tr ng-repeat ="adb in databases" >
                 <td><a href="#/{{adb._id}}/sessions">{{ adb.dbname }} </a></td>
                 <td>{{ adb.host }} </td>
-                <td><a href="#/databases/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
-                <td><a ng-click="deletefile($index)"><i class="icon-remove-sign"></i></a> </td>
+                <td><a href="#/databases/edit/{{$index}}"><i class="glyphicon glyphicon-edit"></i></a> </td>
+                <td><a ng-click="deletefile($index)"><i class="glyphicon glyphicon-remove"></i></a> </td>
             </tr>
             </table>
   </div>
