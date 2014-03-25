@@ -17,7 +17,9 @@ def register_with_app(app):
 
     # register Flask-Security with app and get blueprint
     security = Security(app, SlideatlasMongoEngineUserDatastore(),
-                        register_blueprint=True, confirm_register_form=forms.ConfirmRegisterForm)
+                        register_blueprint=True,
+                        confirm_register_form=forms.ConfirmRegisterForm,
+                        login_form=forms.LoginForm)
     blueprint = app.blueprints['security']
 
     # register Flask-Mail with app
