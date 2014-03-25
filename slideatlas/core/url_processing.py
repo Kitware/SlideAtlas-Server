@@ -77,7 +77,7 @@ class ModelDocumentConverter(BaseConverter):
         """
         Converts a ModelDocument instance to a ObjectId string.
         """
-        str(value.id)
+        return str(value.id)
 
 
 def model_document_converter_factory(new_model_cls):
@@ -104,7 +104,7 @@ def get_models_in_url(endpoint, values):
                 if issubclass(model_cls, models.common.ModelDocument):
                     # cannot retrieve MultipleDatabaseModelDocument types until the database is known
                     if not issubclass(model_cls, models.common.MultipleDatabaseModelDocument):
-                        values[value_name] = model_cls.objects.get_or_404(id=obj_id)
+                        values[value_name] = model_cls.objects.get_or_404(id=object_id)
                         if model_cls is models.Database:
                             if database_obj is not None:
                                 pass  # TODO: error, multiple Database-type values
@@ -118,4 +118,4 @@ def get_models_in_url(endpoint, values):
                 pass  # TODO: error, MultipleDatabaseModelDocument passed without Database
             with database_obj:
                 for value_name, (object_id, model_cls) in multiple_database_values.iteritems():
-                    values[value_name] = model_cls.objects.get_or_404(id=obj_id)
+                    values[value_name] = model_cls.objects.get_or_404(id=object_id)
