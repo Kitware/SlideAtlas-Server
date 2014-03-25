@@ -27,7 +27,7 @@ class Database(ModelDocument):
     dbname = StringField(required=True,
         verbose_name='Database Name', help_text='The internal Mongo name of the database.')
 
-    username = StringField(required=False, db_field='user',
+    username = StringField(required=False,
         verbose_name='Username', help_text='The username required to connect to the database.')
 
     password = StringField(required=False,
