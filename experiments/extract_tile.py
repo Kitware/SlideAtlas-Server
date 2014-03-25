@@ -105,13 +105,24 @@ class TileReader():
         try:
             xml = ET.fromstring(self.meta)
 
+            # Parse the string for BigTIFF format 
+            descstr = xml.find(".//*[@Name='DICOM_DERIVATION_DESCRIPTION']").text
+            if descstr.find("useBigTIFF=1") > 0:
+                self.isBigTIFF = True
+            
+            # Parse the barcode
+            self.barcode = {}
+            self.barcode["str"] = base64.b64decode(xml.find(".//*[@Name='PIM_DP_UFS_BARCODE']").text)
+            
+            logging.log(logging.INFO, self.barcode)
+
             # Parse the attribute named "DICOM_DERIVATION_DESCRIPTION"
             # tiff-useBigTIFF=1-clip=2-gain=10-useRgb=0-levels=10003,10002,10000,10001-q75;PHILIPS UFS V1.6.5574
             descstr = xml.find(".//*[@Name='DICOM_DERIVATION_DESCRIPTION']").text
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
 
-            logging.log(logging.INFO, descstr)
+            # logging.log(logging.INFO, descstr)
 
             for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
                 level = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_NUMBER']").text)
@@ -363,10 +374,15 @@ def extract_tile():
     tile.get_tile_from_number(27372, of)
     of.close()
 
-
+def test_barcode():
+    tile = TileReader()
+    tile.set_input_params({"fname" : "/home/dhan/data/phillips/20140313T180859-805105.ptif"})
+    
 if __name__ == "__main__":
     #for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:
     #    list_tiles(0,fname=i)
-    test_embedded_images(fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
+    # test_embedded_images(fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
     # write_svg(toextract=True, fname="/home/dhan/data/phillips/20140313T180859-805105.ptif")
     # write_svg(toextract=True, fname="d:\\data\\phillips\\20140313T180859-805105.ptif")
+    logging.getLogger().setLevel(logging.INFO)
+    test_barcode()

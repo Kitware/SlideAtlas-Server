@@ -168,9 +168,23 @@ def slidelist():
     searchpath = os.path.join(app.config["FILES_ROOT"], "*.ptif")
     logging.log(logging.INFO, searchpath)
     for aslide in glob.glob(searchpath):
+        barcodepath = aslide + "." + "bc"
+        logging.log(logging.INFO, "Getting fname: %s, itype: %s" % (fname, "barcode"))
+
+        if not os.path.exists(barcodepath):
+            logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
+            reader = make_reader({"fname" : aslide, "dir" : 0})
+            reader.set_input_params({ "fname" : aslide })
+            fout = open(barcodepath, "w")
+            fout.write(reader.get_barcode_info())
+            fout.close()
+
+        fin = open(barcodepath,"r")
+
+
         obj = {}
         obj["name"] = os.path.split(aslide)[1]
-        obj["barcode"] = ""
+        obj["barcode"] = fin.read()
         slides.append(obj)
 
     return flask.jsonify({"slides" : slides})
