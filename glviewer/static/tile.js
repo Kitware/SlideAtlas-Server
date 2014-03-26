@@ -223,17 +223,15 @@ Tile.prototype.Draw = function (program, context) {
     context.transform(1.0,0.0, 0.0,-1.0, 0.0, 1.0);
 
     // map pixels to Tile
-    // assume tile is 256x256
+    var tileSize = this.Cache.Image.TileSize;
     // Shift a half pixel (white line fix) Draw tile one pixel bigger.
     if (I_PAD_FLAG) {
-      context.transform(1.0/256.0, 0.0, 0.0, 1.0/256.0, 0.0, 0.0);  
+      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);  
     } else {
-      context.transform(1.0/255.5, 0.0, 0.0, 1.0/255.5, -0.25/255.0, -0.25/255.0);  
+      tileSize -= 0.5;
+      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, -0.25/(tileSize-0.5), -0.25/(tileSize-0.5));  
     }
     context.drawImage(this.Image,0,0);
-    //context.strokeStyle="green"; // I need to find the method that converts RBG array to hex color
-    //context.rect(0,0,256, 256); 
-    //context.stroke();    
 
     //  Transform to map (0->1, 0->1)
     context.restore();
