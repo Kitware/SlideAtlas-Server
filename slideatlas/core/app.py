@@ -133,6 +133,7 @@ def setup_models(app):
     from slideatlas import models
     models.register_admin_db(
         host=app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'],
+        replica_set=app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET'],
         dbname=app.config['SLIDEATLAS_ADMIN_DATABASE_NAME'],
         username=app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'],
         password=app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD'],
