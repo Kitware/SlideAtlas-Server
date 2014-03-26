@@ -43,6 +43,10 @@ def jsonifyView(db,dbid,viewid,viewobj):
       img["dimensions"] = imgobj["dimensions"]
     elif 'dimension' in imgobj:
       img["dimensions"] = imgobj["dimension"]
+    if imgobj.has_key("TileSize") :
+      img["TileSize"] = imgobj["TileSize"]
+    else :
+      img["TileSize"] = 256
 
     # I want to change the schema to get rid of this startup bookmark.
     if 'startup_view' in viewobj:
@@ -943,6 +947,8 @@ def getview():
   paddedHeight = 256 << (imgobj["levels"]-1)
   if not imgobj.has_key("bounds") :
     imgobj["bounds"] = [0, imgobj["dimensions"][0], paddedHeight-imgobj["dimensions"][1], paddedHeight] 
+  if not imgobj.has_key("TileSize") :
+    imgobj["TileSize"] = 256
     
   noteObj = {}
   noteObj["Id"] = viewid
