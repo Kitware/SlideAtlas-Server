@@ -14,7 +14,7 @@
     <table class="table table-bordered table-hover" >
         {% for animage in data.attachments %}
             <tr>
-                <td><a href="attachment?sessdb={{data.db}}&sessid={{data.sessid}}&attachid={{animage.id}}" class="lead"> {{ animage.name}} </a>
+                <td><a href="{{ url_for('attachment.attachments', sessdb=data.db, sessid=data.sessid, attachid=animage.id) }}" class="lead"> {{ animage.name}} </a>
                     </td>
                 {% if animage.label %}
                   <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
@@ -33,17 +33,17 @@
         {% for animage in data.images %}
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
-                <td> <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}">                  
-                  <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg" width=100px></a></td>
+                <td> <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}">
+                  <img src="{{url_for('tile.tile', db=animage.db, img=animage.img, name='t.jpg') }}" width=100px></a></td>
                 <td>
                   {% if animage.label %}
-                    <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a> 
+                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a>
                   {% endif %}
                 </td>
                 {% if data.session.hideAnnotations %}
                 {% else %}
                   <td align="right">
-                    <a href="webgl-viewer?db={{data.db}}&view={{animage.view}}&edit=true" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
+                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view, edit='true') }}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
                   </td>
                 {% endif %}
             </tr>
