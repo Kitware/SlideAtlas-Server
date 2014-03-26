@@ -6,7 +6,11 @@
 SLIDEATLAS_ADMIN_DATABASE_HOST = 'localhost:27017'
 """ The hostname and port of the MongoDB SlideAtlas admin database. """
 
-SLIDEATLAS_ADMIN_DATABASE_NAME = 'slideatlasv2'
+SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET = None
+""" The name of the replica set for the admin database, if it is a member of one,
+or None otherwise. """
+
+SLIDEATLAS_ADMIN_DATABASE_NAME = 'slideatlas'
 """ The MongoDB database name of the admin database. """
 
 SLIDEATLAS_ADMIN_DATABASE_USERNAME = None
@@ -50,11 +54,11 @@ This does not apply if the password hash type is 'plaintext'. """
 
 SLIDEATLAS_FACEBOOK_APP_ID = None
 """ The Facebook App ID (OAuth client ID) used for Facebook user
-authentication.  """
+authentication. """
 
 SLIDEATLAS_FACEBOOK_APP_SECRET = None
 """ The Facebook App secret (OAuth client secret) used for Facebook user
-authentication.  """
+authentication. """
 
 
 ################################################################################
