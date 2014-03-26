@@ -88,8 +88,8 @@ def create_blueprints(app):
     from slideatlas.views import tile
     app.register_blueprint(tile.mod)
 
-    # from ..slideatlas import glviewer
-    # app.register_blueprint(glviewer.mod)
+    import glviewer
+    app.register_blueprint(glviewer.mod)
 
     from slideatlas.views import sessions
     app.register_blueprint(sessions.mod)
