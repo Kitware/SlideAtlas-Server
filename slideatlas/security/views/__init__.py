@@ -2,8 +2,10 @@
 
 from flask.ext.security.decorators import anonymous_user_required
 
+from .common import OAuthAuthorizationError
 from . import google
 from . import facebook
+from . import linkedin
 from . import shibboleth
 
 ################################################################################
@@ -12,6 +14,15 @@ __all__ = ('add_views',)
 
 ################################################################################
 def add_views(app, blueprint):
+
+    # TODO: error handlers can only be registered on a blueprint before the
+    #   blueprint has been registered with the app for the very first time; this
+    #   error handler should be blueprint-scope, but Flask-Security creates and
+    #   registers the blueprint before we have access to it at all; so instead,
+    #   register it with the whole app
+    # blueprint.errorhandler(OAuthAuthorizationError)(OAuthAuthorizationError.handler)
+    app.register_error_handler(OAuthAuthorizationError, OAuthAuthorizationError.handler)
+
     # Google
     blueprint.add_url_rule(rule='/login/google',
                            view_func=anonymous_user_required(google.login_google),
@@ -26,6 +37,12 @@ def add_views(app, blueprint):
                            view_func=anonymous_user_required(facebook.login_facebook_authorized),
                            methods=['GET'])
     facebook.register(app, blueprint)
+
+    # LinkedIn
+    blueprint.add_url_rule(rule='/login/linkedin',
+                           view_func=anonymous_user_required(linkedin.login_linkedin),
+                           methods=['GET'])
+    linkedin.register(app, blueprint)
 
     # Shibboleth
     blueprint.add_url_rule('/login.shibboleth/<path:handler>',
