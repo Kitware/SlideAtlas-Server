@@ -120,18 +120,16 @@
                 </li>
             </ul>
 
-            {% if not current_user.is_authenticated() %}
-                {% set login_url = url_for_security('login') %}
-                {% set login_text = 'Login' %}
-            {% else %}
-                {% set login_url = url_for_security('logout') %}
-                {% set login_text = current_user.full_name + ' ~ Logout' %}
-            {% endif %}
-
-            <ul class="nav navbar-nav pull-right">
-                <li class="pull-right {% if 'login' == active_page %} active{% endif %}">
-                <a href="{{ login_url }} "> {{ login_text|safe }} </a>
+            <ul class="nav navbar-nav navbar-right">
+                {% if not current_user.is_authenticated() %}
+                <li class="login-link{% if 'login' == active_page %} active{% endif %}">
+                    <a class="login-link" href="{{ url_for_security('login') }}">Login</a>
                 </li>
+                {% else %}
+                <li>
+                    <a href="{{ url_for_security('logout') }}">{{ current_user.full_name }} ~ Logout</a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </div>
