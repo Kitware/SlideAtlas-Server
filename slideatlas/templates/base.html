@@ -89,10 +89,12 @@
 
 <body>
 
-    {% set navigation_bar = [ ('home', '/', 'Home'),
-        ('sesions', '/sessions', 'Sessions'),
-        ('admin', '/apiv1/admin#/', 'Admin'),
-        ('about', '/about', 'About'),
+    {# TODO: change to only showing Admin for users with some sort of privileges #}
+    {% set navigation_bar = [
+        ('home', '/', 'Home', True),
+        ('sessions', '/sessions', 'Sessions', True),
+        ('admin', '/apiv1/admin#/', 'Admin', current_user.is_authenticated()),
+        ('status', '/status', 'Status', True),
     ] -%}
 
 
@@ -105,30 +107,33 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">Slide Atlas</a>
+            <a class="navbar-brand" href="/">SlideAtlas</a>
         </div>
         <div class="collapse navbar-collapse ">
 
             <ul class="nav navbar-nav">
-                {% for id, href, label in navigation_bar %}
-                <li {% if id == active_page %} class="active"{% endif %}>
-                    <a href="{{ href|escape }}">{{ label|escape }}</a>
-                </li>
+                {% for id, href, label, show in navigation_bar %}
+                    {% if show %}
+                    <li {% if id == active_page %} class="active"{% endif %}>
+                        <a href="{{ href|escape }}">{{ label|escape }}</a>
+                    </li>
+                    {% endif %}
                 {% endfor %}
+                <li>
+                    <a href="http://slideatlas.kitware.com/" target="_blank">About</a>
+                </li>
             </ul>
 
-            {% if not current_user.is_authenticated() %}
-                {% set login_url = url_for_security('login') %}
-                {% set login_text = 'Login' %}
-            {% else %}
-                {% set login_url = url_for_security('logout') %}
-                {% set login_text = current_user.full_name + ' ~ Logout' %}
-            {% endif %}
-
-            <ul class="nav navbar-nav pull-right">
-                <li class="pull-right {% if 'login' == active_page %} active{% endif %}">
-                <a href="{{ login_url }} "> {{ login_text|safe }} </a>
+            <ul class="nav navbar-nav navbar-right">
+                {% if not current_user.is_authenticated() %}
+                <li class="login-link{% if 'login' == active_page %} active{% endif %}">
+                    <a class="login-link" href="{{ url_for_security('login') }}">Login</a>
                 </li>
+                {% else %}
+                <li>
+                    <a href="{{ url_for_security('logout') }}">{{ current_user.full_name }} ~ Logout</a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </div>

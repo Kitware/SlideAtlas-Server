@@ -4,3 +4,11 @@ img.login-logo {
     max-width:none;
     max-height:none;
 }
+
+li.login-link {
+    background-color:Maroon;
+}
+
+a.login-link {
+    font-weight:bold;
+}
