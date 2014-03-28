@@ -92,7 +92,7 @@
     {% set navigation_bar = [ ('home', '/', 'Home'),
         ('sesions', '/sessions', 'Sessions'),
         ('admin', '/apiv1/admin#/', 'Admin'),
-        ('about', '/about', 'About'),
+        ('status', '/status', 'Status'),
     ] -%}
 
 
@@ -115,6 +115,9 @@
                     <a href="{{ href|escape }}">{{ label|escape }}</a>
                 </li>
                 {% endfor %}
+                <li>
+                    <a href="http://slideatlas.kitware.com/" target="_blank">About</a>
+                </li>
             </ul>
 
             {% if not current_user.is_authenticated() %}

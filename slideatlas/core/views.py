@@ -15,7 +15,7 @@ def add_views(app):
     app.add_url_rule(rule='/', view_func=home)
     app.add_url_rule(rule='/home', view_func=home, alias=True)
 
-    app.add_url_rule(rule='/about', view_func=about)
+    app.add_url_rule(rule='/status', view_func=status)
 
     app.add_url_rule(rule='/favicon.ico', view_func=favicon)
 
@@ -26,8 +26,8 @@ def home():
 
 
 ################################################################################
-def about():
-    return render_template('about.html',
+def status():
+    return render_template('status.html',
                            git=get_git_name(),
                            host=current_app.config['SERVER_NAME'])
 
