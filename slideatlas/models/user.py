@@ -9,7 +9,7 @@ from .common import ModelDocument
 from .role import Role
 
 ################################################################################
-__all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'ShibbolethUser')
+__all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
 
 
 ################################################################################
@@ -94,6 +94,12 @@ class GoogleUser(User):
 ################################################################################
 class FacebookUser(User):
     pass
+
+
+################################################################################
+class LinkedinUser(User):
+    external_id = StringField(required=True,
+        verbose_name='External ID', help_text='A unique identifier used to associate this user with an external authentication service.')
 
 
 ################################################################################

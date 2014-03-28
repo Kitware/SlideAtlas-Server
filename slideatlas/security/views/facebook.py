@@ -1,17 +1,14 @@
 # coding=utf-8
 
 from flask import flash, redirect, request, session, url_for
-from flask.ext.oauthlib.client import OAuth
 
 from slideatlas import models
-from .common import login_user
+from .common import login_user, oauth
 
 ################################################################################
-__all__ = ('register', 'login_facebook', 'facebookAuthorized')
+__all__ = ('register', 'login_facebook', 'login_facebook_authorized')
 
 ################################################################################
-oauth = OAuth()
-
 facebook = oauth.remote_app('facebook',
     base_url='https://graph.facebook.com/',
     request_token_url=None,
