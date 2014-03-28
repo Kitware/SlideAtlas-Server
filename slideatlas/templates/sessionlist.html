@@ -26,7 +26,7 @@ float:right;
         {% else %}
         <tr>
             <td>
-                <a href="{{ url_for('.view_a_session', database_obj=session.database, session_obj=session) }}" class="lead">{{ session.label }}</a>
+                <a href="{{ url_for('.view_a_session', database_obj=role.db, session_obj=session) }}" class="lead">{{ session.label }}</a>
             </td>
             {% if role.db_admin %}
             <td>
