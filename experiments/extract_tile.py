@@ -25,7 +25,6 @@ print tplpath
 sys.path = [pylibtiffpath] + sys.path
 
 
-
 class writer(object):
     log = []
 
@@ -113,7 +112,9 @@ class TileReader():
             # Parse the barcode
             self.barcode = {}
             self.barcode["str"] = base64.b64decode(xml.find(".//*[@Name='PIM_DP_UFS_BARCODE']").text)
-            
+            self.barcode["words"] = self.barcode["str"].split("|")
+            self.barcode["physician_id"],  self.barcode["case_id"]= self.barcode["words"][0].split(" ")
+            self.barcode["stain_id"] = self.barcode["words"][4]
             logging.log(logging.INFO, self.barcode)
 
             # Parse the attribute named "DICOM_DERIVATION_DESCRIPTION"

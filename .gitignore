@@ -4,4 +4,5 @@
 config.py
 .idea
 Env
+docs/_build
 
