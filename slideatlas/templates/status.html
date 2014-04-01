@@ -10,7 +10,7 @@
     <table class="table table-bordered table-hover">
         <tr>
             <td>Version</td>
-            <td>{{ git }}</td>
+            <td>{{ version }}</td>
         </tr>
         <tr>
             <td>Host</td>
@@ -21,11 +21,11 @@
     {% if current_user.is_authenticated() %}
     <table class="table table-bordered table-hover">
         <tr>
-            <td>Username</td>
+            <td>User Email</td>
             <td>{{ current_user.email }}</td>
         </tr>
         <tr>
-            <td>Label</td>
+            <td>User Full Name</td>
             <td>{{ current_user.full_name }}</td>
         </tr>
     </table>

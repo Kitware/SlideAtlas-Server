@@ -4,7 +4,7 @@ import os.path
 
 from flask import current_app, render_template, send_from_directory
 
-from slideatlas.version import get_git_name
+from slideatlas.version import get_version
 
 ################################################################################
 __all__ = ('add_views',)
@@ -28,7 +28,7 @@ def home():
 ################################################################################
 def status():
     return render_template('status.html',
-                           git=get_git_name(),
+                           version=get_version(),
                            host=current_app.config['SERVER_NAME'])
 
 

@@ -1,25 +1,51 @@
+# coding=utf-8
+
+import inspect
 import os
 import subprocess
-import inspect
 
-def get_git_name():
-    curdir = os.getcwd()
-    print curdir
-    p = inspect.getfile(get_git_name)
-    newdir = os.path.dirname(os.path.abspath(p))
-    print newdir
+import slideatlas
+
+################################################################################
+__all__ = ('get_version',)
+
+
+################################################################################
+def get_version():
+    version = None
+
     try:
-        params = ["git", "describe", "--tags", "--always"]
-        out = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-    except:
-        # Support for particular case when running on windows
-        os.chdir(newdir)
-        params = ["C:/PortableGit-1.7.11/bin/git.exe", "describe", "--tags"]
-        out = subprocess.Popen(params, stdout=subprocess.PIPE).communicate()[0]
-        os.chdir(curdir)
+        version = git_describe()
 
-    os.chdir(newdir)
-    return out
+    except OSError:  # command couldn't run at all
+        try:
+            # Support for particular case when running on windows
+            version = git_describe('C:/PortableGit-1.7.11/bin/git.exe')
+        except (OSError, subprocess.CalledProcessError):
+            pass
 
-if __name__ == "__main__":
-    print get_git_name()
+    except subprocess.CalledProcessError:  # command returned non-zero exit status
+        # try to look for a magic file with the version
+        version_file_path = os.path.join(get_site_path(), 'version.txt')
+        if os.path.isfile(version_file_path):
+            try:
+                with open(version_file_path, 'r') as version_file:
+                    version = version_file.readline().strip()
+            except (IOError, OSError):
+                pass
+
+    if not version:
+        version = '<unknown_version>'
+    return version
+
+
+################################################################################
+def get_site_path():
+    site_init_path = os.path.abspath(inspect.getfile(slideatlas))
+    return os.path.dirname(site_init_path)
+
+
+################################################################################
+def git_describe(git_exec='git'):
+    cmd = [git_exec, 'describe', '--tags', '--always']
+    return subprocess.check_output(cmd, cwd=get_site_path()).strip()
