@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, send_from_directory, Response, abort
-from slideatlas.version import get_git_name
+from slideatlas.version import get_version
 from slideatlas import slconn as conn, admindb
 from werkzeug.routing import BaseConverter
 from flask_bootstrap import Bootstrap
@@ -59,7 +59,7 @@ def home():
     - /<name> Says Hello <name>
 
     """
-    return render_template('home.html', git=get_git_name(), host=app.config["MONGO_SERVER"])
+    return render_template('home.html', git=get_version(), host=app.config["MONGO_SERVER"])
 
 
 #==============================================================================
