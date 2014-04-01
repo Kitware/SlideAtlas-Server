@@ -25,41 +25,18 @@
 {% block body_content %}
 
 <div class="container">
-    <h1>Welcome to SlideAtlas</h1>
-    <br/>
-    <br/>
-    <!-- Example row of columns -->
-    <div class="row" style="float:none; width: 80%;text-align: center;margin: auto;">
-        <center>
-
-        <div class="col-md-6">
-            <img src="/static/img/whole_slide.png" width="80%" style="border-radius: 10px" >
-            <br/><br/>
-            <h3> Interactive whole slide viewer </h3>
-            <p> Store and interactively share whole slide images over web </p>
-            <p> <a id="tryit" class="btn btn-info"> Try it out !  </a></p>
-        </div>
-
-        <div class="col-md-6">
-            <br>
-            <img src="/static/img/word_cloud.png" width="100%">
-            <h3> Full featured </h3>
-            <div class="row">
-                <div class="span2"></div>
-                <ul class="span10" style="text-align: left;">
-                    <li> Online annotation tools </li>
-                    <li> Access management and selective sharing </li>
-                    <li> Support for many large microscopy images </li>
-                    <li> Custom plugin development </li>
-                </ul>
-            </div>
-
-            <p><a class="btn btn-info" href="http://slideatlas.kitware.com/" target="_blank">Explore features and applications</a></p>
-        </div>
-
-        </center>
+     <div class="row">
+        <h2> Welcome to SlideAtlas </h2>
+        <h4> Users: <a class="btn btn-primary" href="login"> Login </a> Guests:  <a id="tryit" class="btn btn-info"> Try it out ! </a> </h4>
+     </div>
+    <div class="row">
+        <img src="/static/img/whole_slide_small.png" class="img-responsive col-md-5" style="border-radius: 10px!important; padding:0px" >
+        <br/>
     </div>
-
+    <div class="row">
+        <h3> Whole Slide Image Viewer </h3>
+        <h4> Find, annotate and share your images: <a class="btn btn-info" href="about"> learn more  </a> </h4>
+    </div>
 </div>
 
 {% endblock %}
