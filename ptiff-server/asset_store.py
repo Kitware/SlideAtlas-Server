@@ -14,14 +14,21 @@ sys.path.append(tilereaderpath)
 
 # Abstract definitions for asset store
 
-
-
-"""
-Equivalent to images collections
-"""
-
 class TileAssetsStore():
+    """
+    Equivalent to images collections
+    Should encapsulate entire assetstore, and this being tile specific version of it.
+
+    This generalizaes "databases" collection which should ultimately point to asses collection
+    with each asset object will have a type = MongoAssetStore if not specified
+
+    - Ultimately image record has to be created in the metadatastore. And the image will Each asset store uses mongodb
+
+    """
     def __init__(self, params):
+        """
+
+        """
         self.params = params
         self.sync()
 
