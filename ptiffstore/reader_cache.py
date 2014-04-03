@@ -1,6 +1,6 @@
 __author__ = 'dhan'
 
-from extract_tile import TileReader
+from tiff_reader import TileReader
 import logging
 
 def make_reader(params):
