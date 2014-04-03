@@ -1,0 +1,104 @@
+     <div ng-controller="RoleEditCtrl">
+        <h2> Details for role </h2>
+
+        <form class="form-horizontal">
+
+        <label class="input"> Label : <input type="text" name="label" class="input" ng-model="role.label" palceholder="Label for the database"> </label>
+
+        <br/>
+        <label class="input"> Access Privileges :
+            <div style="margin-left:50px;">
+                <label class="checkbox"><input type="checkbox" class="input" ng-model="role.can_see_all"> can_see_all </label>
+                <label class="checkbox"> <input type="checkbox" class="input" ng-model="role.db_admin">  db_admin </label>
+                <label class="checkbox"><input type="checkbox" class="input" ng-model="role.site_admin"> site_admin</label>
+            </div>
+        </label>
+
+        <label> Access to individual sessions (see: {{ role.can_see.length }}, admin {{ role.can_admin.length }})
+            <span ng-click="addSession()"> <i class="icon-plus-sign"> </i> </span>angu
+        </label>
+
+        <table class="table table-striped" ng-hide="role.can_see.length < 1">
+            <thead>
+                <tr>
+                <td><h5>Session label </h5></td>
+                <td> </td>
+                <td> </td>
+               </tr>
+            </thead>
+            <tr ng-repeat ="adb in role.can_see" >
+                <td>{{ adb}} </a> </td>
+                <td><a href=""> <i class="icon-edit"></i> edit </a> </td>
+                <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
+            </tr>
+        </table>
+
+        <h5> Can Admin: {{ role.can_admin.length }} (all <input type="checkbox" class="input" ng-model="role.can_admin_all">)</h5>
+
+        <table class="table table-striped" ng-hide="role.can_admin.length < 1">
+            <thead>
+                <tr>
+                <td><h4>Session label </h4></td>
+                <td> </td>
+                <td><a href="#/{{dbid}}/sessions/new"><i class="icon-plus-sign"></i> new </a> </td>
+               </tr>
+            </thead>
+            <tr ng-repeat ="adb in sessions" >
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> {{ adb.label }} </a> </td>
+                <td><a href="#/{{dbid}}/sessions/{{adb._id}}"> <i class="icon-edit"></i> edit </a> </td>
+                <td><a ng-click="deletesession($index)"><i class="icon-remove-sign"></i>delete </a> </td>
+            </tr>
+        </table>
+
+        <h5> Applied to users: {{ role.users.length }} </h5>
+
+        <table class="table table-striped" ng-hide="role.users.length < 1">
+            <thead>
+                <tr>
+                <td><h4> User name </h4></td>
+                <td> </td>
+                <td><a ng-click="grant()"><i class="icon-plus-sign"></i> grant </a> </td>
+               </tr>
+            </thead>
+            <tr ng-repeat ="adb in role.users" >
+                <td> {{ adb.label }} ({{ adb.name }}) </td>
+                <td> </td>
+                <td><a ng-click="revoke($index)"><i class="icon-remove-sign"></i> revoke </a> </td>
+            </tr>
+        </table>
+
+         <button ng-click="save()" class="btn-primary"> Update </button>
+            </form>
+
+         <pre> {{ role | json }}</pre>
+
+     </div>
+
+     <script type="text/ng-template" id="userSelectModal.html">
+        <div class="modal-header">
+            <h3> Select user/s</h3>
+        </div>
+        <br/>
+        Filter by: <input type="text" ng-model="query" />
+        <br/>
+        <div class="modal-body">
+            <div style="overflow:auto;height:400px!important">
+                <table class="table table-hover" ng-hide="role.users.length < 1">
+                    <tr ng-repeat="item in items | filter:query" ng-class="classof(item)">
+                        <td> {{ item.label }} ({{ item.name }}) </td>
+                        <td> </td>
+                        <td><a ng-click="toggle(item._id)"})"> select  </a> </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" ng-click="ok()">OK</button>
+            <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
+        </div>
+        <div style="overflow:auto;height:200px!important">
+            <pre>{{ selected | json}}</pre>
+        </div>
+
+    </script>
+

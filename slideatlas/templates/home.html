@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set active_page = "home" %}
+
+{% block head_scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function (){
+
+             $("#tryit").click(function(event) {
+                $.post("login.passwd",{
+                      username : "all_demo",
+                      passwd : "",
+                  }).done(function(data) {
+                      window.location = "/sessions";
+                  }).error(function() {
+                    console.log("Error: Guest login rejected")
+                  });
+                });
+        });
+
+    </script>
+{% endblock %}
+
+
+{% block body_content %}
+
+<div class="container">
+     <div class="row">
+        <h2> Welcome to SlideAtlas </h2>
+        <h4> Users: <a class="btn btn-primary" href="login"> Login </a> Guests:  <a id="tryit" class="btn btn-info"> Try it out ! </a> </h4>
+     </div>
+    <div class="row">
+        <img src="/static/img/whole_slide_small.png" class="img-responsive col-md-5" style="border-radius: 10px!important; padding:0px" >
+        <br/>
+    </div>
+    <div class="row">
+        <h3> Whole Slide Image Viewer </h3>
+        <h4> Find, annotate and share your images: <a class="btn btn-info" href="about"> learn more  </a> </h4>
+    </div>
+</div>
+
+{% endblock %}

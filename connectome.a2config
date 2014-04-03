@@ -1,0 +1,20 @@
+<VirtualHost *:80>
+  # change this to the DNS name of the installed host
+  ServerName slide-atlas.org
+
+  WSGIDaemonProcess connectome user=www-data group=www-data threads=1
+  WSGIScriptAlias / /var/connectome/run_apache.wsgi
+
+  <Directory /var/connectome>
+    WSGIProcessGroup connectome
+    WSGIApplicationGroup %{GLOBAL}
+    Order deny,allow
+    Allow from all
+  </Directory>
+
+  ErrorLog ${APACHE_LOG_DIR}/connectome_error.log
+
+  LogLevel warn
+  CustomLog ${APACHE_LOG_DIR}/connectome_access.log combined
+
+</VirtualHost>

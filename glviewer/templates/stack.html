@@ -1,0 +1,738 @@
+<!doctype html>
+
+<title>Stack Viewer</title>
+
+
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+
+
+
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<!-- TODO: use common jquery for entire project avoiding duplication-->
+
+<link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
+
+<!-- used some objects, matrix as an array  -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
+
+<!-- Perspective camera etc. May be ready to remove -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
+
+<!-- Actor for tile -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
+
+<!-- Source and cache for the viewer
+Manages the list, and gives to camera, either lowres, or appropriate tiles
+ -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
+
+<!-- Single view, view interacts with the cache -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
+
+<!-- Has two views -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
+
+<!-- For 3d pathology -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
+
+<!-- For 3d annotations -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationEditMenu.js') }}"></script>
+
+
+<!-- Widgets
+
+Different widgets haev show dialog method,
+hardcoded to the divs
+
+Widgets have serialize method which creates an object
+
+-->
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
+
+<!-- Shapes starting with superclass
+
+Viewer contains shape list
+shape has visibility and
+
+-->
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrow.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circle.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
+
+<!-- Text uses texture map and not superclass shape, shares same API -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='text.js') }}"></script>
+
+<!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
+
+
+
+<!-- GUI widgets -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
+
+
+
+
+<script id="shader-poly-fs" type="x-shader/x-fragment">
+  precision mediump float;
+  uniform vec3 uColor;
+  void main(void) {
+   gl_FragColor = vec4(uColor, 1.0);
+   //gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
+  }
+</script>
+<script id="shader-poly-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+<script id="shader-tile-fs" type="x-shader/x-fragment">
+  #ifdef GL_ES
+  precision highp float;
+  #endif
+
+  uniform sampler2D uSampler;
+  varying vec2 vTextureCoord;
+
+  void main(void) {
+    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+  }
+</script>
+<script id="shader-tile-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  uniform mat3 uNMatrix;
+  varying vec2 vTextureCoord;
+
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+  }
+</script>
+<script id="shader-text-fs" type="x-shader/x-fragment">
+  precision mediump float;
+
+  varying vec2 vTextureCoord;
+  uniform sampler2D uSampler;
+  uniform vec3 uColor;
+
+  void main(void) {
+    vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    // Use the image pixel value as transparency.
+    gl_FragColor = vec4(uColor, textureColor.rgb[0]);
+  }
+</script>
+<script id="shader-text-vs" type="x-shader/x-vertex">
+  attribute vec3 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+
+  varying vec2 vTextureCoord;
+  void main(void) {
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    vTextureCoord = aTextureCoord;
+  }
+</script>
+<script type="text/javascript">
+  var TEMPLATE = "stack.html";
+  var SESSION_DATABASE;
+  var USER;
+
+  // Arguments
+  var DBID;
+  var SESSID;
+  var VIEWS;
+  var TRANSFORMATIONS;
+  var ANNOTATION_STACKS;
+
+  var SECTIONS;
+  var SECTION_INDEX;
+  var CANVAS;
+  var EVENT_MANAGER;
+  var VIEWER1;
+  var EDIT = true;
+  var EDIT_R = false;
+  
+  var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
+
+  // I cannot check if DUAL_VIEW is defined so just include it.
+  var DUAL_VIEW = false;
+
+
+
+  // sets the global variable ARGS
+  function getArgs() {
+    SESSION_DATABASE = "{{ sess }}";
+    USER = "";
+  
+  
+    SESSID = "{{ sess }}";
+    DBID  = "{{ db }}";
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/stack-session",
+        data: {"db" :  DBID,
+               "sess" : SESSID},
+        success: function(data,status){
+          //alert(data + "\nStatus: " + status);
+          VIEWS = data["views"];
+          ANNOTATION_STACKS = data["annotations"];
+          // To bad json does not save the object type.  Need to cast.
+          var transformations = data["transformations"];
+          TRANSFORMATIONS = [];
+          for (var i=0; i <transformations.length; ++i) {
+            var trans = new PairTransformation();
+            if (transformations[i].View0) {
+                trans.View0 = transformations[i].View0;
+            } else {   // one time change database.
+                trans.View0 = VIEWS[i]._id;
+            }
+            if (transformations[i].View1) {
+                trans.View1 = transformations[i].View1;
+            } else {    // one time change database.
+                trans.View1 = VIEWS[i+1]._id;
+            }
+            trans.Correlations = transformations[i].Correlations;
+            TRANSFORMATIONS.push(trans);
+          }
+          // Initialize transformations with view centers. (bootstrap)
+          //TRANSFORMATIONS = [];
+          //for (var i = 1; i < VIEWS.length; ++i) {
+          //  var trans = new PairTransformation();
+          //  trans.AddCorrelation(VIEWS[i-1].center, VIEWS[i].center);
+          //  TRANSFORMATIONS.push(trans);
+          //}
+
+          webGLStart();
+          },
+        error: function() { alert( "AJAX ARGS - error()" ); },
+    });
+  }
+
+
+// url: "http://localhost:8080/webgl-viewer/stack-save",
+function saveStack() {
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/stack-save",
+    data: {"db": DBID,
+           "sess": SESSID,
+           "data" :  JSON.stringify( {"transformations": TRANSFORMATIONS} )},
+    success: function(data,status){
+       //alert(data + "\nStatus: " + status);
+       },
+    error: function() { alert( "AJAX - error()" ); },
+    });
+}
+
+    
+  
+  function handleResize() {
+    if (GL) {
+      var width = CANVAS.innerWidth();
+      var height = CANVAS.innerHeight();
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
+      if (VIEWER1) {
+        VIEWER1.SetViewport([0, 0, width, height]);
+        eventuallyRender();
+      }
+    }
+  };
+
+
+  function initViews() {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    VIEWER1 = initView([0,0, width,CANVAS.height]);
+
+    // Preload all the sources.
+    SECTIONS = [];
+    for (var i=0; i < VIEWS.length; ++i) {
+        view = VIEWS[i];
+        var source = null;
+        // Since multiple section are in one slide. Reuse sources when possible.
+        for (j = 0; j < i; ++j) {
+            if (VIEWS[j].img._id == view.img._id) {
+                source = SECTIONS[j].Source;
+            }
+        }
+        if ( ! source) {
+            source = new Cache({'database':view.db, 
+                                '_id':view.img._id, 
+                                'levels':view.img.levels,
+                                'bounds':view.img.bounds});
+        }
+
+        var section = {"Source": source, "View": view._id, "Annotations": []};
+        if (i < ANNOTATION_STACKS.length) {
+          for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
+            annotation = ANNOTATION_STACKS[i].annotations[j];
+            section.Annotations.push(LoadWidget(VIEWER1, annotation));
+          }
+        }
+            
+        SECTIONS.push(section);
+    }
+    
+    // Setup the points.
+    SECTION_INDEX = 0;
+    VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
+    VIEWER1.WidgetList = SECTIONS[SECTION_INDEX].Annotations;
+    VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
+
+    setupCrossHairs();
+  }
+
+  
+  function updateSection(inc) {
+    var newIdx = SECTION_INDEX + inc;
+
+    if (newIdx < 0 || newIdx >= SECTIONS.length) {
+        return;
+    }
+
+    var cam = VIEWER1.GetCamera();
+    var rotation = cam.GetRotation();
+    var height = cam.Height;
+    var center = [cam.FocalPoint[0], cam.FocalPoint[1], cam.FocalPoint[2]];
+
+    VIEWER1.SetCache(SECTIONS[newIdx].Source);
+    VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
+
+    // Compute the new camera.
+    if (inc < 0) {
+        center = TRANSFORMATIONS[newIdx].ReverseTransform(center);
+        rotation += TRANSFORMATIONS[newIdx].DeltaRotation;
+    } else {
+        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(center);
+        rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRotation;
+        // We need to transform the event world point to avoid bug with chain when
+        // Mouse is not moved.
+        var tmp = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform([EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY]);
+        EVENT_MANAGER.MouseWorldX = tmp[0];
+        EVENT_MANAGER.MouseWorldY = tmp[1];
+    }
+
+    VIEWER1.SetCamera(center, rotation, height);    
+    SECTION_INDEX = newIdx;
+    setupCrossHairs();
+  }
+
+  // Markers to see stack correlations.
+  function setupCrossHairs() {
+    if ( ! EDIT_R) { return; }
+    VIEWER1.ShapeList = [];
+    VIEWER1.WidgetList = [];
+    VIEWER1.AnnotationVisibility = 1;
+
+    if ( SECTION_INDEX < TRANSFORMATIONS.length) {
+        var trans = TRANSFORMATIONS[SECTION_INDEX];
+        for (i in trans.Correlations) {
+            var c = trans.Correlations[i];
+            var cross = new CrossHairs();
+            cross.FillColor    = [1,0,0]; 
+            cross.OutlineColor = [0,1,1];
+            cross.Origin       = c.point0; // I expect reference will update transform automatically.
+            VIEWER1.AddShape(cross);
+        }
+    }    
+    if (SECTION_INDEX > 0) {
+        var trans = TRANSFORMATIONS[SECTION_INDEX-1];
+        for (i in trans.Correlations) {
+            var c = trans.Correlations[i];
+            var cross = new CrossHairs();
+            cross.FillColor    = [0,1,1]; 
+            cross.OutlineColor = [1,0,0];
+            cross.Origin       = c.point1; // I expect reference will update transform automatically.
+            VIEWER1.AddShape(cross);
+        }
+    }
+    eventuallyRender();
+  }
+  
+var FeatureChainEndCross;
+var FeatureChainEndIndex;
+// x, y are in world coordinates
+function FeatureChainStart(x,y) {
+    // Create a widget just for show.
+    var cross = new CrossHairs();
+    cross.FillColor    = [1,0,0]; 
+    cross.OutlineColor = [0,1,1];
+    cross.Origin       = [x, y];
+    // Save for the position for the next link.
+    VIEWER1.AddShape(cross);
+    VIEWER1.SetAnnotationVisibility(ANNOTATION_ON);
+    FeatureChainEndCross = cross;
+    FeatureChainEndIndex = SECTION_INDEX;
+    eventuallyRender();
+}
+// x, y are in world coordinates
+function FeatureChainAdd(x,y) {
+    if ( ! FeatureChainEndCross ) {
+        FeatureChainStart(x,y);
+        return;
+    }
+    if (SECTION_INDEX <= 0) {
+        alert("First section cannot end a feature link.");
+        return;
+    }
+    if (SECTION_INDEX != FeatureChainEndIndex + 1) {
+        alert("Link cannot span more than one section.");
+        return;
+    }
+
+    // Create the correlation.
+    var trans = TRANSFORMATIONS[SECTION_INDEX-1];
+    trans.Correlations.push({"point0": [FeatureChainEndCross.Origin[0],FeatureChainEndCross.Origin[1]],
+                             "point1": [x,y]});
+    // Create a widget just for show.
+    var cross = new CrossHairs();
+    cross.FillColor    = [0,1,1]; 
+    cross.OutlineColor = [1,0,0];
+    // A dance to set cross origin as pointer to correlation array.
+    var correlation = trans.Correlations[trans.Correlations.length-1];
+    cross.Origin       = correlation.point1;
+    VIEWER1.AddShape(cross);
+    VIEWER1.SetAnnotationVisibility(ANNOTATION_ON);
+
+    // Save for the position for the next link.
+    FeatureChainEndCross = cross;
+    FeatureChainEndIndex = SECTION_INDEX;
+    eventuallyRender();
+}
+
+
+  function draw() {
+    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    // This just changes the camera based on the current time.
+    VIEWER1.Animate();
+    VIEWER1.Draw();
+  }
+
+  // Hack to be replaced soon
+  var E_DOWN = false;
+  var D_DOWN = false;
+  var R_DOWN = false;
+  
+  // The event manager detects single right click and double right click.
+  // This gets galled on the single.
+  function ShowPropertiesMenu(x, y) { 
+    if (EDIT) {
+      ShowAnnotationEditMenu(x, y);
+    }
+  }
+  
+  function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
+  function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
+  function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
+  function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
+  function handleKeyDown(event) {
+        if (DIALOG_OPEN) { return; } // Hack to keep stack from processing space events when a dialog is open.
+        if (event.keyCode == 68) { D_DOWN = true;}
+        if (event.keyCode == 69) { E_DOWN = true;}
+        if (event.keyCode == 82) { R_DOWN = true;}
+        if (D_DOWN && E_DOWN) {
+            EDIT = ! EDIT; 
+            alert("Edit: " + EDIT);
+            E_DOWN = false;
+            D_DOWN = false;
+        }
+        if (D_DOWN && R_DOWN) {
+            EDIT_R = ! EDIT_R; 
+            alert("Edit 'R': " + EDIT_R);
+            E_DOWN = false;
+            R_DOWN = false;
+        }
+        if (event.keyCode == 33 || event.keyCode == 37 ) { // page up
+            updateSection(-1);
+        }
+        if (event.keyCode == 34 || event.keyCode == 32
+                                || event.keyCode == 39) { // page down or space
+            updateSection(1);
+        }
+        if (event.keyCode == 83) { // 's'
+            if (EDIT_R) { saveStack();}
+        }
+        if (event.keyCode == 49) { // '1' : start a new feature chain
+            if (EDIT_R) { FeatureChainStart(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+        }
+        if (event.keyCode == 50) { // '2' : start a new feature chain
+            if (EDIT_R) { FeatureChainAdd(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY); }
+        }
+        EVENT_MANAGER.HandleKeyDown(event);}
+  function handleKeyUp(event) {
+        if (event.keyCode == 68) { D_DOWN = false;}
+        if (event.keyCode == 69) { E_DOWN = false;}
+        if (event.keyCode == 82) { R_DOWN = false;}
+        EVENT_MANAGER.HandleKeyUp(event);}
+  function cancelContextMenu(e) {
+    //alert("Try to cancel context menu");
+    if (e && e.stopPropagation)
+      e.stopPropagation();
+    return false;
+  }
+
+  
+
+// Not used at the moment.
+function InitAnnotations(viewer, annotations)
+{
+    if (annotations.length == 0) {
+        return;
+    }
+    
+    for (i in annotations) {
+        var annotation = annotations[i];
+        widget = new TextWidget(viewer, annotation.string);
+        var p1 = annotation.position;
+        var offset = annotation.offset;
+        widget.SetPosition(p1[0], p1[1]);
+        widget.SetTextOffset(offset[0], offset[1]);
+        widget.SetAnchorShapeVisibility(true);
+    }
+}
+
+function ToggleAnnotationVisibility() {
+    SetAnnotationVisibility( ! VIEWER1.ShapeVisibility);
+}
+
+
+  function webGLStart() {
+    // Just to see if webgl is supported:
+    var testCanvas = document.getElementById("gltest");
+    if ( ! doesBrowserSupportWebGL(testCanvas)) {
+        return; // WHat to do?  Function provides the alert.
+    }
+    
+    initGL(); // Sets CANVAS and GL global variables
+    EVENT_MANAGER = new EventManager(CANVAS);
+    initShaderPrograms();
+    initOutlineBuffers();
+    initImageTileBuffers();
+    initViews();
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+   
+    
+    GL.clearColor(0.9, 0.9, 0.9, 1.0);
+    GL.enable(GL.DEPTH_TEST);
+
+    CANVAS[0].onmousedown = handleMouseDown;
+    // CANVAS[0].ondblclick = handleDoubleClick; // does not detect right button double clicks.
+    // event manager will use up down events to detect double clicks.
+    CANVAS[0].onmousewheel = handleMouseWheel;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove;
+
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+    document.oncontextmenu = cancelContextMenu;
+
+        
+
+             
+             
+    // Place the previous next buttons.
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '5px',
+        'left' : '5px',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='leftArrow2.png')}}").click(function(){
+            updateSection(-1);});
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'bottom' : '5px',
+        'left' : '55px',
+        'z-index': '2'
+    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='rightArrow2.png')}}").click(function(){
+            updateSection(1);});
+
+
+    // Hack button to toggle annotation.
+    $('<button>').appendTo('body').css({
+        'opacity': '0.2',
+        'position': 'absolute',
+        'height': '50px',
+        'width': '50px',
+        'font-size': '30px',
+        'bottom' : '5px',
+        'left' : '130px',
+        'z-index': '2'})
+      .attr('id', 'annotationButton').text("A")
+      .click(function(){
+         ToggleAnnotationVisibility();});
+ 
+
+
+    eventuallyRender();
+  }
+
+  function NewArrow() {
+    // When the arrow button is pressed, create the widget.
+    var widget = new ArrowWidget(VIEWER1, true);
+    VIEWER1.ActiveWidget = widget;
+    eventuallyRender();
+  }
+
+
+
+  function zoomIn() {
+    VIEWER1.AnimateZoom(0.5);
+  }
+
+  function zoomOut() {
+    VIEWER1.AnimateZoom(2.0);
+  }
+
+  function rotateRight() {
+    VIEWER1.AnimateRoll(-12.0); // degrees
+  }
+
+  function rotateLeft() {
+    VIEWER1.AnimateRoll(12.0); // degrees
+  }
+
+    //********************************************************
+
+
+
+    $(document).ready(function() {
+      // Get arguments and then initialize webgl.
+      getArgs();
+      InitAnnotationEditMenus();
+    });
+
+</script>
+
+
+<style>
+#feedback { font-size: 1.4em; }
+#optionMenu .ui-selecting { background: #FECA40; }
+#optionMenu .ui-selected { background: #F39814; color: white; }
+#optionMenu { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#optionMenu li { padding: 3px; height: 18px; width: 100%}
+</style>
+
+
+<canvas id="gltest" style="display:none" ></canvas>
+
+
+
+
+ <div class="ui-widget" style="visibility:hidden">
+      <table border="1" id="annotbuttons">
+        <tr>
+          <td>
+            <img src="{{ url_for('glviewer.static', filename='Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
+          </td>
+          <td>
+            <img src="{{ url_for('glviewer.static', filename='Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
+          </td>
+          <td>
+            <img src="{{ url_for('glviewer.static', filename='FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
+          </td>
+          <td>
+            <img src="{{ url_for('glviewer.static', filename='Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
+          </td>
+        </tr>
+      </table>
+      <table border="1" id="zoombuttons" >
+        <tr>
+          <td type="button" onclick="zoomIn();" style="width:20px;height:20px;background-color:white;text-align:center;" >+</td>
+        </tr>
+        <tr>
+          <td type="button" onclick="zoomOut();" style="width:20px;height:20px;background-color:white;text-align:center;" >-</td>
+        </tr>
+      </table>
+      <table border="1" id="rotatebuttons" >
+        <tr>
+          <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
+            <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
+          </td>
+          <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
+            <img src="{{ url_for('glviewer.static', filename='rotateRight.jpg') }}" height="25" />
+          </td>
+        </tr>
+      </table>
+
+      <div id="text-properties-dialog" title="Text Annotation Editor" >
+        <form>
+          <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+          Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
+          <input type="checkbox" id="TextMarker" checked /> Marker </input>
+        </form>
+      </div>
+
+      <div id="circle-properties-dialog" title="Circle Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and center and radius entries (thickness too) -->
+            Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
+            Line Width:<input id="circlelinewidth" ></input></br>
+            <p id="circlearea"></p>
+          </fieldset>
+        </form>
+      </div>
+
+      <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
+            Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
+            Line Width:<input id="polylinewidth" ></input>
+          </fieldset>
+        </form>
+      </div>
+
+      <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
+        <form>
+          <fieldset>
+            <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
+            Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
+            <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
+            <p id="ArrowLength"></p>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+

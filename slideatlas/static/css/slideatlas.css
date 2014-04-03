@@ -1,0 +1,14 @@
+img.login-logo {
+    width:16px;
+    height:auto;
+    max-width:none;
+    max-height:none;
+}
+
+li.login-link {
+    background-color:Maroon;
+}
+
+a.login-link {
+    font-weight:bold;
+}

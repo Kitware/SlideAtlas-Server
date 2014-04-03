@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+   <head>
+   	  <script src="/static/js/jquery-1.9.1.min.js"> </script>
+    
+      <script type="text/javascript">
+         var sock = null;
+         var ellog = null;
+
+         window.onload = function() {
+
+            ellog = document.getElementById('log');
+
+            var wsuri;
+            if (window.location.protocol === "file:") {
+               wsuri = "ws://127.0.0.1:8000/ws";
+            } else {
+               wsuri = "ws://" + window.location.hostname + ":8000/ws";
+            }
+
+            if ("WebSocket" in window) {
+               sock = new WebSocket(wsuri);
+            } else if ("MozWebSocket" in window) {
+               sock = new MozWebSocket(wsuri);
+            } else {
+               log("Browser does not support WebSocket!");
+               window.location = "http://autobahn.ws/unsupportedbrowser";
+            }
+
+            if (sock) {
+               sock.onopen = function() {
+                  log("Connected to " + wsuri);
+               }
+
+               sock.onclose = function(e) {
+                  log("Connection closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
+                  sock = null;
+               }
+
+               sock.onmessage = function(e) {
+               		// if response is image 
+					// Create an image tag 
+					$("#img").empty();
+               		var img = new Image();
+               		var data = e.data;
+               		//var x = new Uint8Array(data, 0);
+               		//str = data.rQshiftBytes();
+					img.src = URL.createObjectURL(e.data.slice(0,e.data.size, "image/jpg"))
+					$("#img").append(img);
+					//$("#img").appendChild(img);
+                  	log("Got echo: " + e.data);
+               }
+            }
+         };
+
+         function send() {
+            var msg = document.getElementById('message').value;
+            if (sock) {
+               sock.send(msg);
+               log("Sent: " + msg);
+            } else {
+               log("Not connected.");
+            }
+         };
+
+         function log(m) {
+            ellog.innerHTML += m + '\n';
+            ellog.scrollTop = ellog.scrollHeight;
+         };
+      </script>
+   </head>
+   <body>
+      <h1>Autobahn WebSocket Echo Test</h1>
+      <noscript>You must enable JavaScript</noscript>
+      <form>
+         <p>Message: <input id="message" type="text" size="50" maxlength="50" value="Hello, world!"></p>
+      </form>
+      <button onclick='send();'>Send Message</button>
+      <div id="img"> </div>
+      <pre id="log" style="height: 20em; overflow-y: scroll; background-color: #faa;"></pre>
+   </body>
+</html>
