@@ -1,6 +1,6 @@
 [submodule "libtiff"]
-	path = ptiffstore/tpl/tiff-4.0.3
+	path = slideatlas/ptiffstore/tpl/tiff-4.0.3
 	url = https://github.com/vadz/libtiff.git
 [submodule "pylibtiff"]
-	path = ptiffstore/tpl/pylibtiff-read-only
+	path = slideatlas/ptiffstore/tpl/pylibtiff-read-only
 	url = https://github.com/brianhelba/pylibtiff.git
