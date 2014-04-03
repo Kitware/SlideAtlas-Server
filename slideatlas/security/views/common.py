@@ -171,7 +171,8 @@ class OAuthLogin(object):
         try:
             person = self.fetch_person(token)
             for key, value in person._asdict().iteritems():
-                if not value:
+                # person fields should not be empty, unless it's a list
+                if (not value) and (not isinstance(value, list)):
                     raise KeyError(key)
         except KeyError as e:
             raise self.AuthorizationError('\"%s\" field not provided by API' % e.message, 401)  # Unauthorized
