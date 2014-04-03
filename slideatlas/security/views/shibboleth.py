@@ -1,8 +1,8 @@
 # coding=utf-8
 
-from flask import abort, flash, request, url_for
+from flask import abort, current_app, flash, request, url_for
 from flask.ext.login import user_logged_out
-from flask.ext.security.utils import get_url
+from flask.ext.security.utils import get_url, user_registered
 from werkzeug.datastructures import MultiDict
 
 from slideatlas import models
@@ -33,6 +33,7 @@ def login_shibboleth():
     user, created = models.ShibbolethUser.objects.get_or_create(eppn=eppn)
 
     if created:
+        user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
         flash('New Shibboleth user account created', 'info')
     else:
         flash('Shibboleth user account exists', 'info')

@@ -1,6 +1,7 @@
 # coding=utf-8
 
-from flask import flash, redirect
+from flask import current_app, flash, redirect
+from flask.ext.security.utils import user_registered
 from flask.ext.openid import OpenID
 
 from slideatlas import models
@@ -37,6 +38,7 @@ def login_google(oid_response=None):
         # Get user from database
         user, created = models.GoogleUser.objects.get_or_create(email=oid_response.email, auto_save=False)
         if created:
+            user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
             flash('New Google user account created', 'info')
         else:
             flash('Google user account exists', 'info')
