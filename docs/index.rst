@@ -16,6 +16,7 @@ Welcome to SlideAtlas's documentation!
     user-workflow
     image-workflow
     web-api
+    ptiffstore
     web-interface
     common-utilities
     ui-design
