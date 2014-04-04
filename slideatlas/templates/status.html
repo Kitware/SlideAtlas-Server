@@ -29,6 +29,9 @@
             <td>{{ current_user.full_name }}</td>
         </tr>
     </table>
+    {% else %}
+        User not authenticated
+
     {% endif %}
 </div>
 {% endblock %}

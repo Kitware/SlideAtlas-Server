@@ -29,7 +29,7 @@ def home():
 def status():
     return render_template('status.html',
                            version=get_version(),
-                           host=current_app.config['SERVER_NAME'])
+                           host=current_app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'])
 
 
 ################################################################################
