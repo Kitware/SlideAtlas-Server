@@ -27,9 +27,17 @@ def home():
 
 ################################################################################
 def status():
+    site = {
+        'version': get_version()
+    }
+    admin_db = {
+        'host': current_app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'],
+        'replica_set': current_app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET'],
+        'name': current_app.config['SLIDEATLAS_ADMIN_DATABASE_NAME']
+    }
     return render_template('status.html',
-                           version=get_version(),
-                           host=current_app.config['SERVER_NAME'])
+                           site=site,
+                           admin_db=admin_db)
 
 
 ################################################################################
