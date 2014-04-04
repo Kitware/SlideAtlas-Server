@@ -12,7 +12,6 @@ conversion available though.
 
 - The Store object AKA databases object contains additional fields such as last sync, and endpoint to fetch tiles
 
--
 
 
 TileStore endpoint proposal
@@ -21,6 +20,11 @@ TileStore endpoint proposal
 Tile servers should not go without authentication, but now they will.
 
 Serves tiles from given imageid and tile-name or tile parameters.
+
+.. warning::
+    todo:
+    A ptiffserver endponint will be included in the slideatlas source code. A separate run command might be able to run just the tile server
+    API and not entire webapp.
 
  .. note::
     When the first request is arrived, checks whether the user is logged in by making an api call to the central server and whether the access
