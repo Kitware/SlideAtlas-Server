@@ -1,4 +1,4 @@
-celery==3.1.9
+celery==3.1.10
 tornado==3.2
 Twisted==13.2.0
 
