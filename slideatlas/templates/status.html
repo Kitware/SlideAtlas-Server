@@ -9,26 +9,52 @@
     <br/>
     <table class="table table-bordered table-hover">
         <tr>
+            <th colspan="2">Site</th>
+        </tr>
+        <tr>
             <td>Version</td>
-            <td>{{ version }}</td>
+            <td>{{ site.version }}</td>
+        </tr>
+    </table>
+    <table class="table table-bordered table-hover">
+        <tr>
+            <th colspan="2">Admin Database</th>
         </tr>
         <tr>
             <td>Host</td>
-            <td>{{ host }}</td>
+            <td>{{ admin_db.host}}</td>
+        </tr>
+        <tr>
+            <td>Replica Set</td>
+            <td>{{ admin_db.replica_set }}</td>
+        </tr>
+        <tr>
+            <td>Name</td>
+            <td>{{ admin_db.name }}</td>
         </tr>
     </table>
-
-    {% if current_user.is_authenticated() %}
     <table class="table table-bordered table-hover">
         <tr>
-            <td>User Email</td>
+            <th colspan="2">Current User</th>
+        </tr>
+        {% if current_user.is_authenticated() %}
+        <tr>
+            <td>ID</td>
+            <td>{{ current_user.id }}</td>
+        </tr>
+        <tr>
+            <td>Email</td>
             <td>{{ current_user.email }}</td>
         </tr>
         <tr>
-            <td>User Full Name</td>
+            <td>Full Name</td>
             <td>{{ current_user.full_name }}</td>
         </tr>
+        {% else %}
+        <tr>
+            <td>User not authenticated</td>
+        </tr>
+        {% endif %}
     </table>
-    {% endif %}
 </div>
 {% endblock %}

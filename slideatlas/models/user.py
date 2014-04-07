@@ -93,11 +93,15 @@ class GoogleUser(User):
 
 ################################################################################
 class FacebookUser(User):
-    pass
+    external_id = StringField(required=True,
+        verbose_name='External ID', help_text='A unique identifier used to associate this user with an external authentication service.')
 
 
 ################################################################################
 class LinkedinUser(User):
+    # WARNING: the person 'id' returned by LinkedIn is specific to one OAuth app
+    #   key; if the app key ever is reset, all existing LinkedinUser
+    #   'external_id' fields will become invalid
     external_id = StringField(required=True,
         verbose_name='External ID', help_text='A unique identifier used to associate this user with an external authentication service.')
 
