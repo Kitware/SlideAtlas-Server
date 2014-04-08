@@ -15,6 +15,7 @@ Welcome to SlideAtlas's documentation!
     admin-rights
     user-workflow
     image-workflow
+    tilestore
     web-api
     ptiffstore
     web-interface

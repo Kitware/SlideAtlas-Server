@@ -14,7 +14,7 @@ sys.path.append(tilereaderpath)
 
 # Abstract definitions for asset store
 
-class TileAssetsStore():
+class TileAssetStore():
     """
     Equivalent to images collections
     Should encapsulate entire assetstore, and this being tile specific version of it.
