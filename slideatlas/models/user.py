@@ -108,5 +108,6 @@ class LinkedinUser(User):
 
 ################################################################################
 class ShibbolethUser(User):
-    eppn = EmailField(required=True, max_length=255,
-        verbose_name='EPPN', help_text='The user\'s eduPersonPrincipalName, a permanent identifier.')
+    # external_id is the user's eduPersonPrincipalName
+    external_id = EmailField(required=True, max_length=255, db_field='eppn',
+        verbose_name='External ID', help_text='A unique identifier used to associate this user with an external authentication service.')

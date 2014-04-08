@@ -1,12 +1,10 @@
 # coding=utf-8
 
-from flask.ext.security.decorators import anonymous_user_required
-
 from .common import OAuthLogin
 from . import google
 from .facebook import FacebookOAuthLogin
 from .linkedin import LinkedinOAuthLogin
-from . import shibboleth
+from .shibboleth import ShibbolethLogin
 
 ################################################################################
 __all__ = ('add_views',)
@@ -23,26 +21,16 @@ def add_views(app, blueprint):
     # blueprint.errorhandler(OAuthLogin.AuthorizationError)(OAuthLogin.AuthorizationError.handler)
     app.register_error_handler(OAuthLogin.AuthorizationError, OAuthLogin.AuthorizationError.handler)
 
-    # Google
-    blueprint.add_url_rule(rule='/login/google',
-                           view_func=anonymous_user_required(google.login_google),
-                           methods=['GET', 'POST'])
-    google.register(app, blueprint)
+    login_providers = [
+        FacebookOAuthLogin(app, blueprint),
+        google.register(app, blueprint),
+        LinkedinOAuthLogin(app, blueprint),
+        ShibbolethLogin(app, blueprint),
+    ]
 
-    # Facebook
-    FacebookOAuthLogin(app, blueprint)
-
-    # LinkedIn
-    LinkedinOAuthLogin(app, blueprint)
-
-    # Shibboleth
-    blueprint.add_url_rule('/login.shibboleth/<path:handler>',
-                           endpoint='login_shibboleth_handler',
-                           build_only=True)
-    blueprint.add_url_rule('/login/shibboleth',
-                           view_func=anonymous_user_required(shibboleth.login_shibboleth),
-                           methods=['GET'])
-    shibboleth.register(app, blueprint)
+    # Add login providers to 'login' template context
+    security = app.extensions['security']
+    security.login_context_processor(lambda: dict(login_providers=login_providers))
 
     # TODO: password change page
 

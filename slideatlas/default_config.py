@@ -74,6 +74,13 @@ authentication. """
 
 
 ################################################################################
+## Shibboleth Login Settings ##
+
+SLIDEATLAS_SHIBBOLETH = False
+""" Whether Shibboleth login is available. """
+
+
+################################################################################
 ## App URL Settings ##
 
 SLIDEATLAS_HTTPS = False
