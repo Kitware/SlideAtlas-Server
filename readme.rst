@@ -38,9 +38,11 @@ To run
 
 .. code-block:: none
 
+   $ EXPORT SLIDEATLAS_CONFIG_PATH=/path/to/site_config
    $ python run.py
 
-This will start a webserver if the mongo database server is correctly configured in some configuration file similar to **site_local.py**.
+"/path/to/site_config" should be the absolute path to a configuration file with any locally-specific configuration changes.
+If such a configuration file is not provided, SlideAtlas will use sensible defaults (e.g. connecting to a MongoDB at 'localhost:8080').
 
 Sample Apache configuration
 ---------------------------
