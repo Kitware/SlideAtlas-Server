@@ -13,9 +13,14 @@ __all__ = ('FacebookOAuthLogin',)
 class FacebookOAuthLogin(OAuthLogin):
 
     def create_oauth_service(self, oauth_client, app_config):
+        consumer_key = app_config['SLIDEATLAS_FACEBOOK_APP_ID']
+        consumer_secret = app_config['SLIDEATLAS_FACEBOOK_APP_SECRET']
+        if (not consumer_key) or (not consumer_secret):
+            return None
+
         return oauth_client.remote_app('facebook',
-            consumer_key=app_config['SLIDEATLAS_FACEBOOK_APP_ID'],
-            consumer_secret=app_config['SLIDEATLAS_FACEBOOK_APP_SECRET'],
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
 
             # Used by authorize()
             authorize_url='https://www.facebook.com/dialog/oauth',
@@ -33,6 +38,11 @@ class FacebookOAuthLogin(OAuthLogin):
 
 
     @property
+    def icon_url(self):
+        return '/static/img/facebook_32.png'
+
+
+    @property
     def user_model(self):
         return models.FacebookUser
 
@@ -45,16 +55,16 @@ class FacebookOAuthLogin(OAuthLogin):
     FacebookPerson = namedtuple('FacebookPerson', OAuthLogin.Person._fields + ('facebook_groups',))
 
 
-    def fetch_person(self, token):
+    def fetch_person(self):
         # Fetch person data
         person_profile_url = '/me'
         # by default the profile API returns a limited number of fields,
         #   so explicitly request the desired fields
         person_profile_requested_fields = ['id', 'name', 'email']
         person_profile_url += '?fields=%s' % (','.join(person_profile_requested_fields))
-        person_profile = self.oauth_service.get(person_profile_url, token=token)
+        person_profile = self.oauth_service.get(person_profile_url)
 
-        person_groups = self.oauth_service.get('/me/groups', token=token)
+        person_groups = self.oauth_service.get('/me/groups')
 
         # Verify that responses with person data were received
         for response in [person_profile, person_groups]:

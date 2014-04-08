@@ -11,28 +11,29 @@ from flask.ext.oauthlib.client import OAuth, OAuthException
 from werkzeug.security import gen_salt
 
 ################################################################################
-__all__ = ('OAuthLogin', 'login_user')
+__all__ = ('LoginProvider', 'OAuthLogin', 'login_user')
 
 
 ################################################################################
 # TODO: move this class to a common utility module
-class SingletonType(type):
+class SingletonMetaclass(type):
     """
     A metaclass for singleton classes.
     """
     def __call__(cls, *args):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(SingletonType, cls).__call__(*args)
+            cls.instance = super(SingletonMetaclass, cls).__call__(*args)
         return cls.instance
 
 
 ################################################################################
-class OAuthLoginType(ABCMeta, SingletonType):
+class LoginProviderMetaclass(ABCMeta, SingletonMetaclass):
     pass
 
 
 ################################################################################
-class OAuthLogin(object):
+class LoginProvider(object):
+    __metaclass__ = LoginProviderMetaclass
 
     @abstractproperty
     def user_model(self):
@@ -40,6 +41,7 @@ class OAuthLogin(object):
         Returns the specific user model class for this login type.
         """
         pass
+
 
     @abstractproperty
     def pretty_name(self):
@@ -49,59 +51,29 @@ class OAuthLogin(object):
         pass
 
 
-    @abstractmethod
-    def create_oauth_service(self, oauth_client, app_config):
+    @abstractproperty
+    def icon_url(self):
         """
-        Calls 'oauth_client.remote_app' with the appropriate arguments and
-        returns the result.
+        Returns the absolute URL to the icon for this OAuth provider, to be used
+        on the button.
         """
         pass
 
 
     @abstractmethod
-    def fetch_person(self, token):
+    def fetch_person(self):
         """
-        Uses the OAuth provider's API to return an instance of Person with
-        appropriate fields set.
+        Uses the provider's API to return an instance of Person with appropriate
+        fields set.
 
         May raise a KeyError, which will be handled by the caller.
         """
         pass
 
 
-    def update_user_properties(self, user, person):
-        """
-        Update the user model object, based upon a person returned by
-        'fetch_person'.
-
-        This method is not abstract, but may be overridden by subclasses.
-        """
-        user.email = person.email
-        user.full_name = person.full_name
-
-
-    __metaclass__ = OAuthLoginType
-
-
-    oauth_client = OAuth()
-
-
+    @abstractmethod
     def __init__(self, app, blueprint):
-        # 'init_app' really only needs to be done once, but it's idempotent, and
-        #   this is a place with a convenient reference to 'app'
-        self.oauth_client.init_app(app)
-
-        self.oauth_service = self.create_oauth_service(self.oauth_client, app.config)
-
-        blueprint.add_url_rule(rule='/login/%s' % self.name,
-                               endpoint=self.endpoint,
-                               view_func=anonymous_user_required(self.login_view),
-                               methods=['GET'])
-
-        blueprint.add_url_rule(rule='/login/%s/authorized' % self.name,
-                               endpoint=self.endpoint_authorized,
-                               view_func=anonymous_user_required(self.login_authorized_view),
-                               methods=['GET'])
+        self.enabled = False
 
         # create a sub-class of AuthorizationError with the appropriate 'oauth_provider'
         self.AuthorizationError = type('%sAuthorizationError' % self.pretty_name,
@@ -117,6 +89,127 @@ class OAuthLogin(object):
     @property
     def endpoint(self):
         return 'login_%s' % self.name
+
+
+    def is_enabled(self):
+        return self.enabled
+
+
+    Person =  namedtuple('Person', ('external_id', 'full_name', 'email'))
+
+
+    def update_user_properties(self, user, person):
+        """
+        Update the user model object, based upon a person returned by
+        'fetch_person'.
+
+        This method is not abstract, but may be overridden by subclasses.
+        """
+        user.email = person.email
+        user.full_name = person.full_name
+
+
+    def do_login(self):
+        """
+        """
+        # Verify that all fields of person data are returned and non-empty
+        try:
+            person = self.fetch_person()
+            for key, value in person._asdict().iteritems():
+                # person fields should not be empty, unless it's a list
+                if (not value) and (not isinstance(value, list)):
+                    raise KeyError(key)
+        except KeyError as e:
+            raise self.AuthorizationError('\"%s\" field not provided by API' % e.message, 401)  # Unauthorized
+
+        # Get user from database
+        created = False
+        try:
+            # first, try getting by external_id, which may not be set in
+            #   the database for every user
+            user = self.user_model.objects.get(external_id=person.external_id)
+        except self.user_model.DoesNotExist:
+            try:
+                # next, try email as a fallback, but email addresses may be
+                #   changed by the provider
+                user = self.user_model.objects.get(email=person.email)
+            except self.user_model.DoesNotExist:
+                # if a user still can't be found, assume it's a new user
+                created = True
+                user = self.user_model(external_id=person.external_id)
+
+        # Update user properties, in case they've changed
+        self.update_user_properties(user, person)
+        user.save()
+
+        if created:
+            user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
+            flash('New user created. Welcome to SlideAtlas!', 'info')
+        else:
+            flash('User account loaded from %s. Welcome back!' % self.pretty_name, 'info')
+
+        return login_user(user)
+
+
+    class AuthorizationError(Exception):
+        oauth_provider='Provider'
+
+        def __init__(self, message='', status_code=500):
+            self.message = message
+            self.status_code = status_code
+            super(OAuthLogin.AuthorizationError, self).__init__(str(self))
+
+        def __unicode__(self):
+            return unicode('%s access denied: %s' % (self.oauth_provider, self.message))
+
+        def __str__(self):
+            return unicode(self).encode('utf-8')
+
+        @staticmethod
+        def handler(error):
+            flash(str(error), 'error')
+            return redirect(url_for('.login'), code=error.status_code)
+
+
+################################################################################
+class OAuthLogin(LoginProvider):
+
+    @abstractmethod
+    def create_oauth_service(self, oauth_client, app_config):
+        """
+        Calls 'oauth_client.remote_app' with the appropriate arguments and
+        returns the result or None if creation failed (e.g. due to missing
+        config values).
+        """
+        pass
+
+
+    oauth_client = OAuth()
+
+
+    def __init__(self, app, blueprint):
+        super(OAuthLogin, self).__init__(app, blueprint)
+
+        # 'init_app' really only needs to be done once, but it's idempotent, and
+        #   this is a place with a convenient reference to 'app'
+        self.oauth_client.init_app(app)
+
+        self.oauth_service = self.create_oauth_service(self.oauth_client, app.config)
+        if self.oauth_service is None:
+            # self.enabled is False by default
+            return
+
+        self.enabled = True
+
+        blueprint.add_url_rule(rule='/login/%s' % self.name,
+                               endpoint=self.endpoint,
+                               view_func=anonymous_user_required(self.login_view),
+                               methods=['GET'])
+
+        blueprint.add_url_rule(rule='/login/%s/authorized' % self.name,
+                               endpoint=self.endpoint_authorized,
+                               view_func=anonymous_user_required(self.login_authorized_view),
+                               methods=['GET'])
 
 
     @property
@@ -167,67 +260,10 @@ class OAuthLogin(object):
         if request.args['state'] != expected_state:
             raise self.AuthorizationError('mismatched state token', 400)  # Bad Request
 
-        # Verify that all fields of person data were returned and non-empty
-        try:
-            person = self.fetch_person(token)
-            for key, value in person._asdict().iteritems():
-                # person fields should not be empty, unless it's a list
-                if (not value) and (not isinstance(value, list)):
-                    raise KeyError(key)
-        except KeyError as e:
-            raise self.AuthorizationError('\"%s\" field not provided by API' % e.message, 401)  # Unauthorized
+        # Make the token available for API requests
+        self.oauth_service.tokengetter(lambda: token)
 
-        # Get user from database
-        user_created = False
-        try:
-            # first, try getting by external_id, which may not be set in
-            #   the database for every user
-            user = self.user_model.objects.get(external_id=person.external_id)
-        except self.user_model.DoesNotExist:
-            try:
-                # next, try email as a fallback, but email addresses may be
-                #   changed by the OAuth provider
-                user = self.user_model.objects.get(email=person.email)
-            except self.user_model.DoesNotExist:
-                # if a user still can't be found, assume it's a new user
-                user_created = True
-                user = self.user_model(external_id=person.external_id)
-
-        # Update user properties, in case they've changed
-        self.update_user_properties(user, person)
-        user.save()
-
-        if user_created:
-            user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
-            flash('New user created. Welcome to SlideAtlas!', 'info')
-        else:
-            flash('User account loaded from %s. Welcome back!' % self.pretty_name, 'info')
-
-
-        return login_user(user)
-
-
-    Person =  namedtuple('Person', ('external_id', 'full_name', 'email'))
-
-
-    class AuthorizationError(Exception):
-        oauth_provider='OAuth'
-
-        def __init__(self, message='', status_code=500):
-            self.message = message
-            self.status_code = status_code
-            super(OAuthLogin.AuthorizationError, self).__init__(str(self))
-
-        def __unicode__(self):
-            return unicode('%s access denied: %s' % (self.oauth_provider, self.message))
-
-        def __str__(self):
-            return unicode(self).encode('utf-8')
-
-        @staticmethod
-        def handler(error):
-            flash(str(error), 'error')
-            return redirect(url_for('.login'), code=error.status_code)
+        return self.do_login()
 
 
     @staticmethod
@@ -253,6 +289,7 @@ class OAuthLogin(object):
 
 
 ################################################################################
+# TODO: make this part of 'do_login'
 def login_user(user):
     flask_login_user(user, False)  # sets "session['user_id']"
 
