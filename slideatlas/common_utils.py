@@ -7,10 +7,9 @@ except ImportError:
         raise ImportError
 import datetime
 from bson.objectid import ObjectId
-from flask import Response, session, abort, flash, redirect
-import flask
-from functools import wraps
-import urllib2
+from flask import Response, abort, flash, redirect, url_for
+from slideatlas import security
+
 
 class MongoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -23,29 +22,8 @@ class MongoJsonEncoder(json.JSONEncoder):
 def jsonify(*args, **kwargs):
     """ jsonify with support for MongoDB ObjectId
     """
+    # TODO, if the arg is a ModelDocument, convert it with '.to_mongo()'
     return Response(json.dumps(dict(*args, **kwargs), cls=MongoJsonEncoder), mimetype='application/json')
-
-# Decorator for urls that require login
-def login_required(f):
-    """Checks whether user is logged in or redirects to login with possible next url on success"""
-    @wraps(f)
-    def decorator(*args, **kwargs):
-        if not 'user' in flask.session:
-            flask.flash("Login required !", "error")
-            return flask.redirect(flask.url_for("login.login") + "?next=" + urllib2.quote(flask.request.url))
-        else:
-            return f(*args, **kwargs)
-    return decorator
-
-
-# Decorator for urls that require login
-def user_required(f):
-    """Checks whether user is logged in or raises error 401."""
-    def decorator(*args, **kwargs):
-        if not 'user' in session:
-            abort(401)
-        return f(*args, **kwargs)
-    return decorator
 
 class DBAccess(object):
     def __init__(self):
@@ -63,10 +41,10 @@ def site_admin_required(page=False):
     """Checks whether an site administrator user is logged in or raises error 401."""
     def real_decorator(function):
         def decorator(*args, **kwargs):
-            if not ('site_admin' in session and session['site_admin'] == True):
+            if not any(role.site_admin for role in security.current_user.roles):
                 if page:
-                    flash("You do not have administrative previleges", "error")
-                    return redirect("/home")
+                    flash("You do not have administrative privileges", "error")
+                    return redirect(url_for('home'))
                 else:
                     abort(401)
             else:
@@ -83,31 +61,31 @@ def get_object_in_collection(col, key, debug=False, soft=False):
     obj = None
     try:
         obj = col.find_one({'_id' : ObjectId(key)})
-        if obj <> None:
+        if obj is not None:
             return obj
     except:
         if debug:
             print "_ID did not work",
 
-    # else check in the 
+    # else check in the
     obj = col.find_one({'name':key})
 
-    if obj <> None:
+    if obj is not None:
         if debug:
             print 'Name works',
         return obj
 
-    if soft == True:
+    if soft:
         # dig through the images in the session
         print "Being softer"
 
         found = 0
 
-        # Get a list of all image names and 
+        # Get a list of all image names and
         for animage in col.find():
             if key in animage['name']:
                 print '   Matched :', animage['name']
-                found = found + 1
+                found += 1
                 obj = animage
 
         if found == 1:

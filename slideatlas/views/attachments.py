@@ -1,9 +1,7 @@
 
-from flask import Blueprint, Response, abort, request, session, flash, redirect, send_file, current_app
-from slideatlas import slconn as conn
-
+from flask import Blueprint, request, flash, redirect, current_app
 from bson import ObjectId
-from slideatlas import model
+from slideatlas import models
 from werkzeug.wsgi import wrap_file
 import gridfs
 mod = Blueprint('attachment', __name__)
@@ -17,35 +15,25 @@ def attachments():
     - /tile/4e695114587718175c000006/t.jpg  searches and returns the image
     """
     # Get variables
-    db = request.args.get('sessdb', None)
-    attachid = request.args.get('attachid', None)
-    sessid = request.args.get('sessid', None)
+    db = request.args.get('sessdb')
+    attachid = request.args.get('attachid')
+    sessid = request.args.get('sessid')
     cmd = request.args.get('cmd', "get")
 
     if cmd == "get":
-        if(db == None or attachid == None or sessid == None):
+        if not(db and attachid and sessid ):
             flash('sessdb, attachid and sessid must all be set', "error")
             return redirect('/home')
-            pass
 
-    # TODO: Can we store this information in the session information (or a database information)
-    conn.register([model.Database])
-    admindb = conn[current_app.config["CONFIGDB"]]
     try:
         dbid = ObjectId(db)
+        database = models.Database.objects.get(id=dbid)
     except:
-            flash('dbid is not a valid id', "error")
-            return redirect('/home')
-
-    dbobj = admindb["databases"].find_one({"_id" : dbid})
-    db = conn[dbobj['dbname']]
-
-    if not model.VerifySessionAccess(model.SEE_SESSION, db, sessid):
-            flash('Forbidden Access ', "error")
-            return redirect('/home')
+        flash('dbid is not a valid id', "error")
+        return redirect('/home')
 
 #    try:
-    gf = gridfs.GridFS(db , "attachments")
+    gf = gridfs.GridFS(database.to_pymongo() , "attachments")
     fileobj = gf.get(ObjectId(attachid))
 #    except:
 #        flash('Error locating file', "error")

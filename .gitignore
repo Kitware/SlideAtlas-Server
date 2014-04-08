@@ -7,7 +7,5 @@ docs/docs
 testing/*.png
 testing/*.log
 testing/Testing
-slideatlas/site_slideatlas.py
 chromedriver.log
-
 env/

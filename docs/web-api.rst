@@ -44,8 +44,8 @@ Two kinds API for two kinds of database types. those in image database, and
 those in administrative database. Those in image database require a database id
 (to locate the database) in each request.
 
-A common decorator to check the access @user_required, and @site_admin required
-implemented so far.
+A common decorator to check the access @security.login_required, and @site_admin
+required implemented so far.
 
 Put requests are used for putting entities e.g. file where the destination is
 known. POST requests are used for posting new resources, in particular complete
@@ -243,17 +243,45 @@ administrative database
       - /apiv1/rules?facebook_group=<facebookid>
       - /apiv1/rules/<ruleid>
 
-- Add new rule or database or user
-- A custom validate method over generic object schema checking
 
-   - Whether the database with that dbname exists (and is it slideatlas
-     database)
-   - Whether the rule existed
+
+Get all the users to which given rule is applied
+
+.. code-block:: none
+
+   - GET
+      - /apiv1/rules/<ruleid>/users
+
+Apply / Revoke the access the rule users to which given rule is applied
+
+.. code-block:: none
+
+   - POST
+
+      - /apiv1/rules/<ruleid>/users
+        {"grant" : <userid> }
+
+      - /apiv1/rules/<ruleid>/users
+        {"revoke" : <userid> }
+
+- Add new rule or database or user
 
 .. code-block:: none
 
    - POST /apiv1/databases
       { 'insert' : {'label' : <label>, 'dbname' : <dbname>, 'host' : <host>}}
+
+
+   - POST /apiv1/rules
+      { 'insert' : {'label' : <label>, 'dbid' : <dbid>, 'can_see' : [ <sessid>, .. ], 'db_admin' : <truefalse> .. etc}}
+
+- A custom validate method over generic object schema checking
+
+   - Whether the database with that dbname exists (and is it slideatlas
+     database)
+   - Whether the rule exists
+   - validity is checked before applying the rules
+
 
 To fully replace a known database record
 

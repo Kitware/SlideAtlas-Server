@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set active_page = "about" %}
+
+{% block body_content %}    
+{{ super() }}
+<div class="container">
+    <h2> Welcome to SlideAtlas </h2>
+    <table class="table table-bordered table-hover">
+        <tr>
+            <td>Version</td>
+            <td>{{ git }}</td>
+        </tr>
+        <tr>
+            <td>Host</td>
+            <td>{{ host }}</td>
+        </tr>
+    </table>
+
+    {% if current_user.is_authenticated() %}
+    <table class="table table-bordered table-hover">
+        <tr>
+            <td>Username</td>
+            <td>{{ current_user.email }}</td>
+        </tr>
+        <tr>
+            <td>Label</td>
+            <td>{{ current_user.full_name }}</td>
+        </tr>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

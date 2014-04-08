@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-
 {% block body_content %}
 {{ super() }}
+
+{#
 <script src="/static/js/jquery-1.9.1.min.js"></script>
 <script src="/static/js/jquery-migrate-1.1.0.min.js"></script>
-
 <script>
     $(document).ready(function (){
          $("#signup").submit(function(event) {
@@ -40,31 +40,43 @@
             });
         });
     });
-
 </script>
-
+#}
 
 <div class="container">
     <div class="row">
         <div class="span8">
-           <h1>Welcome to Slide Atlas</h1>
-           <h3> New account information </h3>
+            <h1>Welcome to Slide Atlas</h1>
+            <h3>New Account Information</h3>
         </div>
     </div>
     <br/>
     <div class="row">
-        <form action="/asa" method="post" id="signup">
-        <div class="span8">
-            <div>
-                <label for="name">Your full name:</label>
-                <input type="text" name="name" id="name" pattern="[A-Za-z0-9 ]{3,30}" required title="Full name should be 3-30 alpha-numeric characters">
+        <form action="{{ url_for_security('register') }}" method="POST" name="register_user_form">
+            {{ register_user_form.hidden_tag() }}
+            <div class="span8">
+                <div>
+                    {{ register_user_form.full_name.label }}
+                    {{ register_user_form.full_name(required=True, pattern="[A-Za-z0-9 ]{3,30}", title="Full name should be 3-30 alpha-numeric characters") }}
+                </div>
+
+                <div>
+                    {{ register_user_form.email.label }}
+                    {{ register_user_form.email(required=True, title="Please enter a valid email here") }}
+                </div>
+
+                <div>
+                    {{ register_user_form.password.label }}
+                    {{ register_user_form.password(required=True) }}
+                </div>
+                {% if register_user_form.password_confirm %}
+                <div>
+                    {{ register_user_form.password_confirm.label }}
+                    {{ register_user_form.password_confirm() }}
+                </div>
+                {% endif %}
+                {{ register_user_form.submit(class="btn") }}
             </div>
-            <div>
-                <label for="email" >Email:</label>
-                <input type="email" name="email" id="email" required title="Please enter a valid email here">
-            </div>
-                <button type="submit" class="btn">Sign Up</button>
-        </div>
         </form>
     </div>
 
@@ -72,10 +84,9 @@
 
     <div class="row">
         <div class="span8">
-            <p> Your email address will be used to identify your affiliation to courses so that correct slides are provided to you. </p>
-            <p> Slide-atlas will not share your email address with anybody else and will not use it for any other purpose than slide-atlas. </p>
+            <p>Your email address will be used to identify your affiliation to courses so that correct slides are provided to you.</p>
+            <p>Slide Atlas will not share your email address with anyone else and will not use it for any other purpose than Slide Atlas.</p>
         </div>
     </div>
 </div>
 {% endblock %}
-

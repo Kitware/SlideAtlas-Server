@@ -1,22 +1,10 @@
 Gettting started
 ================
 
-.. include:: ../README.rst
+.. include:: ../readme.rst
     
 Before running
 --------------
-Setting up Database
-~~~~~~~~~~~~~~~~~~~
-A good place to start  is setup mongodb, and restore demo database from backups
-
-The database schema keeps evolving and the restored database might not work out of box,
-though DJ will take care that the most recent database is backed up.
-
-Admin database also needs setup, there is create_new_slideatlasdb to start with a template. Otherswise it Configuration
-
-In the long run it should be possible to start from a blank admin databse, create site administrator and
-add the availabel database to automatically insert all metadata needed with
-
 
 Configuring database connection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,10 +24,15 @@ Which loads
 
 .. code-block:: python 
 
-    MONGO_SERVER = "slide-atlas.org:27017"
-    CONFIGDB = "slideatlasv2"
+    # For mongodb server connections
+    # MONGO_IS_REPLICA_SET = False
+    # MONGO_URL = "slide-atlas.org:27017"
+    # CONFIGDB = "slideatlasv2"
 
+    # For replica set connection
     LOGIN_REQUIRED = True
+    MONGO_IS_REPLICA_SET = True
+    MONGO_URL = "slide-atlas.org:27017,mini.slide-atlas.org:27021,new.slide-atlas.org:27017"
     USERNAME = "put_user_name_here"
     PASSWORD = "put_password_here"
 
@@ -55,4 +48,39 @@ Which loads
     # Following settings would work from within kitware
     EMAIL_FROM = "dhanannjay.deo@kitware.com"
     SMTP = "public.kitware.com"
+
+Setting up empty database
+-------------------------
+
+This is work in progress
+
+It is possible to start from an empty admin databse, create site administrator and
+register new or already existing image databases to it.
+
+ This will make it possible to accommodate several slide-atlas instances on a single mongodb server, each having a separate admin database. Or as the current schema allows, distribute a single slide-atlas instance over several accessible mongodb servers.
+
+Workflow
+~~~~~~~~
+
+If the designated database is empty, the user will be informed so, and the wizard will allow creation of one site administrator from the "about" page. Later on when the database is not empty, the about page will show the name of current administrator and a button to possibly contact / email the administrator for support.
+
+The structure that needs to be created is
+
+- databases
+- users
+- rules
+
+tasks
+~~~~~
+
+tasks to be implemented are as follows
+
+- The admin user will perhaps create a new database (register a pre-existing database with the system).
+- Create password users, or wait for email users to create accounts here
+- Grant them db_admin previleges
+- Create sessions in database and grant session admin previlege to other user
+- Add images there
+- Monitor upload process (the users that are db_admins, should also see the processing messages related with their database)
+
+
 

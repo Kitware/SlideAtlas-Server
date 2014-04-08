@@ -1,24 +1,16 @@
-from flask import Flask, render_template, escape, g, request, redirect, url_for, flash, send_from_directory, Response, abort, current_app, make_response
+from flask import Flask, render_template, request, send_from_directory, Response, abort
 from slideatlas.version import get_git_name
-from slideatlas import slconn as conn, admindb, model
+from slideatlas import slconn as conn, admindb
 from werkzeug.routing import BaseConverter
-import glviewer
 from flask_bootstrap import Bootstrap
 import mongokit
 
 import sys, os
 
 from bson import ObjectId
-import json
 from slideatlas.common_utils import jsonify
 
 import base64
-
-import pdb
-
-
-
-
 
 
 # Create App
@@ -70,12 +62,7 @@ def home():
     return render_template('home.html', git=get_git_name(), host=app.config["MONGO_SERVER"])
 
 
-
-
-
 #==============================================================================
-
-
 # I am getting rid of the special paths in favor of just using the type to select the viewer.
 # this is legarcy code.
 @app.route('/viewer')
@@ -91,7 +78,6 @@ def viewer():
     return render_template('connectome.html', db=dbName, col=collectionName)
 
 
-
 def encodeSection(sectionObj) :
     sectionObj["_id"] = str(sectionObj["_id"])
     if sectionObj.has_key("worldPointsFloat64") :
@@ -104,9 +90,7 @@ def encodeSection(sectionObj) :
       if imageObj.has_key("meshTrianglesInt32") :
         imageObj["meshTrianglesInt32"] = base64.b64encode(str(imageObj["meshTrianglesInt32"]))
 
-    return jsonify(sectionObj)    
-    
-
+    return jsonify(sectionObj)
 
 
 # List of sections (with id, waferName and section)
@@ -121,7 +105,7 @@ def getsections():
     sectionIndex = request.args.get('idx', None)
 
     db = conn[dbName]
-    
+
     if sectionId :
       sectionObj = db[collectionName].find_one({'_id':ObjectId(sectionId)})
       if sectionIndex :
@@ -150,7 +134,7 @@ def tile():
     imgName = request.args.get('img', None)
     name = request.args.get('name', None)
 
-    
+
     imgdb = conn[dbName]
     colImage = imgdb[imgName]
     docImage = colImage.find_one({'name':name})
@@ -169,7 +153,7 @@ def getcorrelations():
     section = int(request.args.get('sect', 1))
 
     db = conn[dbName]
-    
+
     data = {};
     data["CorrelationArray0"] = [];
     data["CorrelationArray1"] = [];
@@ -177,12 +161,12 @@ def getcorrelations():
     if sectionObj0 :
       if "correlations" in sectionObj0 :
         data["CorrelationArray0"] = sectionObj0["correlations"];
-    
+
     sectionObj1 = db[collectionName].find_one({'montage1.waferName':wafer, 'montage1.sectionNumber':section})
     if sectionObj1 :
       if "correlations" in sectionObj1 :
         data["CorrelationArray1"] = sectionObj1["correlations"];
-    
+
     return jsonify(data)
 
 # Remove an object from the database collection.
@@ -194,13 +178,12 @@ def removeobject():
     idStr = request.args.get('id', '')
 
     db = conn[dbName]
-    
+
     db[collectionName].remove({'_id': ObjectId(idStr)})
-    
+
     return
 
 
 @app.route('/correlation')
 def debugcorrelation():
     return render_template('correlation.html')
-
