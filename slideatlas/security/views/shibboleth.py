@@ -3,7 +3,6 @@
 from flask import request, url_for
 from flask.ext.login import user_logged_out
 from flask.ext.security.decorators import anonymous_user_required
-from flask.ext.security.utils import get_url
 from werkzeug.datastructures import MultiDict
 
 from slideatlas import models
@@ -84,7 +83,10 @@ class ShibbolethLogin(LoginProvider):
         """
         if isinstance(user, self.user_model):
             # the URL that Flask-Security would have redirected to
-            post_logout_url = get_url(app.extensions['security'].post_logout_view)
+            # the logout handler requires a full absolute URL for its 'return'
+            #   parameter, so make it with '_external'
+            post_logout_url = url_for(app.extensions['security'].post_logout_view,
+                                      _external=True)
 
             # make this request's 'args' mutable; this works because the signal is
             #   sent and processed before the 'logout' view checks its request's args;

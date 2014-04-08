@@ -60,8 +60,9 @@ def add_config(app):
         SECURITY_LOGIN_URL='/login',
         SECURITY_LOGIN_USER_TEMPLATE='security/login.html',
         SECURITY_LOGOUT_URL='/logout',
+        # TODO: change '/sessions' to an endpoint name
         SECURITY_POST_LOGIN_VIEW='/sessions',
-        SECURITY_POST_LOGOUT_VIEW='/',
+        SECURITY_POST_LOGOUT_VIEW='home',
 
         ### Password login options ###
         SECURITY_DEFAULT_REMEMBER_ME=False,
