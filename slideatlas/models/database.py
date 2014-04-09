@@ -20,7 +20,7 @@ class TileStore(ModelDocument):
     meta = {
         'db_alias': 'admin_db',
         'collection': 'databases',
-        'allow_inheritance' : True
+        'allow_inheritance' : True,
     }
 
     label = StringField(required=True, #TODO: make unique
@@ -30,7 +30,7 @@ class TileStore(ModelDocument):
         verbose_name='Copyright', help_text='The default copyright for content in the database.')
   
     def __unicode__(self):
-        return unicode(self.label)
+        return unicode(self.label + self.copyright)
 
 
 ################################################################################
@@ -39,11 +39,6 @@ class Database(TileStore):
     TODO: refactor this into MongoTileStore which stores image pyramid in 
     mongodb collection 
     """
-    meta = {
-        'db_alias': 'admin_db',
-    }
-
-
     host = StringField(required=True, # TODO: change to URLField
         verbose_name='Host', help_text='The URL of the database\'s host.')
 

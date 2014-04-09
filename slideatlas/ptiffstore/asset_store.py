@@ -10,7 +10,7 @@ sys.path.append(slideatlaspath)
 
 import mongoengine
 from slideatlas.models.common import ModelDocument
-from slideatlas.models import TileStore
+from slideatlas.models import TileStore, Database, User 
 import datetime
 
 
@@ -73,6 +73,37 @@ def test_ptiff_tile_store():
     store.sync()
     logging.info("Last sync after sync: %s"%(store.last_sync))
     
+def create_ptiff_store():
+    store = PtiffTileStore(root_path="/home/dhan/data/phillips", 
+        label="Phillips Scanner folder from wsiserver3", 
+        copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. \
+         All rights reserved.")
+    
+    print store.__dict__
+    store.save()
+
+def test_getlist():
+    """
+    .. code-block::
+    
+        db.databases.update({"_cls" : {"$exists" : 0}},{"$set" : { "_cls" : "TileStore.Database"}})
+    
+    """
+
+
+    print "getting list" 
+
+    # # Getting user list works perfectly
+    # for obj in User.objects():
+    #     print obj
+
+    # Getting user list works perfectly
+    for obj in Database.objects:
+        print "Gotit"
+        print obj
+
+    # for obj in TileStore.objects():
+    #     print obj
 
 
 if __name__ == "__main__":
@@ -80,6 +111,12 @@ if __name__ == "__main__":
     Run few tests
     This class will be finally imported from tiff server
     """
-    
+
     logging.getLogger().setLevel(logging.INFO)
-    test_ptiff_tile_store()
+
+    # This is required so that model gets registered
+    from slideatlas import app
+
+    # test_ptiff_tile_store()
+    # create_ptiff_store()
+    test_getlist()
