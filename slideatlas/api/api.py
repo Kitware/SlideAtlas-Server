@@ -332,7 +332,7 @@ class DataSessionsAPI(MethodView):
 
     def delete(self, dbid, sessid=None):
         database = self.get_data_db(dbid)
-        if datadb == None:
+        if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
         if sessid == None:
