@@ -5,16 +5,15 @@ import os
 import glob
 import sys
 import mongoengine
-
-
+from models.common import ModelDocument
+from models.database import TileStore
+import datetime
 
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
 sys.path.append(tilereaderpath)
 
 
-# Abstract definitions for asset store
-
-class TileAssetStore():
+class PTiffStoreMixin():
     """
     Equivalent to images collections
     Should encapsulate entire assetstore, and this being tile specific version of it.
@@ -25,12 +24,6 @@ class TileAssetStore():
     - Ultimately image record has to be created in the metadatastore. And the image will Each asset store uses mongodb
 
     """
-    def __init__(self, params):
-        """
-
-        """
-        self.params = params
-        self.sync()
 
     def load_folder(self):
         self.before =   dict ([(f, None) for f in os.listdir (path_to_watch)])
@@ -64,11 +57,26 @@ class TileAssetStore():
         pass
 
 
+class PtiffTileStore(TileStore, PTiffStoreMixin):
+    """
+    The data model for TileStore 
+
+    """
+    last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
+    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive 
+    images = mongoengine.StringField(required=True, default="ptiffimages") #: PTiffTileStore stores the images metadata in this collection
+
+def test_ptiff_tile_store():
+    store = PtiffTileStore(path="/home/dhan/data/phillips")
+
+    
+
+
 if __name__ == "__main__":
     """
     Run few tests
     This class will be finally imported from tiff server
     """
-
+    
     logging.getLogger().setLevel(logging.INFO)
-    store = TileAssetsStore({"path" : "/home/dhan/data/phillips", "mongo_server" : "127.0.0.1:27017", "mongo_database" : "tile_try", "mongo_collection" : "images"})
+    test_ptiff_tile_store()

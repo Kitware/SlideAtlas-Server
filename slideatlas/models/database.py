@@ -8,18 +8,42 @@ from .common import ModelDocument, MultipleDatabaseModelDocument
 import session  # again implicit relative import due to circular issues, but we will try to remove this one
 
 ################################################################################
-__all__ = ('Database',)
+__all__ = ('TileStore', 'Database')
+
+# Abstract definitions for asset store
+
+class TileStore(ModelDocument):
+    """
+    Class dealing with endpoints image tiles
+
+    """
+    meta = {
+        'db_alias': 'admin_db',
+        'collection': 'databases',
+        'allow_inheritance' : True
+    }
+
+    label = StringField(required=True, #TODO: make unique
+        verbose_name='Label', help_text='The human-readable label for the database.')
+
+    copyright = StringField(required=False, default='Copyright &copy 2014, All rights reserved.',
+        verbose_name='Copyright', help_text='The default copyright for content in the database.')
+  
+    def __unicode__(self):
+        return unicode(self.label)
 
 
 ################################################################################
-class Database(ModelDocument):
+class Database(TileStore):
+    """
+    TODO: refactor this into MongoTileStore which stores image pyramid in 
+    mongodb collection 
+    """
     meta = {
         'db_alias': 'admin_db',
         'collection': 'databases',
     }
 
-    label = StringField(required=True, #TODO: make unique
-        verbose_name='Label', help_text='The human-readable label for the database.')
 
     host = StringField(required=True, # TODO: change to URLField
         verbose_name='Host', help_text='The URL of the database\'s host.')
@@ -38,12 +62,6 @@ class Database(ModelDocument):
 
     auth_db = StringField(required=False,
         verbose_name='Authentication Database', help_text='The database to authenticate against.')
-
-    copyright = StringField(required=False, default='Copyright &copy 2014, All rights reserved.',
-        verbose_name='Copyright', help_text='The default copyright for content in the database.')
-
-    def __unicode__(self):
-        return unicode(self.label)
 
     @property
     def connection_alias(self):
