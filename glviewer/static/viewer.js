@@ -1035,6 +1035,9 @@ Viewer.prototype.HandleMouseMove = function(event) {
   }
     
   // Drag camera in main view.
+  // Dragging is too slow.  I want to accelerate dragging the further
+  // this mouse moves.  This is a moderate change, so I am
+  // going to try to accelerate with speed.
   x = x - this.MainView.Viewport[0];
   y = y - this.MainView.Viewport[1];
   if (this.InteractionState == INTERACTION_ROTATE) {
@@ -1060,7 +1063,15 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // Convert to view [-0.5,0.5] coordinate system.
     // Note: the origin gets subtracted out in delta above.
     var dx = -event.MouseDeltaX / this.MainView.Viewport[2];
-    var dy = -event.MouseDeltaY / this.MainView.Viewport[2];    
+    var dy = -event.MouseDeltaY / this.MainView.Viewport[2];
+    // compute the speed of the movement.
+    var speed = Math.sqrt(dx*dx + dy*dy) / event.MouseDeltaTime;
+    speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+    // I am not sure I like the speed acceleration.
+    // Lets try a limit.
+    if (speed > 3.0) { speed = 3.0; }
+    dx = dx * speed;
+    dy = dy * speed;
     this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
   }
   eventuallyRender();

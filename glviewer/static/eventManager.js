@@ -81,6 +81,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
 
     this.MouseX = event.clientX-xOffset;
     this.MouseY = event.clientY-yOffset;
+    this.MouseTime = (new Date()).getTime(); 
   }
 }
 
@@ -88,6 +89,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
 EventManager.prototype.HandleMouseDown = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
+  this.LastMouseTime = this.MouseTime;
 
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
@@ -149,9 +151,11 @@ EventManager.prototype.HandleMouseUp = function(event) {
 EventManager.prototype.HandleMouseMove = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
+  this.LastMouseTime = this.MouseTime;
   this.SetMousePositionFromEvent(event);
   this.MouseDeltaX = this.MouseX - this.LastMouseX;
   this.MouseDeltaY = this.MouseY - this.LastMouseY;
+  this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
 
   this.ChooseViewer();
   if (this.CurrentViewer) {
@@ -393,6 +397,8 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
   var t = date.getTime();
   // I have had trouble on the iPad with 0 delta times.
   // Lets see how it behaves with fewer events.
+  // It was a bug in iPad4 Javascript.  
+  // This throttle is not necessary.
   if (t-this.Time < 20 && ! startFlag) { return false; }
   
   this.LastTime = this.Time;  
@@ -408,7 +414,7 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
   this.Touches = [];
   for (var i = 0; i < e.targetTouches.length; ++i) {
     var x = e.targetTouches[i].pageX - can.offsetLeft;
-    var y = CANVAS.innerHeight() - (e.targetTouches[i].pageY - can.offsetTop);
+    var y = e.targetTouches[i].pageY - can.offsetTop;
     this.Touches.push([x,y]);
   }
 
