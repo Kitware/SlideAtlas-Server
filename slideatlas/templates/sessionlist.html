@@ -31,7 +31,7 @@ float:right;
             </td>
             {% if role.db_admin %}
             <td>
-                <a href="{{ url_for('.sessionedit', sessdb=role.db.id, sessid=session.id) }}" class="lead">
+                <a href="{{ url_for('.sessionedit', database_obj=role.db, session_obj=session) }}" class="lead">
                     <button type="button" class="btn btn-danger">Admin</button>
                 </a>
             </td>

@@ -11,22 +11,22 @@
 
 
   <style>
-  #sortable { 
-    list-style-type: none; 
+  #sortable {
+    list-style-type: none;
     margin: 0; padding: 0;
   }
-  #sortable li { 
-    margin: 0 3px 3px 3px; 
-    padding: 3px; 
-    padding-left: 1.5em; 
-    height: 37px; 
+  #sortable li {
+    margin: 0 3px 3px 3px;
+    padding: 3px;
+    padding-left: 1.5em;
+    height: 37px;
     position: relative;
   }
-  #sortable li span { 
-    position: absolute; 
-    margin-left: -1.3em; 
+  #sortable li span {
+    position: absolute;
+    margin-left: -1.3em;
   }
-  #sortable li img { 
+  #sortable li img {
     margin: 0px;
     padding: 0px;
     width: 38px;
@@ -63,16 +63,16 @@
     border: 1px solid #999;
     overflow-y: scroll;
   }
-  
+
   #slideList {
-    padding-top: 3px; 
+    padding-top: 3px;
   }
-  
+
   h2 {
     text-align: center;
     margin: 0;
   }
-  
+
   #imagePanel {
     height: 100%;
     width: auto;
@@ -86,12 +86,12 @@
     list-style: none;
     overflow-y: auto;
   }
-  
+
   #gallery li {
     float:left;
     padding: 2px;
   }
-  
+
   #gallery li img {
     border: 2px solid #CCC;
     padding:2px;
@@ -100,12 +100,12 @@
   #gallery li img:hover {
     border-color: #333;
   }
-  
+
   </style>
 
 
   <script>
-    var SESSION_ID = "{{data.sessid}}";
+    var SESSION_ID = "{{ data.session.id }}";
     $(function() {
       $( "#sortable" ).sortable({change:modified});
       $( "#sortable" ).disableSelection();
@@ -116,7 +116,7 @@
       // A hack, but how should it be done right?
       var tmp = "#"+arg;
       $(tmp).remove();
-      
+
       var numViews = $("#sortable").children().length;
       if (numViews == 0) {
         $('#saveButton').text("Delete");
@@ -136,14 +136,14 @@
                       'hiddenLabel' : $('.hiddenLabel',this).val(),
                       'db' : $(this).attr('db'),
                       'img': $(this).attr('img') };
-          views.push(view); 
+          views.push(view);
         });
       // Save the new order in the database.
       // Python will have to detect if any view objects have to be deleted.
       var args = {};
       args.new = saveNew;
       args.views = views;
-      args.db = "{{data.db}}";
+      args.db = "{{data.database.id}}";
       args.session = SESSION_ID;
       args.label = $("#title").val();
       args.hideAnnotation = $('#hideCheck').is(':checked');
@@ -157,7 +157,7 @@
                    if (data != "") {
                      // Redirect is problematic because I want to save multiple times
                      // and back in browser does not reload page completely
-                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.database.id}}";
                      SESSION_ID = data._id;
                      // View ids changed (were copied). (Pain pain pain)
                      for (var i = 0; i < data.images.length; ++i) {
@@ -174,9 +174,9 @@
     }
 
     function cancel() {
-      window.location.href = "sessions?sessid="+SESSION_ID+"&sessdb="+"{{data.db}}";
+      window.location.href = "{{ url_for('.view_a_session', database_obj=data.database, session_obj=data.session) }}";
     }
-    
+
     function updateOptions() {
       var x=document.getElementById("title");
       //x.value=x.value.toUpperCase();
@@ -192,15 +192,15 @@
       if ($('#slideList').outerHeight() < height-top) {
         $('#slideScroll').css({'overflow-y':'hidden'});
       }
-      
+
       top = $('#gallery').position().top + 15;
       $('#gallery').css({"height":(height-top)});
     }
 
     function modified () {
-      $('#saveButton').css({"color":"#E00"}); 
+      $('#saveButton').css({"color":"#E00"});
     }
-    
+
     function hideAnnotation (flag) {
       modified();
       if (flag) {
@@ -211,27 +211,27 @@
         $(".descriptiveLabel" ).show();
       }
     }
-    
+
     var IMAGE_HOVER_LABEL;
     $(document).ready(function(){
       if ( {{data.hideAnnotations}} ) {
         $('#hideCheck').attr('checked','checked');
         hideAnnotation(true);
       } else {
-        $('#hideCheck').removeAttr('checked');    
+        $('#hideCheck').removeAttr('checked');
         hideAnnotation(false);
       }
 
       // When the annotations are turned off we have to change the labels of the views.
-      $("#hideCheck").change( 
-        function(){ 
-          hideAnnotation( $(this).is(':checked') ); 
-        }); 
+      $("#hideCheck").change(
+        function(){
+          hideAnnotation( $(this).is(':checked') );
+        });
 
       $('#hideCheckTip').css({'position':'fixed',
                               'left':'10px',
                               'top':'30px',
-                              'z-index':'2', 
+                              'z-index':'2',
                               'background-color':'#EEF',
                               'border':'1px solid #555',
                               'border-radius':'15px',
@@ -253,7 +253,7 @@
                 LoadDatabases(data);
               } else { alert("ajax failed."); }
             });
-      $('#saveButton').css({"color":"#000"}); 
+      $('#saveButton').css({"color":"#000"});
       $("#title").on("input", modified);
       $(".descriptiveLabel").on("input", modified);
       $(".hiddenLabel").on("input", modified);
@@ -275,7 +275,7 @@
       }
       handleResize();
     }
-  
+
     var SELECTED_DATABASE;
     function SelectDatabase(idx) {
       SELECTED_DATABASE = DATABASES[idx];
@@ -325,8 +325,8 @@
       // A hack to create it here. Empty gets rid of it....
       IMAGE_HOVER_LABEL = $('<p>').appendTo('#gallery')
                                   .hide()
-                                  .css({'position':'absolute', 
-                                        'z-index':'2', 
+                                  .css({'position':'absolute',
+                                        'z-index':'2',
                                         'background-color':'#EEF',
                                         'border':'1px solid #555',
                                         'border-radius':'20px',
@@ -351,7 +351,7 @@
       if (size > 256) { size = 256;}
       return size;
     }
-    
+
     function LoadImages(data) {
       $('#gallery').empty();
       // Lets compute an optimal size for images.
@@ -436,7 +436,7 @@
       // I am trying to stop the drag effect of the image.  This does not work.
       $('<img>').appendTo(item)
                 .attr("src","tile?db="+db+"&img="+img+"&name=t.jpg")
-                .on('dragstart', function(event) { 
+                .on('dragstart', function(event) {
                   event.preventDefault(); return false;});
       $('<input type="text" class="descriptiveLabel">').appendTo(item).val(label);
       $('<input type="text" class="hiddenLabel">').appendTo(item).val("");
@@ -448,7 +448,7 @@
 
       // How to start this dragging with the mouse?
       //item.sortable('activate'); // not initialized yet ???
-      
+
       var numViews = $("#sortable").children().length;
       if (numViews == 1) { // last was 0
         $("#saveButton").text("Save");
@@ -456,9 +456,9 @@
 
     }
 
-    
+
     </script>
-  
+
 </head>
 <body>
 
@@ -468,7 +468,7 @@
     <h2>Session</h2>
     <div>
       <label>Title</label>
-      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{data.session.label}}"/>
+      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{ data.session.label }}"/>
     </div>
     <div>
       <button id="saveButton" onclick="save(false)" >Save</button>
@@ -476,33 +476,33 @@
       <button onclick="cancel()" >Cancel</button>
       <div style="float:right"> <input type="checkbox" id="hideCheck">
         Hide Markup
-        <div id="hideCheckTip" hidden> 
+        <div id="hideCheckTip" hidden>
           Hide annotation and notes from student.  Use alternative slide labels.
-        </div>    
+        </div>
       </div>
       <div style="float:right"> <input type="checkbox" id="stackCheck">
         Stack
-        <div id="stackCheckTip" hidden> 
+        <div id="stackCheckTip" hidden>
           3D stack of sections
-        </div>    
+        </div>
       </div>
 
     </div>
 
-    
+
     <div id="slideScroll">
       <div id="slideList">
         <ul id="sortable">
           {% for animage in data.views %}
             <li class="ui-state-default" id="{{animage.view}}" view="{{animage.view}}" db="{{animage.db}}">
               <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
-              <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg"></img> 
+              <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg"></img>
               <!-- switch between annotation and hidden labels -->
               <input type="text" value="{{ animage.descriptiveLabel}}" class="descriptiveLabel"/>
               <input type="text" value="{{ animage.hiddenLabel}}" class="hiddenLabel" hidden/>
             </li>
           {% endfor %}
-          
+
         </ul>
       </div>
     </div>
@@ -511,7 +511,7 @@
     <label>Database</label>
     <select id = "databaseList" onchange="DatabaseCallback(this.value)">
     </select>
-    
+
     <label>Session</label>
     <select id = "sessionList" onchange="SessionCallback(this.value)">
     </select>
