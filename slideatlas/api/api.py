@@ -280,12 +280,13 @@ class DataSessionsAPI(MethodView):
         return database
 
     def get(self, dbid, sessid=None):
-        datadb = self.get_data_db(dbid)
-        if datadb == None:
+        database = self.get_data_db(dbid)
+        if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+        datadb = database.to_pymongo()
 
         if sessid == None:
-            with datadb:
+            with database:
                 sessions = models.Session.objects.exclude("images","attachments", "views")
             sessionlist = list()
 
@@ -299,17 +300,17 @@ class DataSessionsAPI(MethodView):
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
-            with datadb:
+            with database:
                 sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
             # Dereference the views
             for aview in sessobj.views:
-                viewdetails = datadb.to_pymongo()["views"].find_one({"_id" : aview["ref"]})
+                viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
                 # Viewdetails might not be a view
                 if "img" in viewdetails:
-                    viewdetails["image"] = datadb.to_pymongo()["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                    viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                 else:
                     if "ViewerRecords" in viewdetails:
                         viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
@@ -319,7 +320,7 @@ class DataSessionsAPI(MethodView):
             # Dereference the attachments
             attachments = []
             if sessobj.attachments:
-                gfs = GridFS(datadb.to_pymongo(), "attachments")
+                gfs = GridFS(datadb, "attachments")
                 for anattach in sessobj.attachments:
                     fileobj = gfs.get(anattach["ref"])
                     anattach["details"] = ({'name': fileobj.name, 'length' : fileobj.length})
@@ -330,7 +331,7 @@ class DataSessionsAPI(MethodView):
 
 
     def delete(self, dbid, sessid=None):
-        datadb = self.get_data_db(dbid)
+        database = self.get_data_db(dbid)
         if datadb == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
 
@@ -338,7 +339,7 @@ class DataSessionsAPI(MethodView):
             return Response("{ \"error \" : \"No session to delete\"}", status=405)
         else:
             # TODO: Important, Not all users are allowed to delete
-            with datadb:
+            with database:
                 sessobj = models.Session.objects.with_id(sessid)
 
             if sessobj:
@@ -427,25 +428,26 @@ class DataSessionItemsAPI(MethodView):
         database = models.Database.objects.with_id(dbid)
         if database == None:
             return None
-        return database.to_pymongo()
+        return database
 
     def delete(self, dbid, sessid, restype, resid=None):
         if resid is None:
             return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
         else:
-            datadb = self.get_data_db(dbid)
-            if datadb is None:
+            database = self.get_data_db(dbid)
+            if database is None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+            datadb = database.to_pymongo()
 
             # TODO: This block of code to common and can be abstrated
-            with datadb:
+            with database:
                 sessobj = models.Session.objects.with_id(sessid)
             if sessobj is None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
             if restype == "attachments" or restype == "rawfiles":
                 # Remove from the gridfs
-                gf = gridfs.GridFS(datadb.toPymongo() , restype)
+                gf = gridfs.GridFS(datadb, restype)
                 gf.delete(ObjectId(resid))
 
                 # Remove the reference from session
@@ -463,11 +465,12 @@ class DataSessionItemsAPI(MethodView):
         if resid == None:
             return "You want alist of %s/%s/%s" % (dbid, sessid, restype)
         else:
-            datadb = self.get_data_db(dbid)
-            if datadb == None:
+            database = self.get_data_db(dbid)
+            if database == None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
+            datadb = database.to_pymongo()
 
-            with datadb:
+            with database:
                 sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
@@ -475,7 +478,7 @@ class DataSessionItemsAPI(MethodView):
             # TODO: Make sure that resid exists in this session before being obtained from gridfs
 
             if restype == "attachments" or restype == "rawfiles":
-                gf = gridfs.GridFS(datadb.toPymongo() , restype)
+                gf = gridfs.GridFS(datadb, restype)
 
                 fileobj = gf.get(ObjectId(resid))
                 data = wrap_file(request.environ, fileobj)
@@ -503,10 +506,11 @@ class DataSessionItemsAPI(MethodView):
         jsonresponse = {}
         jsonresponse["_id"] = request.form['_id']
 
-        datadb = self.get_data_db(dbid)
-        if datadb == None:
+        database = self.get_data_db(dbid)
+        if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        with datadb:
+        datadb = database.to_pymongo()
+        with database:
             sessobj = models.Session.objects.with_id(sessid)
         if sessobj == None:
             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
@@ -533,7 +537,7 @@ class DataSessionItemsAPI(MethodView):
             try:
                 bfile = request.files['file']
 
-                gf = gridfs.GridFS(datadb.toPymongo() , restype)
+                gf = gridfs.GridFS(datadb, restype)
                 afile = gf.new_file(chunk_size=1048576, filename=bfile.filename, _id=ObjectId(resid))
                 afile.write(bfile.read())
                 afile.close()
@@ -574,7 +578,7 @@ class DataSessionItemsAPI(MethodView):
             first = True
             jsonresponse["first"] = 1
             # Create a file
-            gf = gridfs.GridFS(datadb.toPymongo() , restype)
+            gf = gridfs.GridFS(datadb, restype)
             afile = gf.new_file(chunk_size=1048576, filename=filename, _id=ObjectId(resid))
             afile.write(bfile.read())
             afile.close()
@@ -598,10 +602,9 @@ class DataSessionItemsAPI(MethodView):
                 'data': Binary(bfile.read())
             }
 
-            datadb_pymongo = datadb.toPymongo()
-            datadb_pymongo["attachments.chunks"].insert(obj)
-            fileobj = datadb_pymongo["attachments.files"].find_one({"_id" : obj["files_id"]})
-            datadb_pymongo["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
+            datadb["attachments.chunks"].insert(obj)
+            fileobj = datadb["attachments.files"].find_one({"_id" : obj["files_id"]})
+            datadb["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
 
         # Finalize
         # Append to the chunks collection
