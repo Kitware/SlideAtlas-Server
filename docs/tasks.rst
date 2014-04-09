@@ -4,7 +4,7 @@ Uploads and Tasks
 User can use web interface to upload their supported image files.
 Images are always uploaded to a session.
 
-The progress can be monitered from the sessions in which the images
+The progress can be monitored from the sessions in which the images
 
 Uploading the files
 -------------------

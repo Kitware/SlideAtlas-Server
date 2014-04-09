@@ -14,3 +14,4 @@ mongoengine==0.8.7
 flask-mongoengine==0.7.0
 
 Sphinx==1.2.2
+sphinxcontrib-httpdomain==1.2.0

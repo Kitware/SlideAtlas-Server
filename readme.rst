@@ -4,14 +4,14 @@ To install dependencies
 Requires python 2.7x, and pip.
 
 Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows
-Also please make sure that the python and scritps ("c:/python27/Scripts") are in PATH environment variable.
+Also please make sure that the python and scripts ("c:/python27/Scripts") are in PATH environment variable.
 
 To install dependencies mentioned in **requirements.txt**
 
 .. code-block:: none
 
-   $ pip install -r requirements.txt --upgrade
-   
+   $ pip install -r requirements.txt
+
 
 To build documentation
 ----------------------
@@ -20,7 +20,7 @@ Detailed documentation can be built using sphinx
 .. code-block:: none
 
    $ cd docs
-   $ make html 
+   $ make html
 
 To test
 -------
@@ -72,8 +72,3 @@ Sample Apache configuration
         CustomLog ${APACHE_LOG_DIR}/access.log combined
 
   </VirtualHost>
-
-
-
-
-
