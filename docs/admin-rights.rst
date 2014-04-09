@@ -1,6 +1,6 @@
 
-Administrative roles
-####################
+Administrative Privileges
+#########################
 
 Following are the use cases according to different privileges
 
@@ -53,6 +53,9 @@ Following are the use cases according to different privileges
 
 - Currently only view demo sessions
 
+.. warning::
+
+    Anything below is not reviewed
 
 Additional Notes
 ----------------

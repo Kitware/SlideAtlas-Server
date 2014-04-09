@@ -10,7 +10,7 @@ To install dependencies mentioned in **requirements.txt**
 
 .. code-block:: none
 
-   $ pip install -r requirements.txt --upgrade
+   $ pip install -r requirements.txt
    
 
 To build documentation

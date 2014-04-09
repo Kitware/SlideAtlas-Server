@@ -4,8 +4,10 @@
 Web API
 #######
 
-Ultimately this file should become redundant  and the actual documentation of
-the flask routes should take over
+.. warning::
+
+    Ultimately this file should become redundant  and the actual documentation of
+    the flask routes should take over
 
 Following set of slides is a very good
 `Link read <http://lanyrd.com/2012/europython/srzpf/>`_  before discussing this
@@ -265,8 +267,46 @@ API Grant operation involves
  - Target UserRole / GroupRole
 
 
-Applying a role to a user
--------------------------
+Getting Roles
+-------------
+
+Users see rules for only targets for which they have admin access.
+
+
+For a user
+----------
+
+The user himself, level 0
+
+.. code-block:: python
+
+   - GET
+     /apiv1/users/<userid>/roles
+
+    Role = {"id" : "id", "label" : "label"}
+    return { "userRole" : Role, "grouproles" : [ Roles ]  }
+
+
+For a resource
+--------------
+
+Level 3 or lower privilege users see the rules which belong to sessions they can administer.
+
+.. code-block:: python
+
+   - GET
+     /apiv1/<dbid>/sessions/<sessid>/roles
+
+    Role = {"id" : "id", "label" : "label"}
+    return { "userRoles" : Role, "groupRoles" : [ Roles ]  }
+
+
+
+Adding or removing a user to a group
+------------------------------------
+
+If the user has administrative rights for all the content mentioned in RoleGroup, then
+that user can remove users from the role.
 
 .. code-block:: python
 
@@ -275,19 +315,62 @@ Applying a role to a user
      { "grant" | "revoke"  : <roleid> }
 
 Create a new Role
-------------------
+-----------------
+When applying permission to an existing single target
+
+The requesting user should have administrative rights for all the content mentioned
+in permission.
+
+.. code-block:: python
+
+     GET : /apiv1/roles/roleid
+
+     { "permissions" [ "arrayofpermissions",  ] }
+       "operation" : ["grant" | "revoke"]
+     }
+
+
+This endpoint should cover users and rules both.
+
+Modifying the permissions
+-------------------------
+
+The requesting user should have administrative rights for all the content mentioned
+in permission.
+
+.. code-block:: python
+
+     -PATCH / PUT
+
+         /apiv1/roles/roleid
+         /apiv1/roles/roleid
+
+     { "permissions" [ "arrayofpermissions",  ] }
+       "operation" : ["grant" | "revoke"]
+     }
+
+
+This endpoint should cover users and rules both.
+
+
+For granting new permissions to multiple users, or to a new group
 
 .. code-block:: python
 
    - POST
      /apiv1/roles
-     { "create" : { "label" : "somelabel",
-                    "users" : [ <userid> , .. ],
-                    "permissions" : ["array or none"]
-                  }
-      }
+     {
+        "users" : [ <userid> , .. ],
+        "create_group": {
+            #if a group is to be created then
+            #provide group properties
+            "label" : "somelabel"
+            }
+        "permissions" [ "arrayofpermissions",  ]
+     }
+     return Response({ "users" : {"userid" : "roleid"} | "group" : "roleid" }, 201)
 
-      returns : { 302, /apiv1/roles/<newroleid> }
+Depending on the type, for userRole, permissions are applied
 
 To modify a role
 ----------------

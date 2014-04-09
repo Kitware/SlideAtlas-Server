@@ -26,6 +26,9 @@ class AdminDBAPI(MethodView):
 
     @site_admin_required(False)
     def get(self, restype, resid=None):
+        """
+        Get restype with resid ['users'], if resid is not supplied, returns a list
+        """
         admin_db = models.Database._get_db()
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
@@ -51,7 +54,9 @@ class AdminDBAPI(MethodView):
                 return Response("{\"error\" : \"resource not found\"}" , status=405)
 
     def post(self, restype):
-        # create a new user
+        """
+        create a new user
+        """
         if restype == "rules":
                 return "You want to post rule"
         elif restype == 'databases':
@@ -280,6 +285,9 @@ class DataSessionsAPI(MethodView):
         return database
 
     def get(self, dbid, sessid=None):
+        """
+        Gets details of a session if sessid is specified, or gets a list of sessions otherwise
+        """
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
@@ -331,6 +339,9 @@ class DataSessionsAPI(MethodView):
 
 
     def delete(self, dbid, sessid=None):
+        """
+        cdGets details of a session if sessid is specified, or gets a list of sessions otherwise
+        """
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
