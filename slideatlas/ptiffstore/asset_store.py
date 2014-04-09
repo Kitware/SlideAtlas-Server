@@ -4,16 +4,17 @@ import logging
 import os
 import glob
 import sys
+
+slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(slideatlaspath)
+
 import mongoengine
-from models.common import ModelDocument
-from models.database import TileStore
+from slideatlas.models.common import ModelDocument
+from slideatlas.models import TileStore
 import datetime
 
-tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
-sys.path.append(tilereaderpath)
 
-
-class PTiffStoreMixin():
+class PTiffStoreMixin(object):
     """
     Equivalent to images collections
     Should encapsulate entire assetstore, and this being tile specific version of it.
@@ -32,7 +33,9 @@ class PTiffStoreMixin():
         """
         Syncs the objects in mongodb with the
         """
-        searchpath = os.path.join(self.params["path"], "*.ptif")
+        print self.__dict__
+
+        searchpath = os.path.join(self.root_path, "*.ptif")
         logging.info(searchpath)
         logging.log(logging.INFO, searchpath)
         for aslide in glob.glob(searchpath):
@@ -52,10 +55,7 @@ class PTiffStoreMixin():
             # obj["name"] = os.path.split(aslide)[1]
             # obj["barcode"] = fin.read()
             # slides.append(obj)
-            #
-
-        pass
-
+        self.last_sync = datetime.datetime.now()
 
 class PtiffTileStore(TileStore, PTiffStoreMixin):
     """
@@ -67,8 +67,11 @@ class PtiffTileStore(TileStore, PTiffStoreMixin):
     images = mongoengine.StringField(required=True, default="ptiffimages") #: PTiffTileStore stores the images metadata in this collection
 
 def test_ptiff_tile_store():
-    store = PtiffTileStore(path="/home/dhan/data/phillips")
-
+    store = PtiffTileStore(root_path="/home/dhan/data/phillips")
+    logging.info("Last sync on initialization: %s"%(store.last_sync))
+    # print store.root_path
+    store.sync()
+    logging.info("Last sync after sync: %s"%(store.last_sync))
     
 
 
