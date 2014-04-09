@@ -105,7 +105,7 @@
 
 
   <script>
-    var SESSION_ID = "{{data.sessid}}";
+    var SESSION_ID = "{{ data.session.id }}";
     $(function() {
       $( "#sortable" ).sortable({change:modified});
       $( "#sortable" ).disableSelection();
@@ -143,7 +143,7 @@
       var args = {};
       args.new = saveNew;
       args.views = views;
-      args.db = "{{data.db}}";
+      args.db = "{{data.database.id}}";
       args.session = SESSION_ID;
       args.label = $("#title").val();
       args.hideAnnotation = $('#hideCheck').is(':checked');
@@ -157,7 +157,7 @@
                    if (data != "") {
                      // Redirect is problematic because I want to save multiple times
                      // and back in browser does not reload page completely
-                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.db}}";
+                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.database.id}}";
                      SESSION_ID = data._id;
                      // View ids changed (were copied). (Pain pain pain)
                      for (var i = 0; i < data.images.length; ++i) {
@@ -174,7 +174,7 @@
     }
 
     function cancel() {
-      window.location.href = "sessions?sessid="+SESSION_ID+"&sessdb="+"{{data.db}}";
+      window.location.href = "{{ url_for('.view_a_session', database_obj=data.database, session_obj=data.session) }}";
     }
     
     function updateOptions() {
@@ -468,7 +468,7 @@
     <h2>Session</h2>
     <div>
       <label>Title</label>
-      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{data.session.label}}"/>
+      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{ data.session.label }}"/>
     </div>
     <div>
       <button id="saveButton" onclick="save(false)" >Save</button>
