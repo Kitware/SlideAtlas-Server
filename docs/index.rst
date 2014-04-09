@@ -16,6 +16,7 @@ Welcome to SlideAtlas's documentation!
     user-workflow
     image-workflow
     web-api
+    flask-auto
     web-interface
     common-utilities
     ui-design
