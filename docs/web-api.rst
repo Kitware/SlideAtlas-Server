@@ -37,7 +37,7 @@ i.e. to get a list of databases -
 
 .. code-block:: none
 
-   localhost:8080/apiv1/databases 
+   localhost:8080/apiv1/databases
 
 Rest API blueprint is established and later
 `consumed <https://gist.github.com/3005268>`_ in the web templates interface.
@@ -94,7 +94,7 @@ A particular session is obtained by
 .. code-block:: none
 
    GET /apiv1/<dbid>/sessions/<sessid>
-      
+
 The main use case of this is to present the session to the user.  So this does
 contain all the lists. Views, attachments and rawfiles etc are dereferenced to
 include enough details to present them in a list.
@@ -107,14 +107,14 @@ or is deleted by
 
 .. warning::
 
-   This call presently works only if the session i.e. the lists of items in it are completely empty.    
-   If an attempt is made to delete a non-empty session, an error will be returned. 
+   This call presently works only if the session i.e. the lists of items in it are completely empty.
+   If an attempt is made to delete a non-empty session, an error will be returned.
    This will change when management of orphan items is implemented.
 
 It might be useful to have an api call to purge entire session including all the items (images / files or attachments) in a session.
 
 .. code-block:: none
-   
+
    POST /apiv1/<dbid>/sessions/<sessid>
    {purge : [ <"session", "images", "attachments", "raw-files">] }
 
@@ -149,7 +149,7 @@ Later can be generalized to any list
 .. code-block:: none
 
       GET /<dbid>/sessions/<sessid>/<resource-type>
-      
+
 To get or delete items
 
 .. code-block:: none
@@ -165,8 +165,8 @@ will be the _id in gridfs
 .. code-block:: none
 
    POST /apiv1/<dbid>/sessions/attachments
-   { "insert" : {} } 
-      
+   { "insert" : {} }
+
 On success returns
 
 .. code-block:: none
@@ -176,7 +176,7 @@ On success returns
 .. warning::
 
    The ObjectId is not actually inserted in the attachements collection until the file is actually uploaded.
-   So it will not be visible as attachment or rawfile until then 
+   So it will not be visible as attachment or rawfile until then
 
 On success returns
 
@@ -205,7 +205,7 @@ Items can be modified directly or indirectly for example renaming
 
       PATCH /apiv1/<dbid>/sessions/<sessid>/views/<viewid>
       { 'label' : "NEW_NAME"}
-      
+
 
 TODO: Implement above patch queries
 
@@ -215,7 +215,7 @@ Operations like reordering also involve post query
 
       PATCH /apiv1/<dbid>/sessions/<sessid>/views/<viewid>
       { 'label' : "NEW_NAME"}
-      
+
 returns
 
 .. code-block:: javascript
@@ -450,7 +450,7 @@ associated with the user
 
 .. code-block:: none
 
-   - DELETE 
+   - DELETE
 
 High level API to manage access rights
 ======================================
@@ -460,34 +460,34 @@ Get a list of registered facebook groups
 .. code-block:: none
 
    GET /apiv1/facebook-groups
-   
+
 The use cases include -
 
 TODO: In future, the groups can be superset of facebook group
 
-.. warning:: 
+.. warning::
 
-   How to make sure that while modifying the access rules, minimum rule 
-   records are created. For example, when User1 has can_see permission to 
-   SessionA, and a second request comes to grant User1 permissions to User2, 
-   will it be possible to reuse the rule.  What if on a later day, the permission is 
+   How to make sure that while modifying the access rules, minimum rule
+   records are created. For example, when User1 has can_see permission to
+   SessionA, and a second request comes to grant User1 permissions to User2,
+   will it be possible to reuse the rule.  What if on a later day, the permission is
    revoked only for User1. Then User2  has can_see permission to SessionA. Then
-   rule can be removed from User1's rules. But if the rule contains SessionA and 
-   SessionB then a new Rule needs to be created for User1 for only access to 
+   rule can be removed from User1's rules. But if the rule contains SessionA and
+   SessionB then a new Rule needs to be created for User1 for only access to
    SessionB as access to SessionA has been revoked.
 
 
 - Manipulate the permissions of a facebook group. i.e. grant or revoke
 
 .. code-block:: none
-   
+
    GET /apiv1/facebook-groups
 
    POST /apiv1/facebook-groups/<facebook-group-id>
    {'dbid' : '<dbid>', can_see' : [ '<sessionid>', ... ]}
    {'dbid' : '<dbid>', 'can_see_all' : [ '<sessionid>', ... ]}
 
-   
+
 Authentication (login) operations
 =================================
 
@@ -501,7 +501,7 @@ TODO: Rewrite this documentation in the light of new API
    - / Home page
       - login form
       - Information on what this site is about
-   
+
    - / login
       - &type=google
       - &type=facebook
@@ -524,4 +524,3 @@ Viewing and other pages
 
 TODO: Probably the img appears only in one database, and so dbid could be
 resolved internally / stored in viewid
-

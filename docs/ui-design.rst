@@ -18,7 +18,7 @@ Every page as a navigation bar. Some common functionality like
 - logout
 - Return to the level above
 
-Diffferent menu items gets updated according to the functionality available in the pages.
+Different menu items gets updated according to the functionality available in the pages.
 
 
 Two column render

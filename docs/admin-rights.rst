@@ -67,7 +67,7 @@ for simplicity.
 
 .. note::
 
-    Anything below this line is slighly outdated and needs to be rewritten
+    Anything below this line is slightly outdated and needs to be rewritten
 
 
 
@@ -92,7 +92,7 @@ Using web interface , DB administrators request for a new license. License
 creation page does following
 
 - Makes sure the user is authorized to create a license
-- Creates a random username and passoword for mongodb database
+- Creates a random username and password for mongodb database
 - Creates a license string by encrypting the username and password together
 - Once generated the license can be revoked in web interface
 

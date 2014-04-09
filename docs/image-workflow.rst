@@ -2,7 +2,7 @@
 Image upload workflow
 =====================
 
-- User uploads the iamge
+- User uploads the image
 - A function scans the file extension and determines the queue type
 - if yes submits the job, the task id obtained is stored in users object as the
 - The ongoing task is stored in the attachments entry, and also in another tasks collection
@@ -25,4 +25,3 @@ Other concerns
 ==============
 
 - What happens to the workers working on a job when the client which started the job is restarted
-

@@ -88,9 +88,6 @@ Suggested variables for now
 # Facebook key for localhost and facebook key for servers etc
 
 
-
-
-
 Data database ("bev1", etc.)
 ----------------------------
 
@@ -170,16 +167,13 @@ ViewerRecord (Contains one slide image, camera and annotation).
 
    - FocalPoint : [x, y]
    - Height     : Height of the view in world coordinates
-   - Rotation   : Rotation of the view in Radians. 
+   - Rotation   : Rotation of the view in Radians.
 
 - Annotations: An array of annotation objects.
 
    - type   : one of "circle", "pencil", "text" or "polyline"
    - color  : [r,g,b]
-   - ... 
-
-
-
+   - ...
 
 
 'bookmarks' collection

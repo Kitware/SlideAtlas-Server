@@ -3,7 +3,7 @@
 Setting up database
 ===================
 
-This guide demonstrates how to install Installing multiple mongo databases on a single ubuntu server
+This guide demonstrates how to install Installing multiple mongo databases on a single Ubuntu server
 
 
 - First install supervisord
@@ -37,7 +37,3 @@ Create the supervisor configuration file for new mongodb, say mongodb2.conf in /
 .. code-block:: shell-session
 
     $ sudo /etc/init.d/supervisor restart
-
-
-
-
