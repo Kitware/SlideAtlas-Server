@@ -41,7 +41,6 @@ class Database(TileStore):
     """
     meta = {
         'db_alias': 'admin_db',
-        'collection': 'databases',
     }
 
 
