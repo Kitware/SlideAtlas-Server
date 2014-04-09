@@ -31,7 +31,7 @@ Just considering the case of :ref:`admindb-label`.
 - List of registered databases
 - List of rules
 - List of users that obey certain rule
-- List of rules for a particuar database
+- List of rules for a particular database
 
 
 Compilation of the list from the persistent storage
@@ -44,7 +44,7 @@ Compilation of the list from the persistent storage
 
 In slide-atlas specific code, the python webserver has access to all the data in
 **MongoDB** but it needs to be verified whether the user currently signed in
-has access to that information. The modue which determines the access rights
+has access to that information. The module which determines the access rights
 also uses this code base.
 
 Before returning the data, it needs to be verified that the caller Som -
@@ -112,10 +112,10 @@ Access determination
 --------------------
 
 When user requests a particular action, whether it be displaying a certain
-information or manipulating some information in the database, the previlges
+information or manipulating some information in the database, the privileges
 of the currently logged in user must be verified each time.
 
-This is a repeatative task. The computations are not heavy but pre-computed
+This is a repetitive task. The computations are not heavy but pre-computed
 information stored can be useful.
 
 
@@ -129,11 +129,5 @@ Users select an email.
 - When user clicks the link provided in the email, is taken to password reset page.
    - user is logged in but status of password is reset (i.e. no password works)
    - If the password is successfully changed, the account is ready, the password is ready
-- If the password change fails at this point, then the email is confirmed (i.e. account is confirmed), but since the password is still in reset stage, 
+- If the password change fails at this point, then the email is confirmed (i.e. account is confirmed), but since the password is still in reset stage,
   use cannot login unless s/he visits password reset page and continue with email confirmation
-
-
-
-
-
-

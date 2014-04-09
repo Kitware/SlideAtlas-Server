@@ -4,14 +4,14 @@ To install dependencies
 Requires python 2.7x, and pip.
 
 Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows
-Also please make sure that the python and scritps ("c:/python27/Scripts") are in PATH environment variable.
+Also please make sure that the python and scripts ("c:/python27/Scripts") are in PATH environment variable.
 
 To install dependencies mentioned in **requirements.txt**
 
 .. code-block:: none
 
-   $ pip install -r requirements.txt --upgrade
-   
+   $ pip install -r requirements.txt
+
 
 To build documentation
 ----------------------
@@ -20,7 +20,7 @@ Detailed documentation can be built using sphinx
 .. code-block:: none
 
    $ cd docs
-   $ make html 
+   $ make html
 
 To test
 -------
@@ -38,9 +38,11 @@ To run
 
 .. code-block:: none
 
+   $ EXPORT SLIDEATLAS_CONFIG_PATH=/path/to/site_config
    $ python run.py
 
-This will start a webserver if the mongo database server is correctly configured in some configuration file similar to **site_local.py**.
+"/path/to/site_config" should be the absolute path to a configuration file with any locally-specific configuration changes.
+If such a configuration file is not provided, SlideAtlas will use sensible defaults (e.g. connecting to a MongoDB at 'localhost:8080').
 
 Sample Apache configuration
 ---------------------------
@@ -70,8 +72,3 @@ Sample Apache configuration
         CustomLog ${APACHE_LOG_DIR}/access.log combined
 
   </VirtualHost>
-
-
-
-
-

@@ -1,6 +1,9 @@
 # coding=utf-8
 
+from collections import namedtuple
+
 from flask import current_app, flash, redirect
+from flask.ext.security.decorators import anonymous_user_required
 from flask.ext.security.utils import user_registered
 from flask.ext.openid import OpenID
 
@@ -17,6 +20,20 @@ oid = OpenID()
 ################################################################################
 def register(app, blueprint):
     oid.init_app(app)
+
+    blueprint.add_url_rule(rule='/login/google',
+                           endpoint='login_google',
+                           view_func=anonymous_user_required(login_google),
+                           methods=['GET', 'POST'])
+
+    # TODO: temporary structure until Google login is moved to OAuth
+    provider = {
+        'is_enabled': lambda: True,
+        'endpoint': 'login_google',
+        'icon_url': '/static/img/google_32.png',
+        'pretty_name': 'Google'
+    }
+    return namedtuple('GoogleLogin', provider.keys())(**provider)
 
 
 ################################################################################

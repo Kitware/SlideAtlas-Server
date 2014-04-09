@@ -18,6 +18,7 @@ Welcome to SlideAtlas's documentation!
     tilestore
     web-api
     ptiffstore
+    flask-auto
     web-interface
     common-utilities
     ui-design
@@ -31,4 +32,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

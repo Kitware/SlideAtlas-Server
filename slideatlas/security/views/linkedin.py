@@ -11,9 +11,14 @@ __all__ = ('LinkedinOAuthLogin',)
 class LinkedinOAuthLogin(OAuthLogin):
 
     def create_oauth_service(self, oauth_client, app_config):
+        consumer_key = app_config['SLIDEATLAS_LINKEDIN_APP_ID']
+        consumer_secret = app_config['SLIDEATLAS_LINKEDIN_APP_SECRET']
+        if (not consumer_key) or (not consumer_secret):
+            return None
+
         oauth_service = oauth_client.remote_app('linkedin',
-            consumer_key=app_config['SLIDEATLAS_LINKEDIN_APP_ID'],
-            consumer_secret=app_config['SLIDEATLAS_LINKEDIN_APP_SECRET'],
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
 
             # Used by authorize()
             authorize_url='https://www.linkedin.com/uas/oauth2/authorization',
@@ -35,6 +40,11 @@ class LinkedinOAuthLogin(OAuthLogin):
 
 
     @property
+    def icon_url(self):
+        return '/static/img/linkedin_32.png'
+
+
+    @property
     def user_model(self):
         return models.LinkedinUser
 
@@ -44,16 +54,16 @@ class LinkedinOAuthLogin(OAuthLogin):
         return 'LinkedIn'
 
 
-    def fetch_person(self, token):
+    def fetch_person(self):
         # Fetch person data
         person_profile_url = 'people/~'
         # by default the profile API returns a limited number of fields,
         #   so explicitly request the desired fields
         person_profile_requested_fields = ['id', 'formatted-name']
         person_profile_url += ':(%s)' % (','.join(person_profile_requested_fields))
-        person_profile = self.oauth_service.get(person_profile_url, token=token)
+        person_profile = self.oauth_service.get(person_profile_url)
 
-        person_email = self.oauth_service.get('people/~/email-address', token=token)
+        person_email = self.oauth_service.get('people/~/email-address')
         # the email API has only 1 field available, which is always returned
 
         # Verify that responses with person data were received

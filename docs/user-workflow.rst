@@ -42,6 +42,3 @@ DB administrators
 - Useful for keeping their images together and organized
 
 Images coming from philips are put in single database in multiple sessions based on the id's of users
-
-
-

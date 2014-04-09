@@ -24,5 +24,3 @@ Web Interface
 .. automodule:: slideatlas.version
   :members:
   :undoc-members:
-
-

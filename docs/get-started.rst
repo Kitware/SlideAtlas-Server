@@ -1,8 +1,8 @@
-Gettting started
+Getting started
 ================
 
 .. include:: ../readme.rst
-    
+
 Before running
 --------------
 
@@ -12,17 +12,17 @@ Configuring database connection
 Flask app loads configuration while it initializes. Most of the configuration parameters are either manually selected in slideatlas/__init__.py.
 Site specific configuration must be correctly loaded
 
-.. code-block:: python 
+.. code-block:: python
    :emphasize-lines: 4
 
    app = Flask(__name__)
-   # Configure here teh path to put downloaded folders 
+   # Configure here teh path to put downloaded folders
    app.config['UPLOAD_FOLDER'] = "d:/docs"
    app.config.from_object("site_local")
 
 Which loads
 
-.. code-block:: python 
+.. code-block:: python
 
     # For mongodb server connections
     # MONGO_IS_REPLICA_SET = False
@@ -54,7 +54,7 @@ Setting up empty database
 
 This is work in progress
 
-It is possible to start from an empty admin databse, create site administrator and
+It is possible to start from an empty admin database, create site administrator and
 register new or already existing image databases to it.
 
  This will make it possible to accommodate several slide-atlas instances on a single mongodb server, each having a separate admin database. Or as the current schema allows, distribute a single slide-atlas instance over several accessible mongodb servers.
@@ -77,10 +77,7 @@ tasks to be implemented are as follows
 
 - The admin user will perhaps create a new database (register a pre-existing database with the system).
 - Create password users, or wait for email users to create accounts here
-- Grant them db_admin previleges
-- Create sessions in database and grant session admin previlege to other user
+- Grant them db_admin privileges
+- Create sessions in database and grant session admin privilege to other user
 - Add images there
 - Monitor upload process (the users that are db_admins, should also see the processing messages related with their database)
-
-
-

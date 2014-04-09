@@ -88,9 +88,6 @@ Suggested variables for now
 # Facebook key for localhost and facebook key for servers etc
 
 
-
-
-
 Data database ("bev1", etc.)
 ----------------------------
 
@@ -161,23 +158,22 @@ Note (a recursive structure, which replaces view):
 - ChildrenVisibility: A boolean indicating whether the children will be displayed and traversed by default.
 - ParentId: Object id of parent note.  Used when a student makes a comment note which is saved in the Notes collection.
 
-
-
 ViewerRecord (Contains one slide image, camera and annotation).
+
 - Database : String name of the database containing the image.
 - Image    : String name of the image collection.
 - NumberOfLevels:  The number of levels in the image pyramid.
 - Camera   : a camera object
+
    - FocalPoint : [x, y]
    - Height     : Height of the view in world coordinates
-   - Rotation   : Rotation of the view in Radians. 
+   - Rotation   : Rotation of the view in Radians.
+
 - Annotations: An array of annotation objects.
+
    - type   : one of "circle", "pencil", "text" or "polyline"
    - color  : [r,g,b]
-   - ... 
-
-
-
+   - ...
 
 
 'bookmarks' collection
