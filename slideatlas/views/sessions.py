@@ -171,18 +171,8 @@ def view_a_session(database_obj, session_obj, next=None):
 
 
 # change the order of views in the
-@mod.route('/sessionedit')
-def sessionedit():
-    """
-    - /session-edit?sessid=10239094124
-    """
-    # See if the user is requesting any session id
-    sessdb = request.args.get('sessdb')
-    database_obj = models.Database.objects.get_or_404(sessdb)
-    sessid = request.args.get('sessid')
-    with database_obj:
-        session_obj = models.Session.objects.get_or_404(sessid)
-
+@mod.route('/sessions/<Database:database_obj>/<Session:session_obj>/edit')
+def sessionedit(database_obj, session_obj):
     db = database_obj.to_pymongo()
 
     # iterate through the view objects and record image information.
@@ -193,7 +183,7 @@ def sessionedit():
         if view :
             descriptiveLabel = ""
             hiddenLabel = ""
-            imgdb = sessdb
+            imgdb = database_obj.id
             if "imgdb" in view :
                 imgdb = view["imgdb"]
             if "img" in view :
@@ -209,7 +199,7 @@ def sessionedit():
                     imgdb = viewerRecord["Image"]["database"]
 
             # support for images from different database than the session.
-            if imgdb == sessdb :
+            if imgdb == database_obj.id :
                 image = db["images"].find_one({'_id' : ObjectId(imgid)})
             else :
                 # this is a pymongo Database that we can use until all models are complete
@@ -236,7 +226,7 @@ def sessionedit():
 
                 item = {
                     'db': imgdb, # TODO: bug here? where 'db2' isn't used sometimes instead
-                    'session': sessid,
+                    'session': str(session_obj.id),
                     'img': str(imgid),
                     'descriptiveLabel': descriptiveLabel,
                     'hiddenLabel': hiddenLabel,
@@ -246,11 +236,10 @@ def sessionedit():
 
     data = {
         'success': 1,
-        'db' : sessdb,
-        'sessid' : sessid,
-        'session' : session_obj.to_mongo(),
+        'database' : database_obj,
+        'session' : session_obj,
         'views' : viewList,
-        'hideAnnotations' : int(session_obj.hideAnnotations)
+        'hideAnnotations' : session_obj.hideAnnotations
         }
 
     return render_template('sessionedit.html', data=data)
@@ -272,7 +261,8 @@ def sessionsave():
     stack = inputObj["stack"]
 
     # this is a pymongo Database that we can use until all models are complete
-    db = models.Database.objects.with_id(dbId).to_pymongo()
+    database_obj = models.Database.objects.with_id(dbId)
+    db = database_obj.to_pymongo()
 
     email = security.current_user.email
 
@@ -287,7 +277,8 @@ def sessionsave():
 
     # get the session in the database to modify.
     # Todo: if session is undefined, create a new session (copy views when available).
-    sessObj = models.Session.objects.with_id(sessId)
+    with database_obj:
+        sessObj = models.Session.objects.with_id(sessId)
     # I am using the label for the annotated title, and name for hidde
     sessObj.label = label
 

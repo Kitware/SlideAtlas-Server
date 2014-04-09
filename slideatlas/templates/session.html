@@ -59,7 +59,7 @@
 
     // Save the session in localStorage (needed for previous / next slide.
     var views = [];
-    for (var i=0; i < imagelist.length; i++) 
+    for (var i=0; i < imagelist.length; i++)
       {
       views.push(imagelist[i].view);
       }
@@ -80,24 +80,24 @@
 
     <script>
         var imagelist = {{ data.images|tojson|safe }};
-        
+
         $(".imageitem").click(function (e)
             {
             var id = $(this).attr('imageid');
-            // Locate the image 
+            // Locate the image
             var image = {}
-            
+
             for (var i=0; i < imagelist.length; i++) {
               if(id == imagelist[i]["img"])
                 {
                 image = imagelist[i]
                 }
-            };  
+            };
 
             e.preventDefault();
             bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result)
                 {
-                if (result == null) 
+                if (result == null)
                     {
                     return;
                     }
@@ -151,16 +151,16 @@
                             $("a:not(.btn)[imageid=" + data["id"] + "]").html(data["fields"]["label"])
                             $("tr[imageid=" + data["id"] + "]").addClass("warning")
 
-                            // Update the information in the image list 
+                            // Update the information in the image list
                             var image = {}
-                            
-                            for (var i=0; i < imagelist.length; i++) 
+
+                            for (var i=0; i < imagelist.length; i++)
                                 {
                                 if(data["id"] == imagelist[i]["img"])
                                     {
                                     imagelist[i]["label"] = data["fields"]["label"]
                                     }
-                                }  
+                                }
                             }
                         }
                     });

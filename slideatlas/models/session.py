@@ -50,7 +50,7 @@ class Session(MultipleDatabaseModelDocument):
 #     There's currently only 1 document of this type, in the '3dpath' database
 #     """
 
-    type = StringField(required=True, choices=('stack',),
+    type = StringField(required=False, choices=('stack', 'session'),
         verbose_name='Type', help_text='')
 
     transformations = DictField(required=False)
