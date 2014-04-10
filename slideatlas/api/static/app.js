@@ -82,8 +82,7 @@ app.factory('Data', function() {
 
     });
 
-app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http)
-    {
+app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http){
         // console.log("Refreshing edit")
         // Locate the object
         $http({method: "get", url: "/apiv1/databases/" + $routeParams.idx}).
@@ -97,11 +96,13 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http)
             });
 
         $scope.save = function () {
+            console.log("Saving .. ")
             $scope.database.$update({dbid:$scope.database._id}, function(data){
                 $location.path("/databases");
-                }
-                );
-        }
+                });
+        };
+
+
     });
 
 app.directive('helloWorld', function () {
@@ -292,31 +293,32 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         }
     });
 
-
-app.controller("dbListCtrl", function ($scope, Database, $location, Data)
-    {
+/******************************************************************************/
+app.controller("dbListCtrl", function ($scope, $http) {
     console.log("Refreshing DBListCtrl")
 
-    Database.get({}, function(data) {
-        Data.setList(data.databases);
-        $scope.databases = Data.getList();
-        }
-    );
+    $http({method: "get", url: "/apiv1/databases"}).
+        success(function(data, status) {
+                $scope.databases = data.databases;
+        }).
+        error(function(data, status) {
+            $scope.databases = [];
+        });
 
-    $scope.delete = function(idx)
-        {
-        // Locate the object
-        var db = Data.getItem(idx)
-        console.log(db)
-        if (confirm("Remove database " + db.dbname + '?'))
-            {
-            Database.delete({dbid:db._id}, function(data) {
-                Data.removeItem(idx);
-                $location.path("/databases");
+    $scope.delete = function(idx) {
+        var db_to_delete = $scope.databases[idx];
+        if (confirm("Remove database (" + db_to_delete.dbname + ") " + db_to_delete.label +'?')) {
+            // Locate the object
+            $http({method: "delete", url: "/apiv1/databases/" + db_to_delete._id}).
+                success(function(data, status) {
+                    $scope.databases.splice(idx, 1);
+                }).
+                error(function(data, status) {
+                    alert("Error deleting ..");
                 });
-            }
         }
-    });
+    }
+});
 
 app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
 
