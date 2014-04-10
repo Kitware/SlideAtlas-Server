@@ -41,6 +41,10 @@ To run
    $ EXPORT SLIDEATLAS_CONFIG_PATH=/path/to/site_config
    $ python run.py
 
+.. code-block:: shell-session
+
+  $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  python run.py)
+
 "/path/to/site_config" should be the absolute path to a configuration file with any locally-specific configuration changes.
 If such a configuration file is not provided, SlideAtlas will use sensible defaults (e.g. connecting to a MongoDB at 'localhost:8080').
 

@@ -109,16 +109,18 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
                 }
                 );
         }
-    }).directive('HelloWorld', [function () {
+    });
+
+app.directive('HelloWorld', function () {
     return {
-        restrict : "AEC",
-        template: '<p>Hello World</p>'
+        restrict : "AECM",
+        template: '<p>Hello World</p>',
         link: function (scope, iElement, iAttrs) {
             console.log(iAttrs.type);
             console.log("Getting called !!");  
         }
     };
- }]);
+ });
 
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
