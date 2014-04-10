@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from flask.ext.security import Security, MongoEngineUserDatastore
+from flask.ext.security import Security, MongoEngineUserDatastore, user_registered
 from flask.ext.mail import Mail
 
 from slideatlas import models
@@ -40,10 +40,16 @@ def register_with_app(app):
     #   furthermore, see the documentation 'flask.ext.login.needs_refresh', and implement re-login
     #   redirection directly to the user's corresponding login provider if a user's session becomes stale
 
-    # TODO: set default rules on a new user
-    #   see the code in 'views/login.py' for the specific rules for this
-    #   may use the 'flask.ext.security.user_registered' or (less likely) 'user_confirmed' signals for this
-    # TODO: make the other auth providers emit these signals on user creation
+    user_registered.connect(on_user_registered, app)
+
+
+################################################################################
+# TODO: this is a short term solution until an "everyone" / publicly-viewable
+#   role can be implemented
+def on_user_registered(app, user, confirm_token):
+    demo_role = models.Role.objects.get(name='Atlas Demonstration')
+    user.roles.append(demo_role)
+    user.save()
 
 
 ################################################################################
