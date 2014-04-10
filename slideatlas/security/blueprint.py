@@ -49,6 +49,11 @@ def register_with_app(app):
 def on_user_registered(app, user, confirm_token):
     demo_role = models.Role.objects.get(name='Atlas Demonstration')
     user.roles.append(demo_role)
+
+    if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu') or user.email.endswith('kitware.com'):
+        brown_role = models.Role.objects.with_id('529d244959a3aee20f8a00ae')
+        user.roles.append(brown_role)
+
     user.save()
 
 
