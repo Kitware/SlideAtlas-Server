@@ -84,9 +84,9 @@ def create_ptiff_store():
 
 def test_getlist():
     """
-    .. code-block::
+    .. code-block:: javascript
     
-        db.databases.update({"_cls" : {"$exists" : 0}},{"$set" : { "_cls" : "TileStore.Database"}})
+        db.databases.update({"_cls" : {"$exists" : 0}},{"$set" : { "_cls" : "TileStore.Database"}}, {"multi" : true })
     
     """
 
