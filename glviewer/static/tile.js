@@ -224,6 +224,10 @@ Tile.prototype.Draw = function (program, context) {
 
     // map pixels to Tile
     var tileSize = this.Cache.Image.TileSize;
+    // This should not be necessary, quick hack around a bug in __init__.py
+    if ( tileSize == undefined) {
+      tileSize = 256;
+    }
     // Shift a half pixel (white line fix) Draw tile one pixel bigger.
     if (I_PAD_FLAG) {
       context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);  
