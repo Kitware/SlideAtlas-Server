@@ -4,11 +4,35 @@ List : {{databases | json}} <br/>
 Current : {{database | json}}
 -->
 
-<form>
-     Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
-     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
-     Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
-     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+<h1> Header </h1>
+<div hello-world type="{{database._cls}}"> </div>
+<hello-world type="{{database._cls}}"> </hello-world>
 
-     <button ng-click="save()" class="btn-primary"> Save </button>
-</form>
+<ng-switch on="database._cls">
+      <div class="animate-switch" ng-switch-when="TileStore.Database">
+      	<h1> {{ database._cls }}</h1>
+
+		<form>
+		     Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
+		     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
+		     Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
+		     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+
+		     <button ng-click="save()" class="btn-primary"> Save </button>
+		</form>
+      </div>
+      <div class="animate-switch" ng-switch-when="TileStore.PtiffTileStore">
+			<h1> {{ database._cls }}</h1>
+			<form>
+			     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br/>
+			     RootPath : <input type="text" class="input" ng-model="database.root_path" palceholder="Mongo Server"><br />
+			     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+
+			     <button ng-click="sync()" class="btn-primary"> Synchronize </button>
+
+			     <button ng-click="save()" class="btn-primary"> Save </button>
+			</form>
+      </div>
+</ng-switch>
+
+

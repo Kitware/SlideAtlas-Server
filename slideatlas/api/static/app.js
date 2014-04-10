@@ -5,6 +5,8 @@
  var app = angular.module('adminapi',["ngResource", "ngRoute", 'ui.bootstrap']).
     config(
      function ($routeProvider) {
+        $routeProvider.when("/tilestores/new", {templateUrl: "/apiv1/static/partials/tilestoresNew.html", controller:"DBNewCtrl"});
+
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
         $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
@@ -107,7 +109,16 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database
                 }
                 );
         }
-    });
+    }).directive('HelloWorld', [function () {
+    return {
+        restrict : "AEC",
+        template: '<p>Hello World</p>'
+        link: function (scope, iElement, iAttrs) {
+            console.log(iAttrs.type);
+            console.log("Getting called !!");  
+        }
+    };
+ }]);
 
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
@@ -154,8 +165,6 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
                 });
             }
         }
-
-
     });
 
 app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
@@ -516,3 +525,4 @@ app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items, sel
     $modalInstance.dismiss('cancel');
   };
 });
+
