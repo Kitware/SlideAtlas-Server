@@ -104,14 +104,11 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http)
         }
     });
 
-app.directive('HelloWorld', function () {
+app.directive('helloWorld', function () {
     return {
-        restrict : "AECM",
-        template: '<p>Hello World</p>',
-        link: function (scope, iElement, iAttrs) {
-            console.log(iAttrs.type);
-            console.log("Getting called !!");  
-        }
+        restrict : "ECMA",
+        template: '<div> <p>Hello World</p> </div>',
+        replace : true,
     };
  });
 

@@ -11,7 +11,8 @@ Current : {{database | json}}
 <ng-switch on="database._cls">
       <div class="animate-switch" ng-switch-when="TileStore.Database">
       	<h1> {{ database._cls }}</h1>
-
+		<div hello-world> </div>
+		<hello-world> </hello-world>
 		<form>
 		     Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
 		     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
