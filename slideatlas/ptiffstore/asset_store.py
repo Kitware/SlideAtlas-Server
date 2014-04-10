@@ -118,5 +118,5 @@ if __name__ == "__main__":
     from slideatlas import app
 
     # test_ptiff_tile_store()
-    # create_ptiff_store()
+    create_ptiff_store()
     test_getlist()
