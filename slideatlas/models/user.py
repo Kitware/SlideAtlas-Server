@@ -32,7 +32,8 @@ class User(ModelDocument, UserMixin):
         verbose_name='Active', help_text='An inactive user may not log in, but is retained in the database.')
 
     # TODO: make this an EmailField, but remove validation for 'bev_1'-type users
-    email = StringField(required=True, max_length=255,
+    # TODO: this should be required for password users, but not required for other auth providers
+    email = StringField(required=False, max_length=255,
         verbose_name='E-Mail Address', help_text='The user\'s current email address.')
 
     full_name = StringField(required=True, db_field='label',

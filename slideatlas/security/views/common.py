@@ -120,7 +120,14 @@ class LoginProvider(object):
                 if (not value) and (not isinstance(value, list)):
                     raise KeyError(key)
         except KeyError as e:
-            raise self.AuthorizationError('\"%s\" field not provided by API' % e.message, 401)  # Unauthorized
+            missing_field = e.message
+            error = self.AuthorizationError('\"%s\" field not provided by API' % missing_field, 401)  # Unauthorized
+            if missing_field in ['external_id', 'full_name']:
+                # these fields are required, raise an error and don't proceed
+                raise error
+            else:
+                # otherwise, flash a message for the missing field, but allow the login to continue
+                flash(str(error), 'warning')
 
         # Get user from database
         created = False
