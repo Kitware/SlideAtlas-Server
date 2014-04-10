@@ -5,6 +5,7 @@ from . import google
 from .facebook import FacebookOAuthLogin
 from .linkedin import LinkedinOAuthLogin
 from .shibboleth import ShibbolethLogin
+import demo
 
 ################################################################################
 __all__ = ('add_views',)
@@ -35,6 +36,8 @@ def add_views(app, blueprint):
     # TODO: password change page
 
     # TODO: add view for and update profile.html template
+
+    demo.register(app, blueprint)
 
     # the blueprint was updated, so it must be re-registered
     app.register_blueprint(blueprint)
