@@ -14,7 +14,7 @@
                 <td> {{ adb._cls }} </a></td>
                 <td><a href="#/{{adb._id}}/sessions">({{ adb.dbname }}) {{adb.label}}</a></td>
                 <!-- <td>{{ adb.host }} </td> -->
-                <td><a href="#/databases/edit/{{$index}}">Edit <i class="glyphicon glyphicon-edit"></i></a> </td>
+                <td><a href="#/databases/edit/{{adb._id}}">Edit <i class="glyphicon glyphicon-edit"></i></a> </td>
                 <td><a ng-click="deletefile($index)">Delete <i class="glyphicon glyphicon-remove"></i></a> </td>
             </tr>
             </table>

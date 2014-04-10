@@ -82,26 +82,19 @@ app.factory('Data', function() {
 
     });
 
-app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database, Data)
+app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http)
     {
         // console.log("Refreshing edit")
         // Locate the object
-        var dbs = Data.getList()
-
-        // for(adb in dbs)
-        // { console.log(dbs[adb]);}
-
-        var db = Data.getItem($routeParams.idx);
-        if(typeof db === 'undefined')
-            {
-            alert("Item not found for editing");
-            $location.path("/databases") ;
-            return;
-            }
-
-        console.log(db)
-
-        $scope.database = Database.get({dbid:db._id})
+        $http({method: "get", url: "/apiv1/databases/" + $routeParams.idx}).
+            success(function(data, status) {
+                $scope.database = data;
+            }).
+            error(function(data, status) {
+                alert("Item not found for editing");
+                $location.path("/databases") ;
+                return;
+            });
 
         $scope.save = function () {
             $scope.database.$update({dbid:$scope.database._id}, function(data){

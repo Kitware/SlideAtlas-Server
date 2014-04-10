@@ -678,10 +678,18 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 # Specially for session
 
 # Render admin template
-@mod.route('/admin')
 @site_admin_required(True)
+@mod.route('/admin')
 def admin_main():
     """
     Single page application with uses this rest API to interactively do tasks
     """
     return Response(render_template("admin.html"))
+
+@site_admin_required(True)
+@mod.route('/sessions')
+def admin_main_sessions():
+    """
+    Single page application with uses this rest API to interactively do tasks
+    """
+    return Response(render_template("fullsessions.html"))
