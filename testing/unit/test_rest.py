@@ -13,8 +13,6 @@ import unittest
 # from slideatlas.security import login_user
 # from slideatlas import models 
 
-
-
 class APIv1_Tests(unittest.TestCase):
     def setUp(self):
         # Creates app and gets a client to it

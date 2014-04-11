@@ -676,7 +676,6 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 , view_func=DataSessionsAPI.as_view("show_sessions"),
                                 methods=["get", "post"])
 
-
 # Specially for session
 
 # Render admin template
@@ -689,9 +688,36 @@ def admin_main():
     return Response(render_template("admin.html"))
 
 @site_admin_required(True)
-@mod.route('/sessions')
+@mod.route('/mysessions')
 def admin_main_sessions():
     """
     Single page application with uses this rest API to interactively do tasks
     """
     return Response(render_template("fullsessions.html"))
+
+
+################################################################################
+@site_admin_required(True)
+@mod.route('/sessions')
+def view_all_sessions():
+    all_sessions = list()
+    for role in security.current_user.roles:
+        with role.db:
+            if role.can_see_all:
+                sessions = list(models.Session.objects.as_pymongo())
+            else:
+                sessions = models.Session.objects.in_bulk(role.can_see).values().as_pymongo()
+        sessions.sort(key=itemgetter("label"))
+
+        all_sessions.append((role.to_mongo(), sessions))
+        
+    all_sessions.sort(key=lambda (role, sessions): itemgetter("name"))
+
+    if request.args.get('json'):
+        # TODO: switch to using 'Content-Type: application/json' header to request JSON output
+        #   this can be checked for with 'request.get_json(silent=True)' or better in Flask 0.11 with 'request.is_json()'
+
+        return jsonify(sessions=all_sessions ,  ajax=1)
+        # return jsonify({})  # TODO: JSON output
+    else:
+        return render_template('sessionlist.html', all_sessions=all_sessions)

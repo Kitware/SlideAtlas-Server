@@ -22,8 +22,7 @@ class PTiffStoreMixin(object):
     This generalizaes "databases" collection which should ultimately point to asses collection
     with each asset object will have a type = MongoAssetStore if not specified
 
-    - Ultimately image record has to be created in the metadatastore. And the image will Each asset store uses mongodb
-
+    All sessions are stored in admindb in ptiffsessions and images are stored in ptiffimages
     """
 
     def load_folder(self):
@@ -106,7 +105,7 @@ def test_getlist():
     #     print obj
 
 from bson import ObjectId
-def test_delete():
+def test_items_mongoengine():
     # .with_id(ObjectId("53482d5a0a3ee1346135d805"))
     print 
     print "TileStore"
@@ -134,7 +133,7 @@ if __name__ == "__main__":
     # This is required so that model gets registered
     from slideatlas import app
 
-    # test_ptiff_tile_store()
+    test_ptiff_tile_store()
     # create_ptiff_store()
     # test_getlist()
-    test_delete()
+    test_items_mongoengine()
