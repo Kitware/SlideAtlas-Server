@@ -105,6 +105,23 @@ def test_getlist():
     # for obj in TileStore.objects():
     #     print obj
 
+from bson import ObjectId
+def test_delete():
+    # .with_id(ObjectId("53482d5a0a3ee1346135d805"))
+    print 
+    print "TileStore"
+    for obj in TileStore.objects:
+        print obj._cls, obj.label
+    print 
+    print "Database"
+    for obj in Database.objects:
+        print obj._cls, obj.label
+    
+    print
+    print "PtiffTileStore"
+    for obj in PtiffTileStore.objects:
+        print obj._cls, obj.label
+
 
 if __name__ == "__main__":
     """
@@ -118,5 +135,6 @@ if __name__ == "__main__":
     from slideatlas import app
 
     # test_ptiff_tile_store()
-    create_ptiff_store()
-    test_getlist()
+    # create_ptiff_store()
+    # test_getlist()
+    test_delete()

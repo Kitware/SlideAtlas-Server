@@ -10,6 +10,7 @@ from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from slideatlas.common_utils import site_admin_required
 from slideatlas import models, security
+from slideatlas.ptiffstore import asset_store 
 import re
 import gridfs
 
@@ -118,13 +119,14 @@ class AdminDBItemsAPI(MethodView):
 class DatabaseAPI(AdminDBAPI):
 
     def delete(self, resid):
-        obj = models.Database.objects.with_id(resid)
+        obj = models.TileStore.objects.with_id(ObjectId(resid))
+
         if obj :
             obj.delete()
             return Response("{}", status=200)
         else:
             # Invalid request if the object is not found
-            return Response("{\"error\" : \"Id Not found \"} ", status=405)
+            return Response("{\"error\" : \"Id Not found: %s\"} "%(resid), status=405)
 
 
     def post(self, resid=None):
