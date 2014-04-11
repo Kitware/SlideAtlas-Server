@@ -5,6 +5,8 @@ import os
 sys.path.append(os.path.abspath("../.."))
 import slideatlas
 import unittest
+# from slideatlas.security import login_user
+# from slideatlas import models 
 
 class APIv1_Tests(unittest.TestCase):
     def setUp(self):
@@ -15,11 +17,11 @@ class APIv1_Tests(unittest.TestCase):
 
     def login_viewer(self):
         # Posts login and password for demo database access
-        return self.app.post('/login.passwd', data=dict(
-            username="all_demo",
-            passwd=""
-        ), follow_redirects=True)
+        # demo_user = models.PasswordUser.objects.get(email='all_demo')
+        # login_user(demo_user)
+        return self.app.get('/login/demo', follow_redirects=True)
 
+        
     def login_admin(self):
         # Posts admin access 
         # TODO: this should use site configuration
@@ -27,7 +29,8 @@ class APIv1_Tests(unittest.TestCase):
             username="demo_admin",
             passwd="2.0TB"
         )
-        return self.app.post('/login.passwd', data=data , follow_redirects=True)
+
+        return self.app.post('/login/passwd', data=data , follow_redirects=True)
 
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
