@@ -136,6 +136,7 @@ def convertViewToPixelCoordinateSystem(viewObj) :
     flipViewerRecord(record)
   viewObj["CoordinateSystem"] = "Pixel"
 
+# For depreciated content.
 def glcomparison(db, dbid, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
@@ -160,6 +161,9 @@ def glcomparison(db, dbid, viewid, viewobj):
         img["dimension"] = str(imgobj["dimensions"])
     img["center"] = str(bookmarkobj["center"])
     img["rotation"] = str(bookmarkobj["rotation"])
+    # hack for flip
+    img["paddedHeight"] = 256 << (imgobj["levels"] - 1)
+
     if 'zoom' in bookmarkobj:
         img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
     if 'viewHeight' in bookmarkobj:
@@ -200,8 +204,10 @@ def glcomparison(db, dbid, viewid, viewobj):
             # now for the info needed for display, but not put back into the database view object
             # get the option image database object to copy its info.
             imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+            optionView["paddedHeight"] = 256 << (imgobj2["levels"] - 1)
             # Start of the info object
             optionImage = {}
+            optionImage["paddedHeight"] = optionView["paddedHeight"];
             optionImage["origin"] = str(imgobj2["origin"])
             optionImage["spacing"] = str(imgobj2["spacing"])
             optionImage["levels"] = str(imgobj2["levels"])

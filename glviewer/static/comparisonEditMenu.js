@@ -266,11 +266,11 @@ function changeOption(index) {
         imgobj._id = option.img;
         imgobj.database = option.db;
         imgobj.levels = optionInfo.levels;
-        imgobj.bounds = [0,optionInfo.dimensions[0], 0,optionInfo.dimensions[1]];
+        imgobj.bounds = [0,optionInfo.dimensions[0], optionInfo.paddedHeight-optionInfo.dimensions[1], optionInfo.paddedHeight];
         var source = new Cache(imgobj);
         VIEWER2.SetCache(source);
         VIEWER2.SetCamera(option.center, option.rotation, option.viewHeight);
-        VIEWER2.SetDimensions(optionInfo.dimensions);
+        //VIEWER2.SetDimensions(optionInfo.dimensions);
         // I need to remember which option is currently selected
         // so it can be edited (save view, delete).
         VIEWER2.OptionIndex = index;
