@@ -226,7 +226,7 @@ shape has visibility and
         view.rotation = {{option.rotation}};
         // Hack for flip
         view.rotation = -view.rotation;
-        view.center[1] = view.paddedHeight - view.center[1];
+        view.center[1] = {{option.paddedHeight}} - view.center[1];
         ARGS.Options.push(view);
     {% endfor %}    
     ARGS.OptionInfo = [];
