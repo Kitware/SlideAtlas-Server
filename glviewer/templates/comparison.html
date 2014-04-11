@@ -194,8 +194,13 @@ shape has visibility and
     ARGS.Viewer1.origin = {{question.viewer1.origin}};
     ARGS.Viewer1.spacing = {{question.viewer1.spacing}};
     ARGS.Viewer1.center = {{question.viewer1.center}};
+    ARGS.Viewer1.paddedHeight = {{question.viewer1.paddedHeight}};
     ARGS.Viewer1.viewHeight = {{question.viewer1.viewHeight}};
     ARGS.Viewer1.rotation = {{question.viewer1.rotation}};
+    // Hack for flip
+    ARGS.Viewer1.rotation = -ARGS.Viewer1.rotation;
+    ARGS.Viewer1.center[1] = ARGS.Viewer1.paddedHeight - ARGS.Viewer1.center[1];
+
     // Copy the annotations for the view.
     ARGS.Viewer1.annotations = [];
     {% for annotation in question.viewer1.annotations %}
@@ -219,6 +224,9 @@ shape has visibility and
         view.center = {{option.center}};
         view.viewHeight = {{option.viewHeight}};
         view.rotation = {{option.rotation}};
+        // Hack for flip
+        view.rotation = -view.rotation;
+        view.center[1] = view.paddedHeight - view.center[1];
         ARGS.Options.push(view);
     {% endfor %}    
     ARGS.OptionInfo = [];
@@ -228,6 +236,7 @@ shape has visibility and
         view.spacing = {{option.spacing}};
         view.levels = {{option.levels}};
         view.dimensions = {{option.dimension}};
+        view.paddedHeight = {{option.paddedHeight}};
         ARGS.OptionInfo.push(view);
     {% endfor %}    
   }
@@ -259,14 +268,14 @@ shape has visibility and
   function initViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
-    var bds = [0,ARGS.Viewer1.dimensions[0], 0,ARGS.Viewer1.dimensions[1]];
+    var bds = [0,ARGS.Viewer1.dimensions[0], ARGS.Viewer1.paddedHeight-ARGS.Viewer1.dimensions[1],ARGS.Viewer1.paddedHeight];
     var source1 = new Cache({'database':ARGS.Viewer1.db,
                              '_id':ARGS.Viewer1.image,  
                              'levels':ARGS.Viewer1.levels,
                              'bounds':bds});
     var section1 = new Section();
     section1.Caches.push(source1);
-    section1.Bounds = [0,ARGS.Viewer1.dimensions[0],0,ARGS.Viewer1.dimensions[1],0,0];
+    section1.Bounds = [bds[0],bds[1],bds[2],bds[3],0,0];
     var halfWidth = width/2;
     VIEWER1 = new Viewer([0,0, halfWidth,height], source1);
     VIEWER1.SetSection(section1);
