@@ -33,3 +33,4 @@ if __name__ == "__main__":
     # test_items_mongoengine()
     # test_modify_store()
     test_image_access()
+    test_images_from_database()

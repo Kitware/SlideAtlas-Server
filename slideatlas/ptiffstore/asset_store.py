@@ -63,7 +63,7 @@ class PTiffStoreMixin(object):
                 with self:
                     # Locate the record 
                     try:
-                        animage = Image.objects.get(filename=fname)[0]
+                        animage = Image.objects(filename=fname)[0]
                     except:
                         animage = None
 
@@ -76,11 +76,19 @@ class PTiffStoreMixin(object):
                         animage.label = fname
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-
+                        animage.TileSize= reader.tile_width
+                        animage.CoordinateSystem = "Pixel"
+                        animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
+                        
                     else:
+                        animage.filename = fname
+                        animage.label = fname
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                    
+                        animage.TileSize= reader.tile_width
+                        animage.CoordinateSystem = "Pixel"
+                        animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
+
                     animage.save()  
                     images.append(animage.to_mongo())
                 # logging.info(reader.width)

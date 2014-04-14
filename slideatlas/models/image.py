@@ -31,7 +31,7 @@ class Image(MultipleDatabaseModelDocument):
     spacing = ListField(FloatField(), required=True, #TODO: make unique
         verbose_name='Spacing', help_text='Spacing', default=[1.,1.,1.])
 
-    dimension = ListField(IntField(), required=True, #TODO: make unique
+    dimensions = ListField(IntField(), required=True, #TODO: make unique
         verbose_name='Dimension', help_text='Spacing', default=[0,0,0])
 
     levels = IntField(required=True, #TODO: make unique
@@ -39,6 +39,16 @@ class Image(MultipleDatabaseModelDocument):
 
     components = IntField(required=True, #TODO: make unique
         verbose_name='Components', help_text='Levels in multiresolution pyramid', default=3)
+
+    # New fields 
+
+    CoordinateSystem = StringField(choices=["Pixel", "Photo"], default="Pixel")
+
+    TileSize = IntField(required=True, #TODO: make unique
+        verbose_name='TileSize', help_text='dimensions of each square tile', default=256)
+
+    bounds = ListField(IntField(), required=True, default=[0,0,0,0,0,0]) 
+
 
     def __unicode__(self):
         return unicode(self.label + self.copyright)
