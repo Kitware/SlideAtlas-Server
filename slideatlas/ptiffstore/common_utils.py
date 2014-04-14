@@ -1,5 +1,53 @@
 __author__ = 'dhanannjay.deo'
 
+import math
+
+
+def get_max_depth(width, height, tilesize = 256):
+    extent = max(width, height)
+    extent = float(extent) / tilesize
+    pow = math.log(extent) / math.log(2)
+    return int(math.ceil(pow) + 1)
+
+def getcoords(name, tile_size = 256):
+    """
+    The name is always
+    """
+    target = name
+    startx = 0
+    starty = 0
+
+    if name[0] != "t" :
+        raise Exception("The name must start with t")
+    name = name[1:]
+
+    currentpos = 0
+    while len(name) > 0:
+        current = name[0]
+        name = name[1:]
+
+        startx = startx * 2
+        starty = starty * 2
+
+        if current == 'q':
+            pass
+        elif current == 't':
+            starty = starty + 1
+        elif current == 'r':
+            startx = startx + 1
+        elif current == 's':
+            startx = startx + 1
+            starty = starty + 1
+        else:
+            raise Exception("Invalid character in name")
+
+        # print " "*len(name), target[:len(name)], current, startx, starty
+        # print " "*len(name), name , startx, starty
+
+    return [target, startx, starty]
+
+
+
 def get_tile_name_slideatlas(x,y, z):
 
     tileName = "t"

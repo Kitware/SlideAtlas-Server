@@ -15,6 +15,7 @@ from slideatlas.models.image import Image
 from slideatlas.models import TileStore, Database, User
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
+from slideatlas.ptiffstore.common_utils import get_max_depth
 
 class PTiffStoreMixin(object):
     """
@@ -37,27 +38,54 @@ class PTiffStoreMixin(object):
         """
         # print self.__dict__
 
+        resp = {}
         searchpath = os.path.join(self.root_path, "*.ptif")
         # logging.info(searchpath)
+        count = 0
+        synced = 0
+        images = []
         for aslide in glob.glob(searchpath):
+
+            count = count + 1
             # logging.info("Got %s:"%(aslide))
             # filestatus =  os.stat(aslide)
             mtime = datetime.datetime.fromtimestamp(os.path.getmtime(aslide))
             # logging.info("%s, %s, %s"%(aslide, mtime, self.last_sync))
 
             if self.last_sync < mtime :
-                logging.info("Needs refresh: %s"%(aslide))  
-                # Locate the record 
-                
-                # logging.log(logging.INFO, "Reading file: %s, itype: %s" % (fname, itype))
+                logging.error("Needs refresh: %s"%(aslide))  
+
+                fname = os.path.split(aslide)[1]
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
                 logging.info(reader.barcode)
-                # Create or locate the image 
 
-                logging.info(reader.width)
+                with self:
+                    # Locate the record 
+                    try:
+                        animage = Image.objects.get(filename=fname)[0]
+                    except:
+                        animage = None
 
-            
+                    if animage == None:
+                        # Needs to sync 
+                        animage = Image()
+                        logging.log(logging.ERROR, "Reading file: %s" % (fname))
+                        
+                        animage.filename = fname
+                        animage.label = fname
+                        animage.dimensions = [reader.width, reader.height, 1]
+                        animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
+
+                    else:
+                        animage.dimensions = [reader.width, reader.height, 1]
+                        animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
+                    
+                    animage.save()  
+                    images.append(animage.to_mongo())
+                # logging.info(reader.width)
+                synced = synced + 1
+
                 # obj = {}
                 # obj["name"] = os.path.split(aslide)[1]
                 # obj["barcode"] = fin.read()
@@ -65,15 +93,21 @@ class PTiffStoreMixin(object):
  
             else:
                 logging.info("Is good: %s"%(aslide))  
-
+            
+        resp["count"] = count
+        resp["synced"] = synced
+        resp["images"] = images
         self.last_sync = datetime.datetime.now()
         self.save()
-
+        return resp
     
     def resync(self):
+        """
+        May overwrite all the information in that database
+        """
         self.last_sync = datetime.datetime.fromtimestamp(0)
         self.save()
-        self.sync()
+        return self.sync()
 
     
 
