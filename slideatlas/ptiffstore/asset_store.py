@@ -23,6 +23,7 @@ class PTiffStoreMixin(object):
     with each asset object will have a type = MongoAssetStore if not specified
 
     All sessions are stored in admindb in ptiffsessions and images are stored in ptiffimages
+    expects the model to have 
     """
 
     def load_folder(self):
@@ -32,15 +33,20 @@ class PTiffStoreMixin(object):
         """
         Syncs the objects in mongodb with the
         """
-        print self.__dict__
+        # print self.__dict__
 
         searchpath = os.path.join(self.root_path, "*.ptif")
-        logging.info(searchpath)
-        logging.log(logging.INFO, searchpath)
+        # logging.info(searchpath)
         for aslide in glob.glob(searchpath):
             # logging.info("Got %s:"%(aslide))
-            print os.stat(aslide)
+            # filestatus =  os.stat(aslide)
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(aslide))
+            # logging.info("%s, %s, %s"%(aslide, mtime, self.last_sync))
 
+            if self.last_sync < mtime :
+                logging.info("Needs refresh: %s"%(aslide))  
+            else:
+                logging.info("Is good: %s"%(aslide))  
             # if not os.path.exists(barcodepath):
             #     logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
             #     reader = make_reader({"fname" : aslide, "dir" : 0})
@@ -71,6 +77,13 @@ def test_ptiff_tile_store():
     # print store.root_path
     store.sync()
     logging.info("Last sync after sync: %s"%(store.last_sync))
+
+def test_modify_store():
+    for obj in PtiffTileStore.objects:
+        logging.info("Synchronizing ptiff store: %s", obj.label)
+        obj.sync()
+        obj.save()
+
     
 def create_ptiff_store():
     store = PtiffTileStore(root_path="/home/dhan/data/phillips", 
@@ -133,7 +146,8 @@ if __name__ == "__main__":
     # This is required so that model gets registered
     from slideatlas import app
 
-    test_ptiff_tile_store()
+    # test_ptiff_tile_store()
     # create_ptiff_store()
     # test_getlist()
-    test_items_mongoengine()
+    # test_items_mongoengine()
+    test_modify_store()
