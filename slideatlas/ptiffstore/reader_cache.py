@@ -16,16 +16,16 @@ class MemoizeMutable:
         import cPickle
         str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
         if not self.memo.has_key(str):
-            logging.log(logging.ERROR,"miss")  # DEBUG INFO
+            logging.log(logging.DEBUG,"miss")  # DEBUG INFO
             self.memo[str] = self.fn(*args, **kwds)
-            logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
         else:
-            logging.log(logging.ERROR,"hit")  # DEBUG INFO
-            logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logging.log(logging.DEBUG,"hit")  # DEBUG INFO
+            logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
         return self.memo[str]
 
     def status(self):
-        logging.log(logging.ERROR,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+        logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
 
 make_reader = MemoizeMutable(make_reader)
 #

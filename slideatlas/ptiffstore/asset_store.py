@@ -52,10 +52,10 @@ class PTiffStoreMixin(object):
                 # logging.log(logging.INFO, "Reading file: %s, itype: %s" % (fname, itype))
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
-                logging.error(reader.barcode)
+                logging.info(reader.barcode)
                 # Create or locate the image 
 
-                logging.error(reader.width)
+                logging.info(reader.width)
 
             
                 # obj = {}
@@ -66,6 +66,7 @@ class PTiffStoreMixin(object):
             else:
                 logging.info("Is good: %s"%(aslide))  
 
+        self.last_sync = datetime.datetime.now()
         self.save()
 
     
@@ -90,8 +91,6 @@ class PhillipsImageMixin(object):
     """
     pass
 
-
-
 class PhillipsImage(Image, PhillipsImageMixin):
     """
     Data models for ptiff images based on mongoengine
@@ -99,8 +98,6 @@ class PhillipsImage(Image, PhillipsImageMixin):
 
     barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path 
         verbose_name='Barcode', help_text='Bar code string')
-
-
 
 
 def test_ptiff_tile_store():
