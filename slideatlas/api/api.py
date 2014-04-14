@@ -194,6 +194,30 @@ class DatabaseAPI(AdminDBAPI):
 
             return jsonify(database.to_mongo())
 
+        elif data.has_key("sync"):
+            """
+            supported for ptiffstore
+            """
+
+            if resid is None :
+                return Response("{\"error\" : \"No store id supplied for synchronization\"}" , status=405)
+
+            # Locate the resource
+            obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
+
+            if obj == None:
+                # Invalid request if the object is not found
+                return Response("{\"error\" : \"Id Not found: %s\"} "%(resid), status=405)
+
+            if obj._cls != "TileStore.Database.PtiffTileStore":
+                return Response("{\"error\" : \"Sync for %s is not defined\"} "%(obj._cls), status=405)
+
+            obj.sync()
+            
+            print obj._data
+
+            return jsonify({"database" : obj.to_mongo()})
+                
         else:
             # Only insert and modify commands supported so far
             abort(400)
@@ -415,7 +439,7 @@ class DataSessionsAPI(MethodView):
             return jsonify(newsession)
 
         elif data.has_key("modify"):
-          # Resid must be supplied
+            # Resid must be supplied
             if sessid == None :
                 return Response("{\"error\" : \"No session _id supplied for modification\"}" , status=405)
 

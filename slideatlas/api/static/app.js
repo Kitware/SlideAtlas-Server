@@ -107,14 +107,21 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http){
                     alert("Save not successful");
                     return;
                 });
+            }
 
+        $scope.sync = function () {
+            console.log("Synchronizing .. ");
 
-            // $scope.database.$update({dbid:$scope.database._id}, function(data){
-            //     $location.path("/databases");
-            //     });
+            $http.post("/apiv1/databases/" + $routeParams.idx, { "sync" : $scope.database._id }).
+                success(function(data, status) {
+                    // $scope.database = data;
+                    $scope.database = data.database;
+                }).
+                error(function(data, status) {
+                    alert("Sync failed");
+                    return;
+                });
         };
-
-
     });
 
 app.directive('helloWorld', function () {
