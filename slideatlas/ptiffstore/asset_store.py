@@ -10,7 +10,9 @@ sys.path.append(slideatlaspath)
 
 import mongoengine
 from slideatlas.models.common import ModelDocument
-from slideatlas.models import TileStore, Database, User 
+from slideatlas.models.image import Image
+
+from slideatlas.models import TileStore, Database, User
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
 
@@ -46,11 +48,15 @@ class PTiffStoreMixin(object):
             if self.last_sync < mtime :
                 logging.info("Needs refresh: %s"%(aslide))  
                 # Locate the record 
-
+                
                 # logging.log(logging.INFO, "Reading file: %s, itype: %s" % (fname, itype))
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
                 logging.error(reader.barcode)
+                # Create or locate the image 
+
+                logging.error(reader.width)
+
             
                 # obj = {}
                 # obj["name"] = os.path.split(aslide)[1]
@@ -70,14 +76,32 @@ class PTiffStoreMixin(object):
 
     
 
-class PtiffTileStore(TileStore, PTiffStoreMixin):
+class PtiffTileStore(Database, PTiffStoreMixin):
     """
     The data model for TileStore 
 
     """
     last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
     root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive 
-    images = mongoengine.StringField(required=True, default="ptiffimages") #: PTiffTileStore stores the images metadata in this collection
+    
+class PhillipsImageMixin(object):
+    """
+    Methods and business logic for ptiff images coming from phillips
+    """
+    pass
+
+
+
+class PhillipsImage(Image, PhillipsImageMixin):
+    """
+    Data models for ptiff images based on mongoengine
+    """
+
+    barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path 
+        verbose_name='Barcode', help_text='Bar code string')
+
+
+
 
 def test_ptiff_tile_store():
     store = PtiffTileStore(root_path="/home/dhan/data/phillips")
@@ -124,7 +148,6 @@ def test_getlist():
     # for obj in TileStore.objects():
     #     print obj
 
-from bson import ObjectId
 def test_items_mongoengine():
     # .with_id(ObjectId("53482d5a0a3ee1346135d805"))
     print 
@@ -140,6 +163,7 @@ def test_items_mongoengine():
     print "PtiffTileStore"
     for obj in PtiffTileStore.objects:
         print obj._cls, obj.label
+
 
 
 if __name__ == "__main__":
