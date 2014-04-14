@@ -117,9 +117,10 @@ class AdminDBItemsAPI(MethodView):
 # The url valid for databases, rules and users with supported queries
 
 class DatabaseAPI(AdminDBAPI):
+    decorators = [site_admin_required(False)]
 
     def delete(self, resid):
-        obj = models.TileStore.objects.with_id(ObjectId(resid))
+        obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
 
         if obj :
             obj.delete()
@@ -248,8 +249,12 @@ class DatabaseAPI(AdminDBAPI):
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # The object should exist
-        database = models.Database.objects.with_id(id=resid)
+        for anobj in asset_store.TileStore.objects:
+            print anobj.label, anobj.id
 
+        database = asset_store.TileStore.objects.with_id(ObjectId(data["_id"]))
+
+        print "ID: ", data["_id"], ObjectId(data["_id"])
         # Unknown request if no parameters
         if database == None:
             return Response("{\"error\" : \"Resource _id: %s  doesnot exist\"}" % (resid), status=403)
@@ -260,10 +265,17 @@ class DatabaseAPI(AdminDBAPI):
             database.host = data["host"]
             database.dbname = data["dbname"]
             database.copyright = data["copyright"]
+
+            # Add additional fields 
+            if "_cls" in data:
+                print data["_cls"]
+
             database.save()
         except Exception as inst:
             # If valid database object cannot be constructed it is invalid request
             return Response("{\"error\" : %s}" % str(inst), status=405)
+
+
 
         return jsonify(database.to_mongo())
 

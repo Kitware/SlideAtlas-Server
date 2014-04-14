@@ -96,10 +96,22 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http){
             });
 
         $scope.save = function () {
-            console.log("Saving .. ")
-            $scope.database.$update({dbid:$scope.database._id}, function(data){
-                $location.path("/databases");
+            console.log("Saving .. ");
+
+            $http.put("/apiv1/databases/" + $routeParams.idx, $scope.database).
+                success(function(data, status) {
+                    // $scope.database = data;
+                    $location.path("/databases") ;
+                }).
+                error(function(data, status) {
+                    alert("Save not successful");
+                    return;
                 });
+
+
+            // $scope.database.$update({dbid:$scope.database._id}, function(data){
+            //     $location.path("/databases");
+            //     });
         };
 
 

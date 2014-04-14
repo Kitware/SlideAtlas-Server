@@ -4,36 +4,66 @@ List : {{databases | json}} <br/>
 Current : {{database | json}}
 -->
 
-<h1> Header </h1>
-<div hello-world type="{{database._cls}}"> </div>
+<h1> Tile Store </h1>
+<!-- <div hello-world type="{{database._cls}}"> </div>
 <hello-world type="{{database._cls}}"> </hello-world>
+ -->
+<form class="form-horizontal" role="form">
+    <div class="form-group">
+        <label for="inputName" class="col-sm-2 control-label">Name:</label>
+        <div class="col-sm-10">
+            <input type="text" id="inputName" class="input form-control" ng-model="database.dbname" palceholder="name of database">
+        </div>
+    </div>
 
-<ng-switch on="database._cls">
-      <div class="animate-switch" ng-switch-when="TileStore.Database">
-      	<h1> {{ database._cls }}</h1>
-		<div hello-world> </div>
-		<hello-world> </hello-world>
-		<form>
-		     Name : <input type="text" class="input" ng-model="database.dbname" palceholder="name of database"><br />
-		     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br />
-		     Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br />
-		     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+    <div class="form-group">
+        <label for="inputLabel" class="col-sm-2 control-label">Label:</label>
+        <div class="col-sm-10">
+            <input type="text" id="inputLabel" class="input form-control" ng-model="database.label" palceholder="Label for database">
+        </div>
+    </div>
 
-		     <button ng-click="save()" class="btn-primary"> Save </button>
-		</form>
-      </div>
-      <div class="animate-switch" ng-switch-when="TileStore.PtiffTileStore">
-			<h1> {{ database._cls }}</h1>
-			<form>
-			     Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <br/>
-			     RootPath : <input type="text" class="input" ng-model="database.root_path" palceholder="Mongo Server"><br />
-			     Copyright : <input type="text" ng-model="database.copyright" class="input"  value="Copyright © 2011-12. All rights reserved."><br />
+    <div class="form-group">
+        <label for="inputServer" class="col-sm-2 control-label">Server:</label>
+        <div class="col-sm-10">
+            <input type="text" id="inputServer" class="input form-control" ng-model="database.host" palceholder="host">
+        </div>
+    </div>
 
-			     <button ng-click="sync()" class="btn-primary"> Synchronize </button>
+    <div class="form-group">
+        <label for="inputCopyright" class="col-sm-2 control-label">Copyright:</label>
+        <div class="col-sm-10">
+            <input type="text" id="inputCopyright" class="input form-control" ng-model="database.copyright" palceholder="host" value="Copyright © 2011-14. All rights reserved.">
+        </div>
+    </div>
+    <!--
 
-			     <button ng-click="save()" class="btn-primary"> Save </button>
-			</form>
-      </div>
-</ng-switch>
 
+    Label : <input type="text" class="input" ng-model="database.label" palceholder="Label for the database"> <b/
+    Server : <input type="text" class="input" ng-model="database.host" palceholder="Mongo Server"><br /
+    Copyright : <input type="text" ng-model="database.copyright" class="input"  <br />
+     -->
+    <ng-switch on="database._cls">
+        <br/>
+        <br/>
+        <div class="animate-switch" ng-switch-when="TileStore.PtiffTileStore">
+            <h3> {{ database._cls }}</h3>
+            <div class="form-group">
+                <label for="inputPath" class="col-sm-2 control-label">RootPath:</label>
+                <div class="col-sm-10">
+                    <input type="text" id="inputPath" class="input form-control" ng-model="database.root_path" palceholder="/home/" value="Copyright © 2011-14. All rights reserved.">
+                </div>
+            </div>
+        </div>
+    </ng-switch>
+
+    <div class="form-group">
+        <label for="inputPath" class="col-sm-2 control-label"></label>
+        <div class="col-sm-10">
+            <button ng-click="save()" class="btn-primary"> Save </button>
+        </div>
+    </div>
+
+
+</form>
 
