@@ -32,31 +32,6 @@ class TileStore(ModelDocument):
     def __unicode__(self):
         return unicode(self.label + self.copyright)
 
-
-################################################################################
-class Database(TileStore):
-    """
-    TODO: refactor this into MongoTileStore which stores image pyramid in 
-    mongodb collection 
-    """
-    host = StringField(required=True, # TODO: change to URLField
-        verbose_name='Host', help_text='The URL of the database\'s host.')
-
-    replica_set = StringField(required=False,
-        verbose_name='Replica Set Name', help_text='The replica set name, if the database is a member of one, or None otherwise.')
-
-    dbname = StringField(required=True,
-        verbose_name='Database Name', help_text='The internal Mongo name of the database.')
-
-    username = StringField(required=False,
-        verbose_name='Username', help_text='The username required to connect to the database.')
-
-    password = StringField(required=False,
-        verbose_name='Password', help_text='The password required to connect to the database.')
-
-    auth_db = StringField(required=False,
-        verbose_name='Authentication Database', help_text='The database to authenticate against.')
-
     @property
     def connection_alias(self):
         return str(self.id)
@@ -108,4 +83,29 @@ class Database(TileStore):
         """
         self.register()
         return get_db(self.connection_alias)
+
+
+################################################################################
+class Database(TileStore):
+    """
+    TODO: refactor this into MongoTileStore which stores image pyramid in 
+    mongodb collection 
+    """
+    host = StringField(required=True, # TODO: change to URLField
+        verbose_name='Host', help_text='The URL of the database\'s host.')
+
+    replica_set = StringField(required=False,
+        verbose_name='Replica Set Name', help_text='The replica set name, if the database is a member of one, or None otherwise.')
+
+    dbname = StringField(required=True,
+        verbose_name='Database Name', help_text='The internal Mongo name of the database.')
+
+    username = StringField(required=False,
+        verbose_name='Username', help_text='The username required to connect to the database.')
+
+    password = StringField(required=False,
+        verbose_name='Password', help_text='The password required to connect to the database.')
+
+    auth_db = StringField(required=False,
+        verbose_name='Authentication Database', help_text='The database to authenticate against.')
 

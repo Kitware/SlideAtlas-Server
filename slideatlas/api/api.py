@@ -265,6 +265,8 @@ class DatabaseAPI(AdminDBAPI):
             database.host = data["host"]
             database.dbname = data["dbname"]
             database.copyright = data["copyright"]
+            database.username = data["username"]
+            database.password = data["password"]
 
             # Add additional fields 
             if "_cls" in data:
@@ -308,9 +310,9 @@ class DataSessionsAPI(MethodView):
         datadb = database.to_pymongo()
 
         if sessid == None:
+            sessionlist = list()
             with database:
                 sessions = models.Session.objects.exclude("images","attachments", "views")
-            sessionlist = list()
 
             for asession in sessions:
                 sessionlist.append(asession.to_mongo())
