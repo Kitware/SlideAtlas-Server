@@ -1,5 +1,3 @@
-from mx.DateTime.Locale import _TimeLocale
-
 __author__ = 'dhanannjay.deo'
 
 """

@@ -12,7 +12,7 @@ import mongoengine
 from slideatlas.models.common import ModelDocument
 from slideatlas.models import TileStore, Database, User 
 import datetime
-
+from slideatlas.ptiffstore.reader_cache import make_reader
 
 class PTiffStoreMixin(object):
     """
@@ -45,22 +45,30 @@ class PTiffStoreMixin(object):
 
             if self.last_sync < mtime :
                 logging.info("Needs refresh: %s"%(aslide))  
+                # Locate the record 
+
+                # logging.log(logging.INFO, "Reading file: %s, itype: %s" % (fname, itype))
+                reader = make_reader({"fname" : aslide, "dir" : 0})
+                reader.set_input_params({ "fname" : aslide })
+                logging.error(reader.get_barcode_info())
+            
+                # obj = {}
+                # obj["name"] = os.path.split(aslide)[1]
+                # obj["barcode"] = fin.read()
+                # slides.append(obj)
+ 
             else:
                 logging.info("Is good: %s"%(aslide))  
-            # if not os.path.exists(barcodepath):
-            #     logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
-            #     reader = make_reader({"fname" : aslide, "dir" : 0})
-            #     reader.set_input_params({ "fname" : aslide })
-            #     fout = open(barcodepath, "w")
-            #     fout.write(reader.get_barcode_info())
-            #     fout.close()
-            #
-            #
-            # obj = {}
-            # obj["name"] = os.path.split(aslide)[1]
-            # obj["barcode"] = fin.read()
-            # slides.append(obj)
-        self.last_sync = datetime.datetime.now()
+
+        self.save()
+
+    
+    def resync(self):
+        self.last_sync = datetime.datetime.fromtimestamp(0)
+        self.save()
+        self.sync()
+
+    
 
 class PtiffTileStore(TileStore, PTiffStoreMixin):
     """
@@ -81,8 +89,7 @@ def test_ptiff_tile_store():
 def test_modify_store():
     for obj in PtiffTileStore.objects:
         logging.info("Synchronizing ptiff store: %s", obj.label)
-        obj.sync()
-        obj.save()
+        obj.resync()
 
     
 def create_ptiff_store():
