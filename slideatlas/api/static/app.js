@@ -109,10 +109,11 @@ app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http){
                 });
             }
 
-        $scope.sync = function () {
+        $scope.sync = function (re) {
+            re = re | false;
             console.log("Synchronizing .. ");
 
-            $http.post("/apiv1/databases/" + $routeParams.idx, { "sync" : $scope.database._id }).
+            $http.post("/apiv1/databases/" + $routeParams.idx, { "sync" : $scope.database._id , "re" : re}).
                 success(function(data, status) {
                     // $scope.database = data;
                     $scope.database = data.database;

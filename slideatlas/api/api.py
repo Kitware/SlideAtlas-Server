@@ -212,11 +212,14 @@ class DatabaseAPI(AdminDBAPI):
             if obj._cls != "TileStore.Database.PtiffTileStore":
                 return Response("{\"error\" : \"Sync for %s is not defined\"} "%(obj._cls), status=405)
 
-            obj.sync()
-            
-            print obj._data
+            resp = {}
+            if "re" in data and data["re"]:
+                resp["syncresults"] = obj.resync()
+            else:
+                resp["syncresults"] = obj.sync()
+            resp["database"] = obj.to_mongo()
 
-            return jsonify({"database" : obj.to_mongo()})
+            return jsonify(resp)
                 
         else:
             # Only insert and modify commands supported so far
