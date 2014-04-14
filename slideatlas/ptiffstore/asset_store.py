@@ -50,7 +50,7 @@ class PTiffStoreMixin(object):
                 # logging.log(logging.INFO, "Reading file: %s, itype: %s" % (fname, itype))
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
-                logging.error(reader.get_barcode_info())
+                logging.error(reader.barcode)
             
                 # obj = {}
                 # obj["name"] = os.path.split(aslide)[1]
