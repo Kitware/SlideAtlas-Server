@@ -294,6 +294,8 @@ class DatabaseAPI(AdminDBAPI):
             database.copyright = data["copyright"]
             database.username = data["username"]
             database.password = data["password"]
+            if database._cls == "TileStore.Database.PtiffTileStore":
+                database.root_path = data["root_path"]
 
             # Add additional fields 
             if "_cls" in data:
