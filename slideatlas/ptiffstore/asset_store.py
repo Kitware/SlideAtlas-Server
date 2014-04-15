@@ -10,9 +10,9 @@ sys.path.append(slideatlaspath)
 
 import mongoengine
 from slideatlas.models.common import ModelDocument
-from slideatlas.models.image import Image
+from slideatlas.models.image import Image, View
 
-from slideatlas.models import TileStore, Database, User
+from slideatlas.models import TileStore, Database, User, Session
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth
@@ -44,6 +44,20 @@ class PTiffStoreMixin(object):
         count = 0
         synced = 0
         images = []
+
+        session_name = "All"
+
+        with self:
+            # Find the session
+            try:
+                sess = Session.objects(name=session_name)[0]
+            except:
+                sess = None
+
+            if sess == None:
+                sess = Session(name=session_name, label=session_name)
+
+
         for aslide in glob.glob(searchpath):
 
             count = count + 1
@@ -59,7 +73,7 @@ class PTiffStoreMixin(object):
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
                 logging.info(reader.barcode)
-
+                newimage = False
                 with self:
                     # Locate the record 
                     try:
@@ -73,16 +87,16 @@ class PTiffStoreMixin(object):
                         logging.log(logging.ERROR, "Reading file: %s" % (fname))
                         
                         animage.filename = fname
-                        animage.label = fname
+                        animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                         animage.TileSize= reader.tile_width
                         animage.CoordinateSystem = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
-                        
+                        newimage = True
                     else:
                         animage.filename = fname
-                        animage.label = fname
+                        animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                         animage.TileSize= reader.tile_width
@@ -90,6 +104,19 @@ class PTiffStoreMixin(object):
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
                     animage.save()  
+                    
+                    if newimage:
+                        # Also insert in the session
+
+                        # Determine the session
+                        with self:
+                            # Find the session
+
+                            aview = View(img=animage.id)
+                            aview.save()
+
+                            sess.add("views", aview.id)
+
                     images.append(animage.to_mongo())
                 # logging.info(reader.width)
                 synced = synced + 1
@@ -101,7 +128,7 @@ class PTiffStoreMixin(object):
  
             else:
                 logging.info("Is good: %s"%(aslide))  
-            
+        sess.save()
         resp["count"] = count
         resp["synced"] = synced
         resp["images"] = images

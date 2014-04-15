@@ -20,6 +20,7 @@ def getcoords(name, tile_size = 256):
     if name[0] != "t" :
         raise Exception("The name must start with t")
     name = name[1:]
+    level = len(name)        
 
     currentpos = 0
     while len(name) > 0:
@@ -43,8 +44,7 @@ def getcoords(name, tile_size = 256):
 
         # print " "*len(name), target[:len(name)], current, startx, starty
         # print " "*len(name), name , startx, starty
-
-    return [target, startx, starty]
+    return [startx , starty, level]
 
 
 
@@ -74,6 +74,11 @@ def get_tile_name_slideatlas(x,y, z):
 
     tileName += ".jpg";
     return tileName
+
+
+
+
+
 import unittest
 
 class Test(unittest.TestCase):
@@ -115,7 +120,10 @@ class Test(unittest.TestCase):
     def testlong(self):
         self.failUnlessEqual(get_tile_name_slideatlas(8,15,5), "tqsttt.jpg")# ['tqsttt', 8, 15]
 
+    def test_GetcoordT(self):
+        self.failUnlessEqual(getcoords("t"),[0,0,0])# ['tqsttt', 8, 15]
+        self.failUnlessEqual(getcoords("tt"),[0,1,1])# ['tqsttt', 8, 15]
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == "__main__": 
+    unittest.main() 
 

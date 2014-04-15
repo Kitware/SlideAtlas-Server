@@ -1,4 +1,5 @@
 from mongoengine import StringField, IntField, FloatField, ListField
+import mongoengine
 from mongoengine import register_connection
 from mongoengine.connection import _connection_settings, get_db
 from bson import Binary
@@ -11,12 +12,9 @@ class Image(MultipleDatabaseModelDocument):
 
     """
 
-    use_schemaless = True
-
     meta = {
-        'db_alias': 'admin_db',
         'collection': 'images',
-        'allow_inheritance' : True,
+        'allow_inheritance' : True
     }
 
     filename = StringField(required=True, #TODO: filename with respect to root_path 
@@ -54,3 +52,12 @@ class Image(MultipleDatabaseModelDocument):
         return unicode(self.label + self.copyright)
 
 
+class View(MultipleDatabaseModelDocument):
+    """
+    The model Image record, any methods will go into a mixin
+    """
+    meta = {
+        'collection': 'views',
+    }
+
+    img = mongoengine.ObjectIdField(required =True, verbose_name="View object")
