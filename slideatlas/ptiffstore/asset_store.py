@@ -10,7 +10,7 @@ sys.path.append(slideatlaspath)
 
 import mongoengine
 from slideatlas.models.common import ModelDocument
-from slideatlas.models.image import Image, View
+from slideatlas.models import Image, View
 
 from slideatlas.models import TileStore, Database, User, Session
 import datetime

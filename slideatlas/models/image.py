@@ -1,23 +1,24 @@
-from mongoengine import StringField, IntField, FloatField, ListField
-import mongoengine
-from mongoengine import register_connection
-from mongoengine.connection import _connection_settings, get_db
-from bson import Binary
+# coding=utf-8
 
-from .common import ModelDocument, MultipleDatabaseModelDocument
+from mongoengine import FloatField, IntField, ListField, StringField
 
+from .common import MultipleDatabaseModelDocument
+
+################################################################################
+__all__ = ('Image',)
+
+
+################################################################################
 class Image(MultipleDatabaseModelDocument):
     """
     The model Image record, any methods will go into a mixin
-
     """
-
     meta = {
         'collection': 'images',
         'allow_inheritance' : True
     }
 
-    filename = StringField(required=True, #TODO: filename with respect to root_path 
+    filename = StringField(required=True, #TODO: filename with respect to root_path
         verbose_name='Filename', help_text='The filename of incoming image excluding path')
 
     label = StringField(required=True, #TODO: make unique
@@ -38,26 +39,14 @@ class Image(MultipleDatabaseModelDocument):
     components = IntField(required=True, #TODO: make unique
         verbose_name='Components', help_text='Levels in multiresolution pyramid', default=3)
 
-    # New fields 
+    # New fields
 
     CoordinateSystem = StringField(choices=["Pixel", "Photo"], default="Pixel")
 
     TileSize = IntField(required=True, #TODO: make unique
         verbose_name='TileSize', help_text='dimensions of each square tile', default=256)
 
-    bounds = ListField(IntField(), required=True, default=[0,0,0,0,0,0]) 
-
+    bounds = ListField(IntField(), required=True, default=[0,0,0,0,0,0])
 
     def __unicode__(self):
         return unicode(self.label + self.copyright)
-
-
-class View(MultipleDatabaseModelDocument):
-    """
-    The model Image record, any methods will go into a mixin
-    """
-    meta = {
-        'collection': 'views',
-    }
-
-    img = mongoengine.ObjectIdField(required =True, verbose_name="View object")
