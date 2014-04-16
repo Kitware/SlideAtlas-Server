@@ -10,6 +10,7 @@ from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from slideatlas.common_utils import site_admin_required
 from slideatlas import models, security
+from slideatlas.ptiffstore import asset_store 
 import re
 import gridfs
 
@@ -116,15 +117,17 @@ class AdminDBItemsAPI(MethodView):
 # The url valid for databases, rules and users with supported queries
 
 class DatabaseAPI(AdminDBAPI):
+    decorators = [site_admin_required(False)]
 
     def delete(self, resid):
-        obj = models.Database.objects.with_id(resid)
+        obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
+
         if obj :
             obj.delete()
             return Response("{}", status=200)
         else:
             # Invalid request if the object is not found
-            return Response("{\"error\" : \"Id Not found \"} ", status=405)
+            return Response("{\"error\" : \"Id Not found: %s\"} "%(resid), status=405)
 
 
     def post(self, resid=None):
@@ -191,6 +194,33 @@ class DatabaseAPI(AdminDBAPI):
 
             return jsonify(database.to_mongo())
 
+        elif data.has_key("sync"):
+            """
+            supported for ptiffstore
+            """
+
+            if resid is None :
+                return Response("{\"error\" : \"No store id supplied for synchronization\"}" , status=405)
+
+            # Locate the resource
+            obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
+
+            if obj == None:
+                # Invalid request if the object is not found
+                return Response("{\"error\" : \"Id Not found: %s\"} "%(resid), status=405)
+
+            if obj._cls != "TileStore.Database.PtiffTileStore":
+                return Response("{\"error\" : \"Sync for %s is not defined\"} "%(obj._cls), status=405)
+
+            resp = {}
+            if "re" in data and data["re"]:
+                resp["syncresults"] = obj.resync()
+            else:
+                resp["syncresults"] = obj.sync()
+            resp["database"] = obj.to_mongo()
+
+            return jsonify(resp)
+                
         else:
             # Only insert and modify commands supported so far
             abort(400)
@@ -246,8 +276,12 @@ class DatabaseAPI(AdminDBAPI):
                 return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # The object should exist
-        database = models.Database.objects.with_id(id=resid)
+        for anobj in asset_store.TileStore.objects:
+            print anobj.label, anobj.id
 
+        database = asset_store.TileStore.objects.with_id(ObjectId(data["_id"]))
+
+        print "ID: ", data["_id"], ObjectId(data["_id"])
         # Unknown request if no parameters
         if database == None:
             return Response("{\"error\" : \"Resource _id: %s  doesnot exist\"}" % (resid), status=403)
@@ -258,10 +292,21 @@ class DatabaseAPI(AdminDBAPI):
             database.host = data["host"]
             database.dbname = data["dbname"]
             database.copyright = data["copyright"]
+            database.username = data["username"]
+            database.password = data["password"]
+            if database._cls == "TileStore.Database.PtiffTileStore":
+                database.root_path = data["root_path"]
+
+            # Add additional fields 
+            if "_cls" in data:
+                print data["_cls"]
+
             database.save()
         except Exception as inst:
             # If valid database object cannot be constructed it is invalid request
             return Response("{\"error\" : %s}" % str(inst), status=405)
+
+
 
         return jsonify(database.to_mongo())
 
@@ -294,9 +339,9 @@ class DataSessionsAPI(MethodView):
         datadb = database.to_pymongo()
 
         if sessid == None:
+            sessionlist = list()
             with database:
                 sessions = models.Session.objects.exclude("images","attachments", "views")
-            sessionlist = list()
 
             for asession in sessions:
                 sessionlist.append(asession.to_mongo())
@@ -399,7 +444,7 @@ class DataSessionsAPI(MethodView):
             return jsonify(newsession)
 
         elif data.has_key("modify"):
-          # Resid must be supplied
+            # Resid must be supplied
             if sessid == None :
                 return Response("{\"error\" : \"No session _id supplied for modification\"}" , status=405)
 
@@ -674,14 +719,48 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 , view_func=DataSessionsAPI.as_view("show_sessions"),
                                 methods=["get", "post"])
 
-
 # Specially for session
 
 # Render admin template
-@mod.route('/admin')
 @site_admin_required(True)
+@mod.route('/admin')
 def admin_main():
     """
     Single page application with uses this rest API to interactively do tasks
     """
     return Response(render_template("admin.html"))
+
+@site_admin_required(True)
+@mod.route('/mysessions')
+def admin_main_sessions():
+    """
+    Single page application with uses this rest API to interactively do tasks
+    """
+    return Response(render_template("fullsessions.html"))
+
+
+################################################################################
+@site_admin_required(True)
+@mod.route('/sessions')
+def view_all_sessions():
+    all_sessions = list()
+    for role in security.current_user.roles:
+        with role.db:
+            if role.can_see_all:
+                sessions = list(models.Session.objects.as_pymongo())
+            else:
+                sessions = models.Session.objects.in_bulk(role.can_see).values().as_pymongo()
+        sessions.sort(key=itemgetter("label"))
+
+        all_sessions.append((role.to_mongo(), sessions))
+        
+    all_sessions.sort(key=lambda (role, sessions): itemgetter("name"))
+
+    if request.args.get('json'):
+        # TODO: switch to using 'Content-Type: application/json' header to request JSON output
+        #   this can be checked for with 'request.get_json(silent=True)' or better in Flask 0.11 with 'request.is_json()'
+
+        return jsonify(sessions=all_sessions ,  ajax=1)
+        # return jsonify({})  # TODO: JSON output
+    else:
+        return render_template('sessionlist.html', all_sessions=all_sessions)

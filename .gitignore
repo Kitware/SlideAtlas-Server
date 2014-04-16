@@ -9,3 +9,4 @@ testing/*.log
 testing/Testing
 chromedriver.log
 env/
+slideatlas/site_slideatlas.py

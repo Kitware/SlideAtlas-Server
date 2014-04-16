@@ -26,14 +26,6 @@ function GetErrorImageFunction (callback) {
     return function () {callback.HandleErrorImage();}
 }
 
-
-
-
-
-
-
-
-
 // Three stages to loading a tile: (texture map is created when the tile is rendered.
 // 1: Create a tile object.
 // 2: Initialize the texture.
@@ -166,6 +158,7 @@ Tile.prototype.StartLoad = function (cache) {
     this.Image.onerror = GetErrorImageFunction(callback);
   //}
   // This starts the loading.
+  // DJ this will be achieved after the websocket has returned the image data 
   this.Image.src = imageSrc;
 };
 

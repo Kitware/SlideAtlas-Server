@@ -5,6 +5,8 @@
  var app = angular.module('adminapi',["ngResource", "ngRoute", 'ui.bootstrap']).
     config(
      function ($routeProvider) {
+        $routeProvider.when("/tilestores/new", {templateUrl: "/apiv1/static/partials/tilestoresNew.html", controller:"DBNewCtrl"});
+
         $routeProvider.when("/databases", {templateUrl: "/apiv1/static/partials/dbList.html"});
         $routeProvider.when("/databases/new", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBNewCtrl"});
         $routeProvider.when("/databases/edit/:idx", {templateUrl: "/apiv1/static/partials/dbNew.html", controller:"DBEditCtrl"});
@@ -80,34 +82,56 @@ app.factory('Data', function() {
 
     });
 
-app.controller("DBEditCtrl", function ($scope, $location, $routeParams, Database, Data)
-    {
+app.controller("DBEditCtrl", function ($scope, $location, $routeParams, $http){
         // console.log("Refreshing edit")
         // Locate the object
-        var dbs = Data.getList()
-
-        // for(adb in dbs)
-        // { console.log(dbs[adb]);}
-
-        var db = Data.getItem($routeParams.idx);
-        if(typeof db === 'undefined')
-            {
-            alert("Item not found for editing");
-            $location.path("/databases") ;
-            return;
-            }
-
-        console.log(db)
-
-        $scope.database = Database.get({dbid:db._id})
+        $http({method: "get", url: "/apiv1/databases/" + $routeParams.idx}).
+            success(function(data, status) {
+                $scope.database = data;
+            }).
+            error(function(data, status) {
+                alert("Item not found for editing");
+                $location.path("/databases") ;
+                return;
+            });
 
         $scope.save = function () {
-            $scope.database.$update({dbid:$scope.database._id}, function(data){
-                $location.path("/databases");
-                }
-                );
-        }
+            console.log("Saving .. ");
+
+            $http.put("/apiv1/databases/" + $routeParams.idx, $scope.database).
+                success(function(data, status) {
+                    // $scope.database = data;
+                    $location.path("/databases") ;
+                }).
+                error(function(data, status) {
+                    alert("Save not successful");
+                    return;
+                });
+            }
+
+        $scope.sync = function (re) {
+            re = re | false;
+            console.log("Synchronizing .. ");
+
+            $http.post("/apiv1/databases/" + $routeParams.idx, { "sync" : $scope.database._id , "re" : re}).
+                success(function(data, status) {
+                    // $scope.database = data;
+                    $scope.database = data.database;
+                }).
+                error(function(data, status) {
+                    alert("Sync failed");
+                    return;
+                });
+        };
     });
+
+app.directive('helloWorld', function () {
+    return {
+        restrict : "ECMA",
+        template: '<div> <p>Hello World</p> </div>',
+        replace : true,
+    };
+ });
 
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
@@ -154,8 +178,6 @@ app.controller("dbDetailsCtrl", function ($scope, $location, $routeParams, Datab
                 });
             }
         }
-
-
     });
 
 app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Database, Data, Session)
@@ -291,31 +313,32 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         }
     });
 
-
-app.controller("dbListCtrl", function ($scope, Database, $location, Data)
-    {
+/******************************************************************************/
+app.controller("dbListCtrl", function ($scope, $http) {
     console.log("Refreshing DBListCtrl")
 
-    Database.get({}, function(data) {
-        Data.setList(data.databases);
-        $scope.databases = Data.getList();
-        }
-    );
+    $http({method: "get", url: "/apiv1/databases"}).
+        success(function(data, status) {
+                $scope.databases = data.databases;
+        }).
+        error(function(data, status) {
+            $scope.databases = [];
+        });
 
-    $scope.delete = function(idx)
-        {
-        // Locate the object
-        var db = Data.getItem(idx)
-        console.log(db)
-        if (confirm("Remove database " + db.dbname + '?'))
-            {
-            Database.delete({dbid:db._id}, function(data) {
-                Data.removeItem(idx);
-                $location.path("/databases");
+    $scope.delete = function(idx) {
+        var db_to_delete = $scope.databases[idx];
+        if (confirm("Remove database (" + db_to_delete.dbname + ") " + db_to_delete.label +'?')) {
+            // Locate the object
+            $http({method: "delete", url: "/apiv1/databases/" + db_to_delete._id}).
+                success(function(data, status) {
+                    $scope.databases.splice(idx, 1);
+                }).
+                error(function(data, status) {
+                    alert("Error deleting ..");
                 });
-            }
         }
-    });
+    }
+});
 
 app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
 
@@ -516,3 +539,4 @@ app.controller("ModalInstanceCtrl", function ($scope, $modalInstance, items, sel
     $modalInstance.dismiss('cancel');
   };
 });
+

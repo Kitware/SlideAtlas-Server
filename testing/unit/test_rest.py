@@ -1,10 +1,17 @@
+# DJ's command line for testing 
+# (export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ; python test_rest.py  APIv1_Tests.testDatabaseInfo )
+
 import sys
 from json import loads
 import json
 import os
 sys.path.append(os.path.abspath("../.."))
 import slideatlas
+from slideatlas import models
+from slideatlas.security.views.common import login_user
 import unittest
+# from slideatlas.security import login_user
+# from slideatlas import models 
 
 class APIv1_Tests(unittest.TestCase):
     def setUp(self):
@@ -15,19 +22,29 @@ class APIv1_Tests(unittest.TestCase):
 
     def login_viewer(self):
         # Posts login and password for demo database access
-        return self.app.post('/login.passwd', data=dict(
-            username="all_demo",
-            passwd=""
-        ), follow_redirects=True)
+        # demo_user = models.PasswordUser.objects.get(email='all_demo')
+        # login_user(demo_user)
+        demo_user = models.PasswordUser.objects.get(email='all_demo')
+        with self.app:
+            login_user(demo_user)        
 
+        
     def login_admin(self):
         # Posts admin access 
+        # admin_user = models.PasswordUser.objects.get(email='all_demo')
+        # return login_user(demo_user)
+
         # TODO: this should use site configuration
-        data = dict(
-            username="demo_admin",
-            passwd="2.0TB"
-        )
-        return self.app.post('/login.passwd', data=data , follow_redirects=True)
+        # with self.app1.test_request_context("/"):
+        with self.app.request_context():
+            admin_user = models.PasswordUser.objects.get(email='all_bev1_admin')
+            login_user(admin_user)        
+        # data = dict(
+        #     username="all_bev1_admin",
+        #     passwd="MAmanage"
+        # )
+
+        # self.app.post('/login', data=data , follow_redirects=True)
 
     def logout(self):
         return self.app.get('/logout', follow_redirects=True)
@@ -101,17 +118,18 @@ class APIv1_Tests(unittest.TestCase):
         """
         Test if the server returns database information correctly
         """
-        # Sign in for admin access
+        # TODO: Fix this  
+
+        # self.login_viewer()
         self.login_admin()
+
         obj = self.parseResponse("/apiv1/databases")
         self.failUnless(obj.has_key("databases"), "No database in the results")
 
-        # Now test a particular DB
-        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
-        self.failUnless(obj.has_key("label"), "No label in the database in the results")
+        firstdb = obj["databases"][0]
 
-        # Bound to fail 
-        obj = self.parseResponse("/apiv1/databases/507619bb0a3ee10434ae0827")
+        # Now test a particular DB
+        obj = self.parseResponse("/apiv1/databases/" + str(firstdb["_id"]))
         self.failUnless(obj.has_key("label"), "No label in the database in the results")
 
 

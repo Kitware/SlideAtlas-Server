@@ -3,17 +3,19 @@
          <table class="table table-striped">
             <thead>
                 <tr>
+                <td><h4>Type </h4></td>
                 <td><h4>Database name </h4></td>
-                <td><h4>Host</h4></td>
+                <!-- <td><h4>Host</h4></td> -->
                 <td> </td>
-                <td><a href="#/databases/new"><i class="glyphicon glyphicon-plus"></i></a> </td>
+                <td><a href="#/databases/new">Add New <i class="glyphicon glyphicon-plus"></i></a> </td>
                </tr>
            </thead>
             <tr ng-repeat ="adb in databases" >
-                <td><a href="#/{{adb._id}}/sessions">{{ adb.dbname }} </a></td>
-                <td>{{ adb.host }} </td>
-                <td><a href="#/databases/edit/{{$index}}"><i class="glyphicon glyphicon-edit"></i></a> </td>
-                <td><a ng-click="deletefile($index)"><i class="glyphicon glyphicon-remove"></i></a> </td>
+                <td> {{ adb._cls }} </a></td>
+                <td><a href="#/{{adb._id}}/sessions">({{ adb.dbname }}) {{adb.label}}</a></td>
+                <!-- <td>{{ adb.host }} </td> -->
+                <td><a href="#/databases/edit/{{adb._id}}">Edit <i class="glyphicon glyphicon-edit"></i></a> </td>
+                <td><a ng-click="delete($index)"> Delete <i class="glyphicon glyphicon-remove"></i></a> </td>
             </tr>
             </table>
   </div>

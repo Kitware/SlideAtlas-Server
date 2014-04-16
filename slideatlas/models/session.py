@@ -8,8 +8,21 @@ from .common import MultipleDatabaseModelDocument
 __all__ = ('Session',)
 
 
+class SessionMixin(object):
+    """
+    Logic to handles views within session
+    """
+    
+    def add(self, whichtype, what):
+        if not whichtype in ["views"]:
+            raise NotImplementedError
+
+        newref = {"ref" : what, "pos" : len(self.views), "hide" : False }
+        self["views"].append(newref)
+
+
 ################################################################################
-class Session(MultipleDatabaseModelDocument):
+class Session(MultipleDatabaseModelDocument, SessionMixin):
     meta = {
         'collection': 'sessions',
         }
