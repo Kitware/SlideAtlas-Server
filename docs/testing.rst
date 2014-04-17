@@ -68,3 +68,19 @@ In future, needs to be done for each request
 Uploading screenshots to the cdash
 
 `Link Upload Images to Cdash <http://public.kitware.com/pipermail/cdash/2011-June/000995.html>`_
+
+
+Smoke testing
+=============
+
+Smoke testing uses selenium browser automation to perform some basic navigation, and expect some dom in the returned elements. We are also comparing the end view with a screenshot captured during test setup.
+
+Chrome webdriver should be installed from `here <http://chromedriver.storage.googleapis.com/index.html>`_ 
+
+And should be in the binaries path.
+
+
+
+
+
+
