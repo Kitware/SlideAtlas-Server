@@ -4,7 +4,7 @@ import ImageStat
 import sys
 import hashlib
 
-def sameimage(path_im1, path_im2, threshold=10):
+def sameimage(path_im1, path_im2, threshold=30):
     """
     both inputs should be strings paths to the images
     returns a numerical value comparing the images
