@@ -502,15 +502,15 @@ def glstacksession():
         num = len(sessobj.views)
         for idx in range(0,num-1) :
             pair = {"Correlations": []}
-            pair["View0"] = sessobj["views"][idx]["ref"]
-            pair["View1"] = sessobj["views"][idx+1]["ref"]
+            pair["View0"] = sessobj.views[idx].ref
+            pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
     views = [];
     viewIdx = 0;
     #pdb.set_trace();
     for view in sessobj.views:
-        viewobj = db["views"].find_one({"_id" : view["ref"]})
+        viewobj = db["views"].find_one({"_id" : view.ref})
         imgdb = dbid
         if viewobj.has_key("db") :
             imgdb = viewobj["db"]
@@ -625,9 +625,7 @@ def glstackinsert():
     # I do not know the insert toan array so I will just set the whole thing
     with database:
         session = models.Session.objects.first(name='RenalStack')
-    #num = session["views"].length
-    num = len(session.views)
-    section = {"ref": view_id, "hide": False, "pos": num}
+    section = models.RefItem(ref=view_id)
     session.views.append(section);
     session.save()
 

@@ -1,13 +1,13 @@
 # coding=utf-8
 
-from mongoengine import register_connection
+from mongoengine import register_connection, BooleanField, EmbeddedDocument, EmbeddedDocumentField, ListField, ObjectIdField, StringField
 from mongoengine.connection import get_db
 from flask.ext.mongoengine import Document, BaseQuerySet
 
 import database  # to prevent circular import problems, this must be an implicit relative import of the whole module
 
 ################################################################################
-__all__ = ('register_admin_db',)
+__all__ = ('register_admin_db', 'RefItem')
 
 
 ################################################################################
@@ -94,3 +94,36 @@ class MultipleDatabaseModelDocument(ModelDocument):
         self._db_alias = cls_db_alias  # copy the value from the class to the instance
         self.switch_db(self._db_alias)
 
+
+################################################################################
+class RefItem(EmbeddedDocument):
+    meta = {
+        'allow_inheritance': False
+    }
+    ref = ObjectIdField(required=True)
+    hide = BooleanField(required=False, default=False)
+    label = StringField(required=False)
+    db = ObjectIdField(required=False)
+
+
+class RefListField(ListField):
+
+    def __init__(self, **kwargs):
+        #field = ReferenceField(document_type, dbref=False)
+        field = EmbeddedDocumentField(RefItem)
+        super(RefListField, self).__init__(field, **kwargs)
+
+
+    def to_mongo(self, value):
+        value = super(RefListField, self).to_mongo(value)
+        for pos, item in enumerate(value):
+            value['pos'] = pos
+        return value
+
+
+    def to_python(self, value):
+        try:
+            value = sorted(value, key=lambda item: item.pop('pos'))
+        except (TypeError, KeyError):
+            pass
+        return super(RefListField, self).to_python(value)

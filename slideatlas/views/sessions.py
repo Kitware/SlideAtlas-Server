@@ -81,9 +81,7 @@ def view_a_session(database_obj, session_obj, next=None):
     # iterate through the session objects
     images = list()
     for aview in session_obj.views:
-        hide = aview.get('hide', False)
-
-        viewobj = db['views'].find_one({'_id': aview['ref']})
+        viewobj = db['views'].find_one({'_id': aview.ref})
         # Crash here. Session had a viewid that did not exist.
         # Should we clean up the broken reference? Just skip for now.
         if viewobj:
@@ -115,8 +113,8 @@ def view_a_session(database_obj, session_obj, next=None):
             label = ""
             if "label" in imgobj:
                 label = imgobj["label"]
-            if "label" in aview :
-                label = aview["label"]
+            if aview.label:
+               label = aview.label
             if "Title" in viewobj :
                 label = viewobj["Title"]
             # Hide notes and descriptive title for student review
@@ -136,7 +134,7 @@ def view_a_session(database_obj, session_obj, next=None):
                     'db': imgdb,
                     'img': imgid,
                     'label': label,
-                    'view': str(aview["ref"])
+                    'view': str(aview.ref)
                 }
                 if viewobj.get("type") == "comparison":
                     animage["comparison"] = 1
@@ -147,8 +145,8 @@ def view_a_session(database_obj, session_obj, next=None):
     if session_obj.attachments:
         gfs = GridFS(db, "attachments")
         for anattach in session_obj.attachments:
-            fileobj = gfs.get(anattach["ref"])
-            attachments.append({'name': fileobj.name, 'id' : anattach["ref"]})
+            fileobj = gfs.get(anattach.ref)
+            attachments.append({'name': fileobj.name, 'id' : anattach.ref})
 
     session_json = session_obj.to_mongo()
     session_json.pop('attachments', None)
@@ -178,7 +176,7 @@ def sessionedit(database_obj, session_obj):
     # iterate through the view objects and record image information.
     viewList = []
     for aview in session_obj.views:
-        view = db["views"].find_one({"_id" : aview["ref"]})
+        view = db["views"].find_one({"_id" : aview.ref})
         # missing view ????
         if view :
             descriptiveLabel = ""
@@ -230,7 +228,7 @@ def sessionedit(database_obj, session_obj):
                     'img': str(imgid),
                     'descriptiveLabel': descriptiveLabel,
                     'hiddenLabel': hiddenLabel,
-                    'view': str(aview["ref"])
+                    'view': str(aview.ref)
                 }
                 viewList.append(item)
 
@@ -295,17 +293,14 @@ def sessionsave():
         # Look for matching old views in new session
         found = False
         for index, view in enumerate(oldViews):
-            if str(view["ref"]) == viewId :
+            if str(view.ref) == viewId :
                 # found one.  Copy it over.
                 found = True
-                view["pos"] = len(newViews)
                 # switch over to the new list.
                 newViews.append(view)
                 del oldViews[index]
                 # What a pain.  Why two lists?  Deal with the image list.
-                image = {}
-                image["pos"] = len(newImages)
-                image["hide"] = False
+                image = models.RefItem()
                 viewObj = db["views"].find_one({"_id" : ObjectId(viewId) })
 
                 viewObj["Title"] = viewData["label"]
@@ -315,12 +310,12 @@ def sessionsave():
                 if newFlag :
                     del viewObj["_id"]
                 # have to save the view, (Title might have changed.)
-                view["ref"] = db["views"].save(viewObj);
+                view.ref = db["views"].save(viewObj);
                 if "img" in viewObj :
-                    image["ref"] = viewObj["img"]
+                    image.ref = viewObj["img"]
                 else :
                     # assume view has type note.
-                    image["ref"] = viewObj["ViewerRecords"][0]["Image"]
+                    image.ref = viewObj["ViewerRecords"][0]["Image"]
                 newImages.append(image)
         if not found :
             if not viewId :
@@ -335,19 +330,12 @@ def sessionsave():
                 viewObj["HiddenTitle"] = viewData["hiddenLabel"]
                 viewId = db["views"].save(viewObj)
                 # make a view entry on the session list
-                view = {}
-                view["pos"] = len(newViews)
-                view["ref"] = viewId
-                view["hide"] = False
-                view["label"] = viewData["label"]
+                view = models.RefItem(ref=viewId, label=viewData["label"])
                 newViews.append(view)
                 # image
-                image = {}
-                image["pos"] = len(newImages)
-                image["hide"] = False
-                image["ref"] = ObjectId(viewData["img"])
+                image = models.RefItem(ref=ObjectId(viewData["img"]))
                 if viewData["db"] != dbId :
-                    image["db"] = viewData["db"]
+                    image.db = viewData["db"]
                 newImages.append(image)
                 #else :
                 # Todo: If viewId, copy view from another session.
@@ -357,7 +345,7 @@ def sessionsave():
     # Images can be shared.
     if not newFlag :
         for view in oldViews:
-            db["views"].remove({"_id" : view["ref"] })
+            db["views"].remove({"_id" : view.ref })
 
     sessObj.views = newViews
     sessObj.images = newImages

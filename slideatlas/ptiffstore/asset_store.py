@@ -9,10 +9,9 @@ slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."
 sys.path.append(slideatlaspath)
 
 import mongoengine
-from slideatlas.models.common import ModelDocument
 from slideatlas.models import Image, View
 
-from slideatlas.models import TileStore, Database, User, Session
+from slideatlas.models import TileStore, Database, Session, RefItem
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth
@@ -26,7 +25,7 @@ class PTiffStoreMixin(object):
     with each asset object will have a type = MongoAssetStore if not specified
 
     All sessions are stored in admindb in ptiffsessions and images are stored in ptiffimages
-    expects the model to have 
+    expects the model to have
     """
 
     def load_folder(self):
@@ -67,7 +66,7 @@ class PTiffStoreMixin(object):
             # logging.info("%s, %s, %s"%(aslide, mtime, self.last_sync))
 
             if self.last_sync < mtime :
-                logging.error("Needs refresh: %s"%(aslide))  
+                logging.error("Needs refresh: %s"%(aslide))
 
                 fname = os.path.split(aslide)[1]
                 reader = make_reader({"fname" : aslide, "dir" : 0})
@@ -75,17 +74,17 @@ class PTiffStoreMixin(object):
                 logging.info(reader.barcode)
                 newimage = False
                 with self:
-                    # Locate the record 
+                    # Locate the record
                     try:
                         animage = Image.objects(filename=fname)[0]
                     except:
                         animage = None
 
                     if animage == None:
-                        # Needs to sync 
+                        # Needs to sync
                         animage = Image()
                         logging.log(logging.ERROR, "Reading file: %s" % (fname))
-                        
+
                         animage.filename = fname
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
@@ -103,8 +102,8 @@ class PTiffStoreMixin(object):
                         animage.CoordinateSystem = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
-                    animage.save()  
-                    
+                    animage.save()
+
                     if newimage:
                         # Also insert in the session
 
@@ -115,7 +114,7 @@ class PTiffStoreMixin(object):
                             aview = View(img=animage.id)
                             aview.save()
 
-                            sess.add("views", aview.id)
+                            sess.views.append(RefItem(ref=aview.id))
 
                     images.append(animage.to_mongo())
                 # logging.info(reader.width)
@@ -125,9 +124,9 @@ class PTiffStoreMixin(object):
                 # obj["name"] = os.path.split(aslide)[1]
                 # obj["barcode"] = fin.read()
                 # slides.append(obj)
- 
+
             else:
-                logging.info("Is good: %s"%(aslide))  
+                logging.info("Is good: %s"%(aslide))
         sess.save()
         resp["count"] = count
         resp["synced"] = synced
@@ -135,7 +134,7 @@ class PTiffStoreMixin(object):
         self.last_sync = datetime.datetime.now()
         self.save()
         return resp
-    
+
     def resync(self):
         """
         May overwrite all the information in that database
@@ -144,16 +143,16 @@ class PTiffStoreMixin(object):
         self.save()
         return self.sync()
 
-    
+
 
 class PtiffTileStore(Database, PTiffStoreMixin):
     """
-    The data model for TileStore 
+    The data model for TileStore
 
     """
     last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
-    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive 
-    
+    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive
+
 class PhillipsImageMixin(object):
     """
     Methods and business logic for ptiff images coming from phillips
@@ -165,7 +164,7 @@ class PhillipsImage(Image, PhillipsImageMixin):
     Data models for ptiff images based on mongoengine
     """
 
-    barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path 
+    barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
         verbose_name='Barcode', help_text='Bar code string')
 
 
@@ -181,26 +180,26 @@ def test_modify_store():
         logging.info("Synchronizing ptiff store: %s", obj.label)
         obj.resync()
 
-    
+
 def create_ptiff_store():
-    store = PtiffTileStore(root_path="/home/dhan/data/phillips", 
-        label="Phillips Scanner folder from wsiserver3", 
+    store = PtiffTileStore(root_path="/home/dhan/data/phillips",
+        label="Phillips Scanner folder from wsiserver3",
         copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. \
          All rights reserved.")
-    
+
     print store.__dict__
     store.save()
 
 def test_getlist():
     """
     .. code-block:: javascript
-    
+
         db.databases.update({"_cls" : {"$exists" : 0}},{"$set" : { "_cls" : "TileStore.Database"}}, {"multi" : true })
-    
+
     """
 
 
-    print "getting list" 
+    print "getting list"
 
     # # Getting user list works perfectly
     # for obj in User.objects():
@@ -216,15 +215,15 @@ def test_getlist():
 
 def test_items_mongoengine():
     # .with_id(ObjectId("53482d5a0a3ee1346135d805"))
-    print 
+    print
     print "TileStore"
     for obj in TileStore.objects:
         print obj._cls, obj.label
-    print 
+    print
     print "Database"
     for obj in Database.objects:
         print obj._cls, obj.label
-    
+
     print
     print "PtiffTileStore"
     for obj in PtiffTileStore.objects:
