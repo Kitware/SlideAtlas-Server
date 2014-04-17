@@ -117,7 +117,7 @@ class RefListField(ListField):
     def to_mongo(self, value):
         value = super(RefListField, self).to_mongo(value)
         for pos, item in enumerate(value):
-            value['pos'] = pos
+            item['pos'] = pos
         return value
 
 

@@ -81,6 +81,8 @@ def view_a_session(database_obj, session_obj, next=None):
     # iterate through the session objects
     images = list()
     for aview in session_obj.views:
+        hide = aview.hide
+
         viewobj = db['views'].find_one({'_id': aview.ref})
         # Crash here. Session had a viewid that did not exist.
         # Should we clean up the broken reference? Just skip for now.
