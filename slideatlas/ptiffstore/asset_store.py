@@ -9,10 +9,9 @@ slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."
 sys.path.append(slideatlaspath)
 
 import mongoengine
-from slideatlas.models.common import ModelDocument
 from slideatlas.models import Image, View
 
-from slideatlas.models import TileStore, Database, User, Session
+from slideatlas.models import TileStore, Database, Session, RefItem
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth
@@ -115,7 +114,7 @@ class PTiffStoreMixin(object):
                             aview = View(img=animage.id)
                             aview.save()
 
-                            sess.add("views", aview.id)
+                            sess.views.append(RefItem(ref=aview.id))
 
                     images.append(animage.to_mongo())
                 # logging.info(reader.width)

@@ -1,28 +1,15 @@
 # coding=utf-8
 
-from mongoengine import BooleanField, DictField, ListField, StringField
+from mongoengine import BooleanField, DictField, StringField
 
-from .common import MultipleDatabaseModelDocument
+from .common import MultipleDatabaseModelDocument, RefListField
 
 ################################################################################
 __all__ = ('Session',)
 
 
-class SessionMixin(object):
-    """
-    Logic to handles views within session
-    """
-    
-    def add(self, whichtype, what):
-        if not whichtype in ["views"]:
-            raise NotImplementedError
-
-        newref = {"ref" : what, "pos" : len(self.views), "hide" : False }
-        self["views"].append(newref)
-
-
 ################################################################################
-class Session(MultipleDatabaseModelDocument, SessionMixin):
+class Session(MultipleDatabaseModelDocument):
     meta = {
         'collection': 'sessions',
         }
@@ -33,13 +20,13 @@ class Session(MultipleDatabaseModelDocument, SessionMixin):
     label = StringField(required=True,
         verbose_name='Label', help_text='The sessions\'s label.')
 
-    views = ListField(DictField(), required=False,
+    views = RefListField(required=False,
         verbose_name='Views', help_text='')
 
-    attachments = ListField(DictField(), required=False,
+    attachments = RefListField(required=False,
         verbose_name='Attachments', help_text='')
 
-    images = ListField(DictField(), required=False,
+    images = RefListField(required=False,
         verbose_name='Images', help_text='')
 
     annotations = DictField(required=False,
