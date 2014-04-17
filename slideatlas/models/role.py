@@ -7,7 +7,7 @@ from .common import ModelDocument
 from .database import Database
 
 ################################################################################
-__all__ = ('Role',)
+__all__ = ('Role', 'UserRole', 'GroupRole')
 
 
 ################################################################################
@@ -15,7 +15,7 @@ class Role(ModelDocument, RoleMixin):
     meta = {
         'db_alias': 'admin_db',
         'collection': 'rules',
-        'foreign_db_field': 'db',
+        'allow_inheritance': True,
         }
 
     db = ReferenceField(Database, dbref=False, required=True,
@@ -24,11 +24,9 @@ class Role(ModelDocument, RoleMixin):
     name = StringField(required=True, db_field='label',  # TODO:make unique
         verbose_name='Name', help_text='')
 
-    description = StringField(required=True,
+    # TODO: make required, for Flask-Security
+    description = StringField(required=False, default='',
         verbose_name='Description', help_text='')
-
-    facebook_id = StringField(required=False,
-        verbose_name='Facebook Group ID', help_text='The Facebook group ID that corresponds to the role.')
 
     can_see = ListField(ObjectIdField(), required=False,
         verbose_name='Can See Sessions', help_text='The sessions that the user can view.')
@@ -44,3 +42,11 @@ class Role(ModelDocument, RoleMixin):
 
     def __unicode__(self):
         return unicode(self.name)
+
+class UserRole(Role):
+    pass
+
+
+class GroupRole(Role):
+    facebook_id = StringField(required=False,
+        verbose_name='Facebook Group ID', help_text='The Facebook group ID that corresponds to the role.')
