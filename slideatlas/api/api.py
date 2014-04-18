@@ -358,6 +358,7 @@ class DataSessionsAPI(MethodView):
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
+            views_response = list()
             # Dereference the views
             for aview in sessobj.views:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
@@ -368,19 +369,26 @@ class DataSessionsAPI(MethodView):
                     if "ViewerRecords" in viewdetails:
                         viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
 
-                aview["details"] = viewdetails
+                views_response.append(dict(
+                    details=viewdetails,
+                    **(aview.to_mongo())
+                ))
 
             # Dereference the attachments
-            attachments = []
+            attachments_response = []
             if sessobj.attachments:
                 gfs = GridFS(datadb, "attachments")
                 for anattach in sessobj.attachments:
                     fileobj = gfs.get(anattach["ref"])
-                    anattach["details"] = ({'name': fileobj.name, 'length' : fileobj.length})
-            else:
-                sessobj.attachments = []
+                    attachments_response.append(dict(
+                        details={'name': fileobj.name, 'length' : fileobj.length},
+                        **(anattach.to_mongo())
+                    ))
 
-            return jsonify(sessobj.to_mongo())
+            session_response = sessobj.to_mongo()
+            session_response['views'] = views_response
+            session_response['attachments'] = attachments_response
+            return jsonify(session_response)
 
 
     def delete(self, dbid, sessid=None):
