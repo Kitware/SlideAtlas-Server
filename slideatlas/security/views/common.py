@@ -135,6 +135,8 @@ class LoginProvider(object):
                 # next, try email as a fallback, but email addresses may be
                 #   changed by the provider
                 user = self.user_model.objects.get(email=person.email)
+                # set external_id for use on subsequent logins
+                user.external_id = person.external_id
             except self.user_model.DoesNotExist:
                 # if a user still can't be found, assume it's a new user
                 created = True
