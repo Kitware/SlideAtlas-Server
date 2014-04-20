@@ -65,8 +65,6 @@ class LoginProvider(object):
         """
         Uses the provider's API to return an instance of Person with appropriate
         fields set.
-
-        May raise a KeyError, which will be handled by the caller.
         """
         pass
 
@@ -113,21 +111,17 @@ class LoginProvider(object):
         """
         """
         # Verify that all fields of person data are returned and non-empty
-        try:
-            person = self.fetch_person()
-            for key, value in person._asdict().iteritems():
-                # person fields should not be empty, unless it's a list
-                if (not value) and (not isinstance(value, list)):
-                    raise KeyError(key)
-        except KeyError as e:
-            missing_field = e.message
-            error = self.AuthorizationError('\"%s\" field not provided by API' % missing_field, 401)  # Unauthorized
-            if missing_field in ['external_id', 'full_name']:
-                # these fields are required, raise an error and don't proceed
-                raise error
-            else:
-                # otherwise, flash a message for the missing field, but allow the login to continue
-                flash(str(error), 'warning')
+        person = self.fetch_person()
+        for key, value in person._asdict().iteritems():
+            # person fields should not be empty, unless it's a list
+            if (not value) and (not isinstance(value, list)):
+                error_message = '\"%s\" field not provided by authentication provider' % key
+                if key in ['external_id', 'full_name']:
+                    # these fields are required, raise an error and don't proceed
+                    raise self.AuthorizationError(error_message, 401)  # Unauthorized
+                else:
+                    # otherwise, flash a message for the missing field, but allow the login to continue
+                    flash('%s.' % error_message, 'warning')
 
         # Get user from database
         created = False
