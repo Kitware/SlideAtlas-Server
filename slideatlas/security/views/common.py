@@ -167,7 +167,7 @@ class LoginProvider(object):
             super(OAuthLogin.AuthorizationError, self).__init__(str(self))
 
         def __unicode__(self):
-            return unicode('%s access denied: %s' % (self.oauth_provider, self.message))
+            return unicode('%s access denied: %s.' % (self.oauth_provider, self.message))
 
         def __str__(self):
             return unicode(self).encode('utf-8')
@@ -255,10 +255,12 @@ class OAuthLogin(LoginProvider):
         # pop from session first, in case an exception is raised
         expected_state = self.pop_oauth_state()
         if token is None:
-            error_code = request.args.get('error')
-            if error_code:
+            error_message = request.args.get('error')
+            if error_message:
                 error_details = request.args.get('error_description', '')
-                raise self.AuthorizationError('provider returned error: \"%s : %s\"' % (error_code, error_details),
+                if error_details:
+                    error_message += ' : %s' % error_details
+                raise self.AuthorizationError('provider returned error: \"%s\"' % error_message,
                                                    401)  # Unauthorized
             else:
                 raise self.AuthorizationError('invalid request arguments', 400)  # Bad Request
