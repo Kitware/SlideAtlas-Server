@@ -89,7 +89,8 @@ class PasswordUser(User):
 
 ################################################################################
 class GoogleUser(User):
-    pass
+    external_id = StringField(required=True,
+        verbose_name='External ID', help_text='A unique identifier used to associate this user with an external authentication service.')
 
 
 ################################################################################

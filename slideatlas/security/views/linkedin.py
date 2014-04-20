@@ -4,7 +4,7 @@ from slideatlas import models
 from .common import OAuthLogin
 
 ################################################################################
-__all__ = ('LinkedinOAuthLogin',)
+__all__ = ()
 
 
 ################################################################################
@@ -73,8 +73,8 @@ class LinkedinOAuthLogin(OAuthLogin):
 
         # Create and return person
         return self.Person(
-            external_id=person_profile.data['id'],
-            full_name=person_profile.data['formattedName'],
+            external_id=person_profile.data.get('id'),
+            full_name=person_profile.data.get('formattedName'),
             email=person_email.data
         )
 

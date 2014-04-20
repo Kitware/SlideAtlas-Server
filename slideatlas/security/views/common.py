@@ -11,7 +11,7 @@ from flask.ext.oauthlib.client import OAuth, OAuthException
 from werkzeug.security import gen_salt
 
 ################################################################################
-__all__ = ('LoginProvider', 'OAuthLogin', 'login_user')
+__all__ = ('login_user',)
 
 
 ################################################################################
@@ -24,6 +24,7 @@ class SingletonMetaclass(type):
         if not hasattr(cls, 'instance'):
             cls.instance = super(SingletonMetaclass, cls).__call__(*args)
         return cls.instance
+
 
 
 ################################################################################
@@ -65,8 +66,6 @@ class LoginProvider(object):
         """
         Uses the provider's API to return an instance of Person with appropriate
         fields set.
-
-        May raise a KeyError, which will be handled by the caller.
         """
         pass
 
@@ -113,21 +112,17 @@ class LoginProvider(object):
         """
         """
         # Verify that all fields of person data are returned and non-empty
-        try:
-            person = self.fetch_person()
-            for key, value in person._asdict().iteritems():
-                # person fields should not be empty, unless it's a list
-                if (not value) and (not isinstance(value, list)):
-                    raise KeyError(key)
-        except KeyError as e:
-            missing_field = e.message
-            error = self.AuthorizationError('\"%s\" field not provided by API' % missing_field, 401)  # Unauthorized
-            if missing_field in ['external_id', 'full_name']:
-                # these fields are required, raise an error and don't proceed
-                raise error
-            else:
-                # otherwise, flash a message for the missing field, but allow the login to continue
-                flash(str(error), 'warning')
+        person = self.fetch_person()
+        for key, value in person._asdict().iteritems():
+            # person fields should not be empty, unless it's a list
+            if (not value) and (not isinstance(value, list)):
+                error_message = '\"%s\" field not provided by authentication provider' % key
+                if key in ['external_id', 'full_name']:
+                    # these fields are required, raise an error and don't proceed
+                    raise self.AuthorizationError(error_message, 401)  # Unauthorized
+                else:
+                    # otherwise, flash a message for the missing field, but allow the login to continue
+                    flash('%s.' % error_message, 'warning')
 
         # Get user from database
         created = False
@@ -140,6 +135,8 @@ class LoginProvider(object):
                 # next, try email as a fallback, but email addresses may be
                 #   changed by the provider
                 user = self.user_model.objects.get(email=person.email)
+                # set external_id for use on subsequent logins
+                user.external_id = person.external_id
             except self.user_model.DoesNotExist:
                 # if a user still can't be found, assume it's a new user
                 created = True
@@ -155,7 +152,15 @@ class LoginProvider(object):
         else:
             flash('User account loaded from %s. Welcome back!' % self.pretty_name, 'info')
 
-        return login_user(user)
+        return self.login_user(user)
+
+
+    @staticmethod
+    def login_user(user):
+        flask_login_user(user, False)  # sets "session['user_id']"
+
+        # if a 'next' parameter is in the request, that will be redirected to instead of the default
+        return redirect(get_post_login_redirect())
 
 
     class AuthorizationError(Exception):
@@ -167,7 +172,7 @@ class LoginProvider(object):
             super(OAuthLogin.AuthorizationError, self).__init__(str(self))
 
         def __unicode__(self):
-            return unicode('%s access denied: %s' % (self.oauth_provider, self.message))
+            return unicode('%s access denied: %s.' % (self.oauth_provider, self.message))
 
         def __str__(self):
             return unicode(self).encode('utf-8')
@@ -231,10 +236,15 @@ class OAuthLogin(LoginProvider):
         The user will authenticate remotely, then be redirected back to the URL
         for 'login_authorized_view'.
         """
+        callback_url_params = dict()
+        post_login_url = request.args.get('next')
+        if post_login_url:
+            callback_url_params['next'] = post_login_url
+
         return self.oauth_service.authorize(
             callback=url_for('.%s' % self.endpoint_authorized,
-                             next=request.args.get('next') or request.referrer or None,  # TODO: test this
-                             _external=True))
+                             _external=True,
+                             **callback_url_params))
 
 
     @property
@@ -255,10 +265,12 @@ class OAuthLogin(LoginProvider):
         # pop from session first, in case an exception is raised
         expected_state = self.pop_oauth_state()
         if token is None:
-            error_code = request.args.get('error')
-            if error_code:
+            error_message = request.args.get('error')
+            if error_message:
                 error_details = request.args.get('error_description', '')
-                raise self.AuthorizationError('provider returned error: \"%s : %s\"' % (error_code, error_details),
+                if error_details:
+                    error_message += ' : %s' % error_details
+                raise self.AuthorizationError('provider returned error: \"%s\"' % error_message,
                                                    401)  # Unauthorized
             else:
                 raise self.AuthorizationError('invalid request arguments', 400)  # Bad Request
@@ -273,8 +285,7 @@ class OAuthLogin(LoginProvider):
         return self.do_login()
 
 
-    @staticmethod
-    def push_oauth_state():
+    def push_oauth_state(self):
         """
         Create, store, and return a random string.
 
@@ -285,8 +296,7 @@ class OAuthLogin(LoginProvider):
         return state
 
 
-    @staticmethod
-    def pop_oauth_state():
+    def pop_oauth_state(self):
         """
         Pop and return a stored random string.
 
@@ -296,9 +306,5 @@ class OAuthLogin(LoginProvider):
 
 
 ################################################################################
-# TODO: make this part of 'do_login'
-def login_user(user):
-    flask_login_user(user, False)  # sets "session['user_id']"
-
-    # if a 'next' parameter is in the request, that will be redirected to instead of the default
-    return redirect(get_post_login_redirect())
+# expose this for use when testing
+login_user = LoginProvider.login_user
