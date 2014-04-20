@@ -1,67 +1,106 @@
 # coding=utf-8
 
-from collections import namedtuple
-
-from flask import current_app, flash, redirect
-from flask.ext.security.decorators import anonymous_user_required
-from flask.ext.security.utils import user_registered
-from flask.ext.openid import OpenID
+from flask import flash, request, session, url_for
 
 from slideatlas import models
-from .common import login_user
+from .common import OAuthLogin
 
 ################################################################################
 __all__ = ()
 
-################################################################################
-oid = OpenID()
-
 
 ################################################################################
-def register(app, blueprint):
-    oid.init_app(app)
+class GoogleOAuthLogin(OAuthLogin):
 
-    blueprint.add_url_rule(rule='/login/google',
-                           endpoint='login_google',
-                           view_func=anonymous_user_required(login_google),
-                           methods=['GET', 'POST'])
+    def create_oauth_service(self, oauth_client, app_config):
+        consumer_key = app_config['SLIDEATLAS_GOOGLE_APP_ID']
+        consumer_secret = app_config['SLIDEATLAS_GOOGLE_APP_SECRET']
+        if (not consumer_key) or (not consumer_secret):
+            return None
 
-    # TODO: temporary structure until Google login is moved to OAuth
-    provider = {
-        'is_enabled': lambda: True,
-        'endpoint': 'login_google',
-        'icon_url': '/static/img/google_32.png',
-        'pretty_name': 'Google'
-    }
-    return namedtuple('GoogleLogin', provider.keys())(**provider)
+        return oauth_client.remote_app('google',
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+
+            # Used by authorize()
+            authorize_url='https://accounts.google.com/o/oauth2/auth',
+            request_token_params={
+                'scope': 'profile email',
+                'state': self.push_oauth_state
+            },
+
+            # Used by authorized_handler()
+            access_token_method='POST',
+            access_token_url='https://accounts.google.com/o/oauth2/token',
+
+            # Used by get() API requests
+            base_url='https://www.googleapis.com/plus/v1/',
+        )
 
 
-################################################################################
-@oid.loginhandler
-@oid.after_login
-def login_google(oid_response=None):
-    """
-    Does the login via OpenID.
-    """
-    GOOGLE_IDENTITY_URL = 'https://www.google.com/accounts/o8/id'
+    @property
+    def user_model(self):
+        return models.GoogleUser
 
-    if oid.fetch_error():
-        flash('OpenId Error: %s' % str(oid.fetch_error()), 'error')
-        return redirect('/home')
-    elif not oid_response:
-        # TODO: add support for 'next' field
-        return oid.try_login(GOOGLE_IDENTITY_URL, ask_for=['email', 'fullname']) # 'nickname'
-    else:
-        # Get user from database
-        user, created = models.GoogleUser.objects.get_or_create(email=oid_response.email, auto_save=False)
-        if created:
-            user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
-            flash('New Google user account created', 'info')
+
+    @property
+    def pretty_name(self):
+        return 'Google'
+
+
+    @property
+    def icon_url(self):
+        return '/static/img/google_32.png'
+
+
+    def login_view(self):
+        # Google OAuth's 'redirect_uri' must exactly match what was registered
+        #   for the app, including the query string. This means that a 'next'
+        #   parameter cannot be part of 'redirect_uri'. However, 'login_user'
+        #   will redirect to a URL contained in a special session variable if
+        #   it is set and the 'next' parameter isn't otherwise set.
+        post_login_url = request.args.get('next')
+        if post_login_url:
+            # this will be unset when it's read
+            session['security_post_login_view'] = post_login_url
+
+        return self.oauth_service.authorize(
+            callback=url_for('.%s' % self.endpoint_authorized,
+                             _external=True))
+
+
+    def fetch_person(self):
+        # Fetch person data
+        person_profile_url = 'people/me'
+        # explicitly request the desired fields, to ensure they are returned
+        # person_profile_requested_fields = ['id', 'displayName', 'email']
+        # person_profile_url += '?fields=%s' % (','.join(person_profile_requested_fields))
+        person_profile = self.oauth_service.get(person_profile_url)
+
+        # Verify that a response with person data was received
+        if person_profile.status != 200:
+            error_message = person_profile.data.get('error', dict()).get('message', '')
+            error_code = person_profile.status
+            raise self.AuthorizationError('%s (%s)' % (error_message, error_code), 502)  # Bad Gateway
+
+        person_all_emails = person_profile.data.get('emails', list())
+        if person_all_emails:
+            # prefer email address with 'account' type
+            person_emails = [email.get('value') for email in person_all_emails if (email.get('type') == 'account')]
+            # if an 'account' email can't be found, consider them all
+            if not person_emails:
+                person_emails = person_all_emails
+            # if we're in this conditional, at least 1 email exists
+            person_email = person_emails[0]
+            if len(person_emails) > 1:
+                flash('Authentication provider returned multiple email addresses. Using the first one: \"%s\".' % person_email,
+                      'warning')
         else:
-            flash('Google user account exists', 'info')
+            person_email = None
 
-        # Update user properties, in case Google has changed them
-        user.full_name = oid_response.fullname
-        user.save()
-
-        return login_user(user)
+        # Create and return person
+        return self.Person(
+            external_id=person_profile.data.get('id'),
+            full_name=person_profile.data.get('displayName'),
+            email=person_email,
+        )
