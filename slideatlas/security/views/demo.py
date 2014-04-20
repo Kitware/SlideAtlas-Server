@@ -4,7 +4,7 @@ from .common import LoginProvider
 from slideatlas import models
 
 ################################################################################
-__all__ = ('register',)
+__all__ = ('login_demo',)
 # TODO: this is a temporary fix to get demo user working until the demo
     #   rule is available without login
 

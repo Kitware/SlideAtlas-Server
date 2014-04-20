@@ -1,5 +1,11 @@
 # coding=utf-8
 
+from .common import *
+from .demo import *
+from .facebook import *
+from .google import *
+from .linkedin import *
+from .shibboleth import *
 from .common import OAuthLogin
 from . import google
 from .facebook import FacebookOAuthLogin
@@ -12,6 +18,7 @@ __all__ = ('add_views',)
 
 
 ################################################################################
+# TODO: move this function out of __init__
 def add_views(app, blueprint):
 
     # TODO: error handlers can only be registered on a blueprint before the

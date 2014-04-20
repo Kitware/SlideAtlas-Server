@@ -11,7 +11,7 @@ from flask.ext.oauthlib.client import OAuth, OAuthException
 from werkzeug.security import gen_salt
 
 ################################################################################
-__all__ = ('LoginProvider', 'OAuthLogin', 'login_user')
+__all__ = ('login_user',)
 
 
 ################################################################################
