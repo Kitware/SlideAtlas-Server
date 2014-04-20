@@ -26,6 +26,7 @@ class SingletonMetaclass(type):
         return cls.instance
 
 
+
 ################################################################################
 class LoginProviderMetaclass(ABCMeta, SingletonMetaclass):
     pass
@@ -149,7 +150,15 @@ class LoginProvider(object):
         else:
             flash('User account loaded from %s. Welcome back!' % self.pretty_name, 'info')
 
-        return login_user(user)
+        return self.login_user(user)
+
+
+    @staticmethod
+    def login_user(user):
+        flask_login_user(user, False)  # sets "session['user_id']"
+
+        # if a 'next' parameter is in the request, that will be redirected to instead of the default
+        return redirect(get_post_login_redirect())
 
 
     class AuthorizationError(Exception):
@@ -269,8 +278,7 @@ class OAuthLogin(LoginProvider):
         return self.do_login()
 
 
-    @staticmethod
-    def push_oauth_state():
+    def push_oauth_state(self):
         """
         Create, store, and return a random string.
 
@@ -281,8 +289,7 @@ class OAuthLogin(LoginProvider):
         return state
 
 
-    @staticmethod
-    def pop_oauth_state():
+    def pop_oauth_state(self):
         """
         Pop and return a stored random string.
 
@@ -292,9 +299,5 @@ class OAuthLogin(LoginProvider):
 
 
 ################################################################################
-# TODO: make this part of 'do_login'
-def login_user(user):
-    flask_login_user(user, False)  # sets "session['user_id']"
-
-    # if a 'next' parameter is in the request, that will be redirected to instead of the default
-    return redirect(get_post_login_redirect())
+# expose this for use when testing
+login_user = LoginProvider.login_user

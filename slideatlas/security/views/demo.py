@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from .common import login_user
+from .common import LoginProvider
 from slideatlas import models
 
 ################################################################################
@@ -19,4 +19,4 @@ def register(app, blueprint):
 
 def login_demo():
     demo_user = models.PasswordUser.objects.get(email='all_demo')
-    return login_user(demo_user)
+    return LoginProvider.login_user(demo_user)
