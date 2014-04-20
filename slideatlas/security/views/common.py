@@ -236,10 +236,15 @@ class OAuthLogin(LoginProvider):
         The user will authenticate remotely, then be redirected back to the URL
         for 'login_authorized_view'.
         """
+        callback_url_params = dict()
+        post_login_url = request.args.get('next')
+        if post_login_url:
+            callback_url_params['next'] = post_login_url
+
         return self.oauth_service.authorize(
             callback=url_for('.%s' % self.endpoint_authorized,
-                             next=request.args.get('next') or request.referrer or None,  # TODO: test this
-                             _external=True))
+                             _external=True,
+                             **callback_url_params))
 
 
     @property
