@@ -73,8 +73,8 @@ class GoogleOAuthLogin(OAuthLogin):
         # Fetch person data
         person_profile_url = 'people/me'
         # explicitly request the desired fields, to ensure they are returned
-        # person_profile_requested_fields = ['id', 'displayName', 'email']
-        # person_profile_url += '?fields=%s' % (','.join(person_profile_requested_fields))
+        person_profile_requested_fields = ['id', 'displayName', 'emails']
+        person_profile_url += '?fields=%s' % (','.join(person_profile_requested_fields))
         person_profile = self.oauth_service.get(person_profile_url)
 
         # Verify that a response with person data was received
