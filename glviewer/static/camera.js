@@ -291,8 +291,8 @@ Camera.prototype.Draw = function (overview) {
 
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
     GL.vertexAttribPointer(program.vertexPositionAttribute, 
-    			   squareOutlinePositionBuffer.itemSize, 
-    			   GL.FLOAT, false, 0, 0);    
+                           squareOutlinePositionBuffer.itemSize,
+                           GL.FLOAT, false, 0, 0);
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
   } else {

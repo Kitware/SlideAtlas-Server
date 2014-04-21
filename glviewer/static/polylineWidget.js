@@ -37,7 +37,7 @@ function PolylineWidget (viewer, newFlag) {
   this.Circle.ZOffset = -0.05;
 
   this.Shape = new Polyline();
-	this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+  this.Shape.OutlineColor = [0.0, 0.0, 0.0];
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);

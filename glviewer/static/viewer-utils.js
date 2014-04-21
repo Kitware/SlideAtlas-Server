@@ -97,8 +97,8 @@ function ConvertColor(color) {
     var floatColor = [];
     var idx = 1;
     for (var i = 0; i < 3; ++i) {
-	    var val = ((16.0 * HexDigitToInt(color[idx++])) + HexDigitToInt(color[idx++])) / 255.0; 
-	    floatColor.push(val);
+      var val = ((16.0 * HexDigitToInt(color[idx++])) + HexDigitToInt(color[idx++])) / 255.0;
+      floatColor.push(val);
     }
     return floatColor;
   }

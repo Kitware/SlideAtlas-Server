@@ -24,7 +24,7 @@ def create_user(admindb, userdb, key=None, debug=False):
     Creates a random username password pair and creates such a user to that database
     creates a relevant filename and encrypts the 
     """
-	# Find if the key is id
+    # Find if the key is id
     uname = id_generator(3)
     pwd = id_generator(6)
 
@@ -64,9 +64,9 @@ def create_user(admindb, userdb, key=None, debug=False):
 
 
 def error_exit(msg):
-		print "ERROR: ", msg
-		print "Aborting  .."
-		sys.exit(0)
+        print "ERROR: ", msg
+        print "Aborting  .."
+        sys.exit(0)
 
 # Main to accept command line and do the operation on images. 
 if __name__ == '__main__':
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         else:
                 print "Connection with no authentication ... "
     except:
-    	error_exit("Error opening " + args.db + " at " + args.mongodb)
+        error_exit("Error opening " + args.db + " at " + args.mongodb)
 
     admindb = conn[args.admindb]
     db = conn[args.db]

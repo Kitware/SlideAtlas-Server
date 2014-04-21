@@ -174,7 +174,7 @@ Camera.prototype.AddPoint = function (x, y, z) {
 
 Camera.prototype.CreateBuffer = function () {
     if (this.Buffer != null) {
-	GL.deleteBuffer(this.Buffer);
+        GL.deleteBuffer(this.Buffer);
     }
     this.Buffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, this.Buffer);
@@ -208,9 +208,9 @@ Camera.prototype.Draw = function (overviewCam, viewport) {
     // To handle rotation, I need to pass the center through
     // the overview camera matrix.
     var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4] 
-		 + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
+                + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
     var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5] 
-		 + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
+                + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
     // I having trouble using the overview camera, so lets just compute
     // the position of the rectangle here.
@@ -240,9 +240,9 @@ Camera.prototype.Draw = function (overviewCam, viewport) {
     mvMatrix[5] = 2*ry/ory;
 
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
-    			   squareOutlinePositionBuffer.itemSize, 
-    			   GL.FLOAT, false, 0, 0);    
+    GL.vertexAttribPointer(program.vertexPositionAttribute,
+                           squareOutlinePositionBuffer.itemSize,
+                           GL.FLOAT, false, 0, 0);
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
 }

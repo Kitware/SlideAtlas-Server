@@ -167,7 +167,7 @@ EventManager.prototype.HandleMouseWheel = function(event) {
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
   if (this.CurrentViewer) {
-	  event.preventDefault();
+    event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
     this.CurrentViewer.HandleMouseWheel(this);
   }

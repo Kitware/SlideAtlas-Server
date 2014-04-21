@@ -100,9 +100,9 @@ View.prototype.DrawOutline = function(backgroundFlag) {
     GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
     GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
-			   squareOutlinePositionBuffer.itemSize, 
-			   GL.FLOAT, false, 0, 0);
+    GL.vertexAttribPointer(program.vertexPositionAttribute,
+                           squareOutlinePositionBuffer.itemSize,
+                           GL.FLOAT, false, 0, 0);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
 }
 

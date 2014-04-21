@@ -174,7 +174,7 @@ CircleWidget.prototype.CheckActive = function(event) {
     }
   } else { // Disk
     if (d < (1.05+lineWidth) && d > (0.1+lineWidth) || d < lineWidth) {
-	    active = true;
+      active = true;
     }
   }
   

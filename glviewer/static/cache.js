@@ -88,7 +88,7 @@ Cache.prototype.GetSource=function()
 Cache.prototype.LoadRoots = function () {
     var qTile;
     if ( this.Image.dimensions == undefined) {
-	return;
+        return;
     }
     for (var slice = 1; slice <= this.Image.dimensions[2]; ++slice) {
         qTile = this.GetTile(slice, 0, 0);

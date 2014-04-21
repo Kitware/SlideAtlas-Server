@@ -98,25 +98,25 @@ Shape.prototype.Draw = function (view) {
   // Fill color
   if (this.FillColor != undefined) {
     if (this.Active) {
-      GL.uniform3f(program.colorUniform, this.ActiveColor[0], 
+      GL.uniform3f(program.colorUniform, this.ActiveColor[0],
                    this.ActiveColor[1], this.ActiveColor[2]);
-  	} else {
-	    GL.uniform3f(program.colorUniform, this.FillColor[0], 
+    } else {
+      GL.uniform3f(program.colorUniform, this.FillColor[0],
                    this.FillColor[1], this.FillColor[2]);
     }
     // Cell Connectivity
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
       
-    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, 
+    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
                     GL.UNSIGNED_SHORT,0);
   }
   // Outline.
   if (this.OutlineColor != undefined) {
     if (this.Active) {
-	    GL.uniform3f(program.colorUniform, this.ActiveColor[0], 
-			             this.ActiveColor[1], this.ActiveColor[2]);
+      GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                   this.ActiveColor[1], this.ActiveColor[2]);
     } else {
-	    GL.uniform3f(program.colorUniform, this.OutlineColor[0], 
+      GL.uniform3f(program.colorUniform, this.OutlineColor[0],
                    this.OutlineColor[1], this.OutlineColor[2]);
     }
     if (this.LineWidth == 0) {

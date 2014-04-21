@@ -9,8 +9,8 @@ function CrossHairs() {
   this.Length = 50; // Length of the crosing lines
   this.Width = 1; // Width of the cross hair lines.
   this.Origin = [10000,10000]; // position in world coordinates.
-	this.FillColor    = [0,0,0]; 
-	this.OutlineColor = [1,1,1]; 
+  this.FillColor    = [0,0,0];
+  this.OutlineColor = [1,1,1];
 };
 CrossHairs.prototype = new Shape;
 

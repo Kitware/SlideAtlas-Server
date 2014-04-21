@@ -203,7 +203,7 @@ CircleWidget.prototype.CheckActive = function(event) {
   } else { // Disk
     if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) || 
         d < lineWidth) {
-	    active = true;
+      active = true;
     }
   }
   
