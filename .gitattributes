@@ -9,7 +9,7 @@
 *.cmake      text
 
 # Text files: scripts
-Makefile     text
+Makefile     text  whitespace=indent-with-non-tab,trailing-space
 *.bat        text
 *.a2config   text
 *.wsgi       text
