@@ -61,7 +61,7 @@ SLIDEATLAS_FACEBOOK_APP_SECRET = None
 authentication. """
 
 
-################################################################################
+##############################################################################
 ## LinkedIn OAuth Settings ##
 
 SLIDEATLAS_LINKEDIN_APP_ID = None
@@ -71,6 +71,20 @@ authentication. """
 SLIDEATLAS_LINKEDIN_APP_SECRET = None
 """ The LinkedIn App secret (OAuth client secret) used for LinkedIn user
 authentication. """
+
+
+##############################################################################
+## LinkedIn OAuth Settings ##
+
+SLIDEATLAS_GOOGLE_APP_ID = None
+""" The LinkedIn App ID (OAuth client ID) used for LinkedIn user
+authentication. """
+
+SLIDEATLAS_GOOGLE_APP_SECRET = None
+""" The LinkedIn App secret (OAuth client secret) used for LinkedIn user
+authentication. """
+
+
 
 
 ################################################################################

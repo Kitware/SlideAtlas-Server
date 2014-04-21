@@ -68,3 +68,39 @@ In future, needs to be done for each request
 Uploading screenshots to the cdash
 
 `Link Upload Images to Cdash <http://public.kitware.com/pipermail/cdash/2011-June/000995.html>`_
+
+
+Smoke testing
+=============
+
+Smoke testing uses selenium browser automation to perform some basic navigation, and expect some dom in the returned elements. We are also comparing the end view with a screenshot captured during test setup.
+
+Chrome webdriver should be installed from `here <http://chromedriver.storage.googleapis.com/index.html>`_ 
+
+And should be in the binaries path before tests are invoked.
+
+
+
+Basic glviewer on demo database 
+-------------------------------
+
+.. code-block :: shell-session
+
+
+
+
+- Chrome browser is started with given size (important for screenshot comparison later)
+- Browser is pointed to new.slide-atlas.org
+- Any existing user is logged out
+- password login is attempted using "all_demo" username and no password
+- First image is clicked from "Skin" session
+- The test passes if the resulting screenshot of glviewer matches with the one taken while creating the test 
+
+
+
+
+
+
+
+
+
