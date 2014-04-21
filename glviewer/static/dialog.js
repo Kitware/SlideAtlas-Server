@@ -3,7 +3,7 @@ http://www.ezzylearning.com/tutorial.aspx?tid=6942119
 
 // Constructor
 function Dialog () {
-  this.Overlay = 
+  this.Overlay =
     $('<div>')
       .appendTo(body)
       .hide()
@@ -23,7 +23,7 @@ function Dialog () {
             "z-index" : "101",
             "display" : "none"});
 
-  this.Dialog = 
+  this.Dialog =
     $('<div>')
       .appendTo(body)
       .hide()
@@ -42,7 +42,7 @@ function Dialog () {
             "font-size" : "10pt"});
 
 }
-    
+
 <div id="dialog" class="web_dialog">
    <table style="width: 100%; border: 0px;" cellpadding="3" cellspacing="0">
       <tr>
@@ -68,7 +68,7 @@ function Dialog () {
          <td colspan="2" style="padding-left: 15px;">
             <div id="brands">
                <input id="brand1" name="brand" type="radio" checked="checked" value="Nokia" /> Nokia
-               <input id="brand2" name="brand" type="radio" value="Sony" /> Sony 
+               <input id="brand2" name="brand" type="radio" value="Sony" /> Sony
                <input id="brand3" name="brand" type="radio" value="Motorola" /> Motorola
             </div>
          </td>
@@ -187,6 +187,6 @@ function Dialog () {
    {
       $("#overlay").hide();
       $("#dialog").fadeOut(300);
-   } 
-        
+   }
+
 </script>

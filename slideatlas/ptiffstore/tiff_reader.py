@@ -102,11 +102,11 @@ class TileReader():
         try:
             xml = ET.fromstring(self.meta)
 
-            # Parse the string for BigTIFF format 
+            # Parse the string for BigTIFF format
             descstr = xml.find(".//*[@Name='DICOM_DERIVATION_DESCRIPTION']").text
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
-            
+
             # Parse the barcode
             self.barcode = {}
             self.barcode["str"] = base64.b64decode(xml.find(".//*[@Name='PIM_DP_UFS_BARCODE']").text)

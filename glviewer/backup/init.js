@@ -55,7 +55,7 @@ function initGL() {
     //this.canvas.onselectstart = function() {return false;};
     //this.canvas.onmousedown = function() {return false;};
     GL = CANVAS.getContext("webgl") || CANVAS.getContext("experimental-webgl");
-    
+
     $(window).resize(function() {
         // Update what you need in your webgl code to use the full size of the canvas again...
         handleResize();
@@ -300,6 +300,6 @@ function initView(viewport) {
       'right' : '5px',
       'z-index': '2'
   }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomout2.png").click(function(){
-           VIEWER1.AnimateZoom(2.0);});                
+           VIEWER1.AnimateZoom(2.0);});
   return viewer;
 }

@@ -15,7 +15,7 @@ function MobileAnnotationWidget() {
   }
 
   var self = this;
-  this.Div = 
+  this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
                     'left' : left,
@@ -53,13 +53,13 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 
   // Hard code only a single view for now.
   this.Viewer = VIEWER1;
-  
+
   if ( this.Viewer.ActiveWidget != undefined && widget ) {
     this.Viewer.ActiveWidget.Deactivate();
   }
   var widget = new CircleWidget(this.Viewer, false);
   widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
-  
+
   var cam = this.Viewer.GetCamera();
   var x = cam.FocalPoint[0];
   var y = cam.FocalPoint[1];
@@ -68,7 +68,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
   widget.Shape.Radius = cam.Height / 4.0;
   widget.Shape.UpdateBuffers();
   eventuallyRender();
-  
+
   //this.Viewer.ActiveWidget = widget;
   this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
 }
@@ -79,7 +79,7 @@ MobileAnnotationWidget.prototype.TextCallback = function() {
   if ( widget ) {
     widget.Deactivate();
   }
-  
+
   this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
   var widget = new TextWidget(this.Viewer, "");
   // Set default color rom the last text widget setting.

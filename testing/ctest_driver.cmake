@@ -38,23 +38,23 @@ set(CTEST_BINARY_DIRECTORY  "${OUTPUT_DIRECTORY}")
 
 set(CTEST_BUILD_COMMAND "true") # dummy command for ctest_build()
 set(CTEST_BUILD_TARGET “slideatlas”)
-   
+
 foreach(SERVER_INSTANCE ${SERVER_INSTANCES})
-    # Commented as not interested in option parsing right now 
+    # Commented as not interested in option parsing right now
     # Should be removed later
     #separate_arguments(DB_INSTANCE_ WINDOWS_COMMAND ${DB_INSTANCE})
     #list(GET DB_INSTANCE_ 0 DB_HOST)
     #set(ENV{DB_HOST} ${DB_HOST})
     #list(GET DB_INSTANCE_ 1 DB_NAME)
     #set(ENV{DB_NAME} ${DB_NAME})
-    
-    # Store the server instance in the environment so can be passed on to CTEST 
+
+    # Store the server instance in the environment so can be passed on to CTEST
     set(ENV{SERVER_INSTANCE} ${SERVER_INSTANCE})
 
     set(CTEST_BUILD_NAME "$ENV{SERVER_INSTANCE}")
 
     ctest_start(${MODEL} TRACK ${MODEL})
-    
+
     ctest_build() # triggers overwrite of previous results
     ctest_test(BUILD "${TEST_DIRECTORY}")
     ctest_submit(PARTS Build Test)

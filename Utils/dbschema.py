@@ -1,4 +1,4 @@
-# include top level PYTHONPATH 
+# include top level PYTHONPATH
 import sys
 from flask_openid import OpenID
 sys.path.append("..")
@@ -45,7 +45,7 @@ def add_new_admin_rule_to_demo():
 def modify_rule_to_site_admin():
     conn.register([model.Database, model.Rule, model.User, model.Session])
     db = conn[site.CONFIGDB]
-    # Find rule 
+    # Find rule
     rule = db["rules"].Rule.find_one({"_id": ObjectId('510b0327d63647b2cd3cef1a')})
     print 'Found Rule: ', rule["_id"]
     rule["site_admin"] = True
@@ -62,7 +62,7 @@ def add_admin_rule_toDJ():
     user = db["users"].User.find_one({"name" : "dhandeo@gmail.com", "type" : "google"})
     print "Found User: ", user
 
-    # Find rule 
+    # Find rule
     rule = db["rules"].find_one({"_id": ObjectId('510b0327d63647b2cd3cef1a')})
     print 'Found Rule: ', rule["_id"]
 
@@ -160,7 +160,7 @@ def rename_and_grant_session12(dbobj):
 
 def dump_a_session(dbobj, str_session_id):
     """
-    Using mongodump to export images in a session from hardcoded database 
+    Using mongodump to export images in a session from hardcoded database
     on slideatlas
     """
     sessionid = ObjectId("4ed62213114d971078000000")
@@ -209,7 +209,7 @@ def rename_and_grant_session10(dbobj):
 def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="bev1", str_group_id="231408953605826"):
     """
     Generic function to rename and grant session
-    gets  
+    gets
     """
     sessionid = ObjectId(str_session_id)
 
@@ -230,7 +230,7 @@ def rename_and_grant_session(admindbobj, str_session_id, str_newlabel, str_db="b
 def grant_session(admindbobj, str_session_id, str_db, str_group_id):
     """
     Generic function to rename and grant session
-    gets  
+    gets
     """
     sessionid = ObjectId(str_session_id)
 
@@ -253,7 +253,7 @@ def grant_session(admindbobj, str_session_id, str_db, str_group_id):
 def revoke_session(admindbobj, str_session_id, str_db, str_group_id):
     """
     Generic function to rename and grant session
-    gets  
+    gets
     """
     sessionid = ObjectId(str_session_id)
 
@@ -276,7 +276,7 @@ def revoke_session(admindbobj, str_session_id, str_db, str_group_id):
 
 
 def bidmc1_rules(dbobj):
-    # find the database 
+    # find the database
     dbdoc = dbobj.databases.Database.find_one({"label" : "BIDMC Pathology"})
     print  "Database found:", dbdoc["_id"]
 
@@ -458,7 +458,7 @@ def del_mrxs_11(db):
     sessobj = datadb["sessions"].find_one({"_id" : sessid})
     print "Deleting from: ", sessobj["_id"]
 
-    # Delete the reference from views 
+    # Delete the reference from views
     views = sessobj['views']
 
     found = False
@@ -474,11 +474,11 @@ def del_mrxs_11(db):
         del views[viewindex]
         print "After: ", views
 
-    # Find the images object 
+    # Find the images object
     imgobj = datadb["images"].find_one({"_id" : imgid})
     print "To delete image:", imgobj["_id"]
 
-    # Find the views object 
+    # Find the views object
     viewobj = datadb["views"].find_one({"_id" : viewid})
     print "To delete view:", viewobj["_id"]
 
@@ -598,10 +598,10 @@ def register_new_google(dbobj, email, label):
 
 
 def register_new_rule(dbobj, dbname, str_fb_group=None, label='', can_see_all=False, can_see=[], db_admin=False):
-    # Find database id 
+    # Find database id
     dbdoc = dbobj["databases"].find_one({"dbname" : dbname})
 
-    # Create the rule 
+    # Create the rule
     stud_rule = dbobj.rules.Rule()
     if len(label) > 0:
         stud_rule["label"] = label

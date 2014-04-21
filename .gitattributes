@@ -1,0 +1,32 @@
+# Set the default behavior, in case people don't have core.autocrlf set.
+*            text=auto  whitespace=tab-in-indent,trailing-space
+
+# Text files: code
+*.py         text
+*.html       text
+*.js         text
+*.css        text
+*.cmake      text
+
+# Text files: scripts
+Makefile     text
+*.bat        text
+*.a2config   text
+*.wsgi       text
+
+# Text files: documentation
+*.rst        text
+*.txt        text
+
+# Binary files
+*.png        binary
+*.jpg        binary
+*.gif        binary
+*.ico        binary
+*.svg        binary
+*.eot        binary
+*.ttf        binary
+*.woff       binary
+
+# Exclude special Git files from archive files
+.git*        export-ignore

@@ -28,7 +28,7 @@ class TileStore(ModelDocument):
 
     copyright = StringField(required=False, default='Copyright &copy 2014, All rights reserved.',
         verbose_name='Copyright', help_text='The default copyright for content in the database.')
-  
+
     def __unicode__(self):
         return unicode(self.label + self.copyright)
 
@@ -88,8 +88,8 @@ class TileStore(ModelDocument):
 ################################################################################
 class Database(TileStore):
     """
-    TODO: refactor this into MongoTileStore which stores image pyramid in 
-    mongodb collection 
+    TODO: refactor this into MongoTileStore which stores image pyramid in
+    mongodb collection
     """
     host = StringField(required=True, # TODO: change to URLField
         verbose_name='Host', help_text='The URL of the database\'s host.')

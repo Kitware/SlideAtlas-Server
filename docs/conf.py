@@ -14,7 +14,7 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "/.."))
 from slideatlas.version import get_version
-from slideatlas.ptiffstore.asset_store import PtiffTileStore 
+from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
 #print sys.path
 

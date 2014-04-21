@@ -168,7 +168,7 @@ shape has visibility and
   var EVENT_MANAGER;
   var VIEWER1;
   var VIEWER2;
-  
+
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   // I cannot get url_for to give me a path to comparison addresses
   var COMPARISON_OPTION_URL  = "/webgl-viewer/comparison-option";
@@ -211,8 +211,8 @@ shape has visibility and
         a.offset = {{ annotation.offset }};
         a.position = {{ annotation.position }};
         ARGS.Viewer1.annotations.push(a);
-       {% endfor %}    
-    
+       {% endfor %}
+
     // Now for the optional views for Viewer2
     // Convert python structure into javascript.
     ARGS.Options = [];
@@ -228,7 +228,7 @@ shape has visibility and
         view.rotation = -view.rotation;
         view.center[1] = {{option.paddedHeight}} - view.center[1];
         ARGS.Options.push(view);
-    {% endfor %}    
+    {% endfor %}
     ARGS.OptionInfo = [];
     {% for option in question.optionInfo %}
         var view = {};
@@ -238,13 +238,13 @@ shape has visibility and
         view.dimensions = {{option.dimension}};
         view.paddedHeight = {{option.paddedHeight}};
         ARGS.OptionInfo.push(view);
-    {% endfor %}    
+    {% endfor %}
   }
- 
+
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   function handleResize() {
     if (GL) {
       var width = CANVAS.innerWidth();
@@ -252,7 +252,7 @@ shape has visibility and
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
       GL.viewport(0, 0, width, height);
-    
+
       var halfWidth = width/2;
       if (VIEWER1) {
         VIEWER1.SetViewport([0, 0, halfWidth, height]);
@@ -270,7 +270,7 @@ shape has visibility and
     var height = CANVAS.innerHeight();
     var bds = [0,ARGS.Viewer1.dimensions[0], ARGS.Viewer1.paddedHeight-ARGS.Viewer1.dimensions[1],ARGS.Viewer1.paddedHeight];
     var source1 = new Cache({'database':ARGS.Viewer1.db,
-                             '_id':ARGS.Viewer1.image,  
+                             '_id':ARGS.Viewer1.image,
                              'levels':ARGS.Viewer1.levels,
                              'bounds':bds});
     var section1 = new Section();
@@ -281,10 +281,10 @@ shape has visibility and
     VIEWER1.SetSection(section1);
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
 
-    VIEWER1.SetCamera(ARGS.Viewer1.center, 
-                      ARGS.Viewer1.rotation, 
+    VIEWER1.SetCamera(ARGS.Viewer1.center,
+                      ARGS.Viewer1.rotation,
                       ARGS.Viewer1.viewHeight);
-    
+
     EVENT_MANAGER.AddViewer(VIEWER1);
     EVENT_MANAGER.AddViewer(VIEWER2);
     eventuallyRender();
@@ -301,7 +301,7 @@ shape has visibility and
 
   var E_DOWN = false;
   var D_DOWN = false;
-  function handleMouseDown(event) { 
+  function handleMouseDown(event) {
     // Left single click shows edit menu.
     // TODO: supress menu on double click.
     if (EDIT && event.which == 3) {
@@ -320,7 +320,7 @@ shape has visibility and
         if (event.keyCode == 68) { D_DOWN = true;}
         if (event.keyCode == 69) { E_DOWN = true;}
         if (D_DOWN && E_DOWN) {
-            EDIT = ! EDIT; 
+            EDIT = ! EDIT;
             alert("Edit: " + EDIT);
             E_DOWN = false;
             D_DOWN = false;
@@ -337,7 +337,7 @@ shape has visibility and
     return false;
   }
 
-  
+
 
 // Not used at the moment.
 function InitAnnotations(viewer, annotations)
@@ -345,7 +345,7 @@ function InitAnnotations(viewer, annotations)
     if (annotations.length == 0) {
         return;
     }
-    
+
     // Hack button to toggle annotation.
     $('<button>').appendTo('body').css({
         'opacity': '0.2',
@@ -382,7 +382,7 @@ function SetAnnotationVisibility(visibility) {
     } else {
         $("#annotationButton").css({'opacity': '0.2'});
     }
-    eventuallyRender();    
+    eventuallyRender();
 }
 
   function webGLStart() {
@@ -394,7 +394,7 @@ function SetAnnotationVisibility(visibility) {
 
     // Setup the arguements in javascript globals.
     getArgs();
-    
+
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initImageTileBuffers();
@@ -406,8 +406,8 @@ function SetAnnotationVisibility(visibility) {
         handleResize();
     }).trigger('resize');
 
-   
-    
+
+
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
@@ -418,15 +418,15 @@ function SetAnnotationVisibility(visibility) {
 
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
+    document.oncontextmenu = cancelContextMenu;
 
-    // Create the annotations for viewer1 
+    // Create the annotations for viewer1
     InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
-    
+
     // Create the edit menu.
     InitComparisonEditMenus();
-    
-    
+
+
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
     // Associate with viewer (How???).
@@ -474,7 +474,7 @@ function SetAnnotationVisibility(visibility) {
     }).attr('class', 'viewer2').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}").click(function(){
              VIEWER2.AnimateZoom(2.0);});
     $('.viewer2').hide();
-             
+
 
 
 
@@ -495,7 +495,7 @@ function SetAnnotationVisibility(visibility) {
     }).attr('id', 'diagnosis').text("Diagnosis").click(function(){
          $('#diagnoses').fadeToggle();}).mouseenter(function(){
          $('#diagnoses').fadeIn();});
-    
+
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'opacity': '0.6',
@@ -508,12 +508,12 @@ function SetAnnotationVisibility(visibility) {
         'color': '#303030',
         'font-size': '20px'
     }).attr('id', 'diagnoses');
-    
+
     $('<ol>').appendTo('#diagnoses').attr('id', 'optionMenu').css({'width': '100%'});
     for (i in ARGS.Options) {
         $('<li>').appendTo('#optionMenu').text(ARGS.Options[i].label).css({'border-radius': '5px'});
     }
-    
+
     $( "#optionMenu" ).selectable({
       stop: function() {
         $('#diagnosis').text($('.ui-selected').text());
@@ -525,8 +525,8 @@ function SetAnnotationVisibility(visibility) {
           changeOption(index);
         });
       }
-    });    
-    
+    });
+
     eventuallyRender();
   }
 
@@ -584,7 +584,7 @@ function SetAnnotationVisibility(visibility) {
     widget.SetAnchorShapeVisibility(markerFlag);
 
     ComparisonSaveAnnotations();
-    
+
     eventuallyRender();
   }
 

@@ -32,7 +32,7 @@ function InitViewBrowser() {
         'overflow': 'scroll'
     }).attr('id', 'viewBrowser')
       .mouseleave(function () {$('#viewBrowser').hide();});
-    
+
     ReloadViewBrowserInfo();
 }
 
@@ -100,7 +100,7 @@ function ViewBrowserAddSessionViews(sessionData) {
           .text(image.label);
       }
 }
-        
+
 function ViewBrowserImageCallback(obj) {
   $('#viewBrowser').hide();
 
@@ -119,17 +119,17 @@ function ViewBrowserLoadImage(viewData) {
   var source = new Cache(viewData.db, viewData.collection, viewData.levels);
 
   ACTIVE_VIEWER.SetCache(source);
-   
+
   // all this does is set the default camera.
   ACTIVE_VIEWER.SetDimensions(viewData.dimensions);
 
     // Handle exceptions in database schema.
   if ( viewData.center) {
-    ACTIVE_VIEWER.SetCamera(viewData.center, 
-                            viewData.rotation, 
+    ACTIVE_VIEWER.SetCamera(viewData.center,
+                            viewData.rotation,
                             viewData.viewHeight);
   }
-  
+
   RecordState();
 
   eventuallyRender();

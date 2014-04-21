@@ -14,7 +14,7 @@ sessapp.directive('helloWorld', function () {
             // replace: true,
             // link: function (scope, iElement, iAttrs) {
             //     console.log(iAttrs.type);
-            //     console.log("Getting called !!");  
+            //     console.log("Getting called !!");
             // }
         };
 })
@@ -26,5 +26,5 @@ sessapp.directive('fundooRating', function () {
         console.log("Recognized the fundoo-rating directive usage");
       }
     }});
-         
+
 

@@ -23,7 +23,7 @@ function ShowViewEditMenu(x, y) {
     if (viewer.WidgetList.length > 0) {
       color = "#000000";
     }
- 
+
     $('#viewEditMenu').css({'top': y, 'left':x}).show();
 }
 
@@ -42,7 +42,7 @@ function InitViewEditMenus() {
         'font-size': '20px'
     }).attr('id', 'viewEditMenu').hide()
       .mouseleave(function(){$(this).fadeOut();});
-    
+
     var viewEditSelector = $('<ol>');
     viewEditSelector.appendTo('#viewEditMenu')
              .attr('id', 'viewEditSelector')
@@ -65,8 +65,8 @@ function InitViewEditMenus() {
              .click(function(){$('#viewEditMenu').hide(); RecordingStart();});
 
 
-             
-    // Create a selection list of sessions.   
+
+    // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -85,7 +85,7 @@ function InitViewEditMenus() {
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
 
-    // Create a selector for views.   
+    // Create a selector for views.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -118,7 +118,7 @@ function CopyZoom() {
   } else {
     var copyCam = VIEWER1.GetCamera();
   }
-  
+
   viewer.AnimateCamera(cam.FocalPoint, cam.Roll, copyCam.Height);
 }
 

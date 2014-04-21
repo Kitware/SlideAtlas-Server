@@ -21,17 +21,17 @@ function Viewer (viewport, cache) {
   // Interaction state:
   // What to do for mouse move or mouse up.
   this.InteractionState = INTERACTION_NONE;
-  
+
   this.AnimateLast;
   this.AnimateDuration = 0.0;
   this.TranslateTarget = [0.0,0.0];
-  
+
   this.MainView = new View(viewport, 1);
   this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
   if ( ! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
-    var overViewport = [viewport[0] + viewport[2]*0.8, 
+    var overViewport = [viewport[0] + viewport[2]*0.8,
                         viewport[1] + viewport[3]*0.8,
                         viewport[2]*0.18, viewport[3]*0.18];
     this.OverView = new View(overViewport, 2);
@@ -48,7 +48,7 @@ function Viewer (viewport, cache) {
   this.WidgetList = [];
   this.ActiveWidget = null;
 
-  this.DoubleClickX = 0; 
+  this.DoubleClickX = 0;
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
@@ -57,10 +57,10 @@ function Viewer (viewport, cache) {
 Viewer.prototype.GetAnnotationVisibility = function() {
   return this.AnnotationVisibility;
 }
-  
+
 Viewer.prototype.SetAnnotationVisibility = function(vis) {
   this.AnnotationVisibility = vis;
-}  
+}
 
 
 // connectome
@@ -205,7 +205,7 @@ Viewer.prototype.SetViewport = function(viewport) {
     //} else {
     //  object.show();
     //}
-    
+
     if ('Bottom' in element) {
       var pos = element.Bottom.toString() + "px";
       object.css({
@@ -217,12 +217,12 @@ Viewer.prototype.SetViewport = function(viewport) {
     }
 
     if ('Left' in element) {
-      var pos = viewport[0] + element.Left; 
+      var pos = viewport[0] + element.Left;
       pos = pos.toString() + "px";
       object.css({
       'left' : pos});
     } else if ('Right' in element) {
-      var pos = viewport[0] + viewport[2] - element.Right; 
+      var pos = viewport[0] + viewport[2] - element.Right;
       pos = pos.toString() + "px";
       object.css({
       'left' : pos});
@@ -231,7 +231,7 @@ Viewer.prototype.SetViewport = function(viewport) {
 
   this.MainView.SetViewport(viewport);
   if (this.OverView) {
-    var overViewport = [viewport[0] + viewport[2]*0.8, 
+    var overViewport = [viewport[0] + viewport[2]*0.8,
                         viewport[1] + viewport[3]*0.8,
                         viewport[2]*0.18, viewport[3]*0.18];
     this.OverView.SetViewport(overViewport);
@@ -258,7 +258,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
   this.ZoomTarget = height;
   // Compute traslate target to keep position in the same place.
   this.TranslateTarget[0] = center[0];
-  this.TranslateTarget[1] = center[1];  
+  this.TranslateTarget[1] = center[1];
   this.RollTarget = rotation;
 
   this.AnimateLast = new Date().getTime();
@@ -266,16 +266,16 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
   eventuallyRender();
 }
 
-// This is used to set the default camera so the complexities 
+// This is used to set the default camera so the complexities
 // of the target and overview are hidden.
 Viewer.prototype.SetCamera = function(center, rotation, height) {
   this.MainView.Camera.SetHeight(height);
-  this.ZoomTarget = height;    
+  this.ZoomTarget = height;
 
   this.MainView.Camera.SetFocalPoint(center[0], center[1]);
   this.TranslateTarget[0] = center[0];
   this.TranslateTarget[1] = center[1];
-  
+
   rotation = rotation * 3.14159265359 / 180.0;
   this.MainView.Camera.Roll = rotation;
   this.RollTarget = rotation;
@@ -305,11 +305,11 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
   factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
-  
+
   // Compute translate target to keep position in the same place.
   this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
   this.TranslateTarget[1] = position[1] - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-  
+
   this.RollTarget = this.MainView.Camera.Roll;
 
   this.AnimateLast = new Date().getTime();
@@ -338,7 +338,7 @@ Viewer.prototype.AnimateTranslate = function(dx, dy) {
 
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
-  
+
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
   eventuallyRender();
@@ -347,7 +347,7 @@ Viewer.prototype.AnimateTranslate = function(dx, dy) {
 Viewer.prototype.AnimateRoll = function(dRoll) {
   dRoll *= Math.PI / 180.0;
   this.RollTarget = this.MainView.Camera.Roll + dRoll;
- 
+
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
@@ -365,8 +365,8 @@ Viewer.prototype.RemoveWidget = function(widget) {
   }
   widget.Viewer = null;
   var idx = this.WidgetList.indexOf(widget);
-  if(idx!=-1) { 
-    this.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.WidgetList.splice(idx, 1);
   }
 }
 
@@ -377,11 +377,11 @@ Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
     case "pencil":
       var pencil = new PencilWidget(this, false);
-      pencil.Load(obj);  
+      pencil.Load(obj);
       break;
     case "arrow":
       var arrow = new ArrowWidget(this, false);
-      arrow.Load(obj);  
+      arrow.Load(obj);
       break;
     case "text":
       var text = new TextWidget(this, "");
@@ -400,7 +400,7 @@ Viewer.prototype.LoadWidget = function(obj) {
 
 // I am doing a dance because I expect widget SetActive to call this,
 // but this calls widget SetActive.
-// The widget is the only object to call these methods.  
+// The widget is the only object to call these methods.
 // A widget cannot call this if another widget is active.
 // The widget deals with its own activation and deactivation.
 Viewer.prototype.ActivateWidget = function(widget) {
@@ -440,7 +440,7 @@ Viewer.prototype.Draw = function() {
     GL.disable(GL.BLEND);
     GL.enable(GL.DEPTH_TEST);
   }
-  
+
   this.MainView.DrawTiles();
 
   // This is only necessary for webgl, Canvas2d just uses a border.
@@ -522,7 +522,7 @@ Viewer.prototype.Animate = function() {
   }
   this.AnimateDuration -= (timeNow-this.AnimateLast);
   this.AnimateLast = timeNow;
-}    
+}
 
 Viewer.prototype.OverViewPlaceCamera = function(x, y) {
   if ( ! this.OverView) {
@@ -561,15 +561,15 @@ Viewer.prototype.HandleTouchStart = function(event) {
   if ( event.Touches.length >= 4) {
     var cam = this.GetCamera();
     var bds = this.MainView.Section.GetBounds();
-    cam.SetFocalPoint( (bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5);      
+    cam.SetFocalPoint( (bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5);
     cam.Roll = 0.0;
     cam.SetHeight(bds[3]-bds[2]);
     cam.ComputeMatrix();
     eventuallyRender();
-    // Return value hides navigation widget  
-    return true;           
+    // Return value hides navigation widget
+    return true;
   }
-  
+
   // See if any widget became active.
   if (this.AnnotationVisibility) {
     for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
@@ -577,7 +577,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
       event.MouseY = event.Touches[touchIdx][1];
       this.ComputeMouseWorld(event);
       for (var i = 0; i < this.WidgetList.length; ++i) {
-        if ( ! this.WidgetList[i].GetActive() && 
+        if ( ! this.WidgetList[i].GetActive() &&
                this.WidgetList[i].CheckActive(event)) {
           this.ActivateWidget(this.WidgetList[i]);
           return true;
@@ -585,7 +585,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
       }
     }
   }
-    
+
   return false;
 }
 
@@ -601,19 +601,19 @@ Viewer.prototype.HandleTouchPan = function(event) {
     this.ActiveWidget.HandleTouchPan(event);
     return;
   }
-    
-  // I see an odd intermittent camera matrix problem 
+
+  // I see an odd intermittent camera matrix problem
   // on the iPad that looks like a thread safety issue.
   if (this.MomentumTimerId) {
     window.cancelAnimationFrame(this.MomentumTimerId)
     this.MomentumTimerId = 0;
   }
-  
+
   // Convert to world by inverting the camera matrix.
-  // I could simplify and just process the vector.  
+  // I could simplify and just process the vector.
   w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
   w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    
+
   // This is the new focal point.
   var dx = w1[0] - w0[0];
   var dy = w1[1] - w0[1];
@@ -629,9 +629,9 @@ Viewer.prototype.HandleTouchPan = function(event) {
   this.MomentumScale = 0.0;
 
   var cam = this.GetCamera();
-  cam.Translate( -dx, -dy, 0);  
-  cam.ComputeMatrix();  
-  eventuallyRender();  
+  cam.Translate( -dx, -dy, 0);
+  cam.ComputeMatrix();
+  eventuallyRender();
 }
 
 Viewer.prototype.HandleTouchRotate = function(event) {
@@ -641,7 +641,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     return;
   }
 
-  // I see an odd intermittent camera matrix problem 
+  // I see an odd intermittent camera matrix problem
   // on the iPad that looks like a thread safety issue.
   if (this.MomentumTimerId) {
     window.cancelAnimationFrame(this.MomentumTimerId)
@@ -651,7 +651,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
   w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
   w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
   var dt = event.Time - event.LastTime;
-    
+
   // Compute rotation.
   // Consider weighting rotation by vector length to avoid over contribution of short vectors.
   // We could also take the maximum.
@@ -670,7 +670,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     a += a1;
   }
   a = a / numTouches;
-   
+
   // rotation and scale are around the mid point .....
   // we need to compute focal point height and roll (not just a matrix).
   // Focal point is the only difficult item.
@@ -692,13 +692,13 @@ Viewer.prototype.HandleTouchRotate = function(event) {
   this.MomentumScale = 0.0;
 
   cam.Roll = cam.Roll - a;
-  cam.ComputeMatrix();  
+  cam.ComputeMatrix();
   if (this.OverView) {
     var cam2 = this.OverView.Camera;
     cam2.Roll = cam.Roll;
-    cam2.ComputeMatrix();  
+    cam2.ComputeMatrix();
   }
-  eventuallyRender();  
+  eventuallyRender();
 }
 
 Viewer.prototype.HandleTouchPinch = function(event) {
@@ -708,7 +708,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     return;
   }
 
-  // I see an odd intermittent camera matrix problem 
+  // I see an odd intermittent camera matrix problem
   // on the iPad that looks like a thread safety issue.
   if (this.MomentumTimerId) {
     window.cancelAnimationFrame(this.MomentumTimerId)
@@ -722,7 +722,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
   if (dt == 0) {
     return;
   }
-  
+
   // Compute scale.
   // Consider weighting rotation by vector length to avoid over contribution of short vectors.
   // We could also take max.
@@ -753,7 +753,7 @@ Viewer.prototype.HandleTouchPinch = function(event) {
   }
 
 
-  
+
   // scale is around the mid point .....
   // we need to compute focal point height and roll (not just a matrix).
   // Focal point is the only difficult item.
@@ -772,11 +772,11 @@ Viewer.prototype.HandleTouchPinch = function(event) {
   this.MomentumRoll = 0.0;
   this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
 
-  cam.FocalPoint[0] = x;  
+  cam.FocalPoint[0] = x;
   cam.FocalPoint[1] = y;
   cam.SetHeight(cam.GetHeight() / scale);
-  cam.ComputeMatrix();  
-  eventuallyRender();  
+  cam.ComputeMatrix();
+  eventuallyRender();
 }
 
 Viewer.prototype.HandleTouchEnd = function(event) {
@@ -784,11 +784,11 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.ActiveWidget.HandleTouchEnd(event);
     return;
   }
-  this.HandleMomentum(event);  
+  this.HandleMomentum(event);
 }
 
 Viewer.prototype.HandleMomentum = function(event) {
-  // I see an odd intermittent camera matrix problem 
+  // I see an odd intermittent camera matrix problem
   // on the iPad that looks like a thread safety issue.
   if (this.MomentumTimerId) {
     window.cancelAnimationFrame(this.MomentumTimerId)
@@ -810,7 +810,7 @@ Viewer.prototype.HandleMomentum = function(event) {
   var k = 200.0;
   var decay = Math.exp(-dt/k);
   var integ = (-k * decay + k);
-  
+
   var cam = this.MainView.Camera;
   cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
   cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
@@ -819,20 +819,20 @@ Viewer.prototype.HandleMomentum = function(event) {
   if (this.OverView) {
     var cam2 = this.OverView.Camera;
     cam2.Roll = cam.Roll;
-    cam2.ComputeMatrix();  
+    cam2.ComputeMatrix();
   }
   // I think the problem with the ipad is thie asynchronous render.
   // Maybe two renders occur at the same time.
   //eventuallyRender();
-  draw();  
+  draw();
 
   // Decay the momentum.
   this.MomentumX *= decay;
   this.MomentumY *= decay;
   this.MomentumScale *= decay;
-  this.MomentumRoll *= decay; 
+  this.MomentumRoll *= decay;
 
-  if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 && 
+  if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
       Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
     // Change is small. Stop the motion.
     this.MomentumTimerId = 0;
@@ -879,7 +879,7 @@ Viewer.prototype.ConstrainCamera = function () {
     cam.SetHeight(heightMax);
     this.ZoomTarget = heightMax;
     modified = true;
-  }  
+  }
   var heightMin = viewport[3] * spacing * 0.5;
   if (cam.GetHeight() < heightMin) {
     cam.SetHeight(heightMin);
@@ -891,9 +891,9 @@ Viewer.prototype.ConstrainCamera = function () {
   }
 }
 
-  
-  
-  
+
+
+
 
 
 Viewer.prototype.HandleMouseDown = function(event) {
@@ -902,10 +902,10 @@ Viewer.prototype.HandleMouseDown = function(event) {
     this.ActiveWidget.HandleMouseDown(event);
     return;
   }
-   
+
   // Are we in the overview or the main view?
   // Event x,y are now have upper left origin.
-  // I am keeping Viewport lower left origin 
+  // I am keeping Viewport lower left origin
   // for now because GL uses this system
   // and it is a pain to convert (cache does not have viewer viewport).
   var x = event.MouseX;
@@ -924,12 +924,12 @@ Viewer.prototype.HandleMouseDown = function(event) {
       return;
     }
   }
-  
+
   // Choose what interaction will be performed.
   if (event.SystemEvent.which == 1 ) {
     if (event.SystemEvent.ctrlKey) {
       this.InteractionState = INTERACTION_ROTATE;
-    } else if (event.SystemEvent.altKey) {    
+    } else if (event.SystemEvent.altKey) {
       this.InteractionState = INTERACTION_ZOOM;
     } else {
       this.InteractionState = INTERACTION_DRAG;
@@ -945,7 +945,7 @@ Viewer.prototype.HandleDoubleClick = function(event) {
     this.ActiveWidget.HandleDoubleClick(event);
     return;
   }
-  
+
   // Detect double click.
   mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
   if (event.SystemEvent.which == 1) {
@@ -968,7 +968,7 @@ Viewer.prototype.HandleMouseUp = function(event) {
     this.InteractionState = INTERACTION_NONE;
     RecordState();
   }
-  
+
   return;
 }
 
@@ -1001,13 +1001,13 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
 
 Viewer.prototype.HandleMouseMove = function(event) {
   this.ComputeMouseWorld(event);
-    
+
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
     this.ActiveWidget.HandleMouseMove(event);
     return;
   }
-      
+
   if (event.MouseDown == false) {
     // See if any widget became active.
     if (this.AnnotationVisibility) {
@@ -1021,7 +1021,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
 
     return;
   }
-  
+
   var x = event.MouseX;
   var y = event.MouseY;
 
@@ -1033,7 +1033,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // Animation handles the render.
     return;
   }
-    
+
   // Drag camera in main view.
   // Dragging is too slow.  I want to accelerate dragging the further
   // this mouse moves.  This is a moderate change, so I am
@@ -1054,7 +1054,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     this.RollTarget = this.MainView.Camera.Roll;
   } else if (this.InteractionState == INTERACTION_ZOOM) {
     var dy = event.MouseDeltaY / this.MainView.Viewport[2];
-    this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight() 
+    this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
                                     / (1.0 + (dy* 5.0)));
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.MainView.Camera.ComputeMatrix();
@@ -1096,19 +1096,19 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     tmp += 120;
   }
 
-  // Compute translate target to keep position in the same place.  
+  // Compute translate target to keep position in the same place.
   //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
   //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-  var position = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);  
+  var position = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
   var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
   this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
   this.TranslateTarget[1] = position[1] - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
   this.RollTarget = this.MainView.Camera.Roll;
-  
+
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-  eventuallyRender();    
+  eventuallyRender();
 }
 
 Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
@@ -1121,13 +1121,13 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
       eventuallyRender();
     } else if (keyCode == 34) {
       SLICE = SLICE + 1;
-      if (SLICE > cache.Image.dimensions[2]) { 
+      if (SLICE > cache.Image.dimensions[2]) {
         SLICE = cache.Image.dimensions[2];
       }
       eventuallyRender();
-    }    
+    }
   }
-  
+
   // Handle connectome volume stuff.
   // TODO: integrate this with the 3d renal stack stuff.
   // connectome
@@ -1208,9 +1208,9 @@ Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
   // Convert from view to screen pixel coordinates.
   xNew = (1.0+xNew)*0.5*viewport[2] + viewport[0];
   yNew = (1.0-yNew)*0.5*viewport[3] + viewport[1];
-    
+
   return [xNew, yNew];
-}   
+}
 
 
 Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
@@ -1222,7 +1222,7 @@ Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
   x = x - viewport[0];
   y = y - viewport[1];
   // Now we need to convert to world coordinate system
-  
+
   // Compute focal point from inverse overview camera.
   x = x/viewport[2];
   y = y/viewport[3];
@@ -1232,7 +1232,7 @@ Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
   var det = m[0]*m[5] - m[1]*m[4];
   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
   var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-  
+
   return [xNew, yNew];
 }
 

@@ -67,7 +67,7 @@ Shape.prototype.Draw = function (view) {
     this.Matrix[12] = x;
     this.Matrix[13] = y;
     this.Matrix[14] = this.ZOffset;
-    
+
     var program = polyProgram;
 
     GL.useProgram(program);
@@ -83,11 +83,11 @@ Shape.prototype.Draw = function (view) {
     GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
     // Needed for outline ??? For some reason, DrawOutline did not work
     // without this call first.
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                           this.VertexPositionBuffer.itemSize, 
+    GL.vertexAttribPointer(program.vertexPositionAttribute,
+                           this.VertexPositionBuffer.itemSize,
                            GL.FLOAT, false, 0, 0);     // Texture coordinates
     // Local view.
-    GL.viewport(view.Viewport[0], view.Viewport[1], 
+    GL.viewport(view.Viewport[0], view.Viewport[1],
                 view.Viewport[2], view.Viewport[3]);
 
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
@@ -101,32 +101,32 @@ Shape.prototype.Draw = function (view) {
     // Fill color
     if (this.FillColor != undefined) {
       if (this.Active) {
-        GL.uniform3f(program.colorUniform, this.ActiveColor[0], 
+        GL.uniform3f(program.colorUniform, this.ActiveColor[0],
                      this.ActiveColor[1], this.ActiveColor[2]);
       } else {
-        GL.uniform3f(program.colorUniform, this.FillColor[0], 
+        GL.uniform3f(program.colorUniform, this.FillColor[0],
                      this.FillColor[1], this.FillColor[2]);
       }
       // Cell Connectivity
       GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-        
-      GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, 
+
+      GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
                       GL.UNSIGNED_SHORT,0);
     }
 
     if (this.OutlineColor != undefined) {
       if (this.Active) {
-        GL.uniform3f(program.colorUniform, this.ActiveColor[0], 
+        GL.uniform3f(program.colorUniform, this.ActiveColor[0],
                      this.ActiveColor[1], this.ActiveColor[2]);
       } else {
-        GL.uniform3f(program.colorUniform, this.OutlineColor[0], 
+        GL.uniform3f(program.colorUniform, this.OutlineColor[0],
                      this.OutlineColor[1], this.OutlineColor[2]);
       }
 
       if (this.LineWidth == 0) {
         if (this.WireFrame) {
           GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-          GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems, 
+          GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems,
                       GL.UNSIGNED_SHORT,0);
         } else {
           // Outline. This only works for polylines
@@ -135,14 +135,14 @@ Shape.prototype.Draw = function (view) {
       } else {
         // Cell Connectivity
         GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-        GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems, 
+        GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
                         GL.UNSIGNED_SHORT,0);
       }
     }
   } else { // 2d Canvas -----------------------------------------------
     view.Context2d.save();
     // Identity.
-    view.Context2d.setTransform(1,0,0,1,0,0); 
+    view.Context2d.setTransform(1,0,0,1,0,0);
 
     var theta = (this.Orientation * 3.1415926536 / 180.0);
     if ( ! this.FixedSize) {
@@ -157,7 +157,7 @@ Shape.prototype.Draw = function (view) {
     y = this.Origin[1];
     var scale = 1.0;
     if ( ! this.FixedSize) {
-      // World need to be drawn in view coordinate system so the 
+      // World need to be drawn in view coordinate system so the
       scale = view.Viewport[3] / view.Camera.GetHeight();
     }
     // First transform the origin-world to view.
@@ -176,7 +176,7 @@ Shape.prototype.Draw = function (view) {
       view.Context2d.lineTo(this.PointBuffer[i]*scale,this.PointBuffer[i+1]*scale);
       i += 3;
     }
-      
+
     if (this.OutlineColor != undefined) {
       var width = this.LineWidth * scale;
       if (width == 0) {
@@ -190,7 +190,7 @@ Shape.prototype.Draw = function (view) {
       }
       view.Context2d.stroke();
     }
-    
+
     if (this.FillColor != undefined) {
       if (this.Active) {
         view.Context2d.fillStyle=ConvertColorToHex(this.ActiveColor);
@@ -199,7 +199,7 @@ Shape.prototype.Draw = function (view) {
       }
       view.Context2d.fill();
     }
-      
+
     view.Context2d.restore();
   }
 }
@@ -237,14 +237,14 @@ Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
   var y = pt[1] - end0[1];
   var vx = end1[0] - end0[0];
   var vy = end1[1] - end0[1];
-  
+
   // Rotate so the edge lies on the x axis.
   var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
   vx = vx/length;
   vy = -vy/length;
   var newX = (x*vx - y*vy);
   var newY = (x*vy + y*vx);
-  
+
   if (newX >= 0.0 && newX <= length) {
     if (Math.abs(newY) < (thickness *0.5)) {
       return true;
@@ -252,4 +252,4 @@ Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
   return false;
   }
 }
-  
+

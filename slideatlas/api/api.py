@@ -10,7 +10,7 @@ from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from slideatlas.common_utils import site_admin_required
 from slideatlas import models, security
-from slideatlas.ptiffstore import asset_store 
+from slideatlas.ptiffstore import asset_store
 import re
 import gridfs
 
@@ -220,7 +220,7 @@ class DatabaseAPI(AdminDBAPI):
             resp["database"] = obj.to_mongo()
 
             return jsonify(resp)
-                
+
         else:
             # Only insert and modify commands supported so far
             abort(400)
@@ -297,7 +297,7 @@ class DatabaseAPI(AdminDBAPI):
             if database._cls == "TileStore.Database.PtiffTileStore":
                 database.root_path = data["root_path"]
 
-            # Add additional fields 
+            # Add additional fields
             if "_cls" in data:
                 print data["_cls"]
 
@@ -761,7 +761,7 @@ def view_all_sessions():
         sessions.sort(key=itemgetter("label"))
 
         all_sessions.append((role.to_mongo(), sessions))
-        
+
     all_sessions.sort(key=lambda (role, sessions): itemgetter("name"))
 
     if request.args.get('json'):

@@ -47,5 +47,5 @@ def samefile(path1, path2):
     md5_2 = md5_file(path2)
     print "md5 =", md5_1
 
-    # Return whether the md5's match 
+    # Return whether the md5's match
     return md5_1 == md5_2

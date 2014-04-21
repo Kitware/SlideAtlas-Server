@@ -10,7 +10,7 @@
 // Notes just add a tree structure on top of these states (with GUI).
 
 // Right now we are loading the view and bookmarks as notes.
-// Bookmarks have two notes: Question and a child answer.  
+// Bookmarks have two notes: Question and a child answer.
 // I want to hide the answer in the question note (not show the answer in the GUI).
 // My problem is that the answer note does not have enough information to draw
 // the Question GUI.  It is buried in the iterator.  I could have a state
@@ -38,10 +38,10 @@
 
 
 // Time to make this an object to get rid of all these global variables.
-function InitNotesWidget() {  
+function InitNotesWidget() {
   NOTES_WIDGET = new NotesWidget();
   if (EDIT) {
-    NOTES_WIDGET.EditCallback();  
+    NOTES_WIDGET.EditCallback();
   }
 }
 
@@ -59,7 +59,7 @@ function NotesWidget() {
   this.Iterator;
   // For clearing selected GUI setting.
   this.SelectedNote;
-  
+
   // GUI elements
   this.Window;
   this.NoteTreeDiv;
@@ -86,9 +86,9 @@ function NotesWidget() {
   // It would be nice to integrate all animation in a flexible utility.
   this.AnimationLastTime;
   this.AnimationDuration;
-  this.AnimationTarget;  
+  this.AnimationTarget;
 
-  
+
   if ( ! MOBILE_DEVICE) {
     this.OpenNoteWindowButton = $('<img>')
       .appendTo('body')
@@ -117,7 +117,7 @@ function NotesWidget() {
       .click(function(){self.ToggleNotesWindow();});
     VIEWER1.AddGuiObject(this.CloseNoteWindowButton, "Top", 0, "Left", -20);
   }
-  
+
   this.Window = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',
@@ -143,8 +143,8 @@ function NotesWidget() {
       'color': '#303030',
       'font-size': '18px'})
     .attr('id', 'NoteTree');
-  
-    
+
+
   // The next three elements are to handle the addition of comments.  Currently placeholders.
   // The top div wraps the text field and the submit button at the bottom of the widget.
   var noteDetailDiv = $('<div>').appendTo(this.Window)
@@ -152,7 +152,7 @@ function NotesWidget() {
           'width': '100%',
           'top': '60%',
           'height': '40%'});
-  
+
   this.TitleEntry = $('<textarea>').appendTo(noteDetailDiv)
                                     .css({'position': 'absolute',
                                           'left': '3px',
@@ -160,7 +160,7 @@ function NotesWidget() {
                                           'height': '20px',
                                           'border-style': 'solid',
                                           'background': '#ffffff',
-                                          'resize': 'none'});                                                                                    
+                                          'resize': 'none'});
   this.TextEntry = $('<textarea>').appendTo(noteDetailDiv)
                                    .css({'position': 'absolute',
                                          'left': '3px',
@@ -178,7 +178,7 @@ function NotesWidget() {
                                              'width': '100%',
                                              'height': '40px',
                                              'bottom': '0px'});
-  
+
   // Only visible when in edit mode.
   this.PopupMenuButton = $('<div>').appendTo(buttonWrapper)
                                 .hide()
@@ -221,7 +221,7 @@ function NotesWidget() {
                           //set the timeoutId, allowing us to clear this trigger if the mouse comes back over
                           self.data('timeoutId', timeoutId);  })
                        .mouseenter(function(){
-                          clearTimeout($(this).data('timeoutId')); });                       
+                          clearTimeout($(this).data('timeoutId')); });
 
   this.DeleteButton = $('<button>').appendTo(this.PopupMenu)
                                 .hide()
@@ -246,7 +246,7 @@ function NotesWidget() {
                                   .text("Save")
                                   .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
                                   .click(function(){self.SaveCallback();});
-                       
+
   var popupMenuButtonImage = $('<img>').appendTo(this.PopupMenuButton)
     .css({'height': '30px',
           'width': '30x',
@@ -258,7 +258,7 @@ function NotesWidget() {
   this.LoadViewId(VIEW_ID);
   // Setup the iterator using the view as root.
   // Bookmarks (sub notes) are loaded next.
-  this.Iterator = this.RootNote.NewIterator(); 
+  this.Iterator = this.RootNote.NewIterator();
 }
 
 //------------------------------------------------------------------------------
@@ -297,7 +297,7 @@ NoteIterator.prototype.GetChildIndex = function() {
 
 
 NoteIterator.prototype.GetNote = function() {
-  if (this.ChildIterator != null) { 
+  if (this.ChildIterator != null) {
     return this.ChildIterator.GetNote();
   }
   return this.Note;
@@ -324,7 +324,7 @@ NoteIterator.prototype.GetParentNote = function() {
 
 // We use this to see (peek) if next or previous should be disabled.
 NoteIterator.prototype.IsStart = function() {
-  if (this.ChildIterator == null) { 
+  if (this.ChildIterator == null) {
     return true;
   }
   return false;
@@ -350,7 +350,7 @@ NoteIterator.prototype.IsEnd = function() {
     if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
       // We have children which come after answers.
       return false;
-    } 
+    }
     // No children.  Answer array is the last. Check is current is last answer.
     if (childIndex == this.GetChildArray().length - 1) {
       return this.ChildIterator.IsEnd();
@@ -358,7 +358,7 @@ NoteIterator.prototype.IsEnd = function() {
     // More answers after current.
     return false;
   }
-  
+
   // sub child is active
   if (childIndex == this.GetChildArray().length - 1) {
     return this.ChildIterator.IsEnd();
@@ -368,7 +368,7 @@ NoteIterator.prototype.IsEnd = function() {
 
 
 // Parent note is traversed before children.
-// Move forward one step.  Return the new note. At end the last note returned again. 
+// Move forward one step.  Return the new note. At end the last note returned again.
 // IsEnd method used to detect terminal case.
 NoteIterator.prototype.Next = function() {
   // Case 1:  Iterator is on its own node.
@@ -396,23 +396,23 @@ NoteIterator.prototype.Next = function() {
     return this.ChildIterator.Next();
   }
 
-  // Child iterator is finished.  
+  // Child iterator is finished.
   // Try to create a new iterator with the next child in the array.
   var childIndex = this.GetChildIndex();
   if (childIndex < this.GetChildArray().length-1) {
     this.ChildIterator = this.GetChildArray()[childIndex+1].NewIterator();
     return this.ChildIterator.GetNote();
   }
-  
+
   // Move from answers to children
-  if (this.IteratingAnswers && 
-      this.Note.Children.length > 0 && 
+  if (this.IteratingAnswers &&
+      this.Note.Children.length > 0 &&
       this.Note.ChildrenVisibility) {
     this.IteratingAnswers = false;
     this.ChildIterator = this.Note.Children[0].NewIterator();
     return this.ChildIterator.GetNote();
   }
-  
+
   // We are at the end of the children array.
   return this.ChildIterator.GetNote();
 }
@@ -435,7 +435,7 @@ NoteIterator.prototype.Previous = function() {
     this.ChildIterator.ToEnd();
     return this.ChildIterator.GetNote();
   }
-  
+
   // We are at the begining of an array.
   // If we are in the child array, try to move to the answer array
   if ( ! this.IteratingAnswers && this.Note.Answers.length > 0) {
@@ -450,7 +450,7 @@ NoteIterator.prototype.Previous = function() {
   this.ChildIterator = null;
   this.IteratingAnswers = false;
   return this.Note;
-}    
+}
 
 
 // Move the iterator to the end. Used in Previous method.
@@ -485,8 +485,8 @@ function Note () {
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
   this.Type = "Note";
-  
-  
+
+
   this.Title = "";
   this.Text = "";
   // Upto two for dual view.
@@ -494,7 +494,7 @@ function Note () {
 
   // Hidden children for questions.
   this.Answers = [];
-  
+
   // Sub notes
   this.Children = [];
   this.ChildrenVisibility = true;
@@ -569,13 +569,13 @@ Note.prototype.UpdateChildrenGUI = function() {
              .click(function() {self.Expand();});
     return;
   }
-  
+
   // Redraw
   this.Icon.attr('src',"webgl-viewer/static/minus.png")
            .click(function() {self.Collapse();});
   for (var i = 0; i < this.Children.length; ++i) {
     this.Children[i].DisplayGUI(this.ChildrenDiv);
-  } 
+  }
 
   if (this.Children.length > 1 && this.UserCanEdit() && NOTES_WIDGET.EditActive) {
     // Make sure the indexes are set correctly.
@@ -588,7 +588,7 @@ Note.prototype.UpdateChildrenGUI = function() {
     // Indicate the children are sortable...
     this.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
   }
-  
+
 }
 
 // So this is a real pain.  I need to get the order of the notes from
@@ -606,7 +606,7 @@ Note.prototype.ReorderChildren = function() {
     }
     newChildren.push(note);
   }
- 
+
   this.Children = newChildren;
 }
 
@@ -642,7 +642,7 @@ Note.prototype.Select = function() {
       }
       iter.Next();
     }
-    NOTES_WIDGET.Iterator = iter;    
+    NOTES_WIDGET.Iterator = iter;
   }
 
   // Handle the note that is being unselected.
@@ -651,10 +651,10 @@ Note.prototype.Select = function() {
     NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
     if (NOTES_WIDGET.EditActive && NOTES_WIDGET.SelectedNote.UserCanEdit()) {
       NOTES_WIDGET.SelectedNote.RecordGUIChanges();
-      NOTES_WIDGET.NoteModified();     
+      NOTES_WIDGET.NoteModified();
     }
   }
-  
+
   NOTES_WIDGET.RandomButton.hide();
   if (this.UserCanEdit() && NOTES_WIDGET.EditActive) {
     NOTES_WIDGET.TitleEntry.removeAttr('readonly');
@@ -663,7 +663,7 @@ Note.prototype.Select = function() {
     NOTES_WIDGET.TextEntry.removeAttr('readonly');
     NOTES_WIDGET.TextEntry.css({'border-style': 'inset',
                          'background': '#f5f8ff'});
-    NOTES_WIDGET.DeleteButton.show();  
+    NOTES_WIDGET.DeleteButton.show();
     if (this.Children.length > 1 && this.ChildrenVisibility) {
       NOTES_WIDGET.RandomButton.show();
     }
@@ -674,7 +674,7 @@ Note.prototype.Select = function() {
     NOTES_WIDGET.TextEntry.attr('readonly', 'readonly');
     NOTES_WIDGET.TextEntry.css({'border-style': 'solid',
                          'background': '#ffffff'});
-    NOTES_WIDGET.DeleteButton.hide();  
+    NOTES_WIDGET.DeleteButton.hide();
   }
 
   if (this == NOTES_WIDGET.RootNote){
@@ -686,14 +686,14 @@ Note.prototype.Select = function() {
   } else if (NOTES_WIDGET.EditActive) {
     NOTES_WIDGET.CloneButton.show();
   }
-  
+
   NOTES_WIDGET.SelectedNote = this;
   // Indicate which note is selected.
   this.TitleDiv.css({'background':'#f0f0f0'});
   // Put the note into the details section.
   NOTES_WIDGET.TitleEntry.val(this.Title);
   NOTES_WIDGET.TextEntry.val(this.Text);
-  
+
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
   this.DisplayView();
@@ -715,12 +715,12 @@ Note.prototype.DisplayGUI = function(div) {
   this.Div.appendTo(div);
 
   var self = this;
-  
+
   this.TitleDiv.text(this.Title);
   this.TitleDiv.click(function() {self.Select()});
   this.TitleDiv.hover(function(){self.TitleDiv.css({'text-decoration':'underline'});},
                      function(){self.TitleDiv.css({'text-decoration':'none'});});
-                     
+
   this.UpdateChildrenGUI();
 }
 
@@ -779,7 +779,7 @@ Note.prototype.Load = function(obj){
     var self = this;
     this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
-                               update: function( event, ui ){self.ReorderChildren();}});                               
+                               update: function( event, ui ){self.ReorderChildren();}});
   }
 
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
@@ -808,7 +808,7 @@ Note.prototype.LoadViewId = function(viewId) {
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.Load(data);},
     error: function() { alert( "AJAX - error() : getview" ); },
-    });  
+    });
 }
 
 // Get any children notes (this note as parent)
@@ -824,7 +824,7 @@ Note.prototype.RequestUserNotes = function() {
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error() : getchildnotes" ); },
-    });  
+    });
 }
 
 
@@ -858,7 +858,7 @@ Note.prototype.Expand = function() {
 }
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
-Note.prototype.DisplayView = function() { 
+Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
   VIEWER2.Reset();
@@ -896,7 +896,7 @@ NotesWidget.prototype.SaveUserNote = function() {
     viewerRecord.CopyViewer(VIEWER2);
     childNote.ViewerRecords.push(viewerRecord);
   }
-  
+
   // Now add the note as the last child to the current note.
   parentNote = this.Iterator.GetNote();
   parentNote.Children.push(childNote);
@@ -916,8 +916,8 @@ NotesWidget.prototype.SaveUserNote = function() {
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
     error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });  
-  
+    });
+
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
   // which will also update the gui and viewers.
@@ -929,7 +929,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
   // Create a new note.
   var note = new Note();
   note.RecordGUIChanges();
-  
+
   // The note will want to know its context
   parentNote = this.Iterator.GetNote();
   note.ParentId = parentNote.Id;
@@ -941,7 +941,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     data: {"note": JSON.stringify(note.Serialize(false))},
     success: function(data,status) { note.Id = data;},
     error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });  
+    });
 }
 
 
@@ -990,7 +990,7 @@ NotesWidget.prototype.NewCallback = function() {
     viewerRecord.CopyViewer(VIEWER2);
     childNote.ViewerRecords.push(viewerRecord);
   }
-  
+
   // Now add the note as the last child to the current note.
   parentNote = this.Iterator.GetNote();
   parentNote.AddChild(childNote, true);
@@ -1000,7 +1000,7 @@ NotesWidget.prototype.NewCallback = function() {
   // Expand the parent so that the new note is visible.
   parentNote.ChildrenVisibility = true;
   parentNote.UpdateChildrenGUI();
-  
+
   childNote.Select();
 }
 
@@ -1022,7 +1022,7 @@ NotesWidget.prototype.CloneCallback = function() {
 
   // Record any changes before we clone the note.
   note.RecordGUIChanges();
- 
+
   // Create a new note.
   var newNote = new Note();
   newNote.Title = note.Title;
@@ -1031,7 +1031,7 @@ NotesWidget.prototype.CloneCallback = function() {
 
   this.TitleEntry.val(newNote.Title);
   this.TextEntry.val(newNote.Text);
-  
+
   // Save the state of the viewers.
   newNote.ViewerRecords = [];
   //  Viewer1
@@ -1044,14 +1044,14 @@ NotesWidget.prototype.CloneCallback = function() {
     viewerRecord.CopyViewer(VIEWER2);
     newNote.ViewerRecords.push(viewerRecord);
   }
-  
+
   // Now insert the child after the current note.
   parentNote.Children.splice(index+1,0,newNote);
   // ParentId is how we retrieve notes from the database.
   // It is the only tree structure saved.
   newNote.ParentId = parentNote.Id;
   parentNote.UpdateChildrenGUI();
-  
+
   newNote.Select();
 }
 
@@ -1065,14 +1065,14 @@ NotesWidget.prototype.EditCallback = function() {
   this.EditActive = true;
 
   this.EditButton.hide();
-  this.PopupMenuButton.show();  
+  this.PopupMenuButton.show();
   this.NewButton.show();
   this.SaveButton.show();
   // This handles making the note editable (including showing and hiding the delete button).
   if (this.SelectedNote) {
     this.SelectedNote.Select();
   }
-  
+
   // This handles making children sortable.
   var iter = this.RootNote.NewIterator();
   do {
@@ -1086,7 +1086,7 @@ NotesWidget.prototype.EditCallback = function() {
       this.SelectedNote.RecordGUIChanges();
     }
     return "Some changes have not been saved to the database.";
-  }  
+  }
 }
 
 // TODO: Activate and inactivate save button based on whether anything has changed.
@@ -1096,9 +1096,9 @@ NotesWidget.prototype.SaveCallback = function() {
   if (this.EditActive && this.SelectedNote.UserCanEdit()) {
     this.SelectedNote.RecordGUIChanges();
   }
-  
+
   var d = new Date();
-  
+
   // If user owns the root note, then upload all notes to the view.
   if (this.RootNote.UserCanEdit()) {
     // Save this users notes in the user specific collection.
@@ -1112,9 +1112,9 @@ NotesWidget.prototype.SaveCallback = function() {
              "date" : d.getTime()},
       success: function(data,status) {},
       error: function() { alert( "AJAX - error() : saveviewnotes" ); },
-      });  
+      });
   } else {
-    // Save just the users notes to the notes collection.    
+    // Save just the users notes to the notes collection.
     // Save all of the users notes in the database for this specific user.
     // Save this users notes in the user specific collection.
     var iter = this.RootNote.GetIterator();
@@ -1129,15 +1129,15 @@ NotesWidget.prototype.SaveCallback = function() {
                  "date": d.getTime()},
           success: function(data,status) { note.Id = data;},
           error: function() { alert( "AJAX - error(): saveusernote" ); },
-          });  
+          });
       }
     } while(iter.IsEnd());
   }
-  
+
   window.onbeforeunload = null;
   this.Modified = false;
   this.EditActive = false;
-  
+
   this.PopupMenuButton.hide();
   this.SaveButton.hide();
   this.CloneButton.hide();
@@ -1152,13 +1152,13 @@ NotesWidget.prototype.DeleteCallback = function() {
   this.PopupMenu.hide();
 
   this.NoteModified();
-  
+
   var parent = this.Iterator.GetParentNote();
   if (parent == null) {
     return;
   }
   var note = this.Iterator.GetNote();
-  
+
   // Move the current note off this note.
   // There is always a previous.
   NAVIGATION_WIDGET.PreviousNote();
@@ -1167,7 +1167,7 @@ NotesWidget.prototype.DeleteCallback = function() {
   var index = parent.Children.indexOf(note);
   parent.Children.splice(index, 1);
 
-  // If this user does not own the lesson, 
+  // If this user does not own the lesson,
   // then immediatley remove the note from the database.
   // Lesson autho will have to select save to change the database.
   /* Should we immediately change the database, or wait until the user selects save?
@@ -1178,9 +1178,9 @@ NotesWidget.prototype.DeleteCallback = function() {
            "db"  : GetSessionDatabase()},
     success: function(data,status) {},
     error: function() { alert( "AJAX - error()" ); },
-    });  
+    });
   */
-  
+
   // Redraw the GUI.
   parent.UpdateChildrenGUI();
 }
@@ -1212,17 +1212,17 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
     } else {
       this.CloseNoteWindowButton.hide();
       this.OpenNoteWindowButton.show();
-    }    
+    }
     draw();
     return;
   }
-  
+
   var k = timeStep / this.AnimationDuration;
-    
+
   // update
   this.AnimationDuration *= (1.0-k);
   this.WidthFraction += (this.AnimationTarget-this.WidthFraction) * k;
-  
+
   handleResize();
   draw();
   var self = this;
@@ -1243,8 +1243,8 @@ NotesWidget.prototype.LoadViewId = function(viewId) {
     this.RootNote.LoadViewId(viewId);
   }
   // Since loading the view is asynchronous,
-  // the this.RootNote is not complete at this point.  
+  // the this.RootNote is not complete at this point.
 }
 
 
-  
+

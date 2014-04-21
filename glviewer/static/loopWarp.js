@@ -20,13 +20,13 @@ LoopWarp.prototype.ImageToWorld = function(imagePt) {
   // move center to the origin.
   var px = imagePt[0] - this.LoopCenter.ImagePt[0];
   var py = imagePt[1] - this.LoopCenter.ImagePt[1];
-  
+
   // Iterate ovver the wedges of the loop.
   var i0 = this.Loop.length - 1;
-  var v0 = [this.Loop[i0].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i0].ImagePt[1]-this.LoopCenter.ImagePt[1]]; 
+  var v0 = [this.Loop[i0].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i0].ImagePt[1]-this.LoopCenter.ImagePt[1]];
   for (var i1 = 0; i1 < this.Loop.length; ++i1) {
     // Find the two bounding vectors of the wedge.
-    var v1 = [this.Loop[i1].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i1].ImagePt[1]-this.LoopCenter.ImagePt[1]]; 
+    var v1 = [this.Loop[i1].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i1].ImagePt[1]-this.LoopCenter.ImagePt[1]];
     // Find the linear combination of the vectors that equals the point. (inver the matrix [v0 v1])
     var d = (v0[0]*v1[1] - v1[0]*v0[1]);
     var k0 = (v1[1]*px - v1[0]*py) / d;
@@ -34,9 +34,9 @@ LoopWarp.prototype.ImageToWorld = function(imagePt) {
     if (k0 >= 0.0 && k1 >= 0.0) {
       // Both vector components are positive point lies in the wedge (1 quad of basis space).
       // Find corresponding vectors in world space.
-      var w0 = [this.Loop[i0].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i0].WorldPt[1]-this.LoopCenter.WorldPt[1]]; 
-      var w1 = [this.Loop[i1].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i1].WorldPt[1]-this.LoopCenter.WorldPt[1]]; 
-      return [k0*w0[0] + k1*w1[0] + this.LoopCenter.WorldPt[0], k0*w0[1] + k1*w1[1] + this.LoopCenter.WorldPt[1]]; 
+      var w0 = [this.Loop[i0].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i0].WorldPt[1]-this.LoopCenter.WorldPt[1]];
+      var w1 = [this.Loop[i1].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i1].WorldPt[1]-this.LoopCenter.WorldPt[1]];
+      return [k0*w0[0] + k1*w1[0] + this.LoopCenter.WorldPt[0], k0*w0[1] + k1*w1[1] + this.LoopCenter.WorldPt[1]];
     }
     v0 = v1;
     i0 = i1;
@@ -56,13 +56,13 @@ LoopWarp.prototype.WorldToImage = function(worldPt) {
   // move center to the origin.
   var px = worldPt[0] - this.LoopCenter.WorldPt[0];
   var py = worldPt[1] - this.LoopCenter.WorldPt[1];
-  
+
   // Iterate ovver the wedges of the loop.
   var i0 = this.Loop.length - 1;
-  var v0 = [this.Loop[i0].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i0].WorldPt[1]-this.LoopCenter.WorldPt[1]]; 
+  var v0 = [this.Loop[i0].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i0].WorldPt[1]-this.LoopCenter.WorldPt[1]];
   for (var i1 = 0; i1 < this.Loop.length; ++i1) {
     // Find the two bounding vectors of the wedge.
-    var v1 = [this.Loop[i1].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i1].WorldPt[1]-this.LoopCenter.WorldPt[1]]; 
+    var v1 = [this.Loop[i1].WorldPt[0]-this.LoopCenter.WorldPt[0], this.Loop[i1].WorldPt[1]-this.LoopCenter.WorldPt[1]];
     // Find the linear combination of the vectors that equals the point. (inver the matrix [v0 v1])
     var d = (v0[0]*v1[1] - v1[0]*v0[1]);
     var k0 = (v1[1]*px - v1[0]*py) / d;
@@ -70,9 +70,9 @@ LoopWarp.prototype.WorldToImage = function(worldPt) {
     if (k0 >= 0.0 && k1 >= 0.0) {
       // Both vector components are positive point lies in the wedge (1 quad of basis space).
       // Find corresponding vectors in world space.
-      var w0 = [this.Loop[i0].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i0].ImagePt[1]-this.LoopCenter.ImagePt[1]]; 
-      var w1 = [this.Loop[i1].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i1].ImagePt[1]-this.LoopCenter.ImagePt[1]]; 
-      return [k0*w0[0] + k1*w1[0] + this.LoopCenter.ImagePt[0], k0*w0[1] + k1*w1[1] + this.LoopCenter.ImagePt[1]]; 
+      var w0 = [this.Loop[i0].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i0].ImagePt[1]-this.LoopCenter.ImagePt[1]];
+      var w1 = [this.Loop[i1].ImagePt[0]-this.LoopCenter.ImagePt[0], this.Loop[i1].ImagePt[1]-this.LoopCenter.ImagePt[1]];
+      return [k0*w0[0] + k1*w1[0] + this.LoopCenter.ImagePt[0], k0*w0[1] + k1*w1[1] + this.LoopCenter.ImagePt[1]];
     }
     v0 = v1;
     i0 = i1;
@@ -89,7 +89,7 @@ LoopWarp.prototype.ClipLoop = function (offset, normal, loop) {
   }
 
   var clippedLoop = [];
-  
+
   // Iterate over the edges.
   var i0 = loop.length - 1;
   var dot0 = loop[i0][0]*normal[0] + loop[i0][1]*normal[1] - offset;
@@ -127,13 +127,13 @@ LoopWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
     loop.push(this.Loop[i0].ImagePt);
     loop.push(this.Loop[i1].ImagePt);
     i0 = i1;
-    loop = this.ClipLoop( bds[0], [ 1,0], loop); 
-    loop = this.ClipLoop(-bds[1], [-1,0], loop); 
-    loop = this.ClipLoop( bds[2], [0, 1], loop); 
-    loop = this.ClipLoop(-bds[3], [0,-1], loop); 
+    loop = this.ClipLoop( bds[0], [ 1,0], loop);
+    loop = this.ClipLoop(-bds[1], [-1,0], loop);
+    loop = this.ClipLoop( bds[2], [0, 1], loop);
+    loop = this.ClipLoop(-bds[3], [0,-1], loop);
 
     if (loop.length >= 3) { // we need at least 1 triangle.
-      // Now we have to append the triangles. 
+      // Now we have to append the triangles.
       // Intersection of the rectangle and triangle is convex.
       // Convert the loop to world points and texture coordinates.
       for (var j = 0; j < loop.length; ++j) {
@@ -144,7 +144,7 @@ LoopWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
         var x = (loop[j][0]-bds[0]) / (bds[1]-bds[0]);
         var y = (loop[j][1]-bds[2]) / (bds[3]-bds[2]);
         tCoordsData.push(x);
-        tCoordsData.push(y);      
+        tCoordsData.push(y);
       }
       // Now add the triangles (first point connects to all the others).
       var j0 = 1;

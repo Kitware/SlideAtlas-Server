@@ -167,7 +167,7 @@ shape has visibility and
   // A view has the same structure as a note.
   var VIEW_ID = "{{view}}";
   var SESSION_DATABASE = "{{sessdb}}";
-  
+
   var EDIT = {{edit}}; // Temporary way to hide editing.
   var CANVAS;
   var EVENT_MANAGER;
@@ -177,14 +177,14 @@ shape has visibility and
   var NAVIGATION_WIDGET;
   var MOBILE_ANNOTATION_WIDGET;
   var NOTES_WIDGET;
-  
+
   var SESSIONS_URL  = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  
+
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   // Might consider interactive resize feature too.
   function handleResize() {
     var width = CANVAS.innerWidth();
@@ -194,7 +194,7 @@ shape has visibility and
       CANVAS.attr("height",height.toString());
       GL.viewport(0, 0, width, height);
     } // GL.SetViewport does the work for 2d canvases.
-    
+
     // we set the left border to leave space for the notes window.
     var left = 0;
     if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
@@ -218,14 +218,14 @@ shape has visibility and
     var halfWidth = width/2;
     VIEWER1 = new Viewer([0,0, width,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
-                  
+
     VIEWER2 = new Viewer([width,0, 0,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
     handleResize();
   }
 
-  // Hack mutex.  iPad2 must execute multiple draw callbacks at the same time 
+  // Hack mutex.  iPad2 must execute multiple draw callbacks at the same time
   // in different threads.
   var DRAWING = false;
   function draw() {
@@ -234,7 +234,7 @@ shape has visibility and
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     }
-    
+
     // This just changes the camera based on the current time.
     VIEWER1.Animate();
     if (DUAL_VIEW) { VIEWER2.Animate(); }
@@ -242,7 +242,7 @@ shape has visibility and
     if (DUAL_VIEW) { VIEWER2.Draw(); }
     DRAWING = false;
   }
-  
+
   // The event manager detects single right click and double right click.
   // This gets galled on the single.
   function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
@@ -252,11 +252,11 @@ shape has visibility and
   function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
   function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
-  
+
   function handleTouchStart(event) {EVENT_MANAGER.HandleTouchStart(event);}
   function handleTouchMove(event) {EVENT_MANAGER.HandleTouchMove(event);}
-  function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}  
-  function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}  
+  function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}
+  function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}
 
   function handleKeyDown(event) {
         // control: 17, z: 90, y: 89
@@ -311,10 +311,10 @@ shape has visibility and
     can.addEventListener("touchmove",  handleTouchMove,  true);
     can.addEventListener("touchend",   handleTouchEnd,    false);
     can.addEventListener("mousewheel", handleMouseWheel, false);
-    
+
     document.body.addEventListener("mouseup", handleMouseUp, false);
     document.body.addEventListener("touchcancel", handleTouchCancel, false);
-        
+
     document.onkeydown =   handleKeyDown;
     document.onkeyup =     handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
@@ -323,7 +323,7 @@ shape has visibility and
     var annotationWidget2 = new AnnotationWidget(VIEWER2);
     handleResize();
     DualViewUpdateGui();
-    
+
     if ( ! MOBILE_DEVICE) {
       // Place the zoom in / out buttons.
       // Todo: Make the button become more opaque when pressed.
@@ -367,7 +367,7 @@ shape has visibility and
         .attr('class', 'viewer1')
         .attr('type','image')
         .attr('src',"{{ url_for('glviewer.static', filename='Menu.jpg')}}")
-        .click(function(){ 
+        .click(function(){
                   ShowViewerEditMenu(VIEWER1);
                 });
 
@@ -377,8 +377,8 @@ shape has visibility and
       VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
       VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
       VIEWER1.AddGuiElement("#viewMenu1", "Bottom", 5, "Right", 105);
-       
-       
+
+
       // Place the zoom in / out buttons. For the second viewer
       $('<img>').appendTo('body').css({
           'opacity': '0.4',
@@ -427,7 +427,7 @@ shape has visibility and
       VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
       VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
     }
-    
+
     eventuallyRender();
   }
 

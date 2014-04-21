@@ -1,6 +1,6 @@
 <VirtualHost *:80>
   # change this to the DNS name of the default host
-  ServerName slide-atlas.org 
+  ServerName slide-atlas.org
 
   WSGIDaemonProcess slideatlas user=www-data group=www-data threads=1
   WSGIScriptAlias / /var/slideatlas/run_apache.wsgi

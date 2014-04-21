@@ -20,7 +20,7 @@ def getcoords(name, tile_size = 256):
     if name[0] != "t" :
         raise Exception("The name must start with t")
     name = name[1:]
-    level = len(name)        
+    level = len(name)
 
     currentpos = 0
     while len(name) > 0:
@@ -124,6 +124,6 @@ class Test(unittest.TestCase):
         self.failUnlessEqual(getcoords("t"),[0,0,0])# ['tqsttt', 8, 15]
         self.failUnlessEqual(getcoords("tt"),[0,1,1])# ['tqsttt', 8, 15]
 
-if __name__ == "__main__": 
-    unittest.main() 
+if __name__ == "__main__":
+    unittest.main()
 

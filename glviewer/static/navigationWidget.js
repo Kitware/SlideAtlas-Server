@@ -34,7 +34,7 @@ function NavigationWidget() {
     }
   }
   var self = this;
-  this.Div = 
+  this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
                     'left' : left,
@@ -195,7 +195,7 @@ NavigationWidget.prototype.LoadViewId = function(viewId) {
     NOTES_WIDGET.RootNote.LoadViewId(viewId);
   }
   // Since loading the view is asynchronous,
-  // the NOTES_WIDGET.RootNote is not complete at this point.  
+  // the NOTES_WIDGET.RootNote is not complete at this point.
 }
 
 

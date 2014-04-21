@@ -1,4 +1,4 @@
-# DJ's command line for testing 
+# DJ's command line for testing
 # (export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ; python test_rest.py  APIv1_Tests.testDatabaseInfo )
 
 import sys
@@ -11,7 +11,7 @@ from slideatlas import models
 from slideatlas.security.views.common import login_user
 import unittest
 # from slideatlas.security import login_user
-# from slideatlas import models 
+# from slideatlas import models
 
 class APIv1_Tests(unittest.TestCase):
     def setUp(self):
@@ -26,11 +26,11 @@ class APIv1_Tests(unittest.TestCase):
         # login_user(demo_user)
         demo_user = models.PasswordUser.objects.get(email='all_demo')
         with self.app:
-            login_user(demo_user)        
+            login_user(demo_user)
 
-        
+
     def login_admin(self):
-        # Posts admin access 
+        # Posts admin access
         # admin_user = models.PasswordUser.objects.get(email='all_demo')
         # return login_user(demo_user)
 
@@ -38,7 +38,7 @@ class APIv1_Tests(unittest.TestCase):
         # with self.app1.test_request_context("/"):
         with self.app.request_context():
             admin_user = models.PasswordUser.objects.get(email='all_bev1_admin')
-            login_user(admin_user)        
+            login_user(admin_user)
         # data = dict(
         #     username="all_bev1_admin",
         #     passwd="MAmanage"
@@ -118,7 +118,7 @@ class APIv1_Tests(unittest.TestCase):
         """
         Test if the server returns database information correctly
         """
-        # TODO: Fix this  
+        # TODO: Fix this
 
         # self.login_viewer()
         self.login_admin()
@@ -135,7 +135,7 @@ class APIv1_Tests(unittest.TestCase):
 
     def testDatabasePost(self):
         """
-        Adding the new database to 
+        Adding the new database to
         """
         # Sign in for admin access
         self.login_admin()
@@ -148,7 +148,7 @@ class APIv1_Tests(unittest.TestCase):
 
         obj = self.parseResponse("/apiv1/databases", newdb, method="post")
 
-        # Query it back and check 
+        # Query it back and check
         obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]))
         self.failUnlessEqual(obj['_id'], obj2["_id"])
 
@@ -160,7 +160,7 @@ class APIv1_Tests(unittest.TestCase):
         obj4 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]))
         self.failUnlessEqual(obj2["label"], obj4["label"])
 
-        # Now test if the database record can be deleted 
+        # Now test if the database record can be deleted
         obj3 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), method="delete")
 
         # This should fail
@@ -188,7 +188,7 @@ class APIv1_Tests(unittest.TestCase):
                               "host" : "127.0.0.1:27017" }
                             )
 
-        # Query it back and check 
+        # Query it back and check
         obj2 = self.parseResponse("/apiv1/databases/" + str(obj["_id"]), modification, method="post")
         print "Returned object: ", obj2
 
@@ -203,7 +203,7 @@ class APIv1_Tests(unittest.TestCase):
 
     def testRenameSessionUsingPost(self):
         """
-        Tests post operation for renaming session 
+        Tests post operation for renaming session
         """
         # Sign in for admin access
         self.login_admin()
@@ -217,7 +217,7 @@ class APIv1_Tests(unittest.TestCase):
         self.failIf(obj.has_key("error"))
 
         modification = dict(modify={"label" : "Some"})
-        # Query it back and check 
+        # Query it back and check
         obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), modification, method="post")
         self.failUnlessEqual(obj['_id'], obj2["_id"])
 
@@ -292,7 +292,7 @@ class APIv1_Tests(unittest.TestCase):
 #        obj = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions", newsession, method='post')
 #        self.failIf(obj.has_key("error"))
 #
-#        # Query it back and check 
+#        # Query it back and check
 #        obj2 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]))
 #        self.failUnlessEqual(obj['_id'], obj2["_id"])
 
@@ -304,7 +304,7 @@ class APIv1_Tests(unittest.TestCase):
 #        obj4 = self.parseResponse("/apiv1/databases/" + str(obj2["_id"]))
 #        self.failUnlessEqual(obj2["label"], obj4["label"])
 #
-        # Now test if the database record can be deleted 
+        # Now test if the database record can be deleted
 #        obj3 = self.parseResponse("apiv1/507619bb0a3ee10434ae0827/sessions/" + str(obj["_id"]), method="delete")
 #
 #        # This should fail
@@ -317,13 +317,13 @@ class APIv1_Tests(unittest.TestCase):
 
         elif method == "post":
             rv = self.app.post(url,
-                           # String conversion required, as the test client ifnores content_type and assumes it is a file 
+                           # String conversion required, as the test client ifnores content_type and assumes it is a file
                            data=json.dumps(postdata),
                           content_type='application/json')
 
         elif method == "put":
             rv = self.app.put(url,
-                           # String conversion required, as the test client ifnores content_type and assumes it is a file 
+                           # String conversion required, as the test client ifnores content_type and assumes it is a file
                            data=json.dumps(postdata),
                           content_type='application/json')
 

@@ -25,7 +25,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth =  5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
-  
+
   this.Viewer.WidgetList.push(this);
 
   // Note: If the user clicks before the mouse is in the
@@ -51,8 +51,8 @@ CircleWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
@@ -79,7 +79,7 @@ CircleWidget.prototype.Load = function(obj) {
   this.Shape.FixedSize = false;
   this.Shape.UpdateBuffers();
 }
-  
+
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
@@ -93,7 +93,7 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
     }
   if (this.State == CIRCLE_WIDGET_NEW) {
     // We need the viewer position of the circle center to drag radius.
-    this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);    
+    this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
     this.State = CIRCLE_WIDGET_DRAG_RADIUS;
   }
   if (this.State == CIRCLE_WIDGET_ACTIVE) {
@@ -128,12 +128,12 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     this.CheckActive(event);
     return;
   }
-  
+
   if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
     this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
     eventuallyRender();
   }
-  
+
   if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     var viewport = this.Viewer.GetViewport();
     var cam = this.Viewer.MainView.Camera;
@@ -144,10 +144,10 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     this.Shape.UpdateBuffers();
     eventuallyRender();
   }
-  
-   if (this.State == CIRCLE_WIDGET_WAITING) { 
+
+   if (this.State == CIRCLE_WIDGET_WAITING) {
     this.CheckActive(event);
-  } 
+  }
 }
 
 CircleWidget.prototype.CheckActive = function(event) {
@@ -167,17 +167,17 @@ CircleWidget.prototype.CheckActive = function(event) {
   var active = false;
   var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
   this.NormalizedActiveDistance = d;
-  
-  if (this.Shape.FillColor == undefined) { // Circle 
+
+  if (this.Shape.FillColor == undefined) { // Circle
     if ((d < (1.05+lineWidth) && d > 0.95)  || d < (0.02+lineWidth)) {
       active = true;
     }
   } else { // Disk
     if (d < (1.05+lineWidth) && d > (0.1+lineWidth) || d < lineWidth) {
-	    active = true;
+      active = true;
     }
   }
-  
+
   this.SetActive(active);
   return active;
 }
@@ -185,20 +185,20 @@ CircleWidget.prototype.CheckActive = function(event) {
 // Multiple active states.  Active state is a bit confusing.
 CircleWidget.prototype.GetActive = function() {
   if (this.State == CIRCLE_WIDGET_WAITING) {
-    return false;  
+    return false;
   }
   return true;
 }
 
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
-CircleWidget.prototype.SetActive = function(flag) {  
+CircleWidget.prototype.SetActive = function(flag) {
   if (flag == this.GetActive()) {
     return;
   }
 
   if (flag) {
-    this.State = CIRCLE_WIDGET_ACTIVE;  
+    this.State = CIRCLE_WIDGET_ACTIVE;
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
@@ -218,7 +218,7 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
   var lineWidth = document.getElementById("circlelinewidth");
   lineWidth.value = (this.Shape.LineWidth).toFixed(2);
-  
+
   var areaLabel = document.getElementById("circlearea");
     areaLabel.innerHTML = "Area: " + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
   if (this.Shape.FixedSize) {
@@ -233,8 +233,8 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
 function CirclePropertyDialogApply() {
   var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if ( ! widget) { 
-    return; 
+  if ( ! widget) {
+    return;
   }
   var hexcolor = document.getElementById("circlecolor").value;
   widget.Shape.SetOutlineColor(hexcolor);

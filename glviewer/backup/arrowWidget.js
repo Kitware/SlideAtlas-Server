@@ -60,14 +60,14 @@ ArrowWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
 ArrowWidget.prototype.Serialize = function() {
-  if(this.Shape === undefined) { 
-    return null; 
+  if(this.Shape === undefined) {
+    return null;
   }
 
   var obj = new Object();
@@ -92,13 +92,13 @@ ArrowWidget.prototype.Load = function(obj) {
   this.Shape.Length = parseFloat(obj.length);
   this.Shape.Width = parseFloat(obj.width);
   this.Shape.Orientation = parseFloat(obj.orientation);
- 
+
   if (obj.fixedsize === undefined) {
     this.Shape.FixedSize = true;
   } else {
     this.Shape.FixedSize = (obj.fixedsize == "true");
   }
-  
+
   if (obj.fixedorientation === undefined) {
     this.Shape.FixedOrientation = true;
   } else {
@@ -162,7 +162,7 @@ ArrowWidget.prototype.HandleMouseUp = function(event) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
     // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript). 
+    // Add a ShowProperties method to the widget. (With the magic of javascript).
     this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
     this.ShowPropertiesDialog();
   } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
@@ -180,12 +180,12 @@ ArrowWidget.prototype.HandleMouseMove = function(event) {
   }
 
   if (this.State == ARROW_WIDGET_NEW || this.State == ARROW_WIDGET_DRAG) {
-    var viewport = this.Viewer.GetViewport();    
+    var viewport = this.Viewer.GetViewport();
     this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x+this.TipOffset[0], y+this.TipOffset[1]);
     eventuallyRender();
   }
 
-  if (this.State == ARROW_WIDGET_DRAG_TAIL) { 
+  if (this.State == ARROW_WIDGET_DRAG_TAIL) {
     var dx = x-this.TipPosition[0];
     var dy = y-this.TipPosition[1];
     if ( ! this.Shape.FixedSize) {
@@ -199,7 +199,7 @@ ArrowWidget.prototype.HandleMouseMove = function(event) {
     eventuallyRender();
   }
 
-  if (this.State == ARROW_WIDGET_WAITING) { 
+  if (this.State == ARROW_WIDGET_WAITING) {
     this.CheckActive(event);
   }
 }
@@ -257,18 +257,18 @@ ArrowWidget.prototype.CheckActive = function(event) {
 // Active because the properties dialog is up. (This is how dialog know which widget is being edited).
 ArrowWidget.prototype.GetActive = function() {
   if (this.State == ARROW_WIDGET_WAITING) {
-    return false;  
+    return false;
   }
   return true;
 }
 
-ArrowWidget.prototype.SetActive = function(flag) {  
+ArrowWidget.prototype.SetActive = function(flag) {
   if (flag == this.GetActive()) {
     return;
   }
 
   if (flag) {
-    this.State = ARROW_WIDGET_ACTIVE;  
+    this.State = ARROW_WIDGET_ACTIVE;
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
@@ -288,17 +288,17 @@ ArrowWidget.prototype.ShowPropertiesDialog = function () {
 
   var color = document.getElementById("arrowcolor");
   color.value = ConvertColorToHex(this.Shape.FillColor);
-  
+
   var lengthLabel = document.getElementById("ArrowLength");
   //if (fs.checked) {
   //  lengthLabel.innerHTML = "Length: " + (this.Shape.Length).toFixed(2) + " pixels";
   //} else {
   //  lengthLabel.innerHTML = "Length: " + (this.Shape.Length).toFixed(2) + " units";
   //}
-  
+
   ARROW_WIDGET_DIALOG_SELF = this;
   $("#arrow-properties-dialog").dialog("open");
-}    
+}
 
 // I need this because old schemes cannot use "Load"
 ArrowWidget.prototype.SetColor = function (hexColor) {
@@ -308,8 +308,8 @@ ArrowWidget.prototype.SetColor = function (hexColor) {
 
 function ArrowPropertyDialogApply() {
   var widget = ARROW_WIDGET_DIALOG_SELF;
-  if ( ! widget) { 
-    return; 
+  if ( ! widget) {
+    return;
   }
 
   var hexcolor = document.getElementById("arrowcolor").value;

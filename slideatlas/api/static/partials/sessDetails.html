@@ -1,11 +1,11 @@
 <h2> Details for session </h2>
 <div ng-controller="sessDetailsCtrl">
-    <h3> {{ session.attachments.length }} Attachments 
-        [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
-            add new 
-        </a> ] 
+    <h3> {{ session.attachments.length }} Attachments
+        [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead">
+            add new
+        </a> ]
     </h3>
-    <div ng-show= session.attachments> 
+    <div ng-show= session.attachments>
     <table class="table table-bordered table-hover" >
         <thead>
             <td> <h4> Label </h4> </td>
@@ -15,8 +15,8 @@
             <td> </td>
         </thead>
         <tr ng-repeat ="item in session.attachments" >
-            <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead"> 
-                        {{ item.details.name}} 
+            <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
+                        {{ item.details.name}}
                     </a>
             </td>
             <td>
@@ -28,9 +28,9 @@
     </br>
     </div>
 
-    <h3> {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> 
-                        add new  </a> ] 
-    </h3> 
+    <h3> {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead">
+                        add new  </a> ]
+    </h3>
     <table class="table table-bordered table-hover" >
         <thead>
             <td> <h4> Label </h4>
@@ -38,10 +38,10 @@
             <td><h4> Thumbnail </h4> </td>
         </thead>
         <tr ng-repeat ="animage in session.views" >
-            <td> 
-                <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.image.label}}</a> 
+            <td>
+                <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.image.label}}</a>
             </td>
-            <td> 
+            <td>
                 <img ng-src="/tile?db={{dbid}}&img={{animage.details.img}}&name=t.jpg" width=100px>
             </td>
         </tr>

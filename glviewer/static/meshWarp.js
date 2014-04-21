@@ -10,7 +10,7 @@ function meshWarp(points, triangles)
 }
 
 // Reference coordinate system triangle (0,0), (1,0), (0,1).
-meshWarp.prototype.ComputePointParameters = function (inPt, trianglePoints) 
+meshWarp.prototype.ComputePointParameters = function (inPt, trianglePoints)
 {
   // choose point 0 for the origin.
   var p0 = inPt[0] - trianglePoints[0][0];
@@ -27,7 +27,7 @@ meshWarp.prototype.ComputePointParameters = function (inPt, trianglePoints)
     return null;
   }
   // determinant
-  tmp = 1.0 / tmp; 
+  tmp = 1.0 / tmp;
   // Now the inverse matrix
   var i00 = m11 * tmp;
   var i10 = -m10 * tmp;
@@ -40,7 +40,7 @@ meshWarp.prototype.ComputePointParameters = function (inPt, trianglePoints)
   // Point 0 weights makes the sum t0 1.0;
   // Negative weights or weights over 1.0 imply the point is oputside the triangle.
   var w0 = 1.0 - w1 - w2;
-  
+
   return [w0,w1,w2];
 }
 
@@ -70,13 +70,13 @@ meshWarp.prototype.ComputeDistance = function(params) {
     tmp = params[2] - 1.0;
     if (tmp > dist) { dist = tmp; }
   }
-  
+
   return dist;
 }
 
 
 // This method converts a point in image coordinates to a point in world coordinates.
-meshWarp.prototype.ImageToWorld = function(imagePt) 
+meshWarp.prototype.ImageToWorld = function(imagePt)
 {
   // If point is outside all triangles, choose the best / closest.
   var bestTriangleIds;
@@ -109,7 +109,7 @@ meshWarp.prototype.ImageToWorld = function(imagePt)
           bestDist = dist;
           bestParams = params;
           bestTriangleIds = triangleIds;
-        } 
+        }
       }
     }
   }
@@ -153,7 +153,7 @@ meshWarp.prototype.WorldToImage = function(worldPt) {
         for (var j = 0; j < 2; ++j) {
           for (var k = 0; k < 3; ++k) {
             imagePt[j] += params[k] * this.Points[triangleIds[k]].ImagePt[j];
-          } 
+          }
         }
         return imagePt;
       } else { // Keep track of the best triangle.
@@ -161,11 +161,11 @@ meshWarp.prototype.WorldToImage = function(worldPt) {
           bestDist = dist;
           bestParams = params;
           bestTriangleIds = triangleIds;
-        } 
+        }
       }
     }
   }
-  
+
   if (bestParams == null) {
     return null;
   }
@@ -177,7 +177,7 @@ meshWarp.prototype.WorldToImage = function(worldPt) {
     for (var k = 0; k < 3; ++k) {
       imagePt[j] += bestParams[k] * this.Points[bestTriangleIds[k]].ImagePt[j];
     }
-  }    
+  }
   return imagePt;
 }
 
@@ -190,7 +190,7 @@ meshWarp.prototype.ClipLoop = function (offset, normal, loop) {
   }
 
   var clippedLoop = [];
-  
+
   // Iterate over the edges.
   var i0 = loop.length - 1;
   var dot0 = loop[i0][0]*normal[0] + loop[i0][1]*normal[1] - offset;
@@ -231,13 +231,13 @@ meshWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
     loop.push(this.Points[triIds[1]].ImagePt);
     loop.push(this.Points[triIds[2]].ImagePt);
 
-    loop = this.ClipLoop( bds[0], [ 1,0], loop); 
-    loop = this.ClipLoop(-bds[1], [-1,0], loop); 
-    loop = this.ClipLoop( bds[2], [0, 1], loop); 
-    loop = this.ClipLoop(-bds[3], [0,-1], loop); 
+    loop = this.ClipLoop( bds[0], [ 1,0], loop);
+    loop = this.ClipLoop(-bds[1], [-1,0], loop);
+    loop = this.ClipLoop( bds[2], [0, 1], loop);
+    loop = this.ClipLoop(-bds[3], [0,-1], loop);
 
     if (loop.length >= 3) { // we need at least 1 triangle.
-      // Now we have to triangulate loop and append. 
+      // Now we have to triangulate loop and append.
       // Intersection of the rectangle and triangle is always convex.
       // Convert the loop to world points and texture coordinates.
       for (var j = 0; j < loop.length; ++j) {
@@ -252,7 +252,7 @@ meshWarp.prototype.CreateMeshFromBounds = function(bds, vertexPositionData, tCoo
         var x = (loop[j][0]-bds[0]) / (bds[1]-bds[0]);
         var y = (loop[j][1]-bds[2]) / (bds[3]-bds[2]);
         tCoordsData.push(x);
-        tCoordsData.push(y);      
+        tCoordsData.push(y);
       }
       // Now add the triangles (first point connects to all the others).
       var j0 = 1;

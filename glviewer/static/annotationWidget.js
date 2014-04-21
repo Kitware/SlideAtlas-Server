@@ -1,5 +1,5 @@
 // Annotation widget toggles annotation visibility and also shows the drawing tools.
-// Each view will need its own widget.  
+// Each view will need its own widget.
 // I am less happy about this than the right click menu implementation.
 // It would be nice to expand the drawing tools on hover, but
 // the toggle for annotation visibiity naturally suggests
@@ -12,7 +12,7 @@
 //   or maybe the delete key.
 
 function AnnotationWidget (viewer) {
-  var self = this; // trick to set methods in callbacks. 
+  var self = this; // trick to set methods in callbacks.
   this.Viewer = viewer;
   viewer.AnnotationWidget = this;
 
@@ -38,7 +38,7 @@ function AnnotationWidget (viewer) {
       .attr('type','image')
       .attr('src',"webgl-viewer/static/pencil3.png")
       .click(function(){self.ToggleVisibility();});
-    
+
     this.ToolsTable = $('<td>').appendTo(row)
       .hide()
       .css({
@@ -75,19 +75,19 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
   }
   if (this.VisibilityButton) {
     if (visibility == ANNOTATION_OFF) {
-      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")    
+      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")
       this.ToolsTable.fadeOut();
     } else if (visibility == ANNOTATION_NO_TEXT) {
       this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")
-      this.ToolsTable.fadeIn();  
+      this.ToolsTable.fadeIn();
     } else {
       this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Up.png")
     }
   }
-  
+
   this.Viewer.SetAnnotationVisibility(visibility);
 
-  eventuallyRender();    
+  eventuallyRender();
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {
@@ -107,7 +107,7 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
   RecordState();
 }
 
-// I would like to change the behavior of this.  
+// I would like to change the behavior of this.
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
   var widget = this.Viewer.ActiveWidget;
