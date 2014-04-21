@@ -159,7 +159,7 @@ function InitConnectome () {
       //set the timeoutId, allowing us to clear this trigger if the mouse comes back over
       self.data('timeoutId', timeoutId);  })
     .mouseenter(function(){
-      clearTimeout($(this).data('timeoutId')); });                       
+      clearTimeout($(this).data('timeoutId')); });
 
   var removeButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
@@ -178,13 +178,13 @@ function InitConnectome () {
     .text("Show Mesh")
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( ShowMeshCallback  );
-    
+
   var showCorrelationsButton = $('<button>')
     .appendTo(CONNECTOME_POPUP_MENU)
     .text("Show Correlations")
     .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
     .click( ShowCorrelationsCallback  );
-    
+
   $.ajax({
     type: "get",
     url: "/getsections",
@@ -193,7 +193,7 @@ function InitConnectome () {
            "type": "Section"},
     success: function(data,status) { ConnectomeLoadSectionIds(data);},
     error: function() { alert( "AJAX - error(): getsections ids" ); },
-    });  
+    });
 }
 
 
@@ -253,7 +253,7 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
 
   var t = new Date().getTime();
   console.log("Start loading " + t);
-  
+
   var sectionId = CONNECTOME_SECTION_IDS[sectionIndex]._id;
   $.ajax({
     type: "get",
@@ -265,7 +265,7 @@ function ConnectomeSetCurrentSectionIndex (sectionIndex) {
            "type": "Section"},
     success: function(data,status) { ConnectomeLoadSection(data, true);},
     error: function() { alert( "AJAX - error(): getsections " + sectionId ); },
-    });  
+    });
 }
 
 
@@ -354,9 +354,9 @@ function ConnectomeLoadSection (data, showFlag) {
     data.worldPoints = new Array(numPts);
     for (var i=0, j=0; i < numPts; ++i) {
       data.worldPoints[i] = {"coordinates": [tmp[j++],tmp[j++]]};
-    }    
+    }
   }
-  
+
   section.Bounds = data.bounds;
   var worldPoints = data.worldPoints;
 
@@ -366,11 +366,11 @@ function ConnectomeLoadSection (data, showFlag) {
       var tmp = base64DecToArr(imageData.meshPointsInt32);
       var numPts = tmp.length / 8;
       tmp = byteArrayToInt32(tmp);
-      tmpIds = byteArrayToInt32(base64DecToArr(imageData.meshPointIdsInt32));      
+      tmpIds = byteArrayToInt32(base64DecToArr(imageData.meshPointIdsInt32));
       imageData.meshPoints = new Array(numPts);
       for (var i = 0, j=0; i < numPts; ++i) {
         imageData.meshPoints[i] = {"worldPointId":tmpIds[i], "pixelLocation": [tmp[j++],tmp[j++]]};
-      }    
+      }
     }
 
     if (imageData.meshTrianglesInt32) {
@@ -380,7 +380,7 @@ function ConnectomeLoadSection (data, showFlag) {
       imageData.meshTriangles = new Array(numTris);
       for (var i = 0, j=0; i < numTris; ++i) {
         imageData.meshTriangles[i] = [tmp[j++],tmp[j++],tmp[j++]];
-      }    
+      }
     }
 
     var t2 = new Date().getTime();
@@ -389,9 +389,9 @@ function ConnectomeLoadSection (data, showFlag) {
 
     // TODO: Take bounds out of cache and keep it in section.
     // Or make cache have bounds of only its image (if this is useful).
-    var cache = new Cache({"database" : data.imageDatabaseName, 
-                           "_id"      : imageData.collectionName, 
-                           "levels"   : 8, 
+    var cache = new Cache({"database" : data.imageDatabaseName,
+                           "_id"      : imageData.collectionName,
+                           "levels"   : 8,
                            "bounds"   : data.bounds});
     cache.Source = "/tile?db="+data.imageDatabaseName+"&img="+imageData.collectionName+"&name=";
     //var warp = ConnectomeCreateLoopWarp(imageData, worldPoints);
@@ -403,7 +403,7 @@ function ConnectomeLoadSection (data, showFlag) {
     }
     section.Caches.push(cache);
   }
-  
+
   // index passed to server and returned.
   // Better solution would be to use a section.method as the ajax callback.
   CONNECTOME_SECTIONS[data.index] = section;
@@ -431,7 +431,7 @@ function ConnectomeLoadSection (data, showFlag) {
 
 // It would be nice to have a progress bar.
 function LoadNeighborhoodCallback() {
-  CONNECTOME_POPUP_MENU.hide();  
+  CONNECTOME_POPUP_MENU.hide();
 
   InitProgressBar();
 
@@ -459,7 +459,7 @@ function LoadNextNeighborSection() {
            "type": "Section"},
         success: function(data,status) { ConnectomeLoadSection(data, false);},
         error: function() { alert( "AJAX - error(): getsections (next) " + CONNECTOME_SECTION_IDS[i]._id ); },
-      });  
+      });
 
   --CONNECTOME_SECTION_TO_LOAD;
   if (CONNECTOME_SECTION_TO_LOAD > CONNECTOME_CURRENT_SECTION_INDEX) {
@@ -490,7 +490,7 @@ function RemoveSectionCallback() {
            "id"    : info._id},
     success: function(data,status) { ConnectomeAdvance(1);},
     error: function() { alert( "AJAX - error(): removeobject " + info._id ); },
-    });  
+    });
 }
 
 
@@ -512,14 +512,14 @@ function ShowCorrelationsCallback() {
            "sect"  : info.section},
     success: function(data,status) { ConnectomeLoadCorrelations(data);},
     error: function() { alert( "AJAX - error(): getcorrelations" ); },
-    });  
+    });
 }
 
 
 
 
 
-  
+
 function ConnectomeLoadCorrelations(data) {
   var sectionIndex = CONNECTOME_CURRENT_SECTION_INDEX;
   var section = CONNECTOME_SECTIONS[sectionIndex];
@@ -527,7 +527,7 @@ function ConnectomeLoadCorrelations(data) {
   for (var i = 0; i < data.CorrelationArray0.length; ++i) {
     var point = data.CorrelationArray0[i].point0;
     // Find the image.  We need to convert the image coordinate to a world coordinate.
-    var source = section.FindImage(point.imageCollectionName); 
+    var source = section.FindImage(point.imageCollectionName);
     if (source) {
       addMarkerToSection(section, source.ImageToWorld(point.imageCoordinates), [1,0,0]);
     }
@@ -535,7 +535,7 @@ function ConnectomeLoadCorrelations(data) {
   for (var i = 0; i < data.CorrelationArray1.length; ++i) {
     var point = data.CorrelationArray1[i].point1;
     // Find the image.  We need to convert the image coordinate to a world coordinate.
-    var source = section.FindImage(point.imageCollectionName); 
+    var source = section.FindImage(point.imageCollectionName);
     if (source) {
       addMarkerToSection(section, source.ImageToWorld(point.imageCoordinates), [0,1,1]);
     }
@@ -559,7 +559,7 @@ function addMarkerToSection(section, worldPt, fillColor) {
 
 // For debugging the mesh interpolation.
 function ShowMeshCallback() {
-  var section = CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX];  
+  var section = CONNECTOME_SECTIONS[CONNECTOME_CURRENT_SECTION_INDEX];
   for (var i = 0; i < section.Caches.length; ++i) {
     var cache = section.Caches[i];
     var shape = new Mesh();
@@ -568,7 +568,7 @@ function ShowMeshCallback() {
     shape.FixedSize = false;
     shape.WireFrame = true;
     for (var j = 0; j < cache.Warp.Points.length; ++j) {
-      shape.Points.push(cache.Warp.Points[j].WorldPt);  
+      shape.Points.push(cache.Warp.Points[j].WorldPt);
     }
     shape.Triangles = cache.Warp.Triangles;
     shape.UpdateBuffers();

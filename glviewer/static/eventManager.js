@@ -34,12 +34,12 @@ function EventManager (canvas) {
   this.SweepListeners = [];
   this.SelectedSweepListener = undefined;
   this.StartTouchTime = 0;
-  
+
   if (MOBILE_DEVICE == 'Andriod') {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var self = this;
-    //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen", 
+    //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
     //                                             function(sweep) {self.GoFullScreen();});
   }
 }
@@ -81,7 +81,7 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
 
     this.MouseX = event.clientX-xOffset;
     this.MouseY = event.clientY-yOffset;
-    this.MouseTime = (new Date()).getTime(); 
+    this.MouseTime = (new Date()).getTime();
   }
 }
 
@@ -193,7 +193,7 @@ EventManager.prototype.HandleKeyDown = function(event) {
     // Function in recordWidget.
     RedoState();
   }
-    
+
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
@@ -216,7 +216,7 @@ EventManager.prototype.HandleKeyUp = function(event) {
 // Touch events.
 
 EventManager.prototype.IsFullScreen = function() {
-  return (document.fullScreenElement && document.fullScreenElement !==  null) ||   
+  return (document.fullScreenElement && document.fullScreenElement !==  null) ||
           (document.mozFullScreen || document.webkitIsFullScreen);
 }
 
@@ -226,7 +226,7 @@ EventManager.prototype.GoFullScreen = function () {
   if (this.FullScreenSweep) {
     this.FullScreenSweep.Active = false;
   }
-  
+
   if (! this.IsFullScreen()) {
     var docElm = document.documentElement;
     if (docElm.requestFullscreen) {
@@ -268,7 +268,7 @@ function SweepListener () {
                           'opacity': '0.8'})
                         .attr('src',"webgl-viewer/static/sweepArrowUp.png");
 
-  this.Div = 
+  this.Div =
     $('<div>').appendTo('body')
               .hide()
               .text("sweep")
@@ -285,11 +285,11 @@ SweepListener.prototype.Hide = function() {
   this.Arrow.hide();
   this.Div.hide();
 }
-    
+
 SweepListener.prototype.Show = function() {
-  if ( ! this.Active) { 
-    this.Hide(); 
-    return; 
+  if ( ! this.Active) {
+    this.Hide();
+    return;
   }
   this.Arrow.show();
   this.Div.show();
@@ -301,7 +301,7 @@ SweepListener.prototype.Update = function() {
   var arrowHeight = this.Arrow.innerWidth();
   var divWidth = this.Div.innerWidth();
   var divHeight = this.Div.innerHeight();
-  
+
   var x = this.Location[0];
   var y = this.Location[1];
   if (this.Direction[0] == 1) {
@@ -365,7 +365,7 @@ EventManager.prototype.DetectSweepEvent = function(dx,dy) {
         }
       }
     }
-  }  
+  }
 }
 
 EventManager.prototype.ShowSweepListeners = function() {
@@ -376,7 +376,7 @@ EventManager.prototype.ShowSweepListeners = function() {
   for (var i = 0; i < this.SweepListeners.length; ++i) {
     var sweep = this.SweepListeners[i];
     sweep.Show();
-  }  
+  }
 }
 
 EventManager.prototype.HideSweepListeners = function() {
@@ -397,11 +397,11 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
   var t = date.getTime();
   // I have had trouble on the iPad with 0 delta times.
   // Lets see how it behaves with fewer events.
-  // It was a bug in iPad4 Javascript.  
+  // It was a bug in iPad4 Javascript.
   // This throttle is not necessary.
   if (t-this.Time < 20 && ! startFlag) { return false; }
-  
-  this.LastTime = this.Time;  
+
+  this.LastTime = this.Time;
   this.Time = t;
 
   if (!e) {
@@ -451,27 +451,27 @@ EventManager.prototype.HandleTouchStart = function(e) {
         MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
       }
     }
-  }  
+  }
 }
 
 
 EventManager.prototype.HandleTouchMove = function(e) {
   // Put a throttle on events
   if ( ! this.HandleTouch(e, false)) { return; }
-  
+
   if (NAVIGATION_WIDGET.Visibility) {
     // No slide interaction with the interface up.
     // I had bad interaction with events going to browser.
     NAVIGATION_WIDGET.ToggleVisibility();
   }
-    
+
   if (MOBILE_ANNOTATION_WIDGET.Visibility) {
     // No slide interaction with the interface up.
     // I had bad interaction with events going to browser.
     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
   }
-    
-  this.ChooseViewer();  
+
+  this.ChooseViewer();
   if (this.Touches.length == 1 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPan(this);
     return;
@@ -484,7 +484,7 @@ EventManager.prototype.HandleTouchMove = function(e) {
     this.CurrentViewer.HandleTouchRotate(this);
     return
   }
-}  
+}
 
 EventManager.prototype.HandleTouchEnd = function(e) {
   e.preventDefault();

@@ -10,7 +10,7 @@ function View (viewport, cache) {
     this.Viewport = viewport;
     this.Camera = new Camera(viewport[2], viewport[3]);
     this.Tiles = [];
-    this.OutlineColor = [0,0.5,0]; 
+    this.OutlineColor = [0,0.5,0];
     this.OutlineMatrix = mat4.create();
     this.OutlineCamMatrix = mat4.create();
 }
@@ -42,18 +42,18 @@ View.prototype.DrawTiles = function () {
   GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexPositionBuffer);
   // Needed for outline ??? For some reason, DrawOutline did not work
   // without this call first.
-  GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                        tileVertexPositionBuffer.itemSize, 
+  GL.vertexAttribPointer(program.vertexPositionAttribute,
+                        tileVertexPositionBuffer.itemSize,
                         GL.FLOAT, false, 0, 0);     // Texture coordinates
   GL.bindBuffer(GL.ARRAY_BUFFER, tileVertexTextureCoordBuffer);
-  GL.vertexAttribPointer(program.textureCoordAttribute, 
-                        tileVertexTextureCoordBuffer.itemSize, 
+  GL.vertexAttribPointer(program.textureCoordAttribute,
+                        tileVertexTextureCoordBuffer.itemSize,
                         GL.FLOAT, false, 0, 0);
   // Cell Connectivity
   GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, tileCellBuffer);
 
   // Draw tiles.
-  GL.viewport(this.Viewport[0], this.Viewport[1], 
+  GL.viewport(this.Viewport[0], this.Viewport[1],
               this.Viewport[2], this.Viewport[3]);
   GL.uniformMatrix4fv(program.pMatrixUniform, false, this.Camera.Matrix);
   // Note: if not all tiles are loaded, this will draw the lower level tile multiple times.
@@ -75,12 +75,12 @@ View.prototype.DrawOutline = function(backgroundFlag) {
     this.OutlineCamMatrix[10] = 0;
     this.OutlineCamMatrix[12] = -1.0;
     this.OutlineCamMatrix[13] = -1.0;
-    var viewFrontZ = this.Camera.ZRange[0]+0.001; 
-    var viewBackZ = this.Camera.ZRange[1]-0.001; 
+    var viewFrontZ = this.Camera.ZRange[0]+0.001;
+    var viewBackZ = this.Camera.ZRange[1]-0.001;
     this.OutlineCamMatrix[14] = viewFrontZ; // front plane
 
     mat4.identity(this.OutlineMatrix);
-    
+
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
     if (backgroundFlag) {
@@ -89,8 +89,8 @@ View.prototype.DrawOutline = function(backgroundFlag) {
         GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
         GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
         GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-        GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                       squarePositionBuffer.itemSize, 
+        GL.vertexAttribPointer(program.vertexPositionAttribute,
+                       squarePositionBuffer.itemSize,
                        GL.FLOAT, false, 0, 0);
         GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
     }

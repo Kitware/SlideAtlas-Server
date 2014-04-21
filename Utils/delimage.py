@@ -1,7 +1,7 @@
-#!/usr/bin/python  
-# Command line tool and function code for managing image items 
+#!/usr/bin/python
+# Command line tool and function code for managing image items
 # (please reuse if possible)
-# adds or delets images from sessions 
+# adds or delets images from sessions
 # The image must already exist
 # Todo Checks whether view is listed in multiple sessions, but not whether images are listed that way
 
@@ -21,7 +21,7 @@ def get_object_in_collection(col, key, debug=False, soft=False):
         if debug:
             print "_ID did not work",
 
-    # else check in the 
+    # else check in the
     obj = col.find_one({'name':key})
 
     if obj <> None:
@@ -35,7 +35,7 @@ def get_object_in_collection(col, key, debug=False, soft=False):
 
         found = 0
 
-        # Get a list of all image names and 
+        # Get a list of all image names and
         for animage in col.find():
             if key in animage['name']:
                 print '   Matched :', animage['name']
@@ -63,7 +63,7 @@ def error_exit(msg):
         print "Aborting  .."
         sys.exit(0)
 
-# Main to accept command line and do the operation on images. 
+# Main to accept command line and do the operation on images.
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Utility to delete images on 1.x slideatlas servers')
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     try:
-        # Try opening the database    
+        # Try opening the database
         conn = pymongo.Connection(args.mongodb)
         admindb = conn["admin"]
         admindb.authenticate("slideatlasweb", "2&PwRaam4Kw")
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         if args.soft:
             print "     Soft comparisons"
 
-    # If Session is all, then look through all the sessions to find where the image is 
+    # If Session is all, then look through all the sessions to find where the image is
     image = get_object_in_collection(mongodb['images'], args.image, soft=args.soft)
 
     if image == None:
@@ -119,12 +119,12 @@ if __name__ == '__main__':
     if args.session == 'all':
         print "Only session specific image removal supported"
         sys.exit(0)
-        # TODO: First find all views 
+        # TODO: First find all views
         views = []
 
         for asession in mongodb['sessions'].find():
             print asession.keys()
-            # TODO: Look in views not in sessions 
+            # TODO: Look in views not in sessions
             for aref in asession['views']:
                 if aref['ref'] == image['_id']:
                     print "  Listed in session:  ", asession['name']
@@ -164,12 +164,12 @@ if __name__ == '__main__':
                         mongodb.drop_collection(col_to_del)
                         # Remove the viewobj from views collection
 
-                # Done processing image list in a session  
+                # Done processing image list in a session
                 if found:
                     mongodb['sessions'].update({'_id': asession['_id']}, {'$set':{'views': views}})
                     print "ViewIds", viewids_to_delete, " set for deletion"
                     for aviewid in viewids_to_delete:
-                            # Delete the view 
+                            # Delete the view
                             mongodb["views"].remove({"_id" : aviewid})
                 else:
                     error_exit("Unexpected behavior")

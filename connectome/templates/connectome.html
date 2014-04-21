@@ -157,14 +157,14 @@ shape has visibility and
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
-    
+
   function RecordState () {
   }
-  
+
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   function handleResize() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
@@ -173,7 +173,7 @@ shape has visibility and
       CANVAS.attr("height",height.toString());
       GL.viewport(0, 0, width, height);
     } // SetViewport does the work for 2d canvases.
-    
+
     // we set the left border to leave space for the notes window.
     var left = 0;
     if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
@@ -197,7 +197,7 @@ shape has visibility and
     var height = CANVAS.innerHeight();
     VIEWER1 = new Viewer([0,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
-                  
+
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,height], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
@@ -212,7 +212,7 @@ shape has visibility and
     VIEWER1.Draw();
     VIEWER2.Draw();
   }
-  
+
   // The event manager detects single right click and double right click.
   // This gets galled on the single.
   function ShowPropertiesMenu(x, y) { ShowViewEditMenu(x, y);}
@@ -245,7 +245,7 @@ shape has visibility and
     if ( ! doesBrowserSupportWebGL(testCanvas)) {
         return; // WHat to do?  Function provides the alert.
     }
-    
+
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initShaderPrograms();
@@ -260,9 +260,9 @@ shape has visibility and
     can.addEventListener("mousedown",  handleMouseDown,  false);
     can.addEventListener("mousemove",  handleMouseMove,  false);
     can.addEventListener("mousewheel", handleMouseWheel, false);
-    
+
     document.body.addEventListener("mouseup", handleMouseUp, false);
-        
+
     document.onkeydown =   handleKeyDown;
     document.onkeyup =     handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
@@ -271,13 +271,13 @@ shape has visibility and
     InitConnectome();
     InitViews();
     InitDualViewWidget();
-    
-    
+
+
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
     var annotationWidget2 = new AnnotationWidget(VIEWER2);
     handleResize();
     DualViewUpdateGui();
-    
+
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
     // Associate with viewer (How???).
@@ -313,8 +313,8 @@ shape has visibility and
     // Register these buttons with the viewer.
     VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
     VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
-     
-     
+
+
     // Place the zoom in / out buttons. For the second viewer
     $('<img>').appendTo('body').css({
         'opacity': '0.4',

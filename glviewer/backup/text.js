@@ -35,7 +35,7 @@ var ASCII_LOOKUP =
      [127,314,48,98],[173,314,52,98],[224,314,42,98],[0,413,50,98],[0,413,50,98], //120 = xyz
      [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //125
      [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //130
-     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //135  
+     [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //135
      [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //140
      [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //145
      [0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98],[0,413,50,98], //150
@@ -81,11 +81,11 @@ function Text() {
   this.TextureLoaded = false;
   this.Texture = GL.createTexture();
   this.Image = new Image();
-  this.Image.onload = GetTextureLoadedFunction(this); 
+  this.Image.onload = GetTextureLoadedFunction(this);
   //this.Image.onerror = TextError(); // Always fires for some reason.
   // This starts the loading.
   this.Image.src = IMAGE_PATH_URL +"letters.gif";
-  
+
   this.Color = [0.5, 1.0, 1.0];
   this.Size = 30; // Height in pixels
   // Position of the anchor in the world coordinate system.
@@ -93,11 +93,11 @@ function Text() {
 
   // The anchor point and position are the same point.
   // Position is in world coordinates.
-  // Anchor is in pixel coordinates of text (buffers).  
+  // Anchor is in pixel coordinates of text (buffers).
   // In pixel(text) coordinate system
   this.Anchor = [0,0];
   this.Active = false;
-  
+
   //this.String = "Hello World";
   //this.String = "0123456789";
   this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
@@ -117,7 +117,7 @@ Text.prototype.HandleLoadedTexture = function() {
   GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, this.Image);
   GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
   GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_NEAREST);
-  GL.generateMipmap(GL.TEXTURE_2D); 
+  GL.generateMipmap(GL.TEXTURE_2D);
   GL.bindTexture(GL.TEXTURE_2D, null);
   this.TextureLoaded = true;
   eventuallyRender();
@@ -150,16 +150,16 @@ Text.prototype.Draw = function (view) {
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
   // Needed for outline ??? For some reason, DrawOutline did not work
   // without this call first.
-  GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                         this.VertexPositionBuffer.itemSize, 
+  GL.vertexAttribPointer(program.vertexPositionAttribute,
+                         this.VertexPositionBuffer.itemSize,
                          GL.FLOAT, false, 0, 0);     // Texture coordinates
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-  GL.vertexAttribPointer(program.textureCoordAttribute, 
-                         this.VertexTextureCoordBuffer.itemSize, 
+  GL.vertexAttribPointer(program.textureCoordAttribute,
+                         this.VertexTextureCoordBuffer.itemSize,
                          GL.FLOAT, false, 0, 0);
   // Cell Connectivity
   GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  
+
   // Color of text
   if (this.Active) {
     GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
@@ -167,10 +167,10 @@ Text.prototype.Draw = function (view) {
     GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
   }
   // Draw characters.
-  GL.viewport(view.Viewport[0], view.Viewport[1], 
+  GL.viewport(view.Viewport[0], view.Viewport[1],
               view.Viewport[2], view.Viewport[3]);
 
-  var viewFrontZ = view.Camera.ZRange[0]+0.01; 
+  var viewFrontZ = view.Camera.ZRange[0]+0.01;
 
   // Lets use the camera to change coordinate system to pixels.
   // TODO: Put this camera in the view or viewer to avoid creating one each render.
@@ -232,7 +232,7 @@ Text.prototype.UpdateBuffers = function() {
       // To place verticies
       var charRight = charLeft + port[2]*this.Size / 98.0;
       var charTop = charBottom + port[3]*this.Size / 98.0;
-      
+
       // Accumulate bounds;
       if (this.PixelBounds[0] > charLeft)   {this.PixelBounds[0] = charLeft;}
       if (this.PixelBounds[1] < charRight)  {this.PixelBounds[1] = charRight;}
@@ -245,32 +245,32 @@ Text.prototype.UpdateBuffers = function() {
       vertexPositionData.push(charLeft);
       vertexPositionData.push(charBottom);
       vertexPositionData.push(0.0);
-      
+
       textureCoordData.push(tRight);
       textureCoordData.push(tBottom);
       vertexPositionData.push(charRight);
       vertexPositionData.push(charBottom);
       vertexPositionData.push(0.0);
-      
+
       textureCoordData.push(tLeft);
       textureCoordData.push(tTop);
       vertexPositionData.push(charLeft);
       vertexPositionData.push(charTop);
       vertexPositionData.push(0.0);
-      
+
       textureCoordData.push(tRight);
       textureCoordData.push(tTop);
       vertexPositionData.push(charRight);
       vertexPositionData.push(charTop);
       vertexPositionData.push(0.0);
-      
+
       charLeft = charRight;
-      
-      // Now create the cell.    
+
+      // Now create the cell.
       cellData.push(0 + ptId);
       cellData.push(1 + ptId);
       cellData.push(2 + ptId);
-      
+
       cellData.push(2 + ptId);
       cellData.push(1 + ptId);
       cellData.push(3 + ptId);
@@ -283,13 +283,13 @@ Text.prototype.UpdateBuffers = function() {
   GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(textureCoordData), GL.STATIC_DRAW);
   this.VertexTextureCoordBuffer.itemSize = 2;
   this.VertexTextureCoordBuffer.numItems = textureCoordData.length / 2;
-  
+
   this.VertexPositionBuffer = GL.createBuffer();
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
   GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
   this.VertexPositionBuffer.itemSize = 3;
   this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
-  
+
   this.CellBuffer = GL.createBuffer();
   GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
   GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);

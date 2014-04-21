@@ -9,8 +9,8 @@ function ConvertColorToHex(color) {
     for (var j = 0; j < 2; ++j) {
       tmp *= 16.0;
       var digit = Math.floor(tmp);
-      if (digit < 0) { digit = 0; } 
-      if (digit > 15){ digit = 15;} 
+      if (digit < 0) { digit = 0; }
+      if (digit > 15){ digit = 15;}
       tmp = tmp - digit;
       str += hexDigits.charAt(digit);
     }

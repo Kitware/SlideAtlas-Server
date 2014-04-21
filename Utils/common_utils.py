@@ -16,7 +16,7 @@ def get_object_in_collection(col, key, debug=False, soft=False):
         if debug:
             print "_ID did not work",
 
-    # else check in the 
+    # else check in the
     obj = col.find_one({'name':key})
 
     if obj <> None:
@@ -30,7 +30,7 @@ def get_object_in_collection(col, key, debug=False, soft=False):
 
         found = 0
 
-        # Get a list of all image names and 
+        # Get a list of all image names and
         for animage in col.find():
             if key in animage['name']:
                 print '   Matched :', animage['name']

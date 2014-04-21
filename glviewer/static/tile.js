@@ -46,7 +46,7 @@ function Tile(x, y, z, level, name, cache) {
   this.Texture = null;
   this.TimeStamp = TIME_STAMP;
   this.BranchTimeStamp = TIME_STAMP;
-  
+
   this.Matrix = mat4.create();
   mat4.identity(this.Matrix);
   this.Matrix[14] = z * cache.RootSpacing[2] -(0.1 * this.Level);
@@ -73,7 +73,7 @@ function Tile(x, y, z, level, name, cache) {
     // Warp model.
     this.CreateWarpBuffer(cache.Warp);
   }
-  
+
   ++NUMBER_OF_TILES;
 };
 
@@ -103,7 +103,7 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
   var rootSpacing = this.Cache.RootSpacing;
   var p = (1 << this.Level);
   var size = [rootSpacing[0]*tileDimensions[0]/p, rootSpacing[1]*tileDimensions[1]/p];
-  var bds = [size[0]*this.X, size[0]*(this.X+1), 
+  var bds = [size[0]*this.X, size[0]*(this.X+1),
              size[1]*this.Y, size[1]*(this.Y+1),
              this.Level, this.Level];
 
@@ -119,7 +119,7 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
   GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(tCoordsData), GL.STATIC_DRAW);
   this.VertexTextureCoordBuffer.itemSize = 2;
   this.VertexTextureCoordBuffer.numItems = tCoordsData.length / 2;
-  
+
   this.VertexPositionBuffer = GL.createBuffer();
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
   GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
@@ -149,7 +149,7 @@ Tile.prototype.StartLoad = function (cache) {
   } else {
     imageSrc = cache.GetSource() + this.Name + ".jpg";
   }
-  
+
   // Reusing the image caused problems.
   //if (this.Image == null) {
     this.Image = new Image();
@@ -158,7 +158,7 @@ Tile.prototype.StartLoad = function (cache) {
     this.Image.onerror = GetErrorImageFunction(callback);
   //}
   // This starts the loading.
-  // DJ this will be achieved after the websocket has returned the image data 
+  // DJ this will be achieved after the websocket has returned the image data
   this.Image.src = imageSrc;
 };
 
@@ -174,18 +174,18 @@ Tile.prototype.Draw = function (program, context) {
   if (GL) {
     if (this.Texture == null) {
       this.CreateTexture();
-    }      
+    }
     // These are the same for every tile.
     // Vertex points (shifted by tiles matrix)
     context.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
     // Needed for outline ??? For some reason, DrawOutline did not work
     // without this call first.
-    context.vertexAttribPointer(imageProgram.vertexPositionAttribute, 
-                          this.VertexPositionBuffer.itemSize, 
+    context.vertexAttribPointer(imageProgram.vertexPositionAttribute,
+                          this.VertexPositionBuffer.itemSize,
                           GL.FLOAT, false, 0, 0);     // Texture coordinates
     context.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    context.vertexAttribPointer(imageProgram.textureCoordAttribute, 
-                          this.VertexTextureCoordBuffer.itemSize, 
+    context.vertexAttribPointer(imageProgram.textureCoordAttribute,
+                          this.VertexTextureCoordBuffer.itemSize,
                           GL.FLOAT, false, 0, 0);
     // Cell Connectivity
     context.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
@@ -204,7 +204,7 @@ Tile.prototype.Draw = function (program, context) {
     // WebGL handles this by flipping the texture coordinates.  Here we have to
     // translate the tiles to the correct location.
     context.save(); // Save the state of the transform so we can restore for the next tile.
-    
+
     // Map tile to world.
     // Matrix is world to 0-1.
     context.transform(this.Matrix[0], this.Matrix[1],
@@ -223,10 +223,10 @@ Tile.prototype.Draw = function (program, context) {
     }
     // Shift a half pixel (white line fix) Draw tile one pixel bigger.
     if (I_PAD_FLAG) {
-      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);  
+      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
     } else {
       tileSize -= 0.5;
-      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, -0.25/(tileSize-0.5), -0.25/(tileSize-0.5));  
+      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, -0.25/(tileSize-0.5), -0.25/(tileSize-0.5));
     }
     context.drawImage(this.Image,0,0);
 

@@ -31,7 +31,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth =  5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
-  
+
   this.Viewer.WidgetList.push(this);
 
   // Note: If the user clicks before the mouse is in the
@@ -43,7 +43,7 @@ function CircleWidget (viewer, newFlag) {
     return;
   }
 
-  this.State = CIRCLE_WIDGET_WAITING;  
+  this.State = CIRCLE_WIDGET_WAITING;
 }
 
 CircleWidget.prototype.Draw = function(view) {
@@ -56,8 +56,8 @@ CircleWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
@@ -84,7 +84,7 @@ CircleWidget.prototype.Load = function(obj) {
   this.Shape.FixedSize = false;
   this.Shape.UpdateBuffers();
 }
-  
+
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
@@ -98,7 +98,7 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
     }
   if (this.State == CIRCLE_WIDGET_NEW) {
     // We need the viewer position of the circle center to drag radius.
-    this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);    
+    this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
     this.State = CIRCLE_WIDGET_DRAG_RADIUS;
   }
   if (this.State == CIRCLE_WIDGET_ACTIVE) {
@@ -128,13 +128,13 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     this.CheckActive(event);
     return;
   }
-  
+
   if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
     this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
     this.PlacePopup();
     eventuallyRender();
   }
-  
+
   if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     var viewport = this.Viewer.GetViewport();
     var cam = this.Viewer.MainView.Camera;
@@ -146,27 +146,27 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     this.PlacePopup();
     eventuallyRender();
   }
-  
-   if (this.State == CIRCLE_WIDGET_WAITING) { 
+
+   if (this.State == CIRCLE_WIDGET_WAITING) {
     this.CheckActive(event);
-  } 
+  }
 }
 
 
 CircleWidget.prototype.HandleTouchPan = function(event) {
   w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
   w1 = this.Viewer.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    
+
   // This is the translation.
   var dx = w1[0] - w0[0];
   var dy = w1[1] - w0[1];
-  
+
   this.Shape.Origin[0] += dx;
   this.Shape.Origin[1] += dy;
   eventuallyRender();
 }
 
-CircleWidget.prototype.HandleTouchPinch = function(event) {  
+CircleWidget.prototype.HandleTouchPinch = function(event) {
   this.Shape.Radius *= event.PinchScale;
   this.Shape.UpdateBuffers();
   eventuallyRender();
@@ -194,19 +194,19 @@ CircleWidget.prototype.CheckActive = function(event) {
   var active = false;
   var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
   this.NormalizedActiveDistance = d;
-  
-  if (this.Shape.FillColor == undefined) { // Circle 
-    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance))  || 
+
+  if (this.Shape.FillColor == undefined) { // Circle
+    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance))  ||
          d < (this.Tolerance+lineWidth)) {
       active = true;
     }
   } else { // Disk
-    if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) || 
+    if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) ||
         d < lineWidth) {
       active = true;
     }
   }
-  
+
   this.SetActive(active);
   return active;
 }
@@ -214,13 +214,13 @@ CircleWidget.prototype.CheckActive = function(event) {
 // Multiple active states.  Active state is a bit confusing.
 CircleWidget.prototype.GetActive = function() {
   if (this.State == CIRCLE_WIDGET_WAITING) {
-    return false;  
+    return false;
   }
   return true;
 }
 
-CircleWidget.prototype.Deactivate = function() { 
-  this.Popup.StartHideTimer(); 
+CircleWidget.prototype.Deactivate = function() {
+  this.Popup.StartHideTimer();
   this.State = CIRCLE_WIDGET_WAITING;
   this.Shape.Active = false;
   this.Viewer.DeactivateWidget(this);
@@ -229,13 +229,13 @@ CircleWidget.prototype.Deactivate = function() {
 
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
-CircleWidget.prototype.SetActive = function(flag) {  
+CircleWidget.prototype.SetActive = function(flag) {
   if (flag == this.GetActive()) {
     return;
   }
 
   if (flag) {
-    this.State = CIRCLE_WIDGET_ACTIVE;  
+    this.State = CIRCLE_WIDGET_ACTIVE;
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
@@ -266,7 +266,7 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
   var lineWidth = document.getElementById("circlelinewidth");
   lineWidth.value = (this.Shape.LineWidth).toFixed(2);
-  
+
   var areaLabel = document.getElementById("circlearea");
     areaLabel.innerHTML = "Area: " + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
   if (this.Shape.FixedSize) {
@@ -281,8 +281,8 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
 function CirclePropertyDialogApply() {
   var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if ( ! widget) { 
-    return; 
+  if ( ! widget) {
+    return;
   }
   var hexcolor = document.getElementById("circlecolor").value;
   widget.Shape.SetOutlineColor(hexcolor);

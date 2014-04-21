@@ -19,7 +19,7 @@ function PencilWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
-  this.Viewer = viewer;    
+  this.Viewer = viewer;
   this.Viewer.WidgetList.push(this);
 
   this.Cursor = $('<img>').appendTo('body')
@@ -28,10 +28,10 @@ function PencilWidget (viewer, newFlag) {
         'height': '28px',
         'z-index': '1'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Pencil-icon.png");  
+      .attr('src',"webgl-viewer/static/Pencil-icon.png");
 
   this.Shapes = [];
-  
+
   if ( ! newFlag) {
       this.Cursor.hide();
   }
@@ -54,7 +54,7 @@ PencilWidget.prototype.Serialize = function() {
     var points = [];
     for (var j = 0; j < shape.Points.length; ++j) {
       points.push([shape.Points[j][0], shape.Points[j][1]]);
-    } 
+    }
     obj.shapes.push(points);
   }
 
@@ -83,7 +83,7 @@ PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 PencilWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
-  
+
   if (event.SystemEvent.which == 1) {
     // Start drawing.
     var shape = new Polyline();
@@ -92,7 +92,7 @@ PencilWidget.prototype.HandleMouseDown = function(event) {
     shape.LineWidth = 0;
     this.Shapes.push(shape);
 
-    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);  
+    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
     shape.Points.push([pt[0], pt[1]]); // avoid same reference.
   }
 }
@@ -128,31 +128,31 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
   var y = event.MouseY;
 
   // Move the pencil icon to follow the mouse.
-  this.Cursor.css({'left': x, 'bottom': y});  
-    
+  this.Cursor.css({'left': x, 'bottom': y});
+
   if (event.MouseDown == true) {
     if (event.SystemEvent.which == 1) {
       var shape = this.Shapes[this.Shapes.length-1];
-      var pt = this.Viewer.ConvertPointViewerToWorld(x,y);  
+      var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
       shape.Points.push([pt[0], pt[1]]); // avoid same reference.
       shape.UpdateBuffers();
       eventuallyRender();
       return;
     }
   }
-  
+
 }
 
 PencilWidget.prototype.CheckActive = function(event) {
 }
 
 PencilWidget.prototype.GetActive = function() {
-  return false;  
+  return false;
 }
 
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
-PencilWidget.prototype.SetActive = function(flag) {  
+PencilWidget.prototype.SetActive = function(flag) {
   if (flag) {
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
@@ -160,7 +160,7 @@ PencilWidget.prototype.SetActive = function(flag) {
     this.Cursor.hide();
     this.Viewer.DeactivateWidget(this);
     eventuallyRender();
-  }  
+  }
 }
 
 // Can we bind the dialog apply callback to an objects method?
@@ -194,8 +194,8 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
       var p2 = shape.Points[i-2];
       var p3 = shape.Points[i-3];
       // Compute the average of the center two.
-      var cx = (p1[0] + p2[0]) * 0.5; 
-      var cy = (p1[1] + p2[1]) * 0.5; 
+      var cx = (p1[0] + p2[0]) * 0.5;
+      var cy = (p1[1] + p2[1]) * 0.5;
       // Find the perendicular normal.
       var nx = (p0[1] - p3[1]);
       var ny = -(p0[0] - p3[0]);
@@ -207,7 +207,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
       // Make sure the two point being merged are between the outer points 0 and 3.
       var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
       var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
-      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) { 
+      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
         // Replace the two points with their average.
         newPoints.push([cx, cy]);
         modified = true;
@@ -216,7 +216,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
         i += 2;
       } else {
         //  No modification.  Just move the window one.
-        newPoints.push(shape.Points[i-2]);    
+        newPoints.push(shape.Points[i-2]);
         ++i;
       }
     }
@@ -229,7 +229,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
     shape.Points = newPoints;
   }
 
-  shape.UpdateBuffers();  
+  shape.UpdateBuffers();
 }
 
 

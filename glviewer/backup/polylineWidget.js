@@ -40,12 +40,12 @@ function PolylineWidget (viewer, newFlag) {
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);
-  
+
   // Set line thickness   using viewer. (5 pixels).
   this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
-  this.Circle.Radius = this.Shape.LineWidth; 
+  this.Circle.Radius = this.Shape.LineWidth;
   this.Circle.UpdateBuffers();
-  
+
   if (newFlag) {
     this.State = POLYLINE_WIDGET_NEW;
     this.Shape.Active = true;
@@ -77,7 +77,7 @@ PolylineWidget.prototype.Serialize = function() {
   for (var i = 0; i < this.Shape.Points.length; ++i) {
     obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
   }
-  
+
   obj.closedloop = this.ClosedLoop;
   return obj;
 }
@@ -103,8 +103,8 @@ PolylineWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
@@ -124,7 +124,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
   var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-  
+
   if (this.State == POLYLINE_WIDGET_NEW) {
     this.Shape.Points.push(pt);
     this.Shape.Points.push([pt[0], pt[1]]); // avoid same reference.
@@ -177,7 +177,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
 PolylineWidget.prototype.HandleMouseUp = function(event) {
   // Logic to remove a vertex.  Drag it over a neighbor.
   //if (this.State  do this later.
-  
+
   if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
@@ -271,7 +271,7 @@ PolylineWidget.prototype.WhichVertexShouldBeActive = function(pt) {
       var dx = pt[0] - this.Shape.Points[last][0];
       var dy = pt[1] - this.Shape.Points[last][1];
       var dist2 = dx*dx + dy*dy;
-      if (dist2 < r2) { return last; }    
+      if (dist2 < r2) { return last; }
     }
     return -1;
   }
@@ -282,15 +282,15 @@ PolylineWidget.prototype.WhichVertexShouldBeActive = function(pt) {
       var dx = pt[0] - this.Shape.Points[i][0];
       var dy = pt[1] - this.Shape.Points[i][1];
       var dist2 = dx*dx + dy*dy;
-      if (dist2 < r2) { 
+      if (dist2 < r2) {
         return i;
       }
     }
   }
-  
+
   return -1;
 }
-    
+
 PolylineWidget.prototype.CheckActive = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
@@ -320,7 +320,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
       return true;
       }
   }
-  
+
   // Check for mouse touching an edge.
   for (var i = 1; i < this.Shape.Points.length; ++i) {
     if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.Shape.LineWidth)) {
@@ -329,7 +329,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -348,7 +348,7 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
     this.Circle.Origin = this.Shape.Points[vIdx];
     eventuallyRender();
   }
-  
+
   this.ActiveVertex = vIdx;
 }
 
@@ -356,20 +356,20 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
 // Only one state (WAITING) does not receive events from the viewer.
 PolylineWidget.prototype.GetActive = function() {
   if (this.State == POLYLINE_WIDGET_WAITING) {
-    return false;  
+    return false;
   }
   return true;
 }
 
 // Active simply means that the widget is receiving events.
 // This widget can activate verticies, the whole polyline, or a middle vertex.
-PolylineWidget.prototype.SetActive = function(flag) {  
+PolylineWidget.prototype.SetActive = function(flag) {
   if (flag == this.GetActive()) {
     return;
   }
 
   if (flag) {
-    this.State = POLYLINE_WIDGET_ACTIVE;  
+    this.State = POLYLINE_WIDGET_ACTIVE;
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     eventuallyRender();
@@ -393,12 +393,12 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
 
   POLYLINE_WIDGET_DIALOG_SELF = this;
   $("#polyline-properties-dialog").dialog("open");
-}    
+}
 
 function PolylinePropertyDialogApply() {
   var widget = POLYLINE_WIDGET_DIALOG_SELF;
-  if ( ! widget) { 
-    return; 
+  if ( ! widget) {
+    return;
   }
   var hexcolor = document.getElementById("polylinecolor").value;
   widget.Shape.SetOutlineColor(hexcolor);

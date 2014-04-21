@@ -42,39 +42,39 @@ CrossHairs.prototype.UpdateBuffers = function() {
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(halfLength);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(halfLength);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfLength);
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfLength);
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(halfWidth);
   vertexPositionData.push(-halfLength);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(-halfLength);
   vertexPositionData.push(0.0);
-  
+
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(-halfWidth);
   vertexPositionData.push(0.0);
@@ -82,25 +82,25 @@ CrossHairs.prototype.UpdateBuffers = function() {
   cellData.push(1);
   cellData.push(2);
   cellData.push(7);
-  
+
   cellData.push(1);
   cellData.push(7);
   cellData.push(8);
-  
+
   cellData.push(4);
   cellData.push(5);
   cellData.push(10);
-  
+
   cellData.push(4);
   cellData.push(10);
   cellData.push(11);
-  
+
   this.VertexPositionBuffer = GL.createBuffer();
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
   GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
   this.VertexPositionBuffer.itemSize = 3;
   this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
-  
+
   this.CellBuffer = GL.createBuffer();
   GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
   GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);

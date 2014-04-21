@@ -2,7 +2,7 @@
 // Create and manage the menu to edit dual views.
 
 function InitComparisonEditMenus() {
-    // Create the menu of edit options.    
+    // Create the menu of edit options.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-radius': '5px',
@@ -13,7 +13,7 @@ function InitComparisonEditMenus() {
         'color': '#303030',
         'font-size': '20px'
     }).attr('id', 'comparisonEditMenu').hide();
-    
+
     $('<ol>').appendTo('#comparisonEditMenu')
              .attr('id', 'comparisonEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
@@ -25,7 +25,7 @@ function InitComparisonEditMenus() {
              .click(function(){ComparisonSaveLeftView();});
 
 
-    // Create a selection list of sessions.   
+    // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-radius': '5px',
@@ -40,7 +40,7 @@ function InitComparisonEditMenus() {
     }).attr('id', 'sessionMenu').hide();
 
 
-    // Create a selector for views.   
+    // Create a selector for views.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-radius': '5px',
@@ -60,7 +60,7 @@ function InitComparisonEditMenus() {
         if (status == "success") {
             InitSessionMenu(data);
         }
-    });        
+    });
 }
 
 function InitSessionMenu(data) {
@@ -73,11 +73,11 @@ function InitSessionMenu(data) {
             $('<li>').appendTo('#sessionMenuSelector').text(session.label);
         }
     }
-    
+
 }
-    
-    
-    
+
+
+
 
 
 
@@ -90,7 +90,7 @@ function ComparisonAddDiagnosis() {
 }
 
 function ComparisonSaveLeftView() {
-   alert("Preston is writing this"); 
+   alert("Preston is writing this");
    $('#comparisonEditMenu').hide();
 }
 

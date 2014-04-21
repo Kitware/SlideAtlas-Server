@@ -42,11 +42,11 @@ Shape.prototype.Draw = function (view) {
   GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
   // Needed for outline ??? For some reason, DrawOutline did not work
   // without this call first.
-  GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                         this.VertexPositionBuffer.itemSize, 
+  GL.vertexAttribPointer(program.vertexPositionAttribute,
+                         this.VertexPositionBuffer.itemSize,
                          GL.FLOAT, false, 0, 0);     // Texture coordinates
   // Local view.
-  GL.viewport(view.Viewport[0], view.Viewport[1], 
+  GL.viewport(view.Viewport[0], view.Viewport[1],
               view.Viewport[2], view.Viewport[3]);
 
   var viewFrontZ = view.Camera.ZRange[0]+0.01;
@@ -106,7 +106,7 @@ Shape.prototype.Draw = function (view) {
     }
     // Cell Connectivity
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-      
+
     GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
                     GL.UNSIGNED_SHORT,0);
   }
@@ -124,7 +124,7 @@ Shape.prototype.Draw = function (view) {
     } else {
       // Cell Connectivity
       GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-      GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems, 
+      GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
                       GL.UNSIGNED_SHORT,0);
     }
   }
@@ -153,14 +153,14 @@ Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
   var y = pt[1] - end0[1];
   var vx = end1[0] - end0[0];
   var vy = end1[1] - end0[1];
-  
+
   // Rotate so the edge lies on the x axis.
   var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
   vx = vx/length;
   vy = -vy/length;
   var newX = (x*vx - y*vy);
   var newY = (x*vy + y*vx);
-  
+
   if (newX >= 0.0 && newX <= length) {
     if (Math.abs(newY) < (thickness *0.5)) {
       return true;
@@ -168,4 +168,4 @@ Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
   return false;
   }
 }
-  
+

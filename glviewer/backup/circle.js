@@ -35,8 +35,8 @@ Circle.prototype.UpdateBuffers = function() {
       vertexPositionData.push(0.0);
     }
 
-    // Now create the triangles    
-    // It would be nice to have a center point, 
+    // Now create the triangles
+    // It would be nice to have a center point,
     // but this would mess up the outline.
     for (var i = 2; i < numEdges; ++i) {
       cellData.push(0);
@@ -75,8 +75,8 @@ Circle.prototype.UpdateBuffers = function() {
     this.VertexPositionBuffer.itemSize = 3;
     this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-    // Now create the fill triangles    
-    // It would be nice to have a center point, 
+    // Now create the fill triangles
+    // It would be nice to have a center point,
     // but this would mess up the outline.
     for (var i = 2; i < numEdges; ++i) {
       cellData.push(0);

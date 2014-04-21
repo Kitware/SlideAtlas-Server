@@ -1,4 +1,4 @@
-# Expects base.html available to extend from 
+# Expects base.html available to extend from
 
 from flask import Blueprint, Response, abort, request, session, render_template, current_app
 from werkzeug import secure_filename
@@ -16,15 +16,15 @@ mod = Blueprint('upload', __name__,
 @mod.route('', methods=["GET", "POST", "PUT"])
 def upload():
     """
-    Assumes that a chunked upload is provided 
-    A unique gridfs id is created upon first chunk and later   
+    Assumes that a chunked upload is provided
+    A unique gridfs id is created upon first chunk and later
     """
     if request.method == 'POST':
-        # TODO: Get the new method in paramters 
-        # Verfiy that the uploader has access 
+        # TODO: Get the new method in paramters
+        # Verfiy that the uploader has access
         id = ObjectId()
         form = request.form
-        # No need to return conventional file list 
+        # No need to return conventional file list
         jsonresponse = {}
         jsonresponse["_id"] = id
         return jsonify(jsonresponse)
@@ -34,8 +34,8 @@ def upload():
         # this is the name for input type=file
         names = []
         # Make sure to read the form before sending the reply
-        # Parse headers 
-        #Get filename from content disposition 
+        # Parse headers
+        #Get filename from content disposition
         fnameheader = request.headers["Content-Disposition"]
         disposition = re.search(r'filename="(.+?)"', fnameheader)
         filename = disposition.group(0)[10:-1]
@@ -47,7 +47,7 @@ def upload():
         end = int(match[1])
         total = int(match[2])
 
-        # No need to return conventional file list 
+        # No need to return conventional file list
         jsonresponse = {}
 
         # Expect _id in the form
@@ -56,7 +56,7 @@ def upload():
         except:
             return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
 
-        # Craft the response json 
+        # Craft the response json
         jsonresponse["done"] = end + 1
         jsonresponse["_id"] = id
 
@@ -67,7 +67,7 @@ def upload():
 
         # Now create the file being uploaded or append etc
 
-        # TODO: Decide the format to return  
+        # TODO: Decide the format to return
         #        obj = {}
         #        obj["boundary"] = request.headers["Content-Type"]
         #        obj["size"] = False

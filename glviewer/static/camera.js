@@ -38,7 +38,7 @@ Camera.prototype.GetRotation = function () {
 Camera.prototype.GetFocalPoint = function () {
   // Copy to avoid bugs because arrays are shared.
   // These are nasty to find.
-  return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]]; 
+  return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]];
 }
 
 Camera.prototype.SetFocalPoint = function (x, y) {
@@ -51,7 +51,7 @@ Camera.prototype.SetFocalPoint = function (x, y) {
   // Ignore z on purpose.
 }
 
-// dx, dy are in view coordinates [-0.5,0.5].  
+// dx, dy are in view coordinates [-0.5,0.5].
 // The camera matrix converts world to view.
 Camera.prototype.HandleTranslate = function (dx,dy) {
     // Convert view vector to world vector.
@@ -63,11 +63,11 @@ Camera.prototype.HandleTranslate = function (dx,dy) {
     var z = this.FocalPoint[2];
     var w = this.GetWidth();
     var h = this.GetHeight();
-    
+
     if (this.Mirror) {
       dy = -dy;
     }
-    
+
     // Scale to world.
     dx = dx * w;
     dy = dy * w;
@@ -78,7 +78,7 @@ Camera.prototype.HandleTranslate = function (dx,dy) {
     this.Translate(rx,ry,0.0);
 }
 
-// x,y are in display coordiantes (origin at the center).  
+// x,y are in display coordiantes (origin at the center).
 // dx,dy are in the same coordinates system (scale).
 // Scale does not matter because we only care about rotation.
 Camera.prototype.HandleRoll = function (x,y, dx, dy) {
@@ -96,7 +96,7 @@ Camera.prototype.HandleRoll = function (x,y, dx, dy) {
   }
   // Keep roll in radians.
   this.Roll += dRoll;
-  
+
   this.ComputeMatrix();
 }
 
@@ -131,7 +131,7 @@ Camera.prototype.GetWidth = function () {
   return this.Height * this.ViewportWidth / this.ViewportHeight;
 }
 
-// Camera matrix transforms points into camera coordinate system 
+// Camera matrix transforms points into camera coordinate system
 // X:(-1->1)
 // Y:(-1->1) (-1 is bottom)
 // Z:(-1->1) (-1 is front)
@@ -152,7 +152,7 @@ Camera.prototype.ComputeMatrix = function () {
     if (w < 0) { return; }
 
     if (this.Mirror) { ht = -ht; }
-    
+
     mat4.identity(this.Matrix);
 
     this.Matrix[0] = c;
@@ -224,7 +224,7 @@ Camera.prototype.CreateBuffer = function () {
     }
     this.Buffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, this.Buffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.Points), 
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.Points),
                   GL.STATIC_DRAW);
   }
 }
@@ -257,9 +257,9 @@ Camera.prototype.Draw = function (overview) {
 
   // To handle rotation, I need to pass the center through
   // the overview camera matrix. Coordinate system is -1->1
-  var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4] 
+  var newCx = (cx*overviewCam.Matrix[0] + cy*overviewCam.Matrix[4]
                 + overviewCam.Matrix[12]) / overviewCam.Matrix[15];
-  var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5] 
+  var newCy = (cx*overviewCam.Matrix[1] + cy*overviewCam.Matrix[5]
                 + overviewCam.Matrix[13]) / overviewCam.Matrix[15];
 
   if (GL) {
@@ -290,7 +290,7 @@ Camera.prototype.Draw = function (overview) {
     mvMatrix[5] = 2*ry/ory;
 
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
+    GL.vertexAttribPointer(program.vertexPositionAttribute,
                            squareOutlinePositionBuffer.itemSize,
                            GL.FLOAT, false, 0, 0);
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
@@ -308,20 +308,20 @@ Camera.prototype.Draw = function (overview) {
     /*
     ctx.beginPath();
     //ctx.strokeStyle="#E500E5";
-    ctx.rect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height); 
+    ctx.rect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
     //ctx.fillStyle="#E500E5";
-    //ctx.fillRect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height); 
+    //ctx.fillRect(this.FocalPoint[0]-(0.5*width),this.FocalPoint[1]-(0.5*height),width,height);
     ctx.stroke();
     */
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.strokeStyle="#4011E5";
     ctx.beginPath();
-    ctx.rect(newCx-rx,newCy-ry,2*rx,2*ry); 
+    ctx.rect(newCx-rx,newCy-ry,2*rx,2*ry);
     ctx.stroke();
     ctx.restore();
   }
-  
+
 }
 
 

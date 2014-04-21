@@ -85,17 +85,17 @@ function ImageBrowserAddSessionViews(sessionData) {
           .text(image.label);
       }
 }
-        
+
 function ImageBrowserImageCallback(obj) {
   $('#ImageBrowser').hide();
-  
+
   // null implies the user wants an empty view.
   if (obj == null) {
     ACTIVE_VIEWER.SetCache(null);
     eventuallyRender();
     return;
   }
-  
+
   var db = $(obj).attr('db');
   var viewid = $(obj).attr('viewid');
 
@@ -121,17 +121,17 @@ function ImageBrowserLoadImage(viewData) {
   var source = new Cache(imgobj);
 
   ACTIVE_VIEWER.SetCache(source);
-   
+
   // all this does is set the default camera.
   ACTIVE_VIEWER.SetDimensions(viewData.dimensions);
 
     // Handle exceptions in database schema.
   if ( viewData.center) {
-    ACTIVE_VIEWER.SetCamera(viewData.center, 
-                            viewData.rotation, 
+    ACTIVE_VIEWER.SetCamera(viewData.center,
+                            viewData.rotation,
                             viewData.viewHeight);
   }
-  
+
   RecordState();
 
   eventuallyRender();

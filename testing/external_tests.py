@@ -24,12 +24,12 @@ class ExternalTests(unittest.TestCase):
         driver.find_element_by_id("passwd").clear()
         driver.find_element_by_id("passwd").send_keys("MAmanage")
         driver.find_element_by_css_selector("button[type=\"submit\"]").click()
-        # Select the image 
+        # Select the image
         driver.find_element_by_link_text("sessions").click()
         driver.find_element_by_link_text("Fungi, Protozoa and Parasites").click()
         driver.find_element_by_link_text("3394 - 2010-10-06 14.12.18.ndpi").click()
 
-        # Select the image 
+        # Select the image
 
         driver.save_screenshot('glview.png')
         # Compare the image

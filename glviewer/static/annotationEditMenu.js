@@ -22,7 +22,7 @@ function SetAnnotationVisibility(visibility) {
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
   viewer.SetAnnotationVisibility(visibility);
-  eventuallyRender();    
+  eventuallyRender();
 }
 
 function ShowAnnotationEditMenu(x, y) {
@@ -30,7 +30,7 @@ function ShowAnnotationEditMenu(x, y) {
 }
 
 function InitAnnotationEditMenus() {
-    // Create the menu of edit options.    
+    // Create the menu of edit options.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -44,7 +44,7 @@ function InitAnnotationEditMenus() {
         'font-size': '20px'
     }).attr('id', 'AnnotationEditMenu').hide()
       .mouseleave(function(){$(this).fadeOut();});
-    
+
     var AnnotationEditSelector = $('<ol>');
     AnnotationEditSelector.appendTo('#AnnotationEditMenu')
              .attr('id', 'AnnotationEditSelector')
@@ -69,10 +69,10 @@ function InitAnnotationEditMenus() {
     $('<li>').appendTo(AnnotationEditSelector)
              .text("save view")
              .click(function(){SaveView();});
-             
+
 
     // I cannot get this to work.
-             
+
     //var textDiv = $('<div>').appendTo('body')
     //  .attr('id', 'text-properties-dialog')
     //  .attr('title', 'Text Annotation Editor');
@@ -87,7 +87,7 @@ function InitAnnotationEditMenus() {
     //  .appendTo(textDiv)
     //  .attr('id', 'TextMarker');
     //  .value("Marker");
-    
+
     //$("<div id='text-properties-dialog' title='Text Annotation Editor' > <form> <textarea id='textwidgetcontent' style='width:100%;height:100%;' ></textarea> </br> Color:<input type='color' id='textcolor' //value='#0000ff'></input></br> <input type='checkbox' id='TextMarker' checked /> Marker </input>  </form> </div>");
 
     //  <div id="text-properties-dialog" title="Text Annotation Editor" >
@@ -205,8 +205,8 @@ function InitAnnotationEditMenus() {
           $(this).dialog("close");
         }
       }
-    });             
-             
+    });
+
 }
 
 
@@ -293,7 +293,7 @@ function AnnotationNewCircle() {
     widget.AnchorShape.SetFillColor(hexcolor);
     widget.SetAnchorShapeVisibility(markerFlag);
 
-    
+
     eventuallyRender();
   }
 
@@ -356,7 +356,7 @@ function AnnotationNewCircle() {
   }
 
 
-  
+
 function LoadWidget(viewer, serializedWidget) {
     if (serializedWidget.type == "text") {
         var widget = new TextWidget(viewer, "");
@@ -399,13 +399,13 @@ function SaveView() {
   messageObj.db = DBID;
   messageObj.viewid = VIEWID;
   messageObj.cam = {};
-  
+
   if (cam.Mirror) {
     messageObj.cam.height = - cam.Height;
   } else {
     messageObj.cam.height = cam.Height;
   }
- 
+
   // Copy values not pointer reference.
   messageObj.cam.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
   messageObj.cam.rotation = 180.0 * cam.Roll / 3.14159265;
@@ -422,5 +422,5 @@ function SaveView() {
 }
 
 
-  
-  
+
+

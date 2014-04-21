@@ -19,7 +19,7 @@ numpy==1.8.1
 
 # For tilereader
 
-# For tilereader TODO potentially remove it 
- 
+# For tilereader TODO potentially remove it
+
 Pillow==2.4.0
 svgwrite==1.1.5

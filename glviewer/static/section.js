@@ -12,7 +12,7 @@ function Section () {
 }
 
 // For limiting interaction.
-Section.prototype.GetBounds = function () { 
+Section.prototype.GetBounds = function () {
   var bounds = [0,10000,0,10000];
 
   for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
@@ -34,13 +34,13 @@ Section.prototype.GetBounds = function () {
         bounds[3] = bds[3];
       }
     }
-  }    
+  }
 
   return bounds;
 }
 
 // Size of a pixel at the highest resolution.
-Section.prototype.GetLeafSpacing = function () { 
+Section.prototype.GetLeafSpacing = function () {
   if ( ! this.LeafSpacing) {
     for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
       var cache = this.Caches[cIdx];
@@ -84,27 +84,27 @@ Section.prototype.Draw = function (view, context) {
     var program = imageProgram;
     context.useProgram(program);
     // Draw tiles.
-    context.viewport(view.Viewport[0], view.Viewport[1], 
+    context.viewport(view.Viewport[0], view.Viewport[1],
                 view.Viewport[2], view.Viewport[3]);
     context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
   } else {
-    // The camera maps the world coordinate system to (-1->1, -1->1). 
+    // The camera maps the world coordinate system to (-1->1, -1->1).
     var h = 1.0 / view.Camera.Matrix[15];
-    context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h, 
+    context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
                  view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
                  view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
   }
-  
+
   for (var i = 0; i < this.Caches.length; ++i) {
     var cache = this.Caches[i];
     // Select the tiles to render first.
-    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);  
+    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);
 
     // For the 2d viewer, the order the tiles are drawn is very important.
     // Low-resolution tiles have to be drawn first.  Make a new sorted array.
     // The problem is that unloaded tiles fall back to rendering parents.
     // Make  copy (although we could just destroy the "Tiles" array which is not really used again).
-    var tiles = this.Tiles.slice(0); 
+    var tiles = this.Tiles.slice(0);
     var loadedTiles = [];
     var j = 0;
     while (j < tiles.length) { // We add tiles in the loop so we need a while.
@@ -121,7 +121,7 @@ Section.prototype.Draw = function (view, context) {
       }
       ++j;
     }
-    
+
     // Reverse order to render low res tiles first.
     for (var j = tiles.length-1; j >= 0; --j) {
       tiles[j].Draw(program, context);
@@ -135,7 +135,7 @@ Section.prototype.LoadTilesInView = function (view) {
     var cache = this.Caches[i];
     // Select the tiles to render first.
     // This also adds the tiles returned to the loading queue.
-    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);  
+    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);
   }
 }
 

@@ -55,23 +55,23 @@ function Prune() {
     // Overflow may be possible after running for a while.
     if (PRUNE_TIME_TILES > TIME_STAMP) {
       PRUNE_TIME_TILES = 0;
-    } 
+    }
     // Advance the prune threshold.
     PRUNE_TIME_TILES += 0.05 * (TIME_STAMP - PRUNE_TIME_TILES);
     prune = true;
   }
-  
+
   if (NUMBER_OF_TEXTURES >= MAXIMUM_NUMBER_OF_TEXTURES) {
     // Overflow may be possible after running for a while.
     if (PRUNE_TIME_TEXTURES > TIME_STAMP) {
       PRUNE_TIME_TEXTURES = 0;
-    } 
+    }
     // Advance the prune threshold.
     PRUNE_TIME_TEXTURES += 0.05 * (TIME_STAMP - PRUNE_TIME_TEXTURES);
     prune = true;
   }
-  
-  if (prune) {  
+
+  if (prune) {
     for (i in CACHES) {
       cache = CACHES[i];
       cache.PruneTiles();
@@ -94,7 +94,7 @@ function LoadQueueAdd(tile) {
     // This tiles is already in the load queue or loaded.
     return;
   }
-  
+
   // Now I want progressive loading so I will not add tiles to the queue if their parents are not completely loaded.
   // I could add all parent and children to the que at the same time, but I have seen children rendered before parents
   // (levels are skipped in progresive updata).  So, lets try this.
@@ -109,13 +109,13 @@ function LoadQueueAdd(tile) {
       return;
     }
   }
-  
+
   // The tile's parent is loaded.  Add the tile to the load queue.
-  
+
   tile.LoadState = 1;
   // Add the tile at the front of the queue.
   LOAD_QUEUE.push(tile);
-  
+
   LoadQueueUpdate();
 }
 
@@ -127,11 +127,11 @@ function PushBestToLast() {
     var t1 = LOAD_QUEUE[i];
     var swap = false;
     if (t1 != null) {
-      if (t0 == null) { 
-        swap = true; 
-      } else if (t0.TimeStamp > t1.TimeStamp) { 
-        swap = true; 
-      } else if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) { 
+      if (t0 == null) {
+        swap = true;
+      } else if (t0.TimeStamp > t1.TimeStamp) {
+        swap = true;
+      } else if (t0.TimeStamp == t1.TimeStamp && t0.Level < t1.Level) {
         swap = true;
       }
     }
@@ -153,7 +153,7 @@ function LoadQueueRemove(tile) {
   var length = LOAD_QUEUE.length;
   for (var i = 0; i < length; ++i) {
     if (LOAD_QUEUE[i] == tile) {
-      tile.LoadState = 0; 
+      tile.LoadState = 0;
       LOAD_QUEUE[i] = null;
       return;
     }
@@ -178,9 +178,9 @@ function LoadQueueUpdate() {
     // Tiles must have arrived after timeout.
     LOADING_COUNT = 0;
   }
-  while (LOADING_COUNT < LOADING_MAXIMUM && 
+  while (LOADING_COUNT < LOADING_MAXIMUM &&
          LOAD_QUEUE.length > 0) {
-    PushBestToLast();     
+    PushBestToLast();
     var tile = LOAD_QUEUE.pop();
     // For debugging
     //this.PendingTiles.push(tile);

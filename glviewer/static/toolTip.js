@@ -4,7 +4,7 @@ function ToolTip(widget, text) {
   var self = this;
   this.Active = true;
   this.Widget = widget;
-  this.Div = 
+  this.Div =
     $('<div>').appendTo(widget.offsetParent())
               .hide()
               .text(text)
@@ -12,7 +12,7 @@ function ToolTip(widget, text) {
                     'z-index': '2'});
   widget.mouseenter(function() { self.HandleMouseEnter(); })
         .mouseleave(function(){ self.HandleMouseLeave();});
-        
+
   this.TimerId = 0;
 }
 
@@ -31,12 +31,12 @@ ToolTip.prototype.TimerCallback = function() {
   this.TimerId = 0;
   // Where to place the help....
   // on top:
-  var pos = this.Widget.position(); // top, left 
+  var pos = this.Widget.position(); // top, left
   var tipHeight = this.Div.height();
   this.Div.show()
           .css({'top': (pos.top-tipHeight)+'px',
                 'left' : pos.left+'px'});
-  //.innerWidth();  .innerHeight(); offsetParent()   
+  //.innerWidth();  .innerHeight(); offsetParent()
 }
 
 ToolTip.prototype.HandleMouseLeave = function() {

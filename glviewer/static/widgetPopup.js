@@ -10,7 +10,7 @@ function WidgetPopup (widget) {
 
   // buttons to replace right click.
   var self = this;
-  this.ButtonDiv = 
+  this.ButtonDiv =
     $('<div>').appendTo('body')
               .hide()
               .css({'position': 'absolute',
@@ -24,7 +24,7 @@ function WidgetPopup (widget) {
   this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
       .css({'height': '20px'})
     .attr('src',"webgl-viewer/static/Menu.jpg")
-    .click(function(){self.PropertiesCallback();});  
+    .click(function(){self.PropertiesCallback();});
 }
 
 WidgetPopup.prototype.DeleteCallback = function() {

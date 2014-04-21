@@ -23,7 +23,7 @@ function ShowViewEditMenu(x, y) {
     if (viewer.WidgetList.length > 0) {
       color = "#000000";
     }
- 
+
     $('#viewEditMenu').css({'top': y-15, 'left':x-15}).show();
 }
 
@@ -31,7 +31,7 @@ function ShowViewEditMenu(x, y) {
 function ShowViewerEditMenu(viewer) {
     EVENT_MANAGER.CurrentViewer = viewer;
     var viewport = viewer.GetViewport();
-    $('#viewEditMenu').css({'top': viewport[1]+viewport[3]-180, 
+    $('#viewEditMenu').css({'top': viewport[1]+viewport[3]-180,
                             'left': viewport[0]+viewport[2]-230})
                       .show();
 }
@@ -52,7 +52,7 @@ function InitViewEditMenus() {
         'font-size': '20px'
     }).attr('id', 'viewEditMenu').hide()
       .mouseleave(function(){$(this).fadeOut();});
-    
+
     var viewEditSelector = $('<ol>');
     viewEditSelector.appendTo('#viewEditMenu')
              .attr('id', 'viewEditSelector')
@@ -78,8 +78,8 @@ function InitViewEditMenus() {
              .click(function(){$('#viewEditMenu').hide(); RecordingStart();});
 
 
-             
-    // Create a selection list of sessions.   
+
+    // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -98,7 +98,7 @@ function InitViewEditMenus() {
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
 
-    // Create a selector for views.   
+    // Create a selector for views.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -147,7 +147,7 @@ function CopyZoom() {
   } else {
     var copyCam = VIEWER1.GetCamera();
   }
-  
+
   viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
 }
 
@@ -155,12 +155,12 @@ function ShowSlideInformation() {
   $('#viewEditMenu').hide();
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
-  
+
   imageObj = viewer.MainView.Section.Caches[0].Image;
 
   $('#slideInformation')
     .html("File Name: " + imageObj.filename
-          + "<br>Dimensions: " + imageObj.dimensions[0] + ", " 
+          + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
                                + imageObj.dimensions[1]
           + "<br>Levels: " + imageObj.levels)
     .show();
@@ -171,12 +171,12 @@ function ShowSlideInformation() {
   $('#viewEditMenu').hide();
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
-  
+
   imageObj = viewer.MainView.Section.Caches[0].Image;
 
   $('#slideInformation')
     .html("File Name: " + imageObj.filename
-          + "<br>Dimensions: " + imageObj.dimensions[0] + ", " 
+          + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
                                + imageObj.dimensions[1]
           + "<br>Levels: " + imageObj.levels)
     .show();

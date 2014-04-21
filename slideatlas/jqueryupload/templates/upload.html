@@ -2,7 +2,7 @@
 {% block head %}
 {{ super() }}
 
-<style> 
+<style>
 .bar {
     height: 18px;
     background: green;
@@ -46,7 +46,7 @@ $(function () {
                 $this.fileupload('send', data);
             });
             return false;
-        },       
+        },
         fail: function (e, data) {
             data.context.text('Upload failed.');
             var progress = 0;

@@ -1,7 +1,7 @@
-#!/usr/bin/python  
-# Command line tool and function code for managing image items 
+#!/usr/bin/python
+# Command line tool and function code for managing image items
 # (please reuse if possible)
-# adds or delets images from sessions 
+# adds or delets images from sessions
 # The image must already exist
 
 import pymongo
@@ -22,7 +22,7 @@ def create_user(admindb, userdb, key=None, debug=False):
     """
     Assumes that the db is authenticated connection to the database
     Creates a random username password pair and creates such a user to that database
-    creates a relevant filename and encrypts the 
+    creates a relevant filename and encrypts the
     """
     # Find if the key is id
     uname = id_generator(3)
@@ -68,7 +68,7 @@ def error_exit(msg):
         print "Aborting  .."
         sys.exit(0)
 
-# Main to accept command line and do the operation on images. 
+# Main to accept command line and do the operation on images.
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Utility to rename sessions on 1.x slideatlas servers')
@@ -93,7 +93,7 @@ if __name__ == '__main__':
             print "    ", key, ": ", args.__dict__[key]
         print
 
-    # Try authenticated connection 
+    # Try authenticated connection
     try:
         conn = pymongo.Connection(args.mongodb)
         # Find if authentication is necessary

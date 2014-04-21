@@ -1,4 +1,4 @@
-# Extract the test by running python code 
+# Extract the test by running python code
 
 execute_process(COMMAND "python" "list_tests.py" OUTPUT_VARIABLE STR_TESTS
                   OUTPUT_STRIP_TRAILING_WHITESPACE
