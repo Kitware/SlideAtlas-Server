@@ -1,5 +1,5 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
-*            text=auto  whitespace=tab-in-indent,trailing-space
+*            text=auto  whitespace=tab-in-indent,trailing-space,tabwidth=4
 
 # Text files: code
 *.py         text
@@ -9,7 +9,7 @@
 *.cmake      text
 
 # Text files: scripts
-Makefile     text  whitespace=indent-with-non-tab,trailing-space
+Makefile     text  whitespace=indent-with-non-tab,trailing-space,tabwidth=4
 *.bat        text
 *.a2config   text
 *.wsgi       text
