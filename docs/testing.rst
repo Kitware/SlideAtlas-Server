@@ -77,7 +77,27 @@ Smoke testing uses selenium browser automation to perform some basic navigation,
 
 Chrome webdriver should be installed from `here <http://chromedriver.storage.googleapis.com/index.html>`_ 
 
-And should be in the binaries path.
+And should be in the binaries path before tests are invoked.
+
+
+
+Basic glviewer on demo database 
+-------------------------------
+
+.. code-block :: shell-session
+
+
+
+
+- Chrome browser is started with given size (important for screenshot comparison later)
+- Browser is pointed to new.slide-atlas.org
+- Any existing user is logged out
+- password login is attempted using "all_demo" username and no password
+- First image is clicked from "Skin" session
+- The test passes if the resulting screenshot of glviewer matches with the one taken while creating the test 
+
+
+
 
 
 

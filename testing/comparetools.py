@@ -1,6 +1,4 @@
-import Image
-import ImageChops
-import ImageStat
+from PIL import Image, ImageChops, ImageStat
 import sys
 import hashlib
 

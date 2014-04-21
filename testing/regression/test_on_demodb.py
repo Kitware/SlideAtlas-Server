@@ -1,6 +1,11 @@
 import sys
-sys.path.append("../..")
-sys.path.append("..")
+import os
+test_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+slideatlas_root = os.path.abspath(os.path.join(test_root, ".."))
+
+sys.path.append(test_root)
+sys.path.append(slideatlas_root)
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
@@ -49,7 +54,7 @@ class DemoTests(unittest.TestCase):
 
         print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"
 
-        self.failUnless(sameimage("demo_glview.png", "imgs/demo_glview.png"), "Images not same, look at the difference score")
+        self.failUnless(sameimage("demo_glview.png", os.path.join(test_root,"imgs/demo_glview.png")), "Images not same, look at the difference score")
 
     def is_element_present(self, how, what):
         try: self.driver.find_element(by=how, value=what)
