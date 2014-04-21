@@ -32,7 +32,7 @@ function InitViewBrowser() {
         'overflow': 'scroll'
     }).attr('id', 'viewBrowser')
       .mouseleave(function () {$('#viewBrowser').hide();});
-    
+
     ReloadViewBrowserInfo();
 }
 
@@ -104,17 +104,17 @@ function ViewBrowserAddSessionViews(sessionData) {
           .text(image.label);
       }
 }
-        
+
 function ViewBrowserImageCallback(obj) {
   $('#viewBrowser').hide();
-  
+
   // null implies the user wants an empty view.
   if (obj == null) {
     ACTIVE_VIEWER.SetCache(null);
     eventuallyRender();
     return;
   }
-  
+
   var db = $(obj).attr('db');
   var viewid = $(obj).attr('viewid');
 
@@ -126,7 +126,7 @@ function ViewBrowserImageCallback(obj) {
            "db"  : $(obj).attr('db')},
     success: function(data,status) { ViewBrowserLoadImage(data);},
     error: function() { alert( "AJAX - error() : getview (browser)" ); },
-  });  
+  });
 }
 
 function ViewBrowserLoadImage(viewData) {
@@ -135,7 +135,7 @@ function ViewBrowserLoadImage(viewData) {
   var source = new Cache(imgobj);
 
   ACTIVE_VIEWER.SetCache(source);
-     
+
   RecordState();
 
   eventuallyRender();

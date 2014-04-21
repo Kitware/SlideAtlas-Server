@@ -8,9 +8,9 @@ function Cache(image) {
       return CACHES[i];
     }
   }
-  
+
   var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
-  
+
   this.Image = image;
 
   // For debugging
@@ -70,7 +70,7 @@ Cache.prototype.WorldToImage = function(worldPt) {
   // Just shift by the origin.
   // Assume spacing is 1.
   // TODO:
-  // This should be a simple matrix version of warp.  
+  // This should be a simple matrix version of warp.
   return [worldPt[0]-this.Origin[0], worldPt[1]-this.Origin[1]];
 }
 
@@ -88,14 +88,14 @@ Cache.prototype.GetSource=function()
 Cache.prototype.LoadRoots = function () {
     var qTile;
     if ( this.Image.dimensions == undefined) {
-	return;
+        return;
     }
     for (var slice = 1; slice <= this.Image.dimensions[2]; ++slice) {
         qTile = this.GetTile(slice, 0, 0);
         LoadQueueAdd(qTile);
     }
     return;
-    
+
     // Theses were for a demo (preload).
     for (var slice = 201; slice < 251; ++slice) {
         for (var j = 0; j < 4; ++j) {
@@ -120,7 +120,7 @@ Cache.prototype.LoadRoots = function () {
         LoadQueueAdd(qTile);
         qTile = this.GetTile(slice, 5, 527);
         LoadQueueAdd(qTile);
-    }       
+    }
 }
 
 
@@ -136,7 +136,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
 
   // I am putting this here to avoid deleting tiles
   // in the rendering list.
-  Prune();           
+  Prune();
 
   // Pick a level to display.
   //var fast = document.getElementById("fast").checked;
@@ -178,7 +178,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   if (xMax < -rx) { xMax = -rx;}
   if (yMax < ry)  { yMax = ry;}
   if (yMax < -ry) { yMax = -ry;}
-  
+
   var bounds = [];
   bounds[0] = view.Camera.FocalPoint[0]-xMax;
   bounds[1] = view.Camera.FocalPoint[0]+xMax;
@@ -189,32 +189,32 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   if (this.Warp) {
     // If this is too slow (occurs every render) we can estimate.
     var iPt = this.WorldToImage([bounds[0], bounds[2]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;} 
+    if ( ! iPt) { tiles.length = 0; return tiles;}
     var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
     iPt = this.WorldToImage([bounds[1], bounds[2]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;} 
+    if ( ! iPt) { tiles.length = 0; return tiles;}
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
     if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
     iPt = this.WorldToImage([bounds[0], bounds[3]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;} 
+    if ( ! iPt) { tiles.length = 0; return tiles;}
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
     if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
     iPt = this.WorldToImage([bounds[1], bounds[3]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;} 
+    if ( ! iPt) { tiles.length = 0; return tiles;}
     if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
     if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
     if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
     if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
     bounds = iBounds;
   }
-  
+
   // Logic for progressive rendering is in the loader:
   // Do not load a tile if its parent is not loaded.
-    
+
   var tiles = [];
   var endLevel = level;
   // GetTile is inefficient and may be causing the ipad to render slowly.
@@ -233,7 +233,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
       tiles.push(tile);
     }
   }
-  
+
   // Preload the next slice.
   //bounds[0] = bounds[1] = camera.FocalPoint[0];
   //bounds[2] = bounds[3] = camera.FocalPoint[1];
@@ -343,7 +343,7 @@ Cache.prototype.GetTile = function(slice, level, id) {
 }
 
 // This creates the tile tree down to the tile (if necessary) and returns
-// the tile requested.  The tiles objects created are not added to 
+// the tile requested.  The tiles objects created are not added to
 // the load queue here.
 Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
   if (deltaDepth == 0) {
@@ -356,10 +356,10 @@ Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
   var child = node.Children[childIdx];
   if (child == null) {
     var childName = node.Name;
-    if (childIdx == 0) {childName += "q";} 
-    if (childIdx == 1) {childName += "r";} 
-    if (childIdx == 2) {childName += "t";} 
-    if (childIdx == 3) {childName += "s";} 
+    if (childIdx == 0) {childName += "q";}
+    if (childIdx == 1) {childName += "r";}
+    if (childIdx == 2) {childName += "t";}
+    if (childIdx == 3) {childName += "s";}
     child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
                      (node.Level + 1),
                      childName, this);
@@ -398,12 +398,12 @@ Cache.prototype.PruneTiles = function()
 Cache.prototype.RecursivePruneTiles = function(node)
 {
   var leaf = true;
-    
+
   for (var i = 0; i < 4; ++i) {
     var child = node.Children[i];
     if (child != null) {
       leaf = false;
-      if (child.BranchTimeStamp < PRUNE_TIME_TILES || 
+      if (child.BranchTimeStamp < PRUNE_TIME_TILES ||
           child.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
         this.RecursivePruneTiles(child);
       }
@@ -415,7 +415,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
     }
     if (node.BranchTimeStamp < PRUNE_TIME_TILES) {
       if ( node.LoadState == 1) {
-        LoadQueueRemove(node); 
+        LoadQueueRemove(node);
       }
       var parent = node.Parent;
       // nodes will always have parents because we do not steal roots.

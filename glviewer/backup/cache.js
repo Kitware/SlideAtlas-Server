@@ -8,7 +8,7 @@ function Cache(dbStr, collectionStr, numLevels) {
       return CACHES[i];
     }
   }
-  
+
   var sourceStr = "/tile?img="+collectionStr+"&db="+dbStr+"&name=";
 
   this.Collection = collectionStr;
@@ -22,11 +22,11 @@ function Cache(dbStr, collectionStr, numLevels) {
   this.RootSpacing = [1<<(numLevels-1), 1<<(numLevels-1), 10.0];
   this.NumberOfSections = 1;
   this.NumberOfLevels = numLevels;
-  
+
   this.RootTiles = [];
 
   this.LoadRoots();
-  
+
   // Keep a global list for pruning tiles.
   CACHES.push(this);
 }
@@ -71,7 +71,7 @@ Cache.prototype.LoadRoots = function () {
         LoadQueueAdd(qTile);
         qTile = this.GetTile(slice, 5, 527);
         LoadQueueAdd(qTile);
-    }       
+    }
 }
 
 // ------ I tink this method really belongs in the view! -----------
@@ -85,7 +85,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
 
     // I am putting this here to avoid deleting tiles
     // in the rendering list.
-    Prune();           
+    Prune();
 
     // Pick a level to display.
     //var fast = document.getElementById("fast").checked;
@@ -127,7 +127,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
     if (xMax < -rx) { xMax = -rx;}
     if (yMax < ry)  { yMax = ry;}
     if (yMax < -ry) { yMax = -ry;}
-    
+
     var bounds = [];
     bounds[0] = view.Camera.FocalPoint[0]-xMax;
     bounds[1] = view.Camera.FocalPoint[0]+xMax;
@@ -136,7 +136,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
 
     // Logic for progressive rendering is in the loader:
     // Do not load a tile if its parent is not loaded.
-    
+
     var tiles = [];
     var tileIds = this.GetVisibleTileIds(level, bounds);
     var tile;
@@ -147,7 +147,7 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
       LoadQueueAdd(tile);
       tiles.push(tile);
     }
-    
+
     // Preload the next slice.
     //bounds[0] = bounds[1] = camera.FocalPoint[0];
     //bounds[2] = bounds[3] = camera.FocalPoint[1];
@@ -253,7 +253,7 @@ Cache.prototype.GetTile = function(slice, level, id) {
 }
 
 // This creates the tile tree down to the tile (if necessry) and returns
-// the tile requested.  The tiles objects created are not added to 
+// the tile requested.  The tiles objects created are not added to
 // the load queue here.
 Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
   if (deltaDepth == 0) {
@@ -266,10 +266,10 @@ Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
   var child = node.Children[childIdx];
   if (child == null) {
     var childName = node.Name;
-    if (childIdx == 0) {childName += "t";} 
-    if (childIdx == 1) {childName += "s";} 
-    if (childIdx == 2) {childName += "q";} 
-    if (childIdx == 3) {childName += "r";} 
+    if (childIdx == 0) {childName += "t";}
+    if (childIdx == 1) {childName += "s";}
+    if (childIdx == 2) {childName += "q";}
+    if (childIdx == 3) {childName += "r";}
     child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
                      (node.Level + 1),
                      childName, this);
@@ -302,7 +302,7 @@ Cache.prototype.PruneTiles = function()
 Cache.prototype.RecursivePruneTiles = function(node)
 {
   var leaf = true;
-    
+
   for (var i = 0; i < 4; ++i) {
     if (node.Children[i] != null) {
         leaf = false;
@@ -313,7 +313,7 @@ Cache.prototype.RecursivePruneTiles = function(node)
   }
   if (leaf && node.Parent != null) {
     if ( node.LoadState == 1) {
-      LoadQueueRemove(node); 
+      LoadQueueRemove(node);
     }
     var parent = node.Parent;
     // nodes will always have parents because we do not steal roots.

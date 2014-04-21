@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block body_content %}    
+{% block body_content %}
 {{ super() }}
 <div class="container">
 
@@ -8,7 +8,7 @@
 <table class="table table-bordered table-hover">
 <tr> <td> Version </td> <td> {{git}} </td></tr>
 <tr> <td> Host </td> <td> {{host}} </td></tr>
-</table>  
+</table>
 
 {% if label %}
 <table class="table table-bordered table-hover">

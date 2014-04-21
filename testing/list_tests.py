@@ -14,7 +14,7 @@ def list_tests_from(path):
                     btestname = btest.__str__().split()
                     print path + "." + btestname[1][1:-1] + "." + btestname[0]
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
   # Include the directories
   list_tests_from("unit")
   list_tests_from("regression")

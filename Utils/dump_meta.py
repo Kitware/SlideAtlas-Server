@@ -1,6 +1,6 @@
-# This program 
+# This program
 # When older uploader is used to upload images, it creates chapter and images in old style. This needs to be converted to session and sessions-list
-# If the chapter (from chapters collection) is already present, it will remove that record 
+# If the chapter (from chapters collection) is already present, it will remove that record
 
 import pymongo
 import sys

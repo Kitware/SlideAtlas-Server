@@ -47,7 +47,7 @@ function InitComparisonEditMenus() {
         'font-size': '20px'
     }).attr('id', 'comparisonEditMenu').hide()
       .mouseleave(function(){$(this).fadeOut();});
-    
+
     var comparisonEditSelector = $('<ol>');
     comparisonEditSelector.appendTo('#comparisonEditMenu')
              .attr('id', 'comparisonEditSelector')
@@ -77,7 +77,7 @@ function InitComparisonEditMenus() {
              .text("paste options")
              .click(function(){ComparisonPasteOptions();});
 
-    // Create a selection list of sessions.   
+    // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -96,7 +96,7 @@ function InitComparisonEditMenus() {
         .mouseleave(function(){$(this).fadeOut();});
     $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
 
-    // Create a selector for views.   
+    // Create a selector for views.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
         'border-style': 'solid',
@@ -150,8 +150,8 @@ function InitSessionMenuAjax(data) {
         }
     }
 }
-    
-    
+
+
 function ShowViewMenu(obj) {
     // Get info from the databse to fillout the the rest of the view menu.
     //$.get("http://localhost:8080/sessions?json=1&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
@@ -171,7 +171,7 @@ function ShowViewMenuAjax(data) {
             .attr('db', slide.db).attr('viewid', slide.view)
             .click(function(){ViewMenuCallback(this);});
     }
-    $('#viewMenu').show();    
+    $('#viewMenu').show();
 }
 function ViewMenuCallback(obj) {
     // We need the information in view, image and bookmark (startup_view) object.
@@ -191,7 +191,7 @@ function AddComparisonOption(option) {
     var index = ARGS.Options.length;
     // Add a new option.
     var view = {};
-    
+
     view.label = option.label.replace(/&#39;/g,"'");
     view.label = option.label.replace(".ndpi","");
 
@@ -208,7 +208,7 @@ function AddComparisonOption(option) {
     info.levels = option.levels;
     info.dimensions = option.dimension;
     ARGS.OptionInfo.push(info);
-    
+
     // Unselect any selected items.
     $(".ui-selected", '#optionMenu').removeClass("ui-selected").addClass("ui-unselecting");
     // Add the new item and select it.
@@ -217,7 +217,7 @@ function AddComparisonOption(option) {
     //$('#optionMenu')._mouseStop(null);
     // Calling this method directly will leave the option menu visible.
     changeOption(index);
-    
+
     // Save the new options in mongo
     ComparisonSave("options");
 }
@@ -279,7 +279,7 @@ function changeOption(index) {
 
     eventuallyRender();
 }
-  
+
 
 
 
@@ -323,11 +323,11 @@ function ComparisonDeleteDiagnosis() {
 
     // delete the selected item from the option list.
     //$("#foo > option[value='2']").remove();
-    $("#optionMenu > li").remove(".ui-selected");    
-    
-    $("#diagnoses").fadeIn();    
+    $("#optionMenu > li").remove(".ui-selected");
+
+    $("#diagnoses").fadeIn();
     changeOption(-1);
-    
+
     // Save the new options in mongo
     ComparisonSave("options");
 }
@@ -341,7 +341,7 @@ function ComparisonEditDiagnosisLabel() {
 
     $('#diagnosisLabelInput').attr('value', ARGS.Options[selectedIndex].label);
     $('#comparisonDialog').dialog();
-    
+
     // Save the new options in mongo
     ComparisonSave("options");
 }
@@ -353,13 +353,13 @@ function ComparisonEditDiagnosisLabelSubmit() {
     var selectedIndex = VIEWER2.OptionIndex;
     var txt = $('#diagnosisLabelInput').attr('value');
     ARGS.Options[selectedIndex].label = txt;
-    
+
     // Now we have to change the label in the diagnosis option list.
-    $("#optionMenu > li.ui-selected").text(txt);   
+    $("#optionMenu > li.ui-selected").text(txt);
     // The menu button needs to change because the option is selected.
     $('#diagnosis').text(txt);
 
-    $('#comparisonDialog').dialog( "close" );    
+    $('#comparisonDialog').dialog( "close" );
 
     // Save the new options in mongo
     ComparisonSave("options");
@@ -378,9 +378,9 @@ function ComparisonSaveRightView() {
     // Copy values not pointer reference.
     ARGS.Options[selectedIndex].center = [cam.FocalPoint[0], cam.FocalPoint[1]];
     ARGS.Options[selectedIndex].rotation = 180 * cam.Roll / 3.14159265;
-    
+
     $('#comparisonEditMenu').hide();
-    
+
     // Save the new options in mongo
     ComparisonSave("options");
 }
@@ -392,9 +392,9 @@ function ComparisonSaveLeftView() {
     // Copy values not pointer reference.
     ARGS.Viewer1.center = [cam.FocalPoint[0], cam.FocalPoint[1]];
     ARGS.Viewer1.rotation = 180 * cam.Roll / 3.14159265;
-    
+
     $('#comparisonEditMenu').hide();
-    
+
     // Save the new options in mongo
     ComparisonSave("view");
 }
@@ -414,13 +414,13 @@ function ComparisonPasteOptions() {
         alert("Nothing on the clipboard.");
         return;
     }
-    
+
     changeOption(-1);
-    
-    
+
+
     ARGS.Options = JSON.parse(options);
     ARGS.OptionInfo = JSON.parse(optionInfo);
-    
+
     // Rebuild the option menu.
     $('#optionMenu').empty();
     for (i in ARGS.Options) {
@@ -438,7 +438,7 @@ function ComparisonNewAnnotation() {
     SetAnnotationVisibility(true);
    // The text is created when the apply button is pressed.
    $("#text-properties-dialog").dialog("open");
-    
+
    $('#comparisonEditMenu').hide();
 }
 

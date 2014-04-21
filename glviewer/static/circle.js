@@ -36,9 +36,9 @@ Circle.prototype.UpdateBuffers = function() {
         this.PointBuffer.push(this.Radius*Math.sin(theta));
         this.PointBuffer.push(0.0);
       }
-    
-      // Now create the triangles    
-      // It would be nice to have a center point, 
+
+      // Now create the triangles
+      // It would be nice to have a center point,
       // but this would mess up the outline.
       for (var i = 2; i < numEdges; ++i) {
         cellData.push(0);
@@ -51,7 +51,7 @@ Circle.prototype.UpdateBuffers = function() {
       GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
       this.VertexPositionBuffer.itemSize = 3;
       this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-      
+
       this.CellBuffer = GL.createBuffer();
       GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
       GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
@@ -77,8 +77,8 @@ Circle.prototype.UpdateBuffers = function() {
       this.VertexPositionBuffer.itemSize = 3;
       this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
-      // Now create the fill triangles    
-      // It would be nice to have a center point, 
+      // Now create the fill triangles
+      // It would be nice to have a center point,
       // but this would mess up the outline.
       for (var i = 2; i < numEdges; ++i) {
         cellData.push(0);

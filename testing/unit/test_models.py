@@ -13,8 +13,8 @@ def test_image_access():
     for obj in Database.objects(dbname="demo"):
         print obj._cls, obj.label
         with obj:
-        	for img in Image.objects():
-        		print img.label
+            for img in Image.objects():
+                print img.label
 
 if __name__ == "__main__":
     """

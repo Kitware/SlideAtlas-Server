@@ -20,7 +20,7 @@
 
 
 //------------------------------------------------------------------------------
-// Records are now being used for notes.  Since page record may contain 
+// Records are now being used for notes.  Since page record may contain
 // information about current note, I am using ViewerRecord as a shared object.
 
 function ViewerRecord () {
@@ -34,11 +34,11 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
   // However, this would require a post to get info.
   // Since booksmarks are slated to be depreciated,
   // I will just hack this. (copy from viewer).
-  var cache = VIEWER1.GetCache();    
+  var cache = VIEWER1.GetCache();
   this.Database = cache.Database;
   this.Collection = cache.Collection;
   this.NumberOfLevels = cache.NumberOfLevels;
-  
+
   var cameraRecord = {};
   cameraRecord.FocalPoint = data.center;
   cameraRecord.Height = 900 << data.zoom;
@@ -54,7 +54,7 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
   obj.color = ConvertColor(data.annotation.color);
   obj.size = 30;
   obj.position = data.annotation.points[0];
-  obj.offset = [data.annotation.points[1][0]-obj.position[0], 
+  obj.offset = [data.annotation.points[1][0]-obj.position[0],
                 data.annotation.points[1][1]-obj.position[1]];
   // Try to convert from world to pixels
   obj.offset[0] = obj.offset[0] * 900 / cameraRecord.Height;
@@ -68,8 +68,8 @@ ViewerRecord.prototype.LoadBookmark = function(data) {
 // view args format. Get rid of this asap.
 ViewerRecord.prototype.LoadRootViewer = function(data) {
   // Hack. data is in args  but ....
-  var cache = new Cache(data.db, 
-                        data.collection, 
+  var cache = new Cache(data.db,
+                        data.collection,
                         data.levels);
 
   this.Database = data.db;
@@ -87,7 +87,7 @@ ViewerRecord.prototype.LoadRootViewer = function(data) {
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
-  if ( ! cache) { 
+  if ( ! cache) {
     this.Database = "";
     this.Collection = "";
     this.NumberOfLevels = 0;
@@ -96,7 +96,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     this.Annotations = [];
     return;
   }
-    
+
   this.Database = cache.Database;
   this.Collection = cache.Collection;
   // I could get this from the image / collection.
@@ -108,7 +108,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   cameraRecord.Height = cam.GetHeight();
   cameraRecord.Roll = cam.GetRotation();
   this.Camera = cameraRecord;
-  
+
   this.AnnotationVisibility = viewer.GetAnnotationVisibility();
   if (this.AnnotationVisibility) {
     this.Annotations = [];
@@ -123,13 +123,13 @@ ViewerRecord.prototype.Apply = function (viewer) {
   // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
   if (viewer.ActiveWidget) {
     // Hackish way to deactivate.
-    viewer.ActiveWidget.SetActive(false);  
+    viewer.ActiveWidget.SetActive(false);
   }
 
   var cache = viewer.GetCache();
   if ( ! cache || this.Collection != cache.Collection) {
-    var newCache = new Cache(this.Database, 
-                             this.Collection, 
+    var newCache = new Cache(this.Database,
+                             this.Collection,
                              this.NumberOfLevels);
     viewer.SetCache(newCache);
   }
@@ -140,7 +140,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
                      cameraRecord.Roll,
                      cameraRecord.Height);
   }
-  
+
   if (this.AnnotationVisibility != undefined) {
     viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
   }
@@ -159,7 +159,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 
 
-// Pointer to 
+// Pointer to
 var TIME_LINE = [];
 var REDO_STACK = [];
 
@@ -172,7 +172,7 @@ var REDO_BUTTON;
 
 function InitRecorderWidget() {
 
-  // The recording button indicates that recording is in 
+  // The recording button indicates that recording is in
   // progress and also acts to stop recording.
   RECORD_BUTTON = $('<img>').appendTo('body')
     .css({
@@ -251,7 +251,7 @@ function RecordingStop() {
   RECORDING = false;
   setCookie("SlideAtlasRecording","false",1);
   RecordingUpdateGUI();
-  
+
   // Prompt for a name and if the user want to keep the recording.
 }
 
@@ -268,7 +268,7 @@ function NewPageRecord() {
   }
   // Note state? Which note is current.
   // Placeholder. Notes are not ready yet.
-  
+
   return stateRecord;
 }
 
@@ -284,7 +284,7 @@ function RecordState() {
   pageRecord.Time = d.getTime();
   //pageRecord.User = "bev"; // Place holder until I figure out user ids.
   TIME_LINE.push(pageRecord);
-  
+
   if (RECORDING) {
     $.ajax({
       type: "post",

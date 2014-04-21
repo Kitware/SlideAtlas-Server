@@ -10,8 +10,8 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
     viewport[i] = Math.round(viewport[i]);
   }
   // Allow for border.
-  viewport[2] -=2;  
-  viewport[3] -=2;  
+  viewport[2] -=2;
+  viewport[3] -=2;
 
   // connectome : default section so we cen set cache.
   this.Section = new Section;
@@ -20,10 +20,10 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
   this.Viewport = viewport;
   this.Camera = new Camera(viewport[2], viewport[3]);
   this.Tiles = [];
-  this.OutlineColor = [0,0.5,0]; 
+  this.OutlineColor = [0,0.5,0];
   this.OutlineMatrix = mat4.create();
   this.OutlineCamMatrix = mat4.create();
-  
+
   // 2d canvas
   if ( ! GL) {
     // Add a new canvas.
@@ -37,7 +37,7 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
         'border-style': 'solid',
         'border-width': '1px'
     });
-    
+
     this.Context2d = this.Canvas[0].getContext("2d");
   }
 }
@@ -82,7 +82,7 @@ View.prototype.SetViewport = function(viewport) {
     viewport[i] = Math.round(viewport[i]);
   }
   // Allow for border.
-  viewport[2] -=2;  
+  viewport[2] -=2;
   viewport[3] -=2;
   if (this.Canvas) {
     if (viewport[2] < 3 || viewport[3] < 1) {
@@ -99,7 +99,7 @@ View.prototype.SetViewport = function(viewport) {
     this.Canvas.attr("width", viewport[2].toString());
     this.Canvas.attr("height", viewport[3].toString());
   }
-  
+
   this.Viewport = viewport;
   this.Camera.SetViewport(viewport);
 }
@@ -116,15 +116,15 @@ View.prototype.DrawTiles = function () {
     this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
     this.Context2d.stroke();
 
-    // Start with a transform that flips the y axis. 
+    // Start with a transform that flips the y axis.
     // This is an issue later because the images will be upside down.
     this.Context2d.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
 
     // Map (-1->1, -1->1) to the viewport.
-    // Origin of the viewport does not matter because drawing is relative 
+    // Origin of the viewport does not matter because drawing is relative
     // to this view's canvas.
     this.Context2d.transform(0.5*this.Viewport[2], 0.0,
-                             0.0, 0.5*this.Viewport[3], 
+                             0.0, 0.5*this.Viewport[3],
                              0.5*this.Viewport[2],
                              0.5*this.Viewport[3]);
 
@@ -146,12 +146,12 @@ View.prototype.DrawOutline = function(backgroundFlag) {
     this.OutlineCamMatrix[10] = 0;
     this.OutlineCamMatrix[12] = -1.0;
     this.OutlineCamMatrix[13] = -1.0;
-    var viewFrontZ = this.Camera.ZRange[0]+0.001; 
-    var viewBackZ = this.Camera.ZRange[1]-0.001; 
+    var viewFrontZ = this.Camera.ZRange[0]+0.001;
+    var viewBackZ = this.Camera.ZRange[1]-0.001;
     this.OutlineCamMatrix[14] = viewFrontZ; // front plane
 
     mat4.identity(this.OutlineMatrix);
-    
+
     GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
 
     if (backgroundFlag) {
@@ -160,8 +160,8 @@ View.prototype.DrawOutline = function(backgroundFlag) {
       GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
       GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
       GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-      GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                     squarePositionBuffer.itemSize, 
+      GL.vertexAttribPointer(program.vertexPositionAttribute,
+                     squarePositionBuffer.itemSize,
                      GL.FLOAT, false, 0, 0);
       GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
     }
@@ -171,8 +171,8 @@ View.prototype.DrawOutline = function(backgroundFlag) {
     GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
     GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
     GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.vertexAttribPointer(program.vertexPositionAttribute, 
-                           squareOutlinePositionBuffer.itemSize, 
+    GL.vertexAttribPointer(program.vertexPositionAttribute,
+                           squareOutlinePositionBuffer.itemSize,
                            GL.FLOAT, false, 0, 0);
     GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
   }

@@ -72,23 +72,23 @@ Arrow.prototype.UpdateBuffers = function() {
   this.PointBuffer.push(0.0);
 
   if (GL) {
-    // Now create the triangles    
+    // Now create the triangles
     cellData.push(0);
     cellData.push(1);
     cellData.push(2);
-    
+
     cellData.push(0);
     cellData.push(2);
     cellData.push(5);
-    
+
     cellData.push(0);
     cellData.push(5);
     cellData.push(6);
-    
+
     cellData.push(2);
     cellData.push(3);
     cellData.push(4);
-    
+
     cellData.push(2);
     cellData.push(4);
     cellData.push(5);
@@ -98,7 +98,7 @@ Arrow.prototype.UpdateBuffers = function() {
     GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
     this.VertexPositionBuffer.itemSize = 3;
     this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
-    
+
     this.CellBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
     GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);

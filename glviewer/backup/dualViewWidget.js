@@ -4,7 +4,7 @@
 // Default: viewer1 uses all available space.
 var VIEWER1_FRACTION = 1.0;
 
-  
+
 function InitDualViewWidget() {
     // Todo: Make the button become more opaque when pressed.
     $('<img>').appendTo('body')
@@ -35,9 +35,9 @@ function InitDualViewWidget() {
     .attr('type','image')
     .attr('src',"webgl-viewer/static/dualArrowRight2.png")
     .click(function(){ToggleDualView();});
-    
+
     VIEWER1.AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
-    VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);    
+    VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
 }
 
 // Called programatically. No animation.
@@ -50,7 +50,7 @@ function SetNumberOfViews(numViews) {
     VIEWER1_FRACTION = 1.0;
   }
 
-  handleResize();    
+  handleResize();
   DualViewUpdateGui();
 }
 
@@ -63,12 +63,12 @@ var DUAL_ANIMATION_TARGET;
 
 function ToggleDualView() {
   DUAL_VIEW = ! DUAL_VIEW;
-  
-  if (DUAL_VIEW) {  
+
+  if (DUAL_VIEW) {
     DUAL_ANIMATION_CURRENT = 1.0;
     DUAL_ANIMATION_TARGET = 0.5;
     // Edit menu option to copy camera zoom between views.
-    // I do not call update gui here because I want 
+    // I do not call update gui here because I want
     // the buttons to appear at the end of the animation.
     $('#dualViewCopyZoom').show();
     // Animation takes care of switching the buttons
@@ -109,13 +109,13 @@ function AnimateViewToggle() {
   if (timeStep > DUAL_ANIMATION_DURATION) {
     // end the animation.
     VIEWER1_FRACTION = DUAL_ANIMATION_TARGET;
-    handleResize();    
+    handleResize();
     DualViewUpdateGui();
     return;
     }
-  
+
   var k = timeStep / DUAL_ANIMATION_DURATION;
-  
+
   // update
   DUAL_ANIMATION_DURATION *= (1.0-k);
   VIEWER1_FRACTION += (DUAL_ANIMATION_TARGET-VIEWER1_FRACTION) * k;

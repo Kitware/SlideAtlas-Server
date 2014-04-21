@@ -180,7 +180,7 @@ shape has visibility and
   var VIEWER1;
   var EDIT = true;
   var EDIT_R = false;
-  
+
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
 
   // I cannot check if DUAL_VIEW is defined so just include it.
@@ -192,8 +192,8 @@ shape has visibility and
   function getArgs() {
     SESSION_DATABASE = "{{ sess }}";
     USER = "";
-  
-  
+
+
     SESSID = "{{ sess }}";
     DBID  = "{{ db }}";
     $.ajax({
@@ -253,8 +253,8 @@ function saveStack() {
     });
 }
 
-    
-  
+
+
   function handleResize() {
     if (GL) {
       var width = CANVAS.innerWidth();
@@ -287,8 +287,8 @@ function saveStack() {
             }
         }
         if ( ! source) {
-            source = new Cache({'database':view.db, 
-                                '_id':view.img._id, 
+            source = new Cache({'database':view.db,
+                                '_id':view.img._id,
                                 'levels':view.img.levels,
                                 'bounds':view.img.bounds});
         }
@@ -300,10 +300,10 @@ function saveStack() {
             section.Annotations.push(LoadWidget(VIEWER1, annotation));
           }
         }
-            
+
         SECTIONS.push(section);
     }
-    
+
     // Setup the points.
     SECTION_INDEX = 0;
     VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
@@ -313,7 +313,7 @@ function saveStack() {
     setupCrossHairs();
   }
 
-  
+
   function updateSection(inc) {
     var newIdx = SECTION_INDEX + inc;
 
@@ -343,7 +343,7 @@ function saveStack() {
         EVENT_MANAGER.MouseWorldY = tmp[1];
     }
 
-    VIEWER1.SetCamera(center, rotation, height);    
+    VIEWER1.SetCamera(center, rotation, height);
     SECTION_INDEX = newIdx;
     setupCrossHairs();
   }
@@ -360,18 +360,18 @@ function saveStack() {
         for (i in trans.Correlations) {
             var c = trans.Correlations[i];
             var cross = new CrossHairs();
-            cross.FillColor    = [1,0,0]; 
+            cross.FillColor    = [1,0,0];
             cross.OutlineColor = [0,1,1];
             cross.Origin       = c.point0; // I expect reference will update transform automatically.
             VIEWER1.AddShape(cross);
         }
-    }    
+    }
     if (SECTION_INDEX > 0) {
         var trans = TRANSFORMATIONS[SECTION_INDEX-1];
         for (i in trans.Correlations) {
             var c = trans.Correlations[i];
             var cross = new CrossHairs();
-            cross.FillColor    = [0,1,1]; 
+            cross.FillColor    = [0,1,1];
             cross.OutlineColor = [1,0,0];
             cross.Origin       = c.point1; // I expect reference will update transform automatically.
             VIEWER1.AddShape(cross);
@@ -379,14 +379,14 @@ function saveStack() {
     }
     eventuallyRender();
   }
-  
+
 var FeatureChainEndCross;
 var FeatureChainEndIndex;
 // x, y are in world coordinates
 function FeatureChainStart(x,y) {
     // Create a widget just for show.
     var cross = new CrossHairs();
-    cross.FillColor    = [1,0,0]; 
+    cross.FillColor    = [1,0,0];
     cross.OutlineColor = [0,1,1];
     cross.Origin       = [x, y];
     // Save for the position for the next link.
@@ -417,7 +417,7 @@ function FeatureChainAdd(x,y) {
                              "point1": [x,y]});
     // Create a widget just for show.
     var cross = new CrossHairs();
-    cross.FillColor    = [0,1,1]; 
+    cross.FillColor    = [0,1,1];
     cross.OutlineColor = [1,0,0];
     // A dance to set cross origin as pointer to correlation array.
     var correlation = trans.Correlations[trans.Correlations.length-1];
@@ -443,15 +443,15 @@ function FeatureChainAdd(x,y) {
   var E_DOWN = false;
   var D_DOWN = false;
   var R_DOWN = false;
-  
+
   // The event manager detects single right click and double right click.
   // This gets galled on the single.
-  function ShowPropertiesMenu(x, y) { 
+  function ShowPropertiesMenu(x, y) {
     if (EDIT) {
       ShowAnnotationEditMenu(x, y);
     }
   }
-  
+
   function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
   function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
   function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
@@ -462,13 +462,13 @@ function FeatureChainAdd(x,y) {
         if (event.keyCode == 69) { E_DOWN = true;}
         if (event.keyCode == 82) { R_DOWN = true;}
         if (D_DOWN && E_DOWN) {
-            EDIT = ! EDIT; 
+            EDIT = ! EDIT;
             alert("Edit: " + EDIT);
             E_DOWN = false;
             D_DOWN = false;
         }
         if (D_DOWN && R_DOWN) {
-            EDIT_R = ! EDIT_R; 
+            EDIT_R = ! EDIT_R;
             alert("Edit 'R': " + EDIT_R);
             E_DOWN = false;
             R_DOWN = false;
@@ -502,7 +502,7 @@ function FeatureChainAdd(x,y) {
     return false;
   }
 
-  
+
 
 // Not used at the moment.
 function InitAnnotations(viewer, annotations)
@@ -510,7 +510,7 @@ function InitAnnotations(viewer, annotations)
     if (annotations.length == 0) {
         return;
     }
-    
+
     for (i in annotations) {
         var annotation = annotations[i];
         widget = new TextWidget(viewer, annotation.string);
@@ -533,7 +533,7 @@ function ToggleAnnotationVisibility() {
     if ( ! doesBrowserSupportWebGL(testCanvas)) {
         return; // WHat to do?  Function provides the alert.
     }
-    
+
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initShaderPrograms();
@@ -545,8 +545,8 @@ function ToggleAnnotationVisibility() {
         handleResize();
     }).trigger('resize');
 
-   
-    
+
+
     GL.clearColor(0.9, 0.9, 0.9, 1.0);
     GL.enable(GL.DEPTH_TEST);
 
@@ -561,10 +561,10 @@ function ToggleAnnotationVisibility() {
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
 
-        
 
-             
-             
+
+
+
     // Place the previous next buttons.
     $('<img>').appendTo('body').css({
         'opacity': '0.4',
@@ -601,7 +601,7 @@ function ToggleAnnotationVisibility() {
       .attr('id', 'annotationButton').text("A")
       .click(function(){
          ToggleAnnotationVisibility();});
- 
+
 
 
     eventuallyRender();

@@ -6,7 +6,7 @@ from slideatlas import models
 from .common import OAuthLogin
 
 ################################################################################
-__all__ = ('FacebookOAuthLogin',)
+__all__ = ()
 
 
 ################################################################################
@@ -73,10 +73,10 @@ class FacebookOAuthLogin(OAuthLogin):
 
         # Create and return person
         return self.FacebookPerson(
-            external_id=person_profile.data['id'],
-            full_name=person_profile.data['name'],
-            email=person_profile.data['email'],
-            facebook_groups=[group_info['id'] for group_info in person_groups.data['data']],
+            external_id=person_profile.data.get('id'),
+            full_name=person_profile.data.get('name'),
+            email=person_profile.data.get('email'),
+            facebook_groups=filter(None,(group_info.get('id') for group_info in person_groups.data.get('data'))),
         )
 
 

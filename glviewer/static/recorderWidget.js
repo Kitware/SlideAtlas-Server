@@ -20,20 +20,20 @@
 
 
 //------------------------------------------------------------------------------
-// Records are now being used for notes.  Since page record may contain 
+// Records are now being used for notes.  Since page record may contain
 // information about current note, I am using ViewerRecord as a shared object.
 
 function ViewerRecord () {
 }
 
 // I am still trying to figure out a good pattern for loading
-// objects from mongo.  
+// objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
-  
+
   if (this.Annotations) {
     for (var i = 0; i < this.Annotations.length; ++ i) {
       var a = this.Annotations[i];
@@ -47,22 +47,22 @@ ViewerRecord.prototype.Load = function(obj) {
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cache = viewer.GetCache();
-  if ( ! cache) { 
+  if ( ! cache) {
     this.Camera = null;
     this.AnnotationVisibility = false;
     this.Annotations = [];
     return;
   }
-    
+
   this.Image = cache.Image;
-  
+
   var cam = viewer.GetCamera();
   var cameraRecord = {};
   cameraRecord.FocalPoint = cam.GetFocalPoint();
   cameraRecord.Height = cam.GetHeight();
   cameraRecord.Roll = cam.GetRotation();
   this.Camera = cameraRecord;
-  
+
   this.AnnotationVisibility = viewer.GetAnnotationVisibility();
   if (this.AnnotationVisibility) {
     this.Annotations = [];
@@ -79,7 +79,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
     // Hackish way to deactivate.
     viewer.ActiveWidget.SetActive(false);
   }
-  
+
   var cache = viewer.GetCache();
   if ( ! cache || this.Image._id != cache.Image._id) {
     var newCache = new Cache(this.Image);
@@ -92,7 +92,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
                      cameraRecord.Roll,
                      cameraRecord.Height);
   }
-  
+
   if (this.AnnotationVisibility != undefined) {
     viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
   }
@@ -111,7 +111,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 
 
-// Pointer to 
+// Pointer to
 var TIME_LINE = [];
 var REDO_STACK = [];
 
@@ -124,7 +124,7 @@ var REDO_BUTTON;
 
 function InitRecorderWidget() {
 
-  // The recording button indicates that recording is in 
+  // The recording button indicates that recording is in
   // progress and also acts to stop recording.
   RECORD_BUTTON = $('<img>').appendTo('body')
     .css({
@@ -203,7 +203,7 @@ function RecordingStop() {
   RECORDING = false;
   setCookie("SlideAtlasRecording","false",1);
   RecordingUpdateGUI();
-  
+
   // Prompt for a name and if the user want to keep the recording.
 }
 
@@ -220,7 +220,7 @@ function NewPageRecord() {
   }
   // Note state? Which note is current.
   // Placeholder. Notes are not ready yet.
-  
+
   return stateRecord;
 }
 
@@ -236,7 +236,7 @@ function RecordState() {
   pageRecord.Time = d.getTime();
   //pageRecord.User = "bev"; // Place holder until I figure out user ids.
   TIME_LINE.push(pageRecord);
-  
+
   if (RECORDING) {
     $.ajax({
       type: "post",

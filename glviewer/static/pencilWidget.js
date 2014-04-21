@@ -23,7 +23,7 @@ function PencilWidget (viewer, newFlag) {
     return;
   }
   this.Popup = new WidgetPopup(this);
-  this.Viewer = viewer;    
+  this.Viewer = viewer;
   this.Viewer.WidgetList.push(this);
 
   this.Cursor = $('<img>').appendTo('body')
@@ -39,11 +39,11 @@ function PencilWidget (viewer, newFlag) {
   // This did not work.  preventDefault did not either.
   //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
   //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-  //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})    
-  //.preventDefault();  
+  //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
+  //.preventDefault();
 
   this.Shapes = [];
-  
+
   this.ActiveCenter = [0,0];
 
   this.State = PENCIL_WIDGET_DRAWING;
@@ -70,7 +70,7 @@ PencilWidget.prototype.Serialize = function() {
     var points = [];
     for (var j = 0; j < shape.Points.length; ++j) {
       points.push([shape.Points[j][0], shape.Points[j][1]]);
-    } 
+    }
     obj.shapes.push(points);
   }
 
@@ -97,7 +97,7 @@ PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 PencilWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer(); 
+  this.Popup.StartHideTimer();
   this.Cursor.hide();
   this.Viewer.DeactivateWidget(this);
   this.State = PENCIL_WIDGET_WAITING;
@@ -110,7 +110,7 @@ PencilWidget.prototype.Deactivate = function() {
 PencilWidget.prototype.HandleMouseDown = function(event) {
   var x = event.MouseX;
   var y = event.MouseY;
-  
+
   if (event.SystemEvent.which == 1) {
     // Start drawing.
     var shape = new Polyline();
@@ -120,7 +120,7 @@ PencilWidget.prototype.HandleMouseDown = function(event) {
     shape.LineWidth = 0;
     this.Shapes.push(shape);
 
-    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);  
+    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
     shape.Points.push([pt[0], pt[1]]); // avoid same reference.
   }
 }
@@ -155,12 +155,12 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
   var y = event.MouseY;
 
   // Move the pencil icon to follow the mouse.
-  this.Cursor.css({'left': (x+4), 'top': (y-32)});  
-    
+  this.Cursor.css({'left': (x+4), 'top': (y-32)});
+
   if (event.MouseDown == true) {
     if (event.SystemEvent.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
       var shape = this.Shapes[this.Shapes.length-1];
-      var pt = this.Viewer.ConvertPointViewerToWorld(x,y);  
+      var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
       shape.Points.push([pt[0], pt[1]]); // avoid same reference.
       shape.UpdateBuffers();
       eventuallyRender();
@@ -168,13 +168,13 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
     }
   }
 
-  if (this.State == PENCIL_WIDGET_ACTIVE &&  
+  if (this.State == PENCIL_WIDGET_ACTIVE &&
       event.SystemEvent.which == 0) {
-      // Deactivate 
+      // Deactivate
       this.SetActive(this.CheckActive(event));
       return;
     }
-  
+
 }
 
 PencilWidget.prototype.ComputeActiveCenter = function() {
@@ -187,7 +187,7 @@ PencilWidget.prototype.ComputeActiveCenter = function() {
     for (var j = 0; j < shape.Points.length; ++j) {
       sx += shape.Points[j][0];
       sy += shape.Points[j][1];
-    } 
+    }
     count += shape.Points.length;
   }
 
@@ -197,7 +197,7 @@ PencilWidget.prototype.ComputeActiveCenter = function() {
 
 //This also shows the popup if it is not visible already.
 PencilWidget.prototype.PlacePopup = function () {
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0], 
+  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
   pt[0] += 40;
   pt[1] -= 40;
@@ -207,7 +207,7 @@ PencilWidget.prototype.PlacePopup = function () {
 PencilWidget.prototype.CheckActive = function(event) {
   if (this.State == PENCIL_WIDGET_DRAWING) { return; }
 
-  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0], 
+  var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
 
   var dx = event.MouseX - pt[0];
@@ -222,12 +222,12 @@ PencilWidget.prototype.CheckActive = function(event) {
 }
 
 PencilWidget.prototype.GetActive = function() {
-  return false;  
+  return false;
 }
 
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
-PencilWidget.prototype.SetActive = function(flag) {  
+PencilWidget.prototype.SetActive = function(flag) {
   if (flag) {
     this.Viewer.ActivateWidget(this);
     this.State = PENCIL_WIDGET_ACTIVE;
@@ -239,7 +239,7 @@ PencilWidget.prototype.SetActive = function(flag) {
   } else {
     this.Deactivate();
     this.Viewer.DeactivateWidget(this);
-  }  
+  }
 }
 
 PencilWidget.prototype.RemoveFromViewer = function() {
@@ -247,8 +247,8 @@ PencilWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
@@ -282,8 +282,8 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
       var p2 = shape.Points[i-2];
       var p3 = shape.Points[i-3];
       // Compute the average of the center two.
-      var cx = (p1[0] + p2[0]) * 0.5; 
-      var cy = (p1[1] + p2[1]) * 0.5; 
+      var cx = (p1[0] + p2[0]) * 0.5;
+      var cy = (p1[1] + p2[1]) * 0.5;
       // Find the perendicular normal.
       var nx = (p0[1] - p3[1]);
       var ny = -(p0[0] - p3[0]);
@@ -295,7 +295,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
       // Make sure the two point being merged are between the outer points 0 and 3.
       var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
       var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
-      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) { 
+      if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
         // Replace the two points with their average.
         newPoints.push([cx, cy]);
         modified = true;
@@ -304,7 +304,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
         i += 2;
       } else {
         //  No modification.  Just move the window one.
-        newPoints.push(shape.Points[i-2]);    
+        newPoints.push(shape.Points[i-2]);
         ++i;
       }
     }
@@ -317,7 +317,7 @@ PencilWidget.prototype.Decimate = function(shape, spacing) {
     shape.Points = newPoints;
   }
 
-  shape.UpdateBuffers();  
+  shape.UpdateBuffers();
 }
 
 

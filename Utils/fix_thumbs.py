@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(".."))
 from common_utils import get_object_in_collection
 
 # def CreateJpegThumb(binary_jpeg_image, channel_threshold=245):
-# TODO: Currently depends on wx, this routine should be rewritten 
+# TODO: Currently depends on wx, this routine should be rewritten
 from create_thumb import CreateJpegThumb
 
 # Accept DB and SESSION and recreate thumbs if t.jpg exists

@@ -88,7 +88,7 @@ NoteIterator.prototype.IsEnd = function() {
 }
 
 // Parent note is traversed before children.
-// Move forward one step.  Return the new note. At end the last note returned again. 
+// Move forward one step.  Return the new note. At end the last note returned again.
 // IsEnd method used to detect terminal case.
 NoteIterator.prototype.Next = function() {
   if (this.Stack == null) { return null; }
@@ -168,8 +168,8 @@ function Note () {
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
   this.Type = "Note";
-  
-  
+
+
   this.Text = "";
   // Upto two for dual view.
   this.ViewerRecords = [];
@@ -211,7 +211,7 @@ Note.prototype.Select = function() {
       }
       iter.Next();
     }
-    NOTE_ITERATOR = iter;    
+    NOTE_ITERATOR = iter;
   }
   // Indicate which note is selected.
   if (SELECTED_NOTE) {
@@ -257,8 +257,8 @@ Note.prototype.HandleDragStop = function ( ui ) {
   var offsetYPos = parseInt( ui.offset.top );
   //alert( "Drag stopped!\n\nOffset: (" + offsetXPos + ", " + offsetYPos + ")\n");
   // Redraw
-  ui.offset.left = 0;  
-  ui.offset.top = 0;  
+  ui.offset.left = 0;
+  ui.offset.top = 0;
   //TOP_NOTE_WRAPPER_DIV.empty();
   //ROOT_NOTE.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
   //NOTE_ITERATOR.GetNote().Select();
@@ -277,14 +277,14 @@ Note.prototype.DisplayGUI = function(div) {
     stop: function(e,ui){self.HandleDragStop(ui);},
     start: function(e,ui){self.HandleDragStart();},
     revert: true
-  }); 
-  
+  });
+
   this.TextDiv.text(this.Text);
   var self = this;
   this.TextDiv.click(function() {self.Select()});
   this.TextDiv.hover(function(){self.TextDiv.css({'text-decoration':'underline'});},
                      function(){self.TextDiv.css({'text-decoration':'none'});});
-                     
+
   this.UpdateChildrenGUI();
   this.ChildrenDiv.droppable({accept: '.note',
                               tolerance: 'pointer',
@@ -311,7 +311,7 @@ Note.prototype.UpdateChildrenGUI = function() {
 
   // Callback trick
   var self = this;
-  
+
   // Redraw
   this.Icon.attr('src',"webgl-viewer/static/minus.png")
            .click(function() {self.Collapse();});
@@ -361,13 +361,13 @@ Note.prototype.Load = function(obj){
   }
 
   // I could try to combone bookmark and question, but bookmark
-  // is geared to interactive presentation not offline quiz. 
+  // is geared to interactive presentation not offline quiz.
   if (obj.Type == "Bookmark") {
     // No difference yet.
     return;
   }
 
-  
+
   alert("Cannot load note of type " + obj.Type);
 }
 
@@ -407,7 +407,7 @@ function SaveUserNote() {
     viewerRecord.CopyViewer(VIEWER2);
     childNote.ViewerRecords.push(viewerRecord);
   }
-  
+
   // Now add the note as the last child to the current note.
   parentNote = NOTE_ITERATOR.GetNote();
   parentNote.Children.push(childNote);
@@ -428,8 +428,8 @@ function SaveUserNote() {
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
     error: function() { alert( "AJAX - error()" ); },
-    });  
-  
+    });
+
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
   // which will also update the gui and viewers.
@@ -450,7 +450,7 @@ Note.prototype.RequestUserNotes = function() {
            "db"  : SESSION_DB},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error()" ); },
-    });  
+    });
 }
 
 
@@ -476,7 +476,7 @@ Note.prototype.LoadRootView = function(args) {
   var viewerRecord = new ViewerRecord();
   viewerRecord.LoadRootViewer(args.Viewer1);
   this.ViewerRecords = [viewerRecord];
-  
+
   this.RequestUserNotes();
 }
 
@@ -496,7 +496,7 @@ Note.prototype.Expand = function() {
 
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
-Note.prototype.DisplayView = function() { 
+Note.prototype.DisplayView = function() {
   SetNumberOfViews(this.ViewerRecords.length);
 
   if (this.ViewerRecords.length > 0) {
@@ -550,11 +550,11 @@ function BookmarksCallback (data, status) {
       note.LoadBookmark(data.Bookmarks[i]);
       note.Text = "Question";
       note.Type = "Bookmark";
-      note.ViewerRecords[0].AnnotationVisibility = ANNOTATION_NO_TEXT; 
+      note.ViewerRecords[0].AnnotationVisibility = ANNOTATION_NO_TEXT;
       ROOT_NOTE.Children.push(note);
       var note2 = new Note();
       note2.LoadBookmark(data.Bookmarks[i]);
-      note2.ViewerRecords[0].AnnotationVisibility = ANNOTATION_ON; 
+      note2.ViewerRecords[0].AnnotationVisibility = ANNOTATION_ON;
       note.Children.push(note2);
       note2.ChildrenVisible = true;
       }
@@ -568,7 +568,7 @@ function InitNotesWidget() {
   ROOT_NOTE = new Note();
   ROOT_NOTE.LoadRootView(ARGS);
 
-  // Nav buttons, to cycle around the notes.  
+  // Nav buttons, to cycle around the notes.
   NOTE_PREV = $('<img>').appendTo('body')
     .css({
       'opacity': '0.5',
@@ -631,8 +631,8 @@ function InitNotesWidget() {
       'color': '#303030',
       'font-size': '14px'})
     .attr('id', 'NoteTree');
-  
-    
+
+
   // The next three elements are to handle the addition of comments.  Currently placeholders.
   // The top div wraps the text field and the submit button at the bottom of the widget.
   var commentTextFieldWrapper = $('<div>').appendTo(NOTE_WINDOW)
@@ -642,7 +642,7 @@ function InitNotesWidget() {
       'margin': '0 auto',
       'bottom': '15px'
     });
-  
+
   NOTE_TEXT_ENTRY = $('<textarea>').appendTo(commentTextFieldWrapper)
                                    .css({
                                       'position': 'relative',
@@ -653,16 +653,16 @@ function InitNotesWidget() {
                                       'height': '70px',
                                       'resize': 'none'
                                    });
-    
+
   var commentButtonWrapper = $('<div>').appendTo(commentTextFieldWrapper)
                                        .css({
                                           'float': 'right',
                                           'top': '7px',
                                           'bottom': '7px'
                                        });
-  
+
   EDIT_FLAG = ""; //Set this attribute to the stringified id of the comment you're editing
-  
+
   var commentSubmit = $('<button>').appendTo(commentButtonWrapper)
                                    .css({'float': 'right'})
                                    .text("Save")
@@ -677,10 +677,10 @@ function InitNotesWidget() {
   TOP_NOTE_WRAPPER_DIV.empty();
   ROOT_NOTE.DisplayGUI(TOP_NOTE_WRAPPER_DIV);
   NOTE_ITERATOR.GetNote().Select();
-  
+
   // Load the bookmarks, and encapsulate them into notes.
   $.get(window.location.href + '&bookmarks=1',
-        BookmarksCallback);    
+        BookmarksCallback);
 }
 
 
@@ -720,19 +720,19 @@ function AnimateNotesWindow() {
     }
   return;
   }
-  
+
   var k = timeStep / NOTES_ANIMATION_DURATION;
-    
+
   // update
   NOTES_ANIMATION_DURATION *= (1.0-k);
   NOTES_FRACTION += (NOTES_ANIMATION_TARGET-NOTES_FRACTION) * k;
-  
+
   handleResize();
   requestAnimFrame(AnimateNotesWindow);
 }
 
 
-  
+
 /*
   //Set the data attributes of commentSubmit.
   //The ajax request is simply for convenience of UI, so the commenter
@@ -749,13 +749,13 @@ function AnimateNotesWindow() {
       //var parent = REPLY_TO;
       //var author = "Random Person";
       //Add author here by changing this line to get the cookie.
-      
+
       // NOTE: We don't get the author with Javascript; the Python portion reads the session variable.
-      
+
       //Save the comment to the database.
       $.post("/webgl-viewer/savecomment",
         { "db": dbid, "commentid": commentid, "text": commenttext, "children": JSON.stringify(children), "parent": parent},
         SaveCommentCallback);
-    });    
+    });
 */
 

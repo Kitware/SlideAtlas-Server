@@ -9,8 +9,8 @@ function ConvertColorToHex(color) {
     for (var j = 0; j < 2; ++j) {
       tmp *= 16.0;
       var digit = Math.floor(tmp);
-      if (digit < 0) { digit = 0; } 
-      if (digit > 15){ digit = 15;} 
+      if (digit < 0) { digit = 0; }
+      if (digit > 15){ digit = 15;}
       tmp = tmp - digit;
       str += hexDigits.charAt(digit);
     }
@@ -97,8 +97,8 @@ function ConvertColor(color) {
     var floatColor = [];
     var idx = 1;
     for (var i = 0; i < 3; ++i) {
-	    var val = ((16.0 * HexDigitToInt(color[idx++])) + HexDigitToInt(color[idx++])) / 255.0; 
-	    floatColor.push(val);
+      var val = ((16.0 * HexDigitToInt(color[idx++])) + HexDigitToInt(color[idx++])) / 255.0;
+      floatColor.push(val);
     }
     return floatColor;
   }

@@ -1,4 +1,4 @@
-# Command line tool for dealing with file attachments 
+# Command line tool for dealing with file attachments
 import os
 #import sys
 #sys.path.append(os.path.abspath(".."))

@@ -150,7 +150,7 @@ EventManager.prototype.HandleMouseWheel = function(event) {
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
   if (this.CurrentViewer) {
-	  event.preventDefault();
+    event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
     this.CurrentViewer.HandleMouseWheel(this);
   }
@@ -176,7 +176,7 @@ EventManager.prototype.HandleKeyDown = function(event) {
     // Function in recordWidget.
     RedoState();
   }
-    
+
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.

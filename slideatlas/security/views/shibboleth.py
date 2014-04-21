@@ -9,7 +9,7 @@ from slideatlas import models
 from .common import LoginProvider
 
 ################################################################################
-__all__ = ('ShibbolethLogin',)
+__all__ = ()
 
 ################################################################################
 class ShibbolethLogin(LoginProvider):

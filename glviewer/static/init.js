@@ -32,14 +32,14 @@ var MOBILE_DEVICE = false;
 var I_PAD_FLAG = false;
 
 
-function detectMobile() { 
+function detectMobile() {
   MOBILE_DEVICE = false;
   if ( navigator.userAgent.match(/Android/i)) {
    MOBILE_DEVICE = "Andriod";
   }
   if ( navigator.userAgent.match(/webOS/i)) {
    MOBILE_DEVICE = "webOS";
-  } 
+  }
   if ( navigator.userAgent.match(/iPhone/i)) {
    MOBILE_DEVICE = "iPhone";
   }
@@ -79,7 +79,7 @@ function GetUser() {
   alert ("Could not find user");
   return "";
 }
-  
+
 
 function GetViewId () {
   if (typeof(VIEW_ID) != "undefined") {
@@ -136,7 +136,7 @@ function initGL() {
   //this.canvas.onselectstart = function() {return false;};
   //this.canvas.onmousedown = function() {return false;};
   GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
-  
+
   // Defined in HTML
   initShaderPrograms();
   initOutlineBuffers();
@@ -373,7 +373,7 @@ function initView(viewport) {
       'right' : '5px',
       'z-index': '2'
   }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomout2.png").click(function(){
-           VIEWER1.AnimateZoom(2.0);});                
+           VIEWER1.AnimateZoom(2.0);});
   return viewer;
 }
 
@@ -407,19 +407,19 @@ function GC_save() {
 function GC_restore() {
   var tmp = GC_STACK.pop();
   GCT = tmp;
-  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);  
+  GC.setTransform(tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
 }
 function GC_setTransform(m00,m10,m01,m11,m02,m12) {
   GCT = [m00,m10,m01,m11,m02,m12];
   GC.setTransform(m00,m10,m01,m11,m02,m12);
 }
 function GC_transform(m00,m10,m01,m11,m02,m12) {
-  var n00 = m00*GCT[0] + m10*GCT[2]; 
+  var n00 = m00*GCT[0] + m10*GCT[2];
   var n10 = m00*GCT[1] + m10*GCT[3];
-  var n01 = m01*GCT[0] + m11*GCT[2]; 
+  var n01 = m01*GCT[0] + m11*GCT[2];
   var n11 = m01*GCT[1] + m11*GCT[3];
-  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4]; 
-  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5]; 
+  var n02 = m02*GCT[0] + m12*GCT[2] + GCT[4];
+  var n12 = m02*GCT[1] + m12*GCT[3] + GCT[5];
 
   GCT = [n00,n10,n01,n11,n02,n12];
   GC.setTransform(n00,n10,n01,n11,n02,n12);
@@ -429,7 +429,7 @@ function GC_transform(m00,m10,m01,m11,m02,m12) {
 
 //----------------------------------------------------------
 // Log to trackdown iPad bug.  Console does not log until
-// debugger is running.  Bug does not occur when debugger 
+// debugger is running.  Bug does not occur when debugger
 // is running.
 
 LOGGING = false;
@@ -457,7 +457,7 @@ function FixJustification () {
            "db": cache.Image.database},
     success: function(data,status) {},
     error: function() { alert( "AJAX - error() : fixjustification" ); },
-    });  
+    });
 }
 
 

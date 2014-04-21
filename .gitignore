@@ -1,12 +1,17 @@
-.project
-.pydevproject
+# Build files
 *.pyc
-.*
 docs/build
 docs/docs
+slideatlas/site_slideatlas.py
+
+# Testing temporary files
 testing/*.png
 testing/*.log
 testing/Testing
 chromedriver.log
 env/
-slideatlas/site_slideatlas.py
+
+# Typical IDE metadata
+.idea
+.project
+.pydevproject

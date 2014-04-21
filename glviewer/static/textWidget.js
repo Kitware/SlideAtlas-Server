@@ -46,7 +46,7 @@ function TextWidget (viewer, string) {
   // I would like to setup the ancoh in the middle of the screen,
   // And have the Anchor in the middle of the text.
   this.Shape.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
-  
+
   // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
   this.AnchorShape = new Arrow();
   this.AnchorShape.Origin = this.Shape.Position; // note: both point to the same memory now.
@@ -80,8 +80,8 @@ TextWidget.prototype.RemoveFromViewer = function() {
     return;
   }
   var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) { 
-    this.Viewer.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.Viewer.WidgetList.splice(idx, 1);
   }
 }
 
@@ -115,7 +115,7 @@ TextWidget.prototype.Load = function(obj) {
   this.Shape.Size = parseFloat(obj.size);
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?
-    this.SetTextOffset(parseFloat(obj.offset[0]), 
+    this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
   }
   this.Shape.Position = [parseFloat(obj.position[0]),
@@ -124,7 +124,7 @@ TextWidget.prototype.Load = function(obj) {
   this.SetAnchorShapeVisibility(obj.anchorVisibility);
   this.AnchorShape.SetFillColor(rgb);
   this.AnchorShape.ChooseOutlineColor();
-  
+
   this.Shape.UpdateBuffers();
   this.UpdateAnchorShape();
 }
@@ -169,10 +169,10 @@ TextWidget.prototype.SetAnchorShapeVisibility = function(flag) {
 // Change orientation and length of arrow based on the anchor location.
 TextWidget.prototype.UpdateAnchorShape = function() {
   // Compute the middle of the text bounds.
-  var xMid = 0.5 * (this.Shape.PixelBounds[0] + this.Shape.PixelBounds[1]); 
-  var yMid = 0.5 * (this.Shape.PixelBounds[2] + this.Shape.PixelBounds[3]); 
-  var xRad = 0.5 * (this.Shape.PixelBounds[1] - this.Shape.PixelBounds[0]); 
-  var yRad = 0.5 * (this.Shape.PixelBounds[3] - this.Shape.PixelBounds[2]); 
+  var xMid = 0.5 * (this.Shape.PixelBounds[0] + this.Shape.PixelBounds[1]);
+  var yMid = 0.5 * (this.Shape.PixelBounds[2] + this.Shape.PixelBounds[3]);
+  var xRad = 0.5 * (this.Shape.PixelBounds[1] - this.Shape.PixelBounds[0]);
+  var yRad = 0.5 * (this.Shape.PixelBounds[3] - this.Shape.PixelBounds[2]);
 
   // Compute the angle of the arrow.
   var dx = this.Shape.Anchor[0]-xMid;
@@ -216,7 +216,7 @@ TextWidget.prototype.HandleMouseDown = function(event) {
 }
 
 // returns false when it is finished doing its work.
-TextWidget.prototype.HandleMouseUp = function(event) {    
+TextWidget.prototype.HandleMouseUp = function(event) {
   if (event.SystemEvent.which == 1) {
     if (this.State == TEXT_WIDGET_DRAG ||
         this.State == TEXT_WIDGET_DRAG_TEXT) {
@@ -224,12 +224,12 @@ TextWidget.prototype.HandleMouseUp = function(event) {
     }
     this.State = TEXT_WIDGET_ACTIVE;
   }
-  
+
   if (this.State == TEXT_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
     // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript). 
+    // Add a ShowProperties method to the widget. (With the magic of javascript).
     this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
     this.ShowPropertiesDialog();
     }
@@ -242,8 +242,8 @@ TextWidget.prototype.HandleMouseUp = function(event) {
 // Text coordinate system will match canvas text: origin upper left, Y point down.
 TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
   var textOriginScreenPixelPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Position[0],this.Shape.Position[1]);
-  x = (x - textOriginScreenPixelPosition[0]) + this.Shape.Anchor[0];  
-  y = (y - textOriginScreenPixelPosition[1]) + this.Shape.Anchor[1];  
+  x = (x - textOriginScreenPixelPosition[0]) + this.Shape.Anchor[0];
+  y = (y - textOriginScreenPixelPosition[1]) + this.Shape.Anchor[1];
 
   return [x,y];
 }
@@ -333,13 +333,13 @@ TextWidget.prototype.CheckActive = function(event) {
 
 TextWidget.prototype.GetActive = function() {
   if (this.State == TEXT_WIDGET_ACTIVE || this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-    return true;  
+    return true;
   }
   return false;
 }
 
 TextWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer(); 
+  this.Popup.StartHideTimer();
   this.State = TEXT_WIDGET_WAITING;
   this.Shape.Active = false;
   this.AnchorShape.Active = false;
@@ -353,13 +353,13 @@ TextWidget.prototype.SetActive = function(flag) {
   if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
     this.State == TEXT_WIDGET_ACTIVE;
   }
-  
+
   if (flag == this.GetActive()) {
     return;
   }
 
   if (flag) {
-    this.State = TEXT_WIDGET_ACTIVE;  
+    this.State = TEXT_WIDGET_ACTIVE;
     this.Shape.Active = true;
     if (this.ActiveReason == 1) {
       this.AnchorShape.Active = true;
@@ -396,13 +396,13 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   var tm = document.getElementById("TextMarker");
   tm.checked = this.AnchorShape.Visibility;
   $("#textwidgetcontent").keyup(function (e) { TextPropertyDialogApplyCheck();});
-  
+
   // hack to suppress viewer key events.
   DIALOG_OPEN = true;
   // Can we bind the dialog apply callback to an objects method?
   TEXT_WIDGET_DIALOG_SELF = this;
   $("#text-properties-dialog").dialog("open");
-}    
+}
 
 // Two returns in a row is the same as apply.
 function TextPropertyDialogApplyCheck() {
@@ -414,8 +414,8 @@ function TextPropertyDialogApplyCheck() {
 
 function TextPropertyDialogApply() {
   var widget = TEXT_WIDGET_DIALOG_SELF;
-  if ( ! widget) { 
-    return; 
+  if ( ! widget) {
+    return;
   }
   widget.SetActive(false);
 
@@ -436,11 +436,11 @@ function TextPropertyDialogApply() {
   widget.AnchorShape.SetFillColor(hexcolor);
   widget.AnchorShape.ChooseOutlineColor();
   widget.SetAnchorShapeVisibility(markerFlag);
-  
+
   RecordState();
-  
+
   eventuallyRender();
-  
+
   $("#text-properties-dialog").dialog("close");
 }
 

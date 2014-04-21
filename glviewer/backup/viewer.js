@@ -21,16 +21,16 @@ function Viewer (viewport, cache) {
   // Interaction state:
   // What to do for mouse move or mouse up.
   this.InteractionState = INTERACTION_NONE;
-  
+
   this.AnimateLast;
   this.AnimateDuration = 0.0;
   this.TranslateTarget = [0.0,0.0];
-  
+
   this.MainView = new View(viewport, cache);
   this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
-  var overViewport = [viewport[0] + viewport[2]*0.8, 
+  var overViewport = [viewport[0] + viewport[2]*0.8,
                       viewport[1] + viewport[3]*0.8,
                       viewport[2]*0.18, viewport[3]*0.18];
   this.OverView = new View(overViewport, cache);
@@ -46,21 +46,21 @@ function Viewer (viewport, cache) {
   this.WidgetList = [];
   this.ActiveWidget = null;
 
-  this.DoubleClickX = 0; 
+  this.DoubleClickX = 0;
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
 }
-  
-  
+
+
 
 Viewer.prototype.GetAnnotationVisibility = function() {
   return this.AnnotationVisibility;
 }
-  
+
 Viewer.prototype.SetAnnotationVisibility = function(vis) {
   this.AnnotationVisibility = vis;
-}  
+}
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
@@ -135,7 +135,7 @@ Viewer.prototype.SetViewport = function(viewport) {
     //} else {
     //  object.show();
     //}
-    
+
     if ('Bottom' in element) {
       var pos = element.Bottom.toString() + "px";
       object.css({
@@ -147,12 +147,12 @@ Viewer.prototype.SetViewport = function(viewport) {
     }
 
     if ('Left' in element) {
-      var pos = viewport[0] + element.Left; 
+      var pos = viewport[0] + element.Left;
       pos = pos.toString() + "px";
       object.css({
       'left' : pos});
     } else if ('Right' in element) {
-      var pos = viewport[0] + viewport[2] - element.Right; 
+      var pos = viewport[0] + viewport[2] - element.Right;
       pos = pos.toString() + "px";
       object.css({
       'left' : pos});
@@ -160,7 +160,7 @@ Viewer.prototype.SetViewport = function(viewport) {
   }
 
   this.MainView.SetViewport(viewport);
-  var overViewport = [viewport[0] + viewport[2]*0.8, 
+  var overViewport = [viewport[0] + viewport[2]*0.8,
                       viewport[1] + viewport[3]*0.8,
                       viewport[2]*0.18, viewport[3]*0.18];
   this.OverView.SetViewport(overViewport);
@@ -176,7 +176,7 @@ Viewer.prototype.GetViewport = function() {
 Viewer.prototype.SetDimensions = function(dims) {
     this.OverView.Camera.FocalPoint[0] = dims[0] / 2;
     this.OverView.Camera.FocalPoint[1] = dims[1] / 2;
-    
+
     var height = dims[1];
     // See if the view is constrained by the width.
     var height2 = dims[0] * this.OverView.Viewport[3] / this.OverView.Viewport[2];
@@ -206,7 +206,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
   this.ZoomTarget = height;
   // Compute traslate target to keep position in the same place.
   this.TranslateTarget[0] = center[0];
-  this.TranslateTarget[1] = center[1];  
+  this.TranslateTarget[1] = center[1];
   this.RollTarget = rotation;
 
   this.AnimateLast = new Date().getTime();
@@ -214,18 +214,18 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
   eventuallyRender();
 }
 
-// This is used to set the default camera so the complexities 
+// This is used to set the default camera so the complexities
 // of the target and overview are hidden.
 Viewer.prototype.SetCamera = function(center, rotation, height) {
     this.MainView.Camera.Height = height;
-    this.ZoomTarget = height;    
+    this.ZoomTarget = height;
 
     this.MainView.Camera.FocalPoint[0] = center[0];
     this.MainView.Camera.FocalPoint[1] = center[1];
     //this.MainView.Camera.FocalPoint[2] = center[2];
     this.TranslateTarget[0] = center[0];
     this.TranslateTarget[1] = center[1];
-    
+
     rotation = rotation * 3.14159265359 / 180.0;
     this.MainView.Camera.Roll = rotation;
     this.OverView.Camera.Roll = rotation;
@@ -253,11 +253,11 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
   factor = this.ZoomTarget / this.MainView.Camera.Height; // Actual factor after limit.
-  
+
   // Compute traslate target to keep position in the same place.
   this.TranslateTarget[0] = position[0] - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
   this.TranslateTarget[1] = position[1] - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-  
+
   this.RollTarget = this.MainView.Camera.Roll;
 
   this.AnimateLast = new Date().getTime();
@@ -286,7 +286,7 @@ Viewer.prototype.AnimateTranslate = function(dx, dy) {
 
   this.ZoomTarget = this.MainView.Camera.Height;
   this.RollTarget = this.MainView.Camera.Roll;
-  
+
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
   eventuallyRender();
@@ -295,7 +295,7 @@ Viewer.prototype.AnimateTranslate = function(dx, dy) {
 Viewer.prototype.AnimateRoll = function(dRoll) {
   dRoll *= Math.PI / 180.0;
   this.RollTarget = this.MainView.Camera.Roll + dRoll;
- 
+
   this.ZoomTarget = this.MainView.Camera.Height;
   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
@@ -313,8 +313,8 @@ Viewer.prototype.RemoveWidget = function(widget) {
   }
   widget.Viewer = null;
   var idx = this.WidgetList.indexOf(widget);
-  if(idx!=-1) { 
-    this.WidgetList.splice(idx, 1); 
+  if(idx!=-1) {
+    this.WidgetList.splice(idx, 1);
   }
 }
 
@@ -325,11 +325,11 @@ Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
     case "pencil":
       var pencil = new PencilWidget(this, false);
-      pencil.Load(obj);  
+      pencil.Load(obj);
       break;
     case "arrow":
       var arrow = new ArrowWidget(this, false);
-      arrow.Load(obj);  
+      arrow.Load(obj);
       break;
     case "text":
       var text = new TextWidget(this, "");
@@ -348,7 +348,7 @@ Viewer.prototype.LoadWidget = function(obj) {
 
 // I am doing a dance because I expect widget SetActive to call this,
 // but this calls widget SetActive.
-// The widget is the only object to call these methods.  
+// The widget is the only object to call these methods.
 // A widget cannot call this if another widget is active.
 // The widget deals with its own activation and deactivation.
 Viewer.prototype.ActivateWidget = function(widget) {
@@ -453,7 +453,7 @@ Viewer.prototype.Animate = function() {
   this.OverView.Camera.ComputeMatrix();
   this.AnimateDuration -= (timeNow-this.AnimateLast);
   this.AnimateLast = timeNow;
-}    
+}
 
 Viewer.prototype.OverViewPlaceCamera = function(x, y) {
     // Compute focal point from inverse overview camera.
@@ -480,7 +480,7 @@ Viewer.prototype.HandleMouseDown = function(event) {
     this.ActiveWidget.HandleMouseDown(event);
     return;
   }
-   
+
   // Are we in the overview or the main view?
   var x = event.MouseX;
   var y = event.MouseY;
@@ -500,7 +500,7 @@ Viewer.prototype.HandleMouseDown = function(event) {
   if (event.SystemEvent.which == 1 ) {
     if (event.SystemEvent.ctrlKey) {
       this.InteractionState = INTERACTION_ROTATE;
-    } else if (event.SystemEvent.altKey) {    
+    } else if (event.SystemEvent.altKey) {
       this.InteractionState = INTERACTION_ZOOM;
     } else {
       this.InteractionState = INTERACTION_DRAG;
@@ -516,7 +516,7 @@ Viewer.prototype.HandleDoubleClick = function(event) {
     this.ActiveWidget.HandleDoubleClick(event);
     return;
   }
-  
+
   // Detect double click.
   mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
   if (event.SystemEvent.which == 1) {
@@ -539,7 +539,7 @@ Viewer.prototype.HandleMouseUp = function(event) {
     this.InteractionState = INTERACTION_NONE;
     RecordState();
   }
-  
+
   return;
 }
 
@@ -549,7 +549,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
   // Many shapes, widgets and interactors will need the mouse in world coodinates.
   var x = event.MouseX;
   var y = event.MouseY;
-    
+
   var viewport = this.GetViewport();
   // Convert mouse to viewer coordinate system.
   // It would be nice to have this before this method.
@@ -567,13 +567,13 @@ Viewer.prototype.HandleMouseMove = function(event) {
   var det = m[0]*m[5] - m[1]*m[4];
   event.MouseWorldX = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
   event.MouseWorldY = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-    
+
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
     this.ActiveWidget.HandleMouseMove(event);
     return;
   }
-  
+
   // See if any widget became active.
   if (event.SystemEvent.which == 0 && this.AnnotationVisibility) {
     for (var i = 0; i < this.WidgetList.length; ++i) {
@@ -583,11 +583,11 @@ Viewer.prototype.HandleMouseMove = function(event) {
       }
     }
   }
-    
+
   if (event.MouseDown == false) {
     return;
   }
-  
+
   var x = event.MouseX;
   var y = event.MouseY;
 
@@ -598,7 +598,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // Animation handles the render.
     return;
   }
-    
+
   // Drag camera in main view.
   x = x - this.MainView.Viewport[0];
   y = y - this.MainView.Viewport[1];
@@ -622,7 +622,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // Convert to view [-0.5,0.5] coordinate system.
     // Note: the origin gets subtracted out in delta above.
     var dx = -event.MouseDeltaX / this.MainView.Viewport[2];
-    var dy = -event.MouseDeltaY / this.MainView.Viewport[2];    
+    var dy = -event.MouseDeltaY / this.MainView.Viewport[2];
     this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
   }
     eventuallyRender();
@@ -657,7 +657,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
 
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-  eventuallyRender();    
+  eventuallyRender();
 }
 
 Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
@@ -719,9 +719,9 @@ Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
   // Convert from view to screen pixel coordinates.
   xNew = (xNew + 1.0)*0.5*viewport[2] + viewport[0];
   yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
-    
+
   return [xNew, yNew];
-}   
+}
 
 
 Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
@@ -733,7 +733,7 @@ Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
   x = x - viewport[0];
   y = y - viewport[1];
   // Now we need to convert to world coordinate system
-  
+
   // Compute focal point from inverse overview camera.
   x = x/viewport[2];
   y = y/viewport[3];
@@ -743,7 +743,7 @@ Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
   var det = m[0]*m[5] - m[1]*m[4];
   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
   var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-  
+
   return [xNew, yNew];
 }
 

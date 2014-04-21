@@ -149,20 +149,20 @@ shape has visibility and
   var TEMPLATE = "connectome.html";
   var DATABASE_NAME = "{{db}}";
   var COLLECTION_NAME = "{{col}}";
-  
+
   var CANVAS;
   var EVENT_MANAGER;
   var VIEWER1;
   var VIEWER2;
   var DUAL_VIEW = false;
-    
+
   function RecordState () {
   }
-  
+
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   // Might consider interactive resize feature too.
   function handleResize() {
     if (GL) {
@@ -191,7 +191,7 @@ shape has visibility and
     var halfWidth = CANVAS.clientWidth/2;
     VIEWER1 = new Viewer([0,0, halfWidth,CANVAS.clientHeight], null);
     EVENT_MANAGER.AddViewer(VIEWER1);
-                  
+
     VIEWER2 = new Viewer([halfWidth,0, halfWidth,CANVAS.clientHeight], null);
     EVENT_MANAGER.AddViewer(VIEWER2);
 
@@ -206,7 +206,7 @@ shape has visibility and
     VIEWER1.Draw();
     VIEWER2.Draw();
   }
-  
+
   // The event manager detects single right click and double right click.
   // This gets galled on the single.
   function ShowPropertiesMenu(x, y) { ShowViewEditMenu(x, y);}
@@ -234,7 +234,7 @@ shape has visibility and
     if ( ! doesBrowserSupportWebGL(testCanvas)) {
         return; // WHat to do?  Function provides the alert.
     }
-    
+
     initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
     initShaderPrograms();
@@ -251,21 +251,21 @@ shape has visibility and
     document.onmousemove = handleMouseMove;
     document.onkeydown =   handleKeyDown;
     document.onkeyup =     handleKeyUp;
-    document.oncontextmenu = cancelContextMenu;         
+    document.oncontextmenu = cancelContextMenu;
 
-    // Create the annotations for viewer1 
+    // Create the annotations for viewer1
     //InitAnnotations(VIEWER1, ARGS.Viewer1.annotations);
-    
+
     InitConnectome();
     InitViews();
     InitDualViewWidget();
-    
-    
+
+
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
     var annotationWidget2 = new AnnotationWidget(VIEWER2);
     handleResize();
     DualViewUpdateGui();
-    
+
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
     // Associate with viewer (How???).
@@ -301,8 +301,8 @@ shape has visibility and
     // Register these buttons with the viewer.
     VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
     VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
-     
-     
+
+
     // Place the zoom in / out buttons. For the second viewer
     $('<img>').appendTo('body').css({
         'opacity': '0.4',
