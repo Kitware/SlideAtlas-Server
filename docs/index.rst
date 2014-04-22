@@ -23,6 +23,7 @@ Welcome to SlideAtlas's documentation!
     ui-design
     testing
     tasks
+    user-guide
 
 
 Indices and tables

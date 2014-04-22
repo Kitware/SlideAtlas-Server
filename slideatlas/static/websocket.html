@@ -2,10 +2,13 @@
 <html>
     <head>
         <script src="/static/js/jquery-1.9.1.min.js"> </script>
+        <script src="/static/js/bson.js"> </script>
 
         <script type="text/javascript">
             var sock = null;
             var ellog = null;
+            var BSON = bson().BSON;
+
 
             window.onload = function() {
 
@@ -28,46 +31,53 @@
                 }
 
                 if (sock) {
+
+                    sock.binaryType = "arraybuffer";
+
                     sock.onopen = function() {
-                    log("Connected to " + wsuri);
+                        log("Connected to " + wsuri);
+                    
+                    }
+
+                    sock.onclose = function(e) {
+                        log("Connection closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
+                        sock = null;
+                    }
+
+                    sock.onmessage = function(e) {
+                        // if response is image
+                        // Create an image tag
+                        var resp = BSON.deserialize(new Uint8Array(e.data));
+
+                        $("#img").empty();
+                        var img = new Image();
+                        var imgdata = resp.image.buffer;
+                        //var x = new Uint8Array(data, 0);
+                        //str = data.rQshiftBytes();
+                        img.src = "data:image/jpg;base64," + btoa(String.fromCharCode.apply(null, imgdata))
+                        $("#img").append(img);
+                        //$("#img").appendChild(img);
+                        log("Got echo: " + e.data);
+                    }
                 }
+            };
 
-                sock.onclose = function(e) {
-                    log("Connection closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
-                    sock = null;
+            function send() {
+                var msgstr = document.getElementById('message').value;
+                var msg = BSON.serialize({name:msgstr}); 
+                if (sock) {
+                    sock.send(msg);
+                    log("Sent: " + msg);
+                } else {
+                    log("Not connected.");
                 }
+            };
 
-                sock.onmessage = function(e) {
-                    // if response is image
-                    // Create an image tag
-                    $("#img").empty();
-                    var img = new Image();
-                    var data = e.data;
-                    //var x = new Uint8Array(data, 0);
-                    //str = data.rQshiftBytes();
-                    img.src = URL.createObjectURL(e.data.slice(0,e.data.size, "image/jpg"))
-                    $("#img").append(img);
-                    //$("#img").appendChild(img);
-                    log("Got echo: " + e.data);
-                }
-            }
-        };
-
-        function send() {
-            var msg = document.getElementById('message').value;
-            if (sock) {
-                sock.send(msg);
-                log("Sent: " + msg);
-            } else {
-                log("Not connected.");
-            }
-        };
-
-        function log(m) {
-            ellog.innerHTML += m + '\n';
-            ellog.scrollTop = ellog.scrollHeight;
-        };
-    </script>
+            function log(m) {
+                ellog.innerHTML += m + '\n';
+                ellog.scrollTop = ellog.scrollHeight;
+            };
+        </script>
     </head>
     <body>
         <h1>Autobahn WebSocket Echo Test</h1>
