@@ -9,9 +9,9 @@ function LoadTileCallback(tile,cache) {
 
 // Cache is now saved in tile ivar.
 LoadTileCallback.prototype.HandleLoadedImage = function () {
-  LoadQueueLoaded(this.Tile);
   var curtime = new Date().getTime();
-  TILESTATS.add({"name" : this.Tile.name, "loadtime" : curtime - this.starttime });
+  TILESTATS.add({"name" : this.Tile.name, "loadtime" : curtime - this.Tile.starttime });
+  LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
@@ -24,15 +24,14 @@ function TileStats() {
   this.tiles = [];
 }
 
-
-TileStats.prototype.add(atile) {
+TileStats.prototype.add = function(atile) {
   this.tiles.push(atile)
 }
 
-TileStats.prototype.report() {
+TileStats.prototype.report = function() {
   var total = 0;
   
-  for(var i = 0; i < this.tile.length; i ++) {
+  for(var i = 0; i < this.tiles.length; i ++) {
     total = total + this.tiles[i].loadtime;
   }
 
@@ -192,6 +191,13 @@ Tile.prototype.StartLoad = function (cache) {
 
 Tile.prototype.LoadHttp = function (cache) {
   // For http simply set the data url and wait 
+  var imageSrc;
+  if (cache.Image.type && cache.Image.type == "stack") {
+    imageSrc = cache.GetSource() + this.Name + ".png";
+  } else {
+    imageSrc = cache.GetSource() + this.Name + ".jpg";
+  }
+
   this.Image.src = imageSrc;
 };
 
