@@ -38,7 +38,7 @@ To run
 
 .. code-block:: shell-session
 
-  $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  gunicorn -k flask_sockets.worker run_gevent:app -b localhost:8080 --log-level=debug)
+  $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  gunicorn -k flask_sockets.worker run_websockets:app -b localhost:8080 --log-level=debug)
 
 
 
