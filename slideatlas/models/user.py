@@ -4,9 +4,10 @@ import datetime
 
 from mongoengine import BooleanField,DateTimeField, EmailField, IntField, ListField, ReferenceField, StringField
 from flask.ext.security import UserMixin
+from werkzeug.datastructures import ImmutableList
 
 from .common import ModelDocument
-from .role import Role
+from .role import Role, GroupRole, UserRole
 
 ################################################################################
 __all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
@@ -57,8 +58,22 @@ class User(ModelDocument, UserMixin):
     login_count = IntField(required=True, default=0,
         verbose_name='Login Count', help_text='The total number of logins by the user.')
 
-    roles = ListField(ReferenceField(Role, dbref=False), required=False, db_field='rules',
-        verbose_name='Roles', help_text='A list of access roles for the user.')
+    roles = ListField(ReferenceField(Role), required=False, db_field='rules',
+        verbose_name='Roles', help_text='The list of all access roles for the user.')
+
+    @property
+    def group_roles(self):
+        return ImmutableList(role for role in self.roles if isinstance(role, GroupRole))
+
+    @property
+    def user_role(self):
+        for role in self.roles:
+            if isinstance(role, UserRole):
+                return role
+        else:
+            role = UserRole(name=self.full_name)
+            self.roles = self.roles.insert(0, role)
+            return role
 
     @property
     def password(self):
