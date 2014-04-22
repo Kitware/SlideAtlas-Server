@@ -16,6 +16,15 @@ gevent.monkey.patch_all()
 import werkzeug.serving
 from app import app
 
+sockets = Sockets(app)
+
+@sockets.route('/ws') 
+def echo_socket(ws): 
+    while True: 
+        message = ws.receive() 
+        ws.send(message)
+
+
 def run_server():
     ws = gevent.wsgi.WSGIServer(listener=('0.0.0.0', 5003),
                                 application=app)
