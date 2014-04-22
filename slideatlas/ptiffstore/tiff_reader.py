@@ -71,18 +71,19 @@ class TileReader():
         self.jpegtables = None
         self.dir = 0
         self.levels = {}
+        self.isBigTIFF = False
 
     def select_dir(self, dir):
         """
         :param dir: Number of Directory to select
         """
-        if not (len(self.levels.keys()) > dir):
-            raise Exception("Level not stored in file")
-        else:
-            pass
-            #print "Len: ", len(self.levels), dir
         libtiff.TIFFSetDirectory(self.tif, dir)
         self.dir = libtiff.TIFFCurrentDirectory(self.tif).value
+
+        # Check if the operation was successful
+        if self.dir != dir:
+            raise Exception("Level not stored in file")
+
         self.update_dir_info()
 
     def _read_JPEG_tables(self):
@@ -95,7 +96,7 @@ class TileReader():
         #logging.log(logging.ERROR, "Size of jpegtables: %d"%(self.jpegtable_size.value))
         libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
-    def _parse_image_description(self):
+    def parse_image_description(self):
 
         self.meta = self.tif.GetField("ImageDescription")
 
@@ -172,13 +173,17 @@ class TileReader():
 
         self.tif = TIFF.open(params["fname"], "r")
         self.params = params
+
+        self.tile_width = self.tif.GetField("TileWidth")
+        self.tile_height = self.tif.GetField("TileLength")
+
         self._read_JPEG_tables()
-        self._parse_image_description()
+
         # Get started with first image in the dir
         if "dir" in params:
             self.select_dir(params["dir"])
         else:
-            self.select_dir(0)
+            self.select_dir(self.dir)  # By default zero
 
     def get_tile_from_number(self, tileno, fp):
         """
@@ -197,8 +202,6 @@ class TileReader():
             tile_size = tile_size.value
 
         tmp_tile = create_string_buffer(tile_size)
-
-
 
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
         #print "Valid size in tile: ", r2.value
@@ -254,21 +257,14 @@ class TileReader():
         Reads width / height etc
         Must be called after the set_input_params is called
         """
-        self.tile_width = self.tif.GetField("TileWidth")
-        self.tile_height = self.tif.GetField("TileLength")
         self.width = self.tif.GetField("ImageWidth")
         self.height = self.tif.GetField("ImageLength")
 
-        self.isBigTIFF = False
-
-        self._read_JPEG_tables()
-        self._parse_image_description()
         # Grab the image dimensions through the metadata
 
         self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif)
         if not isinstance(self.num_tiles, (int, long)):
             self.num_tiles = self.num_tiles.value
-
 
         #xml = ET.fromstring(tif.GetField("ImageDescription"))
         #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
