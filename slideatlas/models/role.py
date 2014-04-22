@@ -1,6 +1,7 @@
 # coding=utf-8
 
-from mongoengine import BooleanField, ListField, ObjectIdField, ReferenceField, StringField
+from mongoengine import BooleanField, ListField, ObjectIdField,ReferenceField,\
+    StringField
 from flask.ext.security import RoleMixin
 
 from .common import ModelDocument

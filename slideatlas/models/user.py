@@ -2,7 +2,8 @@
 
 import datetime
 
-from mongoengine import BooleanField,DateTimeField, EmailField, IntField, ListField, ReferenceField, StringField
+from mongoengine import BooleanField,DateTimeField, EmailField, IntField,\
+    ListField, ReferenceField, StringField
 from flask.ext.security import UserMixin
 from werkzeug.datastructures import ImmutableList
 

@@ -1,6 +1,7 @@
 # coding=utf-8
 
-from mongoengine import register_connection, BooleanField, EmbeddedDocument, EmbeddedDocumentField, ListField, ObjectIdField, StringField
+from mongoengine import register_connection, BooleanField, EmbeddedDocument,\
+    EmbeddedDocumentField, ListField, ObjectIdField, StringField
 from mongoengine.connection import get_db
 from flask.ext.mongoengine import Document, BaseQuerySet
 
