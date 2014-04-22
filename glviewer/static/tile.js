@@ -10,6 +10,8 @@ function LoadTileCallback(tile,cache) {
 // Cache is now saved in tile ivar.
 LoadTileCallback.prototype.HandleLoadedImage = function () {
   LoadQueueLoaded(this.Tile);
+  var curtime = new Date().getTime();
+  TILESTATS.add({"name" : this.Tile.name, "loadtime" : curtime - this.starttime });
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
@@ -18,6 +20,28 @@ LoadTileCallback.prototype.HandleErrorImage = function () {
     LoadQueueError(this.Tile);
 }
 
+function TileStats() {
+  this.tiles = [];
+}
+
+
+TileStats.prototype.add(atile) {
+  this.tiles.push(atile)
+}
+
+TileStats.prototype.report() {
+  var total = 0;
+  
+  for(var i = 0; i < this.tile.length; i ++) {
+    total = total + this.tiles[i].loadtime;
+  }
+
+  var report = {};
+  report.count = this.tiles.length;
+  report.average = total / this.tiles.length; 
+  report.total = total; 
+  console.log(report);
+}
 
 function GetLoadImageFunction (callback) {
     return function () {callback.HandleLoadedImage();}
@@ -25,6 +49,8 @@ function GetLoadImageFunction (callback) {
 function GetErrorImageFunction (callback) {
     return function () {callback.HandleErrorImage();}
 }
+
+TILESTATS = new TileStats();
 
 // Three stages to loading a tile: (texture map is created when the tile is rendered.
 // 1: Create a tile object.
@@ -35,6 +61,8 @@ function Tile(x, y, z, level, name, cache) {
   //this is just for debugging
   //this.Id = x + (y<<level)
   //
+  this.loader = "http";
+
   this.Cache = cache;
   this.X = x;
   this.Y = y;
@@ -143,24 +171,36 @@ Tile.prototype.StartLoad = function (cache) {
     return;
   }
 
-  var imageSrc;
-  if (cache.Image.type && cache.Image.type == "stack") {
-    imageSrc = cache.GetSource() + this.Name + ".png";
-  } else {
-    imageSrc = cache.GetSource() + this.Name + ".jpg";
-  }
-
   // Reusing the image caused problems.
   //if (this.Image == null) {
-    this.Image = new Image();
-    var callback = new LoadTileCallback(this, cache);
-    this.Image.onload = GetLoadImageFunction(callback);
-    this.Image.onerror = GetErrorImageFunction(callback);
+  this.Image = new Image();
+
+  this.starttime = new Date().getTime();
+  // Setup callbacks
+  var callback = new LoadTileCallback(this, cache);
+  this.Image.onload = GetLoadImageFunction(callback);
+  this.Image.onerror = GetErrorImageFunction(callback);
   //}
   // This starts the loading.
-  // DJ this will be achieved after the websocket has returned the image data
+
+  if(this.loader === "http") {
+    this.LoadHttp(cache);
+  } else if(this.loader === "websocket") {
+    this.LoadWebSocket(cache);
+  }
+};
+
+Tile.prototype.LoadHttp = function (cache) {
+  // For http simply set the data url and wait 
   this.Image.src = imageSrc;
 };
+
+Tile.prototype.LoadWebSocket = function (cache) {
+  // Right now doing exact same thing
+  this.Image.src = imageSrc;
+};
+
+
 
 
 Tile.prototype.Draw = function (program, context) {
