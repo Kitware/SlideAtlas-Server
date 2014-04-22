@@ -3,6 +3,9 @@ __author__ = 'dhan'
 from tiff_reader import TileReader
 import logging
 
+# create logger
+logger = logging.getLogger('slideatlas.ptiffstore.reader_cache')
+
 def make_reader(params):
     reader = TileReader()
     reader.set_input_params(params)
@@ -16,16 +19,16 @@ class MemoizeMutable:
         import cPickle
         str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
         if not self.memo.has_key(str):
-            logging.log(logging.DEBUG,"miss")  # DEBUG INFO
+            logger.debug("miss")  # DEBUG INFO
             self.memo[str] = self.fn(*args, **kwds)
-            logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
         else:
-            logging.log(logging.DEBUG,"hit")  # DEBUG INFO
-            logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logger.debug("hit")  # DEBUG INFO
+            logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
         return self.memo[str]
 
     def status(self):
-        logging.log(logging.DEBUG,"Length: %d"%(len(self.memo)))  # DEBUG INFO
+        logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
 
 make_reader = MemoizeMutable(make_reader)
 #
