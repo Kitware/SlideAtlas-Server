@@ -71,6 +71,7 @@ class PTiffStoreMixin(object):
                 fname = os.path.split(aslide)[1]
                 reader = make_reader({"fname" : aslide, "dir" : 0})
                 reader.set_input_params({ "fname" : aslide })
+                reader.parse_image_description()
                 logging.info(reader.barcode)
                 newimage = False
                 with self:

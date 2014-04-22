@@ -33,8 +33,17 @@ CMake is required for testing.
    $ ctest -S ctest_driver.cmake
 
 
-To run
+To run 
 ------
+
+.. code-block:: shell-session
+
+  $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  gunicorn -k flask_sockets.worker run_websockets:app -b localhost:8080 --log-level=debug)
+
+
+
+To run without websockets support
+---------------------------------
 
 .. code-block:: none
 
@@ -45,8 +54,10 @@ To run
 
   $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  python run.py)
 
-"/path/to/site_config" should be the absolute path to a configuration file with any locally-specific configuration changes.
+"/path/to/site_config" should be the absolute path to a configuration file with any locally-specific configuration changes. 
+
 If such a configuration file is not provided, SlideAtlas will use sensible defaults (e.g. connecting to a MongoDB at 'localhost:8080').
+
 
 Sample Apache configuration
 ---------------------------

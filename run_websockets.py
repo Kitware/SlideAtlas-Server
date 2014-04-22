@@ -1,50 +1,41 @@
-from slideatlas import app
-import sys
+#!/usr/bin/env python
+
+from flask import Flask
+from flask_sockets import Sockets
 import os
+import msgpack
+from gevent import monkey, wsgi
+monkey.patch_all()
+from bson import BSON
+from bson.binary import Binary
 
-# run in under twisted through wsgi
-from twisted.web.wsgi import WSGIResource
-from twisted.web.server import Site
-from twisted.python import log
-from twisted.internet import reactor
+import werkzeug.serving
+from slideatlas import app
 
-from autobahn.websocket import WebSocketServerFactory, \
-                               WebSocketServerProtocol
+sockets = Sockets(app)
 
-from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware, WSGIRootResource
-
-
-class EchoServerProtocol(WebSocketServerProtocol):
-
-    def onMessage(self, msg, binary):
+@sockets.route('/ws') 
+def echo_socket(ws): 
+    while True: 
+        message = ws.receive()
+        req = BSON(message).decode()
+        print req 
         fin = open(os.path.dirname(os.path.abspath(__file__)) + "/data/tiger.jpg")
-        #fin = open("/home/dhan/projects/flask-slideatlas/data/tiger.jpg")
-        self.sendMessage(fin.read(), True)
+        # resp = msgpack.packb({"image" : fin.read()}, use_bin_type=1, encoding="raw")
+         
+        resp = BSON.encode({"request" : req, "image" : Binary(fin.read())})
 
-if __name__ == '__main__':
+        # print len(resp)
+        # print BSON.decode(resp)
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'debug':
-       log.startLogging(sys.stdout)
-       debug = True
-    else:
-       debug = False
+        # print resp
+        ws.send(resp, True)
 
-    factory = WebSocketServerFactory("ws://localhost:8000",
-                                     debug = debug,
-                                     debugCodePaths = debug)
 
-    factory.protocol = EchoServerProtocol
-    factory.setProtocolOptions(allowHixie76 = True) # needed if Hixie76 is to be supported
+def run_server():
+    ws = gevent.wsgi.WSGIServer(listener=('0.0.0.0', 8080),
+                                application=app)
+    ws.serve_forever()
 
-    # Mount different resources
-
-    wsRes = WebSocketResource(factory)
-
-    wsgiRes = WSGIResource(reactor, reactor.getThreadPool(), app)
-
-    rootRes = WSGIRootResource(wsgiRes, {'ws' : wsRes})
-
-    site = Site(rootRes)
-
-    reactor.listenTCP(8000, site )
-    reactor.run()
+if __name__ == "__main__":
+    run_server()
