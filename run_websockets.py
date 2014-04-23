@@ -6,31 +6,49 @@ import os
 import msgpack
 from gevent import monkey, wsgi
 monkey.patch_all()
+
 from bson import BSON
 from bson.binary import Binary
-
+import pymongo
 import werkzeug.serving
 from slideatlas import app
-
+from slideatlas import models
 sockets = Sockets(app)
 
 @sockets.route('/ws') 
-def echo_socket(ws): 
+def tile_socket(ws): 
+    tilestore = None
     while True: 
         message = ws.receive()
-        req = BSON(message).decode()
-        print req 
-        fin = open(os.path.dirname(os.path.abspath(__file__)) + "/data/tiger.jpg")
-        # resp = msgpack.packb({"image" : fin.read()}, use_bin_type=1, encoding="raw")
-         
-        resp = BSON.encode({"request" : req, "image" : Binary(fin.read())})
+        # Wraps entire websocket response, any errors will be reported back
+        try:
+            req = BSON(message).decode()
+            if "init" in req:
+                """
+                Initialization request
+                """
+                tilestore = models.Database.objects.get(id=req["init"]["db"])
+                if tilestore == None:
+                    raise Exception("Tile Store %s not found"%(req["init"]["db"]))
+                resp = BSON.encode({"request" : req, "success" : True})
 
-        # print len(resp)
-        # print BSON.decode(resp)
+            elif "tile" in req:
+                """
+                Regular request
+                """
+                if tilestore == None:
+                    raise Exception("Tile Store not initialized")
 
-        # print resp
+                imgdata = tilestore.get_tile(req["tile"]["image"], req["tile"]["name"])
+                resp = BSON.encode({"request" : req, "image" : Binary(imgdata), "success" : True})
+            else:
+                raise Exception("Unknown request")
+
+        except Exception as e:
+            resp = BSON.encode({"request" : req, "error" : e.message})
+            ws.send(resp, True)
+
         ws.send(resp, True)
-
 
 def run_server():
     ws = gevent.wsgi.WSGIServer(listener=('0.0.0.0', 8080),

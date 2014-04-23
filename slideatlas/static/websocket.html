@@ -48,29 +48,41 @@
                         // if response is image
                         // Create an image tag
                         var resp = BSON.deserialize(new Uint8Array(e.data));
-
-                        $("#img").empty();
-                        var img = new Image();
-                        var imgdata = resp.image.buffer;
-                        //var x = new Uint8Array(data, 0);
-                        //str = data.rQshiftBytes();
-                        img.src = "data:image/jpg;base64," + btoa(String.fromCharCode.apply(null, imgdata))
-                        $("#img").append(img);
+                        if(resp.hasOwnProperty("success")) {
+                            console.log("Successful request" + resp);
+                            if(resp.hasOwnProperty("image")){
+                                $("#img").empty();
+                                var img = new Image();
+                                var imgdata = resp.image.buffer;
+                                img.src = "data:image/jpg;base64," + btoa(String.fromCharCode.apply(null, imgdata))
+                                $("#img").append(img);
+                            }
+                        } else {
+                            console.log("Error in request" + resp);
+                        }
                         //$("#img").appendChild(img);
-                        log("Got echo: " + e.data);
+                        log("Got: " + JSON.stringify(resp));
                     }
                 }
             };
 
-            function send() {
-                var msgstr = document.getElementById('message').value;
-                var msg = BSON.serialize({name:msgstr}); 
+
+            function send(msg) {
                 if (sock) {
                     sock.send(msg);
-                    log("Sent: " + msg);
+                    log("Sent: " + JSON.stringify(BSON.deserialize(msg)));
                 } else {
-                    log("Not connected.");
+                    log("You must be connected to send request over websocket.");
                 }
+            };
+
+            function init() {
+                send(BSON.serialize({init : { db : "5074589302e31023d4292d91" }})); 
+            };
+
+            function get_tile() {
+                var msgstr = document.getElementById('message').value;
+                send(msg = BSON.serialize({tile: { image: "501c98104834a31238000000", name:msgstr}})); 
             };
 
             function log(m) {
@@ -80,12 +92,13 @@
         </script>
     </head>
     <body>
-        <h1>Autobahn WebSocket Echo Test</h1>
+        <h1>WebSocket Echo Test</h1>
         <noscript>You must enable JavaScript</noscript>
-        <form>
-            <p>Message: <input id="message" type="text" size="50" maxlength="50" value="Hello, world!"></p>
-        </form>
-        <button onclick='send();'>Send Message</button>
+        <p>Message: <input id="message" type="text" size="50" maxlength="50" value="t.jpg" 
+                onkeydown="if (event.keyCode == 13) $('#get_tile').click()"></p>
+        
+        <button id="get_tile" onclick='get_tile();'>Request Tile</button>
+        <button id="init" onclick='init();'>Init </button>
         <div id="img"> </div>
         <pre id="log" style="height: 20em; overflow-y: scroll; background-color: #faa;"></pre>
     </body>
