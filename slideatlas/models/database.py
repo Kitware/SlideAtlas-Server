@@ -109,3 +109,17 @@ class Database(TileStore):
     auth_db = StringField(required=False,
         verbose_name='Authentication Database', help_text='The database to authenticate against.')
 
+    def get_tile(self, img, name):
+        """
+        Databases implementation of fetching tile
+        """
+        imgdb = self.to_pymongo()
+        colImage = imgdb[img]
+        docImage = colImage.find_one({'name':name})
+
+        if docImage == None:
+            raise Exception("Tile %s not found in %s"%(name,img))
+
+        return str(docImage['file'])
+
+
