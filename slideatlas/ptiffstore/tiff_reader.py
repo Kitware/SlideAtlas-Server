@@ -266,6 +266,7 @@ class TileReader():
         if not isinstance(self.num_tiles, (int, long)):
             self.num_tiles = self.num_tiles.value
 
+        self._read_JPEG_tables()
         #xml = ET.fromstring(tif.GetField("ImageDescription"))
         #self.image_width = int(xml.find(".//*[@Name='PIM_DP_IMAGE_COLUMNS']").text)
         #self.image_height = int(xml.find(".//*[@Name='PIM_DP_IMAGE_ROWS']").text)
