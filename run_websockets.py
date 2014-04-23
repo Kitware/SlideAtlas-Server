@@ -43,12 +43,12 @@ def tile_socket(ws):
                 resp = BSON.encode({"request" : req, "image" : Binary(imgdata), "success" : True})
             else:
                 raise Exception("Unknown request")
+            ws.send(resp, True)
 
         except Exception as e:
             resp = BSON.encode({"request" : req, "error" : e.message})
             ws.send(resp, True)
 
-        ws.send(resp, True)
 
 def run_server():
     ws = gevent.wsgi.WSGIServer(listener=('0.0.0.0', 8080),

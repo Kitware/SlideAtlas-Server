@@ -2,6 +2,7 @@
 // I need to create the temporary object to hold pointers
 // to both the cache and the tile which we are waiting for
 // the image to load.  The callback only gives a single reference.
+
 function LoadTileCallback(tile,cache) {
     this.Tile = tile;
     this.Cache = cache;
@@ -60,8 +61,6 @@ function Tile(x, y, z, level, name, cache) {
   //this is just for debugging
   //this.Id = x + (y<<level)
   //
-  this.loader = "http";
-
   this.Cache = cache;
   this.X = x;
   this.Y = y;
@@ -182,10 +181,10 @@ Tile.prototype.StartLoad = function (cache) {
   //}
   // This starts the loading.
 
-  if(this.loader === "http") {
-    this.LoadHttp(cache);
-  } else if(this.loader === "websocket") {
-    this.LoadWebSocket(cache);
+  if(TILELOADER === "http") {
+      this.LoadHttp(cache);
+  } else if(TILELOADER === "websocket") {
+      this.LoadWebSocket(cache);
   }
 };
 
@@ -203,11 +202,17 @@ Tile.prototype.LoadHttp = function (cache) {
 
 Tile.prototype.LoadWebSocket = function (cache) {
   // Right now doing exact same thing
-  this.Image.src = imageSrc;
+  var name = '';
+  if (cache.Image.type && cache.Image.type == "stack") {
+    name = this.Name + ".png";
+  } else {
+    name = this.Name + ".jpg";
+  }
+
+  var image = cache.Image._id;
+
+  ws.FetchTile(name, image, cache, this.Image);
 };
-
-
-
 
 Tile.prototype.Draw = function (program, context) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.
