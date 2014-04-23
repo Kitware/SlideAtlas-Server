@@ -1,9 +1,12 @@
 __author__ = 'dhan'
 
 import logging
+
+logger = logging.getLogger("slideatlas.ptiffstore")
 import os
 import glob
 import sys
+import StringIO
 
 slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(slideatlaspath)
@@ -15,9 +18,12 @@ from slideatlas.models import TileStore, Database, Session, RefItem
 import datetime
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth
+from common_utils import getcoords
 
-class PTiffStoreMixin(object):
+class PtiffTileStore(Database):
     """
+    The data model for PtiffStore
+
     Equivalent to images collections
     Should encapsulate entire assetstore, and this being tile specific version of it.
 
@@ -27,6 +33,40 @@ class PTiffStoreMixin(object):
     All sessions are stored in admindb in ptiffsessions and images are stored in ptiffimages
     expects the model to have
     """
+    last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
+    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive
+
+
+    def get_tile(self, img, name):
+        """
+        Function redefinition to get_tile
+        Raises exceptions that must be caught by the calling routine
+        """
+
+        with self:
+            img = Image.objects.get_or_404(id=img)
+
+        tiffpath = os.path.join(self.root_path, img.filename)
+
+        [x, y, z] = getcoords(name[:-4])
+
+        reader = make_reader({"fname" : tiffpath, "dir" : img.levels - z -1})
+        logging.log(logging.INFO, "Viewing fname: %s" % (tiffpath))
+
+        # Locate the tilename from x and y
+
+        locx = x * 512 + 5
+        locy = y * 512 + 5
+
+        fp = StringIO.StringIO()
+        r = reader.dump_tile(locx,locy, fp)
+
+        if r > 0:
+            logging.log(logging.ERROR, "Read %d bytes"%(r))
+        else:
+            raise Exception("Tile not read")
+
+        return fp.getvalue()
 
     def load_folder(self):
         self.before =   dict ([(f, None) for f in os.listdir (path_to_watch)])
@@ -144,15 +184,6 @@ class PTiffStoreMixin(object):
         self.save()
         return self.sync()
 
-
-
-class PtiffTileStore(Database, PTiffStoreMixin):
-    """
-    The data model for TileStore
-
-    """
-    last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
-    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive
 
 class PhillipsImageMixin(object):
     """
