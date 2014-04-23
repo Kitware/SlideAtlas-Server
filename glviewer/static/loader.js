@@ -19,7 +19,7 @@ var CACHES = [];
 // new requests come in.
 var LOAD_QUEUE = [];
 var LOADING_COUNT = 0;
-var LOADING_MAXIMUM = 4;
+var LOADING_MAXIMUM = 10;
 var LOAD_TIMEOUT_ID = 0;
 
 var LOAD_PROGRESS_MAX = 0;

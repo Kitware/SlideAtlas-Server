@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger("slideatlas.view.tile")
 from flask import Blueprint, Response, abort, request
 from slideatlas import models
 from slideatlas import security
@@ -5,7 +7,6 @@ from slideatlas.ptiffstore.common_utils import getcoords
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.models.image import Image
 import os
-import logging
 import StringIO
 import flask
 
@@ -26,12 +27,10 @@ def tile():
         abort(403)
 
     database = models.Database.objects.get_or_404(id=db)
-
-    imgdata = database.get_tile(img, name)
-    return flask.Response(imgdata, mimetype="image/jpeg")
-
     try:
-        pass
+
+        imgdata = database.get_tile(img, name)
+        return flask.Response(imgdata, mimetype="image/jpeg")
     except Exception as e:
-        logging.log(logging.ERROR, "Tile not loaded: %s"%(e.message))
-        return flask.Response("{\"error\" : \"Tile not loaded: %s\"}"%(e.message), status=405)
+        logger.error("Tile not loaded: %s"%(e.message))
+        return flask.Response("{\"error\" : \"Tile loading error: %s\"}"%(e.message), status=405)
