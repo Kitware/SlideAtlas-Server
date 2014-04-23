@@ -55,6 +55,7 @@ WebSocketLoader.prototype.OnConnect = function(e) {
 WebSocketLoader.prototype.OnClose = function(e) {
     console.log("WebSocketLoader closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
     this.sock = null;
+    TILELOADER = "http";
 };
 
 WebSocketLoader.prototype.InitTileStore =function(tilestore) {
