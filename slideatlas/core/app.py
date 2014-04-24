@@ -1,6 +1,8 @@
 # coding=utf-8
 
+from bson import json_util, ObjectId
 from flask import Flask
+from flask.json import JSONEncoder
 from flask.ext.bootstrap import Bootstrap
 
 from .url_processing import add_url_converters, add_url_value_preprocessors
@@ -58,6 +60,14 @@ def add_config(app):
         BOOTSTRAP_USE_MINIFIED=False
     )
 
+    class BSONJSONEncoder(JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, ObjectId):
+                return str(obj)
+            return json_util.default(obj)
+
+    app.json_encoder = BSONJSONEncoder
+
 
 ################################################################################
 def create_blueprints(app):
@@ -105,6 +115,9 @@ def create_blueprints(app):
 
     from slideatlas.api import api
     app.register_blueprint(api.mod)
+
+    from slideatlas.api import apiv2
+    app.register_blueprint(apiv2.mod)
 
 
 ################################################################################

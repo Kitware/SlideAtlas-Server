@@ -1,6 +1,7 @@
 # coding=utf-8
 
-from mongoengine import BooleanField, ListField, ObjectIdField, ReferenceField, StringField
+from mongoengine import BooleanField, ListField, ObjectIdField,ReferenceField,\
+    StringField
 from flask.ext.security import RoleMixin
 
 from .common import ModelDocument
@@ -42,6 +43,24 @@ class Role(ModelDocument, RoleMixin):
 
     def __unicode__(self):
         return unicode(self.name)
+
+    def can_see_session(self, session):
+        if self.can_admin_session(session):
+            return True
+        if self.db == session.database:
+            if self.can_see_all:
+                return True
+            if session.id in self.can_see:
+                return True
+        return False
+
+    def can_admin_session(self, session):
+        if self.site_admin:
+            return True
+        if self.db_admin and (self.db == session.database):
+            return True
+        return False
+
 
 class UserRole(Role):
     pass

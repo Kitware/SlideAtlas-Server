@@ -2,7 +2,8 @@
 
 import datetime
 
-from mongoengine import BooleanField,DateTimeField, EmailField, IntField, ListField, ReferenceField, StringField
+from mongoengine import BooleanField,DateTimeField, EmailField, IntField,\
+    ListField, ReferenceField, StringField
 from flask.ext.security import UserMixin
 from werkzeug.datastructures import ImmutableList
 
@@ -89,6 +90,20 @@ class User(ModelDocument, UserMixin):
 
     def update_current_login(self):
         self.current_login_at = datetime.datetime.utcnow()
+
+    def can_admin_site(self):
+        for role in self.roles:
+            if role.site_admin:
+                return True
+        return False
+
+    def can_admin_database(self, database):
+        for role in self.roles:
+            if role.site_admin:
+                return True
+            elif role.db_admin and (role.db == database):
+                return True
+        return False
 
 
 ################################################################################
