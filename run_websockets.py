@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+from gevent import monkey, wsgi
+monkey.patch_all()
+
 from flask import Flask
 from flask_sockets import Sockets
 import os
-import msgpack
-from gevent import monkey, wsgi
-monkey.patch_all()
 
 from bson import BSON
 from bson.binary import Binary
