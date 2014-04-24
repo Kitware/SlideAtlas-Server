@@ -48,4 +48,4 @@ def get_site_path():
 ################################################################################
 def git_describe(git_exec='git'):
     cmd = [git_exec, 'describe', '--tags', '--always']
-    return subprocess.check_output(cmd, cwd=get_site_path()).strip()
+    return subprocess.check_output(cmd, cwd=get_site_path(), stderr=subprocess.STDOUT).strip()
