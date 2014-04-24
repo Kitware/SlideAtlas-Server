@@ -37,6 +37,15 @@ def sessions():
 
 ################################################################################
 def view_all_sessions():
+    # Support legacy requests for a single session, which use query string args
+    arg_sessdb = request.args.get('sessdb')
+    arg_sessid = request.args.get('sessid')
+    if arg_sessdb and arg_sessid:
+        database_obj = models.Database.objects.get_or_404(id=arg_sessdb)
+        with database_obj:
+            session_obj = models.Session.objects.get_or_404(id=arg_sessid)
+        return view_a_session(database_obj, session_obj)
+
     all_sessions = list()
     for role in security.current_user.roles:
         with role.db:
@@ -51,11 +60,18 @@ def view_all_sessions():
     all_sessions.sort(key=lambda (role, sessions): role.name)
 
     if request.args.get('json'):
-        # TODO: switch to using 'Content-Type: application/json' header to request JSON output
-        #   this can be checked for with 'request.get_json(silent=True)' or better in Flask 0.11 with 'request.is_json()'
-
-        #return jsonify(sessions=sessionlist, ajax=1)
-        return jsonify({})  # TODO: JSON output
+        ajax_sessionlist = [
+            {
+                'rule': '',
+                'sessions': [
+                    {
+                        'sessdb': str(role.db.id),
+                        'sessid': str(session.id),
+                        'label': session.label}
+                    for session in sessions],
+            }
+            for role, sessions in all_sessions]
+        return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)
     else:
         return render_template('sessionlist.html', all_sessions=all_sessions)
 
