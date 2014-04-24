@@ -128,7 +128,7 @@ class Image(MultipleDatabaseModelDocument):
     tile_size = IntField(required=False, default=256, db_field='TileSize',
         verbose_name='TileSize', help_text='dimensions of each square tile')
 
-    bounds = ListField(FloatField(), required=False, default=[0,0,0,0,0,0],
+    bounds = ListField(IntField(), required=False, default=[0,0,0,0,0,0],
         verbose_name='', help_text='xMin / xMax / yMin / yMax nanometers or "Units" if unknown')
 
     extents = ListField(IntField(), required=False,
