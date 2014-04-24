@@ -62,7 +62,7 @@ def view_all_sessions():
     if request.args.get('json'):
         ajax_sessionlist = [
             {
-                'rule': '',
+                'rule': role.name,
                 'sessions': [
                     {
                         'sessdb': str(role.db.id),
