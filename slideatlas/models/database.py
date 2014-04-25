@@ -1,10 +1,10 @@
 # coding=utf-8
 
 from mongoengine import StringField
-from mongoengine import register_connection
-from mongoengine.connection import _connection_settings, get_db
+from mongoengine.connection import get_db
 
-from .common import ModelDocument, MultipleDatabaseModelDocument
+from .common import ModelDocument, MultipleDatabaseModelDocument, \
+    register_database
 import session  # again implicit relative import due to circular issues, but we will try to remove this one
 
 ################################################################################
@@ -36,24 +36,15 @@ class TileStore(ModelDocument):
     def connection_alias(self):
         return str(self.id)
 
-    def is_registered(self):
-        return self.connection_alias in _connection_settings
-
     def register(self):
-        if not self.is_registered():
-            hostname, _, port = self.host.partition(':')
-            kwargs = dict()
-            if self.replica_set:
-                # the very presence of a replicaSet argument to 'register_connection' triggers the behavior
-                kwargs['replicaSet'] = self.replica_set
-            register_connection(
-                alias=self.connection_alias,
-                host=hostname,
-                port=int(port) if port else None,
-                name=self.dbname,
-                username=self.username,
-                password=self.password,
-                **kwargs)
+        register_database(
+            alias=self.connection_alias,
+            host=self.host,
+            dbname=self.dbname,
+            replica_set=self.replica_set,
+            username=self.username,
+            password=self.password
+        )
 
     def __enter__(self):
         self.register()
@@ -80,9 +71,13 @@ class TileStore(ModelDocument):
 
         This will be removed once the migration is complete, so please don't rely more than
         necessary upon it.
+
+        Note that this returns a raw database object, which does not handle
+        AutoReconnect exceptions.
         """
         self.register()
-        return get_db(self.connection_alias)
+        # GridFS doesn't accept a MongoProxy, so return the raw object for now
+        return get_db(self.connection_alias).__dict__['conn']
 
 
 ################################################################################
