@@ -24,7 +24,9 @@ class MultipleDatabaseModelQuerySet(ModelQuerySet):
     @staticmethod
     def copy_class(cls):
         # TODO: move this to a common utils
-        return type(cls.__name__, cls.__bases__, dict(cls.__dict__))
+        new_cls_dict = dict(cls.__dict__)
+        new_cls_dict['meta'] = new_cls_dict.pop('_meta')
+        return type(cls.__name__, cls.__bases__, new_cls_dict)
 
 
 class MultipleDatabaseModelDocument(ModelDocument):
