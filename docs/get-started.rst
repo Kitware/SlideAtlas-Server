@@ -6,48 +6,19 @@ Getting started
 Before running
 --------------
 
-Configuring database connection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configuration paramters for slideatlas are as follows -
 
-Flask app loads configuration while it initializes. Most of the configuration parameters are either manually selected in slideatlas/__init__.py.
-Site specific configuration must be correctly loaded
+.. automodule:: slideatlas.default_config
+  :members:
+  :undoc-members:
 
-.. code-block:: python
-   :emphasize-lines: 4
 
-   app = Flask(__name__)
-   # Configure here teh path to put downloaded folders
-   app.config['UPLOAD_FOLDER'] = "d:/docs"
-   app.config.from_object("site_local")
+During runtime, slidetlas looks for environment variable "SLIDEATLAS_CONFIG_PATH" and loads the configuration variables from the python file pointed by it.
 
-Which loads
+.. warning::
 
-.. code-block:: python
+    Any documentation below in this sections needs to be reviewed
 
-    # For mongodb server connections
-    # MONGO_IS_REPLICA_SET = False
-    # MONGO_URL = "slide-atlas.org:27017"
-    # CONFIGDB = "slideatlasv2"
-
-    # For replica set connection
-    LOGIN_REQUIRED = True
-    MONGO_IS_REPLICA_SET = True
-    MONGO_URL = "slide-atlas.org:27017,mini.slide-atlas.org:27021,new.slide-atlas.org:27017"
-    USERNAME = "put_user_name_here"
-    PASSWORD = "put_password_here"
-
-    # Facebook with correct redirection
-    FACEBOOK_APP_ID = '#################'
-    FACEBOOK_APP_SECRET = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-
-    # Rule corresponding to the data which is to be made public
-    # ObjectId string
-    DEMO_RULE = "123456789012345678901234"
-
-    # Settings for sending email out
-    # Following settings would work from within kitware
-    EMAIL_FROM = "dhanannjay.deo@kitware.com"
-    SMTP = "public.kitware.com"
 
 Setting up empty database
 -------------------------
