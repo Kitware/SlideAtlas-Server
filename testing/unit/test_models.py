@@ -25,7 +25,8 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
 
     # This is required so that model gets registered
-    from slideatlas import app
+    from slideatlas import create_app
+    app = create_app()
 
     # test_ptiff_tile_store()
     # create_ptiff_store()
