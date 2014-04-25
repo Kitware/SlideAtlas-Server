@@ -5,10 +5,10 @@ from mongoengine import EmbeddedDocument, BooleanField, DictField,\
     ListField, ObjectIdField, StringField
 from mongoengine.errors import NotRegistered
 
-from .common import MultipleDatabaseModelDocument, RefListField
+from .common import MultipleDatabaseModelDocument
 
 ################################################################################
-__all__ = ('Session',)
+__all__ = ('Session', 'RefItem')
 
 
 
@@ -96,6 +96,40 @@ class Transformation(EmbeddedDocument):
 
     view1 = ObjectIdField(required=False, db_field='View1',
         verbose_name='', help_text='')
+
+
+################################################################################
+class RefItem(EmbeddedDocument):
+    meta = {
+        'allow_inheritance': False
+    }
+    ref = ObjectIdField(required=True)
+    hide = BooleanField(required=False, default=False)
+    label = StringField(required=False)
+    db = ObjectIdField(required=False)
+
+
+class RefListField(ListField):
+
+    def __init__(self, **kwargs):
+        #field = ReferenceField(document_type, dbref=False)
+        field = EmbeddedDocumentField(RefItem)
+        super(RefListField, self).__init__(field, **kwargs)
+
+
+    def to_mongo(self, value):
+        value = super(RefListField, self).to_mongo(value)
+        for pos, item in enumerate(value):
+            item['pos'] = pos
+        return value
+
+
+    def to_python(self, value):
+        try:
+            value = sorted(value, key=lambda item: item.pop('pos'))
+        except (TypeError, KeyError):
+            pass
+        return super(RefListField, self).to_python(value)
 
 
 ################################################################################

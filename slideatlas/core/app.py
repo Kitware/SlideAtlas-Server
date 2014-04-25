@@ -144,7 +144,8 @@ def setup_models(app):
     Setup the models, particularly the connection with the admin database.
     """
     from slideatlas import models
-    models.register_admin_db(
+    models.register_database(
+        alias='admin_db',
         host=app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'],
         replica_set=app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET'],
         dbname=app.config['SLIDEATLAS_ADMIN_DATABASE_NAME'],
