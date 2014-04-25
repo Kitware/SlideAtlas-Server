@@ -153,7 +153,7 @@ class Session(MultipleDatabaseModelDocument):
     images = RefListField(required=False,
         verbose_name='Images', help_text='')
 
-    annotations = DictField(required=False,
+    annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
 
     hideAnnotations = BooleanField(required=False,

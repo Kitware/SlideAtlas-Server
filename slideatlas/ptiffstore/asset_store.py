@@ -168,7 +168,6 @@ class PtiffTileStore(Database):
 
             else:
                 logging.info("Is good: %s"%(aslide))
-        sess.transformations = []
         sess.save()
         resp["count"] = count
         resp["synced"] = synced
