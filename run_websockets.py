@@ -15,10 +15,10 @@ from slideatlas import app
 from slideatlas import models
 sockets = Sockets(app)
 
-@sockets.route('/ws') 
-def tile_socket(ws): 
+@sockets.route('/ws')
+def tile_socket(ws):
     tilestore = None
-    while True: 
+    while True:
         message = ws.receive()
         # Wraps entire websocket response, any errors will be reported back
         try:
