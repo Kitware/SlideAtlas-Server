@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-from gevent import monkey, wsgi
+from gevent import monkey
 monkey.patch_all()
+
+from gevent import wsgi
+from geventwebsocket.handler import WebSocketHandler
 
 from flask import Flask
 from flask_sockets import Sockets
@@ -51,8 +54,8 @@ def tile_socket(ws):
 
 
 def run_server():
-    ws = gevent.wsgi.WSGIServer(listener=('0.0.0.0', 8080),
-                                application=app)
+    ws = wsgi.WSGIServer(listener=('0.0.0.0', 8080),
+                                application=app, handler_class=WebSocketHandler)
     ws.serve_forever()
 
 if __name__ == "__main__":
