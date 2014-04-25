@@ -29,7 +29,7 @@ def register_database(alias, host, dbname, replica_set=None, username=None, pass
             kwargs['port'] = int(port)
     else:
         # TODO: let the user know that database backend is not set
-        pass
+        return
 
     register_connection(
         alias=alias,
