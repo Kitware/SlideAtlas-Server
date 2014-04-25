@@ -1,9 +1,11 @@
 import os
 import sys
 sys.path.append("..")
-from slideatlas import app
+from slideatlas import create_app
 import unittest
 import tempfile
+
+app = create_app()
 
 class SlideAtlasBasicTestCase(unittest.TestCase):
     def setUp(self):

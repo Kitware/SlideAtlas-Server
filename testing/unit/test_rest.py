@@ -16,7 +16,7 @@ import unittest
 class APIv1_Tests(unittest.TestCase):
     def setUp(self):
         # Creates app and gets a client to it
-        self.app1 = slideatlas.app
+        self.app1 = slideatlas.create_app()
         self.app1.testing = True
         self.app = self.app1.test_client()
 
