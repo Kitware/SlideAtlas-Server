@@ -3,14 +3,14 @@
 ################################################################################
 ## Database Settings ##
 
-SLIDEATLAS_ADMIN_DATABASE_HOST = 'localhost:27017'
+SLIDEATLAS_ADMIN_DATABASE_HOST = None 
 """ The hostname and port of the MongoDB SlideAtlas admin database. """
 
 SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET = None
 """ The name of the replica set for the admin database, if it is a member of one,
 or None otherwise. """
 
-SLIDEATLAS_ADMIN_DATABASE_NAME = 'slideatlas'
+SLIDEATLAS_ADMIN_DATABASE_NAME = None
 """ The MongoDB database name of the admin database. """
 
 SLIDEATLAS_ADMIN_DATABASE_USERNAME = None
