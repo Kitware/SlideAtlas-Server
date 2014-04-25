@@ -5,8 +5,7 @@ Slide atlas is able to access pyramidal tiles directly coming from Philips scann
 
 The difference with MongoTileStore is
 
-- Naming convention, the tiles in pyramidal tiff;s are rather accessed by x,y,zoom than in the format "tt.jpg". There is
-conversion available though.
+- Naming convention, the tiles in pyramidal tiff;s are rather accessed by x,y,zoom than in the format "tt.jpg". There is conversion available though.
 
 - A macro image can be downloaded from the store, also the label image can be created by combining with barcode
 
