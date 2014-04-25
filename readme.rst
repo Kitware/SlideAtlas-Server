@@ -33,11 +33,14 @@ The procedure to build TPL is as follows
    $ git submodule update --init 
    $ cd slideatlas/ptiffstore/tpl/tiff-4.0.3/
    $ ./configure
+
+Please make sure JPEG support is supported in the configuration. Now build as 
+
+.. code-block:: none
+
    $ make
-
-Please make sure JPEG support is supported in the configuration. 
-
-
+   $ cd ../pylibtiff-read-only
+   $ python setup.py build
 
 To build documentation
 ----------------------
