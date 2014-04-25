@@ -22,11 +22,15 @@ def register_database(alias, host, dbname, replica_set=None, username=None, pass
         kwargs['replicaSet'] = replica_set
         # MongoEngine converts 'host' to 'hosts_or_uri' for replica sets
         kwargs['host'] = host
-    else:
+    elif host:
         hostname, _, port = host.partition(':')
         kwargs['host'] = hostname
         if port:
             kwargs['port'] = int(port)
+    else:
+        # TODO: let the user know that database backend is not set
+        pass
+
     register_connection(
         alias=alias,
         name=dbname,
