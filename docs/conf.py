@@ -13,6 +13,34 @@
 
 import sys, os
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "/.."))
+
+class Mock(object):
+
+    __all__ = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = ['numpy', 'celery', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = Mock()
+
+
+
 from slideatlas.version import get_version
 from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
