@@ -19,11 +19,11 @@ function WidgetPopup (widget) {
               .mouseleave(function(){ self.StartHideTimer();});
   this.DeleteButton = $('<img>').appendTo(this.ButtonDiv)
       .css({'height': '20px'})
-    .attr('src',"webgl-viewer/static/deleteSmall.png")
+    .attr('src',"/webgl-viewer/static/deleteSmall.png")
     .click(function(){self.DeleteCallback();});
   this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
       .css({'height': '20px'})
-    .attr('src',"webgl-viewer/static/Menu.jpg")
+    .attr('src',"/webgl-viewer/static/Menu.jpg")
     .click(function(){self.PropertiesCallback();});
 }
 
