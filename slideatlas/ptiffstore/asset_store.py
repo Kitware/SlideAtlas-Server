@@ -71,9 +71,28 @@ class PtiffTileStore(Database):
     def load_folder(self):
         self.before =   dict ([(f, None) for f in os.listdir (path_to_watch)])
 
-    def sync(self):
+    def _remove_image(self, id):
+        pass
+
+    def _add_image(self, filename):
+        pass
+
+    def sync(self, resync=False):
         """
-        Syncs the objects in mongodb with the
+        Syncs the objects in Image Session and View with the files in given folder.
+
+        Resynchronization 
+
+        - Verifies that all images referred in image collection are avaialble in the file store.
+        - Delete any images that are missing along with any views and session entries that depend on it.
+        - Finds out new files are not yet added to the store
+        - Creates a view for these in "All" session
+        - Include the images that are newly added (based on filename / modification date)
+        
+        It is assumed that the modification dates to any changes to folder are intact
+
+        A special session All contains 1 view corresponding to each of the image files
+
         """
         # print self.__dict__
 
@@ -113,7 +132,7 @@ class PtiffTileStore(Database):
                 reader.set_input_params({ "fname" : aslide })
                 reader.parse_image_description()
                 logging.info(reader.barcode)
-                newimage = False
+                newimage = resync
                 with self:
                     # Locate the record
                     try:
@@ -147,11 +166,21 @@ class PtiffTileStore(Database):
 
                     if newimage:
                         # Also insert in the session
-
                         # Determine the session
                         with self:
                             # Find the session
+                            # Find the view and delete if found 
+                            views  = View.objects(image=animage.id)
+                            for aview in views:
+                                aview.delete()
 
+                                idx = []
+                                # Delete view from session
+                                for i in range(len(sess.views)):
+                                    if sess.views[i].ref == aview.id:
+                                        logger.error("To Remove: %s"%(sess.views[i].ref))
+                                        idx.append(i)
+                                logger.error("Total: %s"%(str(i)))
                             aview = View(img=animage.id)
                             aview.save()
 
@@ -168,7 +197,11 @@ class PtiffTileStore(Database):
 
             else:
                 logging.info("Is good: %s"%(aslide))
-        sess.save()
+        
+        with self:
+            sess.save()
+            print sess.__dict__
+
         resp["count"] = count
         resp["synced"] = synced
         resp["images"] = images
@@ -182,8 +215,14 @@ class PtiffTileStore(Database):
         """
         self.last_sync = datetime.datetime.fromtimestamp(0)
         self.save()
-        return self.sync()
 
+        with self:
+            View.drop_collection()
+            Image.drop_collection()
+            asess = Session.objects.get(name="All")
+            asess.delete()
+        # Wipes all the images 
+        return self.sync(resync=True)
 
 # class PhillipsImageMixin(object):
 #     """
