@@ -21,7 +21,7 @@ float:right;
         {% if session.type == 'stack' %}
         <tr>
             <td>
-                <a href="/webgl-viewer/stack?db={{ role.db|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
+                <a href="/webgl-viewer/stack?db={{ role.db.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
             </td>
         </tr>
         {% else %}
