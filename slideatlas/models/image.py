@@ -109,7 +109,7 @@ class Image(MultipleDatabaseModelDocument):
         verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown', default=[1.,1.,1.])
 
     dimensions = ListField(IntField(), required=False,
-        verbose_name='Dimension', help_text='', default=[0,0,0])
+        verbose_name='Dimensions of image', help_text='', default=[0,0,0])
 
     dimension = ListField(IntField(), required=False,
         verbose_name='', help_text='size of non-padded region of base layer. Z dimensions is 1 for pyramid2 and stack size for pyramid3 and stack types (x / y / z pixel coords)')
