@@ -9,7 +9,7 @@ slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."
 sys.path.append(slideatlaspath)
 
 from slideatlas.models import Image
-from slideatlas.models import Database, View
+from slideatlas.models import Database, View, Session
 from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
 def test_image_access():
@@ -33,6 +33,19 @@ def test_view_access():
         logger.info("Found view :  %s"%(str(aview.__dict__)))
 
 
+
+def test_sess_access():
+    obj = Database.objects(dbname="ptiffayodhya")[0]
+    assert(obj != None)
+
+    print obj._cls, obj.label
+    with obj:
+        asess = Session.objects.first()
+        assert(asess != None)
+        logger.info("Found sess :  %s"%(str(asess.__dict__)))
+
+
+
 if __name__ == "__main__":
     """
     Run few tests
@@ -51,6 +64,6 @@ if __name__ == "__main__":
     # test_getlist()
     # test_items_mongoengine()
     # test_modify_store()
-    test_image_access()
-    test_view_access()
-    
+    # test_image_access()
+    # test_view_access()
+    test_sess_access()
