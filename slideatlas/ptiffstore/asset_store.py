@@ -185,19 +185,19 @@ class PtiffTileStore(Database):
         return self.sync()
 
 
-class PhillipsImageMixin(object):
-    """
-    Methods and business logic for ptiff images coming from phillips
-    """
-    pass
+# class PhillipsImageMixin(object):
+#     """
+#     Methods and business logic for ptiff images coming from phillips
+#     """
+#     pass
 
-class PhillipsImage(Image, PhillipsImageMixin):
-    """
-    Data models for ptiff images based on mongoengine
-    """
+# class PhillipsImage(Image, PhillipsImageMixin):
+#     """
+#     Data models for ptiff images based on mongoengine
+#     """
 
-    barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
-        verbose_name='Barcode', help_text='Bar code string')
+#     barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
+#         verbose_name='Barcode', help_text='Bar code string')
 
 
 def test_ptiff_tile_store():

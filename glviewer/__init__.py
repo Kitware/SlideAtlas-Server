@@ -494,7 +494,7 @@ def glstacksession():
     db = database.to_pymongo()
 
     with database:
-        sessobj = models.Session.objects.get_or_404(sessid)
+        sessobj = models.Session.objects.get_or_404(id=sessid)
 
     # Make a transformation if one does not exist.
     if not sessobj.transformations :
@@ -571,8 +571,9 @@ def glstacksession():
         markup["view"] = str(markup["view"])
 
     return jsonify({"views":views,
-                    "transformations": sessobj.transformations,
-                    "annotations": sessobj.annotations})
+                    "transformations": [transformation.to_mongo() for transformation in sessobj.transformations],
+                    "annotations": sessobj.annotations,
+                    })
 
 
 # This method saves transformations and/or annotations (whatever exists in data.
