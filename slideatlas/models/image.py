@@ -93,7 +93,7 @@ class Image(MultipleDatabaseModelDocument):
     """
     meta = {
         'collection': 'images',
-        'allow_inheritance' : True
+        # 'allow_inheritance' : True
     }
 
     filename = StringField(required=False, #TODO: filename with respect to root_path
