@@ -110,6 +110,7 @@ function GetSessionDatabase() {
 // WebGL Initialization
 
 function doesBrowserSupportWebGL(canvas) {
+    return false;
     try {
         //GL = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
         GL = canvas.getContext("webgl");
