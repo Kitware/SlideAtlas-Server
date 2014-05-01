@@ -214,13 +214,13 @@
 
     var IMAGE_HOVER_LABEL;
     $(document).ready(function(){
-      if ( {{data.hideAnnotations}} ) {
-        $('#hideCheck').attr('checked','checked');
-        hideAnnotation(true);
-      } else {
-        $('#hideCheck').removeAttr('checked');
-        hideAnnotation(false);
-      }
+      {%- if data.hideAnnotations %}
+      $('#hideCheck').attr('checked','checked');
+      hideAnnotation(true);
+      {%- else %}
+      $('#hideCheck').removeAttr('checked');
+      hideAnnotation(false);
+      {%- endif %}
 
       // When the annotations are turned off we have to change the labels of the views.
       $("#hideCheck").change(
