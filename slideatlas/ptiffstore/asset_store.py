@@ -219,8 +219,12 @@ class PtiffTileStore(Database):
         with self:
             View.drop_collection()
             Image.drop_collection()
-            asess = Session.objects.get(name="All")
-            asess.delete()
+            try :
+                asses = Session.objects.get(name="All")
+                asess.delete()
+            except:
+                pass
+
         # Wipes all the images 
         return self.sync(resync=True)
 
