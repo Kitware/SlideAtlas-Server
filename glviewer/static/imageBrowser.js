@@ -11,7 +11,7 @@ function ImageBrowser(parent) {
 function Load() {
   // Get a list of databases this user has access to.
 
-  $.get("./sessions?json=true",
+  $.get("/sessions?json=true",
           function(data,status){
             if (status == "success") {
               VIEW_BROWSER_INFO = data;
@@ -62,7 +62,7 @@ function ImageBrowserSessionCallback(obj) {
   //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
   var db = $(obj).attr('db');
   var sess = $(obj).attr('sessid');
-  $.get("./sessions?json=true"+"&sessdb="+$(obj).attr('db')+"&sessid="+$(obj).attr('sessid'),
+  $.get("/sessions?json=true"+"&sessdb="+$(obj).attr('db')+"&sessid="+$(obj).attr('sessid'),
         function(data,status){
           if (status == "success") {
             ImageBrowserAddSessionViews(data);
@@ -99,7 +99,7 @@ function ImageBrowserImageCallback(obj) {
   var db = $(obj).attr('db');
   var viewid = $(obj).attr('viewid');
 
-  $.get("./webgl-viewer?json=true"+"&db="+$(obj).attr('db')+"&view="+$(obj).attr('viewid'),
+  $.get("/webgl-viewer?json=true"+"&db="+$(obj).attr('db')+"&view="+$(obj).attr('viewid'),
         function(data,status){
           if (status == "success") {
             ImageBrowserLoadImage(data);

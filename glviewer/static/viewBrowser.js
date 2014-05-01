@@ -38,7 +38,7 @@ function InitViewBrowser() {
 
 function ReloadViewBrowserInfo() {
   // Get the sessions this user has access to.
-  $.get("./sessions?json=true",
+  $.get("/sessions?json=true",
           function(data,status){
             if (status == "success") {
               VIEW_BROWSER_INFO = data;
@@ -78,7 +78,7 @@ function ViewBrowserSessionCallback(obj) {
   //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
   var db = $(obj).attr('db');
   var sess = $(obj).attr('sessid');
-  $.get("./sessions?json=true"+"&sessdb="+$(obj).attr('db')+"&sessid="+$(obj).attr('sessid'),
+  $.get("/sessions?json=true"+"&sessdb="+$(obj).attr('db')+"&sessid="+$(obj).attr('sessid'),
         function(data,status){
           if (status == "success") {
             ViewBrowserAddSessionViews(data);
