@@ -24,7 +24,7 @@
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
-        $routeProvider.when("/mysessions", {templateUrl: "/apiv1/static/partials/allSessList.html", controller:"AllSessListCtrl"});
+        $routeProvider.when("/mysessions", {templateUrl: "/apiv1/static/partials/allSessList.html", controller:"SessAllListCtrl"});
 
         $routeProvider.otherwise({ redirectTo: "/databases"});
     });
@@ -138,33 +138,37 @@ app.directive('sessionList', function () {
     return {
         restrict : "ECMA",
         templateUrl: '/apiv1/static/partials/directiveSessList.html',
+        // template: '<div> Hello World </div>',
         replace : true,
+        // scope : true,
+        scope : { sessions : '=sessions'},
         link: function(scope, element, attr, ngModel){
-                console.log(scope, element, attr);
-                element.bind("click", function(){
-                    console.log("Need to change the model value but dont know how to yet");
-                })
-            }
+                console.log("For sessionList");
+                console.log("Scope");
+                console.log(scope.sessions);
+        //         console.log("attr");
+        //         console.log(scope.sessions)
+        //        }
+    }
     };
  });
 
 app.directive('sessionView', function () {
     return {
         restrict : "ECMA",
-        template: '<div> <p>Hello World</p> </div>',
+        template: '<li> {{session.label}} </li>',
         replace : true,
+        scope : {session : "=session" },
         link: function(scope, element, attr, ngModel){
-                console.log(scope, element, attr);
-                element.bind("click", function(){
-                    console.log("Need to change the model value but dont know how to yet");
-                })
-            }
+                console.log("For view");
+                console.log(scope.session.label);
+                }
     };
  });
 
 
 
-app.controller("AllSessListCtrl", function ($scope, $location, $http) {
+app.controller("SessAllListCtrl", function ($scope, $location, $http) {
 
     $http({method: "get", url: "/sessions?json=1"}).
     success(function(data, status) {
@@ -384,30 +388,30 @@ app.controller("dbListCtrl", function ($scope, $http) {
     }
 });
 
-app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
+// app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
 
-    console.log("Refreshing SessListCtrl")
+//     console.log("Refreshing SessListCtrl")
 
-    Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
-        Data.setList(data.sessions);
-        $scope.sessions = Data.getList();
-        }
-    );
+//     Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
+//         Data.setList(data.sessions);
+//         $scope.sessions = Data.getList();
+//         }
+//     );
 
-    // $scope.delete = function(idx)
-    //     {
-    //     // Locate the object
-    //     var db = Data.getItem(idx)
-    //     console.log(db)
-    //     if (confirm("Remove database " + db.dbname + '?'))
-    //         {
-    //         Database.delete({dbid:db._id}, function(data) {
-    //             Data.removeItem(idx);
-    //             $location.path("/databases");
-    //             });
-    //         }
-    //     };
-});
+//     // $scope.delete = function(idx)
+//     //     {
+//     //     // Locate the object
+//     //     var db = Data.getItem(idx)
+//     //     console.log(db)
+//     //     if (confirm("Remove database " + db.dbname + '?'))
+//     //         {
+//     //         Database.delete({dbid:db._id}, function(data) {
+//     //             Data.removeItem(idx);
+//     //             $location.path("/databases");
+//     //             });
+//     //         }
+//     //     };
+// });
 
 
 app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {

@@ -1,22 +1,12 @@
-     <div ng-controller="AllSessListCtrl">
-         Total Affiliations : {{roles.length }}
+    <div>
+        Total Affiliations : {{roles.length }}
         <div ng-repeat ="arole in roles"> 
-            <li> {{arole.rule}} </li>
-            <session-list sessions={{arole.sessions}}> Here is session </session-list>
+            <h1> {{arole.rule}} </h1>
+            <div> 
+                <session-list sessions="arole.sessions"> {{ asession.label }} </dj-li>
+                <!-- <dj-li ng-repeat = "asession in arole.sessions track by $index"> {{ asession.label }} </dj-li> -->
+                <!-- <djsessions sess={{arole.sessions track by $index}}/>  -->
+            </div>
         </div> 
-         
-         <!-- <table class="table table-striped">
-            <thead>
-                <tr>
-                <td><h4>Session label </h4></td>
-                <td> </td>
-                <td><a href="#/sessions/new"><i class="icon-plus-sign"></i></a> </td>
-               </tr>
-           </thead>
-            <tr ng-repeat ="adb in sessions" >
-                <td>{{ adb.label }} </td>
-                <td><a href="#/sessions/edit/{{$index}}"><i class="icon-edit"></i></a> </td>
-                <td><a ng-click="delete($index)"><i class="icon-remove-sign"></i></a> </td>
-            </tr> -->
-  </div>
+    </div>
 

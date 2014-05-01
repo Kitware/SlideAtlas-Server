@@ -1,7 +1,5 @@
-     
-    <div ng-repeat {{sessions }} 
-         Total Records : {{sessions.length }}
-         <session-view />
-        }
-  <session-view>
-     
+
+<div>      
+    Total Records :  {{sessions.length}}
+    <session-view ng-repeat="asession in sessions track by $index" session="asession"> </session-view>
+</div>
