@@ -149,7 +149,7 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
+                        animage.tile_size = reader.tile_width
                         animage.CoordinateSystem = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
                         newimage = True
@@ -158,7 +158,7 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
+                        animage.tile_size= reader.tile_width
                         animage.CoordinateSystem = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
@@ -220,10 +220,12 @@ class PtiffTileStore(Database):
             View.drop_collection()
             Image.drop_collection()
             try :
-                asses = Session.objects.get(name="All")
-                asess.delete()
+                asess = Session.objects.get(name="All")
             except:
-                pass
+                asess = None
+
+            if asess:
+                asess.delete()
 
         # Wipes all the images 
         return self.sync(resync=True)
