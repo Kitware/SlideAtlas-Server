@@ -108,11 +108,8 @@ class Image(MultipleDatabaseModelDocument):
     spacing = ListField(FloatField(), required=False,
         verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown', default=[1.,1.,1.])
 
-    dimensions = ListField(IntField(), required=False,
-        verbose_name='Dimensions of image', help_text='', default=[0,0,0])
-
-    dimension = ListField(IntField(), required=False,
-        verbose_name='', help_text='size of non-padded region of base layer. Z dimensions is 1 for pyramid2 and stack size for pyramid3 and stack types (x / y / z pixel coords)')
+    dimensions = ListField(IntField(), required=True, default=[0,0,0],
+        verbose_name='Dimensions', help_text='x / y / z dimensions of non-padded region of base layer in pixels. z-dimension is 1 for non-stack images.')
 
     levels = IntField(required=False,
         verbose_name='Levels', help_text='Levels in multiresolution pyramid (specific to pyramid2 and pyrmid3 types)', default=0)

@@ -17,12 +17,6 @@ def jsonifyView(db,dbid,viewid,viewobj):
 
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
 
-    # the official schema says dimension not dimensions. correct the schema later.
-    #if 'dimension' in imgobj:
-    #  imgobj['dimensions'] = imgobj['dimension']
-    #  delete imgobj.dimension
-    #  db["images"].save(imgobj);
-
     img = {}
     img["db"] = dbid
     img["viewid"] = viewid
@@ -32,10 +26,7 @@ def jsonifyView(db,dbid,viewid,viewobj):
     img["levels"] = 1
     if imgobj.has_key("levels") :
       img["levels"] = imgobj["levels"]
-    if 'dimensions' in imgobj:
-      img["dimensions"] = imgobj["dimensions"]
-    elif 'dimension' in imgobj:
-      img["dimensions"] = imgobj["dimension"]
+    img["dimensions"] = imgobj["dimensions"]
     if imgobj.has_key("TileSize") :
       img["TileSize"] = imgobj["TileSize"]
     else :
@@ -108,10 +99,6 @@ def convertImageToPixelCoordinateSystem(imageObj) :
   # origin ?
   # Skip startup view.  GetView handles this old format
 
-  if 'dimensions' in imageObj:
-    imageObj["dimensions"] = imageObj["dimensions"]
-  elif 'dimension' in imageObj:
-    imageObj["dimensions"] = imageObj["dimension"]
   if not imageObj.has_key("bounds") :
     imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
 
@@ -155,10 +142,7 @@ def glcomparison(db, dbid, viewid, viewobj):
     img["origin"] = str(imgobj["origin"])
     img["spacing"] = str(imgobj["spacing"])
     img["levels"] = str(imgobj["levels"])
-    if 'dimension' in imgobj:
-        img["dimension"] = str(imgobj["dimension"])
-    elif 'dimensions' in imgobj:
-        img["dimension"] = str(imgobj["dimensions"])
+    img["dimensions"] = str(imgobj["dimensions"])
     img["center"] = str(bookmarkobj["center"])
     img["rotation"] = str(bookmarkobj["rotation"])
     # hack for flip
@@ -211,10 +195,7 @@ def glcomparison(db, dbid, viewid, viewobj):
             optionImage["origin"] = str(imgobj2["origin"])
             optionImage["spacing"] = str(imgobj2["spacing"])
             optionImage["levels"] = str(imgobj2["levels"])
-            if 'dimension' in imgobj2:
-                optionImage["dimension"] = str(imgobj2["dimension"])
-            elif 'dimensions' in imgobj2:
-                optionImage["dimension"] = str(imgobj2["dimensions"])
+            optionImage["dimensions"] = str(imgobj2["dimensions"])
             optionImages.append(optionImage)
     question["options"] = optionViews;
     question["optionInfo"] = optionImages;
@@ -362,13 +343,6 @@ def glcomparisonoption():
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
-
-    if 'dimension' in imgobj:
-        dim = str(imgobj["dimension"])
-    elif 'dimensions' in imgobj:
-        dim = str(imgobj["dimensions"])
-
-
     # The base view is for the left panel
     data = {
          'success': 1,
@@ -379,7 +353,7 @@ def glcomparisonoption():
          'origin': imgobj["origin"],
          'spacing': imgobj["spacing"],
          'levels': imgobj["levels"],
-         'dimension': dim,
+         'dimensions': str(imgobj["dimensions"]),
          'rotation': bookmarkobj["rotation"]
          }
 
@@ -826,8 +800,6 @@ def addviewimage(viewObj):
         if imgObj.has_key("thumb") :
             imgObj["thumb"] = None
         imgObj["database"] = imgdb
-        if 'dimension' in imgObj:
-            imgObj["dimensions"] = imgObj["dimension"]
         if not imgObj.has_key("bounds") :
           imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
         convertImageToPixelCoordinateSystem(imgObj)
@@ -912,8 +884,6 @@ def getview():
     if imgobj.has_key("thumb") :
         imgobj["thumb"] = None
     imgobj["database"] = imgdb
-    if imgobj.has_key("dimension") :
-        imgobj["dimensions"] = imgobj["dimension"]
     # open layers images are bottom justified.
     paddedHeight = 256 << (imgobj["levels"]-1)
     if not imgobj.has_key("bounds") :
