@@ -206,7 +206,7 @@ function AddComparisonOption(option) {
     info.origin = option.origin;
     info.spacing = option.spacing;
     info.levels = option.levels;
-    info.dimensions = option.dimension;
+    info.dimensions = option.dimensions;
     ARGS.OptionInfo.push(info);
 
     // Unselect any selected items.

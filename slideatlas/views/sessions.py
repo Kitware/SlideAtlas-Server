@@ -367,7 +367,7 @@ def sessionsave():
 
     sessObj.views = newViews
     sessObj.images = newImages
-    sessObj.hideAnnotations = hideAnnotation
+    sessObj.hideAnnotations = bool(hideAnnotation)
     if stack :
       sessObj.type = "stack"
     else :
