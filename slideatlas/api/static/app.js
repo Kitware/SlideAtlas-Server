@@ -24,7 +24,7 @@
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
-        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sessList.html"});
+        $routeProvider.when("/mysessions", {templateUrl: "/apiv1/static/partials/allSessList.html", controller:"AllSessListCtrl"});
 
         $routeProvider.otherwise({ redirectTo: "/databases"});
     });
@@ -132,6 +132,50 @@ app.directive('helloWorld', function () {
         replace : true,
     };
  });
+
+
+app.directive('sessionList', function () {
+    return {
+        restrict : "ECMA",
+        templateUrl: '/apiv1/static/partials/directiveSessList.html',
+        replace : true,
+        link: function(scope, element, attr, ngModel){
+                console.log(scope, element, attr);
+                element.bind("click", function(){
+                    console.log("Need to change the model value but dont know how to yet");
+                })
+            }
+    };
+ });
+
+app.directive('sessionView', function () {
+    return {
+        restrict : "ECMA",
+        template: '<div> <p>Hello World</p> </div>',
+        replace : true,
+        link: function(scope, element, attr, ngModel){
+                console.log(scope, element, attr);
+                element.bind("click", function(){
+                    console.log("Need to change the model value but dont know how to yet");
+                })
+            }
+    };
+ });
+
+
+
+app.controller("AllSessListCtrl", function ($scope, $location, $http) {
+
+    $http({method: "get", url: "/sessions?json=1"}).
+    success(function(data, status) {
+        $scope.roles = data.sessions;
+    }).
+    error(function(data, status) {
+        $scope.roles = [];
+    });
+}); 
+
+
 
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
