@@ -247,7 +247,7 @@
           handleResize();
         }).trigger('resize');
 
-      $.get("./sessions?json=true",
+      $.get("/sessions?json=true",
             function(data,status){
               if (status == "success") {
                 LoadDatabases(data);
@@ -303,7 +303,7 @@
         SELECTED_SESSION = undefined; // delete SELECETED_SESSION
         // Retrieve the database id from one of the sessions.
         db = SELECTED_DATABASE.sessions[0].sessdb;
-        $.get("./webgl-viewer/getimagenames?db="+db,
+        $.get("/webgl-viewer/getimagenames?db="+db,
               function(data,status){
                 if (status == "success") {
                   LoadImages(data);
@@ -311,7 +311,7 @@
               });
       } else {
         SELECTED_SESSION = SELECTED_DATABASE.sessions[idx];
-        $.get("./sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
+        $.get("/sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
               function(data,status){
                 if (status == "success") {
                   LoadSession(data);
