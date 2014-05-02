@@ -96,7 +96,6 @@ def encodeSection(sectionObj) :
 # List of sections (with id, waferName and section)
 @app.route('/getsections')
 def getsections():
-    #pdb.set_trace()
     dbName = request.args.get('db', '')
     collectionName = request.args.get('col', '')
     sectionId = request.args.get('id', None)
@@ -127,7 +126,6 @@ def getsections():
 # Tile that uses database name.
 @app.route('/tile')
 def tile():
-    #pdb.set_trace()
 
     # Get variables
     dbName = request.args.get('db', None)
@@ -146,7 +144,6 @@ def tile():
 # Correlations for section.
 @app.route('/getcorrelations')
 def getcorrelations():
-    #pdb.set_trace()
     dbName = request.args.get('db', '')
     collectionName = request.args.get('col', '')
     wafer = request.args.get('wafer', None)
@@ -172,7 +169,6 @@ def getcorrelations():
 # Remove an object from the database collection.
 @app.route('/removeobject')
 def removeobject():
-    #pdb.set_trace()
     dbName = request.args.get('db', '')
     collectionName = request.args.get('col', '')
     idStr = request.args.get('id', '')

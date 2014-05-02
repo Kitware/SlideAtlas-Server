@@ -480,7 +480,6 @@ def glstacksession():
             pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
-    #pdb.set_trace();
     views = []
     viewIdx = 0
     for view in sessobj.views:
