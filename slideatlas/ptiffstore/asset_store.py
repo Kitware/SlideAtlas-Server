@@ -46,6 +46,7 @@ class PtiffTileStore(Database):
         with self:
             img = Image.objects.get_or_404(id=img)
 
+        tilesize = img.tile_size
         tiffpath = os.path.join(self.root_path, img.filename)
 
         [x, y, z] = getcoords(name[:-4])
@@ -56,7 +57,8 @@ class PtiffTileStore(Database):
         # Locate the tilename from x and y
 
         locx = x * 512 + 5
-        locy = y * 512 + 5
+        locx = x * tilesize + 5
+        locy = y * tilesize + 5
 
         fp = StringIO.StringIO()
         r = reader.dump_tile(locx,locy, fp)
