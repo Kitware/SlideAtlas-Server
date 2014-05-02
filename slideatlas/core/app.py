@@ -13,11 +13,13 @@ __all__ = ('create_app',)
 
 
 ################################################################################
-def create_app():
+def create_app(generate_docs=False):
     """
     Create the app and all of its functionality.
 
-    This is the main entry point to
+    :param generate_docs: (optional) Disable certain app functionality that may
+        break when generating documentation.
+
     """
     app = Flask('slideatlas')
 
@@ -31,7 +33,8 @@ def create_app():
     create_blueprints(app)
 
     # do this after site configuration is loaded
-    setup_models(app)
+    if not generate_docs:
+        setup_models(app)
 
     return app
 

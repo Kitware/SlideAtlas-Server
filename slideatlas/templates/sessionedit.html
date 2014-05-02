@@ -214,13 +214,13 @@
 
     var IMAGE_HOVER_LABEL;
     $(document).ready(function(){
-      if ( {{data.hideAnnotations}} ) {
-        $('#hideCheck').attr('checked','checked');
-        hideAnnotation(true);
-      } else {
-        $('#hideCheck').removeAttr('checked');
-        hideAnnotation(false);
-      }
+      {%- if data.hideAnnotations %}
+      $('#hideCheck').attr('checked','checked');
+      hideAnnotation(true);
+      {%- else %}
+      $('#hideCheck').removeAttr('checked');
+      hideAnnotation(false);
+      {%- endif %}
 
       // When the annotations are turned off we have to change the labels of the views.
       $("#hideCheck").change(
@@ -247,7 +247,7 @@
           handleResize();
         }).trigger('resize');
 
-      $.get("./sessions?json=true",
+      $.get("/sessions?json=true",
             function(data,status){
               if (status == "success") {
                 LoadDatabases(data);
@@ -303,7 +303,7 @@
         SELECTED_SESSION = undefined; // delete SELECETED_SESSION
         // Retrieve the database id from one of the sessions.
         db = SELECTED_DATABASE.sessions[0].sessdb;
-        $.get("./webgl-viewer/getimagenames?db="+db,
+        $.get("/webgl-viewer/getimagenames?db="+db,
               function(data,status){
                 if (status == "success") {
                   LoadImages(data);
@@ -311,7 +311,7 @@
               });
       } else {
         SELECTED_SESSION = SELECTED_DATABASE.sessions[idx];
-        $.get("./sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
+        $.get("/sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
               function(data,status){
                 if (status == "success") {
                   LoadSession(data);
@@ -363,7 +363,7 @@
                               .attr("img", data.Images[i]._id)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
-                              .attr("src", "tile?db="+data.Database+"&img="+data.Images[i]._id+"&name=t.jpg")
+                              .attr("src", "/tile?db="+data.Database+"&img="+data.Images[i]._id+"&name=t.jpg")
                               .attr("alt", data.Images[i].label)
                               .hover(function(){
                                        var p = $(this).position();
@@ -392,7 +392,7 @@
                               .attr("img",data.images[i].img)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
-                              .attr("src", "tile?db="+data.images[i].db+"&img="+data.images[i].img+"&name=t.jpg")
+                              .attr("src", "/tile?db="+data.images[i].db+"&img="+data.images[i].img+"&name=t.jpg")
                               .attr("alt", data.images[i].label)
                               .hover(function(){
                                        var p = $(this).position();
@@ -435,7 +435,7 @@
                  .click(function(){deleteView(img);});
       // I am trying to stop the drag effect of the image.  This does not work.
       $('<img>').appendTo(item)
-                .attr("src","tile?db="+db+"&img="+img+"&name=t.jpg")
+                .attr("src","/tile?db="+db+"&img="+img+"&name=t.jpg")
                 .on('dragstart', function(event) {
                   event.preventDefault(); return false;});
       $('<input type="text" class="descriptiveLabel">').appendTo(item).val(label);

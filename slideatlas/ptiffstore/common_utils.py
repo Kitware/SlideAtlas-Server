@@ -9,9 +9,9 @@ def get_max_depth(width, height, tilesize = 256):
     pow = math.log(extent) / math.log(2)
     return int(math.ceil(pow) + 1)
 
-def getcoords(name, tile_size = 256):
+def getcoords(name):
     """
-    The name is always
+    Returns the tile indexes in x, y and zoom
     """
     target = name
     startx = 0

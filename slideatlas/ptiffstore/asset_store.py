@@ -46,6 +46,7 @@ class PtiffTileStore(Database):
         with self:
             img = Image.objects.get_or_404(id=img)
 
+        tilesize = img.tile_size
         tiffpath = os.path.join(self.root_path, img.filename)
 
         [x, y, z] = getcoords(name[:-4])
@@ -56,7 +57,8 @@ class PtiffTileStore(Database):
         # Locate the tilename from x and y
 
         locx = x * 512 + 5
-        locy = y * 512 + 5
+        locx = x * tilesize + 5
+        locy = y * tilesize + 5
 
         fp = StringIO.StringIO()
         r = reader.dump_tile(locx,locy, fp)
@@ -71,9 +73,28 @@ class PtiffTileStore(Database):
     def load_folder(self):
         self.before =   dict ([(f, None) for f in os.listdir (path_to_watch)])
 
-    def sync(self):
+    def _remove_image(self, id):
+        pass
+
+    def _add_image(self, filename):
+        pass
+
+    def sync(self, resync=False):
         """
-        Syncs the objects in mongodb with the
+        Syncs the objects in Image Session and View with the files in given folder.
+
+        Resynchronization
+
+        - Verifies that all images referred in image collection are avaialble in the file store.
+        - Delete any images that are missing along with any views and session entries that depend on it.
+        - Finds out new files are not yet added to the store
+        - Creates a view for these in "All" session
+        - Include the images that are newly added (based on filename / modification date)
+
+        It is assumed that the modification dates to any changes to folder are intact
+
+        A special session All contains 1 view corresponding to each of the image files
+
         """
         # print self.__dict__
 
@@ -113,7 +134,7 @@ class PtiffTileStore(Database):
                 reader.set_input_params({ "fname" : aslide })
                 reader.parse_image_description()
                 logging.info(reader.barcode)
-                newimage = False
+                newimage = resync
                 with self:
                     # Locate the record
                     try:
@@ -130,8 +151,8 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.tile_size = reader.tile_width
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
                         newimage = True
                     else:
@@ -139,19 +160,29 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.tile_size= reader.tile_width
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
                     animage.save()
 
                     if newimage:
                         # Also insert in the session
-
                         # Determine the session
                         with self:
                             # Find the session
+                            # Find the view and delete if found
+                            views  = View.objects(image=animage.id)
+                            for aview in views:
+                                aview.delete()
 
+                                idx = []
+                                # Delete view from session
+                                for i in range(len(sess.views)):
+                                    if sess.views[i].ref == aview.id:
+                                        logger.error("To Remove: %s"%(sess.views[i].ref))
+                                        idx.append(i)
+                                logger.error("Total: %s"%(str(i)))
                             aview = View(img=animage.id)
                             aview.save()
 
@@ -168,7 +199,11 @@ class PtiffTileStore(Database):
 
             else:
                 logging.info("Is good: %s"%(aslide))
-        sess.save()
+
+        with self:
+            sess.save()
+            print sess.__dict__
+
         resp["count"] = count
         resp["synced"] = synced
         resp["images"] = images
@@ -182,22 +217,34 @@ class PtiffTileStore(Database):
         """
         self.last_sync = datetime.datetime.fromtimestamp(0)
         self.save()
-        return self.sync()
 
+        with self:
+            View.drop_collection()
+            Image.drop_collection()
+            try :
+                asess = Session.objects.get(name="All")
+            except:
+                asess = None
 
-class PhillipsImageMixin(object):
-    """
-    Methods and business logic for ptiff images coming from phillips
-    """
-    pass
+            if asess:
+                asess.delete()
 
-class PhillipsImage(Image, PhillipsImageMixin):
-    """
-    Data models for ptiff images based on mongoengine
-    """
+        # Wipes all the images
+        return self.sync(resync=True)
 
-    barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
-        verbose_name='Barcode', help_text='Bar code string')
+# class PhillipsImageMixin(object):
+#     """
+#     Methods and business logic for ptiff images coming from phillips
+#     """
+#     pass
+
+# class PhillipsImage(Image, PhillipsImageMixin):
+#     """
+#     Data models for ptiff images based on mongoengine
+#     """
+
+#     barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
+#         verbose_name='Barcode', help_text='Bar code string')
 
 
 def test_ptiff_tile_store():
@@ -272,7 +319,8 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
 
     # This is required so that model gets registered
-    from slideatlas import app
+    from slideatlas import create_app
+    app = create_app()
 
     # test_ptiff_tile_store()
     # create_ptiff_store()

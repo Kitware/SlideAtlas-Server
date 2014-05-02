@@ -10,4 +10,5 @@ logging.basicConfig(stream=sys.stderr)
 # os.environ['SLIDEATLAS_CONFIG_PATH'] = ''
 
 sys.path.append('/var/www/wsgi/SlideAtlas-Server')
-from slideatlas import app as application
+from slideatlas import create_app
+application = create_app()

@@ -81,7 +81,7 @@ def upload():
         for file in request.files.getlist('files[]'):
             filename = secure_filename(file.filename)
             print filename
-            file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(current_app.config.get('UPLOAD_FOLDER', "d:/docs"), filename))
             names.append({"name" : filename})
 
 

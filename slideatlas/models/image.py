@@ -93,7 +93,7 @@ class Image(MultipleDatabaseModelDocument):
     """
     meta = {
         'collection': 'images',
-        'allow_inheritance' : True
+        # 'allow_inheritance' : True
     }
 
     filename = StringField(required=False, #TODO: filename with respect to root_path
@@ -102,23 +102,20 @@ class Image(MultipleDatabaseModelDocument):
     label = StringField(required=False, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label for the image')
 
-    origin = ListField(FloatField(), required=False,
-        verbose_name='Origin', help_text='x / y / z world coords (necessary to import NDPA annotations)', default=[0.,0.,0.])
+    origin = ListField(FloatField(), required=False, default=lambda: [0.,0.,0.],
+        verbose_name='Origin', help_text='x / y / z world coords (necessary to import NDPA annotations)')
 
-    spacing = ListField(FloatField(), required=False,
-        verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown', default=[1.,1.,1.])
+    spacing = ListField(FloatField(), required=False, default=lambda: [1.,1.,1.],
+        verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown')
 
-    dimensions = ListField(IntField(), required=False,
-        verbose_name='Dimension', help_text='', default=[0,0,0])
+    dimensions = ListField(IntField(), required=True,
+        verbose_name='Dimensions', help_text='x / y / z dimensions of non-padded region of base layer in pixels. z-dimension is 1 for non-stack images.')
 
-    dimension = ListField(IntField(), required=False,
-        verbose_name='', help_text='size of non-padded region of base layer. Z dimensions is 1 for pyramid2 and stack size for pyramid3 and stack types (x / y / z pixel coords)')
+    levels = IntField(required=False, default=0,
+        verbose_name='Levels', help_text='Levels in multiresolution pyramid (specific to pyramid2 and pyrmid3 types)')
 
-    levels = IntField(required=False,
-        verbose_name='Levels', help_text='Levels in multiresolution pyramid (specific to pyramid2 and pyrmid3 types)', default=0)
-
-    components = IntField(required=False,
-        verbose_name='Components', help_text='', default=3)
+    components = IntField(required=False, default=3,
+        verbose_name='Components', help_text='')
 
     # New fields
 
@@ -128,11 +125,8 @@ class Image(MultipleDatabaseModelDocument):
     tile_size = IntField(required=False, default=256, db_field='TileSize',
         verbose_name='TileSize', help_text='dimensions of each square tile')
 
-    bounds = ListField(IntField(), required=False, default=[0,0,0,0,0,0],
+    bounds = ListField(IntField(), required=False, default=lambda: [0,0,0,0,0,0],
         verbose_name='', help_text='xMin / xMax / yMin / yMax nanometers or "Units" if unknown')
-
-    extents = ListField(IntField(), required=False,
-        verbose_name='Extents (deprecated)', help_text='int (x / y / z start / end pixel coords)')
 
     metadataready = BooleanField(required=False,
         verbose_name='', help_text='')

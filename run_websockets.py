@@ -14,14 +14,16 @@ from bson import BSON
 from bson.binary import Binary
 import pymongo
 import werkzeug.serving
-from slideatlas import app
+from slideatlas import create_app
 from slideatlas import models
+
+app = create_app()
 sockets = Sockets(app)
 
-@sockets.route('/ws') 
-def tile_socket(ws): 
+@sockets.route('/ws')
+def tile_socket(ws):
     tilestore = None
-    while True: 
+    while True:
         message = ws.receive()
         # Wraps entire websocket response, any errors will be reported back
         try:

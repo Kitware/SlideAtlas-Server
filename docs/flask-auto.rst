@@ -5,6 +5,6 @@ Web API Endpoints
 
 TODO: Separate by blueprints here manually
 
-.. autoflask:: slideatlas:app
+.. autoflask:: slideatlas:create_app(generate_docs=True)
     :include-empty-docstring:
     :undoc-endpoints: security.login_shibboleth_handler

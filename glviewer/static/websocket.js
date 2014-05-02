@@ -1,6 +1,7 @@
 // TODO: Make this a singleton module 
 
 // Make bson available
+TILELOADER = "http";
 var BSON = bson().BSON;
 
 // Definition for WebSocketLoader
@@ -41,7 +42,6 @@ function WebSocketLoader(wsuri) {
 			}
 	    // console.log("Got: " + JSON.stringify(resp));
 		};
-        TILELOADER = "websocket"; 
 	}
 	else {
 		TILELOADER = "http";
@@ -50,6 +50,7 @@ function WebSocketLoader(wsuri) {
 
 WebSocketLoader.prototype.OnConnect = function(e) {
     console.log("WebSocketLoader connected ..");
+    TILELOADER = "websocket"; 
 };
 
 WebSocketLoader.prototype.OnClose = function(e) {
