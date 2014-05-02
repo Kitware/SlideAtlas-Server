@@ -10,10 +10,10 @@ from slideatlas.common_utils import jsonify
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
     if 'Type' in viewobj :
-      if viewobj["Type"] == "Note" or viewobj["Type"] == "UserNote":
-        imgid = viewobj["ViewerRecords"][0]["Image"]
+        if viewobj["Type"] == "Note" or viewobj["Type"] == "UserNote":
+            imgid = viewobj["ViewerRecords"][0]["Image"]
     if imgid == 0 :
-      imgid = viewobj["img"]
+        imgid = viewobj["img"]
 
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
 
@@ -25,22 +25,22 @@ def jsonifyView(db,dbid,viewid,viewobj):
     img["spacing"] = imgobj["spacing"]
     img["levels"] = 1
     if imgobj.has_key("levels") :
-      img["levels"] = imgobj["levels"]
+        img["levels"] = imgobj["levels"]
     img["dimensions"] = imgobj["dimensions"]
     if imgobj.has_key("TileSize") :
-      img["TileSize"] = imgobj["TileSize"]
+        img["TileSize"] = imgobj["TileSize"]
     else :
-      img["TileSize"] = 256
+        img["TileSize"] = 256
 
     # I want to change the schema to get rid of this startup bookmark.
     if 'startup_view' in viewobj:
-      bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-      img["center"] = bookmarkobj["center"]
-      img["rotation"] = bookmarkobj["rotation"]
-      if 'zoom' in bookmarkobj:
-        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-      if 'viewHeight' in bookmarkobj:
-        img["viewHeight"] = bookmarkobj["viewHeight"]
+        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+        img["center"] = bookmarkobj["center"]
+        img["rotation"] = bookmarkobj["rotation"]
+        if 'zoom' in bookmarkobj:
+            img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
+        if 'viewHeight' in bookmarkobj:
+            img["viewHeight"] = bookmarkobj["viewHeight"]
 
     return jsonify(img)
 
@@ -51,12 +51,12 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
     val = {}
     val["Bookmarks"] = []
     if 'bookmarks' in viewobj :
-      for bookmarkId in viewobj["bookmarks"] :
-        bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
-        bookmark = bookmarkObj
-        bookmark["_id"] = str(bookmark["_id"])
-        bookmark["img"] = str(bookmark["img"])
-        val["Bookmarks"].append(bookmark)
+        for bookmarkId in viewobj["bookmarks"] :
+            bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
+            bookmark = bookmarkObj
+            bookmark["_id"] = str(bookmark["_id"])
+            bookmark["img"] = str(bookmark["img"])
+            val["Bookmarks"].append(bookmark)
 
     return jsonify(val)
 
@@ -72,56 +72,56 @@ def glnote(db, dbid, viewid, viewobj, edit):
 # Flip the y-axis of a view from origin lower left, to origin upper right.
 # When this is working well, I will apply it to all views in the database.
 def flipAnnotation(annot, paddedHeight) :
-  if annot["type"] == "text" :
-    annot["offset"][1] = -annot["offset"][1] - annot["size"];
-    annot["position"][1] = paddedHeight - annot["position"][1]
-  if annot["type"] == "circle" :
-    annot["origin"][1] = paddedHeight - annot["origin"][1]
-  if annot["type"] == "polyline" :
-    for point in annot["points"] :
-      point[1] = paddedHeight - point[1]
-  if annot["type"] == "pencil" :
-    for shape in annot["shapes"] :
-      for point in shape :
-        point[1] = paddedHeight - point[1]
+    if annot["type"] == "text" :
+        annot["offset"][1] = -annot["offset"][1] - annot["size"]
+        annot["position"][1] = paddedHeight - annot["position"][1]
+    if annot["type"] == "circle" :
+        annot["origin"][1] = paddedHeight - annot["origin"][1]
+    if annot["type"] == "polyline" :
+        for point in annot["points"] :
+            point[1] = paddedHeight - point[1]
+    if annot["type"] == "pencil" :
+        for shape in annot["shapes"] :
+            for point in shape :
+                point[1] = paddedHeight - point[1]
 
 
 
 def flipViewerRecord(viewerRecord) :
-  paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
-  viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
-  viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
-  if viewerRecord.has_key("Annotations") :
-    for annotation in viewerRecord["Annotations"] :
-      flipAnnotation(annotation, paddedHeight)
+    paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
+    viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
+    viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
+    if viewerRecord.has_key("Annotations") :
+        for annotation in viewerRecord["Annotations"] :
+            flipAnnotation(annotation, paddedHeight)
 
 def convertImageToPixelCoordinateSystem(imageObj) :
-  # origin ?
-  # Skip startup view.  GetView handles this old format
+    # origin ?
+    # Skip startup view.  GetView handles this old format
 
-  if not imageObj.has_key("bounds") :
-    imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
+    if not imageObj.has_key("bounds") :
+        imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
 
-  if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Pixel" :
-    return
-  # the only other option is "Photo", lower left origin.
-  if imageObj.has_key("bounds") :
-    # tile dimension should be stored in image schema
-    paddedHeight = 256 << (imageObj["levels"] - 1)
-    tmp = imageObj["bounds"][2]
-    imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
-    imageObj["bounds"][3] = paddedHeight-tmp
-    imageObj["CoordinateSystem"] = "Pixel"
+    if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Pixel" :
+        return
+    # the only other option is "Photo", lower left origin.
+    if imageObj.has_key("bounds") :
+        # tile dimension should be stored in image schema
+        paddedHeight = 256 << (imageObj["levels"] - 1)
+        tmp = imageObj["bounds"][2]
+        imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
+        imageObj["bounds"][3] = paddedHeight-tmp
+        imageObj["CoordinateSystem"] = "Pixel"
 
 def convertViewToPixelCoordinateSystem(viewObj) :
-  if viewObj.has_key("Children") :
-    for child in viewObj["Children"] :
-      convertViewToPixelCoordinateSystem(child)
-  if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Pixel" :
-    return;
-  for record in viewObj["ViewerRecords"] :
-    flipViewerRecord(record)
-  viewObj["CoordinateSystem"] = "Pixel"
+    if viewObj.has_key("Children") :
+        for child in viewObj["Children"] :
+            convertViewToPixelCoordinateSystem(child)
+    if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Pixel" :
+        return
+    for record in viewObj["ViewerRecords"] :
+        flipViewerRecord(record)
+    viewObj["CoordinateSystem"] = "Pixel"
 
 # For depreciated content.
 def glcomparison(db, dbid, viewid, viewobj):
@@ -161,10 +161,10 @@ def glcomparison(db, dbid, viewid, viewobj):
                 if annotation["type"] == "text" :
                     annotation["string"] = annotation["string"].replace("\n", "\\n")
                     annotations.append(annotation)
-    img["annotations"] = annotations;
+    img["annotations"] = annotations
 
     question = {}
-    question["viewer1"] = img;
+    question["viewer1"] = img
 
     # now create a list of options.
     # this array will get saved back into the view
@@ -191,14 +191,14 @@ def glcomparison(db, dbid, viewid, viewobj):
             optionView["paddedHeight"] = 256 << (imgobj2["levels"] - 1)
             # Start of the info object
             optionImage = {}
-            optionImage["paddedHeight"] = optionView["paddedHeight"];
+            optionImage["paddedHeight"] = optionView["paddedHeight"]
             optionImage["origin"] = str(imgobj2["origin"])
             optionImage["spacing"] = str(imgobj2["spacing"])
             optionImage["levels"] = str(imgobj2["levels"])
             optionImage["dimensions"] = str(imgobj2["dimensions"])
             optionImages.append(optionImage)
-    question["options"] = optionViews;
-    question["optionInfo"] = optionImages;
+    question["options"] = optionViews
+    question["optionInfo"] = optionImages
 
     return make_response(render_template('comparison.html', question=question))
 
@@ -234,22 +234,22 @@ def glview():
     admindb = models.Database._get_db()
     db = admindb
     if dbid :
-      database = models.Database.objects.with_id(dbid)
-      db = database.to_pymongo()
+        database = models.Database.objects.with_id(dbid)
+        db = database.to_pymongo()
 
     if viewid :
-      viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-      if ajax:
-        return jsonifyView(db,dbid,viewid,viewobj);
-      if bookmarks:
-        return jsonifyBookmarks(db,dbid,viewid,viewobj);
+        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        if ajax:
+            return jsonifyView(db,dbid,viewid,viewobj)
+        if bookmarks:
+            return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
-      # This will be the only path in the future. Everything else is legacy.
-      if 'type' in viewobj:
-        if viewobj["type"] == "comparison" :
-          return glcomparison(db,dbid,viewid,viewobj)
-      # default
-      return glnote(db,dbid,viewid,viewobj,edit)
+        # This will be the only path in the future. Everything else is legacy.
+        if 'type' in viewobj:
+            if viewobj["type"] == "comparison" :
+                return glcomparison(db,dbid,viewid,viewobj)
+        # default
+        return glnote(db,dbid,viewid,viewobj,edit)
 
 
 @mod.route('/bookmark')
@@ -281,18 +281,18 @@ def bookmark():
     db = models.Database.objects.get_or_404(id=dbid).to_pymongo()
 
     if viewid :
-      viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-      if ajax:
-        return jsonifyView(db,dbid,viewid,viewobj);
-      if bookmarks:
-        return jsonifyBookmarks(db,dbid,viewid,viewobj);
+        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        if ajax:
+            return jsonifyView(db,dbid,viewid,viewobj)
+        if bookmarks:
+            return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
       # This will be the only path in the future. Everything else is legacy.
-      if 'type' in viewobj:
-        if viewobj["type"] == "comparison" :
-          return glcomparison(db,dbid,viewid,viewobj)
-      # default
-      return glnote(db,dbid,viewid,viewobj,edit)
+        if 'type' in viewobj:
+            if viewobj["type"] == "comparison" :
+                return glcomparison(db,dbid,viewid,viewobj)
+        # default
+        return glnote(db,dbid,viewid,viewobj,edit)
 
 
 # get all the children notes for a parent (authored by a specific user).
@@ -310,14 +310,14 @@ def getchildnotes():
     notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
                                     "User" :     user})
     # make a new structure to return.  Convert the ids to strings.
-    noteArray = [];
+    noteArray = []
     for note in notecursor:
-      note["Id"] = str(note["_id"])
-      note["_id"] = None
-      note["ParentId"] = str(note["ParentId"])
-      noteArray.append(note)
+        note["Id"] = str(note["_id"])
+        note["_id"] = None
+        note["ParentId"] = str(note["ParentId"])
+        noteArray.append(note)
 
-    data = {};
+    data = {}
     data["Notes"] = noteArray
 
     return jsonify(data)
@@ -404,9 +404,9 @@ def glcomparisonsave():
 
                                      # may or may not work
         #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
-        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
-        #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
+        #bookmarkobj["center"] = inputStr["Viewer1"]["center"]
+        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"]
+        #bookmarkobj["height"] = inputStr["Viewer1"]["height"]
         #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
 
     return operation
@@ -480,9 +480,9 @@ def glstacksession():
             pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
-    views = [];
-    viewIdx = 0;
     #pdb.set_trace();
+    views = []
+    viewIdx = 0
     for view in sessobj.views:
         viewobj = db["views"].find_one({"_id" : view.ref})
         imgdb = dbid
@@ -534,7 +534,7 @@ def glstacksession():
 
         myview["img"] = myimg
         views.append(myview)
-        viewIdx += 1;
+        viewIdx += 1
 
     for pair in sessobj.transformations:
         if 'View0' in pair:
@@ -601,7 +601,7 @@ def glstackinsert():
     with database:
         session = models.Session.objects.first(name='RenalStack')
     section = models.RefItem(ref=view_id)
-    session.views.append(section);
+    session.views.append(section)
     session.save()
 
     return "Success"
@@ -638,9 +638,9 @@ def glsaveview():
 
                                      # may or may not work
         #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmarkobj["center"] = inputStr["Viewer1"]["center"];
-        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"];
-        #bookmarkobj["height"] = inputStr["Viewer1"]["height"];
+        #bookmarkobj["center"] = inputStr["Viewer1"]["center"]
+        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"]
+        #bookmarkobj["height"] = inputStr["Viewer1"]["height"]
         #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
 
     return operation
@@ -712,7 +712,7 @@ def getcomment():
     comment = db["comments"].find_one({"_id": ObjectId(commentid) })
 
     if comment:
-      comment["_id"] = str(comment["_id"])
+        comment["_id"] = str(comment["_id"])
 
     return jsonify(comment)
 
@@ -730,7 +730,7 @@ def saveusernote():
     # Saving notes in admin db now.
     admindb = models.Database._get_db()
 
-    noteId = admindb["views"].save(note);
+    noteId = admindb["views"].save(note)
     return str(noteId)
 
 # Save the note in a "notes" session.
@@ -744,7 +744,7 @@ def saveusernote():
 
 
 def recursiveSetUser(note, user):
-    note["user"] = user;
+    note["user"] = user
     if 'Children ' in note:
         for child in note["Children"]:
             recursiveSetUser(child, user)
@@ -757,7 +757,7 @@ def saveviewnotes():
     dbid    = request.form['db']  # for post
     viewId  = request.form['view']
     noteObj = request.form['note']
-    note    = json.loads(noteObj);
+    note    = json.loads(noteObj)
 
     database = models.Database.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
@@ -766,7 +766,7 @@ def saveviewnotes():
     # I think I will just try to retreive the user from the "Save Note" method.
     email = security.current_user.email
 
-    recursiveSetUser(note, email);
+    recursiveSetUser(note, email)
 
     # the root note is the view
 
@@ -780,7 +780,7 @@ def saveviewnotes():
     #                   { "$set" : { "notes" : notes } })
     db["views"].save(note)
 
-    return str(viewId);
+    return str(viewId)
 
 # Replace the image reference with an image object.
 def addviewimage(viewObj):
@@ -801,7 +801,7 @@ def addviewimage(viewObj):
             imgObj["thumb"] = None
         imgObj["database"] = imgdb
         if not imgObj.has_key("bounds") :
-          imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
+            imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
         convertImageToPixelCoordinateSystem(imgObj)
         record["Image"] = imgObj
 
@@ -820,10 +820,10 @@ def getimagenames():
     imgItr = db["images"].find({}, {"label":1})
     imgArray = []
     for img in imgItr:
-      img["_id"] = str(img["_id"])
-      imgArray.append(img)
+        img["_id"] = str(img["_id"])
+        imgArray.append(img)
 
-    data = {};
+    data = {}
     data["Database"] = dbid
     data["Images"] = imgArray
     return jsonify(data)
@@ -854,7 +854,7 @@ def getview():
     viewObj["Id"] = viewid
     # Right now, only notes use "Type"
     if "Type" in viewObj :
-        viewObj["_id"] = str(viewObj["_id"]);
+        viewObj["_id"] = str(viewObj["_id"])
         addviewimage(viewObj)
         if hideAnnotations :
             # use a cryptic label
@@ -935,7 +935,7 @@ def getview():
                 question["Title"] = "Question"
                 question["Text"] = ""
                 question["Type"] = "Bookmark"
-                question["Id"] = str(bookmark["_id"]);
+                question["Id"] = str(bookmark["_id"])
                 question["ParentId"] = viewid
                 vrq = {}
                 vrq["AnnotationVisibility"] = 1
@@ -948,13 +948,13 @@ def getview():
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vrq["Camera"] = cam
-                annot = {};
+                annot = {}
                 annot["type"] = "text"
                 # colors are wrong
                 #annot["color"] = bookmark["annotation"]["color"]
                 annot["color"] = "#1030FF"
                 annot["size"] = 30
-                annot["position"] = bookmark["annotation"]["points"][0];
+                annot["position"] = bookmark["annotation"]["points"][0]
                 annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
                                    bookmark["annotation"]["points"][1][1]-annot["position"][1]]
                 # flip y axis
@@ -1011,7 +1011,7 @@ def getview():
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vrq["Camera"] = cam
-                annot = {};
+                annot = {}
                 annot["type"] = "circle"
                 annot["color"] = bookmark["annotation"]["color"]
                 annot["outlinecolor"] = bookmark["annotation"]["color"]
@@ -1026,7 +1026,7 @@ def getview():
                     annot["radius"] = 1000.0
                 annot["linewidth"] = annot["radius"] / 20
 
-                vr["Annotations"] = [annot];
+                vr["Annotations"] = [annot]
                 note["ViewerRecords"] = [vr]
                 children.append(note)
 
@@ -1056,8 +1056,8 @@ def fixjustification():
     imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
     #imgObj["CoordinateSystem"] = "Pixel"
     #imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
-    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2;
-    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2;
+    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2
+    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2
     imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
 
     db["images"].save(imgObj)
