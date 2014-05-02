@@ -33,4 +33,4 @@ def tile():
         return flask.Response(imgdata, mimetype="image/jpeg")
     except Exception as e:
         logger.error("Tile not loaded: %s"%(e.message))
-        return flask.Response("{\"error\" : \"Tile loading error: %s\"}"%(e.message), status=405)
+        return flask.Response("{\"error\" : \"Tile loading error: %s\"}"%(e.message), status=404)
