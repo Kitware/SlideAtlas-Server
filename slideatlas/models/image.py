@@ -128,9 +128,6 @@ class Image(MultipleDatabaseModelDocument):
     bounds = ListField(IntField(), required=False, default=lambda: [0,0,0,0,0,0],
         verbose_name='', help_text='xMin / xMax / yMin / yMax nanometers or "Units" if unknown')
 
-    extents = ListField(IntField(), required=False,
-        verbose_name='Extents (deprecated)', help_text='int (x / y / z start / end pixel coords)')
-
     metadataready = BooleanField(required=False,
         verbose_name='', help_text='')
 
