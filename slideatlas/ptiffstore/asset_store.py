@@ -81,14 +81,14 @@ class PtiffTileStore(Database):
         """
         Syncs the objects in Image Session and View with the files in given folder.
 
-        Resynchronization 
+        Resynchronization
 
         - Verifies that all images referred in image collection are avaialble in the file store.
         - Delete any images that are missing along with any views and session entries that depend on it.
         - Finds out new files are not yet added to the store
         - Creates a view for these in "All" session
         - Include the images that are newly added (based on filename / modification date)
-        
+
         It is assumed that the modification dates to any changes to folder are intact
 
         A special session All contains 1 view corresponding to each of the image files
@@ -169,7 +169,7 @@ class PtiffTileStore(Database):
                         # Determine the session
                         with self:
                             # Find the session
-                            # Find the view and delete if found 
+                            # Find the view and delete if found
                             views  = View.objects(image=animage.id)
                             for aview in views:
                                 aview.delete()
@@ -197,7 +197,7 @@ class PtiffTileStore(Database):
 
             else:
                 logging.info("Is good: %s"%(aslide))
-        
+
         with self:
             sess.save()
             print sess.__dict__
@@ -227,7 +227,7 @@ class PtiffTileStore(Database):
             if asess:
                 asess.delete()
 
-        # Wipes all the images 
+        # Wipes all the images
         return self.sync(resync=True)
 
 # class PhillipsImageMixin(object):
