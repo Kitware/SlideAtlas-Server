@@ -152,7 +152,7 @@ class PtiffTileStore(Database):
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                         animage.tile_size = reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
                         newimage = True
                     else:
@@ -161,7 +161,7 @@ class PtiffTileStore(Database):
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                         animage.tile_size= reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
                     animage.save()
