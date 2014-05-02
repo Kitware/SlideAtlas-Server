@@ -108,7 +108,7 @@ class Image(MultipleDatabaseModelDocument):
     spacing = ListField(FloatField(), required=False, default=lambda: [1.,1.,1.],
         verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown')
 
-    dimensions = ListField(IntField(), required=True, default=lambda: [0,0,0],
+    dimensions = ListField(IntField(), required=True,
         verbose_name='Dimensions', help_text='x / y / z dimensions of non-padded region of base layer in pixels. z-dimension is 1 for non-stack images.')
 
     levels = IntField(required=False, default=0,
