@@ -35,7 +35,7 @@ function WebSocketLoader(wsuri) {
         			delete that.queue[whichtile];
 			    }
 			} else {
-				console.log("Error in request" + resp);
+                console.log("Error in request" + JSON.stringify(resp));
 				var whichtile = resp["request"]["tile"]["name"];
     			that.queue[whichtile].src = ''; //  + resp["request"]["tile"]["image"]
     			delete that.queue[whichtile];

@@ -24,3 +24,4 @@ gevent==1.0
 gevent-websocket==0.9.3
 Flask-Sockets==0.1
 gunicorn==18.0
+pyzmq==14.2.0
