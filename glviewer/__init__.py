@@ -544,7 +544,7 @@ def glstacksession():
         markup["view"] = str(markup["view"])
 
     return jsonify({"views":views,
-                    "transformations": [transformation.to_mongo() for transformation in sessobj.transformations],
+                    "transformations": sessobj.transformations,
                     "annotations": sessobj.annotations,
                     })
 
