@@ -259,8 +259,39 @@ function saveStack() {
 }
 
 
+// url: "http://localhost:8080/webgl-viewer/stack-save",
+function deleteCorrelation(x, y) {
+    // find the correlation
+    var cam = VIEWER1.GetCamera();
+    var threshold = cam.Height / 50;
+    threshold = threshold*threshold;
+    var transformation = TRANSFORMATIONS[SECTION_INDEX];          
+    var correlations = transformation.Correlations;
+    var bestIdx = -1;
+    var bestDists;
+    for (var i = 0; i < correlations.length; ++i)
+      {
+      var cor = correlations[i];
+      var dx = x-cor.point0[0];
+      var dy = y-cor.point0[1];
+      var dist2 = dx*dx + dy*dy;
+      if (bestIdx < 0 || dist2 < bestDist2) 
+        {
+        bestIdx = i;
+        bestDist2 = dist2;
+        }
+      }
+    if (bestDist2 < threshold) 
+      {
+      transformation.Correlations.splice(bestIdx, 1);
+      alert("Delete: Success");
+      }
+}
 
-  function handleResize() {
+
+
+
+function handleResize() {
     if (GL) {
       var width = CANVAS.innerWidth();
       var height = CANVAS.innerHeight();
@@ -272,10 +303,10 @@ function saveStack() {
         eventuallyRender();
       }
     }
-  };
+};
 
 
-  function initViews() {
+function initViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     VIEWER1 = initView([0,0, width,CANVAS.height]);
@@ -316,10 +347,10 @@ function saveStack() {
     VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
 
     setupCrossHairs();
-  }
+}
 
 
-  function updateSection(inc) {
+function updateSection(inc) {
     var newIdx = SECTION_INDEX + inc;
 
     if (newIdx < 0 || newIdx >= SECTIONS.length) {
@@ -383,7 +414,7 @@ function saveStack() {
         }
     }
     eventuallyRender();
-  }
+}
 
 var FeatureChainEndCross;
 var FeatureChainEndIndex;
@@ -484,6 +515,9 @@ function FeatureChainAdd(x,y) {
         if (event.keyCode == 34 || event.keyCode == 32
                                 || event.keyCode == 39) { // page down or space
             updateSection(1);
+        }
+        if (event.keyCode == 46) { // delete
+            if (EDIT_R) { deleteCorrelation(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY);}
         }
         if (event.keyCode == 83) { // 's'
             if (EDIT_R) { saveStack();}

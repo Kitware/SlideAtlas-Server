@@ -568,7 +568,7 @@ def glstacksave():
             pair["View0"] = ObjectId(pair["View0"])
             pair["View1"] = ObjectId(pair["View1"])
         # Save the transformations in mongo
-            session.transformations = stackObj["transformations"]
+        session.transformations = stackObj["transformations"]
     if 'annotations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for annotation in stackObj["annotations"]:
