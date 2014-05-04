@@ -49,19 +49,29 @@ PairTransformation.prototype.ForwardTransform = function(pt0) {
         }
     }
 
-    var x = pt0[0] - correlation1.point0[0] + correlation1.point1[0];
-    var y = pt0[1] - correlation1.point0[1] + correlation1.point1[1];
-
     if (this.Correlations.length > 1) {
         // Compute the delta rotation.
         var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
                                 correlation2.point0[1] - correlation1.point0[1]);
         var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
                                 correlation2.point1[1] - correlation1.point1[1]);
-        this.DeltaRotation = (angle1 - angle0) * 180.0 / 3.14159;
+        this.DeltaRotation = (angle1 - angle0);
     }
 
-    return [x,y];
+
+    var x = pt0[0] - correlation1.point0[0];
+    var y = pt0[1] - correlation1.point0[1];
+    var c = Math.cos(this.DeltaRotation);
+    var s = Math.sin(this.DeltaRotation)
+    var rx =  c*x+s*y;
+    var ry = -s*x+c*y;
+
+    rx = correlation1.point1[0] + rx;
+    ry = correlation1.point1[1] + ry;
+
+    this.DeltaRotation = this.DeltaRotation * 180.0 / 3.14159;
+
+    return [rx,ry];
 }
 
 // Nearest neighbor.
@@ -100,8 +110,6 @@ PairTransformation.prototype.ReverseTransform = function(pt1) {
         }
     }
 
-    var x = pt1[0] - correlation1.point1[0] + correlation1.point0[0];
-    var y = pt1[1] - correlation1.point1[1] + correlation1.point0[1];
 
     if (this.Correlations.length > 1) {
       // Compute the delta rotation.
@@ -109,9 +117,26 @@ PairTransformation.prototype.ReverseTransform = function(pt1) {
                               correlation2.point1[1] - correlation1.point1[1]);
       var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
                               correlation2.point0[1] - correlation1.point0[1]);
-      this.DeltaRotation = (angle0 - angle1) * 180.0 / 3.14159;
+      this.DeltaRotation = (angle0 - angle1);
     }
 
-    return [x,y];
+    var x = pt1[0] - correlation1.point1[0] + correlation1.point0[0];
+    var y = pt1[1] - correlation1.point1[1] + correlation1.point0[1];
+
+
+    var x = pt1[0] - correlation1.point1[0];
+    var y = pt1[1] - correlation1.point1[1];
+    var c = Math.cos(this.DeltaRotation);
+    var s = Math.sin(this.DeltaRotation)
+    var rx =  c*x+s*y;
+    var ry = -s*x+c*y;
+
+    rx = correlation1.point0[0] + rx;
+    ry = correlation1.point0[1] + ry;
+
+    this.DeltaRotation = this.DeltaRotation * 180.0 / 3.14159;
+
+    return [rx,ry];
+
 }
 
