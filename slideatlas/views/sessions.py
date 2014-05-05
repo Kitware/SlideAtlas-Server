@@ -295,11 +295,11 @@ def sessionsave():
     for viewData in views:
         viewId = None
         if "view" in viewData :
-            viewId = viewData["view"]
+            viewId = ObjectId(viewData["view"])
         # Look for matching old views in new session
         found = False
         for index, view in enumerate(oldViews):
-            if str(view.ref) == viewId :
+            if view.ref == viewId :
                 # found one.  Copy it over.
                 found = True
                 # switch over to the new list.
@@ -318,10 +318,10 @@ def sessionsave():
                 # have to save the view, (Title might have changed.)
                 view.ref = db["views"].save(viewObj);
                 if "img" in viewObj :
-                    image.ref = viewObj["img"]
+                    image.ref = ObjectId(viewObj["img"])
                 else :
                     # assume view has type note.
-                    image.ref = viewObj["ViewerRecords"][0]["Image"]
+                    image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"]["_id"])
                 newImages.append(image)
         if not found :
             if not viewId :
