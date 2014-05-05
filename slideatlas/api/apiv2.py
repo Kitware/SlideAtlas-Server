@@ -21,9 +21,6 @@ mod = Blueprint('apiv2', __name__,
 
 ################################################################################
 class API(MethodView):
-    decorators = [security.login_required]
-    # TODO: Consider 403 Forbidden instead of 401 Unauthorized if user is already
-    #    logged in
     pass
 
 
@@ -63,6 +60,7 @@ class DatabaseListAPI(ListAPI):
 
 
 class DatabaseItemAPI(ItemAPI):
+    @security.AdminDatabasePermission.protected
     def get(self, database):
         return jsonify(databases=[database.to_son(exclude_fields=('username', 'password', 'auth_db'))])
 
@@ -78,10 +76,8 @@ class DatabaseItemAPI(ItemAPI):
 
 ################################################################################
 class RoleListAPI(ListAPI):
+    @security.AdminSitePermission.protected
     def get(self):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         filter_type = request.args.get('type')
         if filter_type == 'group':
             roles = models.GroupRole.objects
@@ -110,10 +106,8 @@ class RoleListAPI(ListAPI):
         roles = [role.to_son(exclude_fields=('can_see', 'can_see_all', 'db_admin', 'site_admin')) for role in roles]
         return jsonify(roles=roles)
 
+    @security.AdminSitePermission.protected
     def post(self):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         request_args = request.args.to_json()
         if ('users' in request_args) and ('create_group' in request_args):
             abort(400)  # Bad Request
@@ -186,10 +180,8 @@ class RoleListAPI(ListAPI):
 
 
 class RoleItemAPI(ItemAPI):
+    @security.AdminSitePermission.protected
     def get(self, role):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         return jsonify(roles=[role.to_son()])
 
     def put(self, role):
@@ -204,10 +196,8 @@ class RoleItemAPI(ItemAPI):
 
 ################################################################################
 class UserListAPI(ListAPI):
+    @security.AdminSitePermission.protected
     def get(self):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         users = models.User.objects
         return jsonify(users=users.to_son(only_fields=('full_name', 'email')))
 
@@ -216,10 +206,8 @@ class UserListAPI(ListAPI):
 
 
 class UserItemAPI(ItemAPI):
+    @security.AdminSitePermission.protected
     def get(self, user):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'))
 
         user_son['roles'] = {
@@ -251,10 +239,8 @@ class UserRoleItemAPI(ItemAPI):
     def get(self, user):
         abort(501)  # Not Implemented
 
+    @security.AdminSitePermission.protected
     def put(self, user, role):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         if isinstance(role, models.UserRole):
             abort(409)  # Conflict
 
@@ -269,10 +255,8 @@ class UserRoleItemAPI(ItemAPI):
     def patch(self, user, role):
         abort(405)  # Method Not Allowed
 
+    @security.AdminSitePermission.protected
     def delete(self, user, role):
-        if not security.current_user.can_admin_site():
-            abort(401)  # Unauthorized
-
         if isinstance(role, models.UserRole):
             abort(409)  # Conflict
 
@@ -286,10 +270,10 @@ class UserRoleItemAPI(ItemAPI):
 
 ################################################################################
 class SessionListAPI(ListAPI):
+    @security.AdminDatabasePermission.protected
     def get(self, database):
-        # currently, session administrative access is all-or-nothing on the database level
-        if not security.current_user.can_admin_database(database):
-            abort(401)  # Unauthorized
+        # TODO: currently, session administrative access is all-or-nothing on
+        #   the database level, but it should be made granular
 
         only_fields=('name', 'label', 'type')
 
@@ -303,11 +287,8 @@ class SessionListAPI(ListAPI):
 
 
 class SessionItemAPI(ItemAPI):
+    @security.AdminDatabasePermission.protected
     def get(self, database, session):
-        if not security.current_user.can_admin_database(database):
-            abort(401)  # Unauthorized
-
-
         with database:
             image_only_fields = ('name', 'label', 'type', 'filename')
             image_ids = [image_ref.ref for image_ref in session.images]
@@ -368,16 +349,13 @@ class SessionAttachmentListAPI(ListAPI):
             })
         return attachments
 
+    @security.ViewSessionPermission.protected
     def get(self, database, session):
-        if not security.current_user.can_admin_database(database):
-            abort(401)  # Unauthorized
-
         attachments = self._get(database, session)
         return jsonify(attachments=attachments)
 
+    @security.AdminSessionPermission.protected
     def post(self, database, session):
-        # if not security.current_user.can_admin_database(database):
-        #     abort(401)  # Unauthorized
         attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
 
         # TODO: chucked uploads
@@ -408,9 +386,8 @@ class SessionAttachmentListAPI(ListAPI):
 
 
 class SessionAttachmentItemAPI(ItemAPI):
+    @security.ViewSessionPermission.protected
     def get(self, database, session, attachment_id):
-        if not security.current_user.can_admin_database(database):
-            abort(401)  # Unauthorized
         attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
 
         # check that the requested attachment is in the session
@@ -461,9 +438,8 @@ class SessionAttachmentItemAPI(ItemAPI):
     def patch(self, database, session, attachment_id):
         abort(405)  # Method Not Allowed
 
+    @security.AdminSessionPermission.protected
     def delete(self, database, session, attachment_id):
-        if not security.current_user.can_admin_database(database):
-            abort(401)  # Unauthorized
         attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
 
         # delete from session
