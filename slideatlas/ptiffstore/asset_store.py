@@ -202,7 +202,7 @@ class PtiffTileStore(Database):
 
         with self:
             sess.save()
-            print sess.__dict__
+            # print sess.__dict__
 
         resp["count"] = count
         resp["synced"] = synced
@@ -266,7 +266,7 @@ def create_ptiff_store():
         copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. \
          All rights reserved.")
 
-    print store.__dict__
+    # print store.__dict__
     store.save()
 
 def test_getlist():
