@@ -108,7 +108,7 @@ class Image(MultipleDatabaseModelDocument):
     spacing = ListField(FloatField(), required=False, default=lambda: [1.,1.,1.],
         verbose_name='Spacing', help_text='x / y / z nanometers/pixel or "1.0" if unknown')
 
-    dimensions = ListField(IntField(), required=True, default=lambda: [0,0,0],
+    dimensions = ListField(IntField(), required=True,
         verbose_name='Dimensions', help_text='x / y / z dimensions of non-padded region of base layer in pixels. z-dimension is 1 for non-stack images.')
 
     levels = IntField(required=False, default=0,
@@ -127,9 +127,6 @@ class Image(MultipleDatabaseModelDocument):
 
     bounds = ListField(IntField(), required=False, default=lambda: [0,0,0,0,0,0],
         verbose_name='', help_text='xMin / xMax / yMin / yMax nanometers or "Units" if unknown')
-
-    extents = ListField(IntField(), required=False,
-        verbose_name='Extents (deprecated)', help_text='int (x / y / z start / end pixel coords)')
 
     metadataready = BooleanField(required=False,
         verbose_name='', help_text='')

@@ -78,18 +78,12 @@ def view_all_sessions():
 
 ################################################################################
 @mod.route('/sessions/<Database:database_obj>/<Session:session_obj>')
+@security.ViewSessionPermission.protected
 def view_a_session(database_obj, session_obj, next=None):
     # TODO: the old code seemed to have a bug where it sliced the 'images' field,
     #  but iterated through the 'views' field; since the template doesn't seem use 'next'
     #  lets not change any behavior yet
     next = int(request.args.get('next', 0))
-
-    # Confirm that the user has access
-    access = any((role.db == database_obj) and (role.db_admin or role.can_see_all or (session_obj.id in role.can_see))
-                 for role in security.current_user.roles)
-    if not access:
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('home'))  # TODO: is this the correct endpoint name?
 
     # this is a pymongo Database that we can use until all models are complete
     db = database_obj.to_pymongo()
@@ -188,6 +182,7 @@ def view_a_session(database_obj, session_obj, next=None):
 
 # change the order of views in the
 @mod.route('/sessions/<Database:database_obj>/<Session:session_obj>/edit')
+@security.AdminSessionPermission.protected
 def sessionedit(database_obj, session_obj):
     db = database_obj.to_pymongo()
 
@@ -280,21 +275,14 @@ def sessionsave():
     database_obj = models.Database.objects.with_id(dbId)
     db = database_obj.to_pymongo()
 
-    email = security.current_user.email
-
-    # TODO: this will never be False, and these don't look like 'email' values
-    admin = True
-    if email == "all_bev1_admin" :
-        admin = True
-    if email == "all_paul3_admin" :
-        admin = True
-    if not admin :
-        return ""
-
-    # get the session in the database to modify.
     # Todo: if session is undefined, create a new session (copy views when available).
     with database_obj:
         sessObj = models.Session.objects.with_id(sessId)
+
+    security.AdminSessionPermission(sessObj).test()
+
+    email = security.current_user.email
+
     # I am using the label for the annotated title, and name for hidde
     sessObj.label = label
 
@@ -307,11 +295,11 @@ def sessionsave():
     for viewData in views:
         viewId = None
         if "view" in viewData :
-            viewId = viewData["view"]
+            viewId = ObjectId(viewData["view"])
         # Look for matching old views in new session
         found = False
         for index, view in enumerate(oldViews):
-            if str(view.ref) == viewId :
+            if view.ref == viewId :
                 # found one.  Copy it over.
                 found = True
                 # switch over to the new list.
@@ -330,10 +318,10 @@ def sessionsave():
                 # have to save the view, (Title might have changed.)
                 view.ref = db["views"].save(viewObj);
                 if "img" in viewObj :
-                    image.ref = viewObj["img"]
+                    image.ref = ObjectId(viewObj["img"])
                 else :
                     # assume view has type note.
-                    image.ref = viewObj["ViewerRecords"][0]["Image"]
+                    image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"]["_id"])
                 newImages.append(image)
         if not found :
             if not viewId :

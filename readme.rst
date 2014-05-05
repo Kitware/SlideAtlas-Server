@@ -3,7 +3,8 @@ To install dependencies
 
 Requires python 2.7x, and pip.
 
-Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows
+Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows. 
+
 Also please make sure that the python and scripts ("c:/python27/Scripts") are in PATH environment variable.
 
 To install dependencies mentioned in **requirements.txt**
@@ -12,6 +13,34 @@ To install dependencies mentioned in **requirements.txt**
 
    $ pip install -r requirements.txt
 
+
+To build third party dependencies 
+---------------------------------
+
+Third party dependencies / libraries (TPL) are included as submodules.
+
+
+Few packages may be required for compiling on ubunbu 12.04 lts
+
+.. code-block:: none
+
+   $ sudo apt-get install build-essential libjpeg-dev
+
+The procedure to build TPL is as follows 
+
+.. code-block:: none
+
+   $ git submodule update --init 
+   $ cd slideatlas/ptiffstore/tpl/tiff-4.0.3/
+   $ ./configure
+
+Please make sure JPEG support is supported in the configuration. Now build as 
+
+.. code-block:: none
+
+   $ make
+   $ cd ../pylibtiff-read-only
+   $ python setup.py build
 
 To build documentation
 ----------------------

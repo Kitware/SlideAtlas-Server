@@ -46,6 +46,7 @@ class PtiffTileStore(Database):
         with self:
             img = Image.objects.get_or_404(id=img)
 
+        tilesize = img.tile_size
         tiffpath = os.path.join(self.root_path, img.filename)
 
         [x, y, z] = getcoords(name[:-4])
@@ -56,7 +57,8 @@ class PtiffTileStore(Database):
         # Locate the tilename from x and y
 
         locx = x * 512 + 5
-        locy = y * 512 + 5
+        locx = x * tilesize + 5
+        locy = y * tilesize + 5
 
         fp = StringIO.StringIO()
         r = reader.dump_tile(locx,locy, fp)
@@ -81,14 +83,14 @@ class PtiffTileStore(Database):
         """
         Syncs the objects in Image Session and View with the files in given folder.
 
-        Resynchronization 
+        Resynchronization
 
         - Verifies that all images referred in image collection are avaialble in the file store.
         - Delete any images that are missing along with any views and session entries that depend on it.
         - Finds out new files are not yet added to the store
         - Creates a view for these in "All" session
         - Include the images that are newly added (based on filename / modification date)
-        
+
         It is assumed that the modification dates to any changes to folder are intact
 
         A special session All contains 1 view corresponding to each of the image files
@@ -149,8 +151,8 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.tile_size = reader.tile_width
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
                         newimage = True
                     else:
@@ -158,8 +160,8 @@ class PtiffTileStore(Database):
                         animage.label = reader.barcode["str"] + " (" + fname + ")"
                         animage.dimensions = [reader.width, reader.height, 1]
                         animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.TileSize= reader.tile_width
-                        animage.CoordinateSystem = "Pixel"
+                        animage.tile_size= reader.tile_width
+                        animage.coordinate_system = "Pixel"
                         animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
 
                     animage.save()
@@ -169,7 +171,7 @@ class PtiffTileStore(Database):
                         # Determine the session
                         with self:
                             # Find the session
-                            # Find the view and delete if found 
+                            # Find the view and delete if found
                             views  = View.objects(image=animage.id)
                             for aview in views:
                                 aview.delete()
@@ -197,7 +199,7 @@ class PtiffTileStore(Database):
 
             else:
                 logging.info("Is good: %s"%(aslide))
-        
+
         with self:
             sess.save()
             print sess.__dict__
@@ -220,12 +222,14 @@ class PtiffTileStore(Database):
             View.drop_collection()
             Image.drop_collection()
             try :
-                asses = Session.objects.get(name="All")
-                asess.delete()
+                asess = Session.objects.get(name="All")
             except:
-                pass
+                asess = None
 
-        # Wipes all the images 
+            if asess:
+                asess.delete()
+
+        # Wipes all the images
         return self.sync(resync=True)
 
 # class PhillipsImageMixin(object):

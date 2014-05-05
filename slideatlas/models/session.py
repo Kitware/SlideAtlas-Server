@@ -177,5 +177,6 @@ class Session(MultipleDatabaseModelDocument):
     type = StringField(required=False, choices=('stack', 'session'),
         verbose_name='Type', help_text='')
 
-    transformations = ListField(EmbeddedDocumentField(Transformation), required=False,
-        verbose_name='Type', help_text='')
+    # TODO: this should be a 'ListField(EmbeddedDocumentField(Transformation), ..'
+    transformations = ListField(DictField(), required=False,
+        verbose_name='', help_text='')
