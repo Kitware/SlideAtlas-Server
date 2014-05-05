@@ -5,6 +5,7 @@ from flask.ext.mail import Mail
 
 from slideatlas import models
 from . import forms
+from .principal import register_principal
 from .views import add_views
 
 ################################################################################
@@ -29,6 +30,8 @@ def register_with_app(app):
     #   then passing that function to 'security.send_mail_task(<send_mail_func>)' to register it
     #   see https://pythonhosted.org/Flask-Security/customizing.html#emails-with-celery , but we
     #   would not use a decorator
+
+    register_principal(app, security)
 
     add_views(app, blueprint)
 
