@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from bson import ObjectId
 from mongoengine import EmbeddedDocument, BooleanField, DictField,\
     EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField,\
     ListField, ObjectIdField, StringField
@@ -107,6 +108,14 @@ class RefItem(EmbeddedDocument):
     hide = BooleanField(required=False, default=False)
     label = StringField(required=False)
     db = ObjectIdField(required=False)
+
+    def __eq__(self, other):
+        if isinstance(other, ObjectId):
+            return self.ref == other
+        return super(RefItem, self).__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 class RefListField(ListField):

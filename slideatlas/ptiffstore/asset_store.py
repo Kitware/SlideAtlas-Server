@@ -1,25 +1,24 @@
-__author__ = 'dhan'
+# coding=utf-8
 
-import logging
-
-logger = logging.getLogger("slideatlas.ptiffstore")
-import os
+import datetime
 import glob
-import sys
+import logging
+import os
 import StringIO
 
-slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(slideatlaspath)
+from mongoengine import DateTimeField, StringField
 
-import mongoengine
-from slideatlas.models import Image, View
-
-from slideatlas.models import TileStore, Database, Session, RefItem
-import datetime
+from slideatlas.models import Database, Image, RefItem ,Session, TileStore, \
+    View, DoesNotExist, MultipleObjectsReturned
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth
 from common_utils import getcoords
 
+################################################################################
+logger = logging.getLogger("slideatlas.ptiffstore")
+
+
+################################################################################
 class PtiffTileStore(Database):
     """
     The data model for PtiffStore
@@ -27,14 +26,22 @@ class PtiffTileStore(Database):
     Equivalent to images collections
     Should encapsulate entire assetstore, and this being tile specific version of it.
 
-    This generalizaes "databases" collection which should ultimately point to asses collection
+    This generalizes "databases" collection which should ultimately point to asses collection
     with each asset object will have a type = MongoAssetStore if not specified
 
     All sessions are stored in admindb in ptiffsessions and images are stored in ptiffimages
     expects the model to have
     """
-    last_sync = mongoengine.DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
-    root_path = mongoengine.StringField(required=True) #: Path of the folder where the incoming images arrive
+    meta = {
+    }
+
+    last_sync = DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
+
+    root_path = StringField(required=True) #: Path of the folder where the incoming images arrive
+
+    @property
+    def session_name(self):
+        return 'All'
 
 
     def get_tile(self, img, name):
@@ -46,32 +53,34 @@ class PtiffTileStore(Database):
         with self:
             img = Image.objects.get_or_404(id=img)
 
-        tilesize = img.tile_size
-        tiffpath = os.path.join(self.root_path, img.filename)
+        tile_size = img.tile_size
+        tiff_path = os.path.join(self.root_path, img.filename)
 
         [x, y, z] = getcoords(name[:-4])
 
-        reader = make_reader({"fname" : tiffpath, "dir" : img.levels - z -1})
-        logging.log(logging.INFO, "Viewing fname: %s" % (tiffpath))
+        reader = make_reader({
+            'fname': tiff_path,
+            'dir': img.levels - z -1,
+        })
+        logging.info('Viewing fname: %s' % tiff_path)
 
-        # Locate the tilename from x and y
-
-        locx = x * 512 + 5
-        locx = x * tilesize + 5
-        locy = y * tilesize + 5
+        # Locate the tile name from x and y
+        locx = x * tile_size + 5
+        locy = y * tile_size + 5
 
         fp = StringIO.StringIO()
-        r = reader.dump_tile(locx,locy, fp)
+        r = reader.dump_tile(locx, locy, fp)
 
         if r > 0:
-            logging.log(logging.ERROR, "Read %d bytes"%(r))
+            logging.info('Read %d bytes' % r)
         else:
-            raise Exception("Tile not read")
+            raise Exception('Tile not read')
 
         return fp.getvalue()
 
     def load_folder(self):
-        self.before =   dict ([(f, None) for f in os.listdir (path_to_watch)])
+        # TODO: 'path_to_watch' is not defined
+        self.before = dict ((f, None) for f in os.listdir (path_to_watch))
 
     def _remove_image(self, id):
         pass
@@ -85,10 +94,10 @@ class PtiffTileStore(Database):
 
         Resynchronization
 
-        - Verifies that all images referred in image collection are avaialble in the file store.
+        - Verifies that all images referred in image collection are available in the file store.
         - Delete any images that are missing along with any views and session entries that depend on it.
         - Finds out new files are not yet added to the store
-        - Creates a view for these in "All" session
+        - Creates a view for these in 'self.session_name' session
         - Include the images that are newly added (based on filename / modification date)
 
         It is assumed that the modification dates to any changes to folder are intact
@@ -96,154 +105,114 @@ class PtiffTileStore(Database):
         A special session All contains 1 view corresponding to each of the image files
 
         """
-        # print self.__dict__
-
-        resp = {}
-        searchpath = os.path.join(self.root_path, "*.ptif")
-        # logging.info(searchpath)
-        count = 0
-        synced = 0
-        images = []
-
-        session_name = "All"
-
         with self:
             # Find the session
             try:
-                sess = Session.objects(name=session_name)[0]
-            except:
-                sess = None
+                session = Session.objects.get(name=self.session_name)
+            except DoesNotExist:
+                session = Session(name=self.session_name, label=self.session_name)
+            except MultipleObjectsReturned:
+                # TODO: this generally shouldn't happen, but should be handled
+                raise
 
-            if sess == None:
-                sess = Session(name=session_name, label=session_name)
+            updated_images = []
 
+            search_path = os.path.join(self.root_path, '*.ptif')
+            for total_image_count, image_file_path in enumerate(glob.glob(search_path)):
 
-        for aslide in glob.glob(searchpath):
+                m_time = datetime.datetime.fromtimestamp(os.path.getmtime(image_file_path))
+                if self.last_sync < m_time :
+                    logging.warning('Needs refresh: %s' % image_file_path)
 
-            count = count + 1
-            # logging.info("Got %s:"%(aslide))
-            # filestatus =  os.stat(aslide)
-            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(aslide))
-            # logging.info("%s, %s, %s"%(aslide, mtime, self.last_sync))
+                    image_file_name = os.path.basename(image_file_path)
+                    reader = make_reader({
+                        'fname': image_file_path,
+                        'dir': 0,
+                    })
+                    reader.set_input_params({
+                        'fname': image_file_path,
+                    })
+                    reader.parse_image_description()
+                    logging.info(reader.barcode)
 
-            if self.last_sync < mtime :
-                logging.error("Needs refresh: %s"%(aslide))
-
-                fname = os.path.split(aslide)[1]
-                reader = make_reader({"fname" : aslide, "dir" : 0})
-                reader.set_input_params({ "fname" : aslide })
-                reader.parse_image_description()
-                logging.info(reader.barcode)
-                newimage = resync
-                with self:
+                    image_created = False
                     # Locate the record
                     try:
-                        animage = Image.objects(filename=fname)[0]
-                    except:
-                        animage = None
-
-                    if animage == None:
+                        image = Image.objects.get(filename=image_file_name)
+                    except DoesNotExist:
                         # Needs to sync
-                        animage = Image()
-                        logging.log(logging.ERROR, "Reading file: %s" % (fname))
+                        logging.info('Reading file: %s' % image_file_name)
+                        image = Image(filename=image_file_name)
+                        image_created = True
+                    except MultipleObjectsReturned:
+                        # TODO: this generally shouldn't happen, but should be handled
+                        raise
 
-                        animage.filename = fname
-                        animage.label = reader.barcode["str"] + " (" + fname + ")"
-                        animage.dimensions = [reader.width, reader.height, 1]
-                        animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.tile_size = reader.tile_width
-                        animage.coordinate_system = "Pixel"
-                        animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
-                        newimage = True
-                    else:
-                        animage.filename = fname
-                        animage.label = reader.barcode["str"] + " (" + fname + ")"
-                        animage.dimensions = [reader.width, reader.height, 1]
-                        animage.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                        animage.tile_size= reader.tile_width
-                        animage.coordinate_system = "Pixel"
-                        animage.bounds = [0, reader.width-1, 0, reader.height-1, 0,0 ]
+                    image.label = '%s (%s)' % (reader.barcode['str'], image_file_name)
+                    image.dimensions = [reader.width, reader.height, 1]
+                    image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
+                    image.tile_size = reader.tile_width
+                    image.coordinate_system = 'Pixel'
+                    image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
 
-                    animage.save()
+                    image.save()
 
-                    if newimage:
-                        # Also insert in the session
-                        # Determine the session
-                        with self:
-                            # Find the session
-                            # Find the view and delete if found
-                            views  = View.objects(image=animage.id)
-                            for aview in views:
-                                aview.delete()
+                    if image_created or resync:
+                        # find all existing views for the image and delete them
+                        for view in View.objects(image=image.id):
+                            session.views.remove(view.id)
+                            view.delete()
 
-                                idx = []
-                                # Delete view from session
-                                for i in range(len(sess.views)):
-                                    if sess.views[i].ref == aview.id:
-                                        logger.error("To Remove: %s"%(sess.views[i].ref))
-                                        idx.append(i)
-                                logger.error("Total: %s"%(str(i)))
-                            aview = View(img=animage.id)
-                            aview.save()
+                        # create a new view
+                        view = View(image=image.id)
+                        view.save()
+                        session.views.append(RefItem(ref=view.id))
 
-                            sess.views.append(RefItem(ref=aview.id))
+                    updated_images.append(image.to_mongo())
+                else:
+                    logging.info('Is good: %s' % image_file_path)
 
-                    images.append(animage.to_mongo())
-                # logging.info(reader.width)
-                synced = synced + 1
+            session.save()
 
-                # obj = {}
-                # obj["name"] = os.path.split(aslide)[1]
-                # obj["barcode"] = fin.read()
-                # slides.append(obj)
+            resp = {
+                'count': total_image_count,
+                'synced': len(updated_images),
+                'images': updated_images,
+            }
+            self.last_sync = datetime.datetime.now()
+            self.save()
+            return resp
 
-            else:
-                logging.info("Is good: %s"%(aslide))
-
-        with self:
-            sess.save()
-            print sess.__dict__
-
-        resp["count"] = count
-        resp["synced"] = synced
-        resp["images"] = images
-        self.last_sync = datetime.datetime.now()
-        self.save()
-        return resp
 
     def resync(self):
         """
-        May overwrite all the information in that database
+        Delete and recreate all Images, Views, and Sessions.
         """
-        self.last_sync = datetime.datetime.fromtimestamp(0)
+        self.last_sync = datetime.datetime.min
         self.save()
 
         with self:
             View.drop_collection()
             Image.drop_collection()
-            try :
-                asess = Session.objects.get(name="All")
-            except:
-                asess = None
 
-            if asess:
-                asess.delete()
+            Session.objects(name=self.session_name).delete()
 
         # Wipes all the images
         return self.sync(resync=True)
 
-# class PhillipsImageMixin(object):
+
+# class PhilipsImageMixin(object):
 #     """
-#     Methods and business logic for ptiff images coming from phillips
+#     Methods and business logic for ptiff images coming from philips
 #     """
 #     pass
 
-# class PhillipsImage(Image, PhillipsImageMixin):
+# class PhilipsImage(Image, PhilipsImageMixin):
 #     """
 #     Data models for ptiff images based on mongoengine
 #     """
 
-#     barcode = mongoengine.StringField(required=True, #TODO: filename with respect to root_path
+#     barcode = StringField(required=True, #TODO: filename with respect to root_path
 #         verbose_name='Barcode', help_text='Bar code string')
 
 
@@ -262,11 +231,10 @@ def test_modify_store():
 
 def create_ptiff_store():
     store = PtiffTileStore(root_path="/home/dhan/data/phillips",
-        label="Phillips Scanner folder from wsiserver3",
-        copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. \
-         All rights reserved.")
+        label="Philips Scanner folder from wsiserver3",
+        copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.")
 
-    print store.__dict__
+    # print store.__dict__
     store.save()
 
 def test_getlist():
