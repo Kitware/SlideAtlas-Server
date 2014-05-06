@@ -201,13 +201,13 @@ class PtiffTileStore(Database):
         return self.sync(resync=True)
 
 
-# class PhillipsImageMixin(object):
+# class PhilipsImageMixin(object):
 #     """
-#     Methods and business logic for ptiff images coming from phillips
+#     Methods and business logic for ptiff images coming from philips
 #     """
 #     pass
 
-# class PhillipsImage(Image, PhillipsImageMixin):
+# class PhilipsImage(Image, PhilipsImageMixin):
 #     """
 #     Data models for ptiff images based on mongoengine
 #     """
@@ -231,7 +231,7 @@ def test_modify_store():
 
 def create_ptiff_store():
     store = PtiffTileStore(root_path="/home/dhan/data/phillips",
-        label="Phillips Scanner folder from wsiserver3",
+        label="Philips Scanner folder from wsiserver3",
         copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.")
 
     # print store.__dict__
