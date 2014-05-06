@@ -69,7 +69,11 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
 
 <!-- Shapes starting with superclass
 
@@ -250,13 +254,68 @@ function saveStack() {
     url: "/webgl-viewer/stack-save",
     data: {"db": DBID,
            "sess": SESSID,
-           "data" :  JSON.stringify( {"transformations": TRANSFORMATIONS} )},
+           "data" :  JSON.stringify( {"views": VIEWS,
+                                      "transformations": TRANSFORMATIONS })
+          },
+                                      
     success: function(data,status){
        //alert(data + "\nStatus: " + status);
        },
     error: function() { alert( "AJAX - error()" ); },
     });
 }
+
+
+function swapSections() {
+    if (SECTION_INDEX <= 0) { return; }
+    if (SECTION_INDEX > 1)
+      { // transform correlations to point to new image.
+      var t0 = TRANSFORMATIONS[SECTION_INDEX-2];          
+      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
+      // convert the correlations
+      var correlations = t0.Correlations;
+      for (var i = 0; i < correlations.length; ++i)
+        {
+        var cor = correlations[i];
+        cor.point1 = t1.ForwardTransform(cor.point1);
+        }
+      }
+    if (SECTION_INDEX < TRANSFORMATIONS.length)
+      { // transform correlations to point to new image.
+      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
+      var t2 = TRANSFORMATIONS[SECTION_INDEX];          
+      // convert the correlation
+      var correlations = t2.Correlations;
+      for (var i = 0; i < correlations.length; ++i)
+        {
+        var cor = correlations[i];
+        cor.point0 = t1.ReverseTransform(cor.point0);
+        }
+      }
+    
+    var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
+    // convert the correlation (swap points)
+    var correlations = t1.Correlations;
+    for (var i = 0; i < correlations.length; ++i)
+      {
+      var cor = correlations[i];
+      var tmp = cor.point0;
+      cor.point0 = cor.point1;
+      cor.point1 = tmp;
+      }
+
+    // Now swap the section
+    var tmp = VIEWS[SECTION_INDEX];
+    VIEWS[SECTION_INDEX] = VIEWS[SECTION_INDEX-1];
+    VIEWS[SECTION_INDEX-1] = tmp;
+
+    tmp = SECTIONS[SECTION_INDEX];
+    SECTIONS[SECTION_INDEX] = SECTIONS[SECTION_INDEX-1];
+    SECTIONS[SECTION_INDEX-1] = tmp;
+    --SECTION_INDEX;
+    setupCrossHairs();
+}
+
 
 
 // url: "http://localhost:8080/webgl-viewer/stack-save",
@@ -469,7 +528,9 @@ function FeatureChainAdd(x,y) {
 
 
   function draw() {
-    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    if (GL) {
+      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    }
     // This just changes the camera based on the current time.
     VIEWER1.Animate();
     VIEWER1.Draw();
@@ -515,6 +576,10 @@ function FeatureChainAdd(x,y) {
         if (event.keyCode == 34 || event.keyCode == 32
                                 || event.keyCode == 39) { // page down or space
             updateSection(1);
+        }
+        if (event.keyCode == 90) { // z, (backspace is handled by browser) (swap sections)
+            // move the current section back one
+            if (EDIT_R) { swapSections();}
         }
         if (event.keyCode == 46) { // delete
             if (EDIT_R) { deleteCorrelation(EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY);}
@@ -567,27 +632,28 @@ function ToggleAnnotationVisibility() {
 
 
   function webGLStart() {
+    detectMobile();
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
-    if ( ! doesBrowserSupportWebGL(testCanvas)) {
-        return; // WHat to do?  Function provides the alert.
+    // I think the webgl viewer crashes.
+    // Maybe it is the texture leak I have seen in connectome.
+    // Just use the canvas for now.
+    if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
+      initGL(); // Sets CANVAS and GL global variables
+    } else {
+      initGC();
     }
-
-    initGL(); // Sets CANVAS and GL global variables
     EVENT_MANAGER = new EventManager(CANVAS);
-    initShaderPrograms();
-    initOutlineBuffers();
-    initImageTileBuffers();
     initViews();
+
+    if (MOBILE_DEVICE) {
+      MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+    }
 
     $(window).resize(function() {
         handleResize();
     }).trigger('resize');
 
-
-
-    GL.clearColor(0.9, 0.9, 0.9, 1.0);
-    GL.enable(GL.DEPTH_TEST);
 
     CANVAS[0].onmousedown = handleMouseDown;
     // CANVAS[0].ondblclick = handleDoubleClick; // does not detect right button double clicks.
