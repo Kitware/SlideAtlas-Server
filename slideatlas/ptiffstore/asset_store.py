@@ -158,24 +158,14 @@ class PtiffTileStore(Database):
                     image.save()
 
                     if image_created or resync:
-                        # Also insert in the session
-                        # Determine the session
-                        # Find the session
-                        # Find the view and delete if found
-                        views = View.objects(image=image.id)
-                        for view in views:
+                        # find all existing views for the image and delete them
+                        for view in View.objects(image=image.id):
+                            session.views.remove(view.id)
                             view.delete()
 
-                            idx = []
-                            # Delete view from session
-                            for i in range(len(session.views)):
-                                if session.views[i].ref == view.id:
-                                    logger.error('To Remove: %s' % session.views[i].ref)
-                                    idx.append(i)
-                            logger.error('Total: %s' % str(i))
-                        view = View(img=image.id)
+                        # create a new view
+                        view = View(image=image.id)
                         view.save()
-
                         session.views.append(RefItem(ref=view.id))
 
                     updated_images.append(image.to_mongo())
