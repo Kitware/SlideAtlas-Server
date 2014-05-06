@@ -72,7 +72,7 @@ class PtiffTileStore(Database):
         r = reader.dump_tile(locx, locy, fp)
 
         if r > 0:
-            logging.log(logging.ERROR, 'Read %d bytes' % r)
+            logging.info('Read %d bytes' % r)
         else:
             raise Exception('Tile not read')
 
@@ -122,7 +122,7 @@ class PtiffTileStore(Database):
 
                 m_time = datetime.datetime.fromtimestamp(os.path.getmtime(image_file_path))
                 if self.last_sync < m_time :
-                    logging.error('Needs refresh: %s' % image_file_path)
+                    logging.warning('Needs refresh: %s' % image_file_path)
 
                     image_file_name = os.path.basename(image_file_path)
                     reader = make_reader({
@@ -141,7 +141,7 @@ class PtiffTileStore(Database):
                         image = Image.objects.get(filename=image_file_name)
                     except DoesNotExist:
                         # Needs to sync
-                        logging.log(logging.ERROR, 'Reading file: %s' % image_file_name)
+                        logging.info('Reading file: %s' % image_file_name)
                         image = Image(filename=image_file_name)
                         image_created = True
                     except MultipleObjectsReturned:
