@@ -4,7 +4,6 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
-import pdb
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -563,10 +562,7 @@ def glstacksave():
         session = models.Session.objects.get_or_404(id=sessid)
 
     if 'views' in stackObj:
-        i = 0
-        for view in stackObj["views"] :
-            session.views[i].ref = ObjectId(view["_id"])
-            i = i + 1
+        session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
