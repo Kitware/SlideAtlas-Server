@@ -30,7 +30,7 @@ PairTransformation.prototype.ForwardTransform = function(pt0) {
         x = pt0[0] - correlation.point0[0];
         y = pt0[1] - correlation.point0[1];
         var dist = x*x + y*y;
-        if ( ! dist1 || dist < dist1) {
+        if ( dist1 == undefined || dist < dist1) {
             // Save the one we are replacing as second best.
             if (dist1) {
                 dist2 = dist1;
@@ -41,7 +41,7 @@ PairTransformation.prototype.ForwardTransform = function(pt0) {
             correlation1 = correlation;
         } else {
             // We also have to compare the second best.
-            if (! dist2 || dist < dist2) {
+            if ( dist2 == undefined || dist < dist2) {
                 // Save the new second best.
                 dist2 = dist;
                 correlation2 = correlation;
@@ -91,7 +91,7 @@ PairTransformation.prototype.ReverseTransform = function(pt1) {
         x = pt1[0] - correlation.point1[0];
         y = pt1[1] - correlation.point1[1];
         var dist = x*x + y*y;
-        if ( ! dist1 || dist < dist1) {
+        if ( dist1 == undefined || dist < dist1) {
             // Save the one we are replacing as second best.
             if (dist1) {
                 dist2 = dist1;
@@ -102,7 +102,7 @@ PairTransformation.prototype.ReverseTransform = function(pt1) {
             correlation1 = correlation;
         } else {
             // We also have to compare the second best.
-            if ( ! dist2 || dist < dist2) {
+            if ( dist2 == undefined || dist < dist2) {
                 // Save the new second best.
                 dist2 = dist;
                 correlation2 = correlation;
