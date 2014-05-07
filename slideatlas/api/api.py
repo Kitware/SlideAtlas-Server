@@ -334,7 +334,10 @@ class DataSessionsAPI(MethodView):
     def get(self, dbid, sessid=None):
         """
         Gets details of a session if sessid is specified, or gets a list of sessions otherwise
+        Also provides thumbnails if thumb=true in the query string 
         """
+        get_thumbs = bool(request.args.get("thumb","0"))
+
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
@@ -370,7 +373,9 @@ class DataSessionsAPI(MethodView):
                 if type(viewdetails) == type({}):
                     if "img" in viewdetails:
                         # Do not dereference image as yet
-                        imgobj =  datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                        if get_thumb:
+                            thumb = database.get_thumb(viewdetails["img"])
+                            imgobj =  datadb[str()}, { "thumb" : 0})
                         viewdetails["image"] = viewdetails["img"]
                         if imgobj != None:
                             viewdetails["Title"] = imgobj["label"]
@@ -400,6 +405,7 @@ class DataSessionsAPI(MethodView):
             session_response = sessobj.to_mongo()
             session_response['views'] = views_response
             session_response['attachments'] = attachments_response
+
             return jsonify(session_response)
 
 
