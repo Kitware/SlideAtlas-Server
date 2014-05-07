@@ -34,6 +34,11 @@ class ImageStore(ModelDocument):
     def __unicode__(self):
         return unicode(self.label + self.copyright)
 
+    def get_tile(self, image_id, tile_name):
+        # TODO: make this use 'abc.abstractmethod', so that all instantiated
+        # subclasses are forced to implement it
+        raise NotImplementedError()
+
 
 ################################################################################
 class MultipleDatabaseImageStore(ImageStore):
