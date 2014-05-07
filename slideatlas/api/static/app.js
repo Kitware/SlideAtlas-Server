@@ -29,6 +29,14 @@
         $routeProvider.otherwise({ redirectTo: "/databases"});
     });
 
+app.filter('lastclass', function() {
+    return function(text) {
+        text = text || '';
+        var words = text.split('.');
+        return words[words.length -1];
+    };
+});
+
 app.factory('Database', function($resource) {
     return $resource('databases/:dbid', {dbid:'@_id'},
                  {
