@@ -3,19 +3,20 @@
 from mongoengine import StringField
 from mongoengine.connection import get_db
 
-from .common import ModelDocument, MultipleDatabaseModelDocument, \
+from ..common import ModelDocument, MultipleDatabaseModelDocument, \
     register_database
-import session  # again implicit relative import due to circular issues, but we will try to remove this one
+from .. import session  # TODO: try to remove this
 
 ################################################################################
-__all__ = ('TileStore', 'Database')
+__all__ = ('ImageStore',)
 
 # Abstract definitions for asset store
 
-class TileStore(ModelDocument):
-    """
-    Class dealing with endpoints image tiles
 
+################################################################################
+class ImageStore(ModelDocument):
+    """
+    An ImageStore holds image metadata and tiles.
     """
     meta = {
         'db_alias': 'admin_db',
@@ -24,13 +25,42 @@ class TileStore(ModelDocument):
     }
 
     label = StringField(required=True, #TODO: make unique
-        verbose_name='Label', help_text='The human-readable label for the database.')
+        verbose_name='Label', help_text='The human-readable label.')
 
-    copyright = StringField(required=False, default='Copyright &copy 2014, All rights reserved.',
-        verbose_name='Copyright', help_text='The default copyright for content in the database.')
+    copyright = StringField(required=False, default='Copyright &copy 2014. All rights reserved.',
+        verbose_name='Copyright', help_text='The default copyright for content.')
 
     def __unicode__(self):
         return unicode(self.label + self.copyright)
+
+
+################################################################################
+class MultipleDatabaseImageStoreMixin(object):
+    """
+    This contains all fields and logic for any ImageStore with some or all of
+    its data stored in a separate Mongo database.
+
+    Other future types of ImageStore may have all data stored in another system,
+    and would not inherit this class.
+    """
+    host = StringField(required=True, # TODO: change to URLField
+        verbose_name='Host', help_text='The URL of the database\'s host.')
+
+    replica_set = StringField(required=False,
+        verbose_name='Replica Set Name', help_text='The replica set name, if the database is a member of one, or None otherwise.')
+
+    dbname = StringField(required=True,
+        verbose_name='Database Name', help_text='The internal Mongo name of the database.')
+
+    username = StringField(required=False,
+        verbose_name='Username', help_text='The username required to connect to the database.')
+
+    password = StringField(required=False,
+        verbose_name='Password', help_text='The password required to connect to the database.')
+
+    # TODO: remove 'auth_db' in favor of direct login
+    auth_db = StringField(required=False,
+        verbose_name='Authentication Database', help_text='The database to authenticate against.')
 
     @property
     def connection_alias(self):
@@ -76,45 +106,5 @@ class TileStore(ModelDocument):
         AutoReconnect exceptions.
         """
         self.register()
-        # GridFS doesn't accept a MongoProxy, so return the raw object for now
+
         return get_db(self.connection_alias).__dict__['conn']
-
-
-################################################################################
-class Database(TileStore):
-    """
-    TODO: refactor this into MongoTileStore which stores image pyramid in
-    mongodb collection
-    """
-    host = StringField(required=True, # TODO: change to URLField
-        verbose_name='Host', help_text='The URL of the database\'s host.')
-
-    replica_set = StringField(required=False,
-        verbose_name='Replica Set Name', help_text='The replica set name, if the database is a member of one, or None otherwise.')
-
-    dbname = StringField(required=True,
-        verbose_name='Database Name', help_text='The internal Mongo name of the database.')
-
-    username = StringField(required=False,
-        verbose_name='Username', help_text='The username required to connect to the database.')
-
-    password = StringField(required=False,
-        verbose_name='Password', help_text='The password required to connect to the database.')
-
-    auth_db = StringField(required=False,
-        verbose_name='Authentication Database', help_text='The database to authenticate against.')
-
-    def get_tile(self, img, name):
-        """
-        Databases implementation of fetching tile
-        """
-        imgdb = self.to_pymongo()
-        colImage = imgdb[img]
-        docImage = colImage.find_one({'name':name})
-
-        if docImage == None:
-            raise Exception("Tile %s not found in %s"%(name,img))
-
-        return str(docImage['file'])
-
-
