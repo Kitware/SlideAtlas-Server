@@ -258,7 +258,7 @@ class DatabaseAPI(AdminDBAPI):
     #
     #         if restype == "attachments" or restype == "rawfiles":
     #             # Remove from the gridfs
-    #             gf = gridfs.GridFS(datadb.to_pymongo() , restype)
+    #             gf = gridfs.GridFS(datadb.to_pymongo(raw_object=True) , restype)
     #             gf.delete(ObjectId(resid))
     #
     #             # Remove the reference from session
@@ -336,7 +336,7 @@ class DataSessionsAPI(MethodView):
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        datadb = database.to_pymongo()
+        datadb = database.to_pymongo(raw_object=True)
 
         if sessid == None:
             sessionlist = list()
@@ -501,7 +501,7 @@ class DataSessionItemsAPI(MethodView):
             database = self.get_data_db(dbid)
             if database is None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-            datadb = database.to_pymongo()
+            datadb = database.to_pymongo(raw_object=True)
 
             # TODO: This block of code to common and can be abstrated
             with database:
@@ -532,7 +532,7 @@ class DataSessionItemsAPI(MethodView):
             database = self.get_data_db(dbid)
             if database == None:
                 return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-            datadb = database.to_pymongo()
+            datadb = database.to_pymongo(raw_object=True)
 
             with database:
                 sessobj = models.Session.objects.with_id(sessid)
@@ -573,7 +573,7 @@ class DataSessionItemsAPI(MethodView):
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        datadb = database.to_pymongo()
+        datadb = database.to_pymongo(raw_object=True)
         with database:
             sessobj = models.Session.objects.with_id(sessid)
         if sessobj == None:

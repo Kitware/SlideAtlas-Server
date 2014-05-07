@@ -33,7 +33,7 @@ def attachments():
         return redirect('/home')
 
 #    try:
-    gf = gridfs.GridFS(database.to_pymongo() , "attachments")
+    gf = gridfs.GridFS(database.to_pymongo(raw_object=True) , "attachments")
     fileobj = gf.get(ObjectId(attachid))
 #    except:
 #        flash('Error locating file', "error")

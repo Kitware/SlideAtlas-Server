@@ -94,7 +94,7 @@ class MultipleDatabaseImageStoreMixin(object):
             cls._db_alias = self.connection_alias
             cls._collection = None  # clear any cached collection
 
-    def to_pymongo(self):
+    def to_pymongo(self, raw_object=False):
         """"
         [deprecated]
         This is for temporary convenience, as all database access is migrated to models.
@@ -102,9 +102,12 @@ class MultipleDatabaseImageStoreMixin(object):
         This will be removed once the migration is complete, so please don't rely more than
         necessary upon it.
 
-        Note that this returns a raw database object, which does not handle
-        AutoReconnect exceptions.
+        :param raw_object: return a raw database object, which does not handle
+        AutoReconnect exceptions, but is required for GridFS
         """
         self.register()
 
-        return get_db(self.connection_alias).__dict__['conn']
+        database = get_db(self.connection_alias)
+        if raw_object:
+            return database.__dict__['conn']
+        return database
