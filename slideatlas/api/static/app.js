@@ -330,7 +330,7 @@ app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Databa
         );
     });
 
-app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session, SessionItem)
+app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $http)
     {
         // For modifying session as a whole
         // Locate the object
@@ -338,27 +338,46 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         $scope.dbid = $routeParams.dbid
         $scope.sessid = $routeParams.sessid
 
-        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) {
-           $scope.session = data
-           }
-        );
+        $scope.currentPage = 1; //current page
+        $scope.maxSize = 10; //pagination max size
+        $scope.entryLimit = 5; //max rows for data table
+
+        // http://new.slide-atlas.org/apiv1/5074589302e31023d4292d91/sessions/4ecbbc6d0e6f7d7a56000000 
+        $http({method: "get", url: "/apiv1/" + $scope.dbid + "/sessions/" + $scope.sessid}).
+            success(function(data, status) {
+                    $scope.session = data;
+            }).
+            error(function(data, status) {
+                $scope.session = [];
+            });
 
         $scope.deletefile = function(idx)
         {
+        alert("Asked to delete attachment " + JSON.stringify($scope.session.attachments[idx]));
         // Locate the object
-        var attach = $scope.session.attachments[idx]
-        console.log(attach)
-        if (confirm("Remove attachment " + attach.details.name + '?'))
-            {
-            SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref},
-                function(data) {
-                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
-                        {
-                        $scope.session = data
-                        });
-                });
-            }
+        // var attach = $scope.session.attachments[idx]
+        // console.log(attach)
+        // if (confirm("Remove attachment " + attach.details.name + '?'))
+        //     {
+        //     SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref},
+        //         function(data) {
+        //             Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
+        //                 {
+        //                 $scope.session = data
+        //                 });
+        //         });
+        //     }
         }
+
+    // /* init pagination with $scope.list */
+    // $scope.noOfPages = Math.ceil($scope.list.length/$scope.entryLimit);
+    
+    // $scope.$watch('search', function(term) {
+    //     // Create $scope.filtered and then calculat $scope.noOfPages, no racing!
+    //     $scope.filtered = filterFilter($scope.list, term);
+    //     $scope.noOfPages = Math.ceil($scope.filtered.length/$scope.entryLimit);
+    // });
+
     });
 
 /******************************************************************************/

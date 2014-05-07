@@ -13,6 +13,8 @@ from slideatlas import models, security
 from slideatlas.ptiffstore import asset_store
 import re
 import gridfs
+import logging
+logger = logging.getLogger("slideatlas.apiv1")
 
 from bson.binary import Binary
 mod = Blueprint('api', __name__,
@@ -363,16 +365,22 @@ class DataSessionsAPI(MethodView):
             for aview in sessobj.views:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
                 # Viewdetails might not be a view
-                if "img" in viewdetails:
-                    viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
-                else:
-                    if "ViewerRecords" in viewdetails:
-                        viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
+                # logger.error("Type of viewdetails: " + str(type(viewdetails)))
 
-                views_response.append(dict(
-                    details=viewdetails,
-                    **(aview.to_mongo())
-                ))
+                if type(viewdetails) == type({}):
+                    if "img" in viewdetails:
+                        viewdetails["image"] = datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
+                    else:
+                        if "ViewerRecords" in viewdetails:
+                            if type(viewdetails["ViewerRecords"][0]["Image"]) == type({}):
+                                viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]["_id"]
+                            else:
+                                viewdetails["image"] = viewdetails["ViewerRecords"][0]["Image"]
+
+                    views_response.append(dict(
+                        details=viewdetails,
+                        **(aview.to_mongo())
+                    ))
 
             # Dereference the attachments
             attachments_response = []
