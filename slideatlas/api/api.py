@@ -211,7 +211,7 @@ class DatabaseAPI(AdminDBAPI):
                 # Invalid request if the object is not found
                 return Response("{\"error\" : \"Id Not found: %s\"} "%(resid), status=405)
 
-            if obj._cls != "TileStore.Database.PtiffTileStore":
+            if obj._cls != "ImageStore.MultipleDatabaseImageStore.PtiffImageStore":
                 return Response("{\"error\" : \"Sync for %s is not defined\"} "%(obj._cls), status=405)
 
             resp = {}
