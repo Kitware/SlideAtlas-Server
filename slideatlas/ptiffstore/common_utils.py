@@ -44,7 +44,7 @@ def getcoords(name):
 
         # print " "*len(name), target[:len(name)], current, startx, starty
         # print " "*len(name), name , startx, starty
-    return [startx , starty, level]
+    return startx, starty, level
 
 
 
@@ -121,8 +121,8 @@ class Test(unittest.TestCase):
         self.failUnlessEqual(get_tile_name_slideatlas(8,15,5), "tqsttt.jpg")# ['tqsttt', 8, 15]
 
     def test_GetcoordT(self):
-        self.failUnlessEqual(getcoords("t"),[0,0,0])# ['tqsttt', 8, 15]
-        self.failUnlessEqual(getcoords("tt"),[0,1,1])# ['tqsttt', 8, 15]
+        self.failUnlessEqual(getcoords("t"),(0,0,0))# ['tqsttt', 8, 15]
+        self.failUnlessEqual(getcoords("tt"),(0,1,1))# ['tqsttt', 8, 15]
 
 if __name__ == "__main__":
     unittest.main()

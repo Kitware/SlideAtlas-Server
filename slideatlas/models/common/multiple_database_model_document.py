@@ -48,9 +48,8 @@ class MultipleDatabaseModelDocument(ModelDocument):
     def database(self):
         # the import is required here to prevent circular imports
         # TODO: remove this import statement
-        from .. import image_store
-        # TODO: this is really only valid for subclasses of MultipleDatabaseImageStoreMixin
-        return image_store.ImageStore.objects.with_id(self._db_alias)
+        from ..image_store import MultipleDatabaseImageStore
+        return MultipleDatabaseImageStore.objects.with_id(self._db_alias)
 
     @classmethod
     def _get_db(cls):

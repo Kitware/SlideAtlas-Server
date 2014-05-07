@@ -9,7 +9,7 @@ import StringIO
 from mongoengine import DateTimeField, StringField, DoesNotExist, \
     MultipleObjectsReturned
 
-from .image_store import ImageStore, MultipleDatabaseImageStoreMixin
+from .image_store import MultipleDatabaseImageStore
 from ..image import Image
 from ..view import View
 from ..session import Session, RefItem
@@ -19,12 +19,12 @@ from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
 
 
 ################################################################################
-__all__ = ('PtiffImageStore', 'PtiffTileStore')
+__all__ = ('PtiffImageStore',)
 logger = logging.getLogger('slideatlas.ptiffstore')
 
 
 ################################################################################
-class PtiffImageStore(ImageStore, MultipleDatabaseImageStoreMixin):
+class PtiffImageStore(MultipleDatabaseImageStore):
     """
     The data model for PtiffStore
 
@@ -49,39 +49,38 @@ class PtiffImageStore(ImageStore, MultipleDatabaseImageStoreMixin):
         return 'All'
 
 
-    def get_tile(self, img, name):
+    def get_tile(self, image_id, tile_name):
         """
         Function redefinition to get_tile
         Raises exceptions that must be caught by the calling routine
         """
-
         with self:
-            img = Image.objects.get_or_404(id=img)
+            image = Image.objects.get_or_404(id=image_id)
 
-        tile_size = img.tile_size
-        tiff_path = os.path.join(self.root_path, img.filename)
+        tile_size = image.tile_size
+        tiff_path = os.path.join(self.root_path, image.filename)
 
-        [x, y, z] = getcoords(name[:-4])
+        index_x, index_y, index_z = getcoords(tile_name[:-4])
 
         reader = make_reader({
             'fname': tiff_path,
-            'dir': img.levels - z -1,
+            'dir': image.levels - index_z -1,
         })
         logging.info('Viewing fname: %s' % tiff_path)
 
         # Locate the tile name from x and y
-        locx = x * tile_size + 5
-        locy = y * tile_size + 5
+        pixel_x = index_x * tile_size + 5
+        pixel_y = index_y * tile_size + 5
 
-        fp = StringIO.StringIO()
-        r = reader.dump_tile(locx, locy, fp)
+        tile_buffer = StringIO.StringIO()
+        reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
 
-        if r > 0:
-            logging.info('Read %d bytes' % r)
+        if reader_result > 0:
+            logging.info('Read %d bytes' % reader_result)
         else:
             raise Exception('Tile not read')
 
-        return fp.getvalue()
+        return tile_buffer.getvalue()
 
     # def load_folder(self):
     #     # TODO: 'path_to_watch' is not defined
@@ -204,8 +203,3 @@ class PtiffImageStore(ImageStore, MultipleDatabaseImageStoreMixin):
 
         # Wipes all the images
         return self.sync(resync=True)
-
-
-################################################################################
-# TODO: 'Database' is deprecated, but still in lots of existing code
-PtiffTileStore = PtiffImageStore

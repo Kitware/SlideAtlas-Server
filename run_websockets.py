@@ -32,7 +32,7 @@ def tile_socket(ws):
                 """
                 Initialization request
                 """
-                tilestore = models.Database.objects.get(id=req["init"]["db"])
+                tilestore = models.ImageStore.objects.get(id=req["init"]["db"])
                 if tilestore == None:
                     raise Exception("Tile Store %s not found"%(req["init"]["db"]))
                 resp = BSON.encode({"request" : req, "success" : True})

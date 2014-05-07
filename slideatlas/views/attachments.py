@@ -27,7 +27,7 @@ def attachments():
 
     try:
         dbid = ObjectId(db)
-        database = models.Database.objects.get(id=dbid)
+        database = models.ImageStore.objects.get(id=dbid)
     except:
         flash('dbid is not a valid id', "error")
         return redirect('/home')

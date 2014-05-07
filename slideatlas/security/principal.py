@@ -89,7 +89,7 @@ class AdminSessionPermission(Permission, ModelProtectionMixin):
 
 
 class AdminDatabasePermission(Permission, ModelProtectionMixin):
-    model_type = models.Database
+    model_type = models.ImageStore
 
     def __init__(self, database):
         super(AdminDatabasePermission, self).__init__(
