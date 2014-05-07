@@ -9,7 +9,7 @@ import StringIO
 from mongoengine import DateTimeField, StringField, DoesNotExist, \
     MultipleObjectsReturned
 
-from .image_store import ImageStore, MultipleDatabaseImageStoreMixin
+from .image_store import MultipleDatabaseImageStore
 from ..image import Image
 from ..view import View
 from ..session import Session, RefItem
@@ -24,7 +24,7 @@ logger = logging.getLogger('slideatlas.ptiffstore')
 
 
 ################################################################################
-class PtiffImageStore(ImageStore, MultipleDatabaseImageStoreMixin):
+class PtiffImageStore(MultipleDatabaseImageStore):
     """
     The data model for PtiffStore
 

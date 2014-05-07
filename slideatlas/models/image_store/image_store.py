@@ -8,7 +8,7 @@ from ..common import ModelDocument, MultipleDatabaseModelDocument, \
 from .. import session  # TODO: try to remove this
 
 ################################################################################
-__all__ = ('ImageStore',)
+__all__ = ('ImageStore', 'MultipleDatabaseImageStore')
 
 # Abstract definitions for asset store
 
@@ -22,6 +22,7 @@ class ImageStore(ModelDocument):
         'db_alias': 'admin_db',
         'collection': 'databases',
         'allow_inheritance' : True,
+        #'abstract': True,
     }
 
     label = StringField(required=True, #TODO: make unique
@@ -35,14 +36,18 @@ class ImageStore(ModelDocument):
 
 
 ################################################################################
-class MultipleDatabaseImageStoreMixin(object):
+class MultipleDatabaseImageStore(ImageStore):
     """
     This contains all fields and logic for any ImageStore with some or all of
     its data stored in a separate Mongo database.
 
     Other future types of ImageStore may have all data stored in another system,
-    and would not inherit this class.
+    and would not inherit from this class.
     """
+    meta = {
+        #'abstract': True,
+    }
+
     host = StringField(required=True, # TODO: change to URLField
         verbose_name='Host', help_text='The URL of the database\'s host.')
 

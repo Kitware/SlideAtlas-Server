@@ -2,14 +2,14 @@
 
 from mongoengine import DoesNotExist
 
-from .image_store import ImageStore, MultipleDatabaseImageStoreMixin
+from .image_store import MultipleDatabaseImageStore
 
 ################################################################################
 __all__ = ('MongoImageStore', 'Database')
 
 
 ################################################################################
-class MongoImageStore(ImageStore, MultipleDatabaseImageStoreMixin):
+class MongoImageStore(MultipleDatabaseImageStore):
     """
     """
 
