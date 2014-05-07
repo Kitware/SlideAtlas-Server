@@ -30,7 +30,7 @@ class AdminDBAPI(MethodView):
         """
         Get restype with resid ['users'], if resid is not supplied, returns a list
         """
-        admin_db = models.Database._get_db()
+        admin_db = models.ImageStore._get_db()
         # Restype has to be between allowed ones or the request will not come here
         if resid == None:
             objs = admin_db[restype].find()
@@ -87,7 +87,7 @@ class AdminDBItemsAPI(MethodView):
 
     @site_admin_required(False)
     def get(self, restype, resid, listtype):
-        admin_db = models.Database._get_db()
+        admin_db = models.ImageStore._get_db()
         # Restype has to be between allowed ones or the request will not come here
         # only rules and users is supported now
 
@@ -148,7 +148,7 @@ class DatabaseAPI(AdminDBAPI):
                 if resid is not None:
                     raise Exception("Trying to create new resource at existing resource")
 
-                database = models.Database(
+                database = models.ImageStore(
                     label=data["insert"]["label"],
                     host=data["insert"]["host"],
                     dbname=data["insert"]["dbname"],
@@ -167,7 +167,7 @@ class DatabaseAPI(AdminDBAPI):
 
             try:
                 # Locate the resource
-                database = models.Database.objects.with_id(resid)
+                database = models.ImageStore.objects.with_id(resid)
                 if database == None:
                     raise Exception(" Resource %s not found" % (resid))
             except Exception as inst:
@@ -246,7 +246,7 @@ class DatabaseAPI(AdminDBAPI):
     #     if resid == None:
     #         return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
     #     else:
-    #         datadb = models.Database.objects.with_id(dbid)
+    #         datadb = models.ImageStore.objects.with_id(dbid)
     #         if datadb == None:
     #             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
     #
@@ -324,7 +324,7 @@ mod.add_url_rule('/<regex("(databases|users|rules)"):restype>/<regex("[a-f0-9]{2
 class DataSessionsAPI(MethodView):
     decorators = [security.login_required]
     def get_data_db(self, dbid):
-        database = models.Database.objects.with_id(dbid)
+        database = models.ImageStore.objects.with_id(dbid)
         if database == None:
             return None
         return database
@@ -489,7 +489,7 @@ class DataSessionItemsAPI(MethodView):
     decorators = [security.login_required]
 
     def get_data_db(self, dbid):
-        database = models.Database.objects.with_id(dbid)
+        database = models.ImageStore.objects.with_id(dbid)
         if database == None:
             return None
         return database

@@ -17,7 +17,8 @@ def add_url_converters(app):
 
     app.url_map.converters.update({
         'ObjectId': ObjectIdConverter,
-        'Database': model_document_converter_factory(models.Database),
+        'Database': model_document_converter_factory(models.ImageStore),  # TODO: deprecate
+        'ImageStore': model_document_converter_factory(models.ImageStore),
         'User': model_document_converter_factory(models.User),
         'Role': model_document_converter_factory(models.Role),
         'Session': model_document_converter_factory(models.Session),
@@ -96,7 +97,7 @@ def get_models_in_url(endpoint, values):
     """
     if values:
 
-        database_obj = None
+        image_store_obj = None
         multiple_database_values = dict()
         for value_name, value in values.iteritems():
             if isinstance(value, tuple) and (len(value) == 2):
@@ -105,17 +106,17 @@ def get_models_in_url(endpoint, values):
                     # cannot retrieve MultipleDatabaseModelDocument types until the database is known
                     if not issubclass(model_cls, models.common.MultipleDatabaseModelDocument):
                         values[value_name] = model_cls.objects.get_or_404(id=object_id)
-                        if model_cls is models.Database:
-                            if database_obj is not None:
-                                pass  # TODO: error, multiple Database-type values
-                            database_obj = values[value_name]
+                        if issubclass(model_cls, models.ImageStore):
+                            if image_store_obj is not None:
+                                pass  # TODO: error, multiple ImageStore-type values
+                            image_store_obj = values[value_name]
                     else:
                         # so defer MultipleDatabaseModelDocument types now
                         multiple_database_values[value_name] = value
 
         if multiple_database_values:
-            if not database_obj:
-                pass  # TODO: error, MultipleDatabaseModelDocument passed without Database
-            with database_obj:
+            if not image_store_obj:
+                pass  # TODO: error, MultipleDatabaseModelDocument passed without ImageStore
+            with image_store_obj:
                 for value_name, (object_id, model_cls) in multiple_database_values.iteritems():
                     values[value_name] = model_cls.objects.get_or_404(id=object_id)

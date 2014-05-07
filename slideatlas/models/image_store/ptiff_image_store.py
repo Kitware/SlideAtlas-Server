@@ -19,7 +19,7 @@ from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
 
 
 ################################################################################
-__all__ = ('PtiffImageStore', 'PtiffTileStore')
+__all__ = ('PtiffImageStore',)
 logger = logging.getLogger('slideatlas.ptiffstore')
 
 
@@ -203,8 +203,3 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         # Wipes all the images
         return self.sync(resync=True)
-
-
-################################################################################
-# TODO: 'Database' is deprecated, but still in lots of existing code
-PtiffTileStore = PtiffImageStore

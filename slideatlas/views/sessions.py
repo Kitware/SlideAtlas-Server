@@ -27,7 +27,7 @@ def sessions():
     sessdb = request.args.get('sessdb')
 
     if sessdb and sessid:
-        database_obj = models.Database.objects.get_or_404(id=sessdb)
+        database_obj = models.ImageStore.objects.get_or_404(id=sessdb)
         with database_obj:
             session_obj = models.Session.objects.get_or_404(id=sessid)
         return view_a_session(database_obj, session_obj)
@@ -41,7 +41,7 @@ def view_all_sessions():
     arg_sessdb = request.args.get('sessdb')
     arg_sessid = request.args.get('sessid')
     if arg_sessdb and arg_sessid:
-        database_obj = models.Database.objects.get_or_404(id=arg_sessdb)
+        database_obj = models.ImageStore.objects.get_or_404(id=arg_sessdb)
         with database_obj:
             session_obj = models.Session.objects.get_or_404(id=arg_sessid)
         return view_a_session(database_obj, session_obj)
@@ -118,7 +118,7 @@ def view_a_session(database_obj, session_obj, next=None):
                 imgobj = db["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
             else :
                 # this is a pymongo Database that we can use until all models are complete
-                db2 = models.Database.objects.with_id(imgdb).to_pymongo()
+                db2 = models.ImageStore.objects.with_id(imgdb).to_pymongo()
                 imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)}, {'_id' : 0})
 
             # so many legacy schemas (plus hiding annotation)
@@ -214,7 +214,7 @@ def sessionedit(database_obj, session_obj):
                 image = db["images"].find_one({'_id' : ObjectId(imgid)})
             else :
                 # this is a pymongo Database that we can use until all models are complete
-                db2 = models.Database.objects.with_id(imgdb).to_pymongo()
+                db2 = models.ImageStore.objects.with_id(imgdb).to_pymongo()
                 image = db2["images"].find_one({'_id' : ObjectId(imgid)})
 
             if image:
@@ -272,7 +272,7 @@ def sessionsave():
     stack = inputObj["stack"]
 
     # this is a pymongo Database that we can use until all models are complete
-    database_obj = models.Database.objects.with_id(dbId)
+    database_obj = models.ImageStore.objects.with_id(dbId)
     db = database_obj.to_pymongo()
 
     # Todo: if session is undefined, create a new session (copy views when available).
@@ -385,7 +385,7 @@ def bookmarks():
 
     # Compile the rules
     # TODO: this is a hack to get a PyMongo admin DB for now, it should be changed
-    admindb = models.Database._get_db()
+    admindb = models.ImageStore._get_db()
 
     noteArray = []
     # TODO: why is a 'views' collection being saved in the admin DB!!!!

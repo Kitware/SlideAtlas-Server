@@ -2,7 +2,7 @@
 
 import logging
 
-from slideatlas.models import Database, PtiffTileStore
+from slideatlas.models import ImageStore, PtiffImageStore
 from slideatlas.models import ImageStore as TileStore
 
 
@@ -22,20 +22,20 @@ from slideatlas.models import ImageStore as TileStore
 
 
 def test_ptiff_tile_store():
-    store = PtiffTileStore(root_path="/home/dhan/data/phillips")
+    store = PtiffImageStore(root_path="/home/dhan/data/phillips")
     logging.info("Last sync on initialization: %s"%(store.last_sync))
     # print store.root_path
     store.sync()
     logging.info("Last sync after sync: %s"%(store.last_sync))
 
 def test_modify_store():
-    for obj in PtiffTileStore.objects:
+    for obj in PtiffImageStore.objects:
         logging.info("Synchronizing ptiff store: %s", obj.label)
         obj.resync()
 
 
 def create_ptiff_store():
-    store = PtiffTileStore(root_path="/home/dhan/data/phillips",
+    store = PtiffImageStore(root_path="/home/dhan/data/phillips",
         label="Philips Scanner folder from wsiserver3",
         copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.")
 
@@ -58,7 +58,7 @@ def test_getlist():
     #     print obj
 
     # Getting user list works perfectly
-    for obj in Database.objects:
+    for obj in ImageStore.objects:
         print "Gotit"
         print obj
 
@@ -73,12 +73,12 @@ def test_items_mongoengine():
         print obj._cls, obj.label
     print
     print "Database"
-    for obj in Database.objects:
+    for obj in ImageStore.objects:
         print obj._cls, obj.label
 
     print
     print "PtiffTileStore"
-    for obj in PtiffTileStore.objects:
+    for obj in PtiffImageStore.objects:
         print obj._cls, obj.label
 
 

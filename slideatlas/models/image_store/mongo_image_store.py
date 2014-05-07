@@ -5,7 +5,7 @@ from mongoengine import DoesNotExist
 from .image_store import MultipleDatabaseImageStore
 
 ################################################################################
-__all__ = ('MongoImageStore', 'Database')
+__all__ = ('MongoImageStore',)
 
 
 ################################################################################
@@ -27,8 +27,3 @@ class MongoImageStore(MultipleDatabaseImageStore):
             raise DoesNotExist('Tile "%s" not found in image %s' % (tile_name, image_id))
 
         return str(tile_doc['file'])
-
-
-################################################################################
-# TODO: 'Database' is deprecated, but still in lots of existing code
-Database = MongoImageStore
