@@ -1,0 +1,12 @@
+    <div>
+        Total Affiliations : {{roles.length }}
+        <div ng-repeat ="arole in roles"> 
+            <h1> {{arole.rule}} </h1>
+            <div> 
+                <session-list sessions="arole.sessions"> {{ asession.label }} </dj-li>
+                <!-- <dj-li ng-repeat = "asession in arole.sessions track by $index"> {{ asession.label }} </dj-li> -->
+                <!-- <djsessions sess={{arole.sessions track by $index}}/>  -->
+            </div>
+        </div> 
+    </div>
+

@@ -24,10 +24,18 @@
         $routeProvider.when("/:dbid/sessions/:sessid", {templateUrl: "/apiv1/static/partials/sessDetails.html"});
         $routeProvider.when("/:dbid/sessions/:sessid/:type/new", {templateUrl: "/apiv1/static/partials/fileUpload.html", controller:"fileUploadCtrl"});
 
-        $routeProvider.when("/sessions", {templateUrl: "/apiv1/static/partials/sessList.html"});
+        $routeProvider.when("/mysessions", {templateUrl: "/apiv1/static/partials/allSessList.html", controller:"SessAllListCtrl"});
 
         $routeProvider.otherwise({ redirectTo: "/databases"});
     });
+
+app.filter('lastclass', function() {
+    return function(text) {
+        text = text || '';
+        var words = text.split('.');
+        return words[words.length -1];
+    };
+});
 
 app.factory('Database', function($resource) {
     return $resource('databases/:dbid', {dbid:'@_id'},
@@ -132,6 +140,54 @@ app.directive('helloWorld', function () {
         replace : true,
     };
  });
+
+
+app.directive('sessionList', function () {
+    return {
+        restrict : "ECMA",
+        templateUrl: '/apiv1/static/partials/directiveSessList.html',
+        // template: '<div> Hello World </div>',
+        replace : true,
+        // scope : true,
+        scope : { sessions : '=sessions'},
+        link: function(scope, element, attr, ngModel){
+                console.log("For sessionList");
+                console.log("Scope");
+                console.log(scope.sessions);
+        //         console.log("attr");
+        //         console.log(scope.sessions)
+        //        }
+    }
+    };
+ });
+
+app.directive('sessionView', function () {
+    return {
+        restrict : "ECMA",
+        template: '<li> {{session.label}} </li>',
+        replace : true,
+        scope : {session : "=session" },
+        link: function(scope, element, attr, ngModel){
+                console.log("For view");
+                console.log(scope.session.label);
+                }
+    };
+ });
+
+
+
+app.controller("SessAllListCtrl", function ($scope, $location, $http) {
+
+    $http({method: "get", url: "/sessions?json=1"}).
+    success(function(data, status) {
+        $scope.roles = data.sessions;
+    }).
+    error(function(data, status) {
+        $scope.roles = [];
+    });
+}); 
+
+
 
 app.controller("DBNewCtrl", function ($scope, $location, Database, Data)
     {
@@ -282,7 +338,7 @@ app.controller("sessEditCtrl", function ($scope, $location, $routeParams, Databa
         );
     });
 
-app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Database, Data, Session, SessionItem)
+app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $http)
     {
         // For modifying session as a whole
         // Locate the object
@@ -290,27 +346,46 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, Dat
         $scope.dbid = $routeParams.dbid
         $scope.sessid = $routeParams.sessid
 
-        Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data) {
-           $scope.session = data
-           }
-        );
+        $scope.currentPage = 1; //current page
+        $scope.maxSize = 10; //pagination max size
+        $scope.entryLimit = 5; //max rows for data table
+
+        // http://new.slide-atlas.org/apiv1/5074589302e31023d4292d91/sessions/4ecbbc6d0e6f7d7a56000000 
+        $http({method: "get", url: "/apiv1/" + $scope.dbid + "/sessions/" + $scope.sessid}).
+            success(function(data, status) {
+                    $scope.session = data;
+            }).
+            error(function(data, status) {
+                $scope.session = [];
+            });
 
         $scope.deletefile = function(idx)
         {
+        alert("Asked to delete attachment " + JSON.stringify($scope.session.attachments[idx]));
         // Locate the object
-        var attach = $scope.session.attachments[idx]
-        console.log(attach)
-        if (confirm("Remove attachment " + attach.details.name + '?'))
-            {
-            SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref},
-                function(data) {
-                    Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
-                        {
-                        $scope.session = data
-                        });
-                });
-            }
+        // var attach = $scope.session.attachments[idx]
+        // console.log(attach)
+        // if (confirm("Remove attachment " + attach.details.name + '?'))
+        //     {
+        //     SessionItem.delete({dbid:$scope.dbid, sessid: $scope.sessid, restype:"attachments", resid: attach.ref},
+        //         function(data) {
+        //             Session.get({dbid: $routeParams.dbid, sessid: $routeParams.sessid}, function(data)
+        //                 {
+        //                 $scope.session = data
+        //                 });
+        //         });
+        //     }
         }
+
+    // /* init pagination with $scope.list */
+    // $scope.noOfPages = Math.ceil($scope.list.length/$scope.entryLimit);
+    
+    // $scope.$watch('search', function(term) {
+    //     // Create $scope.filtered and then calculat $scope.noOfPages, no racing!
+    //     $scope.filtered = filterFilter($scope.list, term);
+    //     $scope.noOfPages = Math.ceil($scope.filtered.length/$scope.entryLimit);
+    // });
+
     });
 
 /******************************************************************************/
@@ -340,30 +415,30 @@ app.controller("dbListCtrl", function ($scope, $http) {
     }
 });
 
-app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
+// app.controller("SessListCtrl", function ($scope, Session, $location, Data) {
 
-    console.log("Refreshing SessListCtrl")
+//     console.log("Refreshing SessListCtrl")
 
-    Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
-        Data.setList(data.sessions);
-        $scope.sessions = Data.getList();
-        }
-    );
+//     Session.get({dbid: '507619bb0a3ee10434ae0827'}, function(data) {
+//         Data.setList(data.sessions);
+//         $scope.sessions = Data.getList();
+//         }
+//     );
 
-    // $scope.delete = function(idx)
-    //     {
-    //     // Locate the object
-    //     var db = Data.getItem(idx)
-    //     console.log(db)
-    //     if (confirm("Remove database " + db.dbname + '?'))
-    //         {
-    //         Database.delete({dbid:db._id}, function(data) {
-    //             Data.removeItem(idx);
-    //             $location.path("/databases");
-    //             });
-    //         }
-    //     };
-});
+//     // $scope.delete = function(idx)
+//     //     {
+//     //     // Locate the object
+//     //     var db = Data.getItem(idx)
+//     //     console.log(db)
+//     //     if (confirm("Remove database " + db.dbname + '?'))
+//     //         {
+//     //         Database.delete({dbid:db._id}, function(data) {
+//     //             Data.removeItem(idx);
+//     //             $location.path("/databases");
+//     //             });
+//     //         }
+//     //     };
+// });
 
 
 app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {

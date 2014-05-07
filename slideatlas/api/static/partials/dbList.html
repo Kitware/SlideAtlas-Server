@@ -11,7 +11,7 @@
                </tr>
            </thead>
             <tr ng-repeat ="adb in databases" >
-                <td> {{ adb._cls }} </a></td>
+                <td> {{ adb._cls | lastclass}} </a></td>
                 <td><a href="#/{{adb._id}}/sessions">({{ adb.dbname }}) {{adb.label}}</a></td>
                 <!-- <td>{{ adb.host }} </td> -->
                 <td><a href="#/databases/edit/{{adb._id}}">Edit <i class="glyphicon glyphicon-edit"></i></a> </td>

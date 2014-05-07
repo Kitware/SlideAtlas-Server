@@ -37,12 +37,13 @@
             </td>
             <td><h4> Thumbnail </h4> </td>
         </thead>
+        <!-- pagination -->
         <tr ng-repeat ="animage in session.views" >
             <td>
-                <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.image.label}}</a>
+                <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.Title}}</a>
             </td>
-            <td>
-                <img ng-src="/tile?db={{dbid}}&img={{animage.details.img}}&name=t.jpg" width=100px>
+            <td height=117px width=117px>
+                <img ng-src="/tile?db={{dbid}}&img={{animage.details.image}}&name=t.jpg" width=100px>
             </td>
         </tr>
     </table>
