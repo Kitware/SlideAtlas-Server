@@ -5,7 +5,7 @@ from mongoengine import BooleanField, ListField, ObjectIdField,ReferenceField,\
 from flask.ext.security import RoleMixin
 
 from .common import ModelDocument
-from .database import Database
+from .image_store import ImageStore
 
 ################################################################################
 __all__ = ('Role', 'UserRole', 'GroupRole')
@@ -19,8 +19,8 @@ class Role(ModelDocument, RoleMixin):
         'allow_inheritance': True,
         }
 
-    db = ReferenceField(Database, dbref=False, required=True,
-        verbose_name='Database', help_text='The image database that this role applies to.')
+    db = ReferenceField(ImageStore, dbref=False, required=True,
+        verbose_name='Image Store', help_text='The image store that this role applies to.')
 
     name = StringField(required=True, db_field='label',  # TODO:make unique
         verbose_name='Name', help_text='')

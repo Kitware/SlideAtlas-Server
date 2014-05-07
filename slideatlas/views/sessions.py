@@ -155,7 +155,7 @@ def view_a_session(database_obj, session_obj, next=None):
 
     attachments = []
     if session_obj.attachments:
-        gfs = GridFS(db, "attachments")
+        gfs = GridFS(database_obj.to_pymongo(raw_object=True), "attachments")
         for anattach in session_obj.attachments:
             fileobj = gfs.get(anattach.ref)
             attachments.append({'name': fileobj.name, 'id' : anattach.ref})

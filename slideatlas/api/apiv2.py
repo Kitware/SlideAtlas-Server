@@ -337,7 +337,7 @@ class SessionItemAPI(ItemAPI):
 class SessionAttachmentListAPI(ListAPI):
     @staticmethod
     def _get(database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         attachments = list()
         for attachment_ref in session.attachments:
@@ -356,7 +356,7 @@ class SessionAttachmentListAPI(ListAPI):
 
     @security.AdminSessionPermission.protected
     def post(self, database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # TODO: chucked uploads
 
@@ -388,7 +388,7 @@ class SessionAttachmentListAPI(ListAPI):
 class SessionAttachmentItemAPI(ItemAPI):
     @security.ViewSessionPermission.protected
     def get(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # check that the requested attachment is in the session
         for attachment_ref in session.attachments:
@@ -440,7 +440,7 @@ class SessionAttachmentItemAPI(ItemAPI):
 
     @security.AdminSessionPermission.protected
     def delete(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):
