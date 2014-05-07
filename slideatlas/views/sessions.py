@@ -320,8 +320,13 @@ def sessionsave():
                 if "img" in viewObj :
                     image.ref = ObjectId(viewObj["img"])
                 else :
-                    # assume view has type note.
-                    image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"]["_id"])
+                    if isinstance(viewObj["ViewerRecords"][0]["Image"], basestring):
+                        # correct
+                        image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"])
+                    else :
+                        # bug
+                        image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"]["_id"])
+
                 newImages.append(image)
         if not found :
             if not viewId :
