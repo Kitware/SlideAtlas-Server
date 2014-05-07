@@ -5,7 +5,6 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
-
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
@@ -231,10 +230,10 @@ def glview():
 
     # in the future, the admin database will contain everything except
     # the image data and attachments.
-    admindb = models.Database._get_db()
+    admindb = models.ImageStore._get_db()
     db = admindb
     if dbid :
-        database = models.Database.objects.with_id(dbid)
+        database = models.ImageStore.objects.with_id(dbid)
         db = database.to_pymongo()
 
     if viewid :
@@ -278,7 +277,7 @@ def bookmark():
     # TODO: Store database in the view and do not pass as arg.
     dbid = request.args.get('db')
 
-    db = models.Database.objects.get_or_404(id=dbid).to_pymongo()
+    db = models.ImageStore.objects.get_or_404(id=dbid).to_pymongo()
 
     if viewid :
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -302,9 +301,9 @@ def getchildnotes():
     dbid = request.args.get('db', "")
     user = security.current_user.id
 
-    admindb = models.Database._get_db()
+    admindb = models.ImageStore._get_db()
     db = admindb
-    #database = models.Database.objects.get_or_404(id=dbid)
+    #database = models.ImageStore.objects.get_or_404(id=dbid)
     #db = database.to_pymongo()
 
     notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
@@ -336,7 +335,7 @@ def glcomparisonoption():
     # this is the same as the sessions db in the sessions page.
     dbid = request.args.get('db')
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -378,7 +377,7 @@ def glcomparisonsave():
     dbid = inputObj["Viewer1"]["db"]
     viewid = inputObj["Viewer1"]["viewid"]
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     if operation == "options" :
@@ -418,7 +417,7 @@ def glcomparisonconvert():
     dbid = request.args.get('db', "") # for get
     viewid = request.args.get('view', "") # for get
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     viewobj = db["views"].update({"_id" : ObjectId(viewid) },
@@ -444,7 +443,7 @@ def glstack():
     if not dbid:
         dbid = "5123c81782778fd2f954a34a"
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     return make_response(render_template('stack.html',
@@ -464,7 +463,7 @@ def glstacksession():
     # this is the same as the sessions db in the sessions page.
     dbid = request.args.get('db')
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     with database:
@@ -504,7 +503,7 @@ def glstacksession():
         if imgdb == dbid :
             imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
         else :
-            dbobj2 = models.Database.objects.with_id(imgdb)
+            dbobj2 = models.ImageStore.objects.with_id(imgdb)
             db2 = dbobj2.to_pymongo()
             imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
         convertImageToPixelCoordinateSystem(imgobj)
@@ -557,11 +556,13 @@ def glstacksave():
     dataStr = request.form['data']  # for post
     stackObj = json.loads(dataStr)
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
 
     with database:
         session = models.Session.objects.get_or_404(id=sessid)
 
+    if 'views' in stackObj:
+        session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
@@ -590,7 +591,7 @@ def glstackinsert():
     viewObj = json.loads(camStr)
     viewObj["img"] = ObjectId(imgid)
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     # add the view
@@ -616,7 +617,7 @@ def glsaveview():
     dbid = messageObj["db"]
     viewid = inputObj["viewid"]
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     if operation == "view" :
@@ -657,7 +658,7 @@ def glrecordsave():
     recordStr = request.form['record']
     record = json.loads(recordStr)
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     recordingobj = db["recordings"].find_one({"name" : name })
@@ -688,7 +689,7 @@ def getparentcomments():
     dbid = request.form['db']
     noteid = request.form["id"]
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     toplevelcomments = db["comments"].find({ "parent": noteid })
@@ -705,7 +706,7 @@ def getcomment():
     dbid = request.form["db"]
     commentid = request.form["id"]
 
-    database = models.Database.objects.get_or_404(id=bid)
+    database = models.ImageStore.objects.get_or_404(id=bid)
     db = database.to_pymongo()
 
     comment = db["comments"].find_one({"_id": ObjectId(commentid) })
@@ -727,7 +728,7 @@ def saveusernote():
     note["Type"] = "UserNote"
 
     # Saving notes in admin db now.
-    admindb = models.Database._get_db()
+    admindb = models.ImageStore._get_db()
 
     noteId = admindb["views"].save(note)
     return str(noteId)
@@ -758,7 +759,7 @@ def saveviewnotes():
     noteObj = request.form['note']
     note    = json.loads(noteObj)
 
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     # I was going get the user id from the session, and pass it to the viewer.
@@ -792,7 +793,7 @@ def addviewimage(viewObj):
             imgid = record["Image"]["_id"]
             imgdb = record["Image"]["database"]
 
-        database = models.Database.objects.get_or_404(id=imgdb)
+        database = models.ImageStore.objects.get_or_404(id=imgdb)
         db = database.to_pymongo()
         imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
         imgObj["_id"] = str(imgObj["_id"])
@@ -812,7 +813,7 @@ def addviewimage(viewObj):
 @mod.route('/getimagenames')
 def getimagenames():
     dbid = request.args.get('db', "")
-    database = models.Database.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
     #imgObj = db["images"].find_one()
 
@@ -835,10 +836,10 @@ def getview():
     viewid = request.args.get('viewid', "")
     viewdb = request.args.get('db', "")
 
-    admindb = models.Database._get_db
+    admindb = models.ImageStore._get_db
     db = admindb
     if viewdb and viewdb != "None" :
-        database = models.Database.objects.get_or_404(id=viewdb)
+        database = models.ImageStore.objects.get_or_404(id=viewdb)
         db = database.to_pymongo()
 
     # check the session to see if notes are hidden
@@ -872,7 +873,7 @@ def getview():
     if "imgdb" in viewObj :
         # support for images in database different than view
         imgdb = viewObj["imgdb"]
-        database2 = models.Database.objects.get_or_404(id=imgdb)
+        database2 = models.ImageStore.objects.get_or_404(id=imgdb)
         db2 = database2.to_pymongo()
         imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
     else :
@@ -1048,9 +1049,9 @@ def fixjustification():
     dbid = request.form['db']  # for post
     imgid  = request.form['img']
 
-    db = models.Database._get_db().to_pydas()
+    db = models.ImageStore._get_db().to_pydas()
     if dbid != "None" :
-        db = models.Database.objects.with_id(dbid).to_pydas()
+        db = models.ImageStore.objects.with_id(dbid).to_pydas()
 
     imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
     #imgObj["CoordinateSystem"] = "Pixel"

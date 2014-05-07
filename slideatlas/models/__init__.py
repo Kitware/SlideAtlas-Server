@@ -1,9 +1,9 @@
 # coding=utf-8
 
 # make these symbols available from this module
-from mongoengine import DoesNotExist, ValidationError
+from mongoengine import DoesNotExist, MultipleObjectsReturned, ValidationError
 
-from .database import *
+from .image_store import *
 from .common import *
 from .user import *
 from .role import *

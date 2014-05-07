@@ -48,8 +48,8 @@ class MultipleDatabaseModelDocument(ModelDocument):
     def database(self):
         # the import is required here to prevent circular imports
         # TODO: remove this import statement
-        from .. import database
-        return database.Database.objects.with_id(self._db_alias)
+        from ..image_store import MultipleDatabaseImageStore
+        return MultipleDatabaseImageStore.objects.with_id(self._db_alias)
 
     @classmethod
     def _get_db(cls):
@@ -57,7 +57,7 @@ class MultipleDatabaseModelDocument(ModelDocument):
         # instantiated objects have this method patched by self.switch_db
         db_alias = cls._db_alias
         if db_alias is None:
-            raise NotImplemented('A "%s" must be used inside a "Database" context (\'with\' statement).' % cls.__name__)
+            raise NotImplemented('A "%s" must be used inside a "MultipleDatabaseImageStoreMixin" context (\'with\' statement).' % cls.__name__)
         return get_db(db_alias)
 
     def __init__(self, *args, **kwargs):

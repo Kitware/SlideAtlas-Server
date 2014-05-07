@@ -17,8 +17,8 @@ import os
 
 tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"tpl"))
 pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-print pylibtiffpath
-print tplpath
+# print pylibtiffpath
+# print tplpath
 
 sys.path = [pylibtiffpath] + sys.path
 
@@ -156,7 +156,7 @@ class TileReader():
             fout.close()
 
         except Exception as E:
-            logging.log(logging.ERROR, "Image Description failed for valid Phillips XML")
+            logging.log(logging.ERROR, "Image Description failed for valid Philips XML")
             logging.log(logging.ERROR, E.message)
 
     def get_embedded_image(self, imagetype):

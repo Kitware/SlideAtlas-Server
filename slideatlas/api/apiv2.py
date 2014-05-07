@@ -52,8 +52,8 @@ class ItemAPI(API):
 ################################################################################
 class DatabaseListAPI(ListAPI):
     def get(self):
-        databases = models.Database.objects
-        return jsonify(databases=databases.to_son(exclude_fields=('username', 'password', 'auth_db')))
+        databases = models.ImageStore.objects
+        return jsonify(databases=databases.to_son(only_fields=('label', 'dbname')))
 
     def post(self):
         abort(501)  # Not Implemented
@@ -91,12 +91,12 @@ class RoleListAPI(ListAPI):
         if filter_can_see and filter_can_admin:
             abort(400)  # Bad Request
         if filter_can_see:
-            database = models.Database.objects.get_or_404(id=request.args.get('db'))
+            database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
             with database:
                 session = models.Session.objects.get_or_404(id=filter_can_see)
             roles = [role for role in roles if role.can_see_session(session)]
         elif filter_can_admin:
-            database = models.Database.objects.get_or_404(id=request.args.get('db'))
+            database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
             with database:
                 session = models.Session.objects.get_or_404(id=filter_can_admin)
             roles = [role for role in roles if role.can_admin_session(session)]
@@ -148,7 +148,7 @@ class RoleListAPI(ListAPI):
                         database_id = permission_request['db']
                         session_id = permission_request['session']
                         if session_id not in role.can_see:
-                            database = models.Database.objects.get_or_404(id=database_id)
+                            database = models.ImageStore.objects.get_or_404(id=database_id)
                             with database:
                                 session = models.Session.objects.get_or_404(id=session_id)
                             role.can_see.append(session.id)
@@ -337,7 +337,7 @@ class SessionItemAPI(ItemAPI):
 class SessionAttachmentListAPI(ListAPI):
     @staticmethod
     def _get(database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         attachments = list()
         for attachment_ref in session.attachments:
@@ -356,7 +356,7 @@ class SessionAttachmentListAPI(ListAPI):
 
     @security.AdminSessionPermission.protected
     def post(self, database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # TODO: chucked uploads
 
@@ -388,7 +388,7 @@ class SessionAttachmentListAPI(ListAPI):
 class SessionAttachmentItemAPI(ItemAPI):
     @security.ViewSessionPermission.protected
     def get(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # check that the requested attachment is in the session
         for attachment_ref in session.attachments:
@@ -440,7 +440,7 @@ class SessionAttachmentItemAPI(ItemAPI):
 
     @security.AdminSessionPermission.protected
     def delete(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo() , 'attachments')
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):

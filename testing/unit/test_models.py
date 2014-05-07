@@ -9,11 +9,11 @@ slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."
 sys.path.append(slideatlaspath)
 
 from slideatlas.models import Image
-from slideatlas.models import Database, View, Session
+from slideatlas.models import ImageStore, View, Session
 from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
 def test_image_access():
-    obj = Database.objects(dbname="demo")[0]
+    obj = ImageStore.objects(dbname="demo")[0]
     assert(obj != None)
 
     print obj._cls, obj.label
@@ -23,7 +23,7 @@ def test_image_access():
         logger.info("Found image labelled %s"%(img.label))
 
 def test_view_access():
-    obj = Database.objects(dbname="demo")[0]
+    obj = ImageStore.objects(dbname="demo")[0]
     assert(obj != None)
 
     print obj._cls, obj.label
@@ -35,7 +35,7 @@ def test_view_access():
 
 
 def test_sess_access():
-    obj = Database.objects(dbname="ptiffayodhya")[0]
+    obj = ImageStore.objects(dbname="ptiffayodhya")[0]
     assert(obj != None)
 
     print obj._cls, obj.label

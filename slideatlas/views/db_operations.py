@@ -21,7 +21,7 @@ def modify():
         data = {"error" : 1, "message" : "_id, collection and database are all required"}
         return jsonify(data)
 
-    database = models.Database.objects.get_or_404(id=db)
+    database = models.ImageStore.objects.get_or_404(id=db)
 
     # TODO: Make sure that the caller has access rights for modification
 

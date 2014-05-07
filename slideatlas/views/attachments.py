@@ -27,13 +27,13 @@ def attachments():
 
     try:
         dbid = ObjectId(db)
-        database = models.Database.objects.get(id=dbid)
+        database = models.ImageStore.objects.get(id=dbid)
     except:
         flash('dbid is not a valid id', "error")
         return redirect('/home')
 
 #    try:
-    gf = gridfs.GridFS(database.to_pymongo() , "attachments")
+    gf = gridfs.GridFS(database.to_pymongo(raw_object=True) , "attachments")
     fileobj = gf.get(ObjectId(attachid))
 #    except:
 #        flash('Error locating file', "error")

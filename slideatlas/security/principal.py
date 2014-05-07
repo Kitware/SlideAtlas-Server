@@ -37,7 +37,10 @@ class ModelProtectionMixin():
             if cls.model_type:
                 found_args = list()
                 for arg in chain(args, kwargs.itervalues()):
-                    if isinstance(arg, cls.model_type):
+                    # TODO: Session is a MultipleDatabaseModelDocument, and so its
+                    #   type may be a copy of the original, so temporarily allow
+                    #   comparison by name
+                    if isinstance(arg, cls.model_type) or type(arg).__name__ == cls.model_type.__name__:
                         found_args.append(arg)
                 if len(found_args) != 1:
                     raise TypeError('A "%s.protected" decorator must be used on a view which requires a single parameter of type %s.' % (cls.__name__, cls.model_type))
@@ -86,7 +89,7 @@ class AdminSessionPermission(Permission, ModelProtectionMixin):
 
 
 class AdminDatabasePermission(Permission, ModelProtectionMixin):
-    model_type = models.Database
+    model_type = models.ImageStore
 
     def __init__(self, database):
         super(AdminDatabasePermission, self).__init__(
