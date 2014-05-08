@@ -1,3 +1,4 @@
+
 <h2> Details for session </h2>
 <div ng-controller="sessDetailsCtrl">
     <h3> {{ session.attachments.length }} Attachments
@@ -31,6 +32,16 @@
     <h3> {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead">
                         add new  </a> ]
     </h3>
+    <div class="row">
+<!--     <br/>
+         <input type="text" ng-model="query" placeholder="filter" class="form-control col-xs-6"/>
+    <br/>
+    </div>
+ -->        
+    <div class="col-xs-6">
+        <input type="text" ng-model="query" placeholder="filter" class="form-control"/> 
+        <br/>
+    </div>
     <table class="table table-bordered table-hover" >
         <thead>
             <td> <h4> Label </h4>
@@ -38,7 +49,7 @@
             <td><h4> Thumbnail </h4> </td>
         </thead>
         <!-- pagination -->
-        <tr ng-repeat ="animage in session.views" >
+        <tr ng-repeat ="animage in session.views | filter:{'details.Title':  query}" >
             <td>
                 <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.Title}}</a>
             </td>
