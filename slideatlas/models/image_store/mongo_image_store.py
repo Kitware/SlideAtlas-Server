@@ -27,3 +27,6 @@ class MongoImageStore(MultipleDatabaseImageStore):
             raise DoesNotExist('Tile "%s" not found in image %s' % (tile_name, image_id))
 
         return str(tile_doc['file'])
+
+    def get_thumb(self, image_id):
+        return self.get_tile(image_id, "t.jpg")

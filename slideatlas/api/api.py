@@ -334,7 +334,10 @@ class DataSessionsAPI(MethodView):
     def get(self, dbid, sessid=None):
         """
         Gets details of a session if sessid is specified, or gets a list of sessions otherwise
+        Also provides thumbnails if thumb=true in the query string 
         """
+        get_thumbs = bool(request.args.get("thumb","0"))
+
         database = self.get_data_db(dbid)
         if database == None:
             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
@@ -370,8 +373,8 @@ class DataSessionsAPI(MethodView):
                 if type(viewdetails) == type({}):
                     if "img" in viewdetails:
                         # Do not dereference image as yet
-                        imgobj =  datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                         viewdetails["image"] = viewdetails["img"]
+                        imgobj =  datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                         if imgobj != None:
                             viewdetails["Title"] = imgobj["label"]
                     else:
@@ -400,6 +403,7 @@ class DataSessionsAPI(MethodView):
             session_response = sessobj.to_mongo()
             session_response['views'] = views_response
             session_response['attachments'] = attachments_response
+
             return jsonify(session_response)
 
 
@@ -738,6 +742,33 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
                                 '/sessions'
                                 , view_func=DataSessionsAPI.as_view("show_sessions"),
                                 methods=["get", "post"])
+
+
+
+class ThumbsAPI(MethodView):
+    """
+    API endpoint for requesting thumbnail images
+    """
+    decorators = [security.login_required]
+
+    def get_data_db(self, dbid):
+        database = models.ImageStore.objects.with_id(dbid)
+        if database == None:
+            return None
+        return database
+
+    def get(self, dbid, imgid):
+        return jsonify({"db" : dbid , "img" : imgid})
+
+
+# For getting thumbs
+mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
+                                '/thumbs/<regex("[a-f0-9]{24}"):imgid>'
+                                , view_func=ThumbsAPI.as_view("show_thumbs"),
+                                methods=["get"])
+
+
+
 
 # Specially for session
 
