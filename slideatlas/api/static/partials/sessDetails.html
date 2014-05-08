@@ -29,7 +29,7 @@
     </br>
     </div>
 
-    <h3> {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead">
+    <h3> Showing {{ session.filteredlist.length }} of {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead">
                         add new  </a> ]
     </h3>
     <div class="row">
@@ -49,7 +49,7 @@
             <td><h4> Thumbnail </h4> </td>
         </thead>
         <!-- pagination -->
-        <tr ng-repeat ="animage in session.views | filter:{'details.Title':  query}" >
+        <tr ng-repeat ="animage in session.filteredlist = (session.views | filter:{'details.Title':  query})" >
             <td>
                 <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.Title}}</a>
             </td>
