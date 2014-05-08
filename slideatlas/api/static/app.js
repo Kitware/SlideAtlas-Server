@@ -349,7 +349,6 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $ht
         $scope.currentPage = 1; //current page
         $scope.maxSize = 10; //pagination max size
         $scope.entryLimit = 5; //max rows for data table
-
         // http://new.slide-atlas.org/apiv1/5074589302e31023d4292d91/sessions/4ecbbc6d0e6f7d7a56000000 
         $http({method: "get", url: "/apiv1/" + $scope.dbid + "/sessions/" + $scope.sessid}).
             success(function(data, status) {
@@ -376,6 +375,7 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $ht
         //         });
         //     }
         }
+
 
     // /* init pagination with $scope.list */
     // $scope.noOfPages = Math.ceil($scope.list.length/$scope.entryLimit);
