@@ -373,10 +373,8 @@ class DataSessionsAPI(MethodView):
                 if type(viewdetails) == type({}):
                     if "img" in viewdetails:
                         # Do not dereference image as yet
-                        if get_thumb:
-                            thumb = database.get_thumb(viewdetails["img"])
-                            imgobj =  datadb[str()}, { "thumb" : 0})
                         viewdetails["image"] = viewdetails["img"]
+                        imgobj =  datadb["images"].find_one({"_id" : viewdetails["img"]}, { "thumb" : 0})
                         if imgobj != None:
                             viewdetails["Title"] = imgobj["label"]
                     else:

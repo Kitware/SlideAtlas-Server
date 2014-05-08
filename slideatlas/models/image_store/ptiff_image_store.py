@@ -17,6 +17,9 @@ from ..session import Session, RefItem
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
 
+import base64
+from PIL import Image as PImage
+# from flask import jsonify
 
 ################################################################################
 __all__ = ('PtiffImageStore',)
@@ -81,6 +84,54 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             raise Exception('Tile not read')
 
         return tile_buffer.getvalue()
+
+    def get_thumb(self, image_id):
+        """
+        Function redefinition to get_thumb
+        Raises exceptions that must be caught by the calling routine
+        """
+        with self:
+            image = Image.objects.get_or_404(id=image_id)
+
+        tile_size = image.tile_size
+        tiff_path = os.path.join(self.root_path, image.filename)
+
+        reader = make_reader({
+            'fname': tiff_path,
+            'dir': 0,
+        })
+
+        # Todo, create a separate call for parsing embedded images
+        reader.parse_image_description()
+
+        logging.info('Viewing fname: %s' % tiff_path)
+
+        # Load the stored images
+        labelimage = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image("label"))))
+        macroimage = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image("macro"))))
+
+        # Resize both files for
+        macrowidth, macroheight = macroimage.size
+        macroimage.thumbnail((macrowidth *100.0 / macroheight,100))
+        macrowidth, macroheight = macroimage.size
+
+        # Rotate label image
+        rotate = labelimage.rotate(90).resize((100,100))
+
+        # Pasting
+        newim = PImage.new('RGB', (macrowidth + 100, 100))
+        newim.paste(rotate, (0,0, 100,100))
+        newim.paste(macroimage, (100,0, macrowidth + 100,100))
+
+        # Output
+        tile_buffer = StringIO.StringIO()
+        newim.save(tile_buffer, format="JPEG")
+        contents = tile_buffer.getvalue()
+        tile_buffer.close()
+
+        return contents
+
+
 
     # def load_folder(self):
     #     # TODO: 'path_to_watch' is not defined
