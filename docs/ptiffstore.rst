@@ -66,3 +66,17 @@ API documentation
 .. automodule:: slideatlas.ptiffstore.asset_store
   :members:
   :undoc-members:
+
+Automatic synchronization
+=========================
+
+Following commands demonstrate how to submit the task to celery queue and how to read the results 
+
+
+.. code-block:: python
+	
+	>>> from slideatlas.tasks import sync_store
+	>>> a = sync_store.delay("5356d8b9e67655244bf3273a")
+	>>> a.ready()
+	>>> print a.result
+

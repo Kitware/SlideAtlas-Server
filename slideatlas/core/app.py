@@ -7,9 +7,9 @@ from flask.ext.bootstrap import Bootstrap
 
 from .url_processing import add_url_converters, add_url_value_preprocessors
 
-
+from celery import Celery
 ################################################################################
-__all__ = ('create_app',)
+__all__ = ('create_app','create_celery_app')
 
 
 ################################################################################
@@ -156,3 +156,40 @@ def setup_models(app):
         password=app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD'],
         auth_db=app.config['SLIDEATLAS_ADMIN_DATABASE_AUTH_DB']
     )
+
+################################################################################
+def create_celery_app(app):
+    """
+    Setup celery for processing background tasks
+    """
+    # Use configuration from app
+
+    mongo_url="mongodb://" + app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'] + \
+        ":" +  app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD'] + "@" + app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'] + \
+        "/" +  app.config['SLIDEATLAS_ADMIN_DATABASE_NAME']
+
+    # For testing
+    # mongo_url = "mongodb://localhost:27001/celery"
+
+    celery = Celery(app.import_name, broker=mongo_url)
+
+    # TODO move this configuration to config files
+    # celery.conf.update(app.config)
+    celery.conf.update(
+        CELERY_BROKER_URL = mongo_url,
+        CELERY_ACCEPT_CONTENT = ["json"],
+        # to avoid deprecation warning for pickle
+        CELERY_RESULT_SERIALIZER = "json",
+        CELERY_TASK_SERIALIZER = "json",
+        CELERY_RESULT_BACKEND = mongo_url,
+        CELERY_MONGODB_BACKEND_SETTINGS = {
+            "host": mongo_url,
+            "database" : app.config['SLIDEATLAS_ADMIN_DATABASE_NAME'],
+            "taskmeta_collection":"taskmeta",
+            "user" : app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'],
+            "password" : app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD']
+            },
+        CELERY_BROKER_TRANSPORT_OPTIONS ={'replicaSet': app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET']}
+        )
+
+    return celery
