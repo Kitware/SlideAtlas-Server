@@ -87,6 +87,7 @@ def flipAnnotation(annot, paddedHeight) :
 
 
 def flipViewerRecord(viewerRecord) :
+    # this is wrong.  It should not be in the databse this way
     paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
     viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
     viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
@@ -451,6 +452,7 @@ def glstack():
 
 
 # stack viewer gets the stack info with ajax.
+# Making this api closer and closer to stack = note.
 @mod.route('/stack-session')
 def glstacksession():
     """
@@ -479,10 +481,21 @@ def glstacksession():
             pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
+    annotations = [];
     views = []
     viewIdx = 0
     for view in sessobj.views:
         viewobj = db["views"].find_one({"_id" : view.ref})
+
+        # convert annotation to stack format.
+        sectionAnnotations = []
+        if viewobj.has_key("ViewerRecords") :
+            record = viewobj["ViewerRecords"][0]
+            if record.has_key("Annotations") :
+                sectionAnnotations = record["Annotations"]
+        annotations.append(sectionAnnotations)
+
+        # other just that needs to be simplified 
         imgdb = dbid
         if viewobj.has_key("db") :
             imgdb = viewobj["db"]
@@ -493,12 +506,14 @@ def glstacksession():
         else :
             # an assumption that view is of type note.
             viewerRecord = viewobj["ViewerRecords"][0]
-            if viewerRecord.has_key("Database") :
-                imgid = viewerRecord["Image"]
-                imgdb = viewerRecord["Database"]
-            else :
+            if isinstance(viewerRecord["Image"], dict) :
                 imgid = viewerRecord["Image"]["_id"]
                 imgdb = viewerRecord["Image"]["database"]
+            else :
+                imgid = viewerRecord["Image"]
+            if viewerRecord.has_key("Database") :
+                imgdb = viewerRecord["Database"]
+
         # support for images from different database than the session.
         if imgdb == dbid :
             imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
@@ -544,7 +559,7 @@ def glstacksession():
 
     return jsonify({"views":views,
                     "transformations": sessobj.transformations,
-                    "annotations": sessobj.annotations,
+                    "annotations": annotations,
                     })
 
 
@@ -636,13 +651,6 @@ def glsaveview():
         db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
                                      { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
 
-                                     # may or may not work
-        #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmarkobj["center"] = inputStr["Viewer1"]["center"]
-        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"]
-        #bookmarkobj["height"] = inputStr["Viewer1"]["height"]
-        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
-
     return operation
 
 
@@ -722,7 +730,7 @@ def getcomment():
 def saveusernote():
     noteStr = request.form['note'] # for post
 
-    note    = json.loads(noteStr)
+    note = json.loads(noteStr)
     note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = ObjectId(session["user"]["id"])
     note["Type"] = "UserNote"
@@ -783,15 +791,17 @@ def saveviewnotes():
     return str(viewId)
 
 # Replace the image reference with an image object.
-def addviewimage(viewObj):
+def addviewimage(viewObj, imgdb):
     for record in viewObj["ViewerRecords"]:
         # database and object (and server) should be packaged into a reference object.
-        if record.has_key("Database") :
-            imgid = record["Image"]
-            imgdb = record["Database"]
-        else :
+        # database has some improper entries.  Image object is embedded in view.
+        if isinstance(record["Image"], dict) :
             imgid = record["Image"]["_id"]
             imgdb = record["Image"]["database"]
+        else :
+            imgid = record["Image"]
+        if record.has_key("Database") :
+            imgdb = record["Database"]
 
         database = models.ImageStore.objects.get_or_404(id=imgdb)
         db = database.to_pymongo()
@@ -807,7 +817,7 @@ def addviewimage(viewObj):
 
     if viewObj.has_key("Children") :
         for child in viewObj["Children"]:
-            addviewimage(child)
+            addviewimage(child, imgdb)
 
 # Get all the images in a database.  Return them as json.
 @mod.route('/getimagenames')
@@ -855,7 +865,7 @@ def getview():
     # Right now, only notes use "Type"
     if "Type" in viewObj :
         viewObj["_id"] = str(viewObj["_id"])
-        addviewimage(viewObj)
+        addviewimage(viewObj,viewdb)
         if hideAnnotations :
             # use a cryptic label
             viewObj["Title"] = viewObj["HiddenTitle"]

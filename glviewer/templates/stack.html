@@ -54,6 +54,7 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 
 <!-- For 3d annotations -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationEditMenu.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 
 
 <!-- Widgets
@@ -180,7 +181,6 @@ shape has visibility and
   var SESSID;
   var VIEWS;
   var TRANSFORMATIONS;
-  var ANNOTATION_STACKS;
 
   var SECTIONS;
   var SECTION_INDEX;
@@ -197,12 +197,12 @@ shape has visibility and
 
 
 
+  //----------------------------------------------------------------------------
   // sets the global variable ARGS
-  function getArgs() {
-    SESSION_DATABASE = "{{ sess }}";
+  function InitStack() {
+
+    SESSION_DATABASE = "{{ db }}";
     USER = "";
-
-
     SESSID = "{{ sess }}";
     DBID  = "{{ db }}";
     $.ajax({
@@ -210,41 +210,90 @@ shape has visibility and
         url: "/webgl-viewer/stack-session",
         data: {"db" :  DBID,
                "sess" : SESSID},
-        success: function(data,status){
-          //alert(data + "\nStatus: " + status);
-          VIEWS = data["views"];
-          ANNOTATION_STACKS = data["annotations"];
-          // To bad json does not save the object type.  Need to cast.
-          var transformations = data["transformations"];
-          TRANSFORMATIONS = [];
-          for (var i=0; i <transformations.length; ++i) {
-            var trans = new PairTransformation();
-            if (transformations[i].View0) {
-                trans.View0 = transformations[i].View0;
-            } else {   // one time change database.
-                trans.View0 = VIEWS[i]._id;
-            }
-            if (transformations[i].View1) {
-                trans.View1 = transformations[i].View1;
-            } else {    // one time change database.
-                trans.View1 = VIEWS[i+1]._id;
-            }
-            trans.Correlations = transformations[i].Correlations;
-            TRANSFORMATIONS.push(trans);
-          }
-          // Initialize transformations with view centers. (bootstrap)
-          //TRANSFORMATIONS = [];
-          //for (var i = 1; i < VIEWS.length; ++i) {
-          //  var trans = new PairTransformation();
-          //  trans.AddCorrelation(VIEWS[i-1].center, VIEWS[i].center);
-          //  TRANSFORMATIONS.push(trans);
-          //}
-
-          webGLStart();
-          },
+        success: function(data,status)
+                   { 
+                   LoadStack(data);
+                   },
         error: function() { alert( "AJAX ARGS - error()" ); },
     });
   }
+
+
+// Eventually I want stacks to look just like notes.
+function LoadStack(data) {
+  VIEWS = data["views"];
+
+  // To bad json does not save the object type.  Need to cast.
+  var transformations = data["transformations"];
+  TRANSFORMATIONS = [];
+  for (var i=0; i < transformations.length; ++i) {
+    var trans = new PairTransformation();
+    if (transformations[i].View0) {
+      trans.View0 = transformations[i].View0;
+    } else {   // one time change database.
+      trans.View0 = VIEWS[i]._id;
+    }
+    if (transformations[i].View1) {
+      trans.View1 = transformations[i].View1;
+    } else {    // one time change database.
+      trans.View1 = VIEWS[i+1]._id;
+    }
+    trans.Correlations = transformations[i].Correlations;
+    TRANSFORMATIONS.push(trans);
+  }
+
+
+
+  ANNOTATIONS = [];
+  for (var i=0; i < VIEWS.length; ++i) {
+    ANNOTATIONS.push([]);
+  }
+  for (var i=0; i < data["annotations"].length; ++i) {
+    var sectionAnnotations = data["annotations"][i];
+    // I have to use the viewer because it has the method for
+    // loading annotations.
+    VIEWER1.WidgetList = [];
+    for (var j = 0; j < sectionAnnotations.length; ++j) {
+      VIEWER1.LoadWidget(sectionAnnotations[j]);
+    }
+    ANNOTATIONS[i] = VIEWER1.WidgetList;
+    VIEWER1.WidgetList = [];
+  }
+
+
+  // Preload all the sources.
+  SECTIONS = [];
+  for (var i=0; i < VIEWS.length; ++i) {
+      view = VIEWS[i];
+      var source = null;
+      // Since multiple section are in one slide. Reuse sources when possible.
+      for (j = 0; j < i; ++j) {
+          if (VIEWS[j].img._id == view.img._id) {
+              source = SECTIONS[j].Source;
+          }
+      }
+      if ( ! source) {
+          source = new Cache({'database':view.db,
+                              '_id':view.img._id,
+                              'levels':view.img.levels,
+                              'bounds':view.img.bounds});
+      }
+      var section = {"Source": source, "View": view._id, "Annotations": ANNOTATIONS[i]};
+      SECTIONS.push(section);
+  }
+
+  // Setup the points.
+  SECTION_INDEX = 0;
+  VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
+  VIEWER1.WidgetList = SECTIONS[SECTION_INDEX].Annotations;
+  VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
+
+  setupCrossHairs();
+
+}
+
+
+
 
 
 // url: "http://localhost:8080/webgl-viewer/stack-save",
@@ -318,7 +367,6 @@ function swapSections() {
 
 
 
-// url: "http://localhost:8080/webgl-viewer/stack-save",
 function deleteCorrelation(x, y) {
     // find the correlation
     var cam = VIEWER1.GetCamera();
@@ -365,63 +413,77 @@ function handleResize() {
 };
 
 
-function initViews() {
+function InitViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
-    VIEWER1 = initView([0,0, width,CANVAS.height]);
+    VIEWER1 = initView([0,0, width, height]);
 
-    // Preload all the sources.
-    SECTIONS = [];
-    for (var i=0; i < VIEWS.length; ++i) {
-        view = VIEWS[i];
-        var source = null;
-        // Since multiple section are in one slide. Reuse sources when possible.
-        for (j = 0; j < i; ++j) {
-            if (VIEWS[j].img._id == view.img._id) {
-                source = SECTIONS[j].Source;
-            }
-        }
-        if ( ! source) {
-            source = new Cache({'database':view.db,
-                                '_id':view.img._id,
-                                'levels':view.img.levels,
-                                'bounds':view.img.bounds});
-        }
+    handleResize();
+}
 
-        var section = {"Source": source, "View": view._id, "Annotations": []};
-        if (i < ANNOTATION_STACKS.length) {
-          for (var j=0; j < ANNOTATION_STACKS[i].annotations.length; ++j) {
-            annotation = ANNOTATION_STACKS[i].annotations[j];
-            section.Annotations.push(LoadWidget(VIEWER1, annotation));
-          }
-        }
 
-        SECTIONS.push(section);
+function saveAnnotation() {
+  // make sure the Anntoatoions are synced up.
+  SECTIONS[SECTION_INDEX].Annotations = VIEWER1.WidgetList;
+
+  if ( ! EDIT) {
+    alert("No edit privaleges");
+    return;
+  }
+  var d = new Date();
+
+  for (var i = 0; i < SECTIONS.length; ++i) {
+    var section = SECTIONS[i];
+    // create a note from a section
+    var note = new Note();
+    // What if no parent?
+    note.ParentId = "";
+    note.Title = "";
+    note.HiddenTitle = "";
+    note.Text = "";
+    note.RecordView();
+    // Put in the correct annotations.
+    var viewerRecord = note.ViewerRecords[0];
+    viewerRecord.Annotations = [];
+    for (var j = 0; j < section.Annotations.length; ++j) {
+      viewerRecord.Annotations.push(section.Annotations[j].Serialize());
     }
 
-    // Setup the points.
-    SECTION_INDEX = 0;
-    VIEWER1.SetCache(SECTIONS[SECTION_INDEX].Source);
-    VIEWER1.WidgetList = SECTIONS[SECTION_INDEX].Annotations;
-    VIEWER1.SetCamera(VIEWS[SECTION_INDEX].center, 0, VIEWS[SECTION_INDEX].height);
+    var noteObj = JSON.stringify(note.Serialize(false));
 
-    setupCrossHairs();
+    $.ajax({
+      type: "post",
+      url: "/webgl-viewer/saveviewnotes",
+      data: {"note" : noteObj,
+             "db"   : GetSessionDatabase(),
+             "view" : section.View,
+             "date" : d.getTime()},
+      success: function(data,status) {},
+      error: function() { alert( "AJAX - error() : saveviewnotes (stack)" ); },
+    });
+  }
 }
+ 
 
 
 function updateSection(inc) {
     var newIdx = SECTION_INDEX + inc;
-
     if (newIdx < 0 || newIdx >= SECTIONS.length) {
         return;
     }
+
+    // Save the widgets from the section we are leaving.
+    SECTIONS[SECTION_INDEX].Annotations = VIEWER1.WidgetList;
 
     var cam = VIEWER1.GetCamera();
     var rotation = cam.GetRotation();
     var height = cam.Height;
     var center = [cam.FocalPoint[0], cam.FocalPoint[1], cam.FocalPoint[2]];
 
+    // Set the source.
     VIEWER1.SetCache(SECTIONS[newIdx].Source);
+
+    // Set the widgets of the section we are going to.
     VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
 
     // Compute the new camera.
@@ -440,14 +502,15 @@ function updateSection(inc) {
 
     VIEWER1.SetCamera(center, rotation, height);
     SECTION_INDEX = newIdx;
+
     setupCrossHairs();
   }
+
 
   // Markers to see stack correlations.
   function setupCrossHairs() {
     if ( ! EDIT_R) { return; }
     VIEWER1.ShapeList = [];
-    VIEWER1.WidgetList = [];
     VIEWER1.AnnotationVisibility = 1;
 
     if ( SECTION_INDEX < TRANSFORMATIONS.length) {
@@ -631,7 +694,7 @@ function ToggleAnnotationVisibility() {
 }
 
 
-  function webGLStart() {
+  function Start() {
     detectMobile();
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
@@ -644,11 +707,14 @@ function ToggleAnnotationVisibility() {
       initGC();
     }
     EVENT_MANAGER = new EventManager(CANVAS);
-    initViews();
-
     if (MOBILE_DEVICE) {
       MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
+    InitViews();
+    InitStack();
+
+
+    var annotationWidget = new AnnotationWidget(VIEWER1);
 
     $(window).resize(function() {
         handleResize();
@@ -671,42 +737,47 @@ function ToggleAnnotationVisibility() {
 
 
     // Place the previous next buttons.
-    $('<img>').appendTo('body').css({
+    $('<img>').appendTo('body')
+      .css({
         'opacity': '0.4',
         'position': 'absolute',
         'height': '50px',
         'width': '50px',
         'bottom' : '5px',
         'left' : '5px',
-        'z-index': '2'
-    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='leftArrow2.png')}}").click(function(){
-            updateSection(-1);});
-    $('<img>').appendTo('body').css({
+        'z-index': '2'})
+      .attr('class', 'viewer1')
+      .attr('type','image')
+      .attr('src',"{{ url_for('glviewer.static', filename='leftArrow2.png')}}")
+      .click(function(){ updateSection(-1); });
+    $('<img>').appendTo('body')
+      .css({
         'opacity': '0.4',
         'position': 'absolute',
         'height': '50px',
         'width': '50px',
         'bottom' : '5px',
         'left' : '55px',
-        'z-index': '2'
-    }).attr('class', 'viewer1').attr('type','image').attr('src',"{{ url_for('glviewer.static', filename='rightArrow2.png')}}").click(function(){
-            updateSection(1);});
-
-
-    // Hack button to toggle annotation.
-    $('<button>').appendTo('body').css({
-        'opacity': '0.2',
-        'position': 'absolute',
-        'height': '50px',
-        'width': '50px',
-        'font-size': '30px',
-        'bottom' : '5px',
-        'left' : '130px',
         'z-index': '2'})
-      .attr('id', 'annotationButton').text("A")
-      .click(function(){
-         ToggleAnnotationVisibility();});
+      .attr('class', 'viewer1')
+      .attr('type','image')
+      .attr('src',"{{ url_for('glviewer.static', filename='rightArrow2.png')}}")
+      .click(function(){ updateSection(1); });
 
+
+    // Button to save annotation
+    $('<img>').appendTo('body').css({
+        'opacity': '0.4',
+        'position': 'absolute',
+        'height': '30px',
+        'width': '30px',
+        'bottom' : '12px',
+        'right' : '300px',
+        'z-index': '2'})
+      .attr('class', 'viewer1')
+      .attr('type','image')
+      .attr('src',"{{ url_for('glviewer.static', filename='save.png')}}")
+      .click(function(){ saveAnnotation(); });
 
 
     eventuallyRender();
@@ -742,9 +813,7 @@ function ToggleAnnotationVisibility() {
 
 
     $(document).ready(function() {
-      // Get arguments and then initialize webgl.
-      getArgs();
-      InitAnnotationEditMenus();
+      Start();
     });
 
 </script>

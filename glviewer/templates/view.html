@@ -219,11 +219,8 @@ shape has visibility and
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
-    VIEWER1 = new Viewer([0,0, width,height], null);
-    EVENT_MANAGER.AddViewer(VIEWER1);
-
-    VIEWER2 = new Viewer([width,0, 0,height], null);
-    EVENT_MANAGER.AddViewer(VIEWER2);
+    VIEWER1 = initView([0,0, width, height]);
+    VIEWER2 = initView([0,0, width, height]);
 
     handleResize();
   }
@@ -331,37 +328,6 @@ shape has visibility and
     DualViewUpdateGui();
 
     if ( ! MOBILE_DEVICE) {
-      // Place the zoom in / out buttons.
-      // Todo: Make the button become more opaque when pressed.
-      // Associate with viewer (How???).
-      // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-      $('<img>').appendTo('body').css({
-          'opacity': '0.4',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'bottom' : '60px',
-          'right' : '5px',
-          'z-index': '2'
-      }).attr('id', 'zoomIn1')
-        .attr('class', 'viewer1')
-        .attr('type','image')
-        .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
-        .click(function(){VIEWER1.AnimateZoom(0.5);});
-      $('<img>').appendTo('body').css({
-          'opacity': '0.4',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'bottom' : '5px',
-          'right' : '5px',
-          'z-index': '2'
-      }).attr('id', 'zoomOut1')
-        .attr('class', 'viewer1')
-        .attr('type','image')
-        .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
-        .click(function(){VIEWER1.AnimateZoom(2.0);});
-
       $('<img>').appendTo('body').css({
           'opacity': '0.4',
           'position': 'absolute',
@@ -380,41 +346,8 @@ shape has visibility and
 
       // Formalize this later (actual object and methods in viewer).
       // Register these buttons with the viewer.
-      VIEWER1.AddGuiElement("#zoomIn1", "Bottom", 60, "Right", 55);
-      VIEWER1.AddGuiElement("#zoomOut1", "Bottom", 5, "Right", 55);
       VIEWER1.AddGuiElement("#viewMenu1", "Bottom", 5, "Right", 105);
 
-
-      // Place the zoom in / out buttons. For the second viewer
-      $('<img>').appendTo('body').css({
-          'opacity': '0.4',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'bottom' : '60px',
-          'left' : '96%',
-          'z-index': '2'
-      }).attr('id', 'zoomIn2')
-        .attr('class', 'viewer2')
-        .attr('type','image')
-        .attr('src',"{{ url_for('glviewer.static', filename='zoomin2.png')}}")
-        .click(function(){
-               VIEWER2.AnimateZoom(0.5);});
-      $('<img>').appendTo('body').css({
-          'opacity': '0.4',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'bottom' : '5px',
-          'left' : '96%',
-          'z-index': '2'
-      }).attr('id', 'zoomOut2')
-        .attr('class', 'viewer2')
-        .attr('type','image')
-        .attr('src',"{{ url_for('glviewer.static', filename='zoomout2.png')}}")
-        .click(function(){
-               VIEWER2.AnimateZoom(2.0);});
-      $('.viewer2').hide();
 
       $('<img>').appendTo('body').css({
           'opacity': '0.4',
@@ -429,8 +362,6 @@ shape has visibility and
         .attr('src',"{{ url_for('glviewer.static', filename='Menu.jpg')}}")
         .click(function(){ShowViewerEditMenu(VIEWER2);});
 
-      VIEWER2.AddGuiElement("#zoomIn2", "Bottom", 60, "Right", 55);
-      VIEWER2.AddGuiElement("#zoomOut2", "Bottom", 5, "Right", 55);
       VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
     }
 
@@ -536,6 +467,8 @@ shape has visibility and
       }
     });
 
+
+    Start();
   });
 
 </script>
@@ -597,6 +530,3 @@ shape has visibility and
 </div>
 
 
-<script>
-    Start();
-</script>

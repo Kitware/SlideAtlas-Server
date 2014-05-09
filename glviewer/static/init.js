@@ -354,26 +354,37 @@ function initView(viewport) {
   // Todo: Make the button become more opaque when pressed.
   // Associate with viewer (How???).
   // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-  $('<img>').appendTo('body').css({
-      'opacity': '0.4',
-      'position': 'absolute',
-      'height': '50px',
-      'width': '50px',
-      'bottom' : '55px',
-      'right' : '5px',
-      'z-index': '2'
-  }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomin2.png").click(function(){
-           VIEWER1.AnimateZoom(0.5);});
-  $('<img>').appendTo('body').css({
-      'opacity': '0.4',
-      'position': 'absolute',
-      'height': '50px',
-      'width': '50px',
-      'bottom' : '5px',
-      'right' : '5px',
-      'z-index': '2'
-  }).attr('class', 'viewer1').attr('type','image').attr('src',"/webgl-viewer/static/zoomout2.png").click(function(){
-           VIEWER1.AnimateZoom(2.0);});
+  var zoomInButton = $('<img>')
+        .appendTo('body')
+        .css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '55px',
+          'right' : '5px',
+          'z-index': '2'})
+        .attr('class', 'viewer1')
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomin2.png")
+        .click(function(){ viewer.AnimateZoom(0.5);});
+  var zoomOutButton = $('<img>').appendTo('body')
+        .css({
+          'opacity': '0.4',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '5px',
+          'right' : '5px',
+          'z-index': '2'})
+        .attr('class', 'viewer1')
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomout2.png")
+        .click(function(){viewer.AnimateZoom(2.0);});
+
+  viewer.AddGuiObject(zoomInButton, "Bottom", 60, "Right", 55);
+  viewer.AddGuiObject(zoomOutButton, "Bottom", 5, "Right", 55);
+
   return viewer;
 }
 

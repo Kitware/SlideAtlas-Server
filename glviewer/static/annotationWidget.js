@@ -27,7 +27,7 @@ function AnnotationWidget (viewer) {
         'right' : '20px',
         'z-index': '1'});;
 
-    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 260);
+    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 286);
 
     var row = $('<tr>').appendTo(this.Widget)
     var cell = $('<td>').appendTo(row)
@@ -36,36 +36,41 @@ function AnnotationWidget (viewer) {
         'opacity': '0.6',
         'border-radius': '5px'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/pencil3.png")
+      .attr('src',"/webgl-viewer/static/pencil3.png")
       .click(function(){self.ToggleVisibility();});
 
     this.ToolsTable = $('<td>').appendTo(row)
       .hide()
       .css({
         'opacity': '0.6',
-        'width': '130',
+        'width': '156',
         'border-radius': '5px'});
 
     $('<img>').appendTo(this.ToolsTable)
       .css({'height': '28px'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Text.gif")
+      .attr('src',"/webgl-viewer/static/Text.gif")
       .click(function(){self.NewText();});
     $('<img>').appendTo(this.ToolsTable)
       .css({'height': '28px'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Circle.gif")
+      .attr('src',"/webgl-viewer/static/Circle.gif")
       .click(function(){self.NewCircle();});
     $('<img>').appendTo(this.ToolsTable)
       .css({'height': '28px'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/FreeForm.gif")
+      .attr('src',"/webgl-viewer/static/FreeForm.gif")
       .click(function(){self.NewPolyline();});
     $('<img>').appendTo(this.ToolsTable)
       .css({'height': '28px'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Pencil-icon.jpg")
+      .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
       .click(function(){self.NewPencil();});
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"/webgl-viewer/static/select_lasso.png")
+      .click(function(){self.NewLasso();});
   }
 }
 
@@ -75,13 +80,13 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
   }
   if (this.VisibilityButton) {
     if (visibility == ANNOTATION_OFF) {
-      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3.png")
+      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3.png")
       this.ToolsTable.fadeOut();
     } else if (visibility == ANNOTATION_NO_TEXT) {
-      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Flip.png")
+      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Flip.png")
       this.ToolsTable.fadeIn();
     } else {
-      this.VisibilityButton.attr('src',"webgl-viewer/static/pencil3Up.png")
+      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Up.png")
     }
   }
 
@@ -137,6 +142,17 @@ AnnotationWidget.prototype.NewPencil = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new PencilWidget(this.Viewer, true);
+  this.Viewer.ActiveWidget = widget;
+}
+
+AnnotationWidget.prototype.NewLasso = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget && (widget instanceof LassoWidget)) {
+    widget.Deactivate();
+    return;
+  }
+  this.SetVisibility(ANNOTATION_ON);
+  var widget = new LassoWidget(this.Viewer, true);
   this.Viewer.ActiveWidget = widget;
 }
 

@@ -98,19 +98,20 @@ def view_a_session(database_obj, session_obj, next=None):
         # Should we clean up the broken reference? Just skip for now.
         if viewobj:
             imgid = 0
-            imgdb = ""
+            imgdb = database_obj.id
             if "Type" in viewobj:
                 # my new notes make it difficult to get the image.
                 if viewobj["Type"] == "Note" :
-                    if viewobj["ViewerRecords"][0].has_key("Database") :
-                        imgid = viewobj["ViewerRecords"][0]["Image"]
-                        imgdb = viewobj["ViewerRecords"][0]["Database"]
+                    record = viewobj["ViewerRecords"][0]
+                    if isinstance(record["Image"], dict) :
+                        imgid = record["Image"]["_id"]
+                        imgdb = record["Image"]["database"]
                     else :
-                        imgid = viewobj["ViewerRecords"][0]["Image"]["_id"]
-                        imgdb = viewobj["ViewerRecords"][0]["Image"]["database"]
+                        imgid = record["Image"]
+                    if record.has_key("Database") :
+                        imgdb = record["Database"]
 
             if imgid == 0 :
-                imgdb = str(database_obj.id)
                 imgid = str(viewobj["img"])
             if "imgdb" in viewobj :
                 imgdb = viewobj["imgdb"]  # TODO: this is already stored as a string for zome reason

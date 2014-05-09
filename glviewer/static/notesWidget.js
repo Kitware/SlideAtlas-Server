@@ -736,13 +736,12 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.HiddenTitle = this.HiddenTitle;
   obj.Text = this.Text;
   // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = [];
-  for (var i = 0; i < this.ViewRecords.length; ++i) {
-    obj.ViewerRecords[i] = {};
-    obj.ViewerRecords[i].Database = this.ViewerRecords[i].Database;
+  obj.ViewerRecords = this.ViewerRecords;
+
+  // The database wants an image id, not an embedded iamge object.
+  //  The server should really take care of this since if
+  for (var i = 0; i < obj.ViewerRecords.length; ++i) {
     obj.ViewerRecords[i].Image = this.ViewerRecords[i].Image._id;
-    obj.ViewerRecords[i].NumberOfLevels = this.ViewerRecords[i].NumberOfLevels;
-    obj.ViewerRecords[i].Camera = this.ViewerRecords[i].Camera;
   }
 
   // upper left pixel
