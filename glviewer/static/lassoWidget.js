@@ -24,7 +24,7 @@ function LassoWidget (viewer, newFlag) {
         'height': '28px',
         'z-index': '1'})
       .attr('type','image')
-      .attr('src',"webgl-viewer/static/Pencil-icon.png");
+      .attr('src',"/webgl-viewer/static/select_lasso.png");
 
   var self = this;
   // I am trying to stop images from getting move events and displaying a circle/slash.
@@ -61,21 +61,24 @@ LassoWidget.prototype.Draw = function(view) {
 LassoWidget.prototype.Serialize = function() {
   var obj = new Object();
   obj.type = "lasso";
-  obj.loop = [];
+  obj.shapes = [];
+  var points = [];
   for (var j = 0; j < this.Loop.Points.length; ++j) {
-    obj.loop.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
+    points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
   }
+  obj.shapes.push(points);
 
   return obj;
 }
 
 // Load a widget from a json object (origin MongoDB).
 LassoWidget.prototype.Load = function(obj) {
+  var points = obj.shapes[0];
   this.Loop.OutlineColor = [0.9, 1.0, 0.0];
   this.Loop.FixedSize = false;
   this.Loop.LineWidth = 0;
-  for (var m = 0; m < obj.loop.length; ++m) {
-    this.Loop.Points[m] = [obj.loop[m][0], obj.loop[m][1]];
+  for (var m = 0; m < points.length; ++m) {
+    this.Loop.Points[m] = [points[m][0], points[m][1]];
   }
   this.Loop.UpdateBuffers();
 }
@@ -126,10 +129,18 @@ LassoWidget.prototype.HandleMouseUp = function(event) {
   if (event.SystemEvent.which == 1) {
     var spacing = this.Viewer.GetSpacing();
     this.Decimate(this.Stroke, spacing);
-    this.Stroke.Points.push([this.Stroke.Points[0][0], this.Stroke.Points[0][1]]);
-    this.Stroke.UpdateBuffers();
-    this.Loop = this.Stroke;
-    this.Stroke = false;
+    if (this.Loop && this.Loop.Points.length > 0) {
+      this.CombineStroke(); 
+    } else {
+
+      //this.Stroke.Points = [[34000,40000],[45000,40000],[45000,70000],[34000,70000]];
+
+
+      this.Stroke.Points.push([this.Stroke.Points[0][0], this.Stroke.Points[0][1]]);
+      this.Stroke.UpdateBuffers();
+      this.Loop = this.Stroke;
+      this.Stroke = false;
+    }
     this.ComputeActiveCenter();
     eventuallyRender();
 
@@ -308,35 +319,142 @@ LassoWidget.prototype.Decimate = function(shape, spacing) {
 
 
 
+LassoWidget.prototype.CombineStroke = function() {
+
+    //this.Stroke.Points = [[50000,60000],[30000,80000]];
+    //this.Stroke.Points = [[30000,80000],[50000,60000]];
+
+
+  // Find the first and last intersection points between stroke and loop.
+  var intersection0;
+  var intersection1;
+  for (var i = 1; i < this.Stroke.Points.length; ++i) {
+    var pt0 = this.Stroke.Points[i-1];
+    var pt1 = this.Stroke.Points[i];
+    var tmp = this.FindIntersection(pt0, pt1);     
+    if (tmp) {
+      // I need to insert the intersection in the stroke so
+      // one stroke segment does not intersect loop twice.
+      this.Stroke.Points.splice(i,0,tmp.Point);
+      if (intersection0 == undefined) {
+        intersection0 = tmp;
+        intersection0.StrokeIndex = i;
+      } else {
+        // If a point was added before first intersection,
+        // its index needs to be updated too.
+        if (tmp.LoopIndex < intersection0.LoopIndex) {
+          intersection0.LoopIndex += 1;
+        }
+        intersection1 = tmp;
+        intersection1.StrokeIndex = i;
+      }
+    }
+  }
+
+  // If we have two intersections, clip the loop with the stroke.
+  if (intersection1 != undefined) {
+    // We will have two parts.
+    // Build both loops keeing track of their lengths.
+    // Keep the longer part.
+    var points0 = [];
+    var len0 = 0.0;
+    var points1 = [];
+    var len1 = 0.0;
+    var i;
+    // Add the clipped stroke to both loops.
+    for (i = intersection0.StrokeIndex; i < intersection1.StrokeIndex; ++i) {
+      points0.push(this.Stroke.Points[i]);
+      points1.push(this.Stroke.Points[i]);
+    }
+    // Now the two new loops take different directions around the original loop.
+    // Decreasing
+    i = intersection1.LoopIndex;
+    while (i != intersection0.LoopIndex) {
+      points0.push(this.Loop.Points[i]);
+      var dx = this.Loop.Points[i][0];
+      var dy = this.Loop.Points[i][1];
+      // decrement around loop.  First and last loop points are the same.
+      if (--i == 0) { i = this.Loop.Points.length - 1;}
+      // Integrate distance.
+      dx -= this.Loop.Points[i][0];
+      dy -= this.Loop.Points[i][1];
+      len0 += Math.sqrt(dx*dx + dy*dy);
+    }
+    // Duplicate the first point in the loop
+    points0.push(intersection0.Point);
+
+    // Increasing
+    i = intersection1.LoopIndex;
+    while (i != intersection0.LoopIndex) {
+      points1.push(this.Loop.Points[i]);
+      var dx = this.Loop.Points[i][0];
+      var dy = this.Loop.Points[i][1];
+      //increment around loop.  First and last loop points are the same.
+      if (++i == this.Loop.Points.length - 1) { i = 0;}
+      // Integrate distance.
+      dx -= this.Loop.Points[i][0];
+      dy -= this.Loop.Points[i][1];
+      len1 += Math.sqrt(dx*dx + dy*dy);
+    }
+    // Duplicate the first point in the loop
+    points1.push(intersection0.Point);
+
+    if (len0 > len1) {
+      this.Loop.Points = points0;
+    } else {
+      this.Loop.Points = points1;
+    }
+
+    this.Loop.UpdateBuffers();
+    this.ComputeActiveCenter();
+    RecordState();
+  }
+  this.Stroke = false;
+  eventuallyRender();
+}
 
 
 // tranform all points so p0 is origin and p1 maps to (1,0)
 // Returns false if no intersection, 
-// return [x, y, ||p1-p0||] if there is an intersection.
-LassoWidget.prototype.FindIntersections = function(p0, p1) {
+// If there is an intersection, it adds that point to the loop.
+// It returns {Point: newPt, LoopIndex: i} .
+LassoWidget.prototype.FindIntersection = function(p0, p1) {
+  var best = false;
   var p = [(p1[0]-p0[0]), (p1[1]-p0[1])];
   var mag = Math.sqrt(p[0]*p[0] + p[1]*p[1]);
   if (mag < 0.0) { return false;}
   p[0] = p[0] / mag;
-  p[1] = p[0] / mag;
+  p[1] = p[1] / mag;
 
-  var m0 = this.LoopPoints[0];
+  var m0 = this.Loop.Points[0];
   var n0 = [(m0[0]-p0[0])/mag, (m0[1]-p0[1])/mag];
-  var k0 = [(n0[0]*p[0]+n0[1]*p[1]), (n0[1]*p[0]+n0[0]*p[1])];
+  var k0 = [(n0[0]*p[0]+n0[1]*p[1]), (n0[1]*p[0]-n0[0]*p[1])];
 
   for (var i = 1; i < this.Loop.Points.length; ++i) {
-    var m1 = this.LoopPoints[i];
+    var m1 = this.Loop.Points[i];
+    // Infinite loop because we are inserting points.
+    if (p0 == m0 || p0 == m1) { continue;}
     var n1 = [(m1[0]-p0[0])/mag, (m1[1]-p0[1])/mag];
-    var k1 = [(n1[0]*p[0]+n1[1]*p[1]), (n1[1]*p[0]+n1[0]*p[1])];
-    if ((k1[1] >= 0.0 && k1[1] <= 0.0) || (k1[1] <= 0.0 && k1[1] >= 0.0)) {
+    var k1 = [(n1[0]*p[0]+n1[1]*p[1]), (n1[1]*p[0]-n1[0]*p[1])];
+    if ((k1[1] >= 0.0 && k0[1] <= 0.0) || (k1[1] <= 0.0 && k0[1] >= 0.0)) {
       var k = k0[1] / (k0[1]-k1[1]);
       var x = k0[0] + k*(k1[0]-k0[0]); 
-      if (x >= 0 && x <=1) {
-          return [(p0[0]+k*(p1[0]-p0[0])), (p0[1]+k*(p1[1]-p0[1])), mag];  
+      if (x > 0 && x <=1) {
+        var newPt = [(m0[0]+k*(m1[0]-m0[0])), (m0[1]+k*(m1[1]-m0[1]))];  
+        if ( ! best || x < best.k) {
+          best = {Point: newPt, LoopIndex: i, k: x}; 
+        }
       }
     }
+    m0 = m1;
+    n0 = n1;
+    k0 = k1;
   }
-  return false;
+  if (best) {
+    this.Loop.Points.splice(best.LoopIndex,0,best.Point);
+  }
+
+  return best;
 }
 
 

@@ -164,6 +164,7 @@ Viewer.prototype.HideGuiElements = function() {
   }
 }
 
+// legacy
 Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
   var element = {};
   element.Id = idString;
@@ -375,6 +376,10 @@ Viewer.prototype.RemoveWidget = function(widget) {
 // Load a widget from a json object (origin MongoDB).
 Viewer.prototype.LoadWidget = function(obj) {
   switch(obj.type){
+    case "lasso":
+      var lasso = new LassoWidget(this, false);
+      lasso.Load(obj);
+      break;
     case "pencil":
       var pencil = new PencilWidget(this, false);
       pencil.Load(obj);
