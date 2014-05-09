@@ -184,9 +184,12 @@ def create_celery_app(app):
         CELERY_RESULT_BACKEND = mongo_url,
         CELERY_MONGODB_BACKEND_SETTINGS = {
             "host": mongo_url,
+            "database" : app.config['SLIDEATLAS_ADMIN_DATABASE_NAME'],
             "taskmeta_collection":"taskmeta",
+            "user" : app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'],
+            "password" : app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD']
             },
-        # CELERY_BROKER_TRANSPORT_OPTIONS ={'replicaSet': app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET']}
+        CELERY_BROKER_TRANSPORT_OPTIONS ={'replicaSet': app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET']}
         )
 
     return celery
