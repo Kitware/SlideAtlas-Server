@@ -163,6 +163,7 @@ def create_celery_app(app):
     Setup celery for processing background tasks
     """
     # Use configuration from app
+    from datetime import timedelta
 
     mongo_url="mongodb://" + app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'] + \
         ":" +  app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD'] + "@" + app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'] + \
@@ -189,7 +190,18 @@ def create_celery_app(app):
             "user" : app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'],
             "password" : app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD']
             },
-        CELERY_BROKER_TRANSPORT_OPTIONS ={'replicaSet': app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET']}
+        CELERY_BROKER_TRANSPORT_OPTIONS ={'replicaSet': app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET']},
+
+        CELERYBEAT_SCHEDULE = {
+            'sync-every-30-minutes': {
+                'task': 'slideatlas.tasks.autosync',
+                'schedule': timedelta(minutes=30),
+                # TODO dummy id
+                'args': ("1234567890123456788901234")
+            },
+        }
+
+        CELERY_TIMEZONE = 'UTC'
         )
 
     return celery

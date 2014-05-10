@@ -88,3 +88,12 @@ be applied to that queue
     from slideatlas.tasks import sync_store
     b = sync_store.apply_async(args=("5356d8b9e67655244bf3273a",), queue="celery_autosync")
 
+
+For production deployment
+-------------------------
+
+We need
+
+- Site specific configuration and schedule settings
+- A site specific supervisor config file to start worker processe(s)
+
