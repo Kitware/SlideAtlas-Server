@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from flask import g
 from mongoengine import StringField
 from mongoengine.connection import get_db
 
@@ -76,6 +77,7 @@ class MultipleDatabaseImageStore(ImageStore):
     def connection_alias(self):
         return str(self.id)
 
+
     def register(self):
         register_database(
             alias=self.connection_alias,
@@ -86,23 +88,18 @@ class MultipleDatabaseImageStore(ImageStore):
             password=self.password
         )
 
+
     def __enter__(self):
         self.register()
-        # TODO: 'MultipleDatabaseModelDocument._subclasses' contains a list with all of the subclasses
-        #  (including itself), but as strings; we need a way to get the actual class object, so it can
-        #  be modified;
-        #  maybe make a new metaclass to do it, but then it must fake that its 'my_metaclass'
-        #  until then, we have to explicitly enumerate the classes, which is hard to maintain
-        for cls in [MultipleDatabaseModelDocument, session.Session]:
-            cls._db_alias = self.connection_alias
-            cls._collection = None  # clear any cached collection
-        # don't return anything
+        try:
+            g.multiple_database_connection_aliases.append(self.connection_alias)
+        except AttributeError:
+            g.multiple_database_connection_aliases = [self.connection_alias]
+
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # TODO: get rid of the explicit listing; see above
-        for cls in [MultipleDatabaseModelDocument, session.Session]:
-            cls._db_alias = self.connection_alias
-            cls._collection = None  # clear any cached collection
+        g.multiple_database_connection_aliases.pop()
+
 
     def to_pymongo(self, raw_object=False):
         """"
