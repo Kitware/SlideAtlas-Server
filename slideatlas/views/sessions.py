@@ -178,7 +178,9 @@ def view_a_session(database_obj, session_obj, next=None):
     if request.args.get('json'):
         return jsonify(data)
     else:
-        return render_template('session.html', data=data)
+        is_session_admin = security.AdminSessionPermission(session_obj).can()
+        return render_template('session.html', data=data, session_obj=session_obj,
+                               is_session_admin=is_session_admin)
 
 
 # change the order of views in the
