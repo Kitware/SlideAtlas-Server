@@ -17,9 +17,6 @@ def tile():
     image_store_id = request.args.get('db')
     tile_name = request.args.get('name')
 
-    if not models.User().is_authenticated():
-        abort(403)
-
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     try:
         tile_data = image_store.get_tile(image_id, tile_name)
@@ -39,9 +36,6 @@ def thumb():
     image_id = request.args.get('img')
     image_store_id = request.args.get('db')
     tile_name = request.args.get('name')
-
-    if not models.User().is_authenticated():
-        abort(403)
 
     image_store = models.ImageStore.objects.get_or_404(id=image_store_id)
     # try:
