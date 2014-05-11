@@ -28,5 +28,6 @@ class MongoImageStore(MultipleDatabaseImageStore):
 
         return str(tile_doc['file'])
 
+
     def get_thumb(self, image_id):
         return self.get_tile(image_id, "t.jpg")
