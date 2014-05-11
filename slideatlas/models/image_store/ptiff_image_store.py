@@ -5,7 +5,10 @@ import datetime
 import glob
 import logging
 import os
-import StringIO
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
 
 from mongoengine import DateTimeField, StringField, DoesNotExist, \
     MultipleObjectsReturned
