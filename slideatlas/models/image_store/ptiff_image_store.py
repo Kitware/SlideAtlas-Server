@@ -52,8 +52,9 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
     def get_tile(self, image_id, tile_name):
         """
-        Function redefinition to get_tile
-        Raises exceptions that must be caught by the calling routine
+        Returns an image tile as a binary JPEG string.
+
+        :raises: DoesNotExist
         """
         with self:
             image = Image.objects.get_or_404(id=image_id)
@@ -79,14 +80,13 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         if reader_result > 0:
             logging.info('Read %d bytes' % reader_result)
         else:
-            raise Exception('Tile not read')
+            raise DoesNotExist('Tile not able to be read from %s' % tiff_path)
 
         return tile_buffer.getvalue()
 
     def get_thumb(self, image):
         """
-        Function redefinition to get_thumb
-        Raises exceptions that must be caught by the calling routine
+        Returns a thumbnail with a label as a binary JPEG string.
         """
         tiff_path = os.path.join(self.root_path, image.filename)
 

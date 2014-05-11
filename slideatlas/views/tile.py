@@ -25,7 +25,7 @@ def tile(image_store, image_id, tile_name):
     try:
         tile_data = image_store.get_tile(image_id, tile_name)
         return Response(tile_data, mimetype='image/jpeg')
-    except Exception as e:
+    except models.DoesNotExist as e:
         # TODO: more specific exception
         logger.error('Tile not loaded: %s' % e.message)
         return Response('{"error": "Tile loading error: %s"}' % e.message, status=404)
@@ -50,12 +50,12 @@ def thumb(image_store, image):
     """
     Return a thumbnail image
     """
-    # try:
-    tile_data = image_store.get_thumb(image)
-    return Response(tile_data, mimetype='image/jpeg')
-    # except Exception as e:
-    logger.error('Thumb not available: %s' % e.message)
-    return Response('{"error": "Thumb loading error: %s"}' % e.message, status=404)
+    try:
+        tile_data = image_store.get_thumb(image)
+        return Response(tile_data, mimetype='image/jpeg')
+    except models.DoesNotExist as e:
+        logger.error('Thumb not available: %s' % e.message)
+        return Response('{"error": "Thumb loading error: %s"}' % e.message, status=404)
 
 
 @mod.route('/thumb')
