@@ -1,9 +1,15 @@
 # coding=utf-8
 
+import datetime
+import math
+import mimetypes
+
+from bson import Binary
 from flask import Blueprint, abort, current_app, make_response, request, url_for
 from flask.helpers import wrap_file
 from flask.json import jsonify
 from flask.views import MethodView
+from werkzeug.http import parse_content_range_header
 import gridfs
 
 from slideatlas import models, security
@@ -349,55 +355,94 @@ class SessionAttachmentListAPI(ListAPI):
             })
         return attachments
 
+
     @security.ViewSessionPermission.protected
     def get(self, database, session):
         attachments = self._get(database, session)
         return jsonify(attachments=attachments)
 
+
     @security.AdminSessionPermission.protected
     def post(self, database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
-
-        # TODO: chucked uploads
-
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
             abort(400)  # Bad Request
-
         uploaded_file = request.files.itervalues().next()
-        attachment = attachments_fs.new_file(
-            filename=uploaded_file.filename,
-            # TODO: detection of 'content_type', possibly with libmagic
-            content_type=uploaded_file.content_type
-        )
+
+        gridfs_args = dict()
+
+        # file name
+        if not uploaded_file.filename:
+            # the uploaded file must contain a filename
+            abort(400)
+        # TODO: filter the filename to remove special characters and ensure length < 255
+        gridfs_args['filename'] = uploaded_file.filename
+
+        # chunked uploads
+        content_range = parse_content_range_header(request.headers.get('Content-Range'))
+        if content_range and (content_range.stop != content_range.length):
+            if content_range.start != 0:
+                # a POST with partial content must not contain a fragment past the start of the entity
+                abort(400)  # Bad Request
+            if content_range.units != 'bytes':
+                # only a range-unit of "bytes" may be used in a Content-Range header
+                abort(400)  # Bad Request
+            content_chunk_size = content_range.stop - content_range.start
+            gridfs_args['chunkSize'] = content_chunk_size
+
+        # content type
+        # TODO: get the content type via libmagic, so a client can't falsify it
+        #   via headers or filename extension
+        # TODO: reject dangerous file types, like .exe or .html
+        # first, try the client's headers for content type
+        if uploaded_file.mimetype and uploaded_file.mimetype != 'application/octet-stream':
+            # "mimetype" doesn't include charset options
+            gridfs_args['contentType'] = uploaded_file.mimetype
+        else:
+            # if the headers are non-specific, try the filename extension
+            extension_content_type = mimetypes.guess_type(uploaded_file.filename, strict=False)[0]
+            if extension_content_type:
+                gridfs_args['contentType'] = extension_content_type
+        # if getting the content type failed, leave "gridfs_args['contentType']" unset
+
+        # save into GridFS
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+        attachment = attachments_fs.new_file(**gridfs_args)
         try:
+            # this will stream the IO, instead of loading it all into memory
             uploaded_file.save(attachment)
         finally:
             attachment.close()
             uploaded_file.close()
 
-        attachments_ref = models.RefItem(id=attachment._id)
+        # add to session
+        attachments_ref = models.RefItem(ref=attachment._id)
         session.attachments.append(attachments_ref)
         session.save()
 
-        # TODO: return Location: redirect header
-        # TODO: return body with metadata
-        return make_response('', 201)  # Created
+        # return response
+        new_location = url_for('.session_attachment_item', database=database,
+                               session=session, attachment_id=attachment._id)
+        return make_response(jsonify(),  # TODO: return body with metadata?
+                             201,  # Created
+                             {'Location': new_location})
 
 
 class SessionAttachmentItemAPI(ItemAPI):
     @security.ViewSessionPermission.protected
     def get(self, database, session, attachment_id):
         attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+        try:
+            attachment = attachments_fs.get(attachment_id)
+        except gridfs.NoFile:
+            abort(404)
 
         # check that the requested attachment is in the session
         for attachment_ref in session.attachments:
-            if attachment_ref.ref == attachment_id:
+            if attachment_ref.ref == attachment._id:
                 break
         else:
             abort(404)  # Not Found
-
-        attachment = attachments_fs.get(attachment_id)
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -411,7 +456,7 @@ class SessionAttachmentItemAPI(ItemAPI):
 
         response = current_app.response_class(
             response=wrap_file(request.environ, attachment),
-            direct_passthrough=True,
+            direct_passthrough=True, # allows HEAD method to work without reading the attachment's data
             content_type=(attachment.content_type or 'application/octet-stream'))
         response.content_length = attachment.length
         response.content_md5 = attachment.md5
@@ -421,6 +466,7 @@ class SessionAttachmentItemAPI(ItemAPI):
         content_disposition = dict()
         if attachment.filename:
             content_disposition['filename'] = attachment.filename
+        # TODO: make 'attachment' if file is a very large image
         response.headers.set('Content-Disposition', 'inline', **content_disposition) # RFC 6266
 
         response.last_modified = attachment.upload_date
@@ -432,19 +478,90 @@ class SessionAttachmentItemAPI(ItemAPI):
         return response.make_conditional(request)
 
 
+    @security.AdminSessionPermission.protected
     def put(self, database, session, attachment_id):
-        abort(405)  # Method Not Allowed
+        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+        try:
+            attachment = attachments_fs.get(attachment_id)
+        except gridfs.NoFile:
+            abort(404)
+
+        # only accept a single file from a form
+        if len(request.files.items(multi=True)) != 1:
+            abort(400)  # Bad Request
+        uploaded_file = request.files.itervalues().next()
+
+        content_range = parse_content_range_header(request.headers.get('Content-Range'))
+        if not content_range:
+            # a PUT request to modify an attachment must include a Content-Range header
+            abort(400)
+        if content_range.units != 'bytes':
+            # only a range-unit of "bytes" may be used in a Content-Range header
+            abort(400)  # Bad Request
+        if content_range.start is None:
+            # the content's start and end positions must be specified in the Content-Range header
+            abort(400)
+        # 'parse_content_range_header' guarantees that 'content_range.stop' must
+        #   also be specified if 'start' is
+        if content_range.length is None:
+            # the content's total length must be specified in the Content-Range header
+            # TODO: getting rid of this restriction would be nice, but we'd need
+            #   a way to know when the final chunk was uploaded
+            abort(400)
+
+        content_chunk_size = content_range.stop - content_range.start
+        if content_range.start % content_chunk_size != 0:
+            # upload content start location must be a multiple of content chunk size
+            abort(400)
+
+        if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
+            # only the end chunk can be shorter
+            # upload content chunk size does not match existing GridFS chunk size
+            abort(400)
+
+        database_pymongo = database.to_pymongo()
+
+        chunk_num = (content_range.start / attachment.chunkSize)
+        database_pymongo['attachments.chunks'].insert({
+            'files_id': attachment._id,
+            'n': chunk_num,
+            'data': Binary(uploaded_file.read()),
+        })
+
+        # chunks may be sent out of order, so the only way to determine if all
+        #   chunks were received is to count
+        expected_chunks = int(math.ceil(float(content_range.length) / float(attachment.chunkSize)))
+        received_chunks = database_pymongo['attachments.chunks'].find({'files_id': attachment._id}).count()
+        if expected_chunks == received_chunks:
+            # update the attachment metadata
+            md5 = database_pymongo.command('filemd5', attachment._id, root='attachments')['md5']
+            database_pymongo['attachments.files'].update(
+                {'_id': attachment._id},
+                {'$set': {
+                    'length': content_range.length,
+                    'md5': md5,
+                    'uploadDate': datetime.datetime.utcnow()
+                    }}
+            )
+
+        return make_response(jsonify(), 204)  # No Content
+
 
     def patch(self, database, session, attachment_id):
         abort(405)  # Method Not Allowed
 
+
     @security.AdminSessionPermission.protected
     def delete(self, database, session, attachment_id):
         attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+        try:
+            attachment = attachments_fs.get(attachment_id)
+        except gridfs.NoFile:
+            abort(404)  # Not Found
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):
-            if attachment_ref.ref == attachment_id:
+            if attachment_ref.ref == attachment._id:
                 session.attachments.pop(pos)
                 session.save()
                 break
@@ -452,15 +569,12 @@ class SessionAttachmentItemAPI(ItemAPI):
             abort(404)  # Not Found
 
         # delete from attachments collection
-        attachments_fs.delete(attachment_id)
+        attachments_fs.delete(attachment._id)
 
         return make_response('', 204)  # No Content
 
 
-
 ################################################################################
-
-
 mod.add_url_rule('/databases',
                  view_func=DatabaseListAPI.as_view('database_list'),
                  methods=['GET', 'POST'])

@@ -17,7 +17,7 @@
                 <td> </td>
             </thead>
             <tr ng-repeat ="item in session.attachments" >
-                <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
+                <td><a href="/apiv2/{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
                             {{ item.details.name}}
                         </a>
                 </td>
