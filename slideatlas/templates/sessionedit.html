@@ -496,7 +496,7 @@
           {% for animage in data.views %}
             <li class="ui-state-default" id="{{animage.view}}" view="{{animage.view}}" db="{{animage.db}}">
               <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
-              <img src="{{url_for('tile.tile')}}?db={{animage.db}}&img={{animage.img}}&name=t.jpg"></img>
+              <img src="{{url_for('tile.thumb_query')}}?db={{animage.db}}&img={{animage.img}}"></img>
               <!-- switch between annotation and hidden labels -->
               <input type="text" value="{{ animage.descriptiveLabel}}" class="descriptiveLabel"/>
               <input type="text" value="{{ animage.hiddenLabel}}" class="hiddenLabel" hidden/>

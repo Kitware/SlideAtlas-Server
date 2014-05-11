@@ -83,14 +83,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         return tile_buffer.getvalue()
 
-    def get_thumb(self, image_id):
+    def get_thumb(self, image):
         """
         Function redefinition to get_thumb
         Raises exceptions that must be caught by the calling routine
         """
-        with self:
-            image = Image.objects.get_or_404(id=image_id)
-
         tiff_path = os.path.join(self.root_path, image.filename)
 
         reader = make_reader({

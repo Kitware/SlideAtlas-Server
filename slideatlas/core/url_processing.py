@@ -22,6 +22,7 @@ def add_url_converters(app):
         'User': model_document_converter_factory(models.User),
         'Role': model_document_converter_factory(models.Role),
         'Session': model_document_converter_factory(models.Session),
+        'Image': model_document_converter_factory(models.Image),
         })
 
 

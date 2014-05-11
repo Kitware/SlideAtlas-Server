@@ -72,7 +72,7 @@
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
                 <td> <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}">
-                  <img src="{{url_for('tile.thumb', db=animage.db, img=animage.img, name='t.jpg') }}" width=100px></a></td>
+                  <img src="{{url_for('tile.thumb_query', db=animage.db, img=animage.img) }}" width=100px></a></td>
                 <td>
                   {% if animage.label %}
                     <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a>
