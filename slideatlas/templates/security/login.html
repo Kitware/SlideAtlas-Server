@@ -20,17 +20,22 @@
             <form action="{{ url_for_security('login') }}" method="POST" name="login_user_form" role="form" class="form-horizontal">
                 {{ login_user_form.hidden_tag() }}
                 {{ login_user_form.next() }}
-                <div class="form-group">
+                <div class="form-group{% if login_user_form.email.errors %} has-error{% endif %}">
                     {{ login_user_form.email.label(class="col-sm-2 control-label") }}
                     <div class="col-sm-8">
                         {{ login_user_form.email(class="form-control", required=True) }}
-                        {# TODO: add "login_user_form.remember.errors" if present #}
+                        {% for error in login_user_form.email.errors %}
+                        <span class="help-block">{{ error }}</span>
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group{% if login_user_form.password.errors %} has-error{% endif %}">
                     {{ login_user_form.password.label(class="col-sm-2 control-label") }}
                     <div class="col-sm-8">
                         {{ login_user_form.password(class="form-control") }}
+                        {% for error in login_user_form.password.errors %}
+                        <span class="help-block">{{ error }}</span>
+                        {% endfor %}
                     </div>
                 </div>
                 {# TODO: add "login_user_form.remember" checkbox #}
