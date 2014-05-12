@@ -42,7 +42,6 @@ for mod_name in MOCK_MODULES:
 
 
 from slideatlas.version import get_version
-from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
 #print sys.path
 
