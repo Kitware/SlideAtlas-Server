@@ -9,6 +9,9 @@ import time
 import sys
 import json
 
+import logging
+logger = logging.getLogger("slideatlas.tasks")
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
 from slideatlas  import create_app 
@@ -16,6 +19,8 @@ from slideatlas  import create_app
 # Create teh application objects 
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
+
+
 
 def get_celery_worker_status():
     """
@@ -55,12 +60,11 @@ def sync_store(tilestore_id):
     from slideatlas.models import ImageStore
     from slideatlas.api.api import DatabaseAPI
     from bson import ObjectId
-
     obj = ImageStore.objects.with_id(ObjectId(tilestore_id))
 
     if obj == None:
         # Invalid request the ImageStore is not found
-        return { "error" : "Tilestore Not found: %s"%(resid) }
+        return { "error" : "Tilestore Not found: %s"%(tilestore_id) }
  
     if obj._cls != "ImageStore.MultipleDatabaseImageStore.PtiffImageStore":
         return {"error" : "Sync for %s is not defined"%(obj._cls) }
@@ -73,6 +77,6 @@ def sync_store(tilestore_id):
     # Until we configure a different serializer 
     resp["database"]["_id"] = str(resp["database"]["_id"])
     resp["database"]["last_sync"] = str(resp["database"]["last_sync"])    
-    
+    logger.info(str(resp))
     return resp
 
