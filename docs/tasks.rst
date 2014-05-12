@@ -1,3 +1,33 @@
+
+
+Execution of periodic tasks
+===========================
+
+.. warning::
+
+     If multiple celery workers are launched using same brocker (in our case mongodb database) they might steal each others jobs. Please consider this before starting mongodb locally.
+
+The command to run worker (consumer) for all tasks defined in autosync.py is as follows. The workers must be running or otherwise the jobs submitted will not execute.
+
+.. code-block:: shell-session
+
+     $ celery worker -A slideatlas.tasks.autosync -c 1 --loglevel=INFO
+
+-c 1 defines concurrency = 1 i.e. a single worker process will be running at a time. This may be increased for production.
+
+
+Periodic processing
+-------------------
+
+Celery beat is used to trigger imagestore sync job every 5 minutes. It can be manually tested using command
+
+.. code-block:: shell-session
+
+     $ celery beat -A slideatlas.tasks
+
+Both producer and consumer are run using supervisor for which configuration is supplied in the config repository.
+
+
 Uploads and Tasks
 =================
 
