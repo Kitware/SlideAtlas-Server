@@ -244,34 +244,16 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         $scope.sessid = $routeParams.sessid;
         $scope.type = $routeParams.type;
         $scope.$evalAsync( function () {
-            var urlstr = "/apiv1/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
-            var _id = ""
-            get_id = function (){
-                return _id;
-            };
+            var attachmentPostUrl = "/apiv2/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
             console.log("Getting executed");
             console.log("Refreshing fileUploadCtrl with dbid=" + $routeParams.dbid + " and ssid=" + $routeParams.sessid + " and type=" + $routeParams.type )
                 $('#fileupload').fileupload({
-                    type:'PUT',
-                    url: urlstr + get_id(),
-//                    dataType: 'json',
+                    url: attachmentPostUrl,
+                    dataType: 'json',
                     maxChunkSize: 1048576, // 10 MB
                     add: function (e, data) {
                         $('#status').text('Uploading...');
                         data.submit();
-                    },
-                    submit: function(e,data) {
-                        var $this = $(this);
-                        $.post(urlstr, {"insert" : 1 },
-                            function (result)
-                                {
-                                data.formData = result; // e.g. {id: 123}
-                                _id = result._id
-                                //var that = $(this).data('fileupload');
-                                $this.fileupload('option','url', urlstr + "/"+ _id);
-                                $this.fileupload('send', data);
-                            });
-                        return false;
                     },
                     fail: function (e, data) {
                         $('#status').text('Upload failed ...');
@@ -294,6 +276,28 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
                         console.log(["Done: ", data]);
                         $("#status").text('Upload finished.');
                         console.log("/" + $routeParams.dbid + "/sessions/" + $routeParams.sessid);
+                    },
+
+                    send: function(event, options) {
+                        this.uploadRedirect = null;
+                    },
+                    chunksend: function (event, options) {
+                        if (this.uploadRedirect) {
+                            // subsequent request of a chunked series
+                            options.url = this.uploadRedirect;
+                            options.type = "PUT"
+                        }
+                    },
+                    chunkdone: function (event, options) {
+                        if (!this.uploadRedirect) {
+                            // first request of a chunked series
+                            // RFC 2616 14.30 requires that Location headers be absolute
+                            this.uploadRedirect = options.jqXHR.getResponseHeader("Location");
+                        }
+                    },
+                    always: function (event, options) {
+                        // clear after all chunks have been sent
+                        this.uploadRedirect = null;
                     }
                 });
         });

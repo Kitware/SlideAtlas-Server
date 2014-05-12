@@ -113,9 +113,6 @@ def create_blueprints(app):
     from slideatlas.views import attachments
     app.register_blueprint(attachments.mod)
 
-    from slideatlas import jqueryupload
-    app.register_blueprint(jqueryupload.mod)
-
     from slideatlas.api import api
     app.register_blueprint(api.mod)
 

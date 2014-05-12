@@ -1,13 +1,18 @@
 # coding=utf-8
 
+import base64
 import datetime
 import glob
 import logging
 import os
-import StringIO
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
 
 from mongoengine import DateTimeField, StringField, DoesNotExist, \
     MultipleObjectsReturned
+from PIL import Image as PImage
 
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
@@ -16,10 +21,6 @@ from ..session import Session, RefItem
 
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
-
-import base64
-from PIL import Image as PImage
-# from flask import jsonify
 
 ################################################################################
 __all__ = ('PtiffImageStore',)
@@ -54,8 +55,9 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
     def get_tile(self, image_id, tile_name):
         """
-        Function redefinition to get_tile
-        Raises exceptions that must be caught by the calling routine
+        Returns an image tile as a binary JPEG string.
+
+        :raises: DoesNotExist
         """
         with self:
             image = Image.objects.get_or_404(id=image_id)
@@ -69,7 +71,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             'fname': tiff_path,
             'dir': image.levels - index_z -1,
         })
-        logging.info('Viewing fname: %s' % tiff_path)
+        logging.info('Getting tile from: %s' % tiff_path)
 
         # Locate the tile name from x and y
         pixel_x = index_x * tile_size + 5
@@ -81,19 +83,14 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         if reader_result > 0:
             logging.info('Read %d bytes' % reader_result)
         else:
-            raise Exception('Tile not read')
+            raise DoesNotExist('Tile not able to be read from %s' % tiff_path)
 
         return tile_buffer.getvalue()
 
-    def get_thumb(self, image_id):
+    def get_thumb(self, image):
         """
-        Function redefinition to get_thumb
-        Raises exceptions that must be caught by the calling routine
+        Returns a thumbnail with a label as a binary JPEG string.
         """
-        with self:
-            image = Image.objects.get_or_404(id=image_id)
-
-        tile_size = image.tile_size
         tiff_path = os.path.join(self.root_path, image.filename)
 
         reader = make_reader({
@@ -101,36 +98,35 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             'dir': 0,
         })
 
-        # Todo, create a separate call for parsing embedded images
+        # TODO: create a separate call for parsing embedded images
         reader.parse_image_description()
 
-        logging.info('Viewing fname: %s' % tiff_path)
+        logging.info('Getting thumbnail from: %s' % tiff_path)
 
         # Load the stored images
-        labelimage = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image("label"))))
-        macroimage = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image("macro"))))
+        label_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('label'))))
+        macro_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('macro'))))
 
         # Resize both files for
-        macrowidth, macroheight = macroimage.size
-        macroimage.thumbnail((macrowidth *100.0 / macroheight,100))
-        macrowidth, macroheight = macroimage.size
+        macro_width, macro_height = macro_image.size
+        macro_image.thumbnail((macro_width * 100.0 / macro_height, 100))
+        macro_width, macro_height = macro_image.size
 
         # Rotate label image
-        rotate = labelimage.rotate(90).resize((100,100))
+        rotation = label_image.rotate(90).resize((100, 100))
 
         # Pasting
-        newim = PImage.new('RGB', (macrowidth + 100, 100))
-        newim.paste(rotate, (0,0, 100,100))
-        newim.paste(macroimage, (100,0, macrowidth + 100,100))
+        new_image = PImage.new('RGB', (macro_width + 100, 100))
+        new_image.paste(rotation, (0, 0, 100, 100))
+        new_image.paste(macro_image, (100, 0, macro_width + 100, 100))
 
         # Output
         tile_buffer = StringIO.StringIO()
-        newim.save(tile_buffer, format="JPEG")
+        new_image.save(tile_buffer, format='JPEG')
         contents = tile_buffer.getvalue()
         tile_buffer.close()
 
         return contents
-
 
 
     # def load_folder(self):

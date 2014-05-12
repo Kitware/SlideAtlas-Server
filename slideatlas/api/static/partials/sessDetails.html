@@ -17,7 +17,7 @@
                 <td> </td>
             </thead>
             <tr ng-repeat ="item in session.attachments" >
-                <td><a href="{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
+                <td><a href="/apiv2/{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
                             {{ item.details.name}}
                         </a>
                 </td>
@@ -52,7 +52,7 @@
                 <a href="/webgl-viewer?db={{dbid}}&view={{animage.ref}}" class="lead">{{ animage.details.Title}}</a>
             </td>
             <td height=117px width=117px>
-                <img ng-src="/thumb?db={{dbid}}&img={{animage.details.image}}&name=t.jpg" height=100px>
+                <img ng-src="/thumb?db={{dbid}}&img={{animage.details.image}}" height=100px>
             </td>
         </tr>
     </table>

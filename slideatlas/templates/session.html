@@ -1,6 +1,46 @@
 {% extends "base.html" %}
 {% set active_page = "sessions" %}
 
+{% block head_scripts %}
+    <style>
+    {% if is_session_admin %}
+        .bar {
+            height: 18px;
+            background: green;
+        }
+    {% endif %}
+    </style>
+
+    <script src="/static/thirdparty/bootbox/v4.2.0/bootbox.min.js" type="text/javascript"></script>
+
+    <script src="/static/thirdparty/jquery.fileupload/9.5.7/js/vendor/jquery.ui.widget.js" type="text/javascript"></script>
+    <script src="/static/thirdparty/jquery.fileupload/9.5.7/js/jquery.iframe-transport.js" type="text/javascript"></script>
+    <script src="/static/thirdparty/jquery.fileupload/9.5.7/js/jquery.fileupload.js" type="text/javascript"></script>
+
+    <script src="/static/js/attachments.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        $( function () {
+            {% if is_session_admin %}
+            $(".sa-attachment-delete").click(function() {
+                var attachmentItem = $(this).parent();
+                var attachmentGet = $(this).siblings(".sa-attachment-get");
+                var attachmentUrl = attachmentGet.attr("href");
+                var attachmentName = attachmentGet.text();
+                confirmAttachmentDelete(attachmentUrl, attachmentName, function() {
+                    attachmentItem.remove();
+                });
+            });
+            $(".sa-attachment-post").click(function() {
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', database=session_obj.database, session=session_obj )}}";
+                attachmentUpload(attachmentPostUrl);
+            });
+            {% endif %}
+        });
+    </script>
+
+{% endblock head_scripts %}
+
 {% block body_content %}
 {{ super() }}
 
@@ -9,21 +49,19 @@
   <h1> {{ data.session.label }} </h1>
 
     {# data #}
-    {%if data.attachments|length %}
-    <h2> Attachments </h2>
-    <table class="table table-bordered table-hover" >
-        {% for animage in data.attachments %}
-            <tr>
-                <td><a href="{{ url_for('attachment.attachments', sessdb=data.db, sessid=data.sessid, attachid=animage.id) }}" class="lead"> {{ animage.name}} </a>
-                    </td>
-                {% if animage.label %}
-                  <td> <button type="button" class="btn btn-danger" >Admin</button> </td>
-                {% else %}
-                {% endif %}
-            </tr>
+    {%if data.attachments or is_session_admin %}
+    <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+    <ul class="list-group">
+        {% for attachment in data.attachments %}
+        <li class="list-group-item">
+            <a href="{{ url_for('apiv2.session_attachment_item', database=session_obj.database, session=session_obj, attachment_id=attachment.id) }}" class="lead sa-attachment-get">{{ attachment.name}}</a>
+            {% if is_session_admin %}
+            <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span> Delete</button>
+            {% endif %}
+        </li>
          {% endfor %}
-    </table>
-    {%endif %}
+    </ul>
+    {% endif %}
 
     </br>
 
@@ -34,7 +72,7 @@
             <!-- script> alert("{{data.images[animage]}}"); </script  -->
             <tr imageid="{{animage.img}}">
                 <td> <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}">
-                  <img src="{{url_for('tile.thumb', db=animage.db, img=animage.img, name='t.jpg') }}" width=100px></a></td>
+                  <img src="{{url_for('tile.thumb_query', db=animage.db, img=animage.img) }}" width=100px></a></td>
                 <td>
                   {% if animage.label %}
                     <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a>
