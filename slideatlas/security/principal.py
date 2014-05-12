@@ -109,7 +109,8 @@ class AdminSitePermission(Permission, ModelProtectionMixin):
 
 ################################################################################
 def on_identity_loaded(app, identity):
-    identity.provides.add(UserNeed(current_user.id))
+    if hasattr(current_user, 'id'):
+        identity.provides.add(UserNeed(current_user.id))
 
     # when the 'roles' field is looked up, an extra level of dereferencing is
     #   automatically performed to get all of the 'role.db' objects too; this
