@@ -73,6 +73,7 @@ def add_config(app):
         SECURITY_FLASH_MESSAGES=True,
         SECURITY_LOGIN_URL='/login',
         SECURITY_LOGIN_USER_TEMPLATE='security/login.html',
+        SECURITY_MSG_DISABLED_ACCOUNT=('Password login is disabled for this account.', 'error'),
         SECURITY_LOGOUT_URL='/logout',
         # TODO: change '/sessions' to an endpoint name
         SECURITY_POST_LOGIN_VIEW='/sessions',
