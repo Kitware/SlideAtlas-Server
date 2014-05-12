@@ -1,14 +1,14 @@
-Hello {{ user.full_name }},
+<p>Hello {{ user.full_name }},</p>
 
-You recently created a new account at {{ site_url|urlize }}.  To proceed with your account creation please follow the link below:
+<p>You recently created a new account at {{ site_url|urlize }}.  To proceed with your account creation please follow the link below:<br>
+<br>
+    {{ confirmation_link|urlize }}</p>
 
-    {{ confirmation_link|urlize }}
+<p>If clicking on the link doesn't work, try copying and pasting it into your browser.</p>
 
-If clicking on the link doesn't work, try copying and pasting it into your browser.
+<p>This link will work only once.</p>
 
-This link will work only once.
+<p>If you did not enter this address as your contact email, please disregard this message.</p>
 
-If you did not enter this address as your contact email, please disregard this message.
-
-Thank you,
-The SlideAtlas Administration Team
+<p>Thank you,<br>
+The SlideAtlas Administration Team</p>
