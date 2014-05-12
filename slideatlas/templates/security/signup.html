@@ -1,3 +1,4 @@
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
 {% extends "base.html" %}
 
 {% block body_content %}
@@ -56,26 +57,22 @@
             {{ register_user_form.hidden_tag() }}
             <div class="span8">
                 <div>
-                    {{ register_user_form.full_name.label }}
-                    {{ register_user_form.full_name(required=True, pattern="[A-Za-z0-9 ]{3,30}", title="Full name should be 3-30 alpha-numeric characters") }}
+                    {{ render_field_with_errors(register_user_form.full_name, required=True, pattern="[A-Za-z0-9 ]{3,30}", title="Full name should be 3-30 alpha-numeric characters") }}
                 </div>
 
                 <div>
-                    {{ register_user_form.email.label }}
-                    {{ register_user_form.email(required=True, title="Please enter a valid email here") }}
+                    {{ render_field_with_errors(register_user_form.email, required=True, title="Please enter a valid email here") }}
                 </div>
 
                 <div>
-                    {{ register_user_form.password.label }}
-                    {{ register_user_form.password(required=True) }}
+                    {{ render_field_with_errors(register_user_form.password, required=True) }}
                 </div>
                 {% if register_user_form.password_confirm %}
                 <div>
-                    {{ register_user_form.password_confirm.label }}
-                    {{ register_user_form.password_confirm() }}
+                    {{ render_field_with_errors(register_user_form.password_confirm) }}
                 </div>
                 {% endif %}
-                {{ register_user_form.submit(class="btn") }}
+                {{ render_field(register_user_form.submit, class="btn") }}
             </div>
         </form>
     </div>
