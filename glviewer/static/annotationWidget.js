@@ -92,6 +92,7 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
       this.ToolsTable.fadeIn();
     } else {
       this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Up.png")
+      this.ToolsTable.fadeIn();
     }
   }
 
