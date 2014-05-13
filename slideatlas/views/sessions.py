@@ -197,6 +197,7 @@ def sessionedit(database_obj, session_obj):
         if view :
             descriptiveLabel = ""
             hiddenLabel = ""
+            imgid = 0
             imgdb = database_obj.id
             if "imgdb" in view :
                 imgdb = view["imgdb"]
@@ -205,12 +206,13 @@ def sessionedit(database_obj, session_obj):
             else :
                 # an assumption that view is of type note.
                 viewerRecord = view["ViewerRecords"][0]
-                if viewerRecord.has_key("Database") :
-                    imgid = viewerRecord["Image"]
-                    imgdb = viewerRecord["Database"]
-                else :
+                if isinstance(viewerRecord["Image"], dict) :
                     imgid = viewerRecord["Image"]["_id"]
                     imgdb = viewerRecord["Image"]["database"]
+                else :
+                    imgid = viewerRecord["Image"]
+                if viewerRecord.has_key("Database") :
+                    imgdb = viewerRecord["Database"]
 
             # support for images from different database than the session.
             if imgdb == database_obj.id :

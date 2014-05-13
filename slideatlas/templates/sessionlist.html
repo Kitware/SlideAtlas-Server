@@ -23,6 +23,13 @@ float:right;
             <td>
                 <a href="/webgl-viewer/stack?db={{ role.db.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
             </td>
+            {% if role.db_admin %}
+            <td>
+                <a href="{{ url_for('.sessionedit', database_obj=role.db, session_obj=session) }}" class="lead">
+                    <button type="button" class="btn btn-danger">Edit</button>
+                </a>
+            </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
@@ -32,7 +39,7 @@ float:right;
             {% if role.db_admin %}
             <td>
                 <a href="{{ url_for('.sessionedit', database_obj=role.db, session_obj=session) }}" class="lead">
-                    <button type="button" class="btn btn-danger">Admin</button>
+                    <button type="button" class="btn btn-danger">Edit</button>
                 </a>
             </td>
             {% endif %}
