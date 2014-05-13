@@ -385,7 +385,7 @@ Viewer.prototype.LoadWidget = function(obj) {
       pencil.Load(obj);
       break;
     case "arrow":
-      var arrow = new ArrowWidget(this, false);
+      var arrow = new ArrowStampWidget(this, false);
       arrow.Load(obj);
       break;
     case "text":

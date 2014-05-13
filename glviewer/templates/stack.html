@@ -72,6 +72,7 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowStampWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
@@ -444,6 +445,7 @@ function saveAnnotation() {
     note.RecordView();
     // Put in the correct annotations.
     var viewerRecord = note.ViewerRecords[0];
+    viewerRecord.Database = section.Source.Image.database;
     viewerRecord.Annotations = [];
     for (var j = 0; j < section.Annotations.length; ++j) {
       viewerRecord.Annotations.push(section.Annotations[j].Serialize());
@@ -713,8 +715,8 @@ function ToggleAnnotationVisibility() {
     InitViews();
     InitStack();
 
-
     var annotationWidget = new AnnotationWidget(VIEWER1);
+    annotationWidget.SetVisibility( ANNOTATION_ON);
 
     $(window).resize(function() {
         handleResize();
@@ -772,7 +774,7 @@ function ToggleAnnotationVisibility() {
         'height': '30px',
         'width': '30px',
         'bottom' : '12px',
-        'right' : '300px',
+        'right' : '326px',
         'z-index': '2'})
       .attr('class', 'viewer1')
       .attr('type','image')
