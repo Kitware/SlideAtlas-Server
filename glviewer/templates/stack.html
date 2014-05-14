@@ -445,6 +445,7 @@ function saveAnnotation() {
     note.RecordView();
     // Put in the correct annotations.
     var viewerRecord = note.ViewerRecords[0];
+    viewerRecord.Image = section.Source.Image;
     viewerRecord.Database = section.Source.Image.database;
     viewerRecord.Annotations = [];
     for (var j = 0; j < section.Annotations.length; ++j) {
