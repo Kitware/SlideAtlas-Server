@@ -76,10 +76,9 @@ class User(ModelDocument, UserMixin):
     @property
     def active(self):
         """
-        This is used by Flask-Security to determine if a password login is
-        allowed.
+        This is used by Flask-Security to determine if a login is allowed at all.
         """
-        return False
+        return True
 
     @property
     def password(self):
@@ -96,13 +95,13 @@ class User(ModelDocument, UserMixin):
         """
         This is required by Flask-Security for all users.
 
-        Return False, rather than None, so that non-password users will be
-        considered 'confirmed' upon an attempt as a password login, which will
-        prevent showing the user an error message indicating that confirmation
-        is needed. Password login will still fail for non-password users, as
-        they are disabled.
+        Return None, so that non-password users will not be considered
+        'confirmed' upon an attempt as a password login, which will prevent
+        login.
         """
-        return False
+        # TODO: update password form to provide a better error message when
+        #   a non-password user attempts to login via password
+        return None
 
     def __unicode__(self):
         return unicode('%s (%s)' % (self.full_name, self.email))
@@ -120,10 +119,6 @@ class PasswordUser(User):
 
     confirmed_at = DateTimeField(required=False,
         verbose_name='Confirmation Time', help_text='The time that the user confirmed their email address.')
-
-    @property
-    def active(self):
-        return True
 
 
 ################################################################################
