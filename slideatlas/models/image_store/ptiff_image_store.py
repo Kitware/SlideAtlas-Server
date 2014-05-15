@@ -175,6 +175,9 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             for file_modified_time, image_file_path in ptiff_files:
                 image_file_name = os.path.basename(image_file_path)
 
+                # always try to find images in database, even if the file
+                #   modification timestamp is before the last sync, in case there
+                #   are any images that were missed on a previous sync
                 try:
                     image = Image.objects.get(filename=image_file_name)
                 except DoesNotExist:
@@ -184,15 +187,19 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 except MultipleObjectsReturned:
                     # TODO: this generally shouldn't happen, but should be handled
                     raise
-                else:
-                    # existing image found
-                    if file_modified_time < self.last_sync:
+                else:  # existing image found
+                    if image.uploaded_at == file_modified_time:
+                        # image unchanged, skip processing
                         continue
                     else:
                         logging.warning('Existing image was modified: %s' % image_file_path)
                         # find all existing views for the image and delete them
                         for view in View.objects(image=image.id):
-                            session.views.remove(view.id)
+                            try:
+                                session.views.remove(view.id)
+                            except ValueError:
+                                # it's fine if the view wasn't in the session's list
+                                pass
                             view.delete()
 
                 reader = make_reader({
@@ -206,6 +213,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 logging.info('Image barcode: %s' % reader.barcode)
 
                 image.label = '%s (%s)' % (reader.barcode['str'], image_file_name)
+                image.uploaded_at = file_modified_time
                 image.dimensions = [reader.width, reader.height, 1]
                 image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                 image.tile_size = reader.tile_width
@@ -222,7 +230,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 updated_images.append(image.to_mongo())
 
             # newest images should be at the top of the session's view list
-            session.views = reversed(updated_images) + session.views
+            session.views = list(reversed(new_views)) + session.views
             session.save()
 
             resp = {
