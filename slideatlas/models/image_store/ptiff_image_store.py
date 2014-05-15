@@ -139,21 +139,18 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     # def _add_image(self, filename):
     #     pass
 
-    def sync(self, resync=False):
+    def sync(self):
         """
         Syncs the objects in Image Session and View with the files in given folder.
 
-        Resynchronization
-
         - Verifies that all images referred in image collection are available in the file store.
-        - Delete any images that are missing along with any views and session entries that depend on it.
         - Finds out new files are not yet added to the store
         - Creates a view for these in 'self.session_name' session
         - Include the images that are newly added (based on filename / modification date)
 
         It is assumed that the modification dates to any changes to folder are intact
 
-        A special session All contains 1 view corresponding to each of the image files
+        A special session, 'self.session_name', contains 1 view corresponding to each of the image files
 
         """
         with self:
@@ -166,67 +163,70 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # TODO: this generally shouldn't happen, but should be handled
                 raise
 
-            updated_images = []
+            updated_images = list()
+            new_views = list()
 
             search_path = os.path.join(self.root_path, '*.ptif')
-            for total_image_count, image_file_path in enumerate(glob.glob(search_path)):
+            # sorting will be by modification time, with earliest first
+            ptiff_files = sorted(
+                (datetime.datetime.fromtimestamp(os.path.getmtime(image_file_path)), image_file_path)
+                for image_file_path in glob.glob(search_path))
 
-                m_time = datetime.datetime.fromtimestamp(os.path.getmtime(image_file_path))
-                if self.last_sync < m_time :
-                    logging.warning('Needs refresh: %s' % image_file_path)
+            for file_modified_time, image_file_path in ptiff_files:
+                image_file_name = os.path.basename(image_file_path)
 
-                    image_file_name = os.path.basename(image_file_path)
-                    reader = make_reader({
-                        'fname': image_file_path,
-                        'dir': 0,
-                    })
-                    reader.set_input_params({
-                        'fname': image_file_path,
-                    })
-                    reader.parse_image_description()
-                    logging.info(reader.barcode)
-
-                    image_created = False
-                    # Locate the record
-                    try:
-                        image = Image.objects.get(filename=image_file_name)
-                    except DoesNotExist:
-                        # Needs to sync
-                        logging.info('Reading file: %s' % image_file_name)
-                        image = Image(filename=image_file_name)
-                        image_created = True
-                    except MultipleObjectsReturned:
-                        # TODO: this generally shouldn't happen, but should be handled
-                        raise
-
-                    image.label = '%s (%s)' % (reader.barcode['str'], image_file_name)
-                    image.dimensions = [reader.width, reader.height, 1]
-                    image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                    image.tile_size = reader.tile_width
-                    image.coordinate_system = 'Pixel'
-                    image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
-
-                    image.save()
-
-                    if image_created or resync:
+                try:
+                    image = Image.objects.get(filename=image_file_name)
+                except DoesNotExist:
+                    # Needs to sync
+                    logging.info('Creating new image from file: %s' % image_file_name)
+                    image = Image(filename=image_file_name)
+                except MultipleObjectsReturned:
+                    # TODO: this generally shouldn't happen, but should be handled
+                    raise
+                else:
+                    # existing image found
+                    if file_modified_time < self.last_sync:
+                        continue
+                    else:
+                        logging.warning('Existing image was modified: %s' % image_file_path)
                         # find all existing views for the image and delete them
                         for view in View.objects(image=image.id):
                             session.views.remove(view.id)
                             view.delete()
 
-                        # create a new view
-                        view = View(image=image.id)
-                        view.save()
-                        session.views.append(RefItem(ref=view.id))
+                reader = make_reader({
+                    'fname': image_file_path,
+                    'dir': 0,
+                })
+                reader.set_input_params({
+                    'fname': image_file_path,
+                })
+                reader.parse_image_description()
+                logging.info('Image barcode: %s' % reader.barcode)
 
-                    updated_images.append(image.to_mongo())
-                else:
-                    logging.info('Is good: %s' % image_file_path)
+                image.label = '%s (%s)' % (reader.barcode['str'], image_file_name)
+                image.dimensions = [reader.width, reader.height, 1]
+                image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
+                image.tile_size = reader.tile_width
+                image.coordinate_system = 'Pixel'
+                image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
 
+                image.save()
+
+                # create a new view
+                view = View(image=image.id)
+                view.save()
+                new_views.append(RefItem(ref=view.id))
+
+                updated_images.append(image.to_mongo())
+
+            # newest images should be at the top of the session's view list
+            session.views = reversed(updated_images) + session.views
             session.save()
 
             resp = {
-                'count': total_image_count,
+                'count': len(ptiff_files),
                 'synced': len(updated_images),
                 'images': updated_images,
             }
@@ -249,4 +249,4 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             Session.objects(name=self.session_name).delete()
 
         # Wipes all the images
-        return self.sync(resync=True)
+        return self.sync()
