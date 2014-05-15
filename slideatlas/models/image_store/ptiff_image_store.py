@@ -195,7 +195,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                         logging.warning('Existing image was modified: %s' % image_file_path)
                         # find all existing views for the image and delete them
                         for view in View.objects(image=image.id):
-                            session.views.remove(view.id)
+                            try:
+                                session.views.remove(view.id)
+                            except ValueError:
+                                # it's fine if the view wasn't in the session's list
+                                pass
                             view.delete()
 
                 reader = make_reader({
