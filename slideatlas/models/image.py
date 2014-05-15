@@ -1,7 +1,7 @@
 # coding=utf-8
 
-from mongoengine import EmbeddedDocument, BinaryField, BooleanField,\
-    EmbeddedDocumentField, FloatField, GenericEmbeddedDocumentField, IntField,\
+from mongoengine import EmbeddedDocument, BinaryField, BooleanField, DateTimeField, \
+    EmbeddedDocumentField, FloatField, GenericEmbeddedDocumentField, IntField, \
     ListField, StringField
 from mongoengine.errors import NotRegistered
 
@@ -94,6 +94,14 @@ class Image(MultipleDatabaseModelDocument):
     meta = {
         'collection': 'images',
         # 'allow_inheritance' : True
+        'indexes': [
+            {
+                'fields': ('filename',), # TODO: only need to index this for Ptiff images
+                'cls': False,
+                'unique': False, # TODO: this should be true for Ptiff images
+                'sparse': False,
+            },
+        ]
     }
 
     filename = StringField(required=False, #TODO: filename with respect to root_path
@@ -101,6 +109,9 @@ class Image(MultipleDatabaseModelDocument):
 
     label = StringField(required=False, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label for the image')
+
+    uploaded_at = DateTimeField(required=False,
+        verbose_name='Upload Time', help_text='The time that the image was first uploaded.')
 
     origin = ListField(FloatField(), required=False, default=lambda: [0.,0.,0.],
         verbose_name='Origin', help_text='x / y / z world coords (necessary to import NDPA annotations)')
