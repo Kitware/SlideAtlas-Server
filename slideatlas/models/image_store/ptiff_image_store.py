@@ -226,7 +226,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 updated_images.append(image.to_mongo())
 
             # newest images should be at the top of the session's view list
-            session.views = reversed(updated_images) + session.views
+            session.views = list(reversed(new_views)) + session.views
             session.save()
 
             resp = {
