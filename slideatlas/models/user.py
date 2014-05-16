@@ -2,13 +2,12 @@
 
 import datetime
 
-from mongoengine import BooleanField,DateTimeField, EmailField, IntField,\
-    ListField, ReferenceField, StringField
+from mongoengine import DateTimeField, EmailField, IntField, ListField, \
+    ReferenceField, StringField
 from flask.ext.security import UserMixin
-from werkzeug.datastructures import ImmutableList
 
 from .common import ModelDocument
-from .role import Role, GroupRole, UserRole
+from .role import GroupRole
 
 ################################################################################
 __all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
@@ -56,22 +55,8 @@ class User(ModelDocument, UserMixin):
     login_count = IntField(required=True, default=0,
         verbose_name='Login Count', help_text='The total number of logins by the user.')
 
-    roles = ListField(ReferenceField(Role), required=False, db_field='rules',
-        verbose_name='Roles', help_text='The list of all access roles for the user.')
-
-    @property
-    def group_roles(self):
-        return ImmutableList(role for role in self.roles if isinstance(role, GroupRole))
-
-    @property
-    def user_role(self):
-        for role in self.roles:
-            if isinstance(role, UserRole):
-                return role
-        else:
-            role = UserRole(name=self.full_name)
-            self.roles = self.roles.insert(0, role)
-            return role
+    groups = ListField(ReferenceField(GroupRole), required=False, db_field='rules',
+        verbose_name='Groups', help_text='The list of groups that this user belongs to.')
 
     @property
     def active(self):
@@ -105,9 +90,6 @@ class User(ModelDocument, UserMixin):
 
     def __unicode__(self):
         return unicode('%s (%s)' % (self.full_name, self.email))
-
-    def update_current_login(self):
-        self.current_login_at = datetime.datetime.utcnow()
 
 
 ################################################################################

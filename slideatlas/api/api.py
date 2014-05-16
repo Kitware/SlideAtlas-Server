@@ -795,7 +795,7 @@ def admin_main_sessions():
 @mod.route('/sessions')
 def view_all_sessions():
     all_sessions = list()
-    for role in security.current_user.roles:
+    for role in security.current_user.groups:
         with role.db:
             if role.can_see_all:
                 sessions = list(models.Session.objects.as_pymongo())

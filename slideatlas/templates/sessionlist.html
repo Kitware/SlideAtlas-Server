@@ -15,7 +15,7 @@ float:right;
     <h1>Displaying a session list for {{ current_user.full_name }} !</h1>
 
     {% for (role, sessions) in all_sessions %}
-    <h2> {{ role.name }}</h2>
+    <h2> {{ role.label }}</h2>
     <table class="table table-bordered table-hover" >
         {% for session in sessions %}
         {% if session.type == 'stack' %}

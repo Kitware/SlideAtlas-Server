@@ -150,119 +150,113 @@ class DatabaseItemAPI(ItemAPI):
 
 
 ################################################################################
-class RoleListAPI(ListAPI):
+class GroupListAPI(ListAPI):
     @security.AdminSitePermission.protected
     def get(self):
-        filter_type = request.args.get('type')
-        if filter_type == 'group':
-            roles = models.GroupRole.objects
-        elif filter_type == 'user':
-            roles = models.UserRole.objects
-        else:
-            roles = models.Role.objects
-
-        filter_can_see = request.args.get('can_see')
-        filter_can_admin = request.args.get('can_admin')
-        if filter_can_see and filter_can_admin:
-            abort(400)  # Bad Request
-        if filter_can_see:
-            database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
-            with database:
-                session = models.Session.objects.get_or_404(id=filter_can_see)
-            roles = [role for role in roles if role.can_see_session(session)]
-        elif filter_can_admin:
-            database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
-            with database:
-                session = models.Session.objects.get_or_404(id=filter_can_admin)
-            roles = [role for role in roles if role.can_admin_session(session)]
-        else:
-            roles = list(roles)
-
-        roles = [role.to_son(exclude_fields=('can_see', 'can_see_all', 'db_admin', 'site_admin')) for role in roles]
-        return jsonify(roles=roles)
+        # filter_can_see = request.args.get('can_see')
+        # filter_can_admin = request.args.get('can_admin')
+        # if filter_can_see and filter_can_admin:
+        #     abort(400)  # Bad Request
+        # if filter_can_see:
+        #     database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
+        #     with database:
+        #         session = models.Session.objects.get_or_404(id=filter_can_see)
+        #     roles = [role for role in roles if role.can_see_session(session)]
+        # elif filter_can_admin:
+        #     database = models.ImageStore.objects.get_or_404(id=request.args.get('db'))
+        #     with database:
+        #         session = models.Session.objects.get_or_404(id=filter_can_admin)
+        #     roles = [role for role in roles if role.can_admin_session(session)]
+        # else:
+        #     roles = list(roles)
+        groups = models.GroupRole.objects
+        return jsonify(groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminSitePermission.protected
     def post(self):
-        request_args = request.args.to_json()
-        if ('users' in request_args) and ('create_group' in request_args):
-            abort(400)  # Bad Request
+        abort(501)  # Not Implemented
+        # request_args = request.args.to_json()
+        # if ('users' in request_args) and ('create_group' in request_args):
+        #     abort(400)  # Bad Request
+        #
+        # if 'users' in request_args:
+        #     roles = list()
+        #     for user_id in request_args['users']:
+        #         # TODO: make this a single bulk query
+        #         user = models.User.objects.get_or_404(id=user_id)
+        #         if not user.user_role:
+        #             user.user_role = models.UserRole(
+        #                 name=user.full_name,
+        #             )
+        #             # TODO: if there's a failure later in the function, the new user role will remain unused and empty
+        #             user.save()
+        #         roles.append(user.user_role)
+        # elif 'create_group' in request_args:
+        #     role = models.GroupRole(
+        #         db=request_args['create_group']['db'],
+        #         name=request_args['create_group']['name'],
+        #         description=request_args['create_group'].get('description', ''),
+        #         facebook_id=request_args['create_group'].get('facebook_id'),
+        #     )
+        #     roles = [role]
+        # else:
+        #     abort(400)  # Bad Request
+        #
+        # for role in roles:
+        #     for permission_request in request_args['permissions']:
+        #         if permission_request['operation'] == 'grant':
+        #             if permission_request['permission'] == 'site_admin':
+        #                 role.site_admin = True
+        #             elif permission_request['permission'] == 'db_admin':
+        #                 role.db_admin = True
+        #             elif permission_request['permission'] == 'can_see_all':
+        #                 role.can_see_all = True
+        #             elif permission_request['permission'] == 'can_see':
+        #                 database_id = permission_request['db']
+        #                 session_id = permission_request['session']
+        #                 if session_id not in role.can_see:
+        #                     database = models.ImageStore.objects.get_or_404(id=database_id)
+        #                     with database:
+        #                         session = models.Session.objects.get_or_404(id=session_id)
+        #                     role.can_see.append(session.id)
+        #         elif permission_request['operation'] == 'revoke':
+        #             if permission_request['permission'] == 'site_admin':
+        #                 role.site_admin = False
+        #             elif permission_request['permission'] == 'db_admin':
+        #                 role.db_admin = False
+        #             elif permission_request['permission'] == 'can_see_all':
+        #                 role.can_see_all = False
+        #             elif permission_request['permission'] == 'can_see':
+        #                 session_id = permission_request['session']
+        #                 try:
+        #                     role.can_see.remove(session_id)
+        #                 except ValueError:
+        #                     abort(400)  # Bad Request
+        #             else:
+        #                     abort(400)  # Bad Request
+        #         else:
+        #             abort(400)  # Bad Request
+        #
+        # # only save after everything has been updated, to make failure atomic
+        # for role in roles:
+        #     role.save()
+        #
+        # return make_response(jsonify(roles=[role.to_son() for role in roles]),
+        #                      201,  # Created
+        #                      {'Location': url_for('role_item', role=role)})
 
-        if 'users' in request_args:
-            roles = list()
-            for user_id in request_args['users']:
-                # TODO: make this a single bulk query
-                user = models.User.objects.get_or_404(id=user_id)
-                if not user.user_role:
-                    user.user_role = models.UserRole(
-                        name=user.full_name,
-                    )
-                    # TODO: if there's a failure later in the function, the new user role will remain unused and empty
-                    user.save()
-                roles.append(user.user_role)
-        elif 'create_group' in request_args:
-            role = models.GroupRole(
-                db=request_args['create_group']['db'],
-                name=request_args['create_group']['name'],
-                description=request_args['create_group'].get('description', ''),
-                facebook_id=request_args['create_group'].get('facebook_id'),
-            )
-            roles = [role]
-        else:
-            abort(400)  # Bad Request
 
-        for role in roles:
-            for permission_request in request_args['permissions']:
-                if permission_request['operation'] == 'grant':
-                    if permission_request['permission'] == 'site_admin':
-                        role.site_admin = True
-                    elif permission_request['permission'] == 'db_admin':
-                        role.db_admin = True
-                    elif permission_request['permission'] == 'can_see_all':
-                        role.can_see_all = True
-                    elif permission_request['permission'] == 'can_see':
-                        database_id = permission_request['db']
-                        session_id = permission_request['session']
-                        if session_id not in role.can_see:
-                            database = models.ImageStore.objects.get_or_404(id=database_id)
-                            with database:
-                                session = models.Session.objects.get_or_404(id=session_id)
-                            role.can_see.append(session.id)
-                elif permission_request['operation'] == 'revoke':
-                    if permission_request['permission'] == 'site_admin':
-                        role.site_admin = False
-                    elif permission_request['permission'] == 'db_admin':
-                        role.db_admin = False
-                    elif permission_request['permission'] == 'can_see_all':
-                        role.can_see_all = False
-                    elif permission_request['permission'] == 'can_see':
-                        session_id = permission_request['session']
-                        try:
-                            role.can_see.remove(session_id)
-                        except ValueError:
-                            abort(400)  # Bad Request
-                    else:
-                            abort(400)  # Bad Request
-                else:
-                    abort(400)  # Bad Request
-
-        # only save after everything has been updated, to make failure atomic
-        for role in roles:
-            role.save()
-
-        return make_response(jsonify(roles=[role.to_son() for role in roles]),
-                             201,  # Created
-                             {'Location': url_for('role_item', role=role)})
-
-
-class RoleItemAPI(ItemAPI):
+class GroupItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
-    def get(self, role):
-        return jsonify(roles=[role.to_son()])
+    def get(self, group):
+        group_son = group.to_son(only_fields=('label',))
+        group_son['users'] = models.User.objects(groups=group).to_son(only_fields=('full_name', 'email'))
+        return jsonify(groups=[group_son])
 
-    def put(self, role):
+    def put(self, group):
         abort(501)  # Not Implemented
 
-    def patch(self, role):
+    def patch(self, group):
         abort(501)  # Not Implemented
 
     def delete(self):
@@ -283,13 +277,10 @@ class UserListAPI(ListAPI):
 class UserItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
     def get(self, user):
-        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'),
+        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'groups'),
                                include_empty=False)
 
-        user_son['roles'] = {
-            'user_role': user.user_role.to_son(only_fields=('name',)) if user.user_role else None,
-            'group_roles': [role.to_son(only_fields=('name',)) for role in user.group_roles]
-        }
+        user_son['groups'] = [group.to_son(only_fields=('label',)) for group in user.groups]
         user_son['type'] = user._class_name
         return jsonify(users=[user_son])
 
@@ -331,47 +322,6 @@ class UserItemAPI(ItemAPI):
 
     def delete(self, user):
         abort(501)  # Not Implemented
-
-
-class UserRoleListAPI(ListAPI):
-    def get(self, user):
-        abort(501)  # Not Implemented
-
-    def post(self, user):
-        abort(501)  # Not Implemented
-
-
-class UserRoleItemAPI(ItemAPI):
-    def get(self, user):
-        abort(501)  # Not Implemented
-
-    @security.AdminSitePermission.protected
-    def put(self, user, role):
-        if isinstance(role, models.UserRole):
-            abort(409)  # Conflict
-
-        if role in user.roles:
-            return make_response('', 204)  # No Content
-        else:
-            user.roles.append(role)
-        user.save()
-        # TODO: return the new user roles
-        return make_response('', 200)  # OK
-
-    def patch(self, user, role):
-        abort(405)  # Method Not Allowed
-
-    @security.AdminSitePermission.protected
-    def delete(self, user, role):
-        if isinstance(role, models.UserRole):
-            abort(409)  # Conflict
-
-        try:
-            user.roles.remove(role)
-        except ValueError:
-            abort(404)
-        user.save()
-        return make_response('', 204)  # No Content
 
 
 ################################################################################
@@ -683,12 +633,12 @@ mod.add_url_rule('/databases/<Database:database>',
                  view_func=DatabaseItemAPI.as_view('database_item'),
                  methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 
-mod.add_url_rule('/roles',
-                 view_func=RoleListAPI.as_view('role_list'),
+mod.add_url_rule('/groups',
+                 view_func=GroupListAPI.as_view('group_list'),
                  methods=['GET', 'POST'])
 
-mod.add_url_rule('/roles/<Role:role>',
-                 view_func=RoleItemAPI.as_view('role_item'),
+mod.add_url_rule('/groups/<GroupRole:group>',
+                 view_func=GroupItemAPI.as_view('group_item'),
                  methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 
 mod.add_url_rule('/users',
@@ -697,14 +647,6 @@ mod.add_url_rule('/users',
 
 mod.add_url_rule('/users/<User:user>',
                  view_func=UserItemAPI.as_view('user_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
-
-mod.add_url_rule('/users/<User:user>/roles',
-                 view_func=UserRoleListAPI.as_view('user_role_list'),
-                 methods=['GET', 'POST'])
-
-mod.add_url_rule('/users/<User:user>/roles/<Role:role>',
-                 view_func=UserRoleItemAPI.as_view('user_role_item'),
                  methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 
 mod.add_url_rule('/<Database:database>/sessions',

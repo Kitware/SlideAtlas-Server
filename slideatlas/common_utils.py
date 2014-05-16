@@ -41,7 +41,7 @@ def site_admin_required(page=False):
     """Checks whether an site administrator user is logged in or raises error 401."""
     def real_decorator(function):
         def decorator(*args, **kwargs):
-            if not any(role.site_admin for role in security.current_user.roles):
+            if not any(role.site_admin for role in security.current_user.groups):
                 if page:
                     flash("You do not have administrative privileges", "error")
                     return redirect(url_for('home'))
