@@ -273,7 +273,8 @@ class UserListAPI(ListAPI):
 class UserItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
     def get(self, user):
-        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'))
+        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'),
+                               include_empty=False)
 
         user_son['roles'] = {
             'user_role': user.user_role.to_son(only_fields=('name',)) if user.user_role else None,
