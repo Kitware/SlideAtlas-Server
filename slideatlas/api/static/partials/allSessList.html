@@ -8,7 +8,7 @@
         </div> 
 
         <accordion close-others="oneAtATime">
-            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.sessions.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="query.length > 0">
+            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="query.length > 0">
 <!--                 filtered by {{query}}
                 <span ng-repeat="asession in arole.sessions | filter : { label : query}"> {{asession.label}} </span>
  -->                <table class="table table-striped">
