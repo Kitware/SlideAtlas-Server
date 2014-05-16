@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import datetime
+
 from bson import json_util, ObjectId
 from flask import Flask
 from flask.json import JSONEncoder
@@ -67,6 +69,8 @@ def add_config(app):
         def default(self, obj):
             if isinstance(obj, ObjectId):
                 return str(obj)
+            if isinstance(obj, datetime.datetime):
+                return obj.isoformat()
             return json_util.default(obj)
 
     app.json_encoder = BSONJSONEncoder
