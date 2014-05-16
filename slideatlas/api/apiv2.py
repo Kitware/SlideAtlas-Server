@@ -296,24 +296,30 @@ class UserItemAPI(ItemAPI):
     def put(self, user):
         abort(501)  # Not Implemented
 
+    @security.AdminSitePermission.protected
     def patch(self, user):
         """
-        To update a user's data:
+        To update a user's data, following RFC 6902:
 
         Send a PATCH request with a "Content-Type: application/json" header to
         the endpoint: "/apiv2/users/<user_id
 
-        The body of the patch request must be:
+        The body of the patch request must follow:
         [
           { "op": "add", "path": "/<field_name>", "value": "<new_value>" },
+          { "op": "remove",  "path": "/<field_name>" },
           ...
         ]
+
+        Only the "add" and "remove" operations are supported currently. "add"
+        sets a field, and "remove" unsets a field.
 
         <field_name> is the name of a user item's data field, as returned
         by a corresponding GET request. Note the leading "/" on the name of the
         field. Nested fields and arrays are not yet supported.
 
-        <new_value> is the new value that the field should take.
+        <new_value> is the new value that the field should take, and only is
+        required for the "add" operation.
 
         Multiple fields may be changed, by including multiple {"op"...} items
         in the top-level list.
