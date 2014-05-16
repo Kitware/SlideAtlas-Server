@@ -20,7 +20,7 @@ def add_url_converters(app):
         'Database': model_document_converter_factory(models.ImageStore),  # TODO: deprecate
         'ImageStore': model_document_converter_factory(models.ImageStore),
         'User': model_document_converter_factory(models.User),
-        'Role': model_document_converter_factory(models.Role),
+        'GroupRole': model_document_converter_factory(models.GroupRole),
         'Session': model_document_converter_factory(models.Session),
         'Image': model_document_converter_factory(models.Image),
         })
