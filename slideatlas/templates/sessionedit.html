@@ -353,10 +353,12 @@
     }
 
     function LoadImages(data) {
+      var labelStrings = [];
       $('#gallery').empty();
       // Lets compute an optimal size for images.
       var size = ComputeGalleryImageSize(data.Images.length);
       for (var i = 0; i < data.Images.length; ++i) {
+        labelStrings.push(data.Images[i].label);
         var listItem = $('<li>').appendTo($('#gallery'));
         var image = $('<img>').appendTo(listItem)
                               .attr("db", data.Database)
@@ -369,7 +371,9 @@
                                        var p = $(this).position();
                                        var y = p.top-10+$('#gallery').scrollTop();
                                        var label = $(this).attr('alt');
-                                       IMAGE_HOVER_LABEL.show().css({'left':p.left+10, 'top':y}).text(label);
+                                       IMAGE_HOVER_LABEL.show()
+                                         .css({'left':p.left+10, 'top':y+50})
+                                         .text(label);
                                      },function(){IMAGE_HOVER_LABEL.hide();})
                               .mousedown(function(event) {
                                            AddImageToSession($(this).attr('db'),
@@ -378,14 +382,17 @@
                                                              event);
                                          });
       }
+    $('#imagesearch').autocomplete({source: labelStrings});
     }
 
     function LoadSession(data) {
+      var labelStrings = [];
       $('#gallery').empty();
       var size = ComputeGalleryImageSize(data.images.length);
       // It is odd that sessions have separate image and view arrays.
       // (The one I inspected had different number of elements).
       for (var i = 0; i < data.images.length; ++i) {
+        labelStrings.push(data.images[i].label);
         var listItem = $('<li>').appendTo($('#gallery'));
         var image = $('<img>').appendTo(listItem)
                               .attr("db",data.db)
@@ -408,6 +415,26 @@
                                                              $(this).attr("alt"));
                                          });
       }
+    $('#imagesearch').autocomplete({source: labelStrings});
+    }
+    
+    function SearchCallback() {
+      var str = $('#imagesearch').val();
+      keys = str.split(" ");
+      images = $('#gallery li img');
+      for (var i = 0; i < images.length; ++i) {
+        var image = images[i];
+        var label = image.alt;
+        var found = true;
+        for (var j = 0; j < keys.length && found; ++j) {
+          if (label.indexOf(keys[j]) == -1) { found = false; }
+        }
+        if (found) {
+          $(image).show();
+        } else {
+          $(image).hide();
+        }
+      } 
     }
 
     function DatabaseCallback(idx) {
@@ -515,7 +542,11 @@
     <label>Session</label>
     <select id = "sessionList" onchange="SessionCallback(this.value)">
     </select>
-
+    <br>
+    <div>
+      Search: <input type="text" id="imagesearch">
+      <button onclick="SearchCallback()"> Submit </button>
+    </div>
     <ul id="gallery">
     </ul>
   </div>
