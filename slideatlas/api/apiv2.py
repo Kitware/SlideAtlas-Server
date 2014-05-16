@@ -296,6 +296,7 @@ class UserItemAPI(ItemAPI):
     def put(self, user):
         abort(501)  # Not Implemented
 
+    @security.AdminSitePermission.protected
     def patch(self, user):
         """
         To update a user's data:
