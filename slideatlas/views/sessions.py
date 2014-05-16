@@ -57,12 +57,12 @@ def view_all_sessions():
 
         all_sessions.append((role, sessions))
 
-    all_sessions.sort(key=lambda (role, sessions): role.name)
+    all_sessions.sort(key=lambda (role, sessions): role.label)
 
     if request.args.get('json'):
         ajax_sessionlist = [
             {
-                'rule': role.name,
+                'rule': role.label,
                 'sessions': [
                     {
                         'sessdb': str(role.db.id),
@@ -159,7 +159,7 @@ def view_a_session(database_obj, session_obj, next=None):
         gfs = GridFS(database_obj.to_pymongo(raw_object=True), "attachments")
         for anattach in session_obj.attachments:
             fileobj = gfs.get(anattach.ref)
-            attachments.append({'name': fileobj.name, 'id' : anattach.ref})
+            attachments.append({'name': fileobj.filename, 'id' : anattach.ref})
 
     session_json = session_obj.to_mongo()
     session_json.pop('attachments', None)
