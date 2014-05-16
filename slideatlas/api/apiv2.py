@@ -54,6 +54,65 @@ class ItemAPI(API):
     def _get_item(self, document, **kwargs):
         return jsonify(document.to_son(**kwargs))
 
+    def _do_patch(self, document):
+        patch_request = request.get_json()
+        # 'get_json' will raise a 400 error if the request cannot be parsed,
+        #   and will return none if it does not have 'application/json' as a
+        #   Content-Type
+        # TODO: allow 'application/json-patch+json' Content-Type per RFC 6902
+        if patch_request is None:
+            abort(415)  # Unsupported Media Type
+
+        try:
+            if not isinstance(patch_request, list):
+                raise ValueError('PATCH requests must be in a JSON list')
+
+            for operation in patch_request:
+                op_type = operation['op'].lower()
+
+                # TODO: make fully compliant with RFC 6901
+                path = tuple(operation['path'].split('/')[1:])
+
+                if op_type == 'add':
+                    value = operation['value']
+                    if len(path) == 0:
+                        # operation on whole document
+                        abort(501)  # Not Implemented
+                    elif len(path) == 1:
+                        # use of __setitem__ on a model document validates the
+                        #   field's existence and will raise a KeyError if it
+                        #   doesn't exist
+                        try:
+                            document[path[0]] = value
+                        except KeyError:
+                            abort(422)  # Unprocessable Entity
+                    else:
+                        # operation on nested member
+                        abort(501)  # Not Implemented
+                elif op_type =='remove':
+                    abort(501)  # Not Implemented
+                elif op_type == 'replace':
+                    abort(501)  # Not Implemented
+                elif op_type == 'move':
+                    abort(501)  # Not Implemented
+                elif op_type == 'copy':
+                    abort(501)  # Not Implemented
+                elif op_type == 'test':
+                    abort(501)  # Not Implemented
+                else:
+                    raise ValueError('Unsupported op type: "%s"' % operation['op'])
+
+                document.validate()
+
+        except (KeyError, ValueError, models.ValidationError):
+            # TODO: return error details with response
+            abort(400)  # Bad Request
+
+        document.save()
+
+        return make_response('', 204)  # No Content
+
+
 
 ################################################################################
 class DatabaseListAPI(ListAPI):
@@ -227,7 +286,31 @@ class UserItemAPI(ItemAPI):
         abort(501)  # Not Implemented
 
     def patch(self, user):
-        abort(501)  # Not Implemented
+        """
+        To update a user's data:
+
+        Send a PATCH request with a "Content-Type: application/json" header to
+        the endpoint: "/apiv2/users/<user_id
+
+        The body of the patch request must be:
+        [
+          { "op": "add", "path": "/<field_name>", "value": "<new_value>" },
+          ...
+        ]
+
+        <field_name> is the name of a user item's data field, as returned
+        by a corresponding GET request. Note the leading "/" on the name of the
+        field. Nested fields and arrays are not yet supported.
+
+        <new_value> is the new value that the field should take.
+
+        Multiple fields may be changed, by including multiple {"op"...} items
+        in the top-level list.
+
+        A successful request will return 204 (No Content). Unsuccessful requests
+        will return a 4xx status code.
+        """
+        return self._do_patch(user)
 
     def delete(self, user):
         abort(501)  # Not Implemented
