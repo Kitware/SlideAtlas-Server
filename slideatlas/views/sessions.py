@@ -47,7 +47,7 @@ def view_all_sessions():
         return view_a_session(database_obj, session_obj)
 
     all_sessions = list()
-    for role in security.current_user.roles:
+    for role in security.current_user.groups:
         with role.db:
             if role.can_see_all:
                 sessions = list(models.Session.objects)

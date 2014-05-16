@@ -283,13 +283,10 @@ class UserListAPI(ListAPI):
 class UserItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
     def get(self, user):
-        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'),
+        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'groups'),
                                include_empty=False)
 
-        user_son['roles'] = {
-            'user_role': user.user_role.to_son(only_fields=('name',)) if user.user_role else None,
-            'group_roles': [role.to_son(only_fields=('name',)) for role in user.group_roles]
-        }
+        user_son['groups'] = [group.to_son(only_fields=('label',)) for group in user.groups]
         user_son['type'] = user._class_name
         return jsonify(users=[user_son])
 
@@ -331,47 +328,6 @@ class UserItemAPI(ItemAPI):
 
     def delete(self, user):
         abort(501)  # Not Implemented
-
-
-class UserRoleListAPI(ListAPI):
-    def get(self, user):
-        abort(501)  # Not Implemented
-
-    def post(self, user):
-        abort(501)  # Not Implemented
-
-
-class UserRoleItemAPI(ItemAPI):
-    def get(self, user):
-        abort(501)  # Not Implemented
-
-    @security.AdminSitePermission.protected
-    def put(self, user, role):
-        if isinstance(role, models.UserRole):
-            abort(409)  # Conflict
-
-        if role in user.roles:
-            return make_response('', 204)  # No Content
-        else:
-            user.roles.append(role)
-        user.save()
-        # TODO: return the new user roles
-        return make_response('', 200)  # OK
-
-    def patch(self, user, role):
-        abort(405)  # Method Not Allowed
-
-    @security.AdminSitePermission.protected
-    def delete(self, user, role):
-        if isinstance(role, models.UserRole):
-            abort(409)  # Conflict
-
-        try:
-            user.roles.remove(role)
-        except ValueError:
-            abort(404)
-        user.save()
-        return make_response('', 204)  # No Content
 
 
 ################################################################################
@@ -697,14 +653,6 @@ mod.add_url_rule('/users',
 
 mod.add_url_rule('/users/<User:user>',
                  view_func=UserItemAPI.as_view('user_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
-
-mod.add_url_rule('/users/<User:user>/roles',
-                 view_func=UserRoleListAPI.as_view('user_role_list'),
-                 methods=['GET', 'POST'])
-
-mod.add_url_rule('/users/<User:user>/roles/<Role:role>',
-                 view_func=UserRoleItemAPI.as_view('user_role_item'),
                  methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 
 mod.add_url_rule('/<Database:database>/sessions',

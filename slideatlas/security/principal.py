@@ -117,14 +117,14 @@ def on_identity_loaded(app, identity):
     #   can't be easily disabled without also disabling automatic lookup of all
     #   'roles' objects, so just accept that 'role.db.id' isn't unnecessarily
     #   expensive
-    for role in current_user.roles:
-        if role.site_admin:
+    for group in current_user.groups:
+        if group.site_admin:
             identity.provides.add(AdminSiteNeed())
-        if role.db_admin:
-            identity.provides.add(AdminDatabaseNeed(role.db.id))
-        if role.can_see_all:
-            identity.provides.add(ViewDatabaseNeed(role.db.id))
-        for session_id in role.can_see:
+        if group.db_admin:
+            identity.provides.add(AdminDatabaseNeed(group.db.id))
+        if group.can_see_all:
+            identity.provides.add(ViewDatabaseNeed(group.db.id))
+        for session_id in group.can_see:
             identity.provides.add(ViewSessionNeed(session_id))
 
     identity.user = current_user

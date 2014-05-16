@@ -83,10 +83,10 @@ class FacebookOAuthLogin(OAuthLogin):
     def update_user_properties(self, user, person):
         super(FacebookOAuthLogin, self).update_user_properties(user, person)
 
-        # Update user's roles from the latest Facebook groups
-        # note that any user's roles that have a Facebook group ID, but for
+        # Update user's groups from the latest Facebook groups
+        # note that any user's groups that have a Facebook group ID, but for
         #   which the user is not a member of on Facebook will be removed when
         #   the user logs in via Facebook.
-        non_facebook_roles = [role for role in user.roles if not (isinstance(role, models.GroupRole) and role.facebook_id)]
-        current_facebook_roles = list(models.GroupRole.objects(facebook_id__in=person.facebook_groups))
-        user.roles = non_facebook_roles + current_facebook_roles
+        non_facebook_groups = [group for group in user.groups if not group.facebook_id]
+        current_facebook_groups = list(models.GroupRole.objects(facebook_id__in=person.facebook_groups))
+        user.groups = non_facebook_groups + current_facebook_groups
