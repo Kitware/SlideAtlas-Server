@@ -3,11 +3,11 @@
 from functools import partial, wraps
 from itertools import chain
 
-from flask import abort
 from flask.ext.principal import Permission, PermissionDenied, Need, ItemNeed,\
     UserNeed, identity_loaded
 from flask.ext.security import current_user
 from flask.ext.security.core import _on_identity_loaded as security_on_identity_loaded
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from slideatlas import models
 
@@ -132,11 +132,14 @@ def on_identity_loaded(app, identity):
 
 ################################################################################
 def on_permission_denied(error):
+    # TODO: consider calling "Permission.require" to raise an HTTP exception
+    #   directly, so that this error handler can be registered for all such
+    #   access control-related HTTP exceptions
     if current_user.is_authenticated():
-        abort(403)  # Forbidden
+        return Forbidden()  # 403
     else:
         # TODO: redirect to login page if this is a non-JSON GET request
-        abort(401)  # Unauthorized
+        return Unauthorized()  # 401
 
 
 ################################################################################

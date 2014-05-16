@@ -249,7 +249,7 @@ class GroupListAPI(ListAPI):
 class GroupItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
     def get(self, group):
-        group_son = group.to_son(only_fields=('label',))
+        group_son = group.to_son(only_fields=('label', 'facebook_id'))
         group_son['users'] = models.User.objects(groups=group).to_son(only_fields=('full_name', 'email'))
         return jsonify(groups=[group_son])
 
