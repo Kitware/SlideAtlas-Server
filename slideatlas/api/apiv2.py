@@ -90,7 +90,17 @@ class ItemAPI(API):
                         # operation on nested member
                         abort(501)  # Not Implemented
                 elif op_type =='remove':
-                    abort(501)  # Not Implemented
+                    if len(path) == 0:
+                        # operation on whole document
+                        abort(501)  # Not Implemented
+                    elif len(path) == 1:
+                        try:
+                            document[path[0]] = None
+                        except KeyError:
+                            abort(422)  # Unprocessable Entity
+                    else:
+                        # operation on nested member
+                        abort(501)  # Not Implemented
                 elif op_type == 'replace':
                     abort(501)  # Not Implemented
                 elif op_type == 'move':
@@ -273,7 +283,8 @@ class UserListAPI(ListAPI):
 class UserItemAPI(ItemAPI):
     @security.AdminSitePermission.protected
     def get(self, user):
-        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'))
+        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'roles'),
+                               include_empty=False)
 
         user_son['roles'] = {
             'user_role': user.user_role.to_son(only_fields=('name',)) if user.user_role else None,
