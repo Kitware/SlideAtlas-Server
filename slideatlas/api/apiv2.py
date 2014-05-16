@@ -90,7 +90,17 @@ class ItemAPI(API):
                         # operation on nested member
                         abort(501)  # Not Implemented
                 elif op_type =='remove':
-                    abort(501)  # Not Implemented
+                    if len(path) == 0:
+                        # operation on whole document
+                        abort(501)  # Not Implemented
+                    elif len(path) == 1:
+                        try:
+                            document[path[0]] = None
+                        except KeyError:
+                            abort(422)  # Unprocessable Entity
+                    else:
+                        # operation on nested member
+                        abort(501)  # Not Implemented
                 elif op_type == 'replace':
                     abort(501)  # Not Implemented
                 elif op_type == 'move':
