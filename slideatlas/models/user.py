@@ -91,9 +91,6 @@ class User(ModelDocument, UserMixin):
     def __unicode__(self):
         return unicode('%s (%s)' % (self.full_name, self.email))
 
-    def update_current_login(self):
-        self.current_login_at = datetime.datetime.utcnow()
-
 
 ################################################################################
 class PasswordUser(User):
