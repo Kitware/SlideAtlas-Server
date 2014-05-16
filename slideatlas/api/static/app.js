@@ -177,10 +177,12 @@ app.directive('sessionView', function () {
 
 
 app.controller("SessAllListCtrl", function ($scope, $location, $http) {
+    $scope.data = {loaded : false};
 
     $http({method: "get", url: "/sessions?json=1"}).
     success(function(data, status) {
         $scope.roles = data.sessions;
+        $scope.data.loaded = true;
     }).
     error(function(data, status) {
         $scope.roles = [];
