@@ -446,6 +446,31 @@ app.controller("dbListCtrl", function ($scope, $http) {
 //     //     };
 // });
 
+app.controller("UserGroupCtrl", function ($scope, $location, $http) {
+        console.log("Refreshing UserGroupsCtrl");
+
+        $scope.users = [];
+        $scope.groups = [];
+
+        // Get users
+        $http({method: "get", url: "/apiv2/users"}).
+        success(function(data, status) {
+                $scope.users = data.users;
+        }).
+        error(function(data, status) {
+            $scope.users = [];
+        });
+
+        // Get groups
+        $http({method: "get", url: "/apiv2/groups"}).
+        success(function(data, status) {
+                $scope.groups = data.groups;
+        }).
+        error(function(data, status) {
+            $scope.groups = [];
+        });
+    });
+
 
 app.controller("UserListCtrl", function ($scope, User, $location, Data, $filter) {
         console.log("Refreshing UserListCtrl");

@@ -1,0 +1,16 @@
+<div ng-controller="UserGroupCtrl">
+    <br/>
+    <h2> Users and Groups </h2>
+
+    Filter by: <input type="text" ng-model="query" />
+    <table class="table table-hover">
+
+    <tr ng-repeat ="auser in filtered  = (users | filter:{full_name : query}) ">
+        <td>{{ auser.full_name }} </td>
+        <td><a href="#/users/edit/{{auser._id}}"><span class="glyphicon glyphicon-edit"> </span> edit </a> </td>
+    </tr>
+    </table>
+
+    <!--pre><strong>selected with filter:</strong> {{filtered_users | json}} </pre-->
+
+</div>
