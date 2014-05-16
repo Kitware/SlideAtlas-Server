@@ -6,6 +6,9 @@
                 <session-list sessions="arole.sessions"> {{ asession.label }} </dj-li>
                 <!-- <dj-li ng-repeat = "asession in arole.sessions track by $index"> {{ asession.label }} </dj-li> -->
                 <!-- <djsessions sess={{arole.sessions track by $index}}/>  -->
+    <div ng-hide="data.loaded"> Loading .. </div>
+    <div ng-hide="data.loaded"> <center> <img src="/static/img/loading.gif" height="50%"> </center> </div>
+    <div ng-show="data.loaded">
             </div>
         </div> 
     </div>
