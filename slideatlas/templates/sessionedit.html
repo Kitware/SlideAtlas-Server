@@ -392,10 +392,14 @@
       // It is odd that sessions have separate image and view arrays.
       // (The one I inspected had different number of elements).
       for (var i = 0; i < data.images.length; ++i) {
+        var db = data.db;
+        if (data.images[i].img != undefined) {
+          db = data.images[i].db;
+        }
         labelStrings.push(data.images[i].label);
         var listItem = $('<li>').appendTo($('#gallery'));
         var image = $('<img>').appendTo(listItem)
-                              .attr("db",data.db)
+                              .attr("db",db)
                               .attr("img",data.images[i].img)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
