@@ -62,8 +62,8 @@ class ShibbolethLogin(LoginProvider):
     def fetch_person(self):
         return self.Person(
             external_id=request.environ.get('Shib-Attribute-eduPersonPrincipalName'),
-            full_name=request.environ.get('Shib-Attribute-mail'),
-            email=request.environ.get('Shib-Attribute-displayName')
+            full_name=request.environ.get('Shib-Attribute-displayName'),
+            email=request.environ.get('Shib-Attribute-mail'),
         )
 
 
