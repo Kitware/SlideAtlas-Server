@@ -813,11 +813,103 @@ function ToggleAnnotationVisibility() {
 
     //********************************************************
 
-
-
     $(document).ready(function() {
-      Start();
+      $("#text-properties-dialog").dialog({
+          autoOpen:false,
+          height:250,
+          width:350,
+          position: ['center', 'top'],
+          modal:true,
+          buttons:{
+              Delete: function() {
+                  TextPropertyDialogDelete();
+                  $(this).dialog("close");
+              },
+              Apply: function() {
+                  TextPropertyDialogApply();
+              }
+          },
+          close: function(event,ui) {
+              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+                  TextPropertyDialogCancel();
+                  $(this).dialog("close");
+              }
+              $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+          }
+      });
+
+      $("#arrow-properties-dialog").dialog({
+          autoOpen:false,
+          height:280,
+          width:350,
+          modal:true,
+          buttons:{
+              Delete: function() {
+                  ArrowPropertyDialogDelete();
+                  $(this).dialog("close");
+              },
+              Apply: function() {
+                  ArrowPropertyDialogApply();
+                  $(this).dialog("close");
+              }
+          },
+          close: function(event,ui) {
+              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+                  ArrowPropertyDialogCancel();
+                  $(this).dialog("close");
+              }
+          }
+      });
+
+    $("#circle-properties-dialog").dialog({
+      autoOpen:false,
+      height:300,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          CirclePropertyDialogDelete();
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          CirclePropertyDialogApply();
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          CirclePropertyDialogCancel();
+          $(this).dialog("close");
+        }
+      }
     });
+
+    $("#polyline-properties-dialog").dialog({
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          PolylinePropertyDialogDelete();
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          PolylinePropertyDialogApply();
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          PolylinePropertyDialogCancel();
+          $(this).dialog("close");
+        }
+      }
+    });
+
+
+    Start();
+  });
 
 </script>
 
@@ -834,82 +926,48 @@ function ToggleAnnotationVisibility() {
 <canvas id="gltest" style="display:none" ></canvas>
 
 
+<div class="ui-widget" style="visibility:hidden">
+  <div id="text-properties-dialog" title="Text Annotation Editor" >
+    <form>
+      <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
+      Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
+      <input type="checkbox" id="TextMarker" checked /> Marker </input>
+    </form>
+  </div>
+
+  <div id="circle-properties-dialog" title="Circle Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and center and radius entries (thickness too) -->
+        Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
+        Line Width:<input id="circlelinewidth" ></input></br>
+        <p id="circlearea"></p>
+      </fieldset>
+    </form>
+  </div>
+
+  <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
+        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
+        Line Width:<input id="polylinewidth" ></input>
+      </fieldset>
+    </form>
+  </div>
+
+  <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
+    <form>
+      <fieldset>
+        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
+        Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
+        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
+        <p id="ArrowLength"></p>
+      </fieldset>
+    </form>
+  </div>
+</div>
 
 
- <div class="ui-widget" style="visibility:hidden">
-      <table border="1" id="annotbuttons">
-        <tr>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Arrow.gif') }}" height="25" id="arrow" type="button" onclick="NewArrow();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Circle.gif') }}" height="25" id="arrow" type="button" onclick="NewCircle();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='FreeForm.gif') }}" height="25" id="text" type="button" onclick="NewPolyline();" />
-          </td>
-          <td>
-            <img src="{{ url_for('glviewer.static', filename='Text.gif') }}" height="25" id="text" type="button" onclick="NewText();" />
-          </td>
-        </tr>
-      </table>
-      <table border="1" id="zoombuttons" >
-        <tr>
-          <td type="button" onclick="zoomIn();" style="width:20px;height:20px;background-color:white;text-align:center;" >+</td>
-        </tr>
-        <tr>
-          <td type="button" onclick="zoomOut();" style="width:20px;height:20px;background-color:white;text-align:center;" >-</td>
-        </tr>
-      </table>
-      <table border="1" id="rotatebuttons" >
-        <tr>
-          <td type="button" onclick="rotateLeft();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('glviewer.static', filename='rotateLeft.jpg')}}" height="25" />
-          </td>
-          <td type="button" onclick="rotateRight();" style="width:20px;height:20px;background-color:white;text-align:center;" >
-            <img src="{{ url_for('glviewer.static', filename='rotateRight.jpg') }}" height="25" />
-          </td>
-        </tr>
-      </table>
 
-      <div id="text-properties-dialog" title="Text Annotation Editor" >
-        <form>
-          <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
-          Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
-          <input type="checkbox" id="TextMarker" checked /> Marker </input>
-        </form>
-      </div>
-
-      <div id="circle-properties-dialog" title="Circle Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-            Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
-            Line Width:<input id="circlelinewidth" ></input></br>
-            <p id="circlearea"></p>
-          </fieldset>
-        </form>
-      </div>
-
-      <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-            Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
-            Line Width:<input id="polylinewidth" ></input>
-          </fieldset>
-        </form>
-      </div>
-
-      <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
-        <form>
-          <fieldset>
-            <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-            Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
-            <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
-            <p id="ArrowLength"></p>
-          </fieldset>
-        </form>
-      </div>
-    </div>
 
