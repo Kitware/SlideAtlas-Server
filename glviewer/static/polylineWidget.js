@@ -359,6 +359,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
       this.State = POLYLINE_WIDGET_MIDPOINT_ACTIVE;
       this.Shape.Active = false;
       this.ActiveMidpoint = idx;
+      this.PlacePopup();
       return true;
       }
   }
@@ -433,6 +434,12 @@ PolylineWidget.prototype.SetActive = function(flag) {
 
 //This also shows the popup if it is not visible already.
 PolylineWidget.prototype.PlacePopup = function () {
+  // The popup gets in the way when firt creating the line.
+  if (this.State == POLYLINE_WIDGET_NEW_EDGE || 
+      this.State == POLYLINE_WIDGET_NEW) {
+    return;
+  }
+
   var roll = this.Viewer.GetCamera().Roll;
   var s = Math.sin(roll + (Math.PI*0.25));
   var c = Math.cos(roll + (Math.PI*0.25));

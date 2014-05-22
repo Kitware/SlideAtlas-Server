@@ -602,7 +602,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
   }
 
   // Forward the events to the widget if one is active.
-  if (this.ActiveWidget != null) {
+  if (this.ActiveWidget != undefined) {
     this.ActiveWidget.HandleTouchPan(event);
     return;
   }

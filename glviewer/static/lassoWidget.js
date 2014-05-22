@@ -267,6 +267,7 @@ function LassoPropertyDialogDelete() {
 LassoWidget.prototype.Decimate = function(shape, spacing) {
   // Keep looping over the line removing points until the line does not change.
   var modified = true;
+    var sanityCheck = 0;
   while (modified) {
     modified = false;
     var newPoints = [];
@@ -274,6 +275,11 @@ LassoWidget.prototype.Decimate = function(shape, spacing) {
     // Window of four points.
     var i = 3;
     while (i < shape.Points.length) {
+      // Debugging a hang.  I do not think it occurs in decimate, but it might.
+      if (++sanityCheck > 100000) {
+        alert("Decimate is takeing too long.");
+        return;
+      }
       var p0 = shape.Points[i];
       var p1 = shape.Points[i-1];
       var p2 = shape.Points[i-2];
@@ -320,11 +326,7 @@ LassoWidget.prototype.Decimate = function(shape, spacing) {
 
 
 LassoWidget.prototype.CombineStroke = function() {
-
-    //this.Stroke.Points = [[50000,60000],[30000,80000]];
-    //this.Stroke.Points = [[30000,80000],[50000,60000]];
-
-
+  
   // Find the first and last intersection points between stroke and loop.
   var intersection0;
   var intersection1;
@@ -351,6 +353,8 @@ LassoWidget.prototype.CombineStroke = function() {
     }
   }
 
+  var sanityCheck = 0;
+
   // If we have two intersections, clip the loop with the stroke.
   if (intersection1 != undefined) {
     // We will have two parts.
@@ -370,6 +374,10 @@ LassoWidget.prototype.CombineStroke = function() {
     // Decreasing
     i = intersection1.LoopIndex;
     while (i != intersection0.LoopIndex) {
+      if (++sanityCheck > 1000000) {
+        alert("Combine loop 1 is taking too long.");
+        return;
+      }
       points0.push(this.Loop.Points[i]);
       var dx = this.Loop.Points[i][0];
       var dy = this.Loop.Points[i][1];
@@ -386,6 +394,10 @@ LassoWidget.prototype.CombineStroke = function() {
     // Increasing
     i = intersection1.LoopIndex;
     while (i != intersection0.LoopIndex) {
+      if (++sanityCheck > 1000000) {
+        alert("Combine loop 2 is taking too long.");
+        return;
+      }
       points1.push(this.Loop.Points[i]);
       var dx = this.Loop.Points[i][0];
       var dy = this.Loop.Points[i][1];
