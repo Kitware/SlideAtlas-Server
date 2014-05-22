@@ -50,7 +50,7 @@ def register_with_app(app):
 # TODO: this is a short term solution until an "everyone" / publicly-viewable
 #   role can be implemented
 def on_user_registered(app, user, confirm_token):
-    demo_group = models.GroupRole.objects.get(name='Atlas Demonstration')
+    demo_group = models.GroupRole.objects.get(label='Atlas Demonstration')
     user.groups.append(demo_group)
 
     if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu') or user.email.endswith('kitware.com'):
