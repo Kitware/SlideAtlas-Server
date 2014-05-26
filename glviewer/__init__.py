@@ -63,7 +63,7 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 # view and note are the same in the new schema.
 # It becomes so simple!
 def glnote(db, dbid, viewid, viewobj, edit):
-    email = security.current_user.email
+    email = getattr(security.current_user, 'email', '')
     return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email, edit=edit))
 
 
@@ -211,7 +211,7 @@ mod = Blueprint('glviewer', __name__,
                 )
 
 @mod.route('')
-@security.login_required
+#@security.login_required
 def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
@@ -253,7 +253,7 @@ def glview():
 
 
 @mod.route('/bookmark')
-@security.login_required
+#@security.login_required
 def bookmark():
     """
     - /bookmark?key=0295cf24-6d51-4ce8-a923-772ebc71abb5
@@ -300,7 +300,8 @@ def bookmark():
 def getchildnotes():
     parentid = request.args.get('parentid', "")
     dbid = request.args.get('db', "")
-    user = security.current_user.id
+    # TODO: this should be an ObjectId by default, not a string
+    user = getattr(security.current_user, 'id', '')
 
     admindb = models.ImageStore._get_db()
     db = admindb
@@ -495,7 +496,7 @@ def glstacksession():
                 sectionAnnotations = record["Annotations"]
         annotations.append(sectionAnnotations)
 
-        # other just that needs to be simplified 
+        # other just that needs to be simplified
         imgdb = dbid
         if viewobj.has_key("db") :
             imgdb = viewobj["db"]
@@ -658,7 +659,7 @@ def glsaveview():
 # name is a way to identify a recording session.
 @mod.route('/record-save', methods=['GET', 'POST'])
 def glrecordsave():
-    user = security.current_user.email
+    user = getattr(security.current_user, 'email', '')
 
     dbid      = request.form['db']  # for post
     name      = request.form['name']
@@ -760,7 +761,7 @@ def recursiveSetUser(note, user):
 
  # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
-@security.login_required
+#@security.login_required
 def saveviewnotes():
     dbid    = request.form['db']  # for post
     viewId  = request.form['view']
@@ -772,7 +773,7 @@ def saveviewnotes():
 
     # I was going get the user id from the session, and pass it to the viewer.
     # I think I will just try to retreive the user from the "Save Note" method.
-    email = security.current_user.email
+    email = getattr(security.current_user, 'email', '')
 
     recursiveSetUser(note, email)
 
