@@ -3,11 +3,15 @@
 <title>Connectome Viewer</title>
 <!-- view.html -->
 
-
 <script src="https://code.jquery.com/jquery-1.8.3.js"></script>
 <script src="https://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 
-
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
+<script>
+  $(document).ready(function() {
+  var dia = new Dialog();
+  });
+</script>
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
@@ -409,6 +413,7 @@ shape has visibility and
               Apply: function() {
                   ArrowPropertyDialogApply();
                   $(this).dialog("close");
+
               }
           },
           close: function(event,ui) {
@@ -482,8 +487,10 @@ shape has visibility and
 #optionMenu li { padding: 3px; height: 18px; width: 100%}
 </style>
 
+<body id="body">
+</body>
 
-<canvas id="gltest" style="display:none" ></canvas>
+<!--<canvas id="gltest" style="display:none" ></canvas>
 
 
 
@@ -499,7 +506,7 @@ shape has visibility and
   <div id="circle-properties-dialog" title="Circle Annotation Editor" >
     <form>
       <fieldset>
-        <!-- I plan to have a color selector and center and radius entries (thickness too) -->
+        <!-- I plan to have a color selector and center and radius entries (thickness too) --><!--
         Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
         Line Width:<input id="circlelinewidth" ></input></br>
         <p id="circlearea"></p>
@@ -510,8 +517,8 @@ shape has visibility and
   <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
     <form>
       <fieldset>
-        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
+        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) --><!--
+        Color:<input type="color" id="polylinecolor" value="#30ff00" ></input></br>
         Line Width:<input id="polylinewidth" ></input>
       </fieldset>
     </form>
@@ -520,13 +527,14 @@ shape has visibility and
   <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
     <form>
       <fieldset>
-        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-        Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
-        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
+        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness --><!--
+        Color:<input type="color" id="arrowcolor" value="#30ff00" ></input>
+        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> --><!--
         <p id="ArrowLength"></p>
       </fieldset>
     </form>
   </div>
-</div>
+</div>-->
+
 
 
