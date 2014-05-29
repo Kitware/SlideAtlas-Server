@@ -253,16 +253,56 @@ PencilWidget.prototype.RemoveFromViewer = function() {
 }
 
 // Can we bind the dialog apply callback to an objects method?
+var PENCIL_WIDGET_DIALOG_SELF
 PencilWidget.prototype.ShowPropertiesDialog = function () {
+  var color = document.getElementById("pencilcolor");
+  color.value = ConvertColorToHex(this.Shapes[0].OutlineColor);
+
+  var lineWidth = document.getElementById("pencilwidth");
+  lineWidth.value = (this.Shapes[0].LineWidth).toFixed(2);
+
+  PENCIL_WIDGET_DIALOG_SELF = this;
+  $("#pencil-properties-dialog").dialog("open");
 }
 
 function PencilPropertyDialogApply() {
+  var widget = PENCIL_WIDGET_DIALOG_SELF;
+  if ( ! widget) {
+    return;
+  }
+  var hexcolor = document.getElementById("pencilcolor").value;
+  for (var j = 0; j < widget.Shapes.length; j++)
+      widget.Shapes[j].SetOutlineColor(hexcolor);
+  var lineWidth = document.getElementById("pencilwidth");
+  for (var j = 0; j < widget.Shapes.length; j++) {
+      widget.Shapes[j].LineWidth = parseFloat(lineWidth.value);
+      widget.Shapes[j].UpdateBuffers();
+  }
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+  RecordState();
+  eventuallyRender();
+  $("#pencil-properties-dialog").dialog("close");
 }
 
 function PencilPropertyDialogCancel() {
+  var widget = PENCIL_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+  }
 }
 
 function PencilPropertyDialogDelete() {
+  var widget = PENCIL_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+    // We need to remove an item from a list.
+    // shape list and widget list.
+    widget.RemoveFromViewer();
+    eventuallyRender();
+    RecordState();
+  }
 }
 
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.

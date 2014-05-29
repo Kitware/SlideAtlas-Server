@@ -1,8 +1,6 @@
 /*
 NOTICE - This file uses JavaScript and jQuery to create dialogs of HTML elements for widgets.
 It can replace code in templates such as view.html.
-There is a nonfatal bug I've been trying to figure out; trying to create a circle initially produces the "Unknown Color" error message and causes the initial color of the circle to be black. The circle itself can still be created and edited though.
-Lasso and pencil are not fully coded yet in regards to working with this (they lack functioning ShowPropertyDialog and other associated functions).
 
 This file currently requires the body tags to be given the ID 'body,' various other attempts at appending didn't work.
 */
@@ -76,7 +74,7 @@ function Dialog () {
       this.CircleColor.id = 'circlecolor';
       this.CircleColor.type = 'color';
       this.CircleFieldSet.appendChild(this.CircleColor);
-      $('#circleColor').attr('value','#30ff00');
+      $('#circlecolor').attr('value','#30ff00');
       
       this.CircleBreak1 = document.createElement('br');
       this.CircleFieldSet.appendChild(this.CircleBreak1);

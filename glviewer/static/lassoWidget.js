@@ -250,16 +250,53 @@ LassoWidget.prototype.RemoveFromViewer = function() {
 }
 
 // Can we bind the dialog apply callback to an objects method?
+var LASSO_WIDGET_DIALOG_SELF;
 LassoWidget.prototype.ShowPropertiesDialog = function () {
+  var color = document.getElementById("lassocolor");
+  color.value = ConvertColorToHex(this.Loop.OutlineColor);
+
+  var lineWidth = document.getElementById("lassowidth");
+  lineWidth.value = (this.Loop.LineWidth).toFixed(2);
+
+  LASSO_WIDGET_DIALOG_SELF = this;
+  $("#lasso-properties-dialog").dialog("open");
 }
 
 function LassoPropertyDialogApply() {
+  var widget = LASSO_WIDGET_DIALOG_SELF;
+  if ( ! widget) {
+    return;
+  }
+  var hexcolor = document.getElementById("lassocolor").value;
+  widget.Loop.SetOutlineColor(hexcolor);
+  var lineWidth = document.getElementById("lassowidth");
+  widget.Loop.LineWidth = parseFloat(lineWidth.value);
+  widget.Loop.UpdateBuffers();
+  if (widget != null) {
+    widget.SetActive(false);
+  }
+  RecordState();
+  eventuallyRender();
+  $("#lasso-properties-dialog").dialog("close");
 }
 
 function LassoPropertyDialogCancel() {
+  var widget = LASSO_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+  }
 }
 
 function LassoPropertyDialogDelete() {
+  var widget = LASSO_WIDGET_DIALOG_SELF;
+  if (widget != null) {
+    widget.SetActive(false);
+    // We need to remove an item from a list.
+    // shape list and widget list.
+    widget.RemoveFromViewer();
+    eventuallyRender();
+    RecordState();
+  }
 }
 
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.

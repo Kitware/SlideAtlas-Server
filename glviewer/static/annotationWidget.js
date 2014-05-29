@@ -9,7 +9,7 @@
 // - Make an object out of it to support two views.
 // - Change behavior of text widget to first drag an arrow when created.
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
-//   or maybe the delete key.
+// or maybe the delete key.
 
 function AnnotationWidget (viewer) {
   var self = this; // trick to set methods in callbacks.
@@ -27,7 +27,7 @@ function AnnotationWidget (viewer) {
         'right' : '20px',
         'z-index': '1'});;
 
-    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 286);
+    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 312);
 
     var row = $('<tr>').appendTo(this.Widget)
     var cell = $('<td>').appendTo(row)
@@ -43,7 +43,7 @@ function AnnotationWidget (viewer) {
       .hide()
       .css({
         'opacity': '0.6',
-        'width': '156',
+        'width': '182',
         'border-radius': '5px'});
 
     $('<img>').appendTo(this.ToolsTable)
@@ -71,6 +71,11 @@ function AnnotationWidget (viewer) {
       .attr('type','image')
       .attr('src',"/webgl-viewer/static/select_lasso.png")
       .click(function(){self.NewLasso();});
+    $('<img>').appendTo(this.ToolsTable)
+      .css({'height': '28px'})
+      .attr('type','image')
+      .attr('src',"/webgl-viewer/static/arrowWidget.png")
+      .click(function(){self.NewArrowStamp();});
   }
 }
 
@@ -87,6 +92,7 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
       this.ToolsTable.fadeIn();
     } else {
       this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Up.png")
+      this.ToolsTable.fadeIn();
     }
   }
 
@@ -153,6 +159,17 @@ AnnotationWidget.prototype.NewLasso = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new LassoWidget(this.Viewer, true);
+  this.Viewer.ActiveWidget = widget;
+}
+
+AnnotationWidget.prototype.NewArrowStamp = function() {
+  var widget = this.Viewer.ActiveWidget;
+  if ( widget && (widget instanceof ArrowStampWidget)) {
+    widget.Deactivate();
+    return;
+  }
+  this.SetVisibility(ANNOTATION_ON);
+  var widget = new ArrowStampWidget(this.Viewer, true);
   this.Viewer.ActiveWidget = widget;
 }
 

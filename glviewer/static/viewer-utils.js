@@ -2,20 +2,20 @@
 
 // RGB [Float, Float, Float] to #RRGGBB string
 function ConvertColorToHex(color) {
-  var hexDigits = "0123456789abcdef";
-  var str = "#";
-  for (var i = 0; i < 3; ++i) {
-    var tmp = color[i];
-    for (var j = 0; j < 2; ++j) {
-      tmp *= 16.0;
-      var digit = Math.floor(tmp);
-      if (digit < 0) { digit = 0; }
-      if (digit > 15){ digit = 15;}
-      tmp = tmp - digit;
-      str += hexDigits.charAt(digit);
-    }
-  }
-  return str;
+    var hexDigits = "0123456789abcdef";
+    var str = "#";
+    for (var i = 0; i < 3; ++i) {
+	  var tmp = color[i];
+	  for (var j = 0; j < 2; ++j) {
+	      tmp *= 16.0;
+	      var digit = Math.floor(tmp);
+	      if (digit < 0) { digit = 0; }
+	      if (digit > 15){ digit = 15;}
+	      tmp = tmp - digit;
+	      str += hexDigits.charAt(digit);
+	  }
+      }
+    return str;
 }
 
 
@@ -88,7 +88,7 @@ function ConvertColor(color) {
     if (typeof colors[color.toLowerCase()] != 'undefined') {
         color = colors[color.toLowerCase()];
     } else {
-        alert("Unknow color " + color);
+        alert("Unknown color " + color);
     }
   }
 

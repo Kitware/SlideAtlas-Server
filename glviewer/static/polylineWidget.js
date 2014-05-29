@@ -2,7 +2,7 @@
 // Mouse click places a point.
 // A small circle will be used to shaow an active vertex.
 // Widget starts with an active vertex (mouse up).
-// Mouse down->up places the vertex and deactivates it.  A new deactive vertex is created.
+// Mouse down->up places the vertex and deactivates it. A new deactive vertex is created.
 // Mouse drag at this point drages an edge from the last vertex.
 
 
@@ -42,9 +42,12 @@ function PolylineWidget (viewer, newFlag) {
 
   this.Viewer.WidgetList.push(this);
 
-  // Set line thickness   using viewer. (5 pixels).
-  this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
-  this.Circle.Radius = this.Shape.LineWidth;
+  // Set line thickness using viewer. (5 pixels).
+  // The Line width of the shape switches to 0 (single line)
+  // when the actual line with is too thin.
+  this.LineWidth = 5.0*cam.Height/viewport[3];
+  this.Shape.LineWidth =this.LineWidth;
+  this.Circle.Radius = this.LineWidth;
   this.Circle.UpdateBuffers();
 
   if (newFlag) {
@@ -61,7 +64,26 @@ function PolylineWidget (viewer, newFlag) {
   eventuallyRender();
 }
 
+PolylineWidget.prototype.UpdateCircleRadius = function() {
+    if (this.Circle.Radius < this.LineWidth) {
+        this.Circle.Radius = this.LineWidth;
+    }
+}
+
+
 PolylineWidget.prototype.Draw = function(view) {
+    // When the line is too thin, we can see nothing.
+    // Change it to line drawing.
+    var cam = this.Viewer.MainView.Camera;
+    var viewport = this.Viewer.MainView.Viewport;
+    var minLine = cam.Height/viewport[3];
+    if (this.LineWidth < minLine) {
+      // Too thin. USe a single line.
+      this.Shape.LineWidth = 0;
+    } else {
+      this.Shape.LineWidth = this.LineWidth;
+    }
+
     this.Shape.Draw(view);
     this.Circle.Draw(view);
 }
@@ -72,7 +94,7 @@ PolylineWidget.prototype.Serialize = function() {
   var obj = new Object();
   obj.type = "polyline";
   obj.outlinecolor = this.Shape.OutlineColor;
-  obj.linewidth = this.Shape.LineWidth;
+  obj.linewidth = this.LineWidth;
   // Copy the points to avoid array reference bug.
   obj.points = [];
   for (var i = 0; i < this.Shape.Points.length; ++i) {
@@ -88,7 +110,8 @@ PolylineWidget.prototype.Load = function(obj) {
   this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
   this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
   this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-  this.Shape.LineWidth = parseFloat(obj.linewidth);
+  this.LineWidth = parseFloat(obj.linewidth);
+  this.Shape.LineWidth = this.LineWidth;
   for(var n=0; n < obj.points.length; n++){
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
@@ -142,7 +165,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     return;
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-    if (this.ActiveVertex >= 0) { // The user clicked on an active vertex.  End the line.
+    if (this.ActiveVertex >= 0) { // The user clicked on an active vertex. End the line.
       if (this.ActiveVertex == 0) {
         this.ClosedLoop = true;
       } else {
@@ -179,8 +202,8 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
 
 // Returns false when it is finished doing its work.
 PolylineWidget.prototype.HandleMouseUp = function(event) {
-  // Logic to remove a vertex.  Drag it over a neighbor.
-  //if (this.State  do this later.
+  // Logic to remove a vertex. Drag it over a neighbor.
+  //if (this.State do this later.
 
   if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
@@ -266,6 +289,7 @@ PolylineWidget.prototype.WhichVertexShouldBeActive = function(pt) {
   if (this.State == POLYLINE_WIDGET_NEW) {
     return -1;
   }
+  this.UpdateCircleRadius();
   var r2 = this.Circle.Radius * this.Circle.Radius;
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
     var dx = pt[0] - this.Shape.Points[0][0];
@@ -322,6 +346,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
   }
 
   // Check for the mouse over a midpoint.
+  this.UpdateCircleRadius();
   var r2 = this.Circle.Radius * this.Circle.Radius;
   for (idx = 1; idx < this.Shape.Points.length; ++idx) {
     x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
@@ -334,13 +359,14 @@ PolylineWidget.prototype.CheckActive = function(event) {
       this.State = POLYLINE_WIDGET_MIDPOINT_ACTIVE;
       this.Shape.Active = false;
       this.ActiveMidpoint = idx;
+      this.PlacePopup();
       return true;
       }
   }
 
   // Check for mouse touching an edge.
   for (var i = 1; i < this.Shape.Points.length; ++i) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.Shape.LineWidth)) {
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.LineWidth)) {
       this.State = POLYLINE_WIDGET_ACTIVE;
       this.Shape.Active = true;
       this.PlacePopup();
@@ -362,15 +388,21 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
     this.Circle.Visibility = false;
     eventuallyRender();
   } else {
+    var cam = this.Viewer.MainView.Camera;
+    var viewport = this.Viewer.MainView.Viewport;
+    this.Circle.Radius = 5.0*cam.Height/viewport[3];
+    this.UpdateCircleRadius();
+    this.Circle.UpdateBuffers();
     this.Circle.Visibility = true;
     this.Circle.Origin = this.Shape.Points[vIdx];
+    this.PlacePopup();
     eventuallyRender();
   }
 
   this.ActiveVertex = vIdx;
 }
 
-// Multiple active states.  Active state is a bit confusing.
+// Multiple active states. Active state is a bit confusing.
 // Only one state (WAITING) does not receive events from the viewer.
 PolylineWidget.prototype.GetActive = function() {
   if (this.State == POLYLINE_WIDGET_WAITING) {
@@ -402,6 +434,12 @@ PolylineWidget.prototype.SetActive = function(flag) {
 
 //This also shows the popup if it is not visible already.
 PolylineWidget.prototype.PlacePopup = function () {
+  // The popup gets in the way when firt creating the line.
+  if (this.State == POLYLINE_WIDGET_NEW_EDGE ||
+      this.State == POLYLINE_WIDGET_NEW) {
+    return;
+  }
+
   var roll = this.Viewer.GetCamera().Roll;
   var s = Math.sin(roll + (Math.PI*0.25));
   var c = Math.cos(roll + (Math.PI*0.25));
@@ -439,7 +477,7 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   color.value = ConvertColorToHex(this.Shape.OutlineColor);
 
   var lineWidth = document.getElementById("polylinewidth");
-  lineWidth.value = (this.Shape.LineWidth).toFixed(2);
+  lineWidth.value = (this.LineWidth).toFixed(2);
 
   POLYLINE_WIDGET_DIALOG_SELF = this;
   $("#polyline-properties-dialog").dialog("open");
@@ -453,7 +491,8 @@ function PolylinePropertyDialogApply() {
   var hexcolor = document.getElementById("polylinecolor").value;
   widget.Shape.SetOutlineColor(hexcolor);
   var lineWidth = document.getElementById("polylinewidth");
-  widget.Shape.LineWidth = parseFloat(lineWidth.value);
+  widget.LineWidth = parseFloat(lineWidth.value);
+  widget.Shape.LineWidth = widget.LineWidth;
   widget.Shape.UpdateBuffers();
   if (widget != null) {
     widget.SetActive(false);
@@ -480,8 +519,3 @@ function PolylinePropertyDialogDelete() {
     RecordState();
   }
 }
-
-
-
-
-
