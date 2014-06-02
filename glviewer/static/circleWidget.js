@@ -29,6 +29,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape = new Circle();
   this.Shape.Origin = [0,0];
   this.Shape.OutlineColor = [0.0,0.0,0.0];
+  this.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;

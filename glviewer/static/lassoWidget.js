@@ -36,6 +36,7 @@ function LassoWidget (viewer, newFlag) {
 
   this.Loop = new Polyline();
   this.Loop.OutlineColor = [0.0, 0.0, 0.0];
+  this.Loop.SetOutlineColor(document.getElementById("lassocolor").value);
   this.Loop.FixedSize = false;
   this.Loop.LineWidth = 0;
   this.Stroke = false;
@@ -61,24 +62,25 @@ LassoWidget.prototype.Draw = function(view) {
 LassoWidget.prototype.Serialize = function() {
   var obj = new Object();
   obj.type = "lasso";
-  obj.shapes = [];
-  var points = [];
+  obj.outlinecolor = this.Loop.OutlineColor;
+  obj.points = [];
   for (var j = 0; j < this.Loop.Points.length; ++j) {
-    points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
+    obj.points.push([this.Loop.Points[j][0], this.Loop.Points[j][1]]);
   }
-  obj.shapes.push(points);
+  obj.closedloop = true;
 
   return obj;
 }
 
 // Load a widget from a json object (origin MongoDB).
 LassoWidget.prototype.Load = function(obj) {
-  var points = obj.shapes[0];
-  this.Loop.OutlineColor = [0.9, 1.0, 0.0];
-  this.Loop.FixedSize = false;
-  this.Loop.LineWidth = 0;
-  for (var m = 0; m < points.length; ++m) {
-    this.Loop.Points[m] = [points[m][0], points[m][1]];
+  this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+  this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+  this.Loop.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+  this.Stroke.OutlineColor = this.Loop.OutlineColor;
+  for(var n=0; n < obj.points.length; n++){
+      this.Loop.Points[n] = [parseFloat(obj.points[n][0]),
+                             parseFloat(obj.points[n][1])];
   }
   this.Loop.UpdateBuffers();
 }
@@ -109,6 +111,7 @@ LassoWidget.prototype.HandleMouseDown = function(event) {
     // When interaction stops, it is converted/merged with loop.
     this.Stroke = new Polyline();
     this.Stroke.OutlineColor = [0.0, 0.0, 0.0];
+    this.Stroke.SetOutlineColor(document.getElementById("lassocolor").value);
     this.Stroke.FixedSize = false;
     this.Stroke.LineWidth = 0;
 

@@ -38,6 +38,7 @@ function PolylineWidget (viewer, newFlag) {
 
   this.Shape = new Polyline();
   this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+  this.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);

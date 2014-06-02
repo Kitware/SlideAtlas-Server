@@ -116,6 +116,7 @@ PencilWidget.prototype.HandleMouseDown = function(event) {
     var shape = new Polyline();
     //shape.OutlineColor = [0.9, 1.0, 0.0];
     shape.OutlineColor = [0.0, 0.0, 0.0];
+    shape.SetOutlineColor(document.getElementById("pencilcolor").value);
     shape.FixedSize = false;
     shape.LineWidth = 0;
     this.Shapes.push(shape);

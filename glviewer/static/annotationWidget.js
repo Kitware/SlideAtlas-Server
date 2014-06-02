@@ -180,7 +180,6 @@ AnnotationWidget.prototype.NewPolyline = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new PolylineWidget(this.Viewer, true);
-  widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Viewer.ActiveWidget = widget;
 }
 
@@ -196,7 +195,6 @@ AnnotationWidget.prototype.NewCircle = function() {
   widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
                                                               EVENT_MANAGER.LastMouseY);
 
-  widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Viewer.ActiveWidget = widget;
 }
 

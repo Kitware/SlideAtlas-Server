@@ -66,7 +66,6 @@ Widgets have serialize method which creates an object
 
 -->
 
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
@@ -94,6 +93,15 @@ shape has visibility and
 
 <!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
+
+<!-- Body tag with ID, dialog code -->
+<body id="body">
+</body>
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
+<script>
+var dia = new Dialog();
+</script>
 
 
 
