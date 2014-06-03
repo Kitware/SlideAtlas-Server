@@ -407,7 +407,7 @@ function deleteCorrelation(x, y) {
     var transformation = TRANSFORMATIONS[SECTION_INDEX];          
     var index = findCorrelation(0,x,y);
     if (index > -1) {
-      transformation.Correlations.splice(bestIdx, 1);
+      transformation.Correlations.splice(index, 1);
       console.log("Delete: Success");
       eventuallyRender();
     }
@@ -683,7 +683,6 @@ function FeatureChainAdd(x,y) {
       } else {
         DRAGGING_CROSS.Correlation.point1 = DRAGGING_CROSS.Origin;
       }
-      console.log("drag " + DRAGGING_CROSS.Origin[0] + ", " + DRAGGING_CROSS.Origin[1]);
       eventuallyRender();
     } else {
       EVENT_MANAGER.HandleMouseMove(event);
