@@ -641,6 +641,9 @@ function FeatureChainAdd(x,y) {
   function handleMouseDown(event) { 
     // hack drag
     if (CONTROL_PRESSED && EDIT_R) {
+      var cam = VIEWER1.GetCamera();
+      var threshold = cam.Height / 50;
+      threshold = threshold*threshold;
       // Find the best cross.
       var bestDist = 0;
       var bestCross = null;
@@ -648,14 +651,17 @@ function FeatureChainAdd(x,y) {
         var cross = VIEWER1.ShapeList[i];
         var dx = EVENT_MANAGER.MouseWorldX - cross.Origin[0];
         var dy = EVENT_MANAGER.MouseWorldY - cross.Origin[1];
-        var dist = Math.sqrt(dx*dx + dy*dy);
-        if (bestCross == null || dist <= bestDist) {
-          bestCross = cross;
-          bestDist = dist;
+        var dist = (dx*dx) + (dy*dy);
+        if (dist < threshold) {
+          if (bestCross == null || dist <= bestDist) {
+            bestCross = cross;
+            bestDist = dist;
+          }
         }
       }
       DRAGGING_CROSS = bestCross;
-    } else {
+    }
+    if (DRAGGING_CROSS == null) {
       EVENT_MANAGER.HandleMouseDown(event); 
     }
   }
