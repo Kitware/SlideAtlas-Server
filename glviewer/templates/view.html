@@ -17,7 +17,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
 
-<!-- used some objects, matrix as an array  -->
+<!-- used some objects, matrix as an array -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
 
 <!-- Perspective camera etc. May be ready to remove -->
@@ -40,12 +40,21 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
 
+<!-- Body tag with ID, dialog code -->
+<body id="body">
+</body>
+
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
+<script>
+var dia = new Dialog();
+</script>
+
 <!-- Actor for tile -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
 
 <!-- Source and cache for the viewer
 Manages the list, and gives to camera, either lowres, or appropriate tiles
- -->
+-->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
 
@@ -182,7 +191,7 @@ shape has visibility and
   var MOBILE_ANNOTATION_WIDGET;
   var NOTES_WIDGET;
 
-  var SESSIONS_URL  = "{{url_for('session.sessions')}}";
+  var SESSIONS_URL = "{{url_for('session.sessions')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
 
   // hack to avoid an undefined error (until we unify annotation stuff).
@@ -226,7 +235,7 @@ shape has visibility and
     handleResize();
   }
 
-  // Hack mutex.  iPad2 must execute multiple draw callbacks at the same time
+  // Hack mutex. iPad2 must execute multiple draw callbacks at the same time
   // in different threads.
   var DRAWING = false;
   function draw() {
@@ -281,7 +290,7 @@ shape has visibility and
     // Maybe it is the texture leak I have seen in connectome.
     // Just use the canvas for now.
     //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
-    //  initGL(); // Sets CANVAS and GL global variables
+    // initGL(); // Sets CANVAS and GL global variables
     //} else {
       initGC();
     //}
@@ -309,18 +318,18 @@ shape has visibility and
     }).trigger('resize');
 
     var can = CANVAS[0];
-    can.addEventListener("mousedown",  handleMouseDown,  false);
-    can.addEventListener("mousemove",  handleMouseMove,  false);
+    can.addEventListener("mousedown", handleMouseDown, false);
+    can.addEventListener("mousemove", handleMouseMove, false);
     can.addEventListener("touchstart", handleTouchStart, false);
-    can.addEventListener("touchmove",  handleTouchMove,  true);
-    can.addEventListener("touchend",   handleTouchEnd,    false);
+    can.addEventListener("touchmove", handleTouchMove, true);
+    can.addEventListener("touchend", handleTouchEnd, false);
     can.addEventListener("mousewheel", handleMouseWheel, false);
 
     document.body.addEventListener("mouseup", handleMouseUp, false);
     document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
-    document.onkeydown =   handleKeyDown;
-    document.onkeyup =     handleKeyUp;
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
 
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
@@ -370,103 +379,9 @@ shape has visibility and
   }
 
 
-    //********************************************************
+  //********************************************************
 
-    $(document).ready(function() {
-      $("#text-properties-dialog").dialog({
-          autoOpen:false,
-          height:250,
-          width:350,
-          position: ['center', 'top'],
-          modal:true,
-          buttons:{
-              Delete: function() {
-                  TextPropertyDialogDelete();
-                  $(this).dialog("close");
-              },
-              Apply: function() {
-                  TextPropertyDialogApply();
-              }
-          },
-          close: function(event,ui) {
-              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  TextPropertyDialogCancel();
-                  $(this).dialog("close");
-              }
-              $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
-          }
-      });
-
-      $("#arrow-properties-dialog").dialog({
-          autoOpen:false,
-          height:280,
-          width:350,
-          modal:true,
-          buttons:{
-              Delete: function() {
-                  ArrowPropertyDialogDelete();
-                  $(this).dialog("close");
-              },
-              Apply: function() {
-                  ArrowPropertyDialogApply();
-                  $(this).dialog("close");
-              }
-          },
-          close: function(event,ui) {
-              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-                  ArrowPropertyDialogCancel();
-                  $(this).dialog("close");
-              }
-          }
-      });
-
-    $("#circle-properties-dialog").dialog({
-      autoOpen:false,
-      height:300,
-      width:350,
-      modal:true,
-      buttons:{
-        Delete: function() {
-          CirclePropertyDialogDelete();
-          $(this).dialog("close");
-        },
-        Apply: function() {
-          CirclePropertyDialogApply();
-          $(this).dialog("close");
-        }
-      },
-      close: function(event,ui) {
-        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          CirclePropertyDialogCancel();
-          $(this).dialog("close");
-        }
-      }
-    });
-
-    $("#polyline-properties-dialog").dialog({
-      autoOpen:false,
-      height:250,
-      width:350,
-      modal:true,
-      buttons:{
-        Delete: function() {
-          PolylinePropertyDialogDelete();
-          $(this).dialog("close");
-        },
-        Apply: function() {
-          PolylinePropertyDialogApply();
-          $(this).dialog("close");
-        }
-      },
-      close: function(event,ui) {
-        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-          PolylinePropertyDialogCancel();
-          $(this).dialog("close");
-        }
-      }
-    });
-
-
+  $(document).ready(function() {
     Start();
   });
 
@@ -481,51 +396,5 @@ shape has visibility and
 #optionMenu li { padding: 3px; height: 18px; width: 100%}
 </style>
 
-
-<canvas id="gltest" style="display:none" ></canvas>
-
-
-
-<div class="ui-widget" style="visibility:hidden">
-  <div id="text-properties-dialog" title="Text Annotation Editor" >
-    <form>
-      <textarea id="textwidgetcontent" style="width:100%;height:100%;" ></textarea> </br>
-      Color:<input type="color" id="textcolor" value="#0000ff"></input></br>
-      <input type="checkbox" id="TextMarker" checked /> Marker </input>
-    </form>
-  </div>
-
-  <div id="circle-properties-dialog" title="Circle Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and center and radius entries (thickness too) -->
-        Color:<input type="color" id="circlecolor" value="#30ff00" ></input></br>
-        Line Width:<input id="circlelinewidth" ></input></br>
-        <p id="circlearea"></p>
-      </fieldset>
-    </form>
-  </div>
-
-  <div id="polyline-properties-dialog" title="Polyline Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and thickness, and maybe entries for the points.(closed too) -->
-        Color:<input type="color" id="polylinecolor"  value="#30ff00" ></input></br>
-        Line Width:<input id="polylinewidth" ></input>
-      </fieldset>
-    </form>
-  </div>
-
-  <div id="arrow-properties-dialog" title="Arrow Annotation Editor" >
-    <form>
-      <fieldset>
-        <!-- I plan to have a color selector and maybe tip,orientation,length,thickness -->
-        Color:<input type="color" id="arrowcolor"  value="#30ff00" ></input>
-        <!--<input type="checkbox" id="ArrowFixedSize" checked /> FixedSize </input> -->
-        <p id="ArrowLength"></p>
-      </fieldset>
-    </form>
-  </div>
-</div>
 
 

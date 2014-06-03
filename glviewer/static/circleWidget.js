@@ -1,10 +1,11 @@
+
 //==============================================================================
 // Mouse down defined the center.
 // Drag defines the radius.
 
 
 // The circle has just been created and is following the mouse.
-// I can probably merge  this state with drag. (mouse up vs down though)
+// I can probably merge this state with drag. (mouse up vs down though)
 var CIRCLE_WIDGET_NEW = 0;
 var CIRCLE_WIDGET_DRAG = 1; // The whole arrow is being dragged.
 var CIRCLE_WIDGET_DRAG_RADIUS = 2;
@@ -27,9 +28,10 @@ function CircleWidget (viewer, newFlag) {
   var viewport = viewer.MainView.Viewport;
   this.Shape = new Circle();
   this.Shape.Origin = [0,0];
-  this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+  this.Shape.OutlineColor = [0.0,0.0,0.0];
+  this.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Shape.Radius = 50*cam.Height/viewport[3];
-  this.Shape.LineWidth =  5.0*cam.Height/viewport[3];
+  this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);
@@ -114,7 +116,7 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
 
 // returns false when it is finished doing its work.
 CircleWidget.prototype.HandleMouseUp = function(event) {
-  if ( this.State == CIRCLE_WIDGET_DRAG ||  this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+  if ( this.State == CIRCLE_WIDGET_DRAG || this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
     this.SetActive(false);
     RecordState();
   }
@@ -155,7 +157,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
 
 CircleWidget.prototype.HandleTouchPan = function(event) {
   w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-  w1 = this.Viewer.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+  w1 = this.Viewer.ConvertPointViewerToWorld( event.MouseX, event.MouseY);
 
   // This is the translation.
   var dx = w1[0] - w0[0];
@@ -196,7 +198,7 @@ CircleWidget.prototype.CheckActive = function(event) {
   this.NormalizedActiveDistance = d;
 
   if (this.Shape.FillColor == undefined) { // Circle
-    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance))  ||
+    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance)) ||
          d < (this.Tolerance+lineWidth)) {
       active = true;
     }
@@ -211,7 +213,7 @@ CircleWidget.prototype.CheckActive = function(event) {
   return active;
 }
 
-// Multiple active states.  Active state is a bit confusing.
+// Multiple active states. Active state is a bit confusing.
 CircleWidget.prototype.GetActive = function() {
   if (this.State == CIRCLE_WIDGET_WAITING) {
     return false;
@@ -313,7 +315,4 @@ function CirclePropertyDialogDelete() {
     RecordState();
   }
 }
-
-
-
 

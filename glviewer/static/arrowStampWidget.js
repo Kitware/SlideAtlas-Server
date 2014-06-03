@@ -37,7 +37,7 @@ function ArrowStampWidget (viewer, newFlag) {
       this.Arrow = new Arrow();
       this.Arrow.FillColor = [0.0,1.0,1.0];
       this.State = ARROW_STAMP_WIDGET_WAITING;
-      // Not interactive.  Push to the viewer.
+      // Not interactive. Push to the viewer.
       this.Viewer.WidgetList.push(this);
       this.Cursor.hide();
   }
@@ -212,6 +212,4 @@ function ArrowStampPropertyDialogCancel() {
 
 function ArrowStampPropertyDialogDelete() {
 }
-
-
 

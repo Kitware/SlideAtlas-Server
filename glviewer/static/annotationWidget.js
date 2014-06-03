@@ -9,7 +9,7 @@
 // - Make an object out of it to support two views.
 // - Change behavior of text widget to first drag an arrow when created.
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
-//   or maybe the delete key.
+// or maybe the delete key.
 
 function AnnotationWidget (viewer) {
   var self = this; // trick to set methods in callbacks.
@@ -180,7 +180,6 @@ AnnotationWidget.prototype.NewPolyline = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new PolylineWidget(this.Viewer, true);
-  widget.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Viewer.ActiveWidget = widget;
 }
 
@@ -196,7 +195,6 @@ AnnotationWidget.prototype.NewCircle = function() {
   widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
                                                               EVENT_MANAGER.LastMouseY);
 
-  widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
   this.Viewer.ActiveWidget = widget;
 }
 

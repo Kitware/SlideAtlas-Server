@@ -2,7 +2,7 @@
 // Mouse click places a point.
 // A small circle will be used to shaow an active vertex.
 // Widget starts with an active vertex (mouse up).
-// Mouse down->up places the vertex and deactivates it.  A new deactive vertex is created.
+// Mouse down->up places the vertex and deactivates it. A new deactive vertex is created.
 // Mouse drag at this point drages an edge from the last vertex.
 
 
@@ -38,11 +38,12 @@ function PolylineWidget (viewer, newFlag) {
 
   this.Shape = new Polyline();
   this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+  this.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);
 
-  // Set line thickness   using viewer. (5 pixels).
+  // Set line thickness using viewer. (5 pixels).
   // The Line width of the shape switches to 0 (single line)
   // when the actual line with is too thin.
   this.LineWidth = 5.0*cam.Height/viewport[3];
@@ -78,7 +79,7 @@ PolylineWidget.prototype.Draw = function(view) {
     var viewport = this.Viewer.MainView.Viewport;
     var minLine = cam.Height/viewport[3];
     if (this.LineWidth < minLine) {
-      // Too thin.  USe a single line.
+      // Too thin. Use a single line.
       this.Shape.LineWidth = 0;
     } else {
       this.Shape.LineWidth = this.LineWidth;
@@ -165,7 +166,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     return;
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-    if (this.ActiveVertex >= 0) { // The user clicked on an active vertex.  End the line.
+    if (this.ActiveVertex >= 0) { // The user clicked on an active vertex. End the line.
       if (this.ActiveVertex == 0) {
         this.ClosedLoop = true;
       } else {
@@ -202,8 +203,8 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
 
 // Returns false when it is finished doing its work.
 PolylineWidget.prototype.HandleMouseUp = function(event) {
-  // Logic to remove a vertex.  Drag it over a neighbor.
-  //if (this.State  do this later.
+  // Logic to remove a vertex. Drag it over a neighbor.
+  //if (this.State do this later.
 
   if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
@@ -402,7 +403,7 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
   this.ActiveVertex = vIdx;
 }
 
-// Multiple active states.  Active state is a bit confusing.
+// Multiple active states. Active state is a bit confusing.
 // Only one state (WAITING) does not receive events from the viewer.
 PolylineWidget.prototype.GetActive = function() {
   if (this.State == POLYLINE_WIDGET_WAITING) {
@@ -519,8 +520,3 @@ function PolylinePropertyDialogDelete() {
     RecordState();
   }
 }
-
-
-
-
-
