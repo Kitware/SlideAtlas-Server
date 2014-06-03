@@ -82,6 +82,7 @@ LassoWidget.prototype.Load = function(obj) {
       this.Loop.Points[n] = [parseFloat(obj.points[n][0]),
                              parseFloat(obj.points[n][1])];
   }
+  this.ComputeActiveCenter();
   this.Loop.UpdateBuffers();
 }
 
