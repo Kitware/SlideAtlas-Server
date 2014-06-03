@@ -79,6 +79,7 @@ ArrowStampWidget.prototype.Load = function(obj) {
 }
 
 ArrowStampWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 ArrowStampWidget.prototype.Deactivate = function() {

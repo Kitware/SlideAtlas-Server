@@ -136,7 +136,7 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
 }
 
-PolylineWidget.prototype.HandleKeyPEventuallress = function(keyCode, shift) {
+PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
   return false;
 }
 
