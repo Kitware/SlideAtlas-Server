@@ -74,13 +74,23 @@ LassoWidget.prototype.Serialize = function() {
 
 // Load a widget from a json object (origin MongoDB).
 LassoWidget.prototype.Load = function(obj) {
-  this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-  this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-  this.Loop.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-  this.Stroke.OutlineColor = this.Loop.OutlineColor;
-  for(var n=0; n < obj.points.length; n++){
-      this.Loop.Points[n] = [parseFloat(obj.points[n][0]),
-                             parseFloat(obj.points[n][1])];
+  if (obj.outlinecolor != undefined) {
+    this.Loop.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+    this.Loop.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+    this.Loop.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+    this.Stroke.OutlineColor = this.Loop.OutlineColor;
+  }
+  var points = [];
+  if ( obj.points != undefined) {
+    points = obj.points;
+  }
+  if ( obj.shape != undefined) {
+    points = obj.shapes[0];
+  }
+
+  for(var n=0; n < points.length; n++){
+      this.Loop.Points[n] = [parseFloat(points[n][0]),
+                             parseFloat(points[n][1])];
   }
   this.ComputeActiveCenter();
   this.Loop.UpdateBuffers();
