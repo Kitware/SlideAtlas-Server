@@ -272,6 +272,11 @@ LassoWidget.prototype.ShowPropertiesDialog = function () {
   var lineWidth = document.getElementById("lassowidth");
   lineWidth.value = (this.Loop.LineWidth).toFixed(2);
 
+  var areaLabel = document.getElementById("lassoarea");
+  var area = this.ComputeArea();
+  areaLabel.innerHTML = "Area: " + area.toFixed(2);
+  areaLabel.innerHTML += " pixels^2";
+
   LASSO_WIDGET_DIALOG_SELF = this;
   $("#lasso-properties-dialog").dialog("open");
 }
@@ -539,5 +544,27 @@ LassoWidget.prototype.IsPointInsideLoop = function(x, y) {
     }
 
   return (angle > 3.14 || angle < -3.14);
+}
+
+
+LassoWidget.prototype.ComputeArea = function() {
+  var area = 0.0;
+  // Use the active center. It should be more numerical stable.
+  // Iterate over triangles
+  var vx1 = this.Loop.Points[0][0] - this.ActiveCenter[0];    
+  var vy1 = this.Loop.Points[0][1] - this.ActiveCenter[1];
+  for (var j = 1; j < this.Loop.Points.length; ++j) {
+    // Area of triangle is 1/2 magnitude of cross product.
+    var vx2 = vx1;
+    var vy2 = vy1;
+    vx1 = this.Loop.Points[j][0] - this.ActiveCenter[0];    
+    vy1 = this.Loop.Points[j][1] - this.ActiveCenter[1];
+    area += (vx1*vy2) - (vx2*vy1);
+  }
+
+  if (area < 0) {
+    area = -area;
+  }
+  return area;
 }
 

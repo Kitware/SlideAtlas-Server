@@ -200,6 +200,14 @@ function Dialog () {
       this.LassoFieldSet = document.createElement('fieldset');
       this.LassoForm.appendChild(this.LassoFieldSet);
 
+      this.LassoBreak2 = document.createElement('br');
+      this.LassoFieldSet.appendChild(this.LassoBreak2);
+      
+      this.LassoArea = document.createElement('p');
+      this.LassoArea.id = 'lassoarea';
+      this.LassoFieldSet.appendChild(this.LassoArea);
+
+
       this.Text12 = document.createTextNode('Color:');
       this.LassoFieldSet.appendChild(this.Text12);
       this.LassoColor = document.createElement('input');
