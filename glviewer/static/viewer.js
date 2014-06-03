@@ -1152,12 +1152,11 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
   }
 
 
-
-
   //----------------------
   if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleKeyPress(keyCode, shift);
-    return;
+    if (this.ActiveWidget.HandleKeyPress(keyCode, shift)) {
+      return;
+    }  
   }
 
   if (String.fromCharCode(keyCode) == 'R') {

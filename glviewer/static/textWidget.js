@@ -197,6 +197,7 @@ TextWidget.prototype.UpdateAnchorShape = function() {
 }
 
 TextWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 TextWidget.prototype.HandleDoubleClick = function(event) {

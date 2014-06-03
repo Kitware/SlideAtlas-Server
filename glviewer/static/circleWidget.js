@@ -88,6 +88,7 @@ CircleWidget.prototype.Load = function(obj) {
 }
 
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 CircleWidget.prototype.HandleDoubleClick = function(event) {

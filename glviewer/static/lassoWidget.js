@@ -97,6 +97,7 @@ LassoWidget.prototype.Load = function(obj) {
 }
 
 LassoWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 LassoWidget.prototype.Deactivate = function() {

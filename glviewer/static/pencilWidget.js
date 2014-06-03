@@ -94,6 +94,7 @@ PencilWidget.prototype.Load = function(obj) {
 }
 
 PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 PencilWidget.prototype.Deactivate = function() {
