@@ -390,13 +390,13 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
     TEXT_WIDGET_DIALOG_SELF = this;
     var color = document.getElementById("textcolor");
     color.value = ConvertColorToHex(this.Shape.Color);
-    
+
     var ta = document.getElementById("textwidgetcontent");
     ta.value = this.Shape.String;
     var tm = document.getElementById("TextMarker");
     tm.checked = this.AnchorShape.Visibility;
     $("#textwidgetcontent").keyup(function (e) { TextPropertyDialogApplyCheck();});
-    
+
     // hack to suppress viewer key events.
     DIALOG_OPEN = true;
     // Can we bind the dialog apply callback to an objects method?

@@ -13,30 +13,30 @@ function Dialog () {
       this.theCanvas.id = 'gltest';
       document.getElementById('body').appendChild(this.theCanvas);
       $('#gltest').attr('style','display:none');
-      
+
       this.Dialog = document.createElement('div');
       this.Dialog.id = 'dialog';
       document.getElementById('body').appendChild(this.Dialog);
       $('#dialog').attr('class','ui-widget')
-	  .attr('style','visibility:hidden');
-      
+          .attr('style','visibility:hidden');
+
       //The text annotation editor
       this.TextDiv = document.createElement('div');
       this.TextDiv.id = 'text-properties-dialog';
       document.getElementById('dialog').appendChild(this.TextDiv);
       $('#text-properties-dialog').attr('title','Text Annotation Editor');
-      
+
       this.TextForm = document.createElement('form');
       this.TextDiv.appendChild(this.TextForm);
-      
+
       this.TextInput = document.createElement('textarea');
       this.TextInput.id = 'textwidgetcontent';
       this.TextForm.appendChild(this.TextInput);
       $('#textwidgetcontent').attr('style','width:100%;height:100%;');
-      
+
       this.TextBreak1 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak1);
-      
+
       this.Text1 = document.createTextNode('Color:');
       this.TextForm.appendChild(this.Text1);
       this.TextColor = document.createElement('input');
@@ -44,10 +44,10 @@ function Dialog () {
       this.TextColor.type = 'color';
       this.TextForm.appendChild(this.TextColor);
       $('#textcolor').attr('value','#0000ff');
-      
+
       this.TextBreak2 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak2);
-      
+
       this.TextMarker = document.createElement('input');
       this.TextMarker.id = 'TextMarker';
       this.TextMarker.type = 'checkbox';
@@ -55,19 +55,19 @@ function Dialog () {
       $('#TextMarker').attr('checked',true);
       this.Text2 = document.createTextNode('Marker');
       this.TextForm.appendChild(this.Text2);
-      
+
       //The circle annotation editor
       this.CircleDiv = document.createElement('div');
       this.CircleDiv.id = 'circle-properties-dialog';
       document.getElementById('dialog').appendChild(this.CircleDiv);
       $('#circle-properties-dialog').attr('title','Circle Annotation Editor');
-      
+
       this.CircleForm = document.createElement('form');
       this.CircleDiv.appendChild(this.CircleForm);
-      
+
       this.CircleFieldSet = document.createElement('fieldset');
       this.CircleForm.appendChild(this.CircleFieldSet);
-      
+
       this.Text3 = document.createTextNode('Color:');
       this.CircleFieldSet.appendChild(this.Text3);
       this.CircleColor = document.createElement('input');
@@ -75,7 +75,7 @@ function Dialog () {
       this.CircleColor.type = 'color';
       this.CircleFieldSet.appendChild(this.CircleColor);
       $('#circlecolor').attr('value','#30ff00');
-      
+
       this.CircleBreak1 = document.createElement('br');
       this.CircleFieldSet.appendChild(this.CircleBreak1);
 
@@ -84,26 +84,26 @@ function Dialog () {
       this.CircleLineWidth = document.createElement('input');
       this.CircleLineWidth.id = 'circlelinewidth';
       this.CircleFieldSet.appendChild(this.CircleLineWidth);
-      
+
       this.CircleBreak2 = document.createElement('br');
       this.CircleFieldSet.appendChild(this.CircleBreak2);
-      
+
       this.CircleArea = document.createElement('p');
       this.CircleArea.id = 'circlearea';
       this.CircleFieldSet.appendChild(this.CircleArea);
-      
+
       //The polyline annotation editor
       this.PolylineDiv = document.createElement('div');
       this.PolylineDiv.id = 'polyline-properties-dialog';
       document.getElementById('dialog').appendChild(this.PolylineDiv);
       $('#polyline-properties-dialog').attr('title','Polyline Annotation Editor');
-      
+
       this.PolylineForm = document.createElement('form');
       this.PolylineDiv.appendChild(this.PolylineForm);
-      
+
       this.PolylineFieldSet = document.createElement('fieldset');
       this.PolylineForm.appendChild(this.PolylineFieldSet);
-      
+
       this.Text6 = document.createTextNode('Color:');
       this.PolylineFieldSet.appendChild(this.Text6);
       this.PolylineColor = document.createElement('input');
@@ -111,28 +111,28 @@ function Dialog () {
       this.PolylineColor.type = 'color';
       this.PolylineFieldSet.appendChild(this.PolylineColor);
       $('#polylinecolor').attr('value','#30ff00');
-      
+
       this.PolylineBreak1 = document.createElement('br');
       this.PolylineFieldSet.appendChild(this.PolylineBreak1);
-      
+
       this.Text7 = document.createTextNode('Line Width:');
       this.PolylineFieldSet.appendChild(this.Text7);
       this.PolylineWidth = document.createElement('input');
       this.PolylineWidth.id = 'polylinewidth';
       this.PolylineFieldSet.appendChild(this.PolylineWidth);
-      
+
       //The arrow annotation editor
       this.ArrowDiv = document.createElement('div');
       this.ArrowDiv.id = 'arrow-properties-dialog';
       document.getElementById('dialog').appendChild(this.ArrowDiv);
       $('#arrow-properties-dialog').attr('title','Arrow Annotation Editor');
-      
+
       this.ArrowForm = document.createElement('form');
       this.ArrowDiv.appendChild(this.ArrowForm);
-      
+
       this.ArrowFieldSet = document.createElement('fieldset');
       this.ArrowForm.appendChild(this.ArrowFieldSet);
-      
+
       this.Text8 = document.createTextNode('Color:');
       this.ArrowFieldSet.appendChild(this.Text8);
       this.ArrowColor = document.createElement('input');
@@ -140,10 +140,10 @@ function Dialog () {
       this.ArrowColor.type = 'color';
       this.ArrowFieldSet.appendChild(this.ArrowColor);
       $('#arrowcolor').attr('value','#30ff00');
-      
+
       this.ArrowBreak1 = document.createElement('br');
       this.ArrowFieldSet.appendChild(this.ArrowBreak1);
-      
+
       this.ArrowFixedSize = document.createElement('input');
       this.ArrowFixedSize.id = 'ArrowFixedSize';
       this.ArrowFixedSize.type = 'checkbox';
@@ -151,10 +151,10 @@ function Dialog () {
       $('#ArrowFixedSize').attr('checked',true);
       this.Text9 = document.createTextNode('Fixed Size');
       this.ArrowFixedSize.appendChild(this.Text9);
-      
+
       this.ArrowBreak2 = document.createElement('br');
       this.ArrowFieldSet.appendChild(this.ArrowBreak2);
-      
+
       this.ArrowLength = document.createElement('p');
       this.ArrowLength.id = 'ArrowLength';
       this.ArrowFieldSet.appendChild(this.ArrowLength);
@@ -167,7 +167,7 @@ function Dialog () {
 
       this.PencilForm = document.createElement('form');
       this.PencilDiv.appendChild(this.PencilForm);
-      
+
       this.PencilFieldSet = document.createElement('fieldset');
       this.PencilForm.appendChild(this.PencilFieldSet);
 
@@ -178,7 +178,7 @@ function Dialog () {
       this.PencilColor.type = 'color';
       this.PencilFieldSet.appendChild(this.PencilColor);
       $('#pencilcolor').attr('value','#30ff00');
-      
+
       this.PencilBreak1 = document.createElement('br');
       this.PencilFieldSet.appendChild(this.PencilBreak1);
 
@@ -188,7 +188,7 @@ function Dialog () {
       this.PencilWidth.id = 'pencilwidth';
       this.PencilFieldSet.appendChild(this.PencilWidth);
 
-      //The lasso annotation editor	
+      //The lasso annotation editor
       this.LassoDiv = document.createElement('div');
       this.LassoDiv.id = 'lasso-properties-dialog';
       document.getElementById('dialog').appendChild(this.LassoDiv);
@@ -196,7 +196,7 @@ function Dialog () {
 
       this.LassoForm = document.createElement('form');
       this.LassoDiv.appendChild(this.LassoForm);
-      
+
       this.LassoFieldSet = document.createElement('fieldset');
       this.LassoForm.appendChild(this.LassoFieldSet);
 
@@ -207,7 +207,7 @@ function Dialog () {
       this.LassoColor.type = 'color';
       this.LassoFieldSet.appendChild(this.LassoColor);
       $('#lassocolor').attr('value','#30ff00');
-      
+
       this.LassoBreak1 = document.createElement('br');
       this.LassoFieldSet.appendChild(this.LassoBreak1);
 
@@ -266,49 +266,49 @@ function Dialog () {
       });
 
       $("#circle-properties-dialog").dialog({
-	  autoOpen:false,
-	  height:300,
-	  width:350,
-	  modal:true,
-	  buttons:{
+      autoOpen:false,
+      height:300,
+      width:350,
+      modal:true,
+      buttons:{
               Delete: function() {
-		  CirclePropertyDialogDelete();
-		  $(this).dialog("close");
+          CirclePropertyDialogDelete();
+          $(this).dialog("close");
               },
               Apply: function() {
-		  CirclePropertyDialogApply();
-		  $(this).dialog("close");
+          CirclePropertyDialogApply();
+          $(this).dialog("close");
               }
-	  },
-	  close: function(event,ui) {
+      },
+      close: function(event,ui) {
               if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-		  CirclePropertyDialogCancel();
-		  $(this).dialog("close");
+          CirclePropertyDialogCancel();
+          $(this).dialog("close");
               }
-	  }
+      }
       });
 
       $("#polyline-properties-dialog").dialog({
-	  autoOpen:false,
-	  height:250,
-	  width:350,
-	  modal:true,
-	  buttons:{
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
               Delete: function() {
-		  PolylinePropertyDialogDelete();
-		  $(this).dialog("close");
+          PolylinePropertyDialogDelete();
+          $(this).dialog("close");
               },
               Apply: function() {
-		  PolylinePropertyDialogApply();
-		  $(this).dialog("close");
+          PolylinePropertyDialogApply();
+          $(this).dialog("close");
               }
-	  },
-	  close: function(event,ui) {
+      },
+      close: function(event,ui) {
               if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
-		  PolylinePropertyDialogCancel();
-		  $(this).dialog("close");
+          PolylinePropertyDialogCancel();
+          $(this).dialog("close");
               }
-	  }
+      }
       });
 
       $("#pencil-properties-dialog").dialog({
@@ -357,11 +357,11 @@ function Dialog () {
           }
       });
 });
-}		 
+}
 /*Dialog.prototype.Show = function(modal){
     $('#gltest').show();
     $('#dialog').fadeIn(300);
-    
+
     if (modal)
     {
         $('#gltest').unbind("click");
@@ -369,8 +369,8 @@ function Dialog () {
     else
     {
         $('#gltest').click(function (e){
-	    Hide();
-	});
+        Hide();
+    });
     }
 }
 
