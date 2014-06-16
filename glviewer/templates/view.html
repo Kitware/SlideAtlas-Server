@@ -32,6 +32,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
@@ -188,6 +189,7 @@ shape has visibility and
   var VIEWER2;
   var DUAL_VIEW = false;
   var NAVIGATION_WIDGET;
+  var FAVORITES_WIDGET;
   var MOBILE_ANNOTATION_WIDGET;
   var NOTES_WIDGET;
 
@@ -295,6 +297,8 @@ shape has visibility and
       initGC();
     //}
     EVENT_MANAGER = new EventManager(CANVAS);
+    
+    FAVORITES_WIDGET = new FavoritesWidget();
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
