@@ -26,6 +26,8 @@ def sessions():
     """
     sessid = request.args.get('sessid')
     sessdb = request.args.get('sessdb')
+    
+    #pdb.set_trace()
 
     if sessdb and sessid:
         database_obj = models.ImageStore.objects.get_or_404(id=sessdb)
@@ -39,6 +41,8 @@ def sessions():
 ################################################################################
 def view_all_sessions():
     # Support legacy requests for a single session, which use query string args
+    #pdb.set_trace()
+    
     arg_sessdb = request.args.get('sessdb')
     arg_sessid = request.args.get('sessid')
     if arg_sessdb and arg_sessid:
@@ -177,6 +181,7 @@ def view_a_session(database_obj, session_obj, next=None):
         }
 
     if request.args.get('json'):
+        pdb.set_trace()
         return jsonify(data)
     else:
         is_session_admin = security.AdminSessionPermission(session_obj).can()

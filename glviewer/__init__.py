@@ -4,6 +4,7 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+import pdb
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -729,19 +730,21 @@ def getcomment():
 # This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+
+    #pdb.set_trace()
     noteStr = request.form['note'] # for post
 
     note = json.loads(noteStr)
     note["ParentId"] = ObjectId(note["ParentId"])
-    note["User"] = ObjectId(session["user"]["id"])
+    note["User"] = ObjectId(session["user_id"])
     note["Type"] = "UserNote"
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    noteId = admindb["views"].save(note)
+    noteId = admindb["favorites"].save(note)
     return str(noteId)
-
+    
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.
 
@@ -757,6 +760,29 @@ def recursiveSetUser(note, user):
     if 'Children ' in note:
         for child in note["Children"]:
             recursiveSetUser(child, user)
+    
+# get the favorite views for a user
+@mod.route('/getfavoriteviews', methods=['GET', 'POST'])
+def getfavoriteviews():
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    #pdb.set_trace()
+
+    viewItr = admindb["favorites"].find({"Type": "UserNote", "User": ObjectId(session["user_id"])})
+    viewArray = []
+    for viewObj in viewItr:
+        if "Type" in viewObj :
+            viewObj["_id"] = str(viewObj["_id"])
+            viewObj["User"] = str(viewObj["User"])
+            viewObj["ParentId"] = str(viewObj["ParentId"])
+            addviewimage(viewObj, "")
+            convertViewToPixelCoordinateSystem(viewObj)
+        viewArray.append(viewObj)
+    
+    data = {'viewArray': viewArray}
+    return jsonify(data)
+
 
 
  # This is close to a general purpose function to insert an object into the database.

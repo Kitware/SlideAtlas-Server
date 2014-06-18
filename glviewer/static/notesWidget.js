@@ -736,13 +736,22 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.HiddenTitle = this.HiddenTitle;
   obj.Text = this.Text;
   // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = this.ViewerRecords;
+  obj.ViewerRecords = [];
 
   // The database wants an image id, not an embedded iamge object.
   //  The server should really take care of this since if
-  for (var i = 0; i < obj.ViewerRecords.length; ++i) {
-    obj.ViewerRecords[i].Image = this.ViewerRecords[i].Image._id;
+  for (var i = 0; i < this.ViewerRecords.length; ++i) {
+    rec = {};
+    rec.Image = this.ViewerRecords[i].Image._id;
+    rec.Database = this.ViewerRecords[i].Image.database;
+    rec.NumberOfLevels = this.ViewerRecords[i].Image.levels;
+    rec.Camera = this.ViewerRecords[i].Camera;
+    rec.Annotations = this.ViewerRecords[i].Annotations;
+    
+    obj.ViewerRecords.push(rec);
   }
+  
+ 
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
@@ -945,8 +954,12 @@ NotesWidget.prototype.SaveBrownNote = function() {
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(note.Serialize(false))},
-    success: function(data,status) { note.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
+    success: function(data,status) {
+      note.Id = data;
+    },
+    error: function() {
+      alert( "AJAX - error() : saveusernote" );
+    },
     });
 }
 
