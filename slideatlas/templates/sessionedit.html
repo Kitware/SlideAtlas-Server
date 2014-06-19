@@ -250,7 +250,7 @@
       $.get("/sessions?json=true",
             function(data,status){
               if (status == "success") {
-                LoadDatabases(data);
+                LoadSessions(data);
               } else { alert("ajax failed."); }
             });
       $('#saveButton').css({"color":"#000"});
@@ -259,29 +259,29 @@
       $(".hiddenLabel").on("input", modified);
     });
 
-    var DATABASES;
-    function LoadDatabases(data) {
-      // The first "sessions" list is actually databases.
-      DATABASES = data.sessions;
-      // Populate the database menu.
-      for (var i = 0; i < DATABASES.length; ++i) {
-        var option = $('<option>').appendTo($('#databaseList'))
+    var COLLECTIONS;
+    function LoadSessions(data) {
+      // The first "sessions" list is actually collections.
+      COLLECTIONS = data.sessions;
+      // Populate the collection menu.
+      for (var i = 0; i < COLLECTIONS.length; ++i) {
+        var option = $('<option>').appendTo($('#collectionList'))
                                   .attr('value', i)
                                   .text(data.sessions[i].rule);
       }
       // Select the first as default.
-      if (DATABASES.length > 0) {
-        SelectDatabase(0);
+      if (COLLECTIONS.length > 0) {
+        SelectCollection(0);
       }
       handleResize();
     }
 
-    var SELECTED_DATABASE;
-    function SelectDatabase(idx) {
-      SELECTED_DATABASE = DATABASES[idx];
+    var SELECTED_COLLECTION;
+    function SelectCollection(idx) {
+      SELECTED_COLLECTION = COLLECTIONS[idx];
       // Populate the sessions menu.
       $("#sessionList").empty();
-      var sessions = SELECTED_DATABASE.sessions;
+      var sessions = SELECTED_COLLECTION.sessions;
       if (sessions.length > 0) {
         for (var i = 0; i < sessions.length; ++i) {
           $('<option>').appendTo($('#sessionList'))
@@ -298,19 +298,19 @@
 
     var SELECTED_SESSION;
     function SelectSession(idx) {
-      if (idx == SELECTED_DATABASE.sessions.length) {
+      if (idx == SELECTED_COLLECTION.sessions.length) {
         // Load all the images for a database.
         SELECTED_SESSION = undefined; // delete SELECETED_SESSION
         // Retrieve the database id from one of the sessions.
-        db = SELECTED_DATABASE.sessions[0].sessdb;
-        $.get("/webgl-viewer/getimagenames?db="+db,
+        image_store_id = SELECTED_COLLECTION.sessions[0].sessdb;
+        $.get("/webgl-viewer/getimagenames?db="+image_store_id,
               function(data,status){
                 if (status == "success") {
                   LoadImages(data);
                 } else { alert("ajax failed."); }
               });
       } else {
-        SELECTED_SESSION = SELECTED_DATABASE.sessions[idx];
+        SELECTED_SESSION = SELECTED_COLLECTION.sessions[idx];
         $.get("/sessions?json=1&sessid="+SELECTED_SESSION.sessid,
               function(data,status){
                 if (status == "success") {
@@ -421,7 +421,7 @@
       }
     $('#imagesearch').autocomplete({source: labelStrings});
     }
-    
+
     function SearchCallback() {
       var str = $('#imagesearch').val();
       keys = str.split(" ");
@@ -438,12 +438,12 @@
         } else {
           $(image).hide();
         }
-      } 
+      }
     }
 
-    function DatabaseCallback(idx) {
+    function CollectionCallback(idx) {
       $('#gallery').empty();
-      SelectDatabase(parseInt(idx));
+      SelectCollection(parseInt(idx));
     }
 
     function SessionCallback(idx) {
@@ -539,8 +539,8 @@
     </div>
   </div>
   <div id="imagePanel">
-    <label>Database</label>
-    <select id = "databaseList" onchange="DatabaseCallback(this.value)">
+    <label>Collection</label>
+    <select id = "collectionList" onchange="CollectionCallback(this.value)">
     </select>
 
     <label>Session</label>

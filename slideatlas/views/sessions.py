@@ -1,6 +1,7 @@
 # coding=utf-8
 
-from itertools import groupby
+from collections import defaultdict
+from itertools import chain, groupby
 import json
 from operator import attrgetter
 
@@ -38,26 +39,34 @@ def sessions():
 ################################################################################
 def view_all_sessions():
     all_sessions_query = models.Session.objects\
-        .can_view(g.identity.provides)\
-        .only('collection', 'label')\
+        .only('collection', 'label', 'image_store')\
         .order_by('collection', 'label')\
         .no_dereference()
     # disable dereferencing of of sessions, to prevent running a seperate
     #   query for every single session's collection
 
-    # fetch the relevant collections once, in bulk
-    collections_by_id = {collection.id: collection for collection in all_sessions_query.distinct('collection')}
+    adminable_sessions_query = all_sessions_query.can_admin(g.identity.provides)
+    viewable_sessions_query = all_sessions_query.can_view_only(g.identity.provides)
 
-    all_sessions = sorted(
-        (
-            # permanently store each group of sessions in a list, since 'groupby'
-            #   only allows iteration once through
-            (collections_by_id[collection_ref.id], list(sessions))
-            for collection_ref, sessions
-            in groupby(all_sessions_query, attrgetter('collection'))
-        ),
-        key=lambda item: item[0].label
-    )
+    # fetch the relevant collections in bulk
+    collections_by_id = {collection.id: collection for collection in
+                         chain(adminable_sessions_query.distinct('collection'),
+                               viewable_sessions_query.distinct('collection')
+                         )}
+
+    all_sessions = defaultdict(dict)
+    for sessions_query, can_admin in [
+        # viewable must come first, so adminable can overwrite
+        (viewable_sessions_query, False),
+        (adminable_sessions_query, True),
+        ]:
+        for collection_ref, sessions in groupby(sessions_query, attrgetter('collection')):
+            collection = collections_by_id[collection_ref.id]
+            all_sessions[collection].update(dict.fromkeys(sessions, can_admin))
+
+    all_sessions = [(collection, sorted(sessions_dict.iteritems(), key=lambda item: item[0].label))
+                    for collection, sessions_dict
+                    in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
 
     if request.args.get('json'):
         ajax_sessionlist = [
@@ -65,10 +74,10 @@ def view_all_sessions():
                 'rule': collection.label,
                 'sessions': [
                     {
-                        'sessdb': str(session.image_store),
+                        'sessdb': str(session.image_store.id),
                         'sessid': str(session.id),
                         'label': session.label}
-                    for session in sessions],
+                    for session, can_admin in sessions],
             }
             for collection, sessions in all_sessions]
         return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)

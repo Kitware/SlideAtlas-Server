@@ -17,7 +17,7 @@ float:right;
     {% for (collection, sessions) in all_sessions %}
     <h2> {{ collection.label }}</h2>
     <table class="table table-bordered table-hover" >
-        {% for session in sessions %}
+        {% for session, can_admin in sessions %}
         <tr>
             <td>
                 {% if session.type == 'stack' %}
@@ -26,7 +26,7 @@ float:right;
                 <a href="{{ url_for('.view_a_session', session_obj=session) }}" class="lead">{{ session.label }}</a>
                 {% endif %}
             </td>
-            {% if False %} {# can admin session #}
+            {% if can_admin %}
             <td>
                 <a href="{{ url_for('.sessionedit', session_obj=session) }}" class="lead">
                     <button type="button" class="btn btn-danger">Edit</button>
