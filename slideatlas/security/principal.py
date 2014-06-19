@@ -15,16 +15,16 @@ from slideatlas.models import Permission
 
 ################################################################################
 # TODO: populate __all__
-__all__ = ('AdminSiteRequirement', 'AdminOrganizationRequirement',
+__all__ = ('AdminSiteRequirement', 'AdminCollectionRequirement',
            'AdminSessionRequirement', 'ViewSessionRequirement', 'UserRequirement')
 
 
 ################################################################################
 # TODO: change the tuple values to use an enum, instead of strings
 AdminSitePermission = partial(Permission, *('admin', 'site', None))
-AdminOrganizationPermission = partial(Permission, *('admin', 'organization'))
+AdminCollectionPermission = partial(Permission, *('admin', 'collection'))
 AdminSessionPermission = partial(Permission, *('admin', 'session'))
-ViewOrganizationPermission = partial(Permission, *('view', 'organization'))
+ViewCollectionPermission = partial(Permission, *('view', 'collection'))
 ViewSessionPermission = partial(Permission, *('view', 'session'))
 UserPermission = partial(Permission, *('be', 'user'))
 
@@ -67,13 +67,13 @@ class AdminSiteRequirement(Requirement, ModelProtectionMixin):
         )
 
 
-class AdminOrganizationRequirement(Requirement, ModelProtectionMixin):
-    model_type = models.Organization
+class AdminCollectionRequirement(Requirement, ModelProtectionMixin):
+    model_type = models.Collection
 
-    def __init__(self, organization):
-        super(AdminOrganizationRequirement, self).__init__(
+    def __init__(self, collection):
+        super(AdminCollectionRequirement, self).__init__(
             AdminSitePermission(),
-            AdminOrganizationPermission(organization.id),
+            AdminCollectionPermission(collection.id),
         )
 
 
@@ -83,7 +83,7 @@ class AdminSessionRequirement(Requirement, ModelProtectionMixin):
     def __init__(self, session):
         super(AdminSessionRequirement, self).__init__(
             AdminSitePermission(),
-            AdminOrganizationPermission(session.organization.id),
+            AdminCollectionPermission(session.collection.id),
             AdminSessionPermission(session.id),
         )
 
@@ -94,9 +94,9 @@ class ViewSessionRequirement(Requirement, ModelProtectionMixin):
     def __init__(self, session):
         super(ViewSessionRequirement, self).__init__(
             AdminSitePermission(),
-            AdminOrganizationPermission(session.organization.id),
+            AdminCollectionPermission(session.collection.id),
             AdminSessionPermission(session.id),
-            ViewOrganizationPermission(session.organization.id),
+            ViewCollectionPermission(session.collection.id),
             ViewSessionPermission(session.id),
         )
 

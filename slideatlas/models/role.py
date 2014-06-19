@@ -9,7 +9,7 @@ from mongoengine import BooleanField, ListField, ObjectIdField, \
 from mongoengine.base import BaseField
 
 from .common import ModelDocument
-from .organization import Organization
+from .collection import Collection
 from .image_store import ImageStore
 
 ################################################################################
@@ -20,9 +20,9 @@ __all__ = ('Permission', 'Role', 'UserRole', 'GroupRole')
 Permission = namedtuple('Permission', ('operation', 'resource_type', 'resource_id'))
 
 AdminSitePermission = partial(Permission, *('admin', 'site', None))
-AdminOrganizationPermission = partial(Permission, *('admin', 'organization'))
+AdminCollectionPermission = partial(Permission, *('admin', 'collection'))
 AdminSessionPermission = partial(Permission, *('admin', 'session'))
-ViewOrganizationPermission = partial(Permission, *('view', 'organization'))
+ViewCollectionPermission = partial(Permission, *('view', 'collection'))
 ViewSessionPermission = partial(Permission, *('view', 'session'))
 
 
@@ -47,10 +47,10 @@ class PermissionField(BaseField):
         if value.resource_type == 'site':
             if value.resource_id is not None:
                 self.error('For "site" resource type, resource id must be None')
-        elif value.resource_type == 'organization':
+        elif value.resource_type == 'collection':
             if not (isinstance(value.resource_id, ObjectId) and
-                    Organization.objects.with_id(value.resource_id)):
-                self.error('For "organization" resource type, resource id must be an ObjectId for an Organization')
+                    Collection.objects.with_id(value.resource_id)):
+                self.error('For "collection" resource type, resource id must be an ObjectId for a Collection')
         elif value.resource_type == 'session':
             if not (isinstance(value.resource_id, ObjectId) and
                     Session.objects.with_id(value.resource_id)):
@@ -78,9 +78,9 @@ class Role(ModelDocument):
     #     if self.site_admin:
     #         yield AdminSitePermission()
     #     if self.db_admin:
-    #         yield AdminOrganizationPermission(Organization.objects(image_store=self.db).scalar('id').first())
+    #         yield AdminCollectionPermission(Collection.objects(image_store=self.db).scalar('id').first())
     #     if self.can_see_all:
-    #         yield ViewOrganizationPermission(Organization.objects(image_store=self.db).scalar('id').first())
+    #         yield ViewCollectionPermission(Collection.objects(image_store=self.db).scalar('id').first())
     #     for session_id in self.can_see:
     #         yield ViewSessionPermission(session_id)
     #

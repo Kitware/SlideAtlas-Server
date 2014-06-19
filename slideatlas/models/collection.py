@@ -6,16 +6,16 @@ from .common import ModelDocument
 from .image_store import ImageStore
 
 ################################################################################
-__all__ = ('Organization',)
+__all__ = ('Collection',)
 
 ################################################################################
-class Organization(ModelDocument):
+class Collection(ModelDocument):
     """
     An ImageStore holds image metadata and tiles.
     """
     meta = {
         'db_alias': 'admin_db',
-        'collection': 'organizations',
+        'collection': 'collections',
     }
 
     image_store = ReferenceField(ImageStore, required=True,

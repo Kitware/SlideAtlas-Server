@@ -320,28 +320,28 @@ class GroupItemAPI(ItemAPI):
 
 
 ################################################################################
-class OrganizationListAPI(ListAPI):
+class CollectionListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
-        organizations = models.Organization.objects.order_by('label')
-        return jsonify(organizations=organizations.to_son(only_fields=('label',)))
+        collections = models.Collection.objects.order_by('label')
+        return jsonify(collections=collections.to_son(only_fields=('label',)))
 
     def post(self):
         abort(501)  # Not Implemented
 
 
-class OrganizationItemAPI(ItemAPI):
+class CollectionItemAPI(ItemAPI):
     @security.AdminSiteRequirement.protected
-    def get(self, organization):
-        organization_son = organization.to_son()
-        sessions = models.Session.objects(organization=organization)
-        organization_son['sessions'] = sessions.to_son(only_fields=('name', 'label', 'type'))
-        return jsonify(organizations=[organization_son])
+    def get(self, collection):
+        collection_son = collection.to_son()
+        sessions = models.Session.objects(collection=collection)
+        collection_son['sessions'] = sessions.to_son(only_fields=('name', 'label', 'type'))
+        return jsonify(collections=[collection_son])
 
-    def put(self, organization):
+    def put(self, collection):
         abort(501)  # Not Implemented
 
-    def patch(self, organization):
+    def patch(self, collection):
         abort(501)  # Not Implemented
 
     def delete(self):
@@ -673,14 +673,14 @@ api.add_resource(GroupItemAPI,
                  endpoint='group_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
-api.add_resource(OrganizationListAPI,
-                 '/organizations',
-                 endpoint='organization_list',
+api.add_resource(CollectionListAPI,
+                 '/collections',
+                 endpoint='collection_list',
                  methods=('GET', 'POST'))
 
-api.add_resource(OrganizationItemAPI,
-                 '/organizations/<Organization:organization>',
-                 endpoint='organization_item',
+api.add_resource(CollectionItemAPI,
+                 '/collections/<Collection:collection>',
+                 endpoint='collection_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
 api.add_resource(SessionListAPI,

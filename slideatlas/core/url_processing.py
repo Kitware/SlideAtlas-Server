@@ -19,7 +19,7 @@ def add_url_converters(app):
         'ObjectId': ObjectIdConverter,
         'User': model_document_converter_factory(models.User),
         'GroupRole': model_document_converter_factory(models.GroupRole),
-        'Organization': model_document_converter_factory(models.Organization),
+        'Collection': model_document_converter_factory(models.Collection),
         'Session': model_document_converter_factory(models.Session),
         'ImageStore': model_document_converter_factory(models.ImageStore),
         'View': model_document_converter_factory(models.View),

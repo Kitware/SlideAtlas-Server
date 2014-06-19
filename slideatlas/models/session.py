@@ -9,7 +9,7 @@ from mongoengine.errors import NotRegistered
 
 from .common import ModelDocument, ModelQuerySet
 from .image_store import ImageStore
-from .organization import Organization
+from .collection import Collection
 from .role import AdminSitePermission
 
 ################################################################################
@@ -153,15 +153,15 @@ class SessionQuerySet(ModelQuerySet):
         if AdminSitePermission() in permissions:
             return queryset.all()
         else:
-            query_organizations = set()
+            query_collections = set()
             query_sessions = set()
             for permission in permissions:
                 if permission.operation in access_operations:
-                    if permission.resource_type == 'organization':
-                        query_organizations.add(permission.resource_id)
+                    if permission.resource_type == 'collection':
+                        query_collections.add(permission.resource_id)
                     elif permission.resource_type == 'session':
                         query_sessions.add(permission.resource_id)
-            query = Q(organization__in=list(query_organizations)) | \
+            query = Q(collection__in=list(query_collections)) | \
                     Q(id__in=list(query_sessions))
             return queryset.filter(query)
 
@@ -180,7 +180,7 @@ class Session(ModelDocument):
         'queryset_class': SessionQuerySet,
         'indexes': [
             {
-                'fields': ('organization',),
+                'fields': ('collection',),
                 'cls': False,
                 'unique': False,
                 'sparse': False,
@@ -188,10 +188,10 @@ class Session(ModelDocument):
         ]
     }
 
-    organization = ReferenceField(Organization, required=True,
-        verbose_name='Organization', help_text='')
+    collection = ReferenceField(Collection, required=True,
+        verbose_name='Collection', help_text='')
 
-    # TODO: remove 'image_store', access it indirectly via 'organization'
+    # TODO: remove 'image_store', access it indirectly via 'collection'
     image_store = ReferenceField(ImageStore, required=True,
         verbose_name='Image Store', help_text='')
 

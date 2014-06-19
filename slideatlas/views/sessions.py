@@ -39,22 +39,22 @@ def sessions():
 def view_all_sessions():
     all_sessions_query = models.Session.objects\
         .can_view(g.identity.provides)\
-        .only('organization', 'label')\
-        .order_by('organization', 'label')\
+        .only('collection', 'label')\
+        .order_by('collection', 'label')\
         .no_dereference()
     # disable dereferencing of of sessions, to prevent running a seperate
-    #   query for every single session's organization
+    #   query for every single session's collection
 
-    # fetch the relevant organizations once, in bulk
-    organizations_by_id = {organization.id: organization for organization in all_sessions_query.distinct('organization')}
+    # fetch the relevant collections once, in bulk
+    collections_by_id = {collection.id: collection for collection in all_sessions_query.distinct('collection')}
 
     all_sessions = sorted(
         (
             # permanently store each group of sessions in a list, since 'groupby'
             #   only allows iteration once through
-            (organizations_by_id[organization_ref.id], list(sessions))
-            for organization_ref, sessions
-            in groupby(all_sessions_query, attrgetter('organization'))
+            (collections_by_id[collection_ref.id], list(sessions))
+            for collection_ref, sessions
+            in groupby(all_sessions_query, attrgetter('collection'))
         ),
         key=lambda item: item[0].label
     )
@@ -62,7 +62,7 @@ def view_all_sessions():
     if request.args.get('json'):
         ajax_sessionlist = [
             {
-                'rule': organization.label,
+                'rule': collection.label,
                 'sessions': [
                     {
                         'sessdb': str(session.image_store),
@@ -70,7 +70,7 @@ def view_all_sessions():
                         'label': session.label}
                     for session in sessions],
             }
-            for organization, sessions in all_sessions]
+            for collection, sessions in all_sessions]
         return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)
     else:
         return render_template('sessionlist.html', all_sessions=all_sessions)

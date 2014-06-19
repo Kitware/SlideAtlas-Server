@@ -14,8 +14,8 @@ float:right;
 <div class="container">
     <h1>Displaying a session list for {{ current_user.full_name }} !</h1>
 
-    {% for (organization, sessions) in all_sessions %}
-    <h2> {{ organization.label }}</h2>
+    {% for (collection, sessions) in all_sessions %}
+    <h2> {{ collection.label }}</h2>
     <table class="table table-bordered table-hover" >
         {% for session in sessions %}
         <tr>
