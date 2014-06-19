@@ -1,16 +1,19 @@
 # coding=utf-8
 
 from bson import ObjectId
-from mongoengine import EmbeddedDocument, BooleanField, DictField,\
-    EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField,\
-    ListField, ObjectIdField, StringField
+
+from mongoengine import Q, EmbeddedDocument, BooleanField, DictField, \
+    EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField, \
+    ListField, ObjectIdField, ReferenceField, StringField
 from mongoengine.errors import NotRegistered
 
-from .common import MultipleDatabaseModelDocument
+from .common import ModelDocument, ModelQuerySet
+from .image_store import ImageStore
+from .organization import Organization
+from .role import AdminSitePermission
 
 ################################################################################
 __all__ = ('Session', 'RefItem')
-
 
 
 ################################################################################
@@ -142,10 +145,55 @@ class RefListField(ListField):
 
 
 ################################################################################
-class Session(MultipleDatabaseModelDocument):
+class SessionQuerySet(ModelQuerySet):
+    def _can_access(self, permissions, access_operations):
+        if not isinstance(permissions, set):
+            raise ValueError('permissions must be a set of Permissions')
+        queryset = self.clone()
+        if AdminSitePermission() in permissions:
+            return queryset.all()
+        else:
+            query_organizations = set()
+            query_sessions = set()
+            for permission in permissions:
+                if permission.operation in access_operations:
+                    if permission.resource_type == 'organization':
+                        query_organizations.add(permission.resource_id)
+                    elif permission.resource_type == 'session':
+                        query_sessions.add(permission.resource_id)
+            query = Q(organization__in=list(query_organizations)) | \
+                    Q(id__in=list(query_sessions))
+            return queryset.filter(query)
+
+    def can_view(self, permissions):
+        return self._can_access(permissions, {'admin', 'view'})
+
+    def can_admin(self, permissions):
+        return self._can_access(permissions, {'admin'})
+
+
+################################################################################
+class Session(ModelDocument):
     meta = {
+        'db_alias': 'admin_db',
         'collection': 'sessions',
-        }
+        'queryset_class': SessionQuerySet,
+        'indexes': [
+            {
+                'fields': ('organization',),
+                'cls': False,
+                'unique': False,
+                'sparse': False,
+            },
+        ]
+    }
+
+    organization = ReferenceField(Organization, required=True,
+        verbose_name='Organization', help_text='')
+
+    # TODO: remove 'image_store', access it indirectly via 'organization'
+    image_store = ReferenceField(ImageStore, required=True,
+        verbose_name='Image Store', help_text='')
 
     name = StringField(required=True,
         verbose_name='Name', help_text='The session\'s name.')

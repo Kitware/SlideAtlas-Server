@@ -1,13 +1,62 @@
 # coding=utf-8
 
-from mongoengine import BooleanField, ListField, ObjectIdField,ReferenceField,\
-    StringField
+from collections import namedtuple
+from functools import partial
+
+from bson import ObjectId
+from mongoengine import BooleanField, ListField, ObjectIdField, \
+    ReferenceField, StringField
+from mongoengine.base import BaseField
 
 from .common import ModelDocument
+from .organization import Organization
 from .image_store import ImageStore
 
 ################################################################################
-__all__ = ('Role', 'UserRole', 'GroupRole')
+__all__ = ('Permission', 'Role', 'UserRole', 'GroupRole')
+
+
+################################################################################
+Permission = namedtuple('Permission', ('operation', 'resource_type', 'resource_id'))
+
+AdminSitePermission = partial(Permission, *('admin', 'site', None))
+AdminOrganizationPermission = partial(Permission, *('admin', 'organization'))
+AdminSessionPermission = partial(Permission, *('admin', 'session'))
+ViewOrganizationPermission = partial(Permission, *('view', 'organization'))
+ViewSessionPermission = partial(Permission, *('view', 'session'))
+
+
+class PermissionField(BaseField):
+
+    def to_mongo(self, value):
+        list(value)
+
+    def to_python(self, value):
+        return Permission(*value)
+
+    def validate(self, value):
+        # TODO: remove
+        from .session import Session
+
+        if not isinstance(value, Permission):
+            self.error('Must be an instance of Permission')
+
+        if value.operation not in ['admin', 'view']:
+            self.error('Invalid operation: "%s"' % value.operation)
+
+        if value.resource_type == 'site':
+            if value.resource_id is not None:
+                self.error('For "site" resource type, resource id must be None')
+        elif value.resource_type == 'organization':
+            if not (isinstance(value.resource_id, ObjectId) and
+                    Organization.objects.with_id(value.resource_id)):
+                self.error('For "organization" resource type, resource id must be an ObjectId for an Organization')
+        elif value.resource_type == 'session':
+            if not (isinstance(value.resource_id, ObjectId) and
+                    Session.objects.with_id(value.resource_id)):
+                self.error('For "session" resource type, resource id must be an ObjectId for a Session')
+        else:
+            self.error('Invalid resource type: "%s"' % value.resource_type)
 
 
 ################################################################################
@@ -18,44 +67,40 @@ class Role(ModelDocument):
         'allow_inheritance': True,
         }
 
-    db = ReferenceField(ImageStore, dbref=False, required=True,
-        verbose_name='Image Store', help_text='The image store that this role applies to.')
-
     label = StringField(required=True,  # TODO:make unique
         verbose_name='Name', help_text='')
 
+    permissions = ListField(PermissionField(), required=False,
+        verbose_name='Permissions', help_text='')
 
-    can_see = ListField(ObjectIdField(), required=False,
-        verbose_name='Can See Sessions', help_text='The sessions that the user can view.')
-
-    can_see_all = BooleanField(required=False,
-        verbose_name='Can See All Sessions', help_text='The user can view all sessions in this database.')
-
-    db_admin = BooleanField(required=False,
-        verbose_name='Database Administrator', help_text='The user is a database-wide administrator for this rule\'s database.')
-
-    site_admin = BooleanField(required=False,
-        verbose_name='Site Administrator', help_text='The user is a site-wide administrator.')
+    # @property
+    # def permissions(self):
+    #     if self.site_admin:
+    #         yield AdminSitePermission()
+    #     if self.db_admin:
+    #         yield AdminOrganizationPermission(Organization.objects(image_store=self.db).scalar('id').first())
+    #     if self.can_see_all:
+    #         yield ViewOrganizationPermission(Organization.objects(image_store=self.db).scalar('id').first())
+    #     for session_id in self.can_see:
+    #         yield ViewSessionPermission(session_id)
+    #
+    # db = ReferenceField(ImageStore, dbref=False, required=True,
+    #     verbose_name='Image Store', help_text='The image store that this role applies to.')
+    #
+    # can_see = ListField(ObjectIdField(), required=False,
+    #     verbose_name='Can See Sessions', help_text='The sessions that the user can view.')
+    #
+    # can_see_all = BooleanField(required=False,
+    #     verbose_name='Can See All Sessions', help_text='The user can view all sessions in this database.')
+    #
+    # db_admin = BooleanField(required=False,
+    #     verbose_name='Database Administrator', help_text='The user is a database-wide administrator for this rule\'s database.')
+    #
+    # site_admin = BooleanField(required=False,
+    #     verbose_name='Site Administrator', help_text='The user is a site-wide administrator.')
 
     def __unicode__(self):
         return unicode(self.label)
-
-    def can_see_session(self, session):
-        if self.can_admin_session(session):
-            return True
-        if self.db == session.database:
-            if self.can_see_all:
-                return True
-            if session.id in self.can_see:
-                return True
-        return False
-
-    def can_admin_session(self, session):
-        if self.site_admin:
-            return True
-        if self.db_admin and (self.db == session.database):
-            return True
-        return False
 
 
 class UserRole(Role):
@@ -63,5 +108,17 @@ class UserRole(Role):
 
 
 class GroupRole(Role):
+    # TODO: index facebook_id
+    # meta = {
+    #     'indexes': [
+    #         {
+    #             'fields': ('facebook_id',),
+    #             'cls': True,
+    #             'unique': False,
+    #             'sparse': False,
+    #         },
+    #     ]
+    # }
+
     facebook_id = StringField(required=False,
         verbose_name='Facebook Group ID', help_text='The Facebook group ID that corresponds to the role.')

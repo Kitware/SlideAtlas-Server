@@ -151,13 +151,13 @@
 
       $.ajax({
         type: "post",
-        url: "/session-save",
+        url: "{{ url_for('.sessionsave') }}",
         data: {"input" :  JSON.stringify( args )},
         success: function(data,status){
                    if (data != "") {
                      // Redirect is problematic because I want to save multiple times
                      // and back in browser does not reload page completely
-                     //window.location.href = "sessions?sessid="+data+"&sessdb="+"{{data.database.id}}";
+                     //window.location.href = "sessions?sessid="+data;
                      SESSION_ID = data._id;
                      // View ids changed (were copied). (Pain pain pain)
                      for (var i = 0; i < data.images.length; ++i) {
@@ -311,7 +311,7 @@
               });
       } else {
         SELECTED_SESSION = SELECTED_DATABASE.sessions[idx];
-        $.get("/sessions?json=1&sessdb="+SELECTED_SESSION.sessdb+"&sessid="+SELECTED_SESSION.sessid,
+        $.get("/sessions?json=1&sessid="+SELECTED_SESSION.sessid,
               function(data,status){
                 if (status == "success") {
                   LoadSession(data);

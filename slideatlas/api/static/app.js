@@ -187,7 +187,7 @@ app.controller("SessAllListCtrl", function ($scope, $location, $http) {
     error(function(data, status) {
         $scope.roles = [];
     });
-}); 
+});
 
 
 
@@ -246,7 +246,7 @@ app.controller("fileUploadCtrl", function ($scope, $location, $routeParams, Data
         $scope.sessid = $routeParams.sessid;
         $scope.type = $routeParams.type;
         $scope.$evalAsync( function () {
-            var attachmentPostUrl = "/apiv2/" + $routeParams.dbid + "/sessions/"  + $routeParams.sessid + "/attachments";
+            var attachmentPostUrl = "/apiv2/sessions/"  + $routeParams.sessid + "/attachments";
             console.log("Getting executed");
             console.log("Refreshing fileUploadCtrl with dbid=" + $routeParams.dbid + " and ssid=" + $routeParams.sessid + " and type=" + $routeParams.type )
                 $('#fileupload').fileupload({
@@ -355,7 +355,7 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $ht
         $scope.currentPage = 1; //current page
         $scope.maxSize = 10; //pagination max size
         $scope.entryLimit = 5; //max rows for data table
-        // http://new.slide-atlas.org/apiv1/5074589302e31023d4292d91/sessions/4ecbbc6d0e6f7d7a56000000 
+        // http://new.slide-atlas.org/apiv1/5074589302e31023d4292d91/sessions/4ecbbc6d0e6f7d7a56000000
         $http({method: "get", url: "/apiv1/" + $scope.dbid + "/sessions/" + $scope.sessid}).
             success(function(data, status) {
                     $scope.session = data;
@@ -385,7 +385,7 @@ app.controller("sessDetailsCtrl", function ($scope, $location, $routeParams, $ht
 
     // /* init pagination with $scope.list */
     // $scope.noOfPages = Math.ceil($scope.list.length/$scope.entryLimit);
-    
+
     // $scope.$watch('search', function(term) {
     //     // Create $scope.filtered and then calculat $scope.noOfPages, no racing!
     //     $scope.filtered = filterFilter($scope.list, term);

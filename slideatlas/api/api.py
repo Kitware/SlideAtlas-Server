@@ -284,8 +284,7 @@ class DataSessionsAPI(MethodView):
 
         if sessid == None:
             sessionlist = list()
-            with database:
-                sessions = models.Session.objects.exclude("images","attachments", "views")
+            sessions = models.Session.objects(image_store=database).exclude("images","attachments", "views")
 
             for asession in sessions:
                 sessionlist.append(asession.to_mongo())
@@ -297,8 +296,7 @@ class DataSessionsAPI(MethodView):
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
+            sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
@@ -358,8 +356,7 @@ class DataSessionsAPI(MethodView):
             return Response("{ \"error \" : \"No session to delete\"}", status=405)
         else:
             # TODO: Important, Not all users are allowed to delete
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
+            sessobj = models.Session.objects.with_id(sessid)
 
             if sessobj:
                 # Delete if empty
@@ -397,8 +394,7 @@ class DataSessionsAPI(MethodView):
         if data.has_key("insert"):
             # Create the database object from the supplied parameters
             try:
-                with db:
-                    newsession = models.Session(label=data["insert"]["label"])
+                newsession = models.Session(image_store=db, label=data["insert"]["label"])
                 newsession.save()
             except Exception as inst:
                 # If valid database object cannot be constructed it is invalid request
@@ -413,8 +409,7 @@ class DataSessionsAPI(MethodView):
 
             try:
                 # Locate the resource
-                with db:
-                    newdb = models.Session.objects.with_id(sessid)
+                newdb = models.Session.objects.with_id(sessid)
                 if newdb == None:
                     raise Exception(" Resource %s not found" % (sessid))
             except Exception as inst:
