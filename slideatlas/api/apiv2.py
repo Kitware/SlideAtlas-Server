@@ -127,8 +127,12 @@ class ItemAPI(API):
 class UserListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
-        users = models.User.objects
-        return jsonify(users=users.to_son(only_fields=('full_name', 'email')))
+        users_son = list()
+        for user in models.User.objects:
+            user_son = user.to_son(only_fields=('type', ))
+            user_son['label'] = user.label
+            users_son.append(user_son)
+        return jsonify(users=users_son)
 
     def post(self):
         abort(501)  # Not Implemented

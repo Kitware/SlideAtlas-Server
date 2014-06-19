@@ -61,6 +61,11 @@ class User(ModelDocument, UserMixin):
         verbose_name='Groups', help_text='The list of groups that this user belongs to.')
 
     @property
+    def label(self):
+        email_domain = self.email.partition('@')[2] if self.email else '?'
+        return '%s (@%s)' % (self.full_name, email_domain)
+
+    @property
     def effective_permissions(self):
         return chain.from_iterable(group.permissions for group in self.groups)
 
