@@ -9,6 +9,7 @@ from flask import Blueprint, abort, current_app, make_response, request, url_for
 from flask.helpers import wrap_file
 from flask.json import jsonify
 from flask.views import MethodView
+from flask.ext.restful import Api
 from werkzeug.http import parse_content_range_header
 import gridfs
 
@@ -18,11 +19,23 @@ from slideatlas import models, security
 #TODO
 # from flask.json import JSONDecoder
 
-mod = Blueprint('apiv2', __name__,
-                url_prefix='/apiv2',
-                template_folder='templates',
-                static_folder='static',
-                )
+from flask.ext.restful import abort as restful_abort
+from flask.ext.restful.utils import error_data
+def abort(http_status_code, details=None):
+    """
+    Return an error response, with the given 'http_status_code' and a JSON body.
+
+    Optionally, supplemental 'details' may be provided, which will be included
+    with the response body.
+
+    This function provides the same {'status', 'message'} response body as
+    Flask-Restful, but also allows an optional 'details' field to be added.
+    """
+    data = error_data(http_status_code)
+    if details:
+        data['details'] = details
+    restful_abort(http_status_code, **data)
+
 
 
 ################################################################################
@@ -128,7 +141,10 @@ class UserListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
         users_son = list()
-        for user in models.User.objects:
+        # TODO: order by 'label', rather than 'full_name'?
+        # TODO: order by last name?
+        # TODO: order case-insensitively
+        for user in models.User.objects.order_by('full_name'):
             user_son = user.to_son(only_fields=('type', ))
             user_son['label'] = user.label
             users_son.append(user_son)
@@ -208,7 +224,7 @@ class GroupListAPI(ListAPI):
         #     roles = [role for role in roles if role.can_admin_session(session)]
         # else:
         #     roles = list(roles)
-        groups = models.GroupRole.objects
+        groups = models.GroupRole.objects.order_by('label')
         return jsonify(groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminSiteRequirement.protected
@@ -307,7 +323,7 @@ class GroupItemAPI(ItemAPI):
 class OrganizationListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
-        organizations = models.Organization.objects
+        organizations = models.Organization.objects.order_by('label')
         return jsonify(organizations=organizations.to_son(only_fields=('label',)))
 
     def post(self):
@@ -341,7 +357,7 @@ class SessionListAPI(ListAPI):
 
         only_fields=('name', 'label', 'type')
 
-        sessions = models.Session.objects.only(*only_fields)
+        sessions = models.Session.objects.only(*only_fields).order_by('label')
 
         return jsonify(sessions=sessions.to_son(only_fields=only_fields))
 
@@ -421,17 +437,15 @@ class SessionAttachmentListAPI(ListAPI):
 
     @security.AdminSessionRequirement.protected
     def post(self, session):
-        # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
-            abort(400)  # Bad Request
+            abort(400, details='Exactly one file must be provided.')
         uploaded_file = request.files.itervalues().next()
 
         gridfs_args = dict()
 
         # file name
         if not uploaded_file.filename:
-            # the uploaded file must contain a filename
-            abort(400)
+            abort(400, details='The file must contain a filename.')
         # TODO: filter the filename to remove special characters and ensure length < 255
         gridfs_args['filename'] = uploaded_file.filename
 
@@ -439,11 +453,9 @@ class SessionAttachmentListAPI(ListAPI):
         content_range = parse_content_range_header(request.headers.get('Content-Range'))
         if content_range and (content_range.stop != content_range.length):
             if content_range.start != 0:
-                # a POST with partial content must not contain a fragment past the start of the entity
-                abort(400)  # Bad Request
+                abort(400, details='A POST with partial content must not contain a fragment past the start of the entity.')
             if content_range.units != 'bytes':
-                # only a range-unit of "bytes" may be used in a Content-Range header
-                abort(400)  # Bad Request
+                abort(400, details='Only a range-unit of "bytes" may be used in a Content-Range header.')
             content_chunk_size = content_range.stop - content_range.start
             gridfs_args['chunkSize'] = content_chunk_size
 
@@ -492,14 +504,14 @@ class SessionAttachmentItemAPI(ItemAPI):
         try:
             attachment = attachments_fs.get(attachment_id)
         except gridfs.NoFile:
-            abort(404)
+            abort(404, details='The requested attachment was not found in the requested session\'s image store.')
 
         # check that the requested attachment is in the session
         for attachment_ref in session.attachments:
             if attachment_ref.ref == attachment._id:
                 break
         else:
-            abort(404)  # Not Found
+            abort(404, details='The requested attachment was not found in the requested session.')
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -545,36 +557,30 @@ class SessionAttachmentItemAPI(ItemAPI):
 
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
-            abort(400)  # Bad Request
+            abort(400, details='Exactly one file must be provided.')
         uploaded_file = request.files.itervalues().next()
 
         content_range = parse_content_range_header(request.headers.get('Content-Range'))
         if not content_range:
-            # a PUT request to modify an attachment must include a Content-Range header
-            abort(400)
+            abort(400, details='A PUT request to modify an attachment must include a Content-Range header.')
         if content_range.units != 'bytes':
-            # only a range-unit of "bytes" may be used in a Content-Range header
-            abort(400)  # Bad Request
+            abort(400, details='Only a range-unit of "bytes" may be used in a Content-Range header.')
         if content_range.start is None:
-            # the content's start and end positions must be specified in the Content-Range header
-            abort(400)
+            abort(400, details='The content\'s start and end positions must be specified in the Content-Range header.')
         # 'parse_content_range_header' guarantees that 'content_range.stop' must
         #   also be specified if 'start' is
         if content_range.length is None:
-            # the content's total length must be specified in the Content-Range header
             # TODO: getting rid of this restriction would be nice, but we'd need
             #   a way to know when the final chunk was uploaded
-            abort(400)
+            abort(400, details='The content\'s total length must be specified in the Content-Range header.')
 
         content_chunk_size = content_range.stop - content_range.start
         if content_range.start % content_chunk_size != 0:
-            # upload content start location must be a multiple of content chunk size
-            abort(400)
+            abort(400, details='The content\'s start location must be a multiple of the content\'s chunk size.')
 
         if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
             # only the end chunk can be shorter
-            # upload content chunk size does not match existing GridFS chunk size
-            abort(400)
+            abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
 
         image_store_pymongo = session.image_store.to_pymongo()
 
@@ -604,10 +610,6 @@ class SessionAttachmentItemAPI(ItemAPI):
         return make_response(jsonify(), 204)  # No Content
 
 
-    def patch(self, session, attachment_id):
-        abort(405)  # Method Not Allowed
-
-
     @security.AdminSessionRequirement.protected
     def delete(self, session, attachment_id):
         attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
@@ -632,42 +634,71 @@ class SessionAttachmentItemAPI(ItemAPI):
 
 
 ################################################################################
-mod.add_url_rule('/users',
-                 view_func=UserListAPI.as_view('user_list'),
-                 methods=['GET', 'POST'])
 
-mod.add_url_rule('/users/<User:user>',
-                 view_func=UserItemAPI.as_view('user_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+# TODO: verify __name__ as 'import_name'
+blueprint = Blueprint('apiv2', __name__,
+                      url_prefix='/api'
+                      )
 
-mod.add_url_rule('/groups',
-                 view_func=GroupListAPI.as_view('group_list'),
-                 methods=['GET', 'POST'])
 
-mod.add_url_rule('/groups/<GroupRole:group>',
-                 view_func=GroupItemAPI.as_view('group_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+def register_with_app(app):
+    app.register_blueprint(blueprint)
 
-mod.add_url_rule('/organizations',
-                 view_func=OrganizationListAPI.as_view('organization_list'),
-                 methods=['GET', 'POST'])
 
-mod.add_url_rule('/organizations/<Organization:organization>',
-                 view_func=OrganizationItemAPI.as_view('organization_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+api = Api(blueprint,
+          prefix='/v2',
+          decorators=[security.login_required],
+          catch_all_404s=False, # TODO: do we want this?
+          )
+# TODO: explicitly set 'config["ERROR_404_HELP"] = True'
 
-mod.add_url_rule('/sessions',
-                 view_func=SessionListAPI.as_view('session_list'),
-                 methods=['GET', 'POST'])
 
-mod.add_url_rule('/sessions/<Session:session>',
-                 view_func=SessionItemAPI.as_view('session_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+api.add_resource(UserListAPI,
+                 '/users',
+                 endpoint='user_list',
+                 methods=('GET', 'POST'))
 
-mod.add_url_rule('/sessions/<Session:session>/attachments',
-                 view_func=SessionAttachmentListAPI.as_view('session_attachment_list'),
-                 methods=['GET', 'POST'])
+api.add_resource(UserItemAPI,
+                 '/users/<User:user>',
+                 endpoint='user_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
-mod.add_url_rule('/sessions/<Session:session>/attachments/<ObjectId:attachment_id>',
-                 view_func=SessionAttachmentItemAPI.as_view('session_attachment_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+api.add_resource(GroupListAPI,
+                 '/groups',
+                 endpoint='group_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(GroupItemAPI,
+                 '/groups/<GroupRole:group>',
+                 endpoint='group_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(OrganizationListAPI,
+                 '/organizations',
+                 endpoint='organization_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(OrganizationItemAPI,
+                 '/organizations/<Organization:organization>',
+                 endpoint='organization_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(SessionListAPI,
+                 '/sessions',
+                 endpoint='session_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionItemAPI,
+                 '/sessions/<Session:session>',
+                 endpoint='session_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(SessionAttachmentListAPI,
+                 '/sessions/<Session:session>/attachments',
+                 endpoint='session_attachment_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionAttachmentItemAPI,
+                 '/sessions/<Session:session>/attachments/<ObjectId:attachment_id>',
+                 endpoint='session_attachment_item',
+                 methods=('GET', 'PUT', 'DELETE'))  # PATCH not allowed
