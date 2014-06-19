@@ -745,28 +745,6 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 
 
 
-class ThumbsAPI(MethodView):
-    """
-    API endpoint for requesting thumbnail images
-    """
-    decorators = [security.login_required]
-
-    def get_data_db(self, dbid):
-        database = models.ImageStore.objects.with_id(dbid)
-        if database == None:
-            return None
-        return database
-
-    def get(self, dbid, imgid):
-        return jsonify({"db" : dbid , "img" : imgid})
-
-
-# For getting thumbs
-mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
-                                '/thumbs/<regex("[a-f0-9]{24}"):imgid>'
-                                , view_func=ThumbsAPI.as_view("show_thumbs"),
-                                methods=["get"])
-
 
 
 
