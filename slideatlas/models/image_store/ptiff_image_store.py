@@ -156,9 +156,9 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         with self:
             # Find the session
             try:
-                session = Session.objects.get(name=self.session_name)
+                session = Session.objects.get(image_store=self, name=self.session_name)
             except DoesNotExist:
-                session = Session(name=self.session_name, label=self.session_name)
+                session = Session(image_store=self, name=self.session_name, label=self.session_name)
             except MultipleObjectsReturned:
                 # TODO: this generally shouldn't happen, but should be handled
                 raise
@@ -254,7 +254,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             View.drop_collection()
             Image.drop_collection()
 
-            Session.objects(name=self.session_name).delete()
+            Session.objects(image_store=self, name=self.session_name).delete()
 
         # Wipes all the images
         return self.sync()

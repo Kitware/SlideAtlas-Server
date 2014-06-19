@@ -32,7 +32,7 @@
                 });
             });
             $(".sa-attachment-post").click(function() {
-                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', database=session_obj.database, session=session_obj )}}";
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session_obj )}}";
                 attachmentUpload(attachmentPostUrl);
             });
             {% endif %}
@@ -54,7 +54,7 @@
     <ul class="list-group">
         {% for attachment in data.attachments %}
         <li class="list-group-item">
-            <a href="{{ url_for('apiv2.session_attachment_item', database=session_obj.database, session=session_obj, attachment_id=attachment.id) }}" class="lead sa-attachment-get">{{ attachment.name}}</a>
+            <a href="{{ url_for('apiv2.session_attachment_item', session=session_obj, attachment_id=attachment.id) }}" class="lead sa-attachment-get">{{ attachment.name}}</a>
             {% if is_session_admin %}
             <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span> Delete</button>
             {% endif %}

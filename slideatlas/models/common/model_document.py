@@ -5,7 +5,7 @@ from mongoengine.base import TopLevelDocumentMetaclass
 from flask.ext.mongoengine import Document, BaseQuerySet
 
 ################################################################################
-__all__ = ('ModelDocument',)
+__all__ = ('ModelDocument', 'ModelQuerySet')
 
 
 ################################################################################
@@ -60,6 +60,8 @@ class ModelDocument(Document):
         """
         if exclude_fields and only_fields:
             raise Exception()
+
+        # TODO: convert reference fields as {'id':.., 'label':..}
 
         # SON is ordered, so we must build a new one to change keys
         reverse_db_field_map = dict(self._reverse_db_field_map)
