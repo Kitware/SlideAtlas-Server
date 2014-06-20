@@ -5,6 +5,7 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
+
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
