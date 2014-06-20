@@ -100,6 +100,13 @@ NavigationWidget.prototype.SaveBookmark = function() {
   setTimeout(function(){
                button.css({'opacity': '0.6'});
              }, 1000); // one second
+  
+  var favorite = $('<div>').appendTo(FAVORITES_WIDGET.ImageList)
+                            .css({
+                              'height': '120px',
+                              'width': '90px',
+                              'background-color': '#0000ff'
+                            });
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {

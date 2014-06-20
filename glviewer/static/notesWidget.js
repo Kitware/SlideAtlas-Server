@@ -744,6 +744,7 @@ Note.prototype.Serialize = function(includeChildren) {
   // The database wants an image id, not an embedded iamge object.
   //  The server should really take care of this since if
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
+    if(!this.ViewerRecords[i].Image) continue;
     rec = {};
     rec.Image = this.ViewerRecords[i].Image._id;
     rec.Database = this.ViewerRecords[i].Image.database;

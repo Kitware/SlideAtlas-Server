@@ -44,7 +44,7 @@ function FavoritesWidget() {
             .hide();
                     
   this.ImageList = 
-    $('<ul>').appendTo(this.FavoritesList);
+    $('<div>').appendTo(this.FavoritesList);
               
 
   this.BookmarkButton =
@@ -139,7 +139,7 @@ FavoritesWidget.prototype.LoadFavorites = function(sessionData) {
   
   //var viewList = $('<ul>').appendTo(sessionItem)
   
-  for (var i = 0; i < sessionData.images.length; ++i) {
+  for (var i = 0; i < sessionData.viewArray.length; ++i) {
     /*var image = sessionData.images[i];
     //var item = $('<li>').appendTo(viewList)
     var item = $('<li>').appendTo(this.ImageList)
@@ -155,9 +155,20 @@ FavoritesWidget.prototype.LoadFavorites = function(sessionData) {
     $('<span>').appendTo(item)
       .text(image.label);*/
       
-    var image = sessionData.images[i];
-    var favorite = $('<li>').appendTo(this.ImageList);
-    var view = $('<img>').appendTo(favorite);
+    //var image = sessionData.viewArray[i];
+    var favorite = $('<div>').appendTo(this.ImageList)
+                            .css({
+                              'height': '120px',
+                              'width': '90px',
+                              'margin': '10px',
+                              'display': 'inline-block',
+                              'background-color': '#0000ff'
+                            });
+                            
+    var db = sessionData.viewArray[i].ViewerRecords[0].Database;
+    var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
+    var view = $('<img>').appendTo(favorite)
+                         .attr('src', './thumb?db=' + db + "&img=" + img);
   }
 }
 
