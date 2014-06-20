@@ -538,6 +538,7 @@ Note.prototype.RecordView = function() {
     viewerRecord.CopyViewer(VIEWER2);
     this.ViewerRecords.push(viewerRecord);
   }
+
 }
 
 
@@ -627,6 +628,7 @@ Note.prototype.Contains = function(decendent) {
   }
   return false;
 }
+
 
 // This should method should be split between Note and NotesWidget
 Note.prototype.Select = function() {
@@ -728,6 +730,7 @@ Note.prototype.DisplayGUI = function(div) {
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
+  obj.SessionId = localStorage.sessionId;
   obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
@@ -892,6 +895,11 @@ Note.prototype.DisplayView = function() {
 }
 
 
+NotesWidget.prototype.GetCurrentNote = function() {
+  return this.Iterator.GetNote();
+}
+
+
 NotesWidget.prototype.SaveUserNote = function() {
   // Create a new note.
   var childNote = new Note();
@@ -928,6 +936,7 @@ NotesWidget.prototype.SaveUserNote = function() {
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(childNote.Serialize(false)),
+           "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
     error: function() { alert( "AJAX - error() : saveusernote" ); },
@@ -953,7 +962,8 @@ NotesWidget.prototype.SaveBrownNote = function() {
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
-    data: {"note": JSON.stringify(note.Serialize(false))},
+      data: {"note": JSON.stringify(note.Serialize(false)),
+             "col" : "favorites"},
     success: function(data,status) {
       note.Id = data;
     },
@@ -1144,6 +1154,7 @@ NotesWidget.prototype.SaveCallback = function() {
           type: "post",
           url: "/webgl-viewer/saveusernote",
           data: {"note": JSON.stringify(note.Serialize(false)),
+                 "col" : "notes",
                  "db"  : GetSessionDatabase(),
                  "date": d.getTime()},
           success: function(data,status) { note.Id = data;},

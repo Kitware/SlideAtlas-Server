@@ -4,7 +4,6 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
-import pdb
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -728,11 +727,13 @@ def getcomment():
 
 
 # This is close to a general purpose function to insert an object into the database.
+# Used to save favorites and tracking activity
+# It has a bad name which can be changed later.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
 
-    #pdb.set_trace()
     noteStr = request.form['note'] # for post
+    collectionStr = request.form['col'] # for post
 
     note = json.loads(noteStr)
     note["ParentId"] = ObjectId(note["ParentId"])
@@ -742,7 +743,7 @@ def saveusernote():
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    noteId = admindb["favorites"].save(note)
+    noteId = admindb[collectionStr].save(note)
     return str(noteId)
     
 # Save the note in a "notes" session.
@@ -762,14 +763,16 @@ def recursiveSetUser(note, user):
             recursiveSetUser(child, user)
     
 # get the favorite views for a user
+# used to get favorites and recorded activity.
+# it has a bad name that can be changed later.
 @mod.route('/getfavoriteviews', methods=['GET', 'POST'])
 def getfavoriteviews():
+    collectionStr = request.args.get('col', "favorites")
+
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    #pdb.set_trace()
-
-    viewItr = admindb["favorites"].find({"Type": "UserNote", "User": ObjectId(session["user_id"])})
+    viewItr = admindb[collectionStr].find({"User": ObjectId(session["user_id"])})
     viewArray = []
     for viewObj in viewItr:
         if "Type" in viewObj :
