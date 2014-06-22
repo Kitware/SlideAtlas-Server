@@ -225,9 +225,11 @@ function NewPageRecord() {
 }
 
 
-
+var RECORD_TIMER_ID = 0;
 
 function RecordStateCallback() {
+  // Timer called this method.  Timer id is no longer valid.
+  RECORD_TIMER_ID = 0;
   // Redo is an option after undo, until we save a new state.
   REDO_STACK = [];
 
@@ -237,6 +239,13 @@ function RecordStateCallback() {
 
   // The note will want to know its context
   parentNote = NOTES_WIDGET.GetCurrentNote();
+  if ( ! parentNote.Id) {
+    //  Note is not loaded yet.
+    // Wait some more
+    RecordState();
+    return;
+  }
+
   note.ParentId = parentNote.Id;
 
   // Save the note in the admin database for this specific user.
@@ -256,6 +265,24 @@ function RecordStateCallback() {
 
   TIME_LINE.push(note);
 }
+
+
+// Create a snapshot of the current state and push it on the TIME_LINE stack.
+// I still do not compress scroll wheel zoom, so I am putting a timer event
+// to collapse recording to lest than oner per second.
+function RecordState() {
+  // Delete the previous pending record timer
+  if (RECORD_TIMER_ID) {
+    clearTimeout(RECORD_TIMER_ID);
+    RECORD_TIMER_ID = 0;
+  }
+  // Start a record timer.
+  RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
+}
+
+
+
+
 
 var GET_RECORDS;
 function GetRecords() {
