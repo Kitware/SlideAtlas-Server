@@ -298,7 +298,7 @@ shape has visibility and
     //}
     EVENT_MANAGER = new EventManager(CANVAS);
     
-    FAVORITES_WIDGET = new FavoritesWidget();
+    
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
@@ -310,11 +310,14 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
+    
+    FAVORITES_WIDGET = new FavoritesWidget();
+    
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
       MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     } else {
-      VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
+      VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
     $(window).resize(function() {

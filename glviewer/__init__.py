@@ -4,6 +4,7 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+import pdb
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -745,6 +746,22 @@ def saveusernote():
 
     noteId = admindb[collectionStr].save(note)
     return str(noteId)
+
+
+
+@mod.route('/deleteusernote', methods=['GET', 'POST'])
+def deleteusernote():
+
+    noteIdStr = request.form['noteId'] # for post
+    collectionStr = request.form['col'] # for post
+    
+    #pdb.set_trace()
+    
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
+    return "success"
     
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.

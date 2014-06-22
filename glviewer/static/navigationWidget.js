@@ -37,19 +37,24 @@ function NavigationWidget() {
   this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
-                    'left' : left,
+                    'left' : '170px',
                     'bottom' : bottom,
                     'z-index': '2'});
-
+  
+  /**
   this.BookmarkButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
+    $('<img>').appendTo('body')
+              .css({'position': 'absolute',
+                    'left': '0px',
+                    'bottom': '60px',
+                    'height': size,
                     'width': size,
                     'padding' : '5px',
+                    'z-index': '2',
                     'opacity': '0.6'})
               .attr('src',"webgl-viewer/static/saveNew.png")
-              .click(function(){self.SaveBookmark();});
-  this.TextTip = new ToolTip(this.BookmarkButton, "Save Bookmark");
+              .click(function(){SaveBookmark();});
+  this.TextTip = new ToolTip(this.BookmarkButton, "Save Bookmark");/**/
 
   this.PreviousSlideButton =
     $('<img>').appendTo(this.Div)
@@ -92,6 +97,7 @@ function NavigationWidget() {
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
 }
 
+/*
 NavigationWidget.prototype.SaveBookmark = function() {
   NOTES_WIDGET.SaveBrownNote();
   // Hide shifts the other buttons to the left to fill the gap.
@@ -100,13 +106,24 @@ NavigationWidget.prototype.SaveBookmark = function() {
   setTimeout(function(){
                button.css({'opacity': '0.6'});
              }, 1000); // one second
+             
   
-  var favorite = $('<div>').appendTo(FAVORITES_WIDGET.ImageList)
-                            .css({
-                              'height': '120px',
-                              'width': '90px',
-                              'background-color': '#0000ff'
-                            });
+  
+  LoadFavorites();
+}*/
+
+function SaveBookmark() {
+  NOTES_WIDGET.SaveBrownNote();
+  // Hide shifts the other buttons to the left to fill the gap.
+  FAVORITES_WIDGET.SaveBookmarkButton.css({'opacity': '0.0'});
+  var button = FAVORITES_WIDGET.SaveBookmarkButton;
+  setTimeout(function(){
+               button.css({'opacity': '0.6'});
+             }, 1000); // one second
+             
+  
+  
+  LoadFavorites();
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {
