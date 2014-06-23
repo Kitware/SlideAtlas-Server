@@ -210,6 +210,11 @@ shape has visibility and
       GL.viewport(0, 0, width, height);
     } // GL.SetViewport does the work for 2d canvases.
 
+    // Handle resizing of the favorites bar.
+    if(FAVORITES_WIDGET){
+      FAVORITES_WIDGET.resize(width);
+    }
+
     // we set the left border to leave space for the notes window.
     var left = 0;
     if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
@@ -299,7 +304,7 @@ shape has visibility and
     //}
     EVENT_MANAGER = new EventManager(CANVAS);
     
-    FAVORITES_WIDGET = new FavoritesWidget();
+    
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
@@ -311,11 +316,15 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
+    
+    FAVORITES_WIDGET = new FavoritesWidget();
+    FAVORITES_WIDGET.resize(CANVAS.innerWidth());
+    
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
       MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     } else {
-      VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 5, "Left", 5);
+      VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
     $(window).resize(function() {
