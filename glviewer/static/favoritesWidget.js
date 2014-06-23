@@ -32,16 +32,19 @@ function FavoritesWidget() {
                     
   this.FavoritesList =
     $('<div>').appendTo('body')
-              .css({'position': 'absolute',
-                    'height': '200px',
-                    'width': '100%',
-                    'left': '0px',
-                    'bottom': '0px',
-                    //'padding': '5px',
-                    'opacity': '0.6',
-                    'background-color': '#000000',
-                    'z-index': '2'})
-            .hide();
+              .css({
+                'position': 'absolute',
+                'height': '200px',
+                'width': '100%',
+                'left': '0px',
+                'bottom': '0px',
+                //'padding': '5px',
+                'opacity': '0.6',
+                'background-color': '#000000',
+                'overflow': 'visible',
+                'z-index': '2'
+              })
+              .hide();
                     
   
     
@@ -66,7 +69,10 @@ function FavoritesWidget() {
     $('<div>').appendTo(this.FavoritesList)
               .css({
                 //'padding-left': '75px'
-                'float': 'left'
+                'float': 'left',
+                'overflow-x': 'scroll',
+                'overflow-y': 'hidden',
+                'white-space': 'nowrap',
               });
               
   var self = this;
@@ -204,8 +210,10 @@ function deleteFavorite(img){
   LoadFavorites();
 }
 
-function updateFavorites(data){
-  
+FavoritesWidget.prototype.resize = function(width){
+  this.ImageList.css({
+    'width': width - 60
+  });
 }
 
 
