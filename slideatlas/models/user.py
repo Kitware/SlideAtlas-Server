@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import datetime
+from itertools import chain
 
 from mongoengine import DateTimeField, EmailField, IntField, ListField, \
     ReferenceField, StringField
@@ -25,6 +26,7 @@ class User(ModelDocument, UserMixin):
                 'fields': ('email',), # TODO: index by a unique auth-provided identifier
                 'cls': True,
                 'unique': True,
+                'sparse': False,
             },
         ]
     }
@@ -59,6 +61,16 @@ class User(ModelDocument, UserMixin):
         verbose_name='Groups', help_text='The list of groups that this user belongs to.')
 
     @property
+    def label(self):
+        email_domain = self.email.partition('@')[2] if self.email else '?'
+        return '%s (@%s)' % (self.full_name, email_domain)
+
+    @property
+    def effective_permissions(self):
+        return chain.from_iterable(group.permissions for group in self.groups)
+
+
+    @property
     def active(self):
         """
         This is used by Flask-Security to determine if a login is allowed at all.
@@ -70,9 +82,10 @@ class User(ModelDocument, UserMixin):
         """
         This is required by Flask-Security for all users.
 
-        Non-password users will use their user ID as an effective password for
-        internal use.
+        Non-password users still require a password, to generate their secret
+        auth token.
         """
+        # TODO: change this to something secret and random for non-password users
         return str(self.id)
 
     @property

@@ -17,7 +17,7 @@
                 <td> </td>
             </thead>
             <tr ng-repeat ="item in session.attachments" >
-                <td><a href="/apiv2/{{dbid}}/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
+                <td><a href="/apiv2/sessions/{{sessid}}/attachments/{{item.ref}}" class="lead">
                             {{ item.details.name}}
                         </a>
                 </td>
@@ -30,14 +30,14 @@
     </div>
 
     <div class="row">
-        <h4> Showing {{ session.filteredlist.length }} of {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> add new  </a> ]     
+        <h4> Showing {{ session.filteredlist.length }} of {{ session.views.length }} Views [ <a href="#/{{dbid}}/sessions/{{sessid}}/attachments/new" class="lead"> add new  </a> ]
         </h4>
     </div>
     <div class="row">
         <div class="col-xs-4">
-            <input type="text" ng-model="query" placeholder="filter" class="form-control"/> 
+            <input type="text" ng-model="query" placeholder="filter" class="form-control"/>
         </div>
-    </div> 
+    </div>
     <br/>
 
     <table class="table table-bordered table-hover" >

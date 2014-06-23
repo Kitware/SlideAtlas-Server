@@ -470,8 +470,7 @@ def glstacksession():
     database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
-    with database:
-        sessobj = models.Session.objects.get_or_404(id=sessid)
+    sessobj = models.Session.objects.get_or_404(id=sessid)
 
     # Make a transformation if one does not exist.
     if not sessobj.transformations :
@@ -575,8 +574,7 @@ def glstacksave():
 
     database = models.ImageStore.objects.get_or_404(id=dbid)
 
-    with database:
-        session = models.Session.objects.get_or_404(id=sessid)
+    session = models.Session.objects.get_or_404(id=sessid)
 
     if 'views' in stackObj:
         session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
@@ -615,8 +613,7 @@ def glstackinsert():
     view_id = db["views"].insert(viewObj)
 
     # I do not know the insert toan array so I will just set the whole thing
-    with database:
-        session = models.Session.objects.first(name='RenalStack')
+    session = models.Session.objects.first(name='RenalStack')
     section = models.RefItem(ref=view_id)
     session.views.append(section)
     session.save()
@@ -737,7 +734,8 @@ def saveusernote():
     collectionStr = request.form['col'] # for post
 
     note = json.loads(noteStr)
-    note["ParentId"] = ObjectId(note["ParentId"])
+    if note.has_key("ParentId") :
+        note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = ObjectId(session["user_id"])
     note["Type"] = "UserNote"
 
@@ -886,8 +884,7 @@ def getview():
     # check the session to see if notes are hidden
     hideAnnotations = False
     if sessid :
-        with database:
-            sessObj = models.Session.objects.with_id(sessid)
+        sessObj = models.Session.objects.with_id(sessid)
         if sessObj and sessObj.hideAnnotations :
             hideAnnotations = True
 

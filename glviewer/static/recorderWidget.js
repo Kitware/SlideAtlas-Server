@@ -246,7 +246,9 @@ function RecordStateCallback() {
     return;
   }
 
+  // ParentId should be depreciated.
   note.ParentId = parentNote.Id;
+  note.SetParent(parentNote);
 
   // Save the note in the admin database for this specific user.
   $.ajax({

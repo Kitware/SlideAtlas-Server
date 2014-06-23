@@ -17,11 +17,12 @@ def add_url_converters(app):
 
     app.url_map.converters.update({
         'ObjectId': ObjectIdConverter,
-        'Database': model_document_converter_factory(models.ImageStore),  # TODO: deprecate
-        'ImageStore': model_document_converter_factory(models.ImageStore),
         'User': model_document_converter_factory(models.User),
         'GroupRole': model_document_converter_factory(models.GroupRole),
+        'Collection': model_document_converter_factory(models.Collection),
         'Session': model_document_converter_factory(models.Session),
+        'ImageStore': model_document_converter_factory(models.ImageStore),
+        'View': model_document_converter_factory(models.View),
         'Image': model_document_converter_factory(models.Image),
         })
 
