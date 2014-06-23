@@ -39,7 +39,7 @@ def sessions():
 ################################################################################
 def view_all_sessions():
     all_sessions_query = models.Session.objects\
-        .only('collection', 'label', 'image_store')\
+        .only('collection', 'label', 'image_store', 'type')\
         .order_by('collection', 'label')\
         .no_dereference()
     # disable dereferencing of of sessions, to prevent running a seperate
