@@ -15,8 +15,8 @@ from slideatlas import models
 ################################################################################
 # TODO: populate __all__
 __all__ = ('AdminSiteRequirement', 'AdminCollectionRequirement',
-           'AdminSessionRequirement', 'ViewSessionRequirement',
-           'UserRequirement')
+           'AdminSessionRequirement', 'AdminRequirement',
+           'ViewSessionRequirement', 'UserRequirement')
 
 
 ################################################################################
@@ -82,6 +82,30 @@ class AdminSessionRequirement(Requirement, ModelProtectionMixin):
 
 
 class AdminRequirement(Requirement, ModelProtectionMixin):
+    """
+    A special requirement that allows an identity with admin access to any resource.
+    """
+    model_type = None
+
+    def allows(self, identity):
+        for permission in identity.provides:
+            if permission.operation == 'admin':
+                return True
+        return False
+
+    def reverse(self):
+        raise NotImplementedError()
+
+    def union(self, other):
+        raise NotImplementedError()
+
+    def difference(self, other):
+        raise NotImplementedError()
+
+    def issubset(self, other):
+        raise NotImplementedError()
+
+
 class ViewSessionRequirement(Requirement, ModelProtectionMixin):
     model_type = models.Session
 
@@ -138,3 +162,5 @@ def register_principal(app, security):
     principal.skip_static = True
 
     app.register_error_handler(PermissionDenied, on_permission_denied)
+
+    app.context_processor(lambda: dict(show_admin=AdminRequirement().can()))
