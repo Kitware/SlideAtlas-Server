@@ -20,6 +20,9 @@
 
 
 function EventManager (canvas) {
+  // I cannot figure out how to do this with focus of canvas ...
+  // KeyFocus
+  this.HasFocus = true;
   this.Canvas = canvas[0];
   this.Viewers = [];
   this.CurrentViewer = null;
@@ -175,7 +178,17 @@ EventManager.prototype.HandleMouseWheel = function(event) {
 
 //------------- Keys ---------------
 
+EventManager.prototype.FocusIn = function() {
+  this.HasFocus = true;
+}
+
+EventManager.prototype.FocusOut = function() {
+  this.HasFocus = false;
+}
+
 EventManager.prototype.HandleKeyDown = function(event) {
+  if ( ! this.HasFocus) {return;} 
+
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = true;
@@ -202,6 +215,8 @@ EventManager.prototype.HandleKeyDown = function(event) {
 }
 
 EventManager.prototype.HandleKeyUp = function(event) {
+  if ( ! this.HasFocus) {return;} 
+
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = false;

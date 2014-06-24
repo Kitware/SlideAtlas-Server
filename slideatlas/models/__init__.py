@@ -7,6 +7,7 @@ from .image_store import *
 from .common import *
 from .user import *
 from .role import *
+from .collection import *
 from .session import *
 from .view import *
 from .image import *

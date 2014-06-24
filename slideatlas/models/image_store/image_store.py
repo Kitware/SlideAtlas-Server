@@ -4,9 +4,7 @@ from flask import g
 from mongoengine import StringField
 from mongoengine.connection import get_db
 
-from ..common import ModelDocument, MultipleDatabaseModelDocument, \
-    register_database
-from .. import session  # TODO: try to remove this
+from ..common import ModelDocument, register_database
 
 ################################################################################
 __all__ = ('ImageStore', 'MultipleDatabaseImageStore')
@@ -29,11 +27,8 @@ class ImageStore(ModelDocument):
     label = StringField(required=True, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label.')
 
-    copyright = StringField(required=False, default='Copyright &copy 2014. All rights reserved.',
-        verbose_name='Copyright', help_text='The default copyright for content.')
-
     def __unicode__(self):
-        return unicode(self.label + self.copyright)
+        return unicode(self.label)
 
     def get_tile(self, image_id, tile_name):
         # TODO: make this use 'abc.abstractmethod', so that all instantiated

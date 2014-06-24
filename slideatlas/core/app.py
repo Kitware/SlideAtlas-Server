@@ -121,7 +121,7 @@ def create_blueprints(app):
     app.register_blueprint(api.mod)
 
     from slideatlas.api import apiv2
-    app.register_blueprint(apiv2.mod)
+    app.register_blueprint(apiv2.blueprint)
 
 
 ################################################################################

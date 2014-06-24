@@ -1,11 +1,13 @@
 # coding=utf-8
 
+from collections import defaultdict
+from itertools import chain, groupby
 import json
-import pdb
+from operator import attrgetter
 
 from bson import ObjectId
 from gridfs import GridFS
-from flask import Blueprint, request, render_template, session, redirect, flash, url_for
+from flask import Blueprint, request, render_template, url_for, g
 
 from slideatlas import models
 from slideatlas import security
@@ -24,73 +26,77 @@ def sessions():
     - /sessions  With no argument displays list of sessions accessible to current user
     - /sessions?sessid=10239094124  searches for the session id
     """
+    # Support legacy requests for a single session, which use query string args
     sessid = request.args.get('sessid')
     sessdb = request.args.get('sessdb')
     
-    #pdb.set_trace()
-
-    if sessdb and sessid:
-        database_obj = models.ImageStore.objects.get_or_404(id=sessdb)
-        with database_obj:
-            session_obj = models.Session.objects.get_or_404(id=sessid)
-        return view_a_session(database_obj, session_obj)
+    if sessid:
+        session_obj = models.Session.objects.get_or_404(id=sessid)
+        return view_a_session(session_obj)
     else:
         return view_all_sessions()
 
 
 ################################################################################
 def view_all_sessions():
-    # Support legacy requests for a single session, which use query string args
-    #pdb.set_trace()
-    
-    arg_sessdb = request.args.get('sessdb')
-    arg_sessid = request.args.get('sessid')
-    if arg_sessdb and arg_sessid:
-        database_obj = models.ImageStore.objects.get_or_404(id=arg_sessdb)
-        with database_obj:
-            session_obj = models.Session.objects.get_or_404(id=arg_sessid)
-        return view_a_session(database_obj, session_obj)
+    all_sessions_query = models.Session.objects\
+        .only('collection', 'label', 'image_store')\
+        .order_by('collection', 'label')\
+        .no_dereference()
+    # disable dereferencing of of sessions, to prevent running a seperate
+    #   query for every single session's collection
 
-    all_sessions = list()
-    for role in security.current_user.groups:
-        with role.db:
-            if role.can_see_all:
-                sessions = list(models.Session.objects)
-            else:
-                sessions = models.Session.objects.in_bulk(role.can_see).values()
-        sessions.sort(key=lambda session: session.label)
+    adminable_sessions_query = all_sessions_query.can_admin(g.identity.provides)
+    viewable_sessions_query = all_sessions_query.can_view_only(g.identity.provides)
 
-        all_sessions.append((role, sessions))
+    # fetch the relevant collections in bulk
+    collections_by_id = {collection.id: collection for collection in
+                         chain(adminable_sessions_query.distinct('collection'),
+                               viewable_sessions_query.distinct('collection')
+                         )}
 
-    all_sessions.sort(key=lambda (role, sessions): role.label)
+    all_sessions = defaultdict(dict)
+    for sessions_query, can_admin in [
+        # viewable must come first, so adminable can overwrite
+        (viewable_sessions_query, False),
+        (adminable_sessions_query, True),
+        ]:
+        for collection_ref, sessions in groupby(sessions_query, attrgetter('collection')):
+            collection = collections_by_id[collection_ref.id]
+            all_sessions[collection].update(dict.fromkeys(sessions, can_admin))
+
+    all_sessions = [(collection, sorted(sessions_dict.iteritems(), key=lambda item: item[0].label))
+                    for collection, sessions_dict
+                    in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
 
     if request.args.get('json'):
         ajax_sessionlist = [
             {
-                'rule': role.label,
+                'rule': collection.label,
                 'sessions': [
                     {
-                        'sessdb': str(role.db.id),
+                        'sessdb': str(session.image_store.id),
                         'sessid': str(session.id),
                         'label': session.label}
-                    for session in sessions],
+                    for session, can_admin in sessions],
             }
-            for role, sessions in all_sessions]
+            for collection, sessions in all_sessions]
         return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)
     else:
         return render_template('sessionlist.html', all_sessions=all_sessions)
 
 
 ################################################################################
-@mod.route('/sessions/<Database:database_obj>/<Session:session_obj>')
-@security.ViewSessionPermission.protected
-def view_a_session(database_obj, session_obj, next=None):
+@mod.route('/sessions/<Session:session_obj>')
+@security.ViewSessionRequirement.protected
+def view_a_session(session_obj, next=None):
     # TODO: the old code seemed to have a bug where it sliced the 'images' field,
     #  but iterated through the 'views' field; since the template doesn't seem use 'next'
     #  lets not change any behavior yet
     next = int(request.args.get('next', 0))
 
     # this is a pymongo Database that we can use until all models are complete
+    database_obj = session_obj.image_store
     db = database_obj.to_pymongo()
 
     # iterate through the session objects
@@ -184,15 +190,16 @@ def view_a_session(database_obj, session_obj, next=None):
         pdb.set_trace()
         return jsonify(data)
     else:
-        is_session_admin = security.AdminSessionPermission(session_obj).can()
+        is_session_admin = security.AdminSessionRequirement(session_obj).can()
         return render_template('session.html', data=data, session_obj=session_obj,
                                is_session_admin=is_session_admin)
 
 
 # change the order of views in the
-@mod.route('/sessions/<Database:database_obj>/<Session:session_obj>/edit')
-@security.AdminSessionPermission.protected
-def sessionedit(database_obj, session_obj):
+@mod.route('/sessions/<Session:session_obj>/edit')
+@security.AdminSessionRequirement.protected
+def sessionedit(session_obj):
+    database_obj = session_obj.image_store
     db = database_obj.to_pymongo()
 
     # iterate through the view objects and record image information.
@@ -283,14 +290,12 @@ def sessionsave():
     stack = inputObj["stack"]
 
     # this is a pymongo Database that we can use until all models are complete
-    database_obj = models.ImageStore.objects.with_id(dbId)
-    db = database_obj.to_pymongo()
+    db = models.ImageStore.objects.with_id(dbId).to_pymongo()
 
     # Todo: if session is undefined, create a new session (copy views when available).
-    with database_obj:
-        sessObj = models.Session.objects.with_id(sessId)
+    sessObj = models.Session.objects.with_id(sessId)
 
-    security.AdminSessionPermission(sessObj).test()
+    security.AdminSessionRequirement(sessObj).test()
 
     email = security.current_user.email
 

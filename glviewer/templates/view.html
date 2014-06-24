@@ -291,6 +291,7 @@ shape has visibility and
 
   function Start() {
     detectMobile();
+    $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
     // I think the webgl viewer crashes.
