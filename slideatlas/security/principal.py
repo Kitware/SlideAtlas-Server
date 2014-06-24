@@ -113,9 +113,9 @@ class UserRequirement(Requirement, ModelProtectionMixin):
 
 ################################################################################
 def on_identity_loaded(app, identity):
-    if hasattr(current_user, 'id'):
+    if isinstance(current_user._get_current_object(), models.User):
         identity.provides.add(UserPermission(current_user.id))
-    identity.provides.update(current_user.effective_permissions)
+        identity.provides.update(current_user.effective_permissions)
     identity.user = current_user
 
 
