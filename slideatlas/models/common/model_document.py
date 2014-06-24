@@ -27,22 +27,7 @@ class ModelDocumentMetaclass(TopLevelDocumentMetaclass):
 
 
 ################################################################################
-class ModelDocument(Document):
-    """
-    A base class for all models.
-
-    This uses Flask-MongoEngine as a base, to provide extra convenience methods.
-    """
-    __metaclass__ = ModelDocumentMetaclass
-    # DocumentMetaclass has limited functionality if 'my_metaclass' is
-    #   explicitly set to any subclass of DocumentMetaclass, so make it None
-    my_metaclass = None
-
-    meta = {
-        'abstract': True,
-        'queryset_class': ModelQuerySet,
-    }
-
+class ToSonDocumentMixin(object):
     def to_son(self, include_empty=True, exclude_fields=None, only_fields=None):
         """
         Return as a SON object.
@@ -88,3 +73,21 @@ class ModelDocument(Document):
                     del son[field]
 
         return son
+
+
+################################################################################
+class ModelDocument(Document, ToSonDocumentMixin):
+    """
+    A base class for all models.
+
+    This uses Flask-MongoEngine as a base, to provide extra convenience methods.
+    """
+    __metaclass__ = ModelDocumentMetaclass
+    # DocumentMetaclass has limited functionality if 'my_metaclass' is
+    #   explicitly set to any subclass of DocumentMetaclass, so make it None
+    my_metaclass = None
+
+    meta = {
+        'abstract': True,
+        'queryset_class': ModelQuerySet,
+    }

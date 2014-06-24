@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import datetime
-from itertools import chain
 
 from mongoengine import DateTimeField, EmailField, IntField, ListField, \
     ReferenceField, StringField
@@ -67,8 +66,9 @@ class User(ModelDocument, UserMixin):
 
     @property
     def effective_permissions(self):
-        return chain.from_iterable(group.permissions for group in self.groups)
-
+        return (permission_document.to_permission()
+                for group in self.groups
+                for permission_document in group.permissions)
 
     @property
     def active(self):
