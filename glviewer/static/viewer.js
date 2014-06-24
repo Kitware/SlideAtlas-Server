@@ -52,15 +52,17 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
-  
+
   this.CopyrightWrapper =
-    $('<div>').appendTo('body')
-              .css({
-                'width': '100%',
-                'text-align': 'center',
-                
-                'z-index': '2'
-              }).html(cache.Image.copyright);
+    $('<div>')
+      .appendTo('body')
+      .css({
+        'width': '100%',
+        'text-align': 'center',
+        'z-index': '2'
+      })
+      .hide()
+      .attr('id', 'copyright');
               
   this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
 }
@@ -128,6 +130,16 @@ Viewer.prototype.SetSection = function(section) {
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
+
+  if (cache && cache.Image) {
+    if (cache.Image.copyright == undefined) {
+      cache.Image.copyright = "Copyright 2014";
+    }
+    this.CopyrightWrapper
+      .html(cache.Image.copyright)
+      .show();
+  }
+
   this.MainView.SetCache(cache);
   if (this.OverView) {
     this.OverView.SetCache(cache);

@@ -259,8 +259,9 @@ function RecordStateCallback() {
     success: function(data,status) {
       note.Id = data;
     },
-    error: function() {
-      alert( "AJAX - error() : saveusernote" );
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log("saveusernote fail (reload before success?)");
+      //alert( "AJAX - error() : saveusernote 3" );
     },
   });
 

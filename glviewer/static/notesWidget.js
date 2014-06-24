@@ -471,6 +471,8 @@ function Note () {
       .attr('contenteditable', "true")
       .focusin(function() { self.TitleFocusInCallback(); })
       .focusout(function() { self.TitleFocusOutCallback(); })
+  } else {
+    this.TitleDiv.click(function() {self.Select()})
   }
 
   // The div should attached even if nothing is in it.
@@ -515,17 +517,21 @@ Note.prototype.TitleFocusOutCallback = function() {
 
 
 Note.prototype.IconEnterCallback = function() {
-  this.IconMenuDiv.fadeIn(1000);
+  if (EDIT) {
+    this.IconMenuDiv.fadeIn(1000);
+  }
 }
 
 Note.prototype.IconLeaveCallback = function() {
-  var self = this;
-  this.HideIconMenuTimerId = setTimeout(
-    function() {
-      self.HideIconMenuTimerId = 0;
-      self.IconMenuDiv.hide();
-    }, 
-    300);  
+  if (EDIT) {
+    var self = this;
+    this.HideIconMenuTimerId = setTimeout(
+      function() {
+        self.HideIconMenuTimerId = 0;
+        self.IconMenuDiv.hide();
+      }, 
+      300);  
+  }
 }
 
 Note.prototype.IconMenuEnterCallback = function() {
@@ -741,10 +747,11 @@ Note.prototype.DisplayGUI = function(div) {
     .click(function() {self.Select()})
     .mouseenter(function() { self.IconEnterCallback(); })
     .mouseleave(function() { self.IconLeaveCallback(); });
-  this.IconMenuDiv
-    .mouseenter(function() { self.IconMenuEnterCallback(); })
-    .mouseleave(function() { self.IconMenuLeaveCallback(); });
-
+  if (EDIT) {
+    this.IconMenuDiv
+      .mouseenter(function() { self.IconMenuEnterCallback(); })
+      .mouseleave(function() { self.IconMenuLeaveCallback(); });
+  }
   this.UpdateChildrenGUI();
 }
 
@@ -961,8 +968,10 @@ NotesWidget.prototype.SaveUserNote = function() {
            "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });
+    error: function() { 
+      alert( "AJAX - error() : saveusernote 1" ); 
+    },
+  });
 
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
@@ -999,7 +1008,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
       note.Id = data;
     },
     error: function() {
-      alert( "AJAX - error() : saveusernote" );
+      alert( "AJAX - error() : saveusernote 2" );
     },
     });
 }
