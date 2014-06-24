@@ -11,23 +11,16 @@ from flask.ext.security.core import _on_identity_loaded as security_on_identity_
 from werkzeug.exceptions import Forbidden, Unauthorized
 
 from slideatlas import models
-from slideatlas.models import Permission
 
 ################################################################################
 # TODO: populate __all__
 __all__ = ('AdminSiteRequirement', 'AdminCollectionRequirement',
-           'AdminSessionRequirement', 'ViewSessionRequirement', 'UserRequirement')
+           'AdminSessionRequirement', 'AdminRequirement',
+           'ViewSessionRequirement', 'UserRequirement')
 
 
 ################################################################################
-# TODO: change the tuple values to use an enum, instead of strings
-AdminSitePermission = partial(Permission, *('admin', 'site', None))
-AdminCollectionPermission = partial(Permission, *('admin', 'collection'))
-AdminSessionPermission = partial(Permission, *('admin', 'session'))
-ViewCollectionPermission = partial(Permission, *('view', 'collection'))
-ViewSessionPermission = partial(Permission, *('view', 'session'))
-UserPermission = partial(Permission, *('be', 'user'))
-
+UserPermission = partial(models.Permission, *('be', 'user'))
 
 
 ################################################################################
@@ -63,7 +56,7 @@ class AdminSiteRequirement(Requirement, ModelProtectionMixin):
 
     def __init__(self):
         super(AdminSiteRequirement, self).__init__(
-            AdminSitePermission(),
+            models.AdminSitePermission(),
         )
 
 
@@ -72,8 +65,8 @@ class AdminCollectionRequirement(Requirement, ModelProtectionMixin):
 
     def __init__(self, collection):
         super(AdminCollectionRequirement, self).__init__(
-            AdminSitePermission(),
-            AdminCollectionPermission(collection.id),
+            models.AdminSitePermission(),
+            models.AdminCollectionPermission(collection.id),
         )
 
 
@@ -82,10 +75,35 @@ class AdminSessionRequirement(Requirement, ModelProtectionMixin):
 
     def __init__(self, session):
         super(AdminSessionRequirement, self).__init__(
-            AdminSitePermission(),
-            AdminCollectionPermission(session.collection.id),
-            AdminSessionPermission(session.id),
+            models.AdminSitePermission(),
+            models.AdminCollectionPermission(session.collection.id),
+            models.AdminSessionPermission(session.id),
         )
+
+
+class AdminRequirement(Requirement, ModelProtectionMixin):
+    """
+    A special requirement that allows an identity with admin access to any resource.
+    """
+    model_type = None
+
+    def allows(self, identity):
+        for permission in identity.provides:
+            if permission.operation == 'admin':
+                return True
+        return False
+
+    def reverse(self):
+        raise NotImplementedError()
+
+    def union(self, other):
+        raise NotImplementedError()
+
+    def difference(self, other):
+        raise NotImplementedError()
+
+    def issubset(self, other):
+        raise NotImplementedError()
 
 
 class ViewSessionRequirement(Requirement, ModelProtectionMixin):
@@ -93,11 +111,11 @@ class ViewSessionRequirement(Requirement, ModelProtectionMixin):
 
     def __init__(self, session):
         super(ViewSessionRequirement, self).__init__(
-            AdminSitePermission(),
-            AdminCollectionPermission(session.collection.id),
-            AdminSessionPermission(session.id),
-            ViewCollectionPermission(session.collection.id),
-            ViewSessionPermission(session.id),
+            models.AdminSitePermission(),
+            models.AdminCollectionPermission(session.collection.id),
+            models.AdminSessionPermission(session.id),
+            models.ViewCollectionPermission(session.collection.id),
+            models.ViewSessionPermission(session.id),
         )
 
 
@@ -106,7 +124,7 @@ class UserRequirement(Requirement, ModelProtectionMixin):
 
     def __init__(self, user):
         super(UserRequirement, self).__init__(
-            AdminSitePermission(),
+            models.AdminSitePermission(),
             UserPermission(user.id),
         )
 
@@ -144,3 +162,5 @@ def register_principal(app, security):
     principal.skip_static = True
 
     app.register_error_handler(PermissionDenied, on_permission_denied)
+
+    app.context_processor(lambda: dict(show_admin=AdminRequirement().can()))

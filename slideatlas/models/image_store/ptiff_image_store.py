@@ -44,9 +44,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     meta = {
     }
 
-    last_sync = DateTimeField(required=True, default=datetime.datetime.min) #: Timestamp used to quickly new files
+    last_sync = DateTimeField(required=True, default=datetime.datetime.min,
+        verbose_name='Last Sync', help_text='Timestamp of the last check for new images.')
 
-    root_path = StringField(required=True) #: Path of the folder where the incoming images arrive
+    root_path = StringField(required=True,
+        verbose_name='Root Path', help_text='Location on local filesystem for image files.')
 
     @property
     def session_name(self):
