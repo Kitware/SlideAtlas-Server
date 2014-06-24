@@ -471,6 +471,8 @@ function Note () {
       .attr('contenteditable', "true")
       .focusin(function() { self.TitleFocusInCallback(); })
       .focusout(function() { self.TitleFocusOutCallback(); })
+  } else {
+    this.TitleDiv.click(function() {self.Select()})
   }
 
   // The div should attached even if nothing is in it.
@@ -515,17 +517,21 @@ Note.prototype.TitleFocusOutCallback = function() {
 
 
 Note.prototype.IconEnterCallback = function() {
-  this.IconMenuDiv.fadeIn(1000);
+  if (EDIT) {
+    this.IconMenuDiv.fadeIn(1000);
+  }
 }
 
 Note.prototype.IconLeaveCallback = function() {
-  var self = this;
-  this.HideIconMenuTimerId = setTimeout(
-    function() {
-      self.HideIconMenuTimerId = 0;
-      self.IconMenuDiv.hide();
-    }, 
-    300);  
+  if (EDIT) {
+    var self = this;
+    this.HideIconMenuTimerId = setTimeout(
+      function() {
+        self.HideIconMenuTimerId = 0;
+        self.IconMenuDiv.hide();
+      }, 
+      300);  
+  }
 }
 
 Note.prototype.IconMenuEnterCallback = function() {
@@ -597,6 +603,7 @@ Note.prototype.RecordView = function() {
     viewerRecord.CopyViewer(VIEWER2);
     this.ViewerRecords.push(viewerRecord);
   }
+
 }
 
 
@@ -691,6 +698,7 @@ Note.prototype.Contains = function(decendent) {
   return false;
 }
 
+
 // This should method should be split between Note and NotesWidget
 Note.prototype.Select = function() {
   if (NOTES_WIDGET.Iterator.GetNote() != this) {
@@ -739,10 +747,11 @@ Note.prototype.DisplayGUI = function(div) {
     .click(function() {self.Select()})
     .mouseenter(function() { self.IconEnterCallback(); })
     .mouseleave(function() { self.IconLeaveCallback(); });
-  this.IconMenuDiv
-    .mouseenter(function() { self.IconMenuEnterCallback(); })
-    .mouseleave(function() { self.IconMenuLeaveCallback(); });
-
+  if (EDIT) {
+    this.IconMenuDiv
+      .mouseenter(function() { self.IconMenuEnterCallback(); })
+      .mouseleave(function() { self.IconMenuLeaveCallback(); });
+  }
   this.UpdateChildrenGUI();
 }
 
@@ -750,6 +759,7 @@ Note.prototype.DisplayGUI = function(div) {
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
+  obj.SessionId = localStorage.sessionId;
   obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
@@ -761,13 +771,23 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.HiddenTitle = this.HiddenTitle;
   obj.Text = this.Text;
   // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = this.ViewerRecords;
+  obj.ViewerRecords = [];
 
   // The database wants an image id, not an embedded iamge object.
   //  The server should really take care of this since if
-  for (var i = 0; i < obj.ViewerRecords.length; ++i) {
-    obj.ViewerRecords[i].Image = this.ViewerRecords[i].Image._id;
+  for (var i = 0; i < this.ViewerRecords.length; ++i) {
+    if(!this.ViewerRecords[i].Image) continue;
+    rec = {};
+    rec.Image = this.ViewerRecords[i].Image._id;
+    rec.Database = this.ViewerRecords[i].Image.database;
+    rec.NumberOfLevels = this.ViewerRecords[i].Image.levels;
+    rec.Camera = this.ViewerRecords[i].Camera;
+    rec.Annotations = this.ViewerRecords[i].Annotations;
+    
+    obj.ViewerRecords.push(rec);
   }
+  
+ 
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
@@ -906,6 +926,11 @@ Note.prototype.DisplayView = function() {
 }
 
 
+NotesWidget.prototype.GetCurrentNote = function() {
+  return this.Iterator.GetNote();
+}
+
+
 NotesWidget.prototype.SaveUserNote = function() {
   // Create a new note.
   var childNote = new Note();
@@ -940,10 +965,13 @@ NotesWidget.prototype.SaveUserNote = function() {
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(childNote.Serialize(false)),
+           "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });
+    error: function() { 
+      alert( "AJAX - error() : saveusernote 1" ); 
+    },
+  });
 
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
@@ -974,9 +1002,14 @@ NotesWidget.prototype.SaveBrownNote = function() {
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
-    data: {"note": JSON.stringify(note.Serialize(false))},
-    success: function(data,status) { note.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
+      data: {"note": JSON.stringify(note.Serialize(false)),
+             "col" : "favorites"},
+    success: function(data,status) {
+      note.Id = data;
+    },
+    error: function() {
+      alert( "AJAX - error() : saveusernote 2" );
+    },
     });
 }
 
@@ -1014,6 +1047,7 @@ NotesWidget.prototype.SaveCallback = function() {
   if ( ! this.ModifiedFlag) { return;}
   var self = this;
   var d = new Date();
+
   // Save this users notes in the user specific collection.
   var noteObj = JSON.stringify(this.RootNote.Serialize(true));
   $.ajax({

@@ -5,6 +5,7 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
+
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
@@ -724,21 +725,40 @@ def getcomment():
 
 
 # This is close to a general purpose function to insert an object into the database.
+# Used to save favorites and tracking activity
+# It has a bad name which can be changed later.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+
     noteStr = request.form['note'] # for post
+    collectionStr = request.form['col'] # for post
 
     note = json.loads(noteStr)
-    note["ParentId"] = ObjectId(note["ParentId"])
-    note["User"] = ObjectId(session["user"]["id"])
+    if note.has_key("ParentId") :
+        note["ParentId"] = ObjectId(note["ParentId"])
+    note["User"] = ObjectId(session["user_id"])
     note["Type"] = "UserNote"
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    noteId = admindb["views"].save(note)
+    noteId = admindb[collectionStr].save(note)
     return str(noteId)
 
+
+
+@mod.route('/deleteusernote', methods=['GET', 'POST'])
+def deleteusernote():
+
+    noteIdStr = request.form['noteId'] # for post
+    collectionStr = request.form['col'] # for post
+    
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
+    return "success"
+    
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.
 
@@ -754,6 +774,31 @@ def recursiveSetUser(note, user):
     if 'Children ' in note:
         for child in note["Children"]:
             recursiveSetUser(child, user)
+    
+# get the favorite views for a user
+# used to get favorites and recorded activity.
+# it has a bad name that can be changed later.
+@mod.route('/getfavoriteviews', methods=['GET', 'POST'])
+def getfavoriteviews():
+    collectionStr = request.args.get('col', "favorites")
+
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    viewItr = admindb[collectionStr].find({"User": ObjectId(session["user_id"])})
+    viewArray = []
+    for viewObj in viewItr:
+        if "Type" in viewObj :
+            viewObj["_id"] = str(viewObj["_id"])
+            viewObj["User"] = str(viewObj["User"])
+            viewObj["ParentId"] = str(viewObj["ParentId"])
+            addviewimage(viewObj, "")
+            convertViewToPixelCoordinateSystem(viewObj)
+        viewArray.append(viewObj)
+    
+    data = {'viewArray': viewArray}
+    return jsonify(data)
+
 
 
  # This is close to a general purpose function to insert an object into the database.

@@ -115,7 +115,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 var TIME_LINE = [];
 var REDO_STACK = [];
 
-var RECORDING = false;
+var RECORDING = true;
 var RECORDING_NAME;
 
 var RECORDING_BUTTON;
@@ -225,33 +225,102 @@ function NewPageRecord() {
 }
 
 
+var RECORD_TIMER_ID = 0;
 
-// Create a snapshot of the current state and push it on  the TIME_LINE stack.
-function RecordState() {
+function RecordStateCallback() {
+  // Timer called this method.  Timer id is no longer valid.
+  RECORD_TIMER_ID = 0;
   // Redo is an option after undo, until we save a new state.
   REDO_STACK = [];
 
-  var pageRecord = NewPageRecord();
-  var d = new Date();
-  pageRecord.Time = d.getTime();
-  //pageRecord.User = "bev"; // Place holder until I figure out user ids.
-  TIME_LINE.push(pageRecord);
+  // Create a new note.
+  var note = new Note();
+  note.RecordView();
 
-  if (RECORDING) {
-    $.ajax({
-      type: "post",
-      url: "/webgl-viewer/record-save",
-      data: {"record": JSON.stringify( pageRecord ),
-             "name"  : RECORDING_NAME,
-             "db"    : SESSION_DB,
-             "date"  : d.getTime()},
-      success: function(data,status){
-         //alert(data + "\nStatus: " + status);
-         },
-      error: function() { alert( "AJAX - error()" ); },
-      });
+  // The note will want to know its context
+  parentNote = NOTES_WIDGET.GetCurrentNote();
+  if ( ! parentNote.Id) {
+    //  Note is not loaded yet.
+    // Wait some more
+    RecordState();
+    return;
   }
+
+  // ParentId should be depreciated.
+  note.ParentId = parentNote.Id;
+  note.SetParent(parentNote);
+
+  // Save the note in the admin database for this specific user.
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/saveusernote",
+    data: {"note": JSON.stringify(note.Serialize(false)),
+           "col" : "tracking"},
+    success: function(data,status) {
+      note.Id = data;
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log("saveusernote fail (reload before success?)");
+      //alert( "AJAX - error() : saveusernote 3" );
+    },
+  });
+
+
+  TIME_LINE.push(note);
 }
+
+
+// Create a snapshot of the current state and push it on the TIME_LINE stack.
+// I still do not compress scroll wheel zoom, so I am putting a timer event
+// to collapse recording to lest than oner per second.
+function RecordState() {
+  // Delete the previous pending record timer
+  if (RECORD_TIMER_ID) {
+    clearTimeout(RECORD_TIMER_ID);
+    RECORD_TIMER_ID = 0;
+  }
+  // Start a record timer.
+  RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
+}
+
+
+
+
+
+var GET_RECORDS;
+function GetRecords() {
+
+  $.ajax({
+    type: "get",
+    url: "/webgl-viewer/getfavoriteviews",
+    data: {"col" : "tracking"},
+    success: function(data,status) {
+      GET_RECORDS = data.viewArray;
+    },
+    error: function() {
+      alert( "AJAX - error() : get records" );
+    },
+  });
+}
+
+
+var RECORD_TIMER_ID = 0;
+
+// Create a snapshot of the current state and push it on the TIME_LINE stack.
+// I still do not compress scroll wheel zoom, so I am putting a timer event
+// to collapse recording to lest than oner per second.
+function RecordState() {
+  // Delete the previous pending record timer
+  if (RECORD_TIMER_ID) {
+    clearTimeout(RECORD_TIMER_ID);
+    RECORD_TIMER_ID = 0;
+  }
+  // Start a record timer.
+  RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
+}
+
+
+
 
 
 // Move the state back in time.
@@ -259,16 +328,16 @@ function UndoState() {
   if (TIME_LINE.length > 1) {
     // We need at least 2 states to undo.  The last state gets removed,
     // the second to last get applied.
-    var record = TIME_LINE.pop();
-    REDO_STACK.push(record);
+    var recordNote = TIME_LINE.pop();
+    REDO_STACK.push(recordNote);
 
     // Get the new end state
-    record = TIME_LINE[TIME_LINE.length-1];
+    recordNote = TIME_LINE[TIME_LINE.length-1];
     // Now change the page to the state at the end of the timeline.
-    SetNumberOfViews(record.Viewers.length);
-    record.Viewers[0].Apply(VIEWER1);
-    if (record.Viewers.length > 1) {
-      record.Viewers[1].Apply(VIEWER2);
+    SetNumberOfViews(recordNote.ViewerRecords.length);
+    recordNote.ViewerRecords[0].Apply(VIEWER1);
+    if (recordNote.ViewerRecords.length > 1) {
+      recordNote.ViewerRecords[1].Apply(VIEWER2);
     }
   }
 }
