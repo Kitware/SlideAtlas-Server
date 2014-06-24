@@ -95,6 +95,13 @@ function NavigationWidget() {
               .attr('src',"webgl-viewer/static/nextSlide.png")
               .click(function(){self.NextSlide();});
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
+  
+  this.CopyrightWrapper =
+    $('<div>').appendTo('body')
+              .css({
+                'width': '100%',
+                'text-align': 'center'
+              }).html();
 }
 
 /*

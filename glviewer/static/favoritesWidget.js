@@ -94,6 +94,8 @@ function FavoritesWidget() {
   
   VIEWER1.AddGuiObject(this.MenuBookmarkButton, "Bottom", 0, "Left", 0);
   
+  VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
+  
   /*$.get("/sessions?json=true"+"&sessdb=5074589202e31023d4292d8b&sessid=50763f3102e3100690258a95",
         function(data,status){
           if (status == "success") {

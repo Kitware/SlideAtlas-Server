@@ -52,6 +52,17 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
+  
+  this.CopyrightWrapper =
+    $('<div>').appendTo('body')
+              .css({
+                'width': '100%',
+                'text-align': 'center',
+                
+                'z-index': '2'
+              }).html(cache.Image.copyright);
+              
+  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
 }
 
 Viewer.prototype.GetAnnotationVisibility = function() {
