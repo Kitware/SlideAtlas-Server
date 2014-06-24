@@ -40,7 +40,7 @@ function NavigationWidget() {
                     'left' : '170px',
                     'bottom' : bottom,
                     'z-index': '2'});
-  
+
   /**
   this.BookmarkButton =
     $('<img>').appendTo('body')
@@ -95,7 +95,7 @@ function NavigationWidget() {
               .attr('src',"webgl-viewer/static/nextSlide.png")
               .click(function(){self.NextSlide();});
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
-  
+
   this.CopyrightWrapper =
     $('<div>').appendTo('body')
               .css({
@@ -113,9 +113,9 @@ NavigationWidget.prototype.SaveBookmark = function() {
   setTimeout(function(){
                button.css({'opacity': '0.6'});
              }, 1000); // one second
-             
-  
-  
+
+
+
   LoadFavorites();
 }*/
 
@@ -127,9 +127,9 @@ function SaveBookmark() {
   setTimeout(function(){
                button.css({'opacity': '0.6'});
              }, 1000); // one second
-             
-  
-  
+
+
+
   LoadFavorites();
 }
 

@@ -28,8 +28,7 @@ def sessions():
     """
     # Support legacy requests for a single session, which use query string args
     sessid = request.args.get('sessid')
-    sessdb = request.args.get('sessdb')
-    
+
     if sessid:
         session_obj = models.Session.objects.get_or_404(id=sessid)
         return view_a_session(session_obj)
@@ -187,7 +186,6 @@ def view_a_session(session_obj, next=None):
         }
 
     if request.args.get('json'):
-        pdb.set_trace()
         return jsonify(data)
     else:
         is_session_admin = security.AdminSessionRequirement(session_obj).can()

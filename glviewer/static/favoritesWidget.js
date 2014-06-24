@@ -6,7 +6,7 @@ var FAVORITES_GUI
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function FavoritesWidget() {
-  
+
 
   var size = '40px';
   var left = '120px';
@@ -19,9 +19,9 @@ function FavoritesWidget() {
       left = '80px';
     }
   }
-  
+
   this.hidden = true;
-  
+
   FAVORITES_GUI = this;
  /* this.Div =
     $('<div>').appendTo('body')
@@ -29,7 +29,7 @@ function FavoritesWidget() {
                     'left' : left,
                     'bottom' : bottom,
                     'z-index': '2'});*/
-                    
+
   this.FavoritesList =
     $('<div>').appendTo('body')
               .css({
@@ -45,9 +45,9 @@ function FavoritesWidget() {
                 'z-index': '2'
               })
               .hide();
-                    
-  
-    
+
+
+
   /**/
   this.SaveBookmarkButton =
   $('<img>').appendTo(this.FavoritesList)
@@ -64,8 +64,8 @@ function FavoritesWidget() {
             .attr('src',"webgl-viewer/static/saveNew.png")
             .click(function(){SaveBookmark();});
   this.TextTip = new ToolTip(this.SaveBookmarkButton, "Save Bookmark");/**/
-  
-  this.ImageList = 
+
+  this.ImageList =
     $('<div>').appendTo(this.FavoritesList)
               .css({
                 //'padding-left': '75px'
@@ -74,7 +74,7 @@ function FavoritesWidget() {
                 'overflow-y': 'hidden',
                 'white-space': 'nowrap',
               });
-              
+
   var self = this;
   this.MenuBookmarkButton =
     $('<img>').appendTo('body')
@@ -91,22 +91,22 @@ function FavoritesWidget() {
                 self.ShowHideFavorites();
               });
   this.TextTip = new ToolTip(this.MenuBookmarkButton, "Favorites Menu");
-  
+
   VIEWER1.AddGuiObject(this.MenuBookmarkButton, "Bottom", 0, "Left", 0);
-  
+
   VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
-  
+
   /*$.get("/sessions?json=true"+"&sessdb=5074589202e31023d4292d8b&sessid=50763f3102e3100690258a95",
         function(data,status){
           if (status == "success") {
             ViewBrowserAddSessionViews(data);
           } else { alert("ajax failed."); }
         });*/
-        
+
   LoadFavorites();
 
-  
-  
+
+
 }
 
 FavoritesWidget.prototype.ShowHideFavorites = function(){
@@ -136,13 +136,13 @@ function LoadFavorites(){
 
 function LoadFavoritesCallback(sessionData) {
   //var sessionItem = $("[sessid="+sessionData.sessid+"]");
-  
+
   //var viewList = $('<ul>').appendTo(sessionItem)
-  
+
   FAVORITES = sessionData.viewArray;
-  
+
   FAVORITES_GUI.ImageList.html("");
-  
+
   for (var i = 0; i < sessionData.viewArray.length; ++i) {
     var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
                             .css({
@@ -154,8 +154,8 @@ function LoadFavoritesCallback(sessionData) {
                               'background-color': '#0000ff',
                               'opacity': '1.0'
                             });
-                            
-                            
+
+
     var db = sessionData.viewArray[i].ViewerRecords[0].Database;
     var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
     var view = $('<img>').appendTo(favorite)
@@ -168,7 +168,7 @@ function LoadFavoritesCallback(sessionData) {
                          })
                          .attr('index', i)
                          .click(function(){ loadFavorite(this); });
-    
+
     var del = $('<div>').appendTo(favorite)
                         .html("X")
                         .css({
@@ -180,7 +180,7 @@ function LoadFavoritesCallback(sessionData) {
                         })
                         .attr('index', i)
                         .click(function(){ deleteFavorite(this); });
-                         
+
   }
 }
 
@@ -188,27 +188,27 @@ function loadFavorite(img){
   var note = new Note();
   var index = $(img).attr('index');
   note.Load(FAVORITES[index]);
-  
+
   note.DisplayView();
 }
 
 function deleteFavorite(img){
   var index = $(img).attr('index');
-  
+
   $.ajax({
     type: "post",
     url: "/webgl-viewer/deleteusernote",
       data: {"noteId": FAVORITES[index]._id,
              "col" : "favorites"},
     success: function(data,status) {
-      
+
     },
     error: function() {
       alert( "AJAX - error() : deleteusernote" );
     },
     });
   FAVORITES_GUI.ImageList.html("");
-  
+
   LoadFavorites();
 }
 
