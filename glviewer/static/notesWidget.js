@@ -118,7 +118,7 @@ function NotesWidget() {
 
 
   if (EDIT) {
-    var buttonWrapper = 
+    var buttonWrapper =
       $('<div>')
         .appendTo(this.Window)
         .css({'position': 'absolute',
@@ -126,7 +126,7 @@ function NotesWidget() {
               'height': '40px',
               'top': '0px',
               'border-bottom':'1px solid #B0B0B0'});
-    this.NewButton = 
+    this.NewButton =
       $('<button>')
         .appendTo(buttonWrapper)
         .text("New")
@@ -134,7 +134,7 @@ function NotesWidget() {
               'font-size': '18px',
               'margin': '5px'})
         .click(function(){self.NewCallback();});
-    this.SaveButton = 
+    this.SaveButton =
       $('<button>')
         .appendTo(buttonWrapper)
         .text("Save")
@@ -416,7 +416,7 @@ function Note () {
   this.ChildrenVisibility = true;
 
   // GUI elements.
-  this.Div = 
+  this.Div =
     $('<div>').attr({'class':'note'})
         .css({'position':'relative'});
 
@@ -426,7 +426,7 @@ function Note () {
     //             'font-size': '30px',
 
 
-    this.Icon = 
+    this.Icon =
       $('<img>')
         .css({'height': '20px',
               'width': '20x',
@@ -450,7 +450,7 @@ function Note () {
             'border-radius': '8px',
             'border-style': 'solid',
             'border-width':'1px'});
-  this.SnapShotButton = 
+  this.SnapShotButton =
     $('<button>').appendTo(this.IconMenuDiv)
       .text("snap shot")
       .css({'color' : '#278BFF',
@@ -487,7 +487,7 @@ Note.prototype.SetParent = function(parent) {
   var self = this;
   this.Parent = parent;
   if (parent) {
-    this.DeleteButton = 
+    this.DeleteButton =
       $('<button>').appendTo(this.IconMenuDiv)
         .text("delete")
         .css({'color' : '#278BFF',
@@ -529,8 +529,8 @@ Note.prototype.IconLeaveCallback = function() {
       function() {
         self.HideIconMenuTimerId = 0;
         self.IconMenuDiv.hide();
-      }, 
-      300);  
+      },
+      300);
   }
 }
 
@@ -783,11 +783,11 @@ Note.prototype.Serialize = function(includeChildren) {
     rec.NumberOfLevels = this.ViewerRecords[i].Image.levels;
     rec.Camera = this.ViewerRecords[i].Camera;
     rec.Annotations = this.ViewerRecords[i].Annotations;
-    
+
     obj.ViewerRecords.push(rec);
   }
-  
- 
+
+
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
@@ -968,8 +968,8 @@ NotesWidget.prototype.SaveUserNote = function() {
            "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { 
-      alert( "AJAX - error() : saveusernote 1" ); 
+    error: function() {
+      alert( "AJAX - error() : saveusernote 1" );
     },
   });
 
@@ -981,7 +981,7 @@ NotesWidget.prototype.SaveUserNote = function() {
 
 
 NotesWidget.prototype.Modified = function() {
-  window.onbeforeunload = 
+  window.onbeforeunload =
     function () {
       return "Some changes have not been saved to the database.";
     }
@@ -994,7 +994,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
   // Create a new note.
   var note = new Note();
   note.RecordView();
-  
+
   // The note will want to know its context
   note.SetParent(this.Iterator.GetNote());
 
@@ -1129,7 +1129,7 @@ NotesWidget.prototype.NewCallback = function() {
   var childIdx = 0;
   var currentNote = this.Iterator.GetNote();
   var parentNote = this.Iterator.GetParentNote();
-  if (parentNote) { 
+  if (parentNote) {
     childIdx = parentNote.Children.indexOf(currentNote)+1;
   } else {
     parentNote = currentNote;

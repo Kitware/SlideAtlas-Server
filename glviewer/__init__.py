@@ -752,13 +752,13 @@ def deleteusernote():
 
     noteIdStr = request.form['noteId'] # for post
     collectionStr = request.form['col'] # for post
-    
+
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
     admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
     return "success"
-    
+
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.
 
@@ -774,7 +774,7 @@ def recursiveSetUser(note, user):
     if 'Children ' in note:
         for child in note["Children"]:
             recursiveSetUser(child, user)
-    
+
 # get the favorite views for a user
 # used to get favorites and recorded activity.
 # it has a bad name that can be changed later.
@@ -795,7 +795,7 @@ def getfavoriteviews():
             addviewimage(viewObj, "")
             convertViewToPixelCoordinateSystem(viewObj)
         viewArray.append(viewObj)
-    
+
     data = {'viewArray': viewArray}
     return jsonify(data)
 

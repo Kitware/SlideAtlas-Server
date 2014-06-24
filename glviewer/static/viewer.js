@@ -63,7 +63,7 @@ function Viewer (viewport, cache) {
       })
       .hide()
       .attr('id', 'copyright');
-              
+
   this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
 }
 
@@ -1179,7 +1179,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
   if (this.ActiveWidget != null) {
     if (this.ActiveWidget.HandleKeyPress(keyCode, shift)) {
       return;
-    }  
+    }
   }
 
   if (String.fromCharCode(keyCode) == 'R') {
