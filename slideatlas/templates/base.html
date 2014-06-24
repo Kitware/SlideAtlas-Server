@@ -94,6 +94,7 @@
         ('home', '/', 'Home', True),
         ('sessions', '/sessions', 'Sessions', True),
         ('admin', '/apiv1/admin#/', 'Admin', show_admin),
+        ('admin', url_for('admin.index'), 'Admin 2', show_admin),
         ('status', '/status', 'Status', True),
     ] -%}
 
