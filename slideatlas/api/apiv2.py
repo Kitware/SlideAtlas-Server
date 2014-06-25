@@ -320,6 +320,50 @@ class GroupItemAPI(ItemAPI):
 
 
 ################################################################################
+class ImageStoreListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self):
+        image_stores = models.ImageStore.objects.order_by('label')
+        return jsonify(image_stores=image_stores.to_son(only_fields=('label',)))
+
+    def post(self):
+        abort(501)  # Not Implemented
+
+
+class ImageStoreItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, image_store):
+        return jsonify(image_stores=[image_store.to_son()])
+
+    def put(self, collection):
+        abort(501)  # Not Implemented
+
+    def patch(self, collection):
+        abort(501)  # Not Implemented
+
+    def delete(self):
+        abort(501)  # Not Implemented
+
+
+class ImageStoreSyncAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
+        image_store.sync()
+        return make_response('', 204)  # No Content
+
+
+class ImageStoreDeliverAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be delivered.')  # Gone
+        image_store.deliver()
+        return make_response('', 204)  # No Content
+
+
+################################################################################
 class CollectionListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
@@ -672,6 +716,26 @@ api.add_resource(GroupItemAPI,
                  '/groups/<GroupRole:group>',
                  endpoint='group_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreListAPI,
+                 '/imagestores',
+                 endpoint='image_store_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(ImageStoreItemAPI,
+                 '/imagestores/<ImageStore:image_store>',
+                 endpoint='image_store_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreSyncAPI,
+                 '/imagestores/<ImageStore:image_store>/sync',
+                 endpoint='image_store_sync',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreDeliverAPI,
+                 '/imagestores/<ImageStore:image_store>/deliver',
+                 endpoint='image_store_deliver',
+                 methods=('POST',))
 
 api.add_resource(CollectionListAPI,
                  '/collections',

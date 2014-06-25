@@ -7,8 +7,8 @@ except ImportError:
         raise ImportError
 import datetime
 from bson.objectid import ObjectId
-from flask import Response, abort, flash, redirect, url_for
-from slideatlas import security
+import itertools
+from flask import Response
 
 
 class MongoJsonEncoder(json.JSONEncoder):
@@ -34,23 +34,6 @@ class DBAccess(object):
 
     def __str__(self):
         return str(self.__dict__)
-
-
-# Decorator for urls that require login
-def site_admin_required(page=False):
-    """Checks whether an site administrator user is logged in or raises error 401."""
-    def real_decorator(function):
-        def decorator(*args, **kwargs):
-            if not any(role.site_admin for role in security.current_user.groups):
-                if page:
-                    flash("You do not have administrative privileges", "error")
-                    return redirect(url_for('home'))
-                else:
-                    abort(401)
-            else:
-                return function(*args, **kwargs)
-        return decorator
-    return real_decorator
 
 
 def get_object_in_collection(col, key, debug=False, soft=False):
@@ -155,3 +138,14 @@ def nicepass(alpha=6,numeric=2):
     end = a_part(lpl)
 
     return "%s%s%s" % (start,mid,end)
+
+
+def reversed_enumerate(sequence):
+    """
+    An efficient equivalent of reversed(list(enumerate(sequence))).
+    """
+    # credit: http://stackoverflow.com/a/7722144
+    return itertools.izip(
+        reversed(xrange(len(sequence))),
+        reversed(sequence),
+    )

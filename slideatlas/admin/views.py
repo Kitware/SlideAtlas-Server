@@ -171,7 +171,7 @@ class CollectionView(SlideatlasModelView):
 
     can_delete = False
 
-    column_list = ('label', 'image_store')
+    column_list = ('label', 'creator_codes')
     column_default_sort = 'label'
     column_searchable_list = ('label', 'copyright')
 
