@@ -345,6 +345,24 @@ class ImageStoreItemAPI(ItemAPI):
         abort(501)  # Not Implemented
 
 
+class ImageStoreSyncAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
+        image_store.sync()
+        return make_response('', 204)  # No Content
+
+
+class ImageStoreDeliverAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be delivered.')  # Gone
+        image_store.deliver()
+        return make_response('', 204)  # No Content
+
+
 ################################################################################
 class CollectionListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
@@ -708,6 +726,16 @@ api.add_resource(ImageStoreItemAPI,
                  '/imagestores/<ImageStore:image_store>',
                  endpoint='image_store_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreSyncAPI,
+                 '/imagestores/<ImageStore:image_store>/sync',
+                 endpoint='image_store_sync',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreDeliverAPI,
+                 '/imagestores/<ImageStore:image_store>/deliver',
+                 endpoint='image_store_deliver',
+                 methods=('POST',))
 
 api.add_resource(CollectionListAPI,
                  '/collections',

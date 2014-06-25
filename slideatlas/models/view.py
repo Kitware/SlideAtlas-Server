@@ -66,7 +66,15 @@ class EmbeddedAnnotationField(GenericEmbeddedDocumentField):
 class View(MultipleDatabaseModelDocument):
     meta = {
         'collection': 'views',
-        }
+        'indexes': [
+            {
+                'fields': ('image',),
+                'cls': False,
+                'unique': False,
+                'sparse': True, # TODO: this should not be sparse, but the database needs to be fixed
+            },
+        ]
+    }
 
     # TODO: this is a string in some places
     image = ObjectIdField(required=True, db_field='img',

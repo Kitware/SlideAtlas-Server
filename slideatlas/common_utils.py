@@ -7,6 +7,7 @@ except ImportError:
         raise ImportError
 import datetime
 from bson.objectid import ObjectId
+import itertools
 from flask import Response
 
 
@@ -137,3 +138,14 @@ def nicepass(alpha=6,numeric=2):
     end = a_part(lpl)
 
     return "%s%s%s" % (start,mid,end)
+
+
+def reversed_enumerate(sequence):
+    """
+    An efficient equivalent of reversed(list(enumerate(sequence))).
+    """
+    # credit: http://stackoverflow.com/a/7722144
+    return itertools.izip(
+        reversed(xrange(len(sequence))),
+        reversed(sequence),
+    )

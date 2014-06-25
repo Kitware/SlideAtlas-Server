@@ -5,6 +5,7 @@ import datetime
 import glob
 import logging
 import os
+import re
 try:
     import cStringIO as StringIO
 except ImportError:
@@ -17,8 +18,9 @@ from PIL import Image as PImage
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
 from ..view import View
-from ..session import Session, RefItem
+from ..session import Collection, Session, RefItem
 
+from slideatlas.common_utils import reversed_enumerate
 from slideatlas.ptiffstore.reader_cache import make_reader
 from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
 
@@ -51,7 +53,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         verbose_name='Root Path', help_text='Location on local filesystem for image files.')
 
     @property
-    def session_name(self):
+    def default_session_name(self):
         return 'All'
 
 
@@ -141,32 +143,21 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     # def _add_image(self, filename):
     #     pass
 
-    def sync(self):
-        """
-        Syncs the objects in Image Session and View with the files in given folder.
 
-        - Verifies that all images referred in image collection are available in the file store.
-        - Finds out new files are not yet added to the store
-        - Creates a view for these in 'self.session_name' session
-        - Include the images that are newly added (based on filename / modification date)
+    def _import_new_images(self):
+        # place new images in the default session
+        try:
+            session = Session.objects.get(image_store=self, name=self.default_session_name)
+        except DoesNotExist:
+            raise
+            # TODO: need a collection to create the new session in
+            # session = Session(image_store=self, name=self.default_session_name, label=self.default_session_name)
+        except MultipleObjectsReturned:
+            # TODO: this generally shouldn't happen, but should be handled
+            raise
 
-        It is assumed that the modification dates to any changes to folder are intact
-
-        A special session, 'self.session_name', contains 1 view corresponding to each of the image files
-
-        """
         with self:
-            # Find the session
-            try:
-                session = Session.objects.get(image_store=self, name=self.session_name)
-            except DoesNotExist:
-                session = Session(image_store=self, name=self.session_name, label=self.session_name)
-            except MultipleObjectsReturned:
-                # TODO: this generally shouldn't happen, but should be handled
-                raise
-
-            updated_images = list()
-            new_views = list()
+            new_images = list()
 
             search_path = os.path.join(self.root_path, '*.ptif')
             # sorting will be by modification time, with earliest first
@@ -191,18 +182,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     raise
                 else:  # existing image found
                     if image.uploaded_at == file_modified_time:
-                        # image unchanged, skip processing
+                        # image unchanged as expected, skip processing
                         continue
                     else:
                         logging.warning('Existing image was modified: %s' % image_file_path)
-                        # find all existing views for the image and delete them
-                        for view in View.objects(image=image.id):
-                            try:
-                                session.views.remove(view.id)
-                            except ValueError:
-                                # it's fine if the view wasn't in the session's list
-                                pass
-                            view.delete()
 
                 reader = make_reader({
                     'fname': image_file_path,
@@ -222,41 +205,99 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 image.coordinate_system = 'Pixel'
                 image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
 
-                image.save()
+                image.validate() # TODO: may remove this eventually
 
-                # create a new view
                 view = View(image=image.id)
+
+                # newest images should be at the top of the session's view list
+                session.views.insert(0, RefItem(ref=view.id))
+
+                # to make failure more transactional, don't save until everything is finalized
+                image.save()
                 view.save()
-                new_views.append(RefItem(ref=view.id))
+                session.save()
 
-                updated_images.append(image.to_mongo())
-
-            # newest images should be at the top of the session's view list
-            session.views = list(reversed(new_views)) + session.views
-            session.save()
-
-            resp = {
-                'count': len(ptiff_files),
-                'synced': len(updated_images),
-                'images': updated_images,
-            }
-            self.last_sync = datetime.datetime.now()
-            self.save()
-            return resp
+                new_images.append(image.to_mongo())
+        return new_images
 
 
-    def resync(self):
-        """
-        Delete and recreate all Images, Views, and Sessions.
-        """
-        self.last_sync = datetime.datetime.min
-        self.save()
+    def _deliver_views_to_inboxes(self):
+
+        # '_import_new_images' will have been called previously, so we can assume
+        #   that a default session exists
+        default_session = Session.objects.get(image_store=self, name=self.default_session_name)
 
         with self:
-            View.drop_collection()
-            Image.drop_collection()
+            # reverse to start with the oldest views at the end of the list, and
+            #   more importantly, to permit deletion from the list while iterating
+            for view_ref_pos, view_ref in reversed_enumerate(default_session.views):
+                view = View.objects.only('image').with_id(view_ref.ref)
+                image = Image.objects.only('label', 'filename').with_id(view.image)
 
-            Session.objects(image_store=self, name=self.session_name).delete()
+                # get creator_code
+                # TODO: move the creator_code to a property of Image objects
+                creator_code_match = re.match(r'^ *([a-zA-Z- ]+?)[0-9 _-]*\|', image.label)
+                if not creator_code_match:
+                    logging.error('Could not read creator code from barcode "%s" in image: %s' % (image.label, image.filename))
+                    continue
+                creator_code = creator_code_match.group(1)
 
-        # Wipes all the images
-        return self.sync()
+                # try to find the corresponding collection
+                try:
+                    collection = Collection.objects.get(creator_codes=creator_code)
+                except DoesNotExist:
+                    logging.info('Session for creator code "%s" not found' % creator_code)
+                    continue
+                except MultipleObjectsReturned:
+                    logging.error('Multiple sessions for creator code "%s" found' % creator_code)
+                    continue
+
+                # get the inbox session for the collection
+                try:
+                    inbox_session = Session.objects.get(collection=collection, name='Inbox')
+                except DoesNotExist:
+                    # TODO: remove the image_store field, it shouldn't be required
+                    inbox_session = Session(collection=collection,
+                                            image_store=self,
+                                            name='Inbox',
+                                            label='Inbox')
+                except MultipleObjectsReturned:
+                    # TODO: this generally shouldn't happen, but should be handled
+                    raise
+
+                # move the session
+                default_session.views.pop(view_ref_pos)
+                inbox_session.views.insert(0, view_ref)
+
+                # save destination session first, duplicate is preferable to dropped
+                inbox_session.save()
+                default_session.save()
+                logging.info('Delivered image: %s' % image.label)
+
+
+
+    def sync(self):
+        """
+        Syncs the objects in Image Session and View with the files in given folder.
+
+        - Verifies that all images referred in image collection are available in the file store.
+        - Finds out new files are not yet added to the store
+        - Creates a view for these in the session with a matching "image creator code" or 'self.default_session_name' session
+
+        It is assumed that the modification dates to any changes to folder are intact
+        """
+        new_images = self._import_new_images()
+
+        self.last_sync = datetime.datetime.now()
+        self.save()
+
+        resp = {
+            'count': None, # TODO: deprecated
+            'synced': len(new_images),
+            'images': new_images,
+        }
+        return resp
+
+
+    def deliver(self):
+        self._deliver_views_to_inboxes()
