@@ -392,6 +392,20 @@ class CollectionItemAPI(ItemAPI):
         abort(501)  # Not Implemented
 
 
+class CollectionAccessAPI(API):
+    @security.AdminCollectionRequirement.protected
+    def get(self, collection):
+        groups = models.GroupRole.objects(permissions__resource_type='collection',
+                                          permissions__resource_id=collection.id
+                                         ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
+        abort(501)  # Not Implemented
+
+
 ################################################################################
 class SessionListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
@@ -455,6 +469,19 @@ class SessionItemAPI(ItemAPI):
     def delete(self, session):
         abort(501)  # Not Implemented
 
+
+class SessionAccessAPI(API):
+    @security.AdminSessionRequirement.protected
+    def get(self, session):
+        groups = models.GroupRole.objects(permissions__resource_type='session',
+                                          permissions__resource_id=session.id
+                                         ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
+        abort(501)  # Not Implemented
 
 ################################################################################
 class SessionAttachmentListAPI(ListAPI):
@@ -688,7 +715,6 @@ blueprint = Blueprint('apiv2', __name__,
 def register_with_app(app):
     app.register_blueprint(blueprint)
 
-
 api = Api(blueprint,
           prefix='/v2',
           decorators=[security.login_required],
@@ -747,6 +773,11 @@ api.add_resource(CollectionItemAPI,
                  endpoint='collection_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
+api.add_resource(CollectionAccessAPI,
+                 '/collections/<Collection:collection>/access',
+                 endpoint='collection_access',
+                 methods=('GET', 'POST'))
+
 api.add_resource(SessionListAPI,
                  '/sessions',
                  endpoint='session_list',
@@ -756,6 +787,11 @@ api.add_resource(SessionItemAPI,
                  '/sessions/<Session:session>',
                  endpoint='session_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(SessionAccessAPI,
+                 '/sessions/<Session:session>/access',
+                 endpoint='session_access',
+                 methods=('GET', 'POST'))
 
 api.add_resource(SessionAttachmentListAPI,
                  '/sessions/<Session:session>/attachments',
