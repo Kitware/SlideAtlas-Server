@@ -7,7 +7,6 @@ from flask.views import MethodView
 from bson import ObjectId
 from slideatlas.common_utils import jsonify
 from gridfs import GridFS
-from slideatlas.common_utils import site_admin_required
 from slideatlas import models, security
 from slideatlas.ptiffstore import asset_store
 import logging
@@ -23,7 +22,7 @@ mod = Blueprint('api', __name__,
 class AdminDBAPI(MethodView):
     decorators = []
 
-    @site_admin_required(False)
+    @security.AdminSiteRequirement.protected
     def get(self, restype, resid=None):
         """
         Get restype with resid ['users'], if resid is not supplied, returns a list
@@ -57,7 +56,7 @@ class AdminDBAPI(MethodView):
 class AdminDBItemsAPI(MethodView):
     decorators = []
 
-    @site_admin_required(False)
+    @security.AdminSiteRequirement.protected
     def get(self, restype, resid, listtype):
         admin_db = models.ImageStore._get_db()
         # Restype has to be between allowed ones or the request will not come here
@@ -89,7 +88,7 @@ class AdminDBItemsAPI(MethodView):
 # The url valid for databases, rules and users with supported queries
 
 class DatabaseAPI(AdminDBAPI):
-    decorators = [site_admin_required(False)]
+    decorators = [security.AdminSiteRequirement.protected]
 
     def delete(self, resid):
         obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
@@ -457,7 +456,7 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 # Specially for session
 
 # Render admin template
-@site_admin_required(True)
+@security.AdminSiteRequirement.protected
 @mod.route('/admin')
 def admin_main():
     """
@@ -465,7 +464,7 @@ def admin_main():
     """
     return Response(render_template("admin.html"))
 
-@site_admin_required(True)
+@security.AdminSiteRequirement.protected
 @mod.route('/mysessions')
 def admin_main_sessions():
     """
