@@ -18,7 +18,7 @@ def add_url_converters(app):
     app.url_map.converters.update({
         'ObjectId': ObjectIdConverter,
         'User': model_document_converter_factory(models.User),
-        'GroupRole': model_document_converter_factory(models.GroupRole),
+        'Group': model_document_converter_factory(models.Group),
         'Collection': model_document_converter_factory(models.Collection),
         'Session': model_document_converter_factory(models.Session),
         'ImageStore': model_document_converter_factory(models.ImageStore),

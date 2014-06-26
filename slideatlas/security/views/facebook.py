@@ -88,5 +88,5 @@ class FacebookOAuthLogin(OAuthLogin):
         #   which the user is not a member of on Facebook will be removed when
         #   the user logs in via Facebook.
         non_facebook_groups = [group for group in user.groups if not group.facebook_id]
-        current_facebook_groups = list(models.GroupRole.objects(facebook_id__in=person.facebook_groups))
+        current_facebook_groups = list(models.Group.objects(facebook_id__in=person.facebook_groups))
         user.groups = non_facebook_groups + current_facebook_groups

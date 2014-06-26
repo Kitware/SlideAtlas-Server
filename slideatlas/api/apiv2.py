@@ -224,7 +224,7 @@ class GroupListAPI(ListAPI):
         #     roles = [role for role in roles if role.can_admin_session(session)]
         # else:
         #     roles = list(roles)
-        groups = models.GroupRole.objects.order_by('label')
+        groups = models.Group.objects.order_by('label')
         return jsonify(groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminSiteRequirement.protected
@@ -247,7 +247,7 @@ class GroupListAPI(ListAPI):
         #             user.save()
         #         roles.append(user.user_role)
         # elif 'create_group' in request_args:
-        #     role = models.GroupRole(
+        #     role = models.Group(
         #         db=request_args['create_group']['db'],
         #         name=request_args['create_group']['name'],
         #         description=request_args['create_group'].get('description', ''),
@@ -395,9 +395,9 @@ class CollectionItemAPI(ItemAPI):
 class CollectionAccessAPI(API):
     @security.AdminCollectionRequirement.protected
     def get(self, collection):
-        groups = models.GroupRole.objects(permissions__resource_type='collection',
-                                          permissions__resource_id=collection.id
-                                         ).order_by('label')
+        groups = models.Group.objects(permissions__resource_type='collection',
+                                      permissions__resource_id=collection.id
+                                     ).order_by('label')
 
         return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
 
@@ -473,9 +473,9 @@ class SessionItemAPI(ItemAPI):
 class SessionAccessAPI(API):
     @security.AdminSessionRequirement.protected
     def get(self, session):
-        groups = models.GroupRole.objects(permissions__resource_type='session',
-                                          permissions__resource_id=session.id
-                                         ).order_by('label')
+        groups = models.Group.objects(permissions__resource_type='session',
+                                      permissions__resource_id=session.id
+                                     ).order_by('label')
 
         return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
 
@@ -739,7 +739,7 @@ api.add_resource(GroupListAPI,
                  methods=('GET', 'POST'))
 
 api.add_resource(GroupItemAPI,
-                 '/groups/<GroupRole:group>',
+                 '/groups/<Group:group>',
                  endpoint='group_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 

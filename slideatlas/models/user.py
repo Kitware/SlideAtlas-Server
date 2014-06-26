@@ -7,7 +7,7 @@ from mongoengine import DateTimeField, EmailField, IntField, ListField, \
 from flask.ext.security import UserMixin
 
 from .common import ModelDocument
-from .role import GroupRole
+from .group import Group
 
 ################################################################################
 __all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
@@ -57,6 +57,7 @@ class User(ModelDocument, UserMixin):
         verbose_name='Login Count', help_text='The total number of logins by the user.')
 
     groups = ListField(ReferenceField(GroupRole), required=False, db_field='rules',
+    groups = ListField(ReferenceField(Group), required=False, db_field='rules',
         verbose_name='Groups', help_text='The list of groups that this user belongs to.')
 
     @property
