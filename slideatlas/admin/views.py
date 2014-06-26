@@ -16,16 +16,18 @@ __all__ = ('register_with_app',)
 
 ################################################################################
 from bson import ObjectId
+from bson.errors import InvalidId
 from wtforms.fields import IntegerField
 
 class ObjectIdField(IntegerField):
     def process_formdata(self, valuelist):
         if valuelist:
-            try:
-                self.data = ObjectId(valuelist[0])
-            except ValueError:
-                self.data = None
-                raise ValueError(self.gettext('Not a valid ObjectId value'))
+            self.data = None
+            if valuelist[0]:
+                try:
+                    self.data = ObjectId(valuelist[0])
+                except ValueError:
+                    raise ValueError(self.gettext('Not a valid ObjectId value'))
 
 class SlideatlasModelConverter(CustomModelConverter):
     @orm.converts('ObjectIdField')
