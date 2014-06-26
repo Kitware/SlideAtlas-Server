@@ -16,6 +16,7 @@ import pymongo
 import werkzeug.serving
 from slideatlas import create_app
 from slideatlas import models
+from base64 import b64encode
 
 app = create_app()
 sockets = Sockets(app)
@@ -26,33 +27,35 @@ def tile_socket(ws):
     while True:
         message = ws.receive()
         # Wraps entire websocket response, any errors will be reported back
-        try:
-            req = BSON(message).decode()
-            if "init" in req:
-                """
-                Initialization request
-                """
-                tilestore = models.ImageStore.objects.get(id=req["init"]["db"])
-                if tilestore == None:
-                    raise Exception("Tile Store %s not found"%(req["init"]["db"]))
-                resp = BSON.encode({"request" : req, "success" : True})
+        with app.app_context():
+            try:
+                req = BSON(message).decode()
+                if "init" in req:
+                    """
+                    Initialization request
+                    """
+                    tilestore = models.ImageStore.objects.get(id=req["init"]["db"])
+                    if tilestore == None:
+                        raise Exception("Tile Store %s not found"%(req["init"]["db"]))
+                    resp = BSON.encode({"request" : req, "success" : True})
 
-            elif "tile" in req:
-                """
-                Regular request
-                """
-                if tilestore == None:
-                    raise Exception("Tile Store not initialized")
+                elif "tile" in req:
+                    """
+                    Regular request
+                    """
+                    if tilestore == None:
+                        raise Exception("Tile Store not initialized")
 
-                imgdata = tilestore.get_tile(req["tile"]["image"], req["tile"]["name"])
-                resp = BSON.encode({"request" : req, "image" : Binary(imgdata), "success" : True})
-            else:
-                raise Exception("Unknown request")
-            ws.send(resp, True)
+                    imgdata = tilestore.get_tile(req["tile"]["image"], req["tile"]["name"])
+                    resp = BSON.encode({"request" : req, "image" : Binary(imgdata), "success" : True})
+#                    resp = BSON.encode({"request" : req, "image" : b64encode(imgdata), "success" : True})
+                else:
+                    raise Exception("Unknown request")
+                ws.send(resp, True)
 
-        except Exception as e:
-            resp = BSON.encode({"request" : req, "error" : e.message})
-            ws.send(resp, True)
+            except Exception as e:
+                resp = BSON.encode({"request" : req, "error" : e.message})
+                ws.send(resp, True)
 
 
 def run_server():
