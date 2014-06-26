@@ -37,6 +37,17 @@ function Dialog () {
       this.TextBreak1 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak1);
       
+      this.Text0 = document.createTextNode('Font (px):');
+      this.TextForm.appendChild(this.Text0);
+      this.TextFont = document.createElement('input');
+      this.TextFont.id = 'textfont';
+      this.TextFont.type = 'number';
+      this.TextForm.appendChild(this.TextFont);
+      $('#textfont').attr('value', 30);
+      
+      this.TextBreak2 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak2);
+      
       this.Text1 = document.createTextNode('Color:');
       this.TextForm.appendChild(this.Text1);
       this.TextColor = document.createElement('input');
@@ -45,8 +56,8 @@ function Dialog () {
       this.TextForm.appendChild(this.TextColor);
       $('#textcolor').attr('value','#0000ff');
       
-      this.TextBreak2 = document.createElement('br');
-      this.TextForm.appendChild(this.TextBreak2);
+      this.TextBreak3 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak3);
       
       this.TextMarker = document.createElement('input');
       this.TextMarker.id = 'TextMarker';
@@ -55,6 +66,19 @@ function Dialog () {
       $('#TextMarker').attr('checked',true);
       this.Text2 = document.createTextNode('Marker');
       this.TextForm.appendChild(this.Text2);
+      
+      this.TextBreak4 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak4);
+      
+      this.TextBackground = document.createElement('input');
+      this.TextBackground.id = 'TextBackground';
+      this.TextBackground.type = 'checkbox';
+      this.TextForm.appendChild(this.TextBackground);
+      $('#TextBackground').attr('checked', false);
+      this.Text3 = document.createTextNode('Background');
+      this.TextForm.appendChild(this.Text3);
+      
+      
       
       //The circle annotation editor
       this.CircleDiv = document.createElement('div');

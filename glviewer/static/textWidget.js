@@ -419,6 +419,8 @@ function TextPropertyDialogApply() {
     return;
   }
   widget.SetActive(false);
+  
+  ApplyLineBreaks("textwidgetcontent");
 
   var string = document.getElementById("textwidgetcontent").value;
   // remove any trailing white space.
@@ -429,14 +431,19 @@ function TextPropertyDialogApply() {
   }
 
   var hexcolor = document.getElementById("textcolor").value;
+  var fontSize = document.getElementById("textfont").value;
   var markerFlag = document.getElementById("TextMarker").checked;
+  var backgroundFlag = document.getElementById("TextBackground").checked;
 
   widget.Shape.String = string;
+  widget.Shape.Size = fontSize;
   widget.Shape.UpdateBuffers();
   widget.Shape.SetColor(hexcolor);
   widget.AnchorShape.SetFillColor(hexcolor);
   widget.AnchorShape.ChooseOutlineColor();
   widget.SetAnchorShapeVisibility(markerFlag);
+  widget.Shape.BackgroundFlag = backgroundFlag;
+  
 
   RecordState();
 
@@ -462,6 +469,45 @@ function TextPropertyDialogDelete() {
     eventuallyRender();
     RecordState();
   }
+}
+
+
+//Function to apply line breaks to textarea text.
+function ApplyLineBreaks(strTextAreaId) {
+    var oTextarea = document.getElementById(strTextAreaId);
+    if (oTextarea.wrap) {
+        oTextarea.setAttribute("wrap", "off");
+    }
+    else {
+        oTextarea.setAttribute("wrap", "off");
+        var newArea = oTextarea.cloneNode(true);
+        newArea.value = oTextarea.value;
+        oTextarea.parentNode.replaceChild(newArea, oTextarea);
+        oTextarea = newArea;
+    }
+
+    var strRawValue = oTextarea.value;
+    oTextarea.value = "";
+    var nEmptyWidth = oTextarea.scrollWidth;
+    var nLastWrappingIndex = -1;
+    for (var i = 0; i < strRawValue.length; i++) {
+        var curChar = strRawValue.charAt(i);
+        if (curChar == ' ' || curChar == '-' || curChar == '+')
+            nLastWrappingIndex = i;
+        oTextarea.value += curChar;
+        if (oTextarea.scrollWidth > nEmptyWidth) {
+            var buffer = "";
+            if (nLastWrappingIndex >= 0) {
+                for (var j = nLastWrappingIndex + 1; j < i; j++)
+                    buffer += strRawValue.charAt(j);
+                nLastWrappingIndex = -1;
+            }
+            buffer += curChar;
+            oTextarea.value = oTextarea.value.substr(0, oTextarea.value.length - buffer.length);
+            oTextarea.value += "\n" + buffer;
+        }
+    }
+    oTextarea.setAttribute("wrap", "");
 }
 
 

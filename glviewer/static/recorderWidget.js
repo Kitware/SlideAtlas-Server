@@ -260,7 +260,7 @@ function RecordStateCallback() {
       note.Id = data;
     },
     error: function() {
-      alert( "AJAX - error() : saveusernote" );
+      //alert( "AJAX - error() : saveusernote" );
     },
   });
 

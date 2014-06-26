@@ -53,7 +53,7 @@ function Viewer (viewport, cache) {
 
   this.GuiElements = [];
   
-  this.CopyrightWrapper =
+  /*this.CopyrightWrapper =
     $('<div>').appendTo('body')
               .css({
                 'width': '100%',
@@ -62,7 +62,7 @@ function Viewer (viewport, cache) {
                 'z-index': '2'
               }).html(cache.Image.copyright);
               
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
+  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);*/
 }
 
 Viewer.prototype.GetAnnotationVisibility = function() {

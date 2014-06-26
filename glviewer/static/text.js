@@ -104,6 +104,8 @@ function Text() {
   this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
 
   this.PixelBounds = [0,0,0,0];
+  
+  this.BackgroundFlag = false;
 };
 
 Text.prototype.destructor=function() {
@@ -214,18 +216,33 @@ Text.prototype.Draw = function (view) {
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.font = this.Size+'pt Calibri';
+    
+    for (var i = 0; i < strArray.length; ++i) {
+      var lineWidth = ctx.measureText(strArray[i]).width;
+      if (lineWidth > width) { width = lineWidth; }
+    }
+    this.PixelBounds = [0, width, 0, height];
+    
+    //The background
+    if(this.BackgroundFlag){
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, this.PixelBounds[3] + 4);
+    }
+    
     if (this.Active) {
       ctx.fillStyle = ConvertColorToHex([1.0,1.0,0.0]);
     } else {
       ctx.fillStyle = ConvertColorToHex(this.Color);
     }
-
+    
     for (var i = 0; i < strArray.length; ++i) {
-      var lineWidth = ctx.measureText(strArray[i]).width;
-      if (lineWidth > width) { width = lineWidth; }
       ctx.fillText(strArray[i], x, y + this.Size*(i+1));
     }
-    this.PixelBounds = [0, width, 0, height];
+    
+    ctx.stroke();
+    
+    
+    
     ctx.restore();
   }
 }
