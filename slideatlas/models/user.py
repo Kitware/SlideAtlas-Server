@@ -1,13 +1,14 @@
 # coding=utf-8
 
 import datetime
+from itertools import chain
 
-from mongoengine import DateTimeField, EmailField, IntField, ListField, \
-    ReferenceField, StringField
+from mongoengine import DateTimeField, EmailField, EmbeddedDocumentField,\
+    IntField, ListField, ReferenceField, StringField
 from flask.ext.security import UserMixin
 
-from .common import ModelDocument
-from .role import GroupRole
+from .common import ModelDocument, PermissionDocument
+from .group import Group
 
 ################################################################################
 __all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
@@ -25,6 +26,12 @@ class User(ModelDocument, UserMixin):
                 'fields': ('email',), # TODO: index by a unique auth-provided identifier
                 'cls': True,
                 'unique': True,
+                'sparse': False,
+            },
+            {
+                'fields': ('permissions.resource_type', 'permissions.resource_id'),
+                'cls': False,
+                'unique': False,
                 'sparse': False,
             },
         ]
@@ -56,7 +63,10 @@ class User(ModelDocument, UserMixin):
     login_count = IntField(required=True, default=0,
         verbose_name='Login Count', help_text='The total number of logins by the user.')
 
-    groups = ListField(ReferenceField(GroupRole), required=False, db_field='rules',
+    permissions = ListField(EmbeddedDocumentField(PermissionDocument), required=False,
+        verbose_name='Permissions', help_text='')
+
+    groups = ListField(ReferenceField(Group), required=False, db_field='rules',
         verbose_name='Groups', help_text='The list of groups that this user belongs to.')
 
     @property
@@ -66,9 +76,16 @@ class User(ModelDocument, UserMixin):
 
     @property
     def effective_permissions(self):
+        """
+        Provides both the user's permissions and the transitive group permissions,
+        as Permission objects (named tuples).
+        """
         return (permission_document.to_permission()
-                for group in self.groups
-                for permission_document in group.permissions)
+                for permission_document in chain(
+                    self.permissions,
+                    chain.from_iterable(group.permissions for group in self.groups)
+                    )
+        )
 
     @property
     def active(self):

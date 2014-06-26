@@ -128,7 +128,7 @@ class ShibbolethUserView(BaseUserView):
 
 ################################################################################
 class GroupView(SlideatlasModelView):
-    model_class = models.GroupRole
+    model_class = models.Group
     name = 'Groups'
 
     can_delete = False # TODO: set up reverse-deletion rules for users, so this can be removed
