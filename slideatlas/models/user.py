@@ -28,6 +28,12 @@ class User(ModelDocument, UserMixin):
                 'unique': True,
                 'sparse': False,
             },
+            {
+                'fields': ('permissions.resource_type', 'permissions.resource_id'),
+                'cls': False,
+                'unique': False,
+                'sparse': False,
+            },
         ]
     }
 

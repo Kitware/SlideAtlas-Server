@@ -16,6 +16,12 @@ class Group(ModelDocument):
         'allow_inheritance': True,
         'indexes': [
             {
+                'fields': ('permissions.resource_type', 'permissions.resource_id'),
+                'cls': False,
+                'unique': False,
+                'sparse': False,
+            },
+            {
                 'fields': ('facebook_id',),
                 'cls': False,
                 'unique': False,
