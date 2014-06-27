@@ -645,10 +645,10 @@ class SessionAttachmentItemAPI(ItemAPI):
             #   a way to know when the final chunk was uploaded
             abort(400, details='The content\'s total length must be specified in the Content-Range header.')
 
-        content_chunk_size = content_range.stop - content_range.start
-        if content_range.start % content_chunk_size != 0:
+        if content_range.start % attachment.chunkSize != 0:
             abort(400, details='The content\'s start location must be a multiple of the content\'s chunk size.')
 
+        content_chunk_size = content_range.stop - content_range.start
         if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
             # only the end chunk can be shorter
             abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')

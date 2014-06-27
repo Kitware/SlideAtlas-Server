@@ -78,12 +78,14 @@ function attachmentUpload(attachmentPostUrl) {
                     this.uploadRedirect = options.jqXHR.getResponseHeader("Location");
                 }
             },
+            fail: function(event, data) {
+                alert("Upload failed!");
+                // TODO: Display error message details. However, "data.response().jqXHR.responseJSON" is not available until jQuery 2.0
+            },
             always: function (event, options) {
                 // clear after all chunks have been sent
                 this.uploadRedirect = null;
-            },
-            done: function (event, data) {
                 location.reload();
-            }
+            },
         });
     }
