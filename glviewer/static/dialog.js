@@ -43,7 +43,7 @@ function Dialog () {
       this.TextFont.id = 'textfont';
       this.TextFont.type = 'number';
       this.TextForm.appendChild(this.TextFont);
-      $('#textfont').attr('value', 30);
+      $('#textfont').attr('value', 12);
       
       this.TextBreak2 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak2);
@@ -74,7 +74,7 @@ function Dialog () {
       this.TextBackground.id = 'TextBackground';
       this.TextBackground.type = 'checkbox';
       this.TextForm.appendChild(this.TextBackground);
-      $('#TextBackground').attr('checked', false);
+      $('#TextBackground').attr('checked', true);
       this.Text3 = document.createTextNode('Background');
       this.TextForm.appendChild(this.Text3);
       

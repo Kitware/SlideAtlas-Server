@@ -88,7 +88,7 @@ function Text() {
     this.Image.src = IMAGE_PATH_URL +"letters.gif";
   }
   this.Color = [0.5, 1.0, 1.0];
-  this.Size = 30; // Height in pixels
+  this.Size = 12; // Height in pixels
   // Position of the anchor in the world coordinate system.
   this.Position = [100,100];
 
@@ -226,7 +226,7 @@ Text.prototype.Draw = function (view) {
     //The background
     if(this.BackgroundFlag){
       ctx.fillStyle = '#fff';
-      ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, this.PixelBounds[3] + 4);
+      ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, this.PixelBounds[3] + 4 + this.Size/3);
     }
     
     if (this.Active) {

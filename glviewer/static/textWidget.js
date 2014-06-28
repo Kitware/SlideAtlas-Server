@@ -95,6 +95,7 @@ TextWidget.prototype.Serialize = function() {
   obj.position = this.Shape.Position;
   obj.string = this.Shape.String;
   obj.anchorVisibility = this.AnchorShape.Visibility;
+  obj.backgroundFlag = this.Shape.BlackgroundFlag;
   return obj;
 }
 
