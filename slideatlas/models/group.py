@@ -3,16 +3,17 @@
 from mongoengine import EmbeddedDocumentField, ListField, StringField
 
 from .common import ModelDocument, PermissionDocument
+from .common.mixins import SingletonDocumentMixin
 
 ################################################################################
-__all__ = ('Group',)
+__all__ = ('Group', 'PublicGroup', 'UnlistedGroup')
 
 
 ################################################################################
-class Group(ModelDocument):
+class BaseGroup(ModelDocument):
     meta = {
         'db_alias': 'admin_db',
-        'collection': 'rules',
+        'collection': 'groups',
         'allow_inheritance': True,
         'indexes': [
             {
@@ -21,6 +22,20 @@ class Group(ModelDocument):
                 'unique': False,
                 'sparse': False,
             },
+        ]
+    }
+
+    permissions = ListField(EmbeddedDocumentField(PermissionDocument), required=False,
+        verbose_name='Permissions', help_text='')
+
+    def __unicode__(self):
+        return unicode(self.label)
+
+
+################################################################################
+class Group(BaseGroup):
+    meta = {
+        'indexes': [
             {
                 'fields': ('facebook_id',),
                 'cls': False,
@@ -33,11 +48,19 @@ class Group(ModelDocument):
     label = StringField(required=True,  # TODO:make unique
         verbose_name='Name', help_text='')
 
-    permissions = ListField(EmbeddedDocumentField(PermissionDocument), required=False,
-        verbose_name='Permissions', help_text='')
-
     facebook_id = StringField(required=False,
         verbose_name='Facebook Group ID', help_text='The Facebook group ID that corresponds to the group.')
 
-    def __unicode__(self):
-        return unicode(self.label)
+
+################################################################################
+class PublicGroup(BaseGroup, SingletonDocumentMixin):
+    @property
+    def label(self):
+        return 'Public'
+
+
+################################################################################
+class UnlistedGroup(BaseGroup, SingletonDocumentMixin):
+    @property
+    def label(self):
+        return 'Unlisted'

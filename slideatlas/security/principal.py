@@ -4,7 +4,8 @@ from functools import partial, wraps
 from itertools import chain
 
 from flask.ext.principal import Permission as Requirement
-from flask.ext.principal import PermissionDenied, identity_loaded
+from flask.ext.principal import AnonymousIdentity, Identity, PermissionDenied, \
+    identity_loaded
 
 from flask.ext.security import current_user
 from flask.ext.security.core import _on_identity_loaded as security_on_identity_loaded
@@ -130,10 +131,23 @@ class UserRequirement(Requirement, ModelProtectionMixin):
 
 
 ################################################################################
+def identity_loader():
+    # unlike the Flask-Security identity loader, this always returns an identity,
+    #   even if it's an AnonymousIdentity
+    if isinstance(current_user._get_current_object(), models.User):
+        return Identity(current_user.id)
+    return AnonymousIdentity()
+
+
+################################################################################
 def on_identity_loaded(app, identity):
     if isinstance(current_user._get_current_object(), models.User):
         identity.provides.add(UserPermission(current_user.id))
         identity.provides.update(current_user.effective_permissions)
+    else: # Anonymous
+        identity.provides.update(permission_document.to_permission()
+                                 for permission_document
+                                 in models.PublicGroup.get.permissions)
     identity.user = current_user
 
 
@@ -152,6 +166,11 @@ def on_permission_denied(error):
 ################################################################################
 def register_principal(app, security):
     principal = security.principal
+
+    # remove the default loader for Identity, as it does not cause an
+    #   on_identity_loaded signal to be sent for AnonymousIdentity
+    principal.identity_loaders.clear()
+    principal.identity_loader(identity_loader)
 
     # remove the default function for populating Identity, as it creates
     #   RoleNeeds, which are not used here

@@ -129,15 +129,19 @@ class ShibbolethUserView(BaseUserView):
 
 
 ################################################################################
-class GroupView(SlideatlasModelView):
+class BaseGroupView(SlideatlasModelView):
+    category = 'Groups'
+
+class GroupView(BaseGroupView):
     model_class = models.Group
     name = 'Groups'
-
-    can_delete = False # TODO: set up reverse-deletion rules for users, so this can be removed
 
     column_list = ('label',)
     column_default_sort = 'label'
     column_searchable_list = ('label',)
+
+    can_delete = False # TODO: set up reverse-deletion rules for users, so this can be removed
+
     #form_ajax_refs = {
         #'db': QueryAjaxModelLoader('db', models.Database, fields=('label',))
         #}
@@ -146,6 +150,21 @@ class GroupView(SlideatlasModelView):
     # form_overrides = dict(permissions=permission_convert)
 
 #from flask.ext.admin.contrib.mongoengine.ajax import QueryAjaxModelLoader
+
+class PublicGroupView(BaseGroupView):
+    model_class = models.PublicGroup
+    name = 'Public Group'
+
+    can_create = False
+    can_delete = False
+
+class UnlistedGroupView(BaseGroupView):
+    model_class = models.UnlistedGroup
+    name = 'Unlisted Group'
+
+    can_create = False
+    can_delete = False
+
 
 ################################################################################
 class ImageStoreView(SlideatlasModelView):
@@ -197,6 +216,9 @@ def register_with_app(app):
     admin.add_view(ShibbolethUserView())
 
     admin.add_view(GroupView())
+    admin.add_view(PublicGroupView())
+    admin.add_view(UnlistedGroupView())
+
 
     admin.add_view(MongoImageStoreView())
     admin.add_view(PtiffImageStoreView())
