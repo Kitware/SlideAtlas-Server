@@ -20,7 +20,6 @@ mod = Blueprint('session', __name__)
 
 ################################################################################
 @mod.route('/sessions')
-@security.login_required
 def sessions():
     """
     - /sessions  With no argument displays list of sessions accessible to current user

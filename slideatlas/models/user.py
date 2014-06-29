@@ -8,7 +8,7 @@ from mongoengine import DateTimeField, EmailField, EmbeddedDocumentField,\
 from flask.ext.security import UserMixin
 
 from .common import ModelDocument, PermissionDocument
-from .group import Group
+from .group import Group, PublicGroup
 
 ################################################################################
 __all__ = ('User', 'PasswordUser', 'GoogleUser', 'FacebookUser', 'LinkedinUser', 'ShibbolethUser')
@@ -83,8 +83,13 @@ class User(ModelDocument, UserMixin):
         return (permission_document.to_permission()
                 for permission_document in chain(
                     self.permissions,
-                    chain.from_iterable(group.permissions for group in self.groups)
+                    chain.from_iterable(group.permissions
+                                        for group in chain(
+                                            [PublicGroup.get],
+                                            self.groups
+                                        )
                     )
+                )
         )
 
     @property
