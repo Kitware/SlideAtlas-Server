@@ -7,7 +7,8 @@ from mongoengine import Q, EmbeddedDocument, BooleanField, DictField, \
     ListField, ObjectIdField, ReferenceField, StringField
 from mongoengine.errors import NotRegistered
 
-from .common import ModelDocument, ModelQuerySet, AdminSitePermission
+from .common import ModelDocument, AdminSitePermission
+from .common.model_document import ModelQuerySet
 from .image_store import ImageStore
 from .collection import Collection
 
