@@ -12,7 +12,7 @@ __all__ = ('Group',)
 class Group(ModelDocument):
     meta = {
         'db_alias': 'admin_db',
-        'collection': 'rules',
+        'collection': 'groups',
         'allow_inheritance': True,
         'indexes': [
             {
