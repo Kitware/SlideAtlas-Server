@@ -736,7 +736,7 @@ def saveusernote():
     note = json.loads(noteStr)
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
-    note["User"] = ObjectId(session["user_id"])
+    note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = "UserNote"
 
     # Saving notes in admin db now.
@@ -785,7 +785,7 @@ def getfavoriteviews():
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    viewItr = admindb[collectionStr].find({"User": ObjectId(session["user_id"])})
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
     viewArray = []
     for viewObj in viewItr:
         if "Type" in viewObj :

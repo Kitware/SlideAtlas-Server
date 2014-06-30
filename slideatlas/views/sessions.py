@@ -79,7 +79,8 @@ def view_all_sessions():
                     for session, can_admin in sessions],
             }
             for collection, sessions in all_sessions]
-        return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)
+        user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
+        return jsonify(sessions=ajax_sessionlist, name=user_name, ajax=1)
     else:
         return render_template('sessionlist.html', all_sessions=all_sessions)
 
