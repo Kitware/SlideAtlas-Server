@@ -75,7 +75,6 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             'fname': tiff_path,
             'dir': image.levels - index_z -1,
         })
-        logging.info('Getting tile from: %s' % tiff_path)
 
         # Locate the tile name from x and y
         pixel_x = index_x * tile_size + 5
@@ -84,12 +83,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         tile_buffer = StringIO.StringIO()
         reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
 
-        if reader_result > 0:
-            logging.info('Read %d bytes' % reader_result)
-        else:
+        if reader_result == 0:
             raise DoesNotExist('Tile not able to be read from %s' % tiff_path)
 
         return tile_buffer.getvalue()
+
 
     def get_thumb(self, image):
         """
@@ -104,8 +102,6 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         # TODO: create a separate call for parsing embedded images
         reader.parse_image_description()
-
-        logging.info('Getting thumbnail from: %s' % tiff_path)
 
         # Load the stored images
         label_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('label'))))
@@ -131,17 +127,6 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         tile_buffer.close()
 
         return contents
-
-
-    # def load_folder(self):
-    #     # TODO: 'path_to_watch' is not defined
-    #     self.before = dict ((f, None) for f in os.listdir (path_to_watch))
-    #
-    # def _remove_image(self, id):
-    #     pass
-    #
-    # def _add_image(self, filename):
-    #     pass
 
 
     def _import_new_images(self):
@@ -273,7 +258,6 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 inbox_session.save()
                 default_session.save()
                 logging.info('Delivered image: %s' % image.label)
-
 
 
     def sync(self):
