@@ -1,0 +1,19 @@
+{% extends 'admin/index.html' %}
+
+{% block body %}
+<form>
+    <button
+        type="submit"
+        formaction="/api/v2/imagestores/sync"
+        formmethod="post"
+        class="btn btn-primary btn-large">Sync Local Image Stores</button>
+</form>
+
+<form>
+    <button
+        type="submit"
+        formaction="/api/v2/imagestores/deliver"
+        formmethod="post"
+        class="btn btn-primary btn-large">Deliver Local Image Stores</button>
+</form>
+{% endblock %}
