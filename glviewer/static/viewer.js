@@ -52,17 +52,23 @@ function Viewer (viewport, cache) {
   this.DoubleClickY = 0;
 
   this.GuiElements = [];
-  
-  /*this.CopyrightWrapper =
-    $('<div>').appendTo('body')
-              .css({
-                'width': '100%',
-                'text-align': 'center',
-                
-                'z-index': '2'
-              }).html(cache.Image.copyright);
-              
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);*/
+
+  this.CopyrightWrapper =
+    $('<div>')
+      //.appendTo(this.MainView.Canvas)
+      .appendTo('body')
+      .css({
+        'width': '100%',
+        'position': 'absolute',
+        'text-align': 'center',
+        'color': '#eee',
+        //'border': '1px solid black',
+        'z-index': '3'
+      })
+      //.hide()
+      .attr('id', 'copyright');
+
+  this.AddGuiObject(this.CopyrightWrapper, 'Top', 5, 'Left', 0);
 }
 
 Viewer.prototype.GetAnnotationVisibility = function() {
@@ -128,6 +134,16 @@ Viewer.prototype.SetSection = function(section) {
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
+
+  if (cache && cache.Image) {
+    if (cache.Image.copyright == undefined) {
+      cache.Image.copyright = "Copyright 2014";
+    }
+    this.CopyrightWrapper
+      .html(cache.Image.copyright)
+      .show();
+  }
+
   this.MainView.SetCache(cache);
   if (this.OverView) {
     this.OverView.SetCache(cache);
@@ -225,7 +241,7 @@ Viewer.prototype.SetViewport = function(viewport) {
     } else if ('Top' in element) {
       var pos = element.Top.toString() + "px";
       object.css({
-      'bottom' : pos});
+      'top' : pos});
     }
 
     if ('Left' in element) {
@@ -1167,7 +1183,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
   if (this.ActiveWidget != null) {
     if (this.ActiveWidget.HandleKeyPress(keyCode, shift)) {
       return;
-    }  
+    }
   }
 
   if (String.fromCharCode(keyCode) == 'R') {

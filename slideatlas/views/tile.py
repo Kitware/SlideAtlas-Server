@@ -27,7 +27,7 @@ def tile(image_store, image_id, tile_name):
         return Response(tile_data, mimetype='image/jpeg')
     except models.DoesNotExist as e:
         # TODO: more specific exception
-        logger.error('Tile not loaded: %s' % e.message)
+        logger.warning('Tile not loaded: %s' % e.message)
         return Response('{"error": "Tile loading error: %s"}' % e.message, status=404)
 
 

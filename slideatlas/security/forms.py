@@ -16,8 +16,8 @@ class ConfirmRegisterForm(_ConfirmRegisterForm):
 class LoginForm(_LoginForm):
     def validate(self):
         """
-        This is a temporary fix to allow login to accounts with apparently with
-        empty passwords. This should not be permitted generally.
+        This is a temporary fix to allow login to accounts with empty
+        passwords. This should not be permitted generally.
         """
         if self.password.data.strip() == '':
             self.password.data = '_empty_'

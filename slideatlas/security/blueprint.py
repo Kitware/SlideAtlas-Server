@@ -47,17 +47,13 @@ def register_with_app(app):
 
 
 ################################################################################
-# TODO: this is a short term solution until an "everyone" / publicly-viewable
-#   role can be implemented
+# TODO: find a way of automatically registering Shibboleth users with the
+#   appropriate group, similar to facebook_id
 def on_user_registered(app, user, confirm_token):
-    demo_group = models.GroupRole.objects.get(label='Atlas Demonstration')
-    user.groups.append(demo_group)
-
-    if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu') or user.email.endswith('kitware.com'):
-        brown_group = models.GroupRole.objects.with_id('529d244959a3aee20f8a00ae')
+    if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu'):
+        brown_group = models.Group.objects.with_id('529d244959a3aee20f8a00ae')
         user.groups.append(brown_group)
-
-    user.save()
+        user.save()
 
 
 ################################################################################
@@ -145,7 +141,7 @@ def add_config(app):
 class SlideatlasMongoEngineUserDatastore(MongoEngineUserDatastore):
     def __init__(self):
         # 'db' parameter is not necessary for this subclass
-        super(SlideatlasMongoEngineUserDatastore, self).__init__(None, models.User, models.Role)
+        super(SlideatlasMongoEngineUserDatastore, self).__init__(None, models.User, None)
         self.user_creation_model = models.PasswordUser
 
     def create_user(self, **kwargs):

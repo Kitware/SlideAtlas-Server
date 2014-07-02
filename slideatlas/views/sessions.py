@@ -20,7 +20,6 @@ mod = Blueprint('session', __name__)
 
 ################################################################################
 @mod.route('/sessions')
-@security.login_required
 def sessions():
     """
     - /sessions  With no argument displays list of sessions accessible to current user
@@ -28,8 +27,7 @@ def sessions():
     """
     # Support legacy requests for a single session, which use query string args
     sessid = request.args.get('sessid')
-    sessdb = request.args.get('sessdb')
-    
+
     if sessid:
         session_obj = models.Session.objects.get_or_404(id=sessid)
         return view_a_session(session_obj)
@@ -40,7 +38,7 @@ def sessions():
 ################################################################################
 def view_all_sessions():
     all_sessions_query = models.Session.objects\
-        .only('collection', 'label', 'image_store')\
+        .only('collection', 'label', 'image_store', 'type')\
         .order_by('collection', 'label')\
         .no_dereference()
     # disable dereferencing of of sessions, to prevent running a seperate
@@ -81,7 +79,8 @@ def view_all_sessions():
                     for session, can_admin in sessions],
             }
             for collection, sessions in all_sessions]
-        return jsonify(sessions=ajax_sessionlist, name=security.current_user.full_name, ajax=1)
+        user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
+        return jsonify(sessions=ajax_sessionlist, name=user_name, ajax=1)
     else:
         return render_template('sessionlist.html', all_sessions=all_sessions)
 
@@ -187,7 +186,6 @@ def view_a_session(session_obj, next=None):
         }
 
     if request.args.get('json'):
-        pdb.set_trace()
         return jsonify(data)
     else:
         is_session_admin = security.AdminSessionRequirement(session_obj).can()

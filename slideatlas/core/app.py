@@ -123,6 +123,9 @@ def create_blueprints(app):
     from slideatlas.api import apiv2
     app.register_blueprint(apiv2.blueprint)
 
+    from slideatlas import admin
+    admin.register_with_app(app)
+
 
 ################################################################################
 def load_default_config(app):

@@ -118,7 +118,7 @@ function NotesWidget() {
 
 
   if (EDIT) {
-    var buttonWrapper = 
+    var buttonWrapper =
       $('<div>')
         .appendTo(this.Window)
         .css({'position': 'absolute',
@@ -126,7 +126,7 @@ function NotesWidget() {
               'height': '40px',
               'top': '0px',
               'border-bottom':'1px solid #B0B0B0'});
-    this.NewButton = 
+    this.NewButton =
       $('<button>')
         .appendTo(buttonWrapper)
         .text("New")
@@ -134,7 +134,7 @@ function NotesWidget() {
               'font-size': '18px',
               'margin': '5px'})
         .click(function(){self.NewCallback();});
-    this.SaveButton = 
+    this.SaveButton =
       $('<button>')
         .appendTo(buttonWrapper)
         .text("Save")
@@ -416,7 +416,7 @@ function Note () {
   this.ChildrenVisibility = true;
 
   // GUI elements.
-  this.Div = 
+  this.Div =
     $('<div>').attr({'class':'note'})
         .css({'position':'relative'});
 
@@ -426,7 +426,7 @@ function Note () {
     //             'font-size': '30px',
 
 
-    this.Icon = 
+    this.Icon =
       $('<img>')
         .css({'height': '20px',
               'width': '20x',
@@ -450,7 +450,7 @@ function Note () {
             'border-radius': '8px',
             'border-style': 'solid',
             'border-width':'1px'});
-  this.SnapShotButton = 
+  this.SnapShotButton =
     $('<button>').appendTo(this.IconMenuDiv)
       .text("snap shot")
       .css({'color' : '#278BFF',
@@ -471,6 +471,8 @@ function Note () {
       .attr('contenteditable', "true")
       .focusin(function() { self.TitleFocusInCallback(); })
       .focusout(function() { self.TitleFocusOutCallback(); })
+  } else {
+    this.TitleDiv.click(function() {self.Select()})
   }
 
   // The div should attached even if nothing is in it.
@@ -485,7 +487,7 @@ Note.prototype.SetParent = function(parent) {
   var self = this;
   this.Parent = parent;
   if (parent) {
-    this.DeleteButton = 
+    this.DeleteButton =
       $('<button>').appendTo(this.IconMenuDiv)
         .text("delete")
         .css({'color' : '#278BFF',
@@ -515,17 +517,21 @@ Note.prototype.TitleFocusOutCallback = function() {
 
 
 Note.prototype.IconEnterCallback = function() {
-  this.IconMenuDiv.fadeIn(1000);
+  if (EDIT) {
+    this.IconMenuDiv.fadeIn(1000);
+  }
 }
 
 Note.prototype.IconLeaveCallback = function() {
-  var self = this;
-  this.HideIconMenuTimerId = setTimeout(
-    function() {
-      self.HideIconMenuTimerId = 0;
-      self.IconMenuDiv.hide();
-    }, 
-    300);  
+  if (EDIT) {
+    var self = this;
+    this.HideIconMenuTimerId = setTimeout(
+      function() {
+        self.HideIconMenuTimerId = 0;
+        self.IconMenuDiv.hide();
+      },
+      300);
+  }
 }
 
 Note.prototype.IconMenuEnterCallback = function() {
@@ -741,10 +747,11 @@ Note.prototype.DisplayGUI = function(div) {
     .click(function() {self.Select()})
     .mouseenter(function() { self.IconEnterCallback(); })
     .mouseleave(function() { self.IconLeaveCallback(); });
-  this.IconMenuDiv
-    .mouseenter(function() { self.IconMenuEnterCallback(); })
-    .mouseleave(function() { self.IconMenuLeaveCallback(); });
-
+  if (EDIT) {
+    this.IconMenuDiv
+      .mouseenter(function() { self.IconMenuEnterCallback(); })
+      .mouseleave(function() { self.IconMenuLeaveCallback(); });
+  }
   this.UpdateChildrenGUI();
 }
 
@@ -776,11 +783,11 @@ Note.prototype.Serialize = function(includeChildren) {
     rec.NumberOfLevels = this.ViewerRecords[i].Image.levels;
     rec.Camera = this.ViewerRecords[i].Camera;
     rec.Annotations = this.ViewerRecords[i].Annotations;
-    
+
     obj.ViewerRecords.push(rec);
   }
-  
- 
+
+
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
@@ -961,8 +968,10 @@ NotesWidget.prototype.SaveUserNote = function() {
            "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });
+    error: function() {
+      alert( "AJAX - error() : saveusernote 1" );
+    },
+  });
 
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
@@ -972,7 +981,7 @@ NotesWidget.prototype.SaveUserNote = function() {
 
 
 NotesWidget.prototype.Modified = function() {
-  window.onbeforeunload = 
+  window.onbeforeunload =
     function () {
       return "Some changes have not been saved to the database.";
     }
@@ -985,7 +994,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
   // Create a new note.
   var note = new Note();
   note.RecordView();
-  
+
   // The note will want to know its context
   note.SetParent(this.Iterator.GetNote());
 
@@ -999,7 +1008,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
       note.Id = data;
     },
     error: function() {
-      alert( "AJAX - error() : saveusernote" );
+      alert( "AJAX - error() : saveusernote 2" );
     },
     });
 }
@@ -1120,7 +1129,7 @@ NotesWidget.prototype.NewCallback = function() {
   var childIdx = 0;
   var currentNote = this.Iterator.GetNote();
   var parentNote = this.Iterator.GetParentNote();
-  if (parentNote) { 
+  if (parentNote) {
     childIdx = parentNote.Children.indexOf(currentNote)+1;
   } else {
     parentNote = currentNote;

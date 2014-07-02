@@ -224,7 +224,7 @@ class GroupListAPI(ListAPI):
         #     roles = [role for role in roles if role.can_admin_session(session)]
         # else:
         #     roles = list(roles)
-        groups = models.GroupRole.objects.order_by('label')
+        groups = models.Group.objects.order_by('label')
         return jsonify(groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminSiteRequirement.protected
@@ -247,7 +247,7 @@ class GroupListAPI(ListAPI):
         #             user.save()
         #         roles.append(user.user_role)
         # elif 'create_group' in request_args:
-        #     role = models.GroupRole(
+        #     role = models.Group(
         #         db=request_args['create_group']['db'],
         #         name=request_args['create_group']['name'],
         #         description=request_args['create_group'].get('description', ''),
@@ -320,6 +320,50 @@ class GroupItemAPI(ItemAPI):
 
 
 ################################################################################
+class ImageStoreListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self):
+        image_stores = models.ImageStore.objects.order_by('label')
+        return jsonify(image_stores=image_stores.to_son(only_fields=('label',)))
+
+    def post(self):
+        abort(501)  # Not Implemented
+
+
+class ImageStoreItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, image_store):
+        return jsonify(image_stores=[image_store.to_son()])
+
+    def put(self, collection):
+        abort(501)  # Not Implemented
+
+    def patch(self, collection):
+        abort(501)  # Not Implemented
+
+    def delete(self):
+        abort(501)  # Not Implemented
+
+
+class ImageStoreSyncAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
+        image_store.sync()
+        return make_response('', 204)  # No Content
+
+
+class ImageStoreDeliverAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be delivered.')  # Gone
+        image_store.deliver()
+        return make_response('', 204)  # No Content
+
+
+################################################################################
 class CollectionListAPI(ListAPI):
     @security.AdminSiteRequirement.protected
     def get(self):
@@ -345,6 +389,20 @@ class CollectionItemAPI(ItemAPI):
         abort(501)  # Not Implemented
 
     def delete(self):
+        abort(501)  # Not Implemented
+
+
+class CollectionAccessAPI(API):
+    @security.AdminCollectionRequirement.protected
+    def get(self, collection):
+        groups = models.Group.objects(permissions__resource_type='collection',
+                                      permissions__resource_id=collection.id
+                                     ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
         abort(501)  # Not Implemented
 
 
@@ -411,6 +469,19 @@ class SessionItemAPI(ItemAPI):
     def delete(self, session):
         abort(501)  # Not Implemented
 
+
+class SessionAccessAPI(API):
+    @security.AdminSessionRequirement.protected
+    def get(self, session):
+        groups = models.Group.objects(permissions__resource_type='session',
+                                      permissions__resource_id=session.id
+                                     ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
+        abort(501)  # Not Implemented
 
 ################################################################################
 class SessionAttachmentListAPI(ListAPI):
@@ -574,10 +645,10 @@ class SessionAttachmentItemAPI(ItemAPI):
             #   a way to know when the final chunk was uploaded
             abort(400, details='The content\'s total length must be specified in the Content-Range header.')
 
-        content_chunk_size = content_range.stop - content_range.start
-        if content_range.start % content_chunk_size != 0:
+        if content_range.start % attachment.chunkSize != 0:
             abort(400, details='The content\'s start location must be a multiple of the content\'s chunk size.')
 
+        content_chunk_size = content_range.stop - content_range.start
         if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
             # only the end chunk can be shorter
             abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
@@ -644,7 +715,6 @@ blueprint = Blueprint('apiv2', __name__,
 def register_with_app(app):
     app.register_blueprint(blueprint)
 
-
 api = Api(blueprint,
           prefix='/v2',
           decorators=[security.login_required],
@@ -669,9 +739,29 @@ api.add_resource(GroupListAPI,
                  methods=('GET', 'POST'))
 
 api.add_resource(GroupItemAPI,
-                 '/groups/<GroupRole:group>',
+                 '/groups/<Group:group>',
                  endpoint='group_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreListAPI,
+                 '/imagestores',
+                 endpoint='image_store_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(ImageStoreItemAPI,
+                 '/imagestores/<ImageStore:image_store>',
+                 endpoint='image_store_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreSyncAPI,
+                 '/imagestores/<ImageStore:image_store>/sync',
+                 endpoint='image_store_sync',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreDeliverAPI,
+                 '/imagestores/<ImageStore:image_store>/deliver',
+                 endpoint='image_store_deliver',
+                 methods=('POST',))
 
 api.add_resource(CollectionListAPI,
                  '/collections',
@@ -683,6 +773,11 @@ api.add_resource(CollectionItemAPI,
                  endpoint='collection_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
+api.add_resource(CollectionAccessAPI,
+                 '/collections/<Collection:collection>/access',
+                 endpoint='collection_access',
+                 methods=('GET', 'POST'))
+
 api.add_resource(SessionListAPI,
                  '/sessions',
                  endpoint='session_list',
@@ -692,6 +787,11 @@ api.add_resource(SessionItemAPI,
                  '/sessions/<Session:session>',
                  endpoint='session_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(SessionAccessAPI,
+                 '/sessions/<Session:session>/access',
+                 endpoint='session_access',
+                 methods=('GET', 'POST'))
 
 api.add_resource(SessionAttachmentListAPI,
                  '/sessions/<Session:session>/attachments',
