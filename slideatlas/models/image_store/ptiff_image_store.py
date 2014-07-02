@@ -190,16 +190,15 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 image.coordinate_system = 'Pixel'
                 image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
 
-                image.validate() # TODO: may remove this eventually
+                # need to save images to give it an id
+                image.save()
 
                 view = View(image=image.id)
+                view.save()
 
                 # newest images should be at the top of the session's view list
+                logging.error('adding view %s to session %s' % (view.id, session._get_collection()))
                 session.views.insert(0, RefItem(ref=view.id))
-
-                # to make failure more transactional, don't save until everything is finalized
-                image.save()
-                view.save()
                 session.save()
 
                 new_images.append(image.to_mongo())
