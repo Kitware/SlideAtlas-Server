@@ -5,6 +5,7 @@ import datetime
 import glob
 import logging
 import os
+import platform
 import re
 try:
     import cStringIO as StringIO
@@ -49,12 +50,19 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     last_sync = DateTimeField(required=True, default=datetime.datetime.min,
         verbose_name='Last Sync', help_text='Timestamp of the last check for new images.')
 
+    host_name = StringField(required=True,
+        verbose_name='Host Name', help_text='The name of the host that the image files reside on.')
+
     root_path = StringField(required=True,
         verbose_name='Root Path', help_text='Location on local filesystem for image files.')
 
     @property
     def default_session_name(self):
         return 'All'
+
+
+    def is_local(self):
+        return platform.node() == self.host_name
 
 
     def get_tile(self, image_id, tile_name):
@@ -269,6 +277,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         It is assumed that the modification dates to any changes to folder are intact
         """
+        if not self.is_local():
+            # TODO: raise exception?
+            return
+
         new_images = self._import_new_images()
 
         self.last_sync = datetime.datetime.now()
@@ -283,4 +295,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
 
     def deliver(self):
+        if not self.is_local():
+            # TODO: this may be performed non-locally
+            return
         self._deliver_views_to_inboxes()
