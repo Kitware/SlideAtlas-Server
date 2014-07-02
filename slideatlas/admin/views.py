@@ -2,7 +2,7 @@
 
 import re
 
-from flask.ext.admin import Admin
+from flask.ext.admin import Admin, AdminIndexView
 from flask.ext.admin.contrib.mongoengine import ModelView
 from flask.ext.admin.contrib.mongoengine.form import CustomModelConverter
 from flask.ext.mongoengine.wtf import orm
@@ -12,6 +12,17 @@ from slideatlas import security
 
 ################################################################################
 __all__ = ('register_with_app',)
+
+
+################################################################################
+class SlideatlasIndexView(AdminIndexView):
+    def __init__(self, *args, **kwargs):
+        # this will search the local template directories first
+        kwargs['template'] = 'admin/slideatlas_index.html'
+        super(SlideatlasIndexView, self).__init__(*args, **kwargs)
+
+    def is_accessible(self):
+        return security.AdminSiteRequirement().can()
 
 
 ################################################################################
@@ -200,11 +211,13 @@ class CollectionView(SlideatlasModelView):
 ################################################################################
 def register_with_app(app):
     admin = Admin(app,
-                  name='SlideAtlas Admin',
-                  url='/admin2',
-                  # 'endpoint' is the name of the index blueprint, and needs to
-                  #   be 'admin' for the default templates to work
-                  endpoint='admin'
+        name='SlideAtlas Admin',
+        index_view=SlideatlasIndexView(
+            url='/admin2',
+            # 'endpoint' is the name of the index blueprint, and needs to be
+            #   'admin' for the default templates to work
+            endpoint='admin'
+        )
     )
 
     # TODO: make admin.add_view() a decorator for the class defs
