@@ -55,16 +55,20 @@ function Viewer (viewport, cache) {
 
   this.CopyrightWrapper =
     $('<div>')
+      //.appendTo(this.MainView.Canvas)
       .appendTo('body')
       .css({
         'width': '100%',
+        'position': 'absolute',
         'text-align': 'center',
-        'z-index': '2'
+        'color': '#eee',
+        //'border': '1px solid black',
+        'z-index': '3'
       })
-      .hide()
+      //.hide()
       .attr('id', 'copyright');
 
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
+  this.AddGuiObject(this.CopyrightWrapper, 'Top', 5, 'Left', 0);
 }
 
 Viewer.prototype.GetAnnotationVisibility = function() {
@@ -237,7 +241,7 @@ Viewer.prototype.SetViewport = function(viewport) {
     } else if ('Top' in element) {
       var pos = element.Top.toString() + "px";
       object.css({
-      'bottom' : pos});
+      'top' : pos});
     }
 
     if ('Left' in element) {
