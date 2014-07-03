@@ -133,7 +133,15 @@ Viewer.prototype.UpdateZoomGui = function() {
   var camHeight = this.GetCamera().Height;
   var windowHeight = this.GetViewport()[3];
   // Assume image scanned at 40x
-  var zoomValue = Math.round(40.0 * windowHeight / camHeight);
+  var zoomValue = 40.0 * windowHeight / camHeight;
+  // 2.5 and 1.25 are standard in the geometric series.
+  if ( zoomValue < 2) {
+    zoomValue = zoomValue.toFixed(2);
+  } else if (zoomValue < 4) {
+    zoomValue = zoomValue.toFixed(1);
+  } else {
+    zoomValue = Math.round(zoomValue);
+  }
   this.ZoomDisplay.html( 'x' + zoomValue);
 }
 
@@ -394,11 +402,17 @@ Viewer.prototype.GetSpacing = function() {
 }
 
 // I could merge zoom methods if position defaulted to focal point.
-Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
+Viewer.prototype.AnimateZoomTo = function(factor, position) {
   this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
   if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
+  // Lets restrict discrete zoom values to be standard values.
+  var windowHeight = this.GetViewport()[3];
+  var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) / 
+                       Math.log(2));
+  this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
+
   factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
 
   // Compute translate target to keep position in the same place.
@@ -413,26 +427,8 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
 }
 
 Viewer.prototype.AnimateZoom = function(factor) {
-  this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
-
-  // Do not zoom in too far.
-  if (this.ZoomTarget < 0.9 / (1 << 5)) {
-    this.ZoomTarget = 0.9 / (1 << 5);
-  }
-
-  // Lets restrict discrete zoom values to be standard values.
-  var windowHeight = this.GetViewport()[3];
-  var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) / 
-                       Math.log(2));
-  this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
-
-  this.RollTarget = this.MainView.Camera.Roll;
-  this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-  this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-
-  this.AnimateLast = new Date().getTime();
-  this.AnimateDuration = 200.0; // hard code 200 milliseconds
-  eventuallyRender();
+  var focalPoint = this.GetCamera().FocalPoint;
+  this.AnimateZoomTo(factor, focalPoint);
 }
 
 Viewer.prototype.AnimateTranslate = function(dx, dy) {
@@ -1056,9 +1052,9 @@ Viewer.prototype.HandleDoubleClick = function(event) {
   // Detect double click.
   mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
   if (event.SystemEvent.which == 1) {
-    this.AnimateDoubleClickZoom(0.5, mWorld);
+    this.AnimateZoomTo(0.5, mWorld);
   } else if (event.SystemEvent.which == 3) {
-    this.AnimateDoubleClickZoom(2.0, mWorld);
+    this.AnimateZoomTo(2.0, mWorld);
   }
 }
 
