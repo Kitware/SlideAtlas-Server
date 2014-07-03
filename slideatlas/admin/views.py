@@ -91,6 +91,14 @@ class BaseUserView(SlideatlasModelView):
         ),
         {'disabled': True})
 
+    def get_form(self):
+        form = super(BaseUserView, self).get_form()
+        # fix a bug in Flask-Admin to allow '0' value for this field, even the
+        #  'InputRequired' validator isn't working, so just disable validation,
+        #  since the widget is disabled
+        form.login_count.kwargs['validators'] = []
+        return form
+
 #     form_ajax_refs = { # the remote model fields that the auto-complete will search
 #         'groups': {'fields': RuleView.column_searchable_list},
 #     }
