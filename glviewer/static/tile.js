@@ -11,7 +11,7 @@ function LoadTileCallback(tile,cache) {
 // Cache is now saved in tile ivar.
 LoadTileCallback.prototype.HandleLoadedImage = function () {
   var curtime = new Date().getTime();
-  TILESTATS.add({"name" : this.Tile.name, "loadtime" : curtime - this.Tile.starttime });
+  TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
   LoadQueueLoaded(this.Tile);
 }
 

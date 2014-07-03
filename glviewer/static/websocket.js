@@ -28,10 +28,14 @@ function WebSocketLoader(wsuri) {
         this.sock.onmessage = function(e) {
   			var resp = BSON.deserialize(new Uint8Array(e.data));
 		    if(resp.hasOwnProperty("success")) {
-    			// console.log("Successful request" + resp);
     			if(resp.hasOwnProperty("image")){
         			var whichtile = resp["request"]["tile"]["name"] //  + resp["request"]["tile"]["image"]
-        			that.queue[whichtile].src = "data:image/jpg;base64," + btoa(String.fromCharCode.apply(null, resp.image.buffer));
+                    console.log("Successful request for " + whichtile);
+                    var blb = new Blob([resp.image.buffer], { type: 'image/jpg' });
+                    that.queue[whichtile].src = URL.createObjectURL(blb);     
+                    //that.queue[whichtile].src = "data:image/jpg," + resp.image.value();
+                    //that.queue[whichtile].src = "data:image/jpg;base64," + resp.image;
+                    //that.queue[whichtile].src = "data:image/jpg;base64," + resp.image;
         			delete that.queue[whichtile];
 			    }
 			} else {
