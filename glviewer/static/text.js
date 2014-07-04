@@ -4,6 +4,8 @@
 // Add symbols -=+[]{},.<>'";: .....
 
 
+var LINE_SPACING = 1.4;
+
 
 // I need an array to map ascii to my letter index.
 // a = 97
@@ -103,6 +105,7 @@ function Text() {
   //this.String = "0123456789";
   this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
 
+  // Pixel bounds are in text box coordiante system.
   this.PixelBounds = [0,0,0,0];
   
   this.BackgroundFlag = false;
@@ -135,9 +138,9 @@ Text.prototype.Draw = function (view) {
   var y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
   // convert view to pixels (view coordinate system).
   x = view.Viewport[2]*(0.5*(1.0+x));
+  y = view.Viewport[3]*(0.5*(1.0-y));
 
   if (GL) {
-    y = view.Viewport[3]*(0.5*(1.0-y));
     if (this.TextureLoaded == false) {
       return;
     }
@@ -206,44 +209,48 @@ Text.prototype.Draw = function (view) {
 
     GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
   } else {
+    // Canvas text location is lower left of first letter.
     var strArray = this.String.split("\n");
     var width = 0;
-    var height = this.Size * strArray.length;
-    y = view.Viewport[3]*(0.5*(1.0-y));
+    var height = this.Size * LINE_SPACING * strArray.length;
+    // Move (x,y) from tip of the arrow to the upper left of the text box.
     x = x - this.Anchor[0];
     y = y - this.Anchor[1];
     var ctx = view.Context2d;
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.font = this.Size+'pt Calibri';
-    
+    // Compute the width of the text box.
     for (var i = 0; i < strArray.length; ++i) {
       var lineWidth = ctx.measureText(strArray[i]).width;
       if (lineWidth > width) { width = lineWidth; }
     }
     this.PixelBounds = [0, width, 0, height];
-    
-    //The background
+
+    // Draw the background text box.
     if(this.BackgroundFlag){
       ctx.fillStyle = '#fff';
       //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
-      roundRect(ctx, x - 5, y - 5, this.PixelBounds[1] + 10, this.PixelBounds[3] + this.Size * 1.4/3 + 10, 5, true, true);
+      roundRect(ctx, x - 2, y - 2, width + 4, height + 4, 2, true, true);
     }
-    
+
+    // Choose the color for the text.
     if (this.Active) {
       ctx.fillStyle = ConvertColorToHex([1.0,1.0,0.0]);
     } else {
       ctx.fillStyle = ConvertColorToHex(this.Color);
     }
-    
+
+    // Convert (x,y) from upper left of textbox to lower left of first character.
+    y = y + this.Size;
+    // Draw the lines of the text.
     for (var i = 0; i < strArray.length; ++i) {
-      ctx.fillText(strArray[i], x, y + this.Size*1.4*(i+1));
+      ctx.fillText(strArray[i], x, y)
+      // Move to the lower left of the next line.
+      y = y + this.Size*LINE_SPACING;
     }
     
     ctx.stroke();
-    
-    
-    
     ctx.restore();
   }
 }
