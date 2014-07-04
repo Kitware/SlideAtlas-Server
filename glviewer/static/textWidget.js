@@ -438,7 +438,7 @@ function TextPropertyDialogApply() {
   var backgroundFlag = document.getElementById("TextBackground").checked;
 
   widget.Shape.String = string;
-  widget.Shape.Size = fontSize;
+  widget.Shape.Size = parseFloat(fontSize);
   widget.Shape.UpdateBuffers();
   widget.Shape.SetColor(hexcolor);
   widget.AnchorShape.SetFillColor(hexcolor);
