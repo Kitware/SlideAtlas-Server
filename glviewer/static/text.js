@@ -226,7 +226,7 @@ Text.prototype.Draw = function (view) {
     //The background
     if(this.BackgroundFlag){
       ctx.fillStyle = '#fff';
-      ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, this.PixelBounds[3] + 4 + this.Size/3);
+      ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
     }
     
     if (this.Active) {
@@ -236,7 +236,7 @@ Text.prototype.Draw = function (view) {
     }
     
     for (var i = 0; i < strArray.length; ++i) {
-      ctx.fillText(strArray[i], x, y + this.Size*(i+1));
+      ctx.fillText(strArray[i], x, y + this.Size*1.4*(i+1));
     }
     
     ctx.stroke();

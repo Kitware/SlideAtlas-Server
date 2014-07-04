@@ -26,7 +26,7 @@ function Dialog () {
       document.getElementById('dialog').appendChild(this.TextDiv);
       $('#text-properties-dialog').attr('title','Text Annotation Editor');
       
-      this.TextForm = document.createElement('form');
+      this.TextForm = document.createElement('div');
       this.TextDiv.appendChild(this.TextForm);
       
       this.TextInput = document.createElement('textarea');
@@ -43,7 +43,7 @@ function Dialog () {
       this.TextFont.id = 'textfont';
       this.TextFont.type = 'number';
       this.TextForm.appendChild(this.TextFont);
-      $('#textfont').attr('value', 12);
+      $('#textfont').attr('value', 12).keypress(function(event) { return event.keyCode != 13; });
       
       this.TextBreak2 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak2);
@@ -86,7 +86,7 @@ function Dialog () {
       document.getElementById('dialog').appendChild(this.CircleDiv);
       $('#circle-properties-dialog').attr('title','Circle Annotation Editor');
       
-      this.CircleForm = document.createElement('form');
+      this.CircleForm = document.createElement('div');
       this.CircleDiv.appendChild(this.CircleForm);
       
       this.CircleFieldSet = document.createElement('fieldset');
@@ -107,7 +107,9 @@ function Dialog () {
       this.CircleFieldSet.appendChild(this.Text4);
       this.CircleLineWidth = document.createElement('input');
       this.CircleLineWidth.id = 'circlelinewidth';
+      this.CircleLineWidth.type = 'number';
       this.CircleFieldSet.appendChild(this.CircleLineWidth);
+      $('#circlelinewidth').keypress(function(event) { return event.keyCode != 13; });
       
       this.CircleBreak2 = document.createElement('br');
       this.CircleFieldSet.appendChild(this.CircleBreak2);
