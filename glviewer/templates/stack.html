@@ -470,7 +470,7 @@ function saveAnnotation() {
     }
 
     var noteObj = JSON.stringify(note.Serialize(false));
-
+    $("#saveButton").hide();
     $.ajax({
       type: "post",
       url: "/webgl-viewer/saveviewnotes",
@@ -478,7 +478,7 @@ function saveAnnotation() {
              "db"   : GetSessionDatabase(),
              "view" : section.View,
              "date" : d.getTime()},
-      success: function(data,status) {},
+      success: function(data,status) { $("#saveButton").show(); },
       error: function() { alert( "AJAX - error() : saveviewnotes (stack)" ); },
     });
   }
@@ -857,6 +857,7 @@ function ToggleAnnotationVisibility() {
         'bottom' : '12px',
         'right' : '326px',
         'z-index': '2'})
+      .attr('id', 'saveButton')
       .attr('class', 'viewer1')
       .attr('type','image')
       .attr('src',"{{ url_for('glviewer.static', filename='save.png')}}")
