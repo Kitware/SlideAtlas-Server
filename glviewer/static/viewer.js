@@ -68,7 +68,85 @@ function Viewer (viewport, cache) {
       //.hide()
       .attr('id', 'copyright');
 
-  this.AddGuiObject(this.CopyrightWrapper, 'Top', 5, 'Left', 0);
+  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
+
+  this.InitializeZoomGui();
+}
+
+Viewer.prototype.InitializeZoomGui = function() {
+  // Place the zoom in / out buttons.
+  // Todo: Make the button become more opaque when pressed.
+  // Associate with viewer (How???).
+  // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+  var self = this;
+  this.ZoomDiv = $('<div>')
+        .appendTo('body')
+        .css({
+          'opacity': '0.8',
+          'position': 'absolute',
+          'height': '120px',
+          'width': '54px',
+          'bottom' : '5px',
+          'right' : '5px',
+          'border-style'  : 'solid',
+          'border-width'  : '1px',
+          'border-radius' : '27px',
+          'border-color'  : '#bbb',
+          'z-index': '2'});
+  this.ZoomInButton = $('<img>')
+        .appendTo(this.ZoomDiv)
+        .css({
+          'opacity': '0.6',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'top' : '2px',
+          'right' : '2px',
+          'z-index': '2'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomin2.png")
+        .click(function(){ self.AnimateZoom(0.5);});
+  this.ZoomDisplay = $('<div>')
+        .appendTo(this.ZoomDiv)
+        .css({
+          'opacity': '0.9',
+          'position': 'absolute',
+          'height':  '20px',
+          'width':   '100%',
+          'text-align' : 'center',
+          'color' : '#555',
+          'top' : '51px',
+          'left' : '0px'})
+        .html("");
+  this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
+        .css({
+          'opacity': '0.6',
+          'position': 'absolute',
+          'height': '50px',
+          'width': '50px',
+          'bottom' : '2px',
+          'right' : '2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomout2.png")
+        .click(function(){self.AnimateZoom(2.0);});
+
+  this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
+}
+
+Viewer.prototype.UpdateZoomGui = function() {
+  var camHeight = this.GetCamera().Height;
+  var windowHeight = this.GetViewport()[3];
+  // Assume image scanned at 40x
+  var zoomValue = 40.0 * windowHeight / camHeight;
+  // 2.5 and 1.25 are standard in the geometric series.
+  if ( zoomValue < 2) {
+    zoomValue = zoomValue.toFixed(2);
+  } else if (zoomValue < 4) {
+    zoomValue = zoomValue.toFixed(1);
+  } else {
+    zoomValue = Math.round(zoomValue);
+  }
+  this.ZoomDisplay.html( 'x' + zoomValue);
 }
 
 Viewer.prototype.GetAnnotationVisibility = function() {
@@ -313,6 +391,7 @@ Viewer.prototype.SetCamera = function(center, rotation, height) {
   }
 
   this.MainView.Camera.ComputeMatrix();
+  this.UpdateZoomGui();
   eventuallyRender();
 }
 
@@ -327,11 +406,17 @@ Viewer.prototype.GetSpacing = function() {
 }
 
 // I could merge zoom methods if position defaulted to focal point.
-Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
+Viewer.prototype.AnimateZoomTo = function(factor, position) {
   this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
   if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
   }
+  // Lets restrict discrete zoom values to be standard values.
+  var windowHeight = this.GetViewport()[3];
+  var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) / 
+                       Math.log(2));
+  this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
+
   factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
 
   // Compute translate target to keep position in the same place.
@@ -346,18 +431,8 @@ Viewer.prototype.AnimateDoubleClickZoom = function(factor, position) {
 }
 
 Viewer.prototype.AnimateZoom = function(factor) {
-  this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
-  if (this.ZoomTarget < 0.9 / (1 << 5)) {
-    this.ZoomTarget = 0.9 / (1 << 5);
-  }
-
-  this.RollTarget = this.MainView.Camera.Roll;
-  this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-  this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-
-  this.AnimateLast = new Date().getTime();
-  this.AnimateDuration = 200.0; // hard code 200 milliseconds
-  eventuallyRender();
+  var focalPoint = this.GetCamera().FocalPoint;
+  this.AnimateZoomTo(factor, focalPoint);
 }
 
 Viewer.prototype.AnimateTranslate = function(dx, dy) {
@@ -522,7 +597,7 @@ Viewer.prototype.Animate = function() {
     }
     this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
                                        this.TranslateTarget[1]);
-
+    this.UpdateZoomGui();
     // Save the state when the animation is finished.
     RecordState();
   } else {
@@ -981,11 +1056,9 @@ Viewer.prototype.HandleDoubleClick = function(event) {
   // Detect double click.
   mWorld = this.ConvertPointViewerToWorld(event.MouseX, event.MouseY);
   if (event.SystemEvent.which == 1) {
-    this.AnimateDoubleClickZoom(0.5, mWorld);
-    //this.AnimateZoom(0.5);
+    this.AnimateZoomTo(0.5, mWorld);
   } else if (event.SystemEvent.which == 3) {
-    this.AnimateDoubleClickZoom(2.0, mWorld);
-    //this.AnimateZoom(2.0);
+    this.AnimateZoomTo(2.0, mWorld);
   }
 }
 
