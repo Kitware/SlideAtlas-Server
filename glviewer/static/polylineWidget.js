@@ -96,8 +96,6 @@ function PolylineWidget (viewer, newFlag) {
   var viewport = viewer.MainView.Viewport;
 
   this.Viewer = viewer;
-  // If the last point is the same as the first point, ClosedLoop is true.
-  this.ClosedLoop = false;
   // Circle is to show an active vertex.
   this.Circle = new Circle();
   this.Circle.FillColor = [1.0, 1.0, 0.2];
@@ -207,8 +205,6 @@ PolylineWidget.prototype.PasteCallback = function(data) {
   eventuallyRender();
 }
 
-
-
 PolylineWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
   var obj = new Object();
@@ -222,7 +218,7 @@ PolylineWidget.prototype.Serialize = function() {
   }
   this.UpdateBounds();
 
-  obj.closedloop = this.ClosedLoop;
+  obj.closedloop = this.Shape.Closed;
   return obj;
 }
 
@@ -237,7 +233,7 @@ PolylineWidget.prototype.Load = function(obj) {
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
   }
-  this.ClosedLoop = (obj.closedloop == "true");
+  this.Shape.Closed = (obj.closedloop == "true");
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
 }
@@ -274,13 +270,6 @@ PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
     // Last resort.  ESC key always deactivates the widget.
     // Deactivate.
     this.Deactivate();
-    if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-      // I do not check for closed loop yet.
-      this.ClosedLoop = false;
-      // Remove the last duplicate point.
-      this.Shape.Points.pop();
-      this.UpdateBounds();
-    }
     RecordState();  
   }
 
@@ -316,13 +305,12 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
     if (this.ActiveVertex >= 0) { // The user clicked on an active vertex. End the line.
+      // Remove the temporary point at end used for drawining.
+      this.Shape.Points.pop();
       if (this.ActiveVertex == 0) {
-        this.ClosedLoop = true;
+        this.Shape.Closed = true;
       } else {
-        this.ClosedLoop = false;
-        // Remove the last duplicate point.
-        this.Shape.Points.pop();
-        this.UpdateBounds();
+        this.Shape.Closed = false;
       }
       this.Deactivate();
       RecordState();
@@ -422,15 +410,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
     }
     if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.SystemEvent.which == 1) {
       //drag the vertex
-      var last = this.Shape.Points.length-1;
-      if (this.ClosedLoop && (this.ActiveVertex == 0 || this.ActiveVertex == last)) {
-        this.Shape.Points[0] = pt;
-        this.Shape.Points[last] = [pt[0],pt[1]]; // Bug moving entire line with shared points incremented twice.
-        }
-      else
-        {
-        this.Shape.Points[this.ActiveVertex] = pt;
-        }
+      this.Shape.Points[this.ActiveVertex] = pt;
       this.Circle.Origin = pt;
       this.Shape.UpdateBuffers();
       this.PlacePopup();

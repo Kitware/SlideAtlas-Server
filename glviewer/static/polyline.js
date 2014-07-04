@@ -4,6 +4,7 @@ function Polyline() {
     Shape.call(this);
     this.Origin = [0.0,0.0]; // Center in world coordinates.
     this.Points = [];
+    this.Closed = false;
 };
 Polyline.prototype = new Shape;
 
@@ -13,6 +14,11 @@ Polyline.prototype.destructor=function() {
 }
 
 Polyline.prototype.UpdateBuffers = function() {
+  var points = this.Points.slice(0);
+  if (this.Closed && points.length > 2) {
+    points.push(points[0]);
+  }
+
   this.PointBuffer = [];
   var cellData = [];
   var lineCellData = [];
@@ -21,13 +27,13 @@ Polyline.prototype.UpdateBuffers = function() {
   mat4.identity(this.Matrix);
 
   if (this.LineWidth == 0 || !GL ) {
-    for (var i = 0; i < this.Points.length; ++i) {
-      this.PointBuffer.push(this.Points[i][0]);
-      this.PointBuffer.push(this.Points[i][1]);
+    for (var i = 0; i < points.length; ++i) {
+      this.PointBuffer.push(points[i][0]);
+      this.PointBuffer.push(points[i][1]);
       this.PointBuffer.push(0.0);
     }
     // Not used for line width == 0.
-    for (var i = 2; i < this.Points.length; ++i) {
+    for (var i = 2; i < points.length; ++i) {
       cellData.push(0);
       cellData.push(i-1);
       cellData.push(i);
@@ -38,11 +44,11 @@ Polyline.prototype.UpdateBuffers = function() {
     var mag;
     var x;
     var y;
-    var end = this.Points.length-1;
+    var end = points.length-1;
     // Compute the edge normals.
     for (var i = 0; i < end; ++i) {
-      x = this.Points[i+1][0] - this.Points[i][0];
-      y = this.Points[i+1][1] - this.Points[i][1];
+      x = points[i+1][0] - points[i][0];
+      y = points[i+1][1] - points[i][1];
       mag = Math.sqrt(x*x + y*y);
       edgeNormals.push([-y/mag,x/mag]);
     }
@@ -52,33 +58,33 @@ Polyline.prototype.UpdateBuffers = function() {
       // 4 corners per point
       var dx = edgeNormals[0][0]*half;
       var dy = edgeNormals[0][1]*half;
-      this.PointBuffer.push(this.Points[0][0] - dx);
-      this.PointBuffer.push(this.Points[0][1] - dy);
+      this.PointBuffer.push(points[0][0] - dx);
+      this.PointBuffer.push(points[0][1] - dy);
       this.PointBuffer.push(0.0);
-      this.PointBuffer.push(this.Points[0][0] + dx);
-      this.PointBuffer.push(this.Points[0][1] + dy);
+      this.PointBuffer.push(points[0][0] + dx);
+      this.PointBuffer.push(points[0][1] + dy);
       this.PointBuffer.push(0.0);
       for (var i = 1; i < end; ++i) {
-        this.PointBuffer.push(this.Points[i][0] - dx);
-        this.PointBuffer.push(this.Points[i][1] - dy);
+        this.PointBuffer.push(points[i][0] - dx);
+        this.PointBuffer.push(points[i][1] - dy);
         this.PointBuffer.push(0.0);
-        this.PointBuffer.push(this.Points[i][0] + dx);
-        this.PointBuffer.push(this.Points[i][1] + dy);
+        this.PointBuffer.push(points[i][0] + dx);
+        this.PointBuffer.push(points[i][1] + dy);
         this.PointBuffer.push(0.0);
         dx = edgeNormals[i][0]*half;
         dy = edgeNormals[i][1]*half;
-        this.PointBuffer.push(this.Points[i][0] - dx);
-        this.PointBuffer.push(this.Points[i][1] - dy);
+        this.PointBuffer.push(points[i][0] - dx);
+        this.PointBuffer.push(points[i][1] - dy);
         this.PointBuffer.push(0.0);
-        this.PointBuffer.push(this.Points[i][0] + dx);
-        this.PointBuffer.push(this.Points[i][1] + dy);
+        this.PointBuffer.push(points[i][0] + dx);
+        this.PointBuffer.push(points[i][1] + dy);
         this.PointBuffer.push(0.0);
       }
-      this.PointBuffer.push(this.Points[end][0] - dx);
-      this.PointBuffer.push(this.Points[end][1] - dy);
+      this.PointBuffer.push(points[end][0] - dx);
+      this.PointBuffer.push(points[end][1] - dy);
       this.PointBuffer.push(0.0);
-      this.PointBuffer.push(this.Points[end][0] + dx);
-      this.PointBuffer.push(this.Points[end][1] + dy);
+      this.PointBuffer.push(points[end][0] + dx);
+      this.PointBuffer.push(points[end][1] + dy);
       this.PointBuffer.push(0.0);
     }
     // Generate the triangles for a thick line
@@ -92,7 +98,7 @@ Polyline.prototype.UpdateBuffers = function() {
     }
 
     // Not used.
-    for (var i = 2; i < this.Points.length; ++i) {
+    for (var i = 2; i < points.length; ++i) {
       cellData.push(0);
       cellData.push((2*i)-1);
       cellData.push(2*i);
