@@ -43,12 +43,15 @@ function Dialog () {
       this.TextFont.id = 'textfont';
       this.TextFont.type = 'number';
       this.TextForm.appendChild(this.TextFont);
-      $('#textfont').attr('value', 12).keypress(function(event) { return event.keyCode != 13; });
+      $('#textfont').attr('value', 12)
+                    .keypress(function(event) { return event.keyCode != 13; })
+                    .css({'width': '50px'});
       
+      /*
       this.TextBreak2 = document.createElement('br');
-      this.TextForm.appendChild(this.TextBreak2);
+      this.TextForm.appendChild(this.TextBreak2);*/
       
-      this.Text1 = document.createTextNode('Color:');
+      this.Text1 = document.createTextNode('  Color:');
       this.TextForm.appendChild(this.Text1);
       this.TextColor = document.createElement('input');
       this.TextColor.id = 'textcolor';
@@ -64,11 +67,12 @@ function Dialog () {
       this.TextMarker.type = 'checkbox';
       this.TextForm.appendChild(this.TextMarker);
       $('#TextMarker').attr('checked',true);
-      this.Text2 = document.createTextNode('Marker');
+      this.Text2 = document.createTextNode('Marker   ');
       this.TextForm.appendChild(this.Text2);
       
+      /*
       this.TextBreak4 = document.createElement('br');
-      this.TextForm.appendChild(this.TextBreak4);
+      this.TextForm.appendChild(this.TextBreak4);*/
       
       this.TextBackground = document.createElement('input');
       this.TextBackground.id = 'TextBackground';
