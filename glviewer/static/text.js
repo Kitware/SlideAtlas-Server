@@ -229,9 +229,10 @@ Text.prototype.Draw = function (view) {
 
     // Draw the background text box.
     if(this.BackgroundFlag){
-      ctx.fillStyle = '#fff';
+      /*ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#000';*/
       //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
-      roundRect(ctx, x - 2, y - 2, width + 4, height + 4, 2, true, true);
+      roundRect(ctx, x - 2, y - 2, width + 4, height + 4, 2, true, false);
     }
 
     // Choose the color for the text.
@@ -255,13 +256,15 @@ Text.prototype.Draw = function (view) {
   }
 }
 
-function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-  if (typeof stroke == "undefined" ) {
+function roundRect(ctx, x, y, width, height, radius) {
+  /*if (typeof stroke == "undefined" ) {
     stroke = true;
-  }
+  }*/
   if (typeof radius === "undefined") {
     radius = 5;
   }
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#000';
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.lineTo(x + width - radius, y);
@@ -273,12 +276,35 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
   ctx.lineTo(x, y + radius);
   ctx.quadraticCurveTo(x, y, x + radius, y);
   ctx.closePath();
-  if (stroke) {
-    ctx.stroke();
+  ctx.stroke();
+  ctx.fill();
+}
+
+var roundedRect=function(ctx,x,y,width,height,radius,fill,stroke)
+{
+  ctx.save();	// save the context so we don't mess up others
+  ctx.beginPath();
+
+  // draw top and top right corner
+  ctx.moveTo(x+radius,y);
+  ctx.arcTo(x+width,y,x+width,y+radius,radius);
+
+  // draw right side and bottom right corner
+  ctx.arcTo(x+width,y+height,x+width-radius,y+height,radius); 
+
+  // draw bottom and bottom left corner
+  ctx.arcTo(x,y+height,x,y+height-radius,radius);
+
+  // draw left and top left corner
+  ctx.arcTo(x,y,x+radius,y,radius);
+
+  if(fill){
+	  ctx.fill();
   }
-  if (fill) {
-    ctx.fill();
-  }        
+  if(stroke){
+  	ctx.stroke();
+  }
+  ctx.restore();	// restore context to what it was on entry
 }
 
 
