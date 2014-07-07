@@ -3,6 +3,7 @@
 
 var FAVORITES_GUI
 
+
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function FavoritesWidget() {
@@ -46,67 +47,48 @@ function FavoritesWidget() {
               })
               .hide();
 
-
-
-  /**/
-  this.SaveBookmarkButton =
-  $('<img>').appendTo(this.FavoritesList)
-            .css({//'position': 'relative',
-                  'left': '0px',
-                  //'bottom': '60px',
-                  'height': size,
-                  'width': size,
-                  'float': 'left',
-                  'margin-top': '50px',
-                  'padding' : '5px',
-                  //'z-index': '2',
-                  'opacity': '0.6'})
-            .attr('src',"webgl-viewer/static/saveNew.png")
-            .click(function(){SaveBookmark();});
-  this.TextTip = new ToolTip(this.SaveBookmarkButton, "Save Bookmark");/**/
+  this.SaveFavoriteButton =
+    $('<img>')
+      .appendTo(this.FavoritesList)
+      .css({'left': '0px',
+            'height': size,
+            'width': size,
+            'float': 'left',
+            'margin-top': '50px',
+            'padding' : '5px',
+            'opacity': '0.6'})
+      .attr('src',"webgl-viewer/static/saveNew.png")
+      .click(function(){SaveFavorite();});
+  this.TextTip = new ToolTip(this.SaveFavoriteButton, "Save Favorite");
 
   this.ImageList =
-    $('<div>').appendTo(this.FavoritesList)
-              .css({
-                //'padding-left': '75px'
-                'float': 'left',
-                'overflow-x': 'scroll',
-                'overflow-y': 'hidden',
-                'white-space': 'nowrap',
-              });
+    $('<div>')
+      .appendTo(this.FavoritesList)
+      .css({'float': 'left',
+            'overflow-x': 'scroll',
+            'overflow-y': 'hidden',
+            'white-space': 'nowrap'});
 
   var self = this;
-  this.MenuBookmarkButton =
-    $('<img>').appendTo('body')
-              .css({'position': 'absolute',
-                    'height': size,
-                    'width': size,
-                    'left': '0px',
-                    'bottom': '10px',
-                    'padding' : '5px',
-                    'opacity': '0.6',
-                    'z-index': '3'})
-              .attr('src',"webgl-viewer/static/favorite-star.png")
-              .click(function(){
-                self.ShowHideFavorites();
-              });
-  this.TextTip = new ToolTip(this.MenuBookmarkButton, "Favorites Menu");
+  this.MenuFavoriteButton =
+    $('<img>')
+      .appendTo('body')
+      .css({'position': 'absolute',
+            'height': size,
+            'width': size,
+            'left': '0px',
+            'bottom': '10px',
+            'padding' : '5px',
+            'opacity': '0.6',
+            'z-index': '3'})
+      .attr('src',"webgl-viewer/static/favorite-star.png")
+      .click(function(){ self.ShowHideFavorites(); });
+  this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");
 
-  VIEWER1.AddGuiObject(this.MenuBookmarkButton, "Bottom", 0, "Left", 0);
-
+  VIEWER1.AddGuiObject(this.MenuFavoriteButton, "Bottom", 0, "Left", 0);
   VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
 
-  /*$.get("/sessions?json=true"+"&sessdb=5074589202e31023d4292d8b&sessid=50763f3102e3100690258a95",
-        function(data,status){
-          if (status == "success") {
-            ViewBrowserAddSessionViews(data);
-          } else { alert("ajax failed."); }
-        });*/
-
   LoadFavorites();
-
-
-
 }
 
 FavoritesWidget.prototype.ShowHideFavorites = function(){
@@ -120,6 +102,21 @@ FavoritesWidget.prototype.ShowHideFavorites = function(){
 }
 
 var FAVORITES;
+
+
+
+function SaveFavorite() {
+  NOTES_WIDGET.SaveBrownNote();
+  // Hide shifts the other buttons to the left to fill the gap.
+  var button = FAVORITES_WIDGET.SaveFavoriteButton;
+  button.css({'opacity': '0.0'});
+  setTimeout(function(){
+               button.css({'opacity': '0.6'});
+             }, 1000); // one second
+
+  LoadFavorites();
+}
+
 
 function LoadFavorites(){
   $.ajax({

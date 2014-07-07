@@ -72,6 +72,22 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   }
 }
 
+// I am not sure we need to serialize.  
+// The annotations are already in database form.
+// Possibly we need to restrict which ivars get into the database.
+ViewerRecord.prototype.Serialize = function (viewer) {
+  rec = {};
+  rec.Image = this.Image._id;
+  rec.Database = this.Image.database;
+  rec.NumberOfLevels = this.Image.levels;
+  rec.Camera = this.Camera;
+  rec.Annotations = this.Annotations;
+  rec.AnnotationVisibility = this.AnnotationVisibility;
+
+  return rec;
+}
+
+
 ViewerRecord.prototype.Apply = function (viewer) {
   // If a widget is active, then just inactivate it.
   // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
@@ -259,9 +275,8 @@ function RecordStateCallback() {
     success: function(data,status) {
       note.Id = data;
     },
-    error: function(jqXHR, textStatus, errorThrown) {
-      console.log("saveusernote fail (reload before success?)");
-      //alert( "AJAX - error() : saveusernote 3" );
+    error: function() {
+      //alert( "AJAX - error() : saveusernote" );
     },
   });
 

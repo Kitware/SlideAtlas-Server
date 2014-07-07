@@ -777,25 +777,12 @@ Note.prototype.Serialize = function(includeChildren) {
   //  The server should really take care of this since if
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
     if(!this.ViewerRecords[i].Image) continue;
-    rec = {};
-    rec.Image = this.ViewerRecords[i].Image._id;
-    rec.Database = this.ViewerRecords[i].Image.database;
-    rec.NumberOfLevels = this.ViewerRecords[i].Image.levels;
-    rec.Camera = this.ViewerRecords[i].Camera;
-    rec.Annotations = this.ViewerRecords[i].Annotations;
-
-    obj.ViewerRecords.push(rec);
+    var record = this.ViewerRecords[i].Serialize();
+    obj.ViewerRecords.push(record);
   }
-
-
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
-
-  //obj.Answers = [];
-  //for (var i = 0; i < this.Answers.length; ++i) {
-  //  obj.Answers.push(this.Answers[i].Serialize());
-  //}
 
   if (includeChildren) {
     obj.Children = [];

@@ -8,7 +8,6 @@ This file currently requires the body tags to be given the ID 'body,' various ot
 
 // Constructor
 function Dialog () {
-    $(document).ready(function(){
       this.theCanvas = document.createElement('canvas');
       this.theCanvas.id = 'gltest';
       document.getElementById('body').appendChild(this.theCanvas);
@@ -26,7 +25,7 @@ function Dialog () {
       document.getElementById('dialog').appendChild(this.TextDiv);
       $('#text-properties-dialog').attr('title','Text Annotation Editor');
       
-      this.TextForm = document.createElement('form');
+      this.TextForm = document.createElement('div');
       this.TextDiv.appendChild(this.TextForm);
       
       this.TextInput = document.createElement('textarea');
@@ -37,7 +36,21 @@ function Dialog () {
       this.TextBreak1 = document.createElement('br');
       this.TextForm.appendChild(this.TextBreak1);
       
-      this.Text1 = document.createTextNode('Color:');
+      this.Text0 = document.createTextNode('Font (px):');
+      this.TextForm.appendChild(this.Text0);
+      this.TextFont = document.createElement('input');
+      this.TextFont.id = 'textfont';
+      this.TextFont.type = 'number';
+      this.TextForm.appendChild(this.TextFont);
+      $('#textfont').attr('value', 12)
+                    .keypress(function(event) { return event.keyCode != 13; })
+                    .css({'width': '50px'});
+      
+      /*
+      this.TextBreak2 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak2);*/
+      
+      this.Text1 = document.createTextNode('  Color:');
       this.TextForm.appendChild(this.Text1);
       this.TextColor = document.createElement('input');
       this.TextColor.id = 'textcolor';
@@ -45,16 +58,30 @@ function Dialog () {
       this.TextForm.appendChild(this.TextColor);
       $('#textcolor').attr('value','#0000ff');
       
-      this.TextBreak2 = document.createElement('br');
-      this.TextForm.appendChild(this.TextBreak2);
+      this.TextBreak3 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak3);
       
       this.TextMarker = document.createElement('input');
       this.TextMarker.id = 'TextMarker';
       this.TextMarker.type = 'checkbox';
       this.TextForm.appendChild(this.TextMarker);
       $('#TextMarker').attr('checked',true);
-      this.Text2 = document.createTextNode('Marker');
+      this.Text2 = document.createTextNode('Marker   ');
       this.TextForm.appendChild(this.Text2);
+      
+      /*
+      this.TextBreak4 = document.createElement('br');
+      this.TextForm.appendChild(this.TextBreak4);*/
+      
+      this.TextBackground = document.createElement('input');
+      this.TextBackground.id = 'TextBackground';
+      this.TextBackground.type = 'checkbox';
+      this.TextForm.appendChild(this.TextBackground);
+      $('#TextBackground').attr('checked', true);
+      this.Text3 = document.createTextNode('Background');
+      this.TextForm.appendChild(this.Text3);
+      
+      
       
       //The circle annotation editor
       this.CircleDiv = document.createElement('div');
@@ -62,7 +89,7 @@ function Dialog () {
       document.getElementById('dialog').appendChild(this.CircleDiv);
       $('#circle-properties-dialog').attr('title','Circle Annotation Editor');
       
-      this.CircleForm = document.createElement('form');
+      this.CircleForm = document.createElement('div');
       this.CircleDiv.appendChild(this.CircleForm);
       
       this.CircleFieldSet = document.createElement('fieldset');
@@ -83,7 +110,9 @@ function Dialog () {
       this.CircleFieldSet.appendChild(this.Text4);
       this.CircleLineWidth = document.createElement('input');
       this.CircleLineWidth.id = 'circlelinewidth';
+      this.CircleLineWidth.type = 'number';
       this.CircleFieldSet.appendChild(this.CircleLineWidth);
+      $('#circlelinewidth').keypress(function(event) { return event.keyCode != 13; });
       
       this.CircleBreak2 = document.createElement('br');
       this.CircleFieldSet.appendChild(this.CircleBreak2);
@@ -364,7 +393,6 @@ function Dialog () {
               }
           }
       });
-});
 }		 
 /*Dialog.prototype.Show = function(modal){
     $('#gltest').show();

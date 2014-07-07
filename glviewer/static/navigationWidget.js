@@ -41,21 +41,6 @@ function NavigationWidget() {
                     'bottom' : bottom,
                     'z-index': '2'});
 
-  /**
-  this.BookmarkButton =
-    $('<img>').appendTo('body')
-              .css({'position': 'absolute',
-                    'left': '0px',
-                    'bottom': '60px',
-                    'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'z-index': '2',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/saveNew.png")
-              .click(function(){SaveBookmark();});
-  this.TextTip = new ToolTip(this.BookmarkButton, "Save Bookmark");/**/
-
   this.PreviousSlideButton =
     $('<img>').appendTo(this.Div)
               .css({'height': size,
@@ -102,35 +87,6 @@ function NavigationWidget() {
                 'width': '100%',
                 'text-align': 'center'
               }).html();
-}
-
-/*
-NavigationWidget.prototype.SaveBookmark = function() {
-  NOTES_WIDGET.SaveBrownNote();
-  // Hide shifts the other buttons to the left to fill the gap.
-  this.BookmarkButton.css({'opacity': '0.0'});
-  var button = this.BookmarkButton;
-  setTimeout(function(){
-               button.css({'opacity': '0.6'});
-             }, 1000); // one second
-
-
-
-  LoadFavorites();
-}*/
-
-function SaveBookmark() {
-  NOTES_WIDGET.SaveBrownNote();
-  // Hide shifts the other buttons to the left to fill the gap.
-  FAVORITES_WIDGET.SaveBookmarkButton.css({'opacity': '0.0'});
-  var button = FAVORITES_WIDGET.SaveBookmarkButton;
-  setTimeout(function(){
-               button.css({'opacity': '0.6'});
-             }, 1000); // one second
-
-
-
-  LoadFavorites();
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {

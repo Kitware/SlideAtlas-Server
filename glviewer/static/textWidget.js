@@ -95,6 +95,7 @@ TextWidget.prototype.Serialize = function() {
   obj.position = this.Shape.Position;
   obj.string = this.Shape.String;
   obj.anchorVisibility = this.AnchorShape.Visibility;
+  obj.backgroundFlag = this.Shape.BackgroundFlag;
   return obj;
 }
 
@@ -113,6 +114,7 @@ TextWidget.prototype.Load = function(obj) {
              parseFloat(obj.color[2])];
   this.Shape.Color = rgb;
   this.Shape.Size = parseFloat(obj.size);
+  this.Shape.BackgroundFlag = obj.backgroundFlag;
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?
     this.SetTextOffset(parseFloat(obj.offset[0]),
@@ -391,7 +393,14 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
     TEXT_WIDGET_DIALOG_SELF = this;
     var color = document.getElementById("textcolor");
     color.value = ConvertColorToHex(this.Shape.Color);
-    
+
+    var size = document.getElementById("textfont");
+    size.value = this.Shape.Size;
+
+    var background = document.getElementById("TextBackground");
+    size.checked = this.Shape.BackgroundFlag;
+
+
     var ta = document.getElementById("textwidgetcontent");
     ta.value = this.Shape.String;
     var tm = document.getElementById("TextMarker");
@@ -419,6 +428,8 @@ function TextPropertyDialogApply() {
     return;
   }
   widget.SetActive(false);
+  
+  ApplyLineBreaks("textwidgetcontent");
 
   var string = document.getElementById("textwidgetcontent").value;
   // remove any trailing white space.
@@ -429,14 +440,19 @@ function TextPropertyDialogApply() {
   }
 
   var hexcolor = document.getElementById("textcolor").value;
+  var fontSize = document.getElementById("textfont").value;
   var markerFlag = document.getElementById("TextMarker").checked;
+  var backgroundFlag = document.getElementById("TextBackground").checked;
 
   widget.Shape.String = string;
+  widget.Shape.Size = parseFloat(fontSize);
   widget.Shape.UpdateBuffers();
   widget.Shape.SetColor(hexcolor);
   widget.AnchorShape.SetFillColor(hexcolor);
   widget.AnchorShape.ChooseOutlineColor();
   widget.SetAnchorShapeVisibility(markerFlag);
+  widget.Shape.BackgroundFlag = backgroundFlag;
+  
 
   RecordState();
 
@@ -462,6 +478,45 @@ function TextPropertyDialogDelete() {
     eventuallyRender();
     RecordState();
   }
+}
+
+
+//Function to apply line breaks to textarea text.
+function ApplyLineBreaks(strTextAreaId) {
+    var oTextarea = document.getElementById(strTextAreaId);
+    if (oTextarea.wrap) {
+        oTextarea.setAttribute("wrap", "off");
+    }
+    else {
+        oTextarea.setAttribute("wrap", "off");
+        var newArea = oTextarea.cloneNode(true);
+        newArea.value = oTextarea.value;
+        oTextarea.parentNode.replaceChild(newArea, oTextarea);
+        oTextarea = newArea;
+    }
+
+    var strRawValue = oTextarea.value;
+    oTextarea.value = "";
+    var nEmptyWidth = oTextarea.scrollWidth;
+    var nLastWrappingIndex = -1;
+    for (var i = 0; i < strRawValue.length; i++) {
+        var curChar = strRawValue.charAt(i);
+        if (curChar == ' ' || curChar == '-' || curChar == '+')
+            nLastWrappingIndex = i;
+        oTextarea.value += curChar;
+        if (oTextarea.scrollWidth > nEmptyWidth) {
+            var buffer = "";
+            if (nLastWrappingIndex >= 0) {
+                for (var j = nLastWrappingIndex + 1; j < i; j++)
+                    buffer += strRawValue.charAt(j);
+                nLastWrappingIndex = -1;
+            }
+            buffer += curChar;
+            oTextarea.value = oTextarea.value.substr(0, oTextarea.value.length - buffer.length);
+            oTextarea.value += "\n" + buffer;
+        }
+    }
+    oTextarea.setAttribute("wrap", "");
 }
 
 
