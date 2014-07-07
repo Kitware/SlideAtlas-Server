@@ -61,9 +61,9 @@ function Viewer (viewport, cache) {
         'width': '100%',
         'position': 'absolute',
         'text-align': 'center',
-        'color': '#eee',
-        //'border': '1px solid black',
-        'z-index': '3'
+        'opacity': '0.4',
+        'color': '#ccc',
+       'z-index': '3'
       })
       //.hide()
       .attr('id', 'copyright');
