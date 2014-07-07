@@ -393,7 +393,14 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
     TEXT_WIDGET_DIALOG_SELF = this;
     var color = document.getElementById("textcolor");
     color.value = ConvertColorToHex(this.Shape.Color);
-    
+
+    var size = document.getElementById("textfont");
+    size.value = this.Shape.Size;
+
+    var background = document.getElementById("TextBackground");
+    size.checked = this.Shape.BackgroundFlag;
+
+
     var ta = document.getElementById("textwidgetcontent");
     ta.value = this.Shape.String;
     var tm = document.getElementById("TextMarker");

@@ -8,7 +8,6 @@ This file currently requires the body tags to be given the ID 'body,' various ot
 
 // Constructor
 function Dialog () {
-    $(document).ready(function(){
       this.theCanvas = document.createElement('canvas');
       this.theCanvas.id = 'gltest';
       document.getElementById('body').appendChild(this.theCanvas);
@@ -394,7 +393,6 @@ function Dialog () {
               }
           }
       });
-});
 }		 
 /*Dialog.prototype.Show = function(modal){
     $('#gltest').show();

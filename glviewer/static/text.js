@@ -211,8 +211,6 @@ Text.prototype.Draw = function (view) {
   } else {
     // Canvas text location is lower left of first letter.
     var strArray = this.String.split("\n");
-    var width = 0;
-    var height = this.Size * LINE_SPACING * strArray.length;
     // Move (x,y) from tip of the arrow to the upper left of the text box.
     x = x - this.Anchor[0];
     y = y - this.Anchor[1];
@@ -220,24 +218,19 @@ Text.prototype.Draw = function (view) {
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.font = this.Size+'pt Calibri';
-    // Compute the width of the text box.
-    for (var i = 0; i < strArray.length; ++i) {
-      var lineWidth = ctx.measureText(strArray[i]).width;
-      if (lineWidth > width) { width = lineWidth; }
-    }
-    this.PixelBounds = [0, width, 0, height];
-
+    var width = this.PixelBounds[1];
+    var height = this.PixelBounds[3];
     // Draw the background text box.
     if(this.BackgroundFlag){
-      /*ctx.fillStyle = '#fff';
-      ctx.strokeStyle = '#000';*/
+      //ctx.fillStyle = '#fff';
+      //ctx.strokeStyle = '#000';
       //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
       roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
     }
 
     // Choose the color for the text.
     if (this.Active) {
-      ctx.fillStyle = ConvertColorToHex([1.0,1.0,0.0]);
+      ctx.fillStyle = '#FF0';
     } else {
       ctx.fillStyle = ConvertColorToHex(this.Color);
     }
@@ -283,7 +276,27 @@ function roundRect(ctx, x, y, width, height, radius) {
 
 
 Text.prototype.UpdateBuffers = function() {
-  if ( ! GL) { return; }
+  if ( ! GL) { 
+    // Canvas.  Compute pixel bounds.
+    var strArray = this.String.split("\n");
+    var height = this.Size * LINE_SPACING * strArray.length;
+    var width = 0;
+    // Hack: use a global viewer because I do not have the viewer.
+    // Maybe it should be passed in as an argument, or store the context
+    // as an instance variable.
+    var ctx = VIEWER1.MainView.Context2d;
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.font = this.Size+'pt Calibri';
+    // Compute the width of the text box.
+    for (var i = 0; i < strArray.length; ++i) {
+      var lineWidth = ctx.measureText(strArray[i]).width;
+      if (lineWidth > width) { width = lineWidth; }
+    }
+    this.PixelBounds = [0, width, 0, height];
+    ctx.restore();
+    return; 
+  }
   // Create a textured quad for each letter.
   var vertexPositionData = [];
   var textureCoordData = [];
