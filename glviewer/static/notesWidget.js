@@ -897,9 +897,10 @@ Note.prototype.Expand = function() {
 Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
-  VIEWER2.Reset();
-
-  SetNumberOfViews(this.ViewerRecords.length);
+  if (typeof VIEWER2 !== 'undefined') {
+    VIEWER2.Reset();
+    SetNumberOfViews(this.ViewerRecords.length);
+  }
 
   if (this.ViewerRecords.length > 0) {
     this.ViewerRecords[0].Apply(VIEWER1);

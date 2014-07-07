@@ -254,18 +254,19 @@ function RecordStateCallback() {
   note.RecordView();
 
   // The note will want to know its context
-  parentNote = NOTES_WIDGET.GetCurrentNote();
-  if ( ! parentNote.Id) {
-    //  Note is not loaded yet.
-    // Wait some more
-    RecordState();
-    return;
+  // The stack viewer does not have  notes widget.
+  if ( typeof NOTES_WIDGET !== 'undefined') {
+    parentNote = NOTES_WIDGET.GetCurrentNote();
+    if ( ! parentNote.Id) {
+      //  Note is not loaded yet.
+      // Wait some more
+      RecordState();
+      return;
+    }
+    // ParentId should be depreciated.
+    note.ParentId = parentNote.Id;
+    note.SetParent(parentNote);
   }
-
-  // ParentId should be depreciated.
-  note.ParentId = parentNote.Id;
-  note.SetParent(parentNote);
-
   // Save the note in the admin database for this specific user.
   $.ajax({
     type: "post",
@@ -279,7 +280,6 @@ function RecordStateCallback() {
       //alert( "AJAX - error() : saveusernote" );
     },
   });
-
 
   TIME_LINE.push(note);
 }
@@ -349,11 +349,7 @@ function UndoState() {
     // Get the new end state
     recordNote = TIME_LINE[TIME_LINE.length-1];
     // Now change the page to the state at the end of the timeline.
-    SetNumberOfViews(recordNote.ViewerRecords.length);
-    recordNote.ViewerRecords[0].Apply(VIEWER1);
-    if (recordNote.ViewerRecords.length > 1) {
-      recordNote.ViewerRecords[1].Apply(VIEWER2);
-    }
+    recordNote.DisplayView();
   }
 }
 
@@ -362,15 +358,11 @@ function RedoState() {
   if (REDO_STACK.length == 0) {
     return;
   }
-  var record = REDO_STACK.pop();
-  TIME_LINE.push(record);
+  var recordNote = REDO_STACK.pop();
+  TIME_LINE.push(recordNote);
 
   // Now change the page to the state at the end of the timeline.
-  SetNumberOfViews(record.Viewers.length);
-  record.Viewers[0].Apply(VIEWER1);
-  if (record.Viewers.length > 1) {
-    record.Viewers[1].Apply(VIEWER2);
-  }
+  recordNote.DisplayView();
 }
 
 
