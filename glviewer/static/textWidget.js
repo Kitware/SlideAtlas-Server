@@ -114,7 +114,9 @@ TextWidget.prototype.Load = function(obj) {
              parseFloat(obj.color[2])];
   this.Shape.Color = rgb;
   this.Shape.Size = parseFloat(obj.size);
-  this.Shape.BackgroundFlag = obj.backgroundFlag;
+  if (obj.backgroundFlag != undefined) {
+    this.Shape.BackgroundFlag = obj.backgroundFlag;
+  }
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?
     this.SetTextOffset(parseFloat(obj.offset[0]),
@@ -398,8 +400,7 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
     size.value = this.Shape.Size;
 
     var background = document.getElementById("TextBackground");
-    size.checked = this.Shape.BackgroundFlag;
-
+    background.checked = this.Shape.BackgroundFlag;
 
     var ta = document.getElementById("textwidgetcontent");
     ta.value = this.Shape.String;

@@ -91,6 +91,7 @@ function Text() {
   }
   this.Color = [0.5, 1.0, 1.0];
   this.Size = 12; // Height in pixels
+
   // Position of the anchor in the world coordinate system.
   this.Position = [100,100];
 
