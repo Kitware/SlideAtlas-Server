@@ -14,6 +14,60 @@ var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving ev
 var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 function CircleWidget (viewer, newFlag) {
+  this.Dialog = new Dialog(this);
+  // Customize dialog for a circle.
+  this.Dialog.Title.text('Circle Annotation Editor');
+  // Color
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+
+  // Area
+  this.Dialog.AreaDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.AreaLabel =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .text("Area:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.Area =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .css({'display':'table-cell'});
+
+
   this.Tolerance = 0.05;
   if (MOBILE_DEVICE) {
     this.Tolerance = 0.1;
@@ -29,7 +83,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape = new Circle();
   this.Shape.Origin = [0,0];
   this.Shape.OutlineColor = [0.0,0.0,0.0];
-  this.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
+  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
@@ -46,6 +100,7 @@ function CircleWidget (viewer, newFlag) {
   }
 
   this.State = CIRCLE_WIDGET_WAITING;
+
 }
 
 CircleWidget.prototype.Draw = function(view) {
@@ -264,35 +319,27 @@ CircleWidget.prototype.PlacePopup = function () {
 // Can we bind the dialog apply callback to an objects method?
 var CIRCLE_WIDGET_DIALOG_SELF;
 CircleWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("circlecolor");
-  color.value = ConvertColorToHex(this.Shape.OutlineColor);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
 
-  var lineWidth = document.getElementById("circlelinewidth");
-  lineWidth.value = (this.Shape.LineWidth).toFixed(2);
+  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var areaLabel = document.getElementById("circlearea");
-    areaLabel.innerHTML = "Area: " + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
+  var areaString = "" + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
   if (this.Shape.FixedSize) {
-    areaLabel.innerHTML += " pixels^2";
+    areaString += " pixels^2";
   } else {
-    areaLabel.innerHTML += " units^2";
+    areaString += " units^2";
   }
+  this.Dialog.Area.text(areaString);
 
-  CIRCLE_WIDGET_DIALOG_SELF = this;
-  $("#circle-properties-dialog").dialog("open");
+  this.Dialog.Show(true);
 }
 
-function CirclePropertyDialogApply() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
-  }
-  var hexcolor = document.getElementById("circlecolor").value;
-  widget.Shape.SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("circlelinewidth");
-  widget.Shape.LineWidth = parseFloat(lineWidth.value);
-  widget.Shape.UpdateBuffers();
-  widget.SetActive(false);
+CircleWidget.prototype.DialogApplyCallback = function() {
+  var hexcolor = this.Dialog.ColorInput.val();
+  this.Shape.SetOutlineColor(hexcolor);
+  this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+  this.Shape.UpdateBuffers();
+  this.SetActive(false);
   RecordState();
   eventuallyRender();
 }

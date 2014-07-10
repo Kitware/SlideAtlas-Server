@@ -97,6 +97,10 @@ EventManager.prototype.HandleMouseDown = function(event) {
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
 
+  // Get rid of the favorites and the link divs if they are visible
+  if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+  if (FAVORITES_WIDGET.hidden == false) { FAVORITES_WIDGET.ShowHideFavorites();}
+
   if (this.CurrentViewer) {
     event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.

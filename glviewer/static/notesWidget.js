@@ -1,4 +1,3 @@
-// I am simplifying the creation of notes by minimizing the tree to one level.
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
@@ -22,7 +21,7 @@
 // Allow user to delete the favorite note (even if edit is not on).
 
 
-
+var LINk_DIV;
 
 // Time to make this an object to get rid of all these global variables.
 function InitNotesWidget() {
@@ -39,6 +38,24 @@ function InitNotesWidget() {
     */
   NOTES_WIDGET.ToggleNotesWindow();
   }
+
+  LINK_DIV = 
+    $("<div>")
+      .appendTo('body')
+      .attr('contenteditable', "true")
+      .css({'top':'30px',
+            'left': '10%',
+            'position': 'absolute',
+            'width':'80%',
+            'height': '50px',
+            'z-index':'3',
+            'background-color':'#FFF',
+            'border':'1px solid #777',
+            'border-radius': '8px',
+            'text-align': 'center',
+            'padding-top': '26px'})
+      .hide()
+      .mouseleave(function() { LINK_DIV.fadeOut(); });
 }
 
 
@@ -426,13 +443,13 @@ function Note () {
     //             'font-size': '30px',
 
 
-    this.Icon =
-      $('<img>')
-        .css({'height': '20px',
-              'width': '20x',
-              'float':'left'})
-        .attr('src',"webgl-viewer/static/dot.png")
-        .appendTo(this.Div);
+  this.Icon =
+    $('<img>')
+      .css({'height': '20px',
+            'width': '20x',
+            'float':'left'})
+      .attr('src',"webgl-viewer/static/dot.png")
+      .appendTo(this.Div);
 
   // I could reuse this menu, but this is easy for callbacks
   this.IconMenuDiv =
@@ -549,6 +566,12 @@ Note.prototype.SnapShotCallback = function() {
   this.IconMenuDiv.hide();
   this.RecordView();
   NOTES_WIDGET.Modified();
+}
+
+Note.prototype.LinkCallback = function() {
+  this.IconMenuDiv.hide();
+  LINK_DIV.html("slide-atlas.org/webgl-viewer?db="+GetSessionDatabase()+"&view="+this.Id);
+  LINK_DIV.show();
 }
 
 Note.prototype.DeleteCallback = function() {
@@ -701,6 +724,7 @@ Note.prototype.Contains = function(decendent) {
 
 // This should method should be split between Note and NotesWidget
 Note.prototype.Select = function() {
+  if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
   if (NOTES_WIDGET.Iterator.GetNote() != this) {
     // For when user selects a note from a list.
     // Find the note and set a new iterator
@@ -763,7 +787,11 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
-  obj.ParentId = "";
+  if (this.Id) {
+    obj._id = this.Id;
+  }
+  // I would like to put the session as parent, but this would be an inclomplete reference.
+  // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
   if (this.Parent) {
     obj.ParentId = this.Parent.Id;
   }
@@ -796,9 +824,16 @@ Note.prototype.Serialize = function(includeChildren) {
 // This method of loading is causing a pain.
 // Children ...
 Note.prototype.Load = function(obj){
+  var self = this;
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
+  // I am not sure blindly copying all of the variables is a good idea.
+  if (this._id) {
+    this.Id = this._id;
+  }
+  delete this._id;
+
   this.TitleDiv.text(this.Title);
   for (var i = 0; i < this.Children.length; ++i) {
     var childObj = this.Children[i];
@@ -810,7 +845,6 @@ Note.prototype.Load = function(obj){
   }
   // Because we are not using add child.
   if (this.Children.length > 1 && this.UserCanEdit()) {
-    var self = this;
     /*
     this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
@@ -826,6 +860,19 @@ Note.prototype.Load = function(obj){
       this.ViewerRecords[i].Load(obj);
     }
   }
+
+
+  if (this.Id) {
+    this.LinkButton =
+      $('<button>').appendTo(this.IconMenuDiv)
+        .text("link")
+        .css({'color' : '#278BFF',
+              'font-size': '14px',
+              'border-radius': '3px',
+              'width':'100%'})
+        .click(function(){self.LinkCallback();});
+  }
+
 
   // Hack to fix timing (Load after select)
   if (this == NOTES_WIDGET.RootNote) {
@@ -856,7 +903,7 @@ Note.prototype.RequestUserNotes = function() {
   $.ajax({
     type: "get",
     url: "/webgl-viewer/getchildnotes",
-    data: {"parentid": this.Id,
+    data: {"ParentId": this.Id,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error() : getchildnotes" ); },
@@ -1032,7 +1079,8 @@ NotesWidget.prototype.RandomCallback = function() {
 
 // TODO: Activate and inactivate save button based on whether anything has changed.
 NotesWidget.prototype.SaveCallback = function() {
-  if ( ! this.ModifiedFlag) { return;}
+  // changing an annotation does not cause modified yet, so do not block the save.
+  //if ( ! this.ModifiedFlag) { return;}
   var self = this;
   var d = new Date();
 
@@ -1043,7 +1091,6 @@ NotesWidget.prototype.SaveCallback = function() {
     url: "/webgl-viewer/saveviewnotes",
     data: {"note" : noteObj,
            "db"   : GetSessionDatabase(),
-           "view" : GetViewId(),
            "date" : d.getTime()},
     success: function(data,status) {
       self.SaveButton.css({'color' : '#278BFF'});
