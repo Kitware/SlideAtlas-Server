@@ -13,6 +13,7 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -200,11 +201,11 @@ def sessionedit(session_obj):
     database_obj = session_obj.image_store
     db = database_obj.to_pymongo()
 
-    # iterate through the view objects and record image information.
+    # Iterate through the view objects and record image information.
     viewList = []
     for aview in session_obj.views:
         view = db["views"].find_one({"_id" : aview.ref})
-        # missing view ????
+        # I had a bug where a view was missing (broken link).
         if view :
             descriptiveLabel = ""
             hiddenLabel = ""
@@ -297,10 +298,10 @@ def sessionsave():
 
     email = security.current_user.email
 
-    # I am using the label for the annotated title, and name for hidde
+    # I am using the label for the annotated title, and name for the hidden title.
     sessObj.label = label
 
-    # create a new list of sessions.
+    # create a new list of views.
     oldViews = []
     if sessObj.views :
         oldViews = sessObj.views

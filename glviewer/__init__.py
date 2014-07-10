@@ -213,6 +213,7 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 #@security.login_required
 def glview():
+
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
@@ -830,12 +831,14 @@ def readViewTree(db, viewId) :
                 record["Database"] = str(record["Database"])
                 database = models.ImageStore.objects.get_or_404(id=ObjectId(record["Database"]))
                 imgdb = database.to_pymongo()
-            # convert references to string to pass to the client
-            record["Image"] = str(record["Image"])
-            imgObj = imgdb["images"].find_one({ "_id" : ObjectId(record["Image"])})
-            imgObj["_id"] = str(imgObj["_id"])
-            imgObj["database"] = record["Database"]
-            record["Image"] = imgObj;
+            # Replace the image reference with the inline image object for the client
+            # Note: A bug caused some image objects to be embedded in views in te databse.
+            if isinstance(record["Image"], ObjectId) :
+                record["Image"] = str(record["Image"])
+                imgObj = imgdb["images"].find_one({ "_id" : ObjectId(record["Image"])})
+                imgObj["_id"] = str(imgObj["_id"])
+                imgObj["database"] = record["Database"]
+                record["Image"] = imgObj;
 
     # read and add the
     if viewObj.has_key("Children") :
