@@ -57,7 +57,7 @@
             {{ register_user_form.hidden_tag() }}
             <div class="span8">
                 <div>
-                    {{ render_field_with_errors(register_user_form.full_name, required=True, pattern="[A-Za-z0-9 ]{3,30}", title="Full name should be 3-30 alpha-numeric characters") }}
+                    {{ render_field_with_errors(register_user_form.full_name, required=True, pattern="[A-Za-z0-9 -]{3,50}", title="Full name should be 3-50 alpha-numeric characters") }}
                 </div>
 
                 <div>
