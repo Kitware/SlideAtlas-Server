@@ -775,7 +775,9 @@ Note.prototype.DisplayGUI = function(div) {
     this.IconMenuDiv
       .mouseenter(function() { self.IconMenuEnterCallback(); })
       .mouseleave(function() { self.IconMenuLeaveCallback(); });
-      this.LinkButton.click(function(){self.LinkCallback();});
+      if (this.LinkButton) {
+        this.LinkButton.click(function(){self.LinkCallback();});
+      }
       this.SnapShotButton.click(function(){self.SnapShotCallback();});
       if (this.DeleteButton) { 
         this.DeleteButton.click(function(){self.DeleteCallback();});
