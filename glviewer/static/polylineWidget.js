@@ -134,6 +134,24 @@ PolylineWidget.prototype.Draw = function(view) {
 }
 
 
+PolylineWidget.prototype.PasteCallback = function(data) {
+  this.Load(data);
+  // Place the widget over the mouse.
+  // This is more difficult than the circle.  Compute the shift.
+  var xOffset = EVENT_MANAGER.MouseWorldX - (this.Bounds[0]+this.Bounds[1])/2;
+  var yOffset = EVENT_MANAGER.MouseWorldY - (this.Bounds[2]+this.Bounds[3])/2;
+  for (var i = 0; i < this.Shape.Points.length; ++i) {
+    this.Shape.Points[i][0] += xOffset;
+    this.Shape.Points[i][1] += yOffset;
+  }
+  this.UpdateBounds();
+  this.Shape.UpdateBuffers();
+
+  eventuallyRender();
+}
+
+
+
 PolylineWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
   var obj = new Object();
@@ -183,6 +201,18 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
 }
 
 PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  // Copy
+  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+    // control-c for copy
+    // The extra identifier is not needed for widgets, but will be
+    // needed if we have some other object on the clipboard.
+    var clip = {Type:"PolylineWidget", Data: this.Serialize()};
+    localStorage.ClipBoard = JSON.stringify(clip);
+    return true;
+  }
+
+
+  return false;
   if (keyCode == 27) { // escape
     // Last resort.  ESC key always deactivates the widget.
     // Deactivate.

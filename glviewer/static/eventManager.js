@@ -197,10 +197,13 @@ EventManager.prototype.HandleKeyDown = function(event) {
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = true;
+    // Do not forward modifier keys events to objects that consume keypresses.
+    return;
   }
   if (event.keyCode == 17) {
     // Control key modifier.
     this.ControlKeyPressed = true;
+    return;
   }
 
   // Handle undo and redo (cntrl-z, cntrl-y)
@@ -215,7 +218,7 @@ EventManager.prototype.HandleKeyDown = function(event) {
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
-    this.CurrentViewer.HandleKeyPress(event.keyCode, this.ShiftKeyPressed);
+    this.CurrentViewer.HandleKeyPress(event.keyCode, this);
   }
 }
 

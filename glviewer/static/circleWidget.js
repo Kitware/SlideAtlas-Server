@@ -118,6 +118,14 @@ CircleWidget.prototype.RemoveFromViewer = function() {
   }
 }
 
+CircleWidget.prototype.PasteCallback = function(data) {
+  this.Load(data);
+  // Place the widget over the mouse.
+  // This would be better as an argument.
+  this.Shape.Origin = [EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY];
+  eventuallyRender();
+}
+
 CircleWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
   var obj = new Object();
@@ -143,6 +151,35 @@ CircleWidget.prototype.Load = function(obj) {
 }
 
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  // Look for a copy command.
+  // Copy of a circle does not make much sense, but it is a test
+  // for polyline, which will be next.
+
+  // Note: Event manager should probably handle the key modifiers like it
+  // proprocess mouse events.
+
+
+  if (keyCode == 17) { return false; }
+  // 67 is c
+
+  return false;
+}
+
+CircleWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // Look for a copy command.
+  // Copy of a circle does not make much sense, but it is a test
+  // for polyline, which will be next.
+
+  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+    // control-c for copy
+
+    // The extra identifier is not needed for widgets, but will be
+    // needed if we have some other object on the clipboard.
+    var clip = {Type:"CircleWidget", Data: this.Serialize()};
+    localStorage.ClipBoard = JSON.stringify(clip);
+    return true;
+  }
+
   return false;
 }
 
