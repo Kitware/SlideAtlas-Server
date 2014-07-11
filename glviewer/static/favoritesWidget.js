@@ -96,7 +96,7 @@ FavoritesWidget.prototype.ShowHideFavorites = function(){
     this.FavoritesList.show();
     this.hidden = false;
   } else {
-    this.FavoritesList.hide();
+    this.FavoritesList.fadeOut();
     this.hidden = true;
   }
 }

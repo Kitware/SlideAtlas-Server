@@ -456,6 +456,7 @@ function saveAnnotation() {
     var note = new Note();
     // What if no parent?
     note.ParentId = "";
+    note.Id = section.View;
     note.Title = "";
     note.HiddenTitle = "";
     note.Text = "";
@@ -476,7 +477,6 @@ function saveAnnotation() {
       url: "/webgl-viewer/saveviewnotes",
       data: {"note" : noteObj,
              "db"   : GetSessionDatabase(),
-             "view" : section.View,
              "date" : d.getTime()},
       success: function(data,status) { $("#saveButton").show(); },
       error: function() { alert( "AJAX - error() : saveviewnotes (stack)" ); },

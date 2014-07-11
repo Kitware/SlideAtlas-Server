@@ -14,6 +14,70 @@ var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving ev
 var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 function CircleWidget (viewer, newFlag) {
+  this.Dialog = new Dialog(this);
+  // Customize dialog for a circle.
+  this.Dialog.Title.text('Circle Annotation Editor');
+  // Color
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+
+  // Area
+  this.Dialog.AreaDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.AreaLabel =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .text("Area:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.Area =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .css({'display':'table-cell'});
+
+  // Get default properties.
+  if (localStorage.CircleWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.LineWidth) {
+      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+    }
+  }
+
   this.Tolerance = 0.05;
   if (MOBILE_DEVICE) {
     this.Tolerance = 0.1;
@@ -29,7 +93,7 @@ function CircleWidget (viewer, newFlag) {
   this.Shape = new Circle();
   this.Shape.Origin = [0,0];
   this.Shape.OutlineColor = [0.0,0.0,0.0];
-  this.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
+  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Shape.Radius = 50*cam.Height/viewport[3];
   this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
   this.Shape.FixedSize = false;
@@ -46,6 +110,7 @@ function CircleWidget (viewer, newFlag) {
   }
 
   this.State = CIRCLE_WIDGET_WAITING;
+
 }
 
 CircleWidget.prototype.Draw = function(view) {
@@ -61,6 +126,14 @@ CircleWidget.prototype.RemoveFromViewer = function() {
   if(idx!=-1) {
     this.Viewer.WidgetList.splice(idx, 1);
   }
+}
+
+CircleWidget.prototype.PasteCallback = function(data) {
+  this.Load(data);
+  // Place the widget over the mouse.
+  // This would be better as an argument.
+  this.Shape.Origin = [EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY];
+  eventuallyRender();
 }
 
 CircleWidget.prototype.Serialize = function() {
@@ -88,6 +161,35 @@ CircleWidget.prototype.Load = function(obj) {
 }
 
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  // Look for a copy command.
+  // Copy of a circle does not make much sense, but it is a test
+  // for polyline, which will be next.
+
+  // Note: Event manager should probably handle the key modifiers like it
+  // proprocess mouse events.
+
+
+  if (keyCode == 17) { return false; }
+  // 67 is c
+
+  return false;
+}
+
+CircleWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // Look for a copy command.
+  // Copy of a circle does not make much sense, but it is a test
+  // for polyline, which will be next.
+
+  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+    // control-c for copy
+
+    // The extra identifier is not needed for widgets, but will be
+    // needed if we have some other object on the clipboard.
+    var clip = {Type:"CircleWidget", Data: this.Serialize()};
+    localStorage.ClipBoard = JSON.stringify(clip);
+    return true;
+  }
+
   return false;
 }
 
@@ -152,7 +254,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
 
    if (this.State == CIRCLE_WIDGET_WAITING) {
     this.CheckActive(event);
-  }
+   }
 }
 
 
@@ -264,56 +366,31 @@ CircleWidget.prototype.PlacePopup = function () {
 // Can we bind the dialog apply callback to an objects method?
 var CIRCLE_WIDGET_DIALOG_SELF;
 CircleWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("circlecolor");
-  color.value = ConvertColorToHex(this.Shape.OutlineColor);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
 
-  var lineWidth = document.getElementById("circlelinewidth");
-  lineWidth.value = (this.Shape.LineWidth).toFixed(2);
+  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var areaLabel = document.getElementById("circlearea");
-    areaLabel.innerHTML = "Area: " + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
+  var areaString = "" + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
   if (this.Shape.FixedSize) {
-    areaLabel.innerHTML += " pixels^2";
+    areaString += " pixels^2";
   } else {
-    areaLabel.innerHTML += " units^2";
+    areaString += " units^2";
   }
+  this.Dialog.Area.text(areaString);
 
-  CIRCLE_WIDGET_DIALOG_SELF = this;
-  $("#circle-properties-dialog").dialog("open");
+  this.Dialog.Show(true);
 }
 
-function CirclePropertyDialogApply() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
-  }
-  var hexcolor = document.getElementById("circlecolor").value;
-  widget.Shape.SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("circlelinewidth");
-  widget.Shape.LineWidth = parseFloat(lineWidth.value);
-  widget.Shape.UpdateBuffers();
-  widget.SetActive(false);
+CircleWidget.prototype.DialogApplyCallback = function() {
+  var hexcolor = this.Dialog.ColorInput.val();
+  this.Shape.SetOutlineColor(hexcolor);
+  this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+  this.Shape.UpdateBuffers();
+  this.SetActive(false);
   RecordState();
   eventuallyRender();
+
+  localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
 }
 
-function CirclePropertyDialogCancel() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    eventuallyRender();
-  }
-}
-
-function CirclePropertyDialogDelete() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}
 

@@ -127,12 +127,6 @@ AnnotationWidget.prototype.NewText = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new TextWidget(this.Viewer, "");
-  // Set default color rom the last text widget setting.
-  var hexcolor = document.getElementById("textcolor").value;
-  widget.Shape.SetColor(hexcolor);
-  widget.AnchorShape.SetFillColor(hexcolor);
-  // Default value for anchor shape visibility
-  widget.AnchorShape.Visibility = document.getElementById("TextMarker").value;
   this.Viewer.ActiveWidget = widget;
 
   // The dialog is used to set the initial text.
