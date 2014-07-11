@@ -28,6 +28,82 @@ function TextWidget (viewer, string) {
   if (viewer == null) {
     return null;
   }
+  
+  this.Dialog = new Dialog(this);
+  this.Dialog.Title.text('Text Annotation Editor');
+  
+  this.Dialog.TextInput =
+    $('<textarea>')
+      .appendTo(this.Dialog.Body)
+      .css({'width': '100%'});
+  
+  this.Dialog.FontDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.FontLabel = 
+    $('<div>')
+      .appendTo(this.Dialog.FontDiv)
+      .text("Font (px):")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.FontInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.FontDiv)
+      .val('12')
+      .css({'display':'table-cell'});
+  
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+  
+  this.Dialog.MarkerDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.MarkerLabel =
+    $('<div>')
+      .appendTo(this.Dialog.MarkerDiv)
+      .text("Arrow:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.MarkerInput =
+    $('<input type="checkbox">')
+      .appendTo(this.Dialog.MarkerDiv)
+      //.text("Marker")
+      .attr('checked', 'true')
+      .css({'display': 'table-cell'});
+  
+  this.Dialog.BackgroundDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.BackgroundLabel =
+    $('<div>')
+      .appendTo(this.Dialog.BackgroundDiv)
+      .text("Background:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.BackgroundInput =
+    $('<input type="checkbox">')
+      .appendTo(this.Dialog.BackgroundDiv)
+      //.text("Background")
+      .attr('checked', 'true')
+      .css({'display': 'table-cell'});
+  
+  
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   // Text widgets are created with the dialog open (to set the string).
@@ -393,31 +469,40 @@ TextWidget.prototype.PlacePopup = function () {
 var TEXT_WIDGET_DIALOG_SELF;
 TextWidget.prototype.ShowPropertiesDialog = function () {
     TEXT_WIDGET_DIALOG_SELF = this;
-    var color = document.getElementById("textcolor");
+    var color = this.Dialog.ColorInput;
+    //document.getElementById("textcolor");
     color.value = ConvertColorToHex(this.Shape.Color);
 
-    var size = document.getElementById("textfont");
+    var size = this.Dialog.FontInput;
+    //document.getElementById("textfont");
     size.value = this.Shape.Size;
 
-    var background = document.getElementById("TextBackground");
+    var background = this.Dialog.BackgroundInput;
+    //document.getElementById("TextBackground");
     background.checked = this.Shape.BackgroundFlag;
 
-    var ta = document.getElementById("textwidgetcontent");
+    var ta = this.Dialog.TextInput;
+    //document.getElementById("textwidgetcontent");
     ta.value = this.Shape.String;
-    var tm = document.getElementById("TextMarker");
+    var tm = this.Dialog.MarkerInput;
+    //document.getElementById("TextMarker");
     tm.checked = this.AnchorShape.Visibility;
-    $("#textwidgetcontent").keyup(function (e) { TextPropertyDialogApplyCheck();});
+    //$("#textwidgetcontent")
+    ta.keyup(function (e) { TEXT_WIDGET_DIALOG_SELF.TextPropertyDialogApplyCheck();});
     
     // hack to suppress viewer key events.
     DIALOG_OPEN = true;
     // Can we bind the dialog apply callback to an objects method?
     TEXT_WIDGET_DIALOG_SELF = this;
-    $("#text-properties-dialog").dialog("open");
+    //$("#text-properties-dialog")
+    //ta.dialog("open");
+    this.Dialog.Show('true');
 }
 
 // Two returns in a row is the same as apply.
-function TextPropertyDialogApplyCheck() {
-  var string = document.getElementById("textwidgetcontent").value;
+TextWidget.prototype.TextPropertyDialogApplyCheck = function() {
+  var string = this.Dialog.TextInput.value;
+  //document.getElementById("textwidgetcontent").value;
   if (string.length > 1 && string.slice(-2) == "\n\n") {
     TextPropertyDialogApply();
   }
@@ -462,6 +547,21 @@ function TextPropertyDialogApply() {
   $("#text-properties-dialog").dialog("close");
 }
 
+TextWidget.prototype.DialogApplyCallback = function() {
+  ApplyLineBreaks(this.Dialog.TextInput);
+  this.Shape.String = this.Dialog.TextInput.val()
+  var hexcolor = this.Dialog.ColorInput.val();
+  this.Shape.SetColor(hexcolor);
+  this.Shape.Size = this.Dialog.FontInput.val();
+  //parseFloat(this.Dialog.LineWidthInput.val());
+  this.Shape.Active = this.Dialog.MarkerInput.checked;
+  this.Shape.BackgroundFlag = this.Dialog.BackgroundInput.checked;
+  this.Shape.UpdateBuffers();
+  this.SetActive(false);
+  RecordState();
+  eventuallyRender();
+}
+
 function TextPropertyDialogCancel() {
   var widget = TEXT_WIDGET_DIALOG_SELF;
   if (widget != null) {
@@ -483,8 +583,9 @@ function TextPropertyDialogDelete() {
 
 
 //Function to apply line breaks to textarea text.
-function ApplyLineBreaks(strTextAreaId) {
-    var oTextarea = document.getElementById(strTextAreaId);
+function ApplyLineBreaks(Textarea) {
+    //var oTextarea = document.getElementById(strTextAreaId);
+    var oTextarea = Textarea[0];
     if (oTextarea.wrap) {
         oTextarea.setAttribute("wrap", "off");
     }

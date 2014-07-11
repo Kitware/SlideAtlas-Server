@@ -62,7 +62,12 @@ WidgetPopup.prototype.Hide = function() {
 WidgetPopup.prototype.StartHideTimer = function() {
   if ( ! this.HideTimerId) {
     var self = this;
-    this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
+    
+    if(MOBILE_DEVICE) {
+      this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
+    } else {
+      this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 800);
+    }
   }
 }
 
