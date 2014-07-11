@@ -379,25 +379,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
   this.SetActive(false);
   RecordState();
   eventuallyRender();
+
+
+
 }
 
-function CirclePropertyDialogCancel() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    eventuallyRender();
-  }
-}
-
-function CirclePropertyDialogDelete() {
-  var widget = CIRCLE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}
 

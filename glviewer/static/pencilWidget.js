@@ -22,6 +22,44 @@ function PencilWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
+
+  this.Dialog = new Dialog(this);
+  // Customize dialog for a lasso.
+  this.Dialog.Title.text('Lasso Annotation Editor');
+  // Color
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   this.Viewer.WidgetList.push(this);
@@ -117,7 +155,7 @@ PencilWidget.prototype.HandleMouseDown = function(event) {
     var shape = new Polyline();
     //shape.OutlineColor = [0.9, 1.0, 0.0];
     shape.OutlineColor = [0.0, 0.0, 0.0];
-    shape.SetOutlineColor(document.getElementById("pencilcolor").value);
+    shape.SetOutlineColor(this.Dialog.ColorInput.val());
     shape.FixedSize = false;
     shape.LineWidth = 0;
     this.Shapes.push(shape);
@@ -257,55 +295,25 @@ PencilWidget.prototype.RemoveFromViewer = function() {
 // Can we bind the dialog apply callback to an objects method?
 var PENCIL_WIDGET_DIALOG_SELF
 PencilWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("pencilcolor");
-  color.value = ConvertColorToHex(this.Shapes[0].OutlineColor);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shapes[0].OutlineColor));
+  this.Dialog.LineWidthInput.val((this.Shapes[0].LineWidth).toFixed(2));
 
-  var lineWidth = document.getElementById("pencilwidth");
-  lineWidth.value = (this.Shapes[0].LineWidth).toFixed(2);
-
-  PENCIL_WIDGET_DIALOG_SELF = this;
-  $("#pencil-properties-dialog").dialog("open");
+  this.Dialog.Show(true);
 }
 
-function PencilPropertyDialogApply() {
-  var widget = PENCIL_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
+
+PencilWidget.prototype.DialogApplyCallback = function() {
+  var hexcolor = this.Dialog.ColorInput.val();
+  for (var i = 0; i < this.Shapes.length; ++i) {
+    this.Shapes[i].SetOutlineColor(hexcolor);
+    this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+    this.Shapes[i].UpdateBuffers();
   }
-  var hexcolor = document.getElementById("pencilcolor").value;
-  for (var j = 0; j < widget.Shapes.length; j++)
-      widget.Shapes[j].SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("pencilwidth");
-  for (var j = 0; j < widget.Shapes.length; j++) {
-      widget.Shapes[j].LineWidth = parseFloat(lineWidth.value);
-      widget.Shapes[j].UpdateBuffers();
-  }
-  if (widget != null) {
-    widget.SetActive(false);
-  }
+  this.SetActive(false);
   RecordState();
   eventuallyRender();
-  $("#pencil-properties-dialog").dialog("close");
 }
 
-function PencilPropertyDialogCancel() {
-  var widget = PENCIL_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-  }
-}
-
-function PencilPropertyDialogDelete() {
-  var widget = PENCIL_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}
 
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
 // Pass in the spacing as a hint to get rid of aliasing.
