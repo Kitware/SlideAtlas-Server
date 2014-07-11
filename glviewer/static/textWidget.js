@@ -12,8 +12,6 @@
 
 // I am adding an optional glyph/shape/arrow that displays the text location.
 
-// TODO:  Dragging the arrow should not snap the tip to the mouse.
-
 //==============================================================================
 
 
@@ -28,7 +26,7 @@ function TextWidget (viewer, string) {
   if (viewer == null) {
     return null;
   }
-  
+
   this.Dialog = new Dialog(this);
   this.Dialog.Title.text('Text Annotation Editor');
   
@@ -103,7 +101,24 @@ function TextWidget (viewer, string) {
       .attr('checked', 'true')
       .css({'display': 'table-cell'});
   
-  
+  // Get default properties.
+  this.Dialog.BackgroundInput.prop('checked', true);
+  if (localStorage.TextWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.TextWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.FontSize) {
+      this.Dialog.FontInput.val(defaults.FontSize);
+    }
+    if (defaults.BackgroundFlag !== undefined) {
+      this.Dialog.BackgroundInput.prop('checked', defaults.BackgroundFlag);
+    }
+    if (defaults.MarkerFlag !== undefined) {
+      this.Dialog.MarkerInput.prop('checked', defaults.MarkerFlag);
+    }
+  }
+
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   // Text widgets are created with the dialog open (to set the string).
@@ -118,6 +133,7 @@ function TextWidget (viewer, string) {
   this.Shape.Color = [0.0, 0.0, 1.0];
   this.Shape.Anchor = [0.5*(this.Shape.PixelBounds[0]+this.Shape.PixelBounds[1]),
                       0.5*(this.Shape.PixelBounds[2]+this.Shape.PixelBounds[3])];
+
 
   // I would like to setup the ancoh in the middle of the screen,
   // And have the Anchor in the middle of the text.
@@ -138,6 +154,18 @@ function TextWidget (viewer, string) {
 
   viewer.WidgetList.push(this);
   this.ActiveReason = 1;
+
+  // Sloppy defaults.
+  var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+  this.Shape.Size = parseFloat(this.Dialog.FontInput.val());
+  this.Shape.Color = hexcolor;
+  this.AnchorShape.SetFillColor(hexcolor);
+  this.AnchorShape.ChooseOutlineColor();
+  this.Shape.BackgroundFlag = this.Dialog.BackgroundInput.prop("checked");
+  this.SetAnchorShapeVisibility(this.Dialog.MarkerInput.prop("checked"));
+
+  // It is odd the way the Anchor is set.  Leave the above for now.
+  this.SetTextOffset(50,0);
 }
 
 // Three state visibility so text can be hidden during calss questions.
@@ -466,58 +494,32 @@ TextWidget.prototype.PlacePopup = function () {
 }
 
 // Can we bind the dialog apply callback to an objects method?
-var TEXT_WIDGET_DIALOG_SELF;
 TextWidget.prototype.ShowPropertiesDialog = function () {
-    TEXT_WIDGET_DIALOG_SELF = this;
-    var color = this.Dialog.ColorInput;
-    //document.getElementById("textcolor");
-    color.value = ConvertColorToHex(this.Shape.Color);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.Color));
+  this.Dialog.FontInput.val(this.Shape.Size.toFixed(0));
+  this.Dialog.BackgroundInput.prop('checked', this.Shape.BackgroundFlag);
+  this.Dialog.TextInput.val(this.Shape.String);
+  this.Dialog.MarkerInput.prop('checked', this.AnchorShape.Visibility);
 
-    var size = this.Dialog.FontInput;
-    //document.getElementById("textfont");
-    size.value = this.Shape.Size;
+  // hack to suppress viewer key events.
+  DIALOG_OPEN = true;
 
-    var background = this.Dialog.BackgroundInput;
-    //document.getElementById("TextBackground");
-    background.checked = this.Shape.BackgroundFlag;
-
-    var ta = this.Dialog.TextInput;
-    //document.getElementById("textwidgetcontent");
-    ta.value = this.Shape.String;
-    var tm = this.Dialog.MarkerInput;
-    //document.getElementById("TextMarker");
-    tm.checked = this.AnchorShape.Visibility;
-    //$("#textwidgetcontent")
-    ta.keyup(function (e) { TEXT_WIDGET_DIALOG_SELF.TextPropertyDialogApplyCheck();});
-    
-    // hack to suppress viewer key events.
-    DIALOG_OPEN = true;
-    // Can we bind the dialog apply callback to an objects method?
-    TEXT_WIDGET_DIALOG_SELF = this;
-    //$("#text-properties-dialog")
-    //ta.dialog("open");
-    this.Dialog.Show('true');
+  this.Dialog.Show();
 }
 
-// Two returns in a row is the same as apply.
-TextWidget.prototype.TextPropertyDialogApplyCheck = function() {
-  var string = this.Dialog.TextInput.value;
-  //document.getElementById("textwidgetcontent").value;
+// Used?
+function TextPropertyDialogApplyCheck() {
+  var string = document.getElementById("textwidgetcontent").value;
   if (string.length > 1 && string.slice(-2) == "\n\n") {
     TextPropertyDialogApply();
   }
 }
 
-function TextPropertyDialogApply() {
-  var widget = TEXT_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
-  }
-  widget.SetActive(false);
-  
-  ApplyLineBreaks("textwidgetcontent");
+TextWidget.prototype.DialogApplyCallback = function () {
+  this.SetActive(false);
+  this.ApplyLineBreaks();
 
-  var string = document.getElementById("textwidgetcontent").value;
+  var string = this.Dialog.TextInput.val();
   // remove any trailing white space.
   string = string.trim();
   if (string == "") {
@@ -525,78 +527,44 @@ function TextPropertyDialogApply() {
     return;
   }
 
-  var hexcolor = document.getElementById("textcolor").value;
-  var fontSize = document.getElementById("textfont").value;
-  var markerFlag = document.getElementById("TextMarker").checked;
-  var backgroundFlag = document.getElementById("TextBackground").checked;
+  var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+  var fontSize = this.Dialog.FontInput.val();
+  var markerFlag = this.Dialog.MarkerInput.prop("checked");
+  var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
-  widget.Shape.String = string;
-  widget.Shape.Size = parseFloat(fontSize);
-  widget.Shape.UpdateBuffers();
-  widget.Shape.SetColor(hexcolor);
-  widget.AnchorShape.SetFillColor(hexcolor);
-  widget.AnchorShape.ChooseOutlineColor();
-  widget.SetAnchorShapeVisibility(markerFlag);
-  widget.Shape.BackgroundFlag = backgroundFlag;
-  
-
-  RecordState();
-
-  eventuallyRender();
-
-  $("#text-properties-dialog").dialog("close");
-}
-
-TextWidget.prototype.DialogApplyCallback = function() {
-  ApplyLineBreaks(this.Dialog.TextInput);
-  this.Shape.String = this.Dialog.TextInput.val()
-  var hexcolor = this.Dialog.ColorInput.val();
-  this.Shape.SetColor(hexcolor);
-  this.Shape.Size = this.Dialog.FontInput.val();
-  //parseFloat(this.Dialog.LineWidthInput.val());
-  this.Shape.Active = this.Dialog.MarkerInput.checked;
-  this.Shape.BackgroundFlag = this.Dialog.BackgroundInput.checked;
+  this.Shape.String = string;
+  this.Shape.Size = parseFloat(fontSize);
   this.Shape.UpdateBuffers();
-  this.SetActive(false);
+  this.Shape.SetColor(hexcolor);
+  this.AnchorShape.SetFillColor(hexcolor);
+  this.AnchorShape.ChooseOutlineColor();
+  this.SetAnchorShapeVisibility(markerFlag);
+  this.Shape.BackgroundFlag = backgroundFlag;
+
+  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, MarkerFlag: markerFlag, BackgroundFlag: backgroundFlag});
+
   RecordState();
+
   eventuallyRender();
 }
-
-function TextPropertyDialogCancel() {
-  var widget = TEXT_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-  }
-}
-
-function TextPropertyDialogDelete() {
-  var widget = TEXT_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}
-
 
 //Function to apply line breaks to textarea text.
-function ApplyLineBreaks(Textarea) {
-    //var oTextarea = document.getElementById(strTextAreaId);
-    var oTextarea = Textarea[0];
+TextWidget.prototype.ApplyLineBreaks = function() {
+    var oTextarea = this.Dialog.TextInput[0];
+
+    /*
     if (oTextarea.wrap) {
         oTextarea.setAttribute("wrap", "off");
-    }
-    else {
+    } else {
         oTextarea.setAttribute("wrap", "off");
         var newArea = oTextarea.cloneNode(true);
         newArea.value = oTextarea.value;
         oTextarea.parentNode.replaceChild(newArea, oTextarea);
         oTextarea = newArea;
     }
+    */
 
+    oTextarea.setAttribute("wrap", "off");
     var strRawValue = oTextarea.value;
     oTextarea.value = "";
     var nEmptyWidth = oTextarea.scrollWidth;
