@@ -16,7 +16,7 @@ function InitDualViewWidget() {
         'width': '20x',
         'top' : '0px',
         'right' : '0%',
-        'z-index': '1'})
+        'z-index': '4'})
     .attr('id', 'dualWidgetLeft')
     .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
     .click(function(){ToggleDualView();});
@@ -30,7 +30,7 @@ function InitDualViewWidget() {
         'width': '20px',
         'top' : '0px',
         'left' : '50%',
-        'z-index': '1'})
+        'z-index': '4'})
     .attr('id', 'dualWidgetRight')
     .attr('src',"webgl-viewer/static/dualArrowRight2.png")
     .click(function(){ToggleDualView();});

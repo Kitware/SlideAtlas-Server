@@ -58,12 +58,13 @@ function Viewer (viewport, cache) {
       //.appendTo(this.MainView.Canvas)
       .appendTo('body')
       .css({
-        'width': '100%',
+        'left' : '10%',
+        'width': '80%',
         'position': 'absolute',
         'text-align': 'center',
         'opacity': '0.4',
         'color': '#ccc',
-       'z-index': '3'
+        'z-index': '3'
       })
       //.hide()
       .attr('id', 'copyright');
