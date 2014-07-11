@@ -67,6 +67,16 @@ function CircleWidget (viewer, newFlag) {
       .appendTo(this.Dialog.AreaDiv)
       .css({'display':'table-cell'});
 
+  // Get default properties.
+  if (localStorage.CircleWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.LineWidth) {
+      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+    }
+  }
 
   this.Tolerance = 0.05;
   if (MOBILE_DEVICE) {
@@ -244,7 +254,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
 
    if (this.State == CIRCLE_WIDGET_WAITING) {
     this.CheckActive(event);
-  }
+   }
 }
 
 
@@ -380,8 +390,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
   RecordState();
   eventuallyRender();
 
-
-
+  localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
 }
 
 

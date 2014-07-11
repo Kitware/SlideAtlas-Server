@@ -69,6 +69,18 @@ function LassoWidget (viewer, newFlag) {
       .css({'display':'table-cell'});
 
 
+  // Get default properties.
+  if (localStorage.LassoWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.LineWidth) {
+      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+    }
+  }
+
+
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   this.Viewer.WidgetList.push(this);
@@ -344,6 +356,8 @@ LassoWidget.prototype.DialogApplyCallback = function() {
   this.SetActive(false);
   RecordState();
   eventuallyRender();
+
+  localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
 }
 
 
