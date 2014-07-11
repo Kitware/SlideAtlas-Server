@@ -335,12 +335,16 @@ def sessionsave():
                 if "img" in viewObj :
                     image.ref = ObjectId(viewObj["img"])
                 else :
-                    if isinstance(viewObj["ViewerRecords"][0]["Image"], basestring):
-                        # correct
-                        image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"])
-                    else :
-                        # bug
-                        image.ref = ObjectId(viewObj["ViewerRecords"][0]["Image"]["_id"])
+                    img = viewObj["ViewerRecords"][0]["Image"]
+                    if isinstance(img, ObjectId) :
+                        # Correct
+                        image.ref = img
+                    if isinstance(img, basestring) :
+                        # OK, but image should really be an ObjectId
+                        image.ref = ObjectId(img)
+                    if isinstance(img, dict) :
+                        # bug: Whole image object was saved inline.
+                        image.ref = ObjectId(img["_id"])
 
                 newImages.append(image)
         if not found :

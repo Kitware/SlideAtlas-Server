@@ -821,7 +821,7 @@ def readViewTree(db, viewId) :
     else :
         # incase the view was already inline
         viewObj = viewId
-
+   
     # Read and add the image objects
     if viewObj.has_key("ViewerRecords") :
         for record in viewObj["ViewerRecords"] :
@@ -833,14 +833,20 @@ def readViewTree(db, viewId) :
                 imgdb = database.to_pymongo()
             # Replace the image reference with the inline image object for the client
             # Note: A bug caused some image objects to be embedded in views in te databse.
-            if isinstance(record["Image"], ObjectId) :
-                record["Image"] = str(record["Image"])
-                imgObj = imgdb["images"].find_one({ "_id" : ObjectId(record["Image"])})
-                imgObj["_id"] = str(imgObj["_id"])
-                imgObj["database"] = record["Database"]
-                record["Image"] = imgObj;
+            if record.has_key("Image") : 
+                if isinstance(record["Image"], basestring) :
+                    record["Image"] = ObjectId(record["Image"])
+                if isinstance(record["Image"], ObjectId) :
+                    imgObj = imgdb["images"].find_one({ "_id" : record["Image"]})
+                    imgObj["_id"] = str(imgObj["_id"])
+                    imgObj["database"] = record["Database"]
+                    record["Image"] = imgObj;
+                convertImageToPixelCoordinateSystem(record["Image"])
+                # Get rid of any lingering thumbnail images which do not jsonify.
+                if record["Image"].has_key("thumb") :
+                    record["Image"].pop("thumb")
 
-    # read and add the
+    # read and add the children
     if viewObj.has_key("Children") :
         children = []
         for child in viewObj["Children"] :
@@ -997,6 +1003,7 @@ def getview():
 
     viewObj = readViewTree(db, viewid) 
 
+    # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
     if "Type" in viewObj :
         if hideAnnotations :

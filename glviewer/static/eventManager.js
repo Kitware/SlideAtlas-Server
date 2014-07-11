@@ -97,9 +97,10 @@ EventManager.prototype.HandleMouseDown = function(event) {
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
 
+  // TODO:  Formalize a call back to make GUI disappear when navigation starts.
   // Get rid of the favorites and the link divs if they are visible
-  if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-  if (FAVORITES_WIDGET.hidden == false) { FAVORITES_WIDGET.ShowHideFavorites();}
+  if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+  if (typeof FAVORITES_WIDGET !== 'undefined' && FAVORITES_WIDGET.hidden == false) { FAVORITES_WIDGET.ShowHideFavorites();}
 
   if (this.CurrentViewer) {
     event.preventDefault();
