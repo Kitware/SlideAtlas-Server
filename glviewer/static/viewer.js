@@ -1100,6 +1100,7 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
   y = (1 - y*2.0)*cam.Matrix[15];
   var m = cam.Matrix;
   var det = m[0]*m[5] - m[1]*m[4];
+  // Maybe we should save this in the viewer and not in the eventManager.
   event.MouseWorldX = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
   event.MouseWorldY = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
 }
@@ -1216,7 +1217,26 @@ Viewer.prototype.HandleMouseWheel = function(event) {
   eventuallyRender();
 }
 
-Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
+Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // Handle paste
+  if (keyCode == 86 && modifiers.ControlKeyPressed) {
+    // control-v for paste
+
+    var clip = JSON.parse(localStorage.ClipBoard);
+    if (clip.Type == "CircleWidget") {
+      var widget = new CircleWidget(this, false);
+      widget.PasteCallback(clip.Data);
+    }
+    if (clip.Type == "PolylineWidget") {
+      var widget = new PolylineWidget(this, false);
+      widget.PasteCallback(clip.Data);
+    }
+
+    return true;
+  }
+
+
+
   // Handle stack (page up  / down)
   var cache = this.GetCache();
   if (cache && cache.Image.type && cache.Image.type == "stack") {
@@ -1254,7 +1274,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, shift) {
 
   //----------------------
   if (this.ActiveWidget != null) {
-    if (this.ActiveWidget.HandleKeyPress(keyCode, shift)) {
+    if (this.ActiveWidget.HandleKeyPress(keyCode, modifiers)) {
       return;
     }
   }

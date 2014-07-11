@@ -473,8 +473,7 @@ function Note () {
       .css({'color' : '#278BFF',
             'font-size': '14px',
             'border-radius': '3px',
-            'width':'100%'})
-      .click(function(){self.SnapShotCallback();});
+            'width':'100%'});
 
   this.TitleDiv = $('<div>')
         .css({'font-size': '18px',
@@ -510,8 +509,7 @@ Note.prototype.SetParent = function(parent) {
         .css({'color' : '#278BFF',
               'font-size': '14px',
               'border-radius': '3px',
-              'width':'100%'})
-        .click(function(){self.DeleteCallback();});
+              'width':'100%'});
   }
 }
 
@@ -757,7 +755,6 @@ Note.prototype.Select = function() {
   this.DisplayView();
 }
 
-
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
   // Put an icon to the left of the text.
@@ -767,6 +764,9 @@ Note.prototype.DisplayGUI = function(div) {
   var self = this;
 
   this.TitleDiv.text(this.Title);
+
+  // Changing a div "parent/appendTo" removes all event bindings like click.
+  // I would like to find a better solution to redraw.
   this.Icon
     .click(function() {self.Select()})
     .mouseenter(function() { self.IconEnterCallback(); })
@@ -775,6 +775,11 @@ Note.prototype.DisplayGUI = function(div) {
     this.IconMenuDiv
       .mouseenter(function() { self.IconMenuEnterCallback(); })
       .mouseleave(function() { self.IconMenuLeaveCallback(); });
+      this.LinkButton.click(function(){self.LinkCallback();});
+      this.SnapShotButton.click(function(){self.SnapShotCallback();});
+      if (this.DeleteButton) { 
+        this.DeleteButton.click(function(){self.DeleteCallback();});
+      }
   }
   this.UpdateChildrenGUI();
 }
@@ -869,8 +874,7 @@ Note.prototype.Load = function(obj){
         .css({'color' : '#278BFF',
               'font-size': '14px',
               'border-radius': '3px',
-              'width':'100%'})
-        .click(function(){self.LinkCallback();});
+              'width':'100%'});
   }
 
 
