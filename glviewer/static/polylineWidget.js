@@ -22,6 +22,43 @@ function PolylineWidget (viewer, newFlag) {
   if (viewer === undefined) {
     return;
   }
+  
+  this.Dialog = new Dialog(this);
+  this.Dialog.Title.text("Polyline Annotation Editor");
+  
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+  
   this.Popup = new WidgetPopup(this);
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
@@ -38,7 +75,7 @@ function PolylineWidget (viewer, newFlag) {
 
   this.Shape = new Polyline();
   this.Shape.OutlineColor = [0.0, 0.0, 0.0];
-  this.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
+  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);
@@ -568,10 +605,10 @@ PolylineWidget.prototype.PlacePopup = function () {
 // Can we bind the dialog apply callback to an objects method?
 var POLYLINE_WIDGET_DIALOG_SELF;
 PolylineWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("polylinecolor");
+  var color = this.Dialog.ColorInput;
   color.value = ConvertColorToHex(this.Shape.OutlineColor);
 
-  var lineWidth = document.getElementById("polylinewidth");
+  var lineWidth = this.Dialog.LineWidthInput;
   lineWidth.value = (this.LineWidth).toFixed(2);
 
   POLYLINE_WIDGET_DIALOG_SELF = this;
@@ -583,9 +620,9 @@ function PolylinePropertyDialogApply() {
   if ( ! widget) {
     return;
   }
-  var hexcolor = document.getElementById("polylinecolor").value;
+  var hexcolor = this.Dialog.ColorInput.value;
   widget.Shape.SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("polylinewidth");
+  var lineWidth = this.Dialog.LineWidthInput;
   // Save the line width and color as the default polyline values.
   var polylineProperties = {Color : widget.Shape.OutlineColor, 
                             LineWidth: lineWidth};
