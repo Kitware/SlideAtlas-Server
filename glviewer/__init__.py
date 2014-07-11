@@ -5,6 +5,8 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
+import pdb
+
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
@@ -910,6 +912,7 @@ def savenote(db, note, user):
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
 #@security.login_required
 def saveviewnotes():
+    #pdb.set_trace()
     dbid    = request.form['db']  # for post
     noteObj = request.form['note']
     note    = json.loads(noteObj)
