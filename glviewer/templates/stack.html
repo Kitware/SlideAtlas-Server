@@ -100,10 +100,11 @@ shape has visibility and
 </body>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
-<script>
-var dia = new Dialog();
-</script>
 
+<!-- Stuff for downloading the image -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='Blob.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='canvas-toBlob.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='FileSaver.js') }}"></script>
 
 
 <!-- GUI widgets -->

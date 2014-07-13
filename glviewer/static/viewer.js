@@ -150,6 +150,10 @@ Viewer.prototype.UpdateZoomGui = function() {
   this.ZoomDisplay.html( 'x' + zoomValue);
 }
 
+Viewer.prototype.SaveImage = function(fileName) {
+  this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+}
+
 Viewer.prototype.GetAnnotationVisibility = function() {
   return this.AnnotationVisibility;
 }
