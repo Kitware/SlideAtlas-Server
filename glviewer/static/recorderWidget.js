@@ -124,6 +124,24 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
 
 
+function GetTrackingData(){
+  $.ajax({
+    type: "get",
+    url: "/webgl-viewer/gettrackingdata",
+    success: function(data,status){
+               if (status == "success") {
+                 LoadTrackingCallback(data);
+               } else { alert("ajax failed - get tracking data"); }
+             },
+    error: function() { alert( "AJAX - error() : gettrackingdata" ); },
+    });
+}
+
+function LoadTrackingCallback(data){
+  alert(data);
+}
+
+
 
 
 
