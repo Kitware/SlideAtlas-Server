@@ -42,6 +42,13 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
   }
 }
 
+View.prototype.CaptureImage = function() {
+    var url = this.Canvas[0].toDataURL();
+    var newImg = document.createElement("img"); //create
+    newImg.src = url;
+    return newImg;
+}
+
 
 View.prototype.GetBounds = function() {
   return this.Section.GetBounds();
