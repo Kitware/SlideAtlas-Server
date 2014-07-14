@@ -341,7 +341,7 @@ class ImageStoreListSyncAPI(API):
 
 class ImageStoreListDeliverAPI(API):
     @security.AdminSiteRequirement.protected
-    def post(self, image_store):
+    def post(self):
         for image_store in models.PtiffImageStore.objects.order_by('label'):
             image_store.deliver()
         return make_response('', 204)  # No Content
