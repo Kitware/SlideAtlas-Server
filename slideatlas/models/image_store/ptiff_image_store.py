@@ -246,7 +246,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # get the inbox session for the collection
                 try:
-                    inbox_session = Session.objects.get(collection=collection, name='Inbox')
+                    # search for "label='Inbox'", as session 'name' is not always accurate
+                    inbox_session = Session.objects.get(collection=collection, label='Inbox')
                 except DoesNotExist:
                     # TODO: remove the image_store field, it shouldn't be required
                     inbox_session = Session(collection=collection,
