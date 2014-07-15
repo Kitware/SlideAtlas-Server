@@ -420,21 +420,21 @@ function deleteCorrelation(x, y) {
 }
 
 
-
-
 function handleResize() {
-    if (GL) {
-      var width = CANVAS.innerWidth();
-      var height = CANVAS.innerHeight();
-      CANVAS.attr("width",width.toString());
-      CANVAS.attr("height",height.toString());
-      GL.viewport(0, 0, width, height);
-      if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, width, height]);
-        eventuallyRender();
-      }
-    }
+  var width = CANVAS.innerWidth();
+  var height = CANVAS.innerHeight();
+  if (GL) {
+    CANVAS.attr("width",width.toString());
+    CANVAS.attr("height",height.toString());
+    GL.viewport(0, 0, width, height);
+  } // GL.SetViewport does the work for 2d canvases.
+
+  if (VIEWER1) {
+    VIEWER1.SetViewport([0, 0, width, height]);
+    eventuallyRender();
+  }
 };
+
 
 
 function InitViews() {
@@ -785,16 +785,17 @@ function ToggleAnnotationVisibility() {
 
   function Start() {
     detectMobile();
+    $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
     // I think the webgl viewer crashes.
     // Maybe it is the texture leak I have seen in connectome.
     // Just use the canvas for now.
-    if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
-      initGL(); // Sets CANVAS and GL global variables
-    } else {
+    //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
+    //  initGL(); // Sets CANVAS and GL global variables
+    //} else {
       initGC();
-    }
+    //}
     EVENT_MANAGER = new EventManager(CANVAS);
     if (MOBILE_DEVICE) {
       MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
