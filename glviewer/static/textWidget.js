@@ -221,14 +221,16 @@ TextWidget.prototype.Load = function(obj) {
   if (obj.backgroundFlag != undefined) {
     this.Shape.BackgroundFlag = obj.backgroundFlag;
   }
+  this.Shape.Position = [parseFloat(obj.position[0]),
+                         parseFloat(obj.position[1]),
+                         parseFloat(obj.position[2])];
+  this.AnchorShape.Origin = this.Shape.Position;
+
   // I added offest and I have to deal with entries that do not have it.
   if (obj.offset) { // how to try / catch in javascript?
     this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
   }
-  this.Shape.Position = [parseFloat(obj.position[0]),
-                         parseFloat(obj.position[1]),
-                         parseFloat(obj.position[2])];
   this.SetAnchorShapeVisibility(obj.anchorVisibility);
   this.AnchorShape.SetFillColor(rgb);
   this.AnchorShape.ChooseOutlineColor();
