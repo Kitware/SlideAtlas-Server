@@ -90,9 +90,7 @@ def view_all_sessions():
 @mod.route('/sessions/<Session:session_obj>')
 @security.ViewSessionRequirement.protected
 def view_a_session(session_obj, next=None):
-    # TODO: the old code seemed to have a bug where it sliced the 'images' field,
-    #  but iterated through the 'views' field; since the template doesn't seem use 'next'
-    #  lets not change any behavior yet
+    # TODO: the template doesn't seem use 'next'
     next = int(request.args.get('next', 0))
 
     # this is a pymongo Database that we can use until all models are complete
@@ -169,7 +167,6 @@ def view_a_session(session_obj, next=None):
 
     session_json = session_obj.to_mongo()
     session_json.pop('attachments', None)
-    session_json.pop('images', None)
 
     data = {
         'success': 1,
@@ -301,7 +298,6 @@ def sessionsave():
     if sessObj.views :
         oldViews = sessObj.views
     newViews = []
-    newImages = []
     for viewData in views:
         viewId = None
         if "view" in viewData :
@@ -315,8 +311,6 @@ def sessionsave():
                 # switch over to the new list.
                 newViews.append(view)
                 del oldViews[index]
-                # What a pain.  Why two lists?  Deal with the image list.
-                image = models.RefItem()
                 viewObj = db["views"].find_one({"_id" : ObjectId(viewId) })
 
                 viewObj["Title"] = viewData["label"]
@@ -327,21 +321,7 @@ def sessionsave():
                     del viewObj["_id"]
                 # have to save the view, (Title might have changed.)
                 view.ref = db["views"].save(viewObj);
-                if "img" in viewObj :
-                    image.ref = ObjectId(viewObj["img"])
-                else :
-                    img = viewObj["ViewerRecords"][0]["Image"]
-                    if isinstance(img, ObjectId) :
-                        # Correct
-                        image.ref = img
-                    if isinstance(img, basestring) :
-                        # OK, but image should really be an ObjectId
-                        image.ref = ObjectId(img)
-                    if isinstance(img, dict) :
-                        # bug: Whole image object was saved inline.
-                        image.ref = ObjectId(img["_id"])
 
-                newImages.append(image)
         if not found :
             if not viewId :
                 # create a minimal new view (to be stored in db["views"]).
@@ -357,23 +337,15 @@ def sessionsave():
                 # make a view entry on the session list
                 view = models.RefItem(ref=viewId, label=viewData["label"])
                 newViews.append(view)
-                # image
-                image = models.RefItem(ref=ObjectId(viewData["img"]))
-                if viewData["db"] != dbId :
-                    image.db = viewData["db"]
-                newImages.append(image)
-                #else :
                 # Todo: If viewId, copy view from another session.
 
     # Delete the views that are left over.
     # Views are owned by the session.
-    # Images can be shared.
     if not newFlag :
         for view in oldViews:
             db["views"].remove({"_id" : view.ref })
 
     sessObj.views = newViews
-    sessObj.images = newImages
     sessObj.hideAnnotations = bool(hideAnnotation)
     if stack :
       sessObj.type = "stack"

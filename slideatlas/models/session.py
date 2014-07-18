@@ -213,9 +213,6 @@ class Session(ModelDocument):
     attachments = RefListField(required=False,
         verbose_name='Attachments', help_text='')
 
-    images = RefListField(required=False,
-        verbose_name='Images', help_text='')
-
     annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
 

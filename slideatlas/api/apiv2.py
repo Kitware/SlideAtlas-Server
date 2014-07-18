@@ -444,19 +444,6 @@ class SessionItemAPI(ItemAPI):
     @security.AdminSiteRequirement.protected
     def get(self, session):
         with session.image_store:
-            image_only_fields = ('name', 'label', 'type', 'filename')
-            image_ids = [image_ref.ref for image_ref in session.images]
-            images_bulk_query = models.Image.objects.only(*image_only_fields).in_bulk(image_ids)
-            images_son = list()
-            for image_ref in session.images:
-                # TODO: some references are dangling, so catch the exception
-                try:
-                    image_son = images_bulk_query[image_ref.ref].to_son(only_fields=image_only_fields)
-                except KeyError:
-                    image_son = {'id': image_ref.ref}
-                image_son['hide'] = image_ref.hide
-                images_son.append(image_son)
-
             view_only_fields = ('label', 'type', 'type2', 'title', 'hidden_title', 'text')
             view_ids = [view_ref.ref for view_ref in session.views]
             views_bulk_query = models.View.objects.only(*view_only_fields).in_bulk(view_ids)
@@ -471,7 +458,6 @@ class SessionItemAPI(ItemAPI):
 
         session_son = session.to_son(exclude_fields=('images', 'views'))
         # TODO: hide
-        session_son['images'] = images_son
         session_son['views'] = views_son
         session_son['attachments'] = SessionAttachmentListAPI._get(session)
 
