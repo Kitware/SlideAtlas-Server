@@ -230,7 +230,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # TODO: move the creator_code to a property of Image objects
                 creator_code_match = re.match(r'^ *([a-zA-Z- ]+?)[0-9 _-]*\|', image.label)
                 if not creator_code_match:
-                    logging.error('Could not read creator code from barcode "%s" in image: %s' % (image.label, image.filename))
+                    logging.warning('Could not read creator code from barcode "%s" in image: %s' % (image.label, image.filename))
                     continue
                 creator_code = creator_code_match.group(1)
 
@@ -238,10 +238,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 try:
                     collection = Collection.objects.get(creator_codes=creator_code)
                 except DoesNotExist:
-                    logging.info('Session for creator code "%s" not found' % creator_code)
+                    logging.warning('Collection for creator code "%s" not found' % creator_code)
                     continue
                 except MultipleObjectsReturned:
-                    logging.error('Multiple sessions for creator code "%s" found' % creator_code)
+                    logging.error('Multiple collections for creator code "%s" found' % creator_code)
                     continue
 
                 # get the inbox session for the collection
