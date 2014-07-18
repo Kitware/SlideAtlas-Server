@@ -19,7 +19,7 @@ class Collection(ModelDocument):
     }
 
     image_store = ReferenceField(ImageStore, required=False, # TODO: deprecated
-        verbose_name='Image Store', help_text='The image store (database) that was used to create this collection.')
+        verbose_name='Image Store', help_text='The default image store for content uploaded to this collection.')
 
     label = StringField(required=True, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label.')
