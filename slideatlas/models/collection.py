@@ -18,7 +18,7 @@ class Collection(ModelDocument):
         'collection': 'collections',
     }
 
-    image_store = ReferenceField(ImageStore, required=False, # TODO: deprecated
+    image_store = ReferenceField(ImageStore, required=True,
         verbose_name='Image Store', help_text='The default image store for content uploaded to this collection.')
 
     label = StringField(required=True, #TODO: make unique
