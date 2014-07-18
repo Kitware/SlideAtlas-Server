@@ -500,20 +500,27 @@ class SessionAccessAPI(API):
     def post(self, collection):
         abort(501)  # Not Implemented
 
+
 ################################################################################
 class SessionAttachmentListAPI(ListAPI):
     @staticmethod
     def _get(session):
-        attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
+        # look up image stores once in bulk for efficiency
+        unique_image_store_ids = set(attachment_ref.db for attachment_ref in session.attachments)
+        image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
 
         attachments = list()
         for attachment_ref in session.attachments:
+            image_store = image_stores_by_id[attachment_ref.db]
+            attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
+
             attachment_obj = attachments_fs.get(attachment_ref.ref)
             attachments.append({
-                'id': attachment_ref.ref,
+                'id': attachment_obj._id,
                 'name': attachment_obj.name,
                 'length' : attachment_obj.length
             })
+
         return attachments
 
 
@@ -563,7 +570,8 @@ class SessionAttachmentListAPI(ListAPI):
         # if getting the content type failed, leave "gridfs_args['contentType']" unset
 
         # save into GridFS
-        attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
+        image_store = session.collection.image_store
+        attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
         attachment = attachments_fs.new_file(**gridfs_args)
         try:
             # this will stream the IO, instead of loading it all into memory
@@ -573,7 +581,7 @@ class SessionAttachmentListAPI(ListAPI):
             uploaded_file.close()
 
         # add to session
-        attachments_ref = models.RefItem(ref=attachment._id)
+        attachments_ref = models.RefItem(ref=attachment._id, db=image_store.id)
         session.attachments.append(attachments_ref)
         session.save()
 
@@ -586,20 +594,31 @@ class SessionAttachmentListAPI(ListAPI):
 
 
 class SessionAttachmentItemAPI(ItemAPI):
-    @security.ViewSessionRequirement.protected
-    def get(self, session, attachment_id):
-        attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
+
+    @staticmethod
+    def _fetch_attachment(session, attachment_id):
+        # find the requested attachment in the session
+        for attachment_ref in session.attachments:
+            if attachment_ref.ref == attachment_id:
+                break
+        else:
+            abort(404, details='The requested attachment was not found in the requested session.')
+
+        # use 'get' instead of 'with_id', so an exception will be thrown if not found
+        image_store = models.ImageStore.objects.get(id=attachment_ref.db)
+
+        attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
         try:
             attachment = attachments_fs.get(attachment_id)
         except gridfs.NoFile:
             abort(404, details='The requested attachment was not found in the requested session\'s image store.')
 
-        # check that the requested attachment is in the session
-        for attachment_ref in session.attachments:
-            if attachment_ref.ref == attachment._id:
-                break
-        else:
-            abort(404, details='The requested attachment was not found in the requested session.')
+        return image_store, attachments_fs, attachment
+
+
+    @security.ViewSessionRequirement.protected
+    def get(self, session, attachment_id):
+        attachment = self._fetch_attachment(session, attachment_id)[2]
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -637,11 +656,7 @@ class SessionAttachmentItemAPI(ItemAPI):
 
     @security.AdminSessionRequirement.protected
     def put(self, session, attachment_id):
-        attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
-        try:
-            attachment = attachments_fs.get(attachment_id)
-        except gridfs.NoFile:
-            abort(404)
+        image_store, _, attachment = self._fetch_attachment(session, attachment_id)
 
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
@@ -670,7 +685,7 @@ class SessionAttachmentItemAPI(ItemAPI):
             # only the end chunk can be shorter
             abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
 
-        image_store_pymongo = session.image_store.to_pymongo()
+        image_store_pymongo = image_store.to_pymongo()
 
         chunk_num = (content_range.start / attachment.chunkSize)
         image_store_pymongo['attachments.chunks'].insert({
@@ -700,23 +715,18 @@ class SessionAttachmentItemAPI(ItemAPI):
 
     @security.AdminSessionRequirement.protected
     def delete(self, session, attachment_id):
-        attachments_fs = gridfs.GridFS(session.image_store.to_pymongo(raw_object=True), 'attachments')
-        try:
-            attachment = attachments_fs.get(attachment_id)
-        except gridfs.NoFile:
-            abort(404)  # Not Found
+        # this also ensures that the attachment actually exists
+        attachments_fs = self._fetch_attachment(session, attachment_id)[1]
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):
-            if attachment_ref.ref == attachment._id:
+            if attachment_ref.ref == attachment_id:
                 session.attachments.pop(pos)
-                session.save()
                 break
-        else:
-            abort(404)  # Not Found
+        session.save()
 
         # delete from attachments collection
-        attachments_fs.delete(attachment._id)
+        attachments_fs.delete(attachment_id)
 
         return make_response('', 204)  # No Content
 

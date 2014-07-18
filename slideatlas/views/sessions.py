@@ -9,10 +9,10 @@ from bson import ObjectId
 from gridfs import GridFS
 from flask import Blueprint, request, render_template, url_for, g
 
+from slideatlas.api import apiv2
 from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
-
 
 NUMBER_ON_PAGE = 10
 
@@ -165,12 +165,7 @@ def view_a_session(session_obj, next=None):
 
                 images.append(animage)
 
-    attachments = []
-    if session_obj.attachments:
-        gfs = GridFS(database_obj.to_pymongo(raw_object=True), "attachments")
-        for anattach in session_obj.attachments:
-            fileobj = gfs.get(anattach.ref)
-            attachments.append({'name': fileobj.filename, 'id' : anattach.ref})
+    attachments = apiv2.SessionAttachmentListAPI._get(session_obj)
 
     session_json = session_obj.to_mongo()
     session_json.pop('attachments', None)
