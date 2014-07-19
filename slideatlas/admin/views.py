@@ -137,6 +137,7 @@ class FacebookUserView(BaseUserView):
     model_class = models.FacebookUser
     name = 'Facebook Users'
 
+
 class LinkedinUserView(BaseUserView):
     model_class = models.LinkedinUser
     name = 'Linkedin Users'
@@ -211,7 +212,8 @@ class CollectionView(SlideatlasModelView):
 
     can_delete = False
 
-    column_list = ('label', 'creator_codes')
+    # TODO: make 'image_store' default to empty list item on new collection creation
+    column_list = ('label', 'creator_codes', 'image_store')
     column_default_sort = 'label'
     column_searchable_list = ('label', 'copyright')
 
