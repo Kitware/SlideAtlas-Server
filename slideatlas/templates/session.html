@@ -32,7 +32,7 @@
                 });
             });
             $(".sa-attachment-post").click(function() {
-                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session_obj )}}";
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session )}}";
                 attachmentUpload(attachmentPostUrl);
             });
             {% endif %}
@@ -44,66 +44,64 @@
 {% block body_content %}
 {{ super() }}
 
-  <div class="container">
-  <div class="row">
-  <h1> {{ data.session.label }} </h1>
+<div class="container">
+    <div class="row">
+        <h1> {{ session_son.label }} </h1>
 
-    {# data #}
-    {%if data.attachments or is_session_admin %}
-    <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
-    <ul class="list-group">
-        {% for attachment in data.attachments %}
-        <li class="list-group-item">
-            <a href="{{ url_for('apiv2.session_attachment_item', session=session_obj, attachment_id=attachment.id) }}" class="lead sa-attachment-get">{{ attachment.name}}</a>
-            {% if is_session_admin %}
-            <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span> Delete</button>
-            {% endif %}
-        </li>
-         {% endfor %}
-    </ul>
-    {% endif %}
-
-    </br>
-
-    {%if data.images|length %}
-    <h2> {{ data.images|length }} Images </h2>
-    <table class="table table-bordered table-hover" >
-        {% for animage in data.images %}
-            <!-- script> alert("{{data.images[animage]}}"); </script  -->
-            <tr imageid="{{animage.img}}">
-                <td> <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}">
-                  <img src="{{url_for('tile.thumb_query', db=animage.db, img=animage.img) }}" width=100px></a></td>
-                <td>
-                  {% if animage.label %}
-                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a>
-                  {% endif %}
-                </td>
-                {% if data.session.hideAnnotations %}
-                {% else %}
-                  <td align="right">
-                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view, edit='true') }}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
-                  </td>
+        {%if session_son.attachments or is_session_admin %}
+        <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+        <ul class="list-group">
+            {% for attachment_son in session_son.attachments %}
+            <li class="list-group-item">
+                <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id) }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                {% if is_session_admin %}
+                <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
                 {% endif %}
-            </tr>
-         {% endfor %}
-    </table>
-    {% endif %}
-</div>
+            </li>
+             {% endfor %}
+        </ul>
+        {% endif %}
+
+        <br>
+
+        {%if session_son.views %}
+        <h2> {{ session_son.views|length }} Images </h2>
+        <table class="table table-bordered table-hover" >
+            {% for view_son in session_son.views %}
+                <tr imageid="{{ view_son.image_id }}">
+                    <td>
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}">
+                            <img src="{{ url_for('tile.thumb_query', db=view_son.image_image_store_id, img=view_son.image_id) }}" width=100px>
+                        </a>
+                    </td>
+                    <td>
+                        {% if view_son.label %}
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}" class="lead" imageid={{ view_son.image_id }}>
+                            {{ view_son.label }}
+                        </a>
+                        {% endif %}
+                    </td>
+                    {% if not session_son.hide_annotations %}
+                    <td align="right">
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}" type="button" class="btn imageitem" imageid="{{ view_son.image_id }}">
+                            edit
+                        </a>
+                    </td>
+                    {% endif %}
+                </tr>
+             {% endfor %}
+        </table>
+        {% endif %}
+    </div>
 </div>
 
 <script>
-  $(document).ready(function(){
-    var imagelist = {{ data.images|tojson|safe }};
-
-    // Save the session in localStorage (needed for previous / next slide.
-    var views = [];
-    for (var i=0; i < imagelist.length; i++)
-      {
-      views.push(imagelist[i].view);
-      }
-    localStorage.session = JSON.stringify(views);
-    localStorage.sessionId = "{{data.sessid}}";
-  });
+    $(document).ready(function(){
+        // Save the session in localStorage (needed for previous / next slide.
+        var views = {{ session_son.views|map(attribute='id')|tojson|safe }};
+        localStorage.session = JSON.stringify(views);
+        localStorage.sessionId = "{{ session_son.id }}";
+    });
 </script>
 
 {% endblock %}

@@ -588,7 +588,7 @@ def glstacksave():
     session = models.Session.objects.get_or_404(id=sessid)
 
     if 'views' in stackObj:
-        session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
+        session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
@@ -625,7 +625,7 @@ def glstackinsert():
 
     # I do not know the insert toan array so I will just set the whole thing
     session = models.Session.objects.first(name='RenalStack')
-    section = models.RefItem(ref=view_id)
+    section = models.RefItem(ref=view_id, db=ObjectId(dbid))
     session.views.append(section)
     session.save()
 
@@ -1024,7 +1024,7 @@ def getview():
     hideAnnotations = False
     if sessid :
         sessObj = models.Session.objects.with_id(sessid)
-        if sessObj and sessObj.hideAnnotations :
+        if sessObj and sessObj.hide_annotations :
             hideAnnotations = True
 
     viewObj = readViewTree(db, viewid)

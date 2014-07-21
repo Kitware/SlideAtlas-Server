@@ -206,7 +206,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # newest images should be at the top of the session's view list
                 logging.error('adding view %s to session %s' % (view.id, session._get_collection()))
-                session.views.insert(0, RefItem(ref=view.id))
+                session.views.insert(0, RefItem(ref=view.id, db=self.id))
                 session.save()
 
                 new_images.append(image.to_mongo())

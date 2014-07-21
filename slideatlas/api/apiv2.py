@@ -1,10 +1,11 @@
 # coding=utf-8
 
 import datetime
+from itertools import ifilter
 import math
 import mimetypes
 
-from bson import Binary
+from bson import Binary, ObjectId
 from flask import Blueprint, abort, current_app, make_response, request, url_for
 from flask.helpers import wrap_file
 from flask.json import jsonify
@@ -441,27 +442,87 @@ class SessionListAPI(ListAPI):
 
 
 class SessionItemAPI(ItemAPI):
-    @security.AdminSiteRequirement.protected
-    def get(self, session):
-        with session.image_store:
-            view_only_fields = ('label', 'type', 'type2', 'title', 'hidden_title', 'text')
-            view_ids = [view_ref.ref for view_ref in session.views]
-            views_bulk_query = models.View.objects.only(*view_only_fields).in_bulk(view_ids)
-            views_son = list()
-            for view_ref in session.views:
-                try:
-                    view_son = views_bulk_query[view_ref.ref].to_son(only_fields=view_only_fields)
-                except KeyError:
-                    view_son = {'id': view_ref.ref}
-                view_son['hide'] = view_ref.hide
-                views_son.append(view_son)
+    @staticmethod
+    def _get(session, with_hidden_label=False):
+        unique_image_store_ids = set(ifilter(None, (view_ref.db for view_ref in session.views)))
+        image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
+        image_stores_by_id[session.image_store.id] = session.image_store
 
-        session_son = session.to_son(exclude_fields=('images', 'views'))
-        # TODO: hide
+        # iterate through the session objects
+        views_son = list()
+        for view_ref in session.views:
+            view_image_store_id = view_ref.db or session.image_store.id
+            view_image_store = image_stores_by_id[view_image_store_id].to_pymongo()
+
+            view_id = view_ref.ref
+            view = view_image_store['views'].find_one({'_id': view_id})
+            if not view:
+                # TODO: warning here
+                continue
+
+            # get 'image_id' and 'image_image_store_id'
+            image_image_store_id = view_image_store_id
+            if view.get('Type') == 'Note':
+                record = view['ViewerRecords'][0]
+                if isinstance(record['Image'], dict):
+                    image_id = ObjectId(record['Image']['_id'])
+                    image_image_store_id = ObjectId(record['Image']['database'])
+                else :
+                    image_id = ObjectId(record["Image"])
+                if 'Database' in record:
+                    image_image_store_id = ObjectId(record['Database'])
+            else:
+                image_id = ObjectId(view['img'])
+            if 'imgdb' in view:
+                image_image_store_id = ObjectId(view['imgdb'])
+
+            # get 'image'
+            if image_image_store_id not in image_stores_by_id:
+                image_stores_by_id[image_image_store_id] = models.ImageStore.objects.get(id=image_image_store_id)
+            image_image_store = image_stores_by_id[image_image_store_id].to_pymongo()
+            image = image_image_store['images'].find_one({'_id': image_id}, {'thumb': False})
+
+            # determine if view is hidden and will be skipped
+            if view_ref.hide or view.get('hide', False) or image.get('hide', False):
+                continue
+
+            # get 'view_label' and 'view_hidden_label'
+            if 'Title' in view:
+                view_label = view['Title']
+            elif view_ref.label:
+                view_label = view_ref.label
+            elif 'label' in view:
+                view_label = view['label']
+            elif 'label' in image:
+                view_label = image['label']
+            else:
+                view_label = ""
+            view_hidden_label = view.get('HiddenTitle', '')
+
+            # set 'ajax_view_item' and 'ajax_view_items' for output
+            view_son = {
+                'id': view_id,
+                'image_store_id': view_image_store_id,
+                'label': view_label,
+                'image_id': image_id,
+                'image_image_store_id': image_image_store_id,
+            }
+            if with_hidden_label:
+                view_son['label'] = view_label
+                view_son['hidden_label'] = view_hidden_label
+            else:
+                view_son['label'] = view_label if not session.hide_annotations else view_hidden_label
+            views_son.append(view_son)
+
+        session_son = session.to_son(exclude_fields=('views', 'attachments'))
         session_son['views'] = views_son
         session_son['attachments'] = SessionAttachmentListAPI._get(session)
 
-        return jsonify(sessions=[session_son])
+        return session_son
+
+    @security.ViewSessionRequirement.protected
+    def get(self, session):
+        return jsonify(sessions=[self._get(session)])
 
     def put(self, session):
         abort(501)  # Not Implemented
@@ -492,7 +553,7 @@ class SessionAttachmentListAPI(ListAPI):
     @staticmethod
     def _get(session):
         # look up image stores once in bulk for efficiency
-        unique_image_store_ids = set(attachment_ref.db for attachment_ref in session.attachments)
+        unique_image_store_ids = set(ifilter(None, (attachment_ref.db for attachment_ref in session.attachments)))
         image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
 
         attachments = list()
