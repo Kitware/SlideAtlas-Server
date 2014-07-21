@@ -621,7 +621,7 @@ class SessionAttachmentItemAPI(ItemAPI):
             direct_passthrough=True, # allows HEAD method to work without reading the attachment's data
             content_type=(attachment.content_type or 'application/octet-stream'))
         response.content_length = attachment.length
-        response.content_md5 = attachment.md5
+        response.content_md5 = attachment.md5.decode('hex').encode('base64').rstrip()
         # TODO: can an 'inline' download of an HTML-ish file be exploited for XSS?
         #   an 'attachment' download can be used for XSS with a client-local context
         #   http://www.gnucitizen.org/blog/content-disposition-hacking/
