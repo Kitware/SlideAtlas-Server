@@ -25,10 +25,10 @@ ViewSessionPermission = partial(Permission, *('view', 'session'))
 
 class PermissionDocument(EmbeddedDocument, ToSonDocumentMixin):
 
-    operation = StringField(required=True, choices=('admin', 'view'),
+    operation = StringField(required=True, choices=('view', 'admin'),
         verbose_name='Operation', help_text='')
 
-    resource_type = StringField(required=True, choices=('site', 'collection', 'session'),
+    resource_type = StringField(required=True, choices=('session', 'collection', 'site'),
         verbose_name='Resource Type', help_text='')
 
     resource_id = ObjectIdField(required=False,
