@@ -397,7 +397,7 @@ class CollectionItemAPI(ItemAPI):
     def get(self, collection):
         collection_son = collection.to_son()
         sessions = models.Session.objects(collection=collection)
-        collection_son['sessions'] = sessions.to_son(only_fields=('name', 'label', 'type'))
+        collection_son['sessions'] = sessions.to_son(only_fields=('label', 'type'))
         return jsonify(collections=[collection_son])
 
     def put(self, collection):
@@ -431,7 +431,7 @@ class SessionListAPI(ListAPI):
         # TODO: currently, session administrative access is all-or-nothing on
         #   the database level, but it should be made granular
 
-        only_fields=('name', 'label', 'type')
+        only_fields=('label', 'type')
 
         sessions = models.Session.objects.only(*only_fields).order_by('label')
 

@@ -201,9 +201,6 @@ class Session(ModelDocument):
     image_store = ReferenceField(ImageStore, required=False,
         verbose_name='Image Store', help_text='')
 
-    name = StringField(required=True,
-        verbose_name='Name', help_text='The session\'s name.')
-
     label = StringField(required=True,
         verbose_name='Label', help_text='The sessions\'s label.')
 
