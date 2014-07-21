@@ -1,8 +1,9 @@
 # coding=utf-8
 
-import datetime
+import collections
 
-from bson import json_util, ObjectId
+from bson import ObjectId
+from bson import json_util as bson_json_util
 from flask import Flask
 from flask.json import JSONEncoder
 from flask.ext.bootstrap import Bootstrap
@@ -67,11 +68,28 @@ def add_config(app):
 
     class BSONJSONEncoder(JSONEncoder):
         def default(self, obj):
+            # use the Flask default if possible
+            try:
+                return super(BSONJSONEncoder, self).default(obj)
+            except TypeError as exception:
+                pass
+
+            # use a simple string for ObjectId
             if isinstance(obj, ObjectId):
                 return str(obj)
-            if isinstance(obj, datetime.datetime):
-                return obj.isoformat()
-            return json_util.default(obj)
+
+            # try the BSON encoder for other BSON types
+            try:
+                return bson_json_util.default(obj)
+            except TypeError:
+                pass
+
+            # general iterables aren't handled by any of the other encoders
+            if isinstance(obj, collections.Iterable):
+                return list(obj)
+
+            # finally, re-raise the original TypeError exception
+            raise exception
 
     app.json_encoder = BSONJSONEncoder
 
