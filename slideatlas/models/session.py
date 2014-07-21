@@ -110,7 +110,7 @@ class RefItem(EmbeddedDocument):
     ref = ObjectIdField(required=True)
     hide = BooleanField(required=False, default=False)
     label = StringField(required=False)
-    db = ObjectIdField(required=False)
+    db = ObjectIdField(required=True)
 
     def __eq__(self, other):
         if isinstance(other, ObjectId):
@@ -198,11 +198,8 @@ class Session(ModelDocument):
         verbose_name='Collection', help_text='')
 
     # TODO: remove 'image_store', access it indirectly via 'collection'
-    image_store = ReferenceField(ImageStore, required=True,
+    image_store = ReferenceField(ImageStore, required=False,
         verbose_name='Image Store', help_text='')
-
-    name = StringField(required=True,
-        verbose_name='Name', help_text='The session\'s name.')
 
     label = StringField(required=True,
         verbose_name='Label', help_text='The sessions\'s label.')
@@ -216,7 +213,7 @@ class Session(ModelDocument):
     annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
 
-    hideAnnotations = BooleanField(required=False,
+    hide_annotations = BooleanField(required=False, db_field='hideAnnotations',
         verbose_name='', help_text='')
 
     # TODO: discuss this

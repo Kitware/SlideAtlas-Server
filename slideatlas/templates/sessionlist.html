@@ -21,12 +21,12 @@ float:right;
                 {% if session.type == 'stack' %}
                 <a href="/webgl-viewer/stack?db={{ session.image_store.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
                 {% else %}
-                <a href="{{ url_for('.view_a_session', session_obj=session) }}" class="lead">{{ session.label }}</a>
+                <a href="{{ url_for('.view_a_session', session=session) }}" class="lead">{{ session.label }}</a>
                 {% endif %}
             </td>
             {% if can_admin %}
             <td>
-                <a href="{{ url_for('.sessionedit', session_obj=session) }}" class="lead">
+                <a href="{{ url_for('.sessionedit', session=session) }}" class="lead">
                     <button type="button" class="btn btn-danger">Edit</button>
                 </a>
             </td>

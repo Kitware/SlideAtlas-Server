@@ -105,7 +105,7 @@
 
 
   <script>
-    var SESSION_ID = "{{ data.session.id }}";
+    var SESSION_ID = "{{ session.id }}";
     $(function() {
       $( "#sortable" ).sortable({change:modified});
       $( "#sortable" ).disableSelection();
@@ -143,7 +143,6 @@
       var args = {};
       args.new = saveNew;
       args.views = views;
-      args.db = "{{data.database.id}}";
       args.session = SESSION_ID;
       args.label = $("#title").val();
       args.hideAnnotation = $('#hideCheck').is(':checked');
@@ -174,7 +173,7 @@
     }
 
     function cancel() {
-      window.location.href = "{{ url_for('.view_a_session', database_obj=data.database, session_obj=data.session) }}";
+      window.location.href = "{{ url_for('.view_a_session', session=session) }}";
     }
 
     function updateOptions() {
@@ -214,7 +213,7 @@
 
     var IMAGE_HOVER_LABEL;
     $(document).ready(function(){
-      {%- if data.hideAnnotations %}
+      {%- if session_son.hide_annotations %}
       $('#hideCheck').attr('checked','checked');
       hideAnnotation(true);
       {%- else %}
@@ -392,14 +391,10 @@
       // It is odd that sessions have separate image and view arrays.
       // (The one I inspected had different number of elements).
       for (var i = 0; i < data.images.length; ++i) {
-        var db = data.db;
-        if (data.images[i].img != undefined) {
-          db = data.images[i].db;
-        }
         labelStrings.push(data.images[i].label);
         var listItem = $('<li>').appendTo($('#gallery'));
         var image = $('<img>').appendTo(listItem)
-                              .attr("db",db)
+                              .attr("db", data.images[i].db)
                               .attr("img",data.images[i].img)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
@@ -499,7 +494,7 @@
     <h2>Session</h2>
     <div>
       <label>Title</label>
-      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{ data.session.label }}"/>
+      <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width:340px" value="{{ session_son.label }}"/>
     </div>
     <div>
       <button id="saveButton" onclick="save(false)" >Save</button>
@@ -524,13 +519,13 @@
     <div id="slideScroll">
       <div id="slideList">
         <ul id="sortable">
-          {% for animage in data.views %}
-            <li class="ui-state-default" id="{{animage.view}}" view="{{animage.view}}" db="{{animage.db}}">
-              <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{animage.view}}')"></span>
-              <img src="{{url_for('tile.thumb_query')}}?db={{animage.db}}&img={{animage.img}}"></img>
+          {% for view_son in session_son.views %}
+            <li class="ui-state-default" id="{{ view_son.id }}" view="{{ view_son.id }}" db="{{ view_son.image_store_id }}">
+              <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{ view_son.id }}')"></span>
+              <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_image_store_id }}&img={{ view_son.image_id }}"></img>
               <!-- switch between annotation and hidden labels -->
-              <input type="text" value="{{ animage.descriptiveLabel}}" class="descriptiveLabel"/>
-              <input type="text" value="{{ animage.hiddenLabel}}" class="hiddenLabel" hidden/>
+              <input type="text" value="{{ view_son.label }}" class="descriptiveLabel"/>
+              <input type="text" value="{{ view_son.hidden_label }}" class="hiddenLabel" hidden/>
             </li>
           {% endfor %}
 

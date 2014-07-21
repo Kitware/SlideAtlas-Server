@@ -241,7 +241,7 @@ def glview():
         db = database.to_pymongo()
 
     if viewid :
-        viewobj = readViewTree(db, viewid) 
+        viewobj = readViewTree(db, viewid)
 
         if ajax:
             return jsonifyView(db,dbid,viewid,viewobj)
@@ -285,7 +285,7 @@ def bookmark():
     db = models.ImageStore.objects.get_or_404(id=dbid).to_pymongo()
 
     if viewid :
-        viewobj = readViewTree(db, viewid) 
+        viewobj = readViewTree(db, viewid)
 
         if ajax:
             return jsonifyView(db,dbid,viewid,viewobj)
@@ -322,7 +322,7 @@ def getchildnotes():
     noteArray = []
     for note in notecursor:
         # this handles viewid as an object too
-        viewobj = readViewTree(db, note) 
+        viewobj = readViewTree(db, note)
         if note.has_key("ParentId") :
             note["ParentId"] = str(note["ParentId"])
         noteArray.append(note)
@@ -349,10 +349,10 @@ def glcomparisonoption():
     database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
-    viewobj = readViewTree(db, viewid) 
+    viewobj = readViewTree(db, viewid)
     if (viewobj.has_key("img")) :
         imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    if (viewobj.has_key("startup_view")) :    
+    if (viewobj.has_key("startup_view")) :
         bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
     # The base view is for the left panel
@@ -399,7 +399,7 @@ def glcomparisonsave():
                                      { "$set" : { "options" : optionArray } })
 
     if operation == "view" :
-        viewobj = readViewTree(db, viewid) 
+        viewobj = readViewTree(db, viewid)
 
         bookmarkid = viewobj["startup_view"]
 
@@ -588,7 +588,7 @@ def glstacksave():
     session = models.Session.objects.get_or_404(id=sessid)
 
     if 'views' in stackObj:
-        session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
+        session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
@@ -625,7 +625,7 @@ def glstackinsert():
 
     # I do not know the insert toan array so I will just set the whole thing
     session = models.Session.objects.first(name='RenalStack')
-    section = models.RefItem(ref=view_id)
+    section = models.RefItem(ref=view_id, db=ObjectId(dbid))
     session.views.append(section)
     session.save()
 
@@ -814,7 +814,7 @@ def getfavoriteviews():
 
 # This function reads a view from the database.  It collects all
 # children sub view and image objects and puts them inline
-# and returns a single structure. 
+# and returns a single structure.
 def readViewTree(db, viewId) :
     if isinstance(viewId, basestring) :
         viewId = ObjectId(viewId)
@@ -823,7 +823,7 @@ def readViewTree(db, viewId) :
     else :
         # incase the view was already inline
         viewObj = viewId
-   
+
     # Read and add the image objects
     if viewObj.has_key("ViewerRecords") :
         for record in viewObj["ViewerRecords"] :
@@ -835,7 +835,7 @@ def readViewTree(db, viewId) :
                 imgdb = database.to_pymongo()
             # Replace the image reference with the inline image object for the client
             # Note: A bug caused some image objects to be embedded in views in te databse.
-            if record.has_key("Image") : 
+            if record.has_key("Image") :
                 if isinstance(record["Image"], basestring) :
                     record["Image"] = ObjectId(record["Image"])
                 if isinstance(record["Image"], ObjectId) :
@@ -931,7 +931,7 @@ def saveviewnotes():
 
     # I want the client editor to display the correct links immediatly after saving, so
     # I have to return the entire note tree with any new ids created.
-    viewObj = readViewTree(db, viewObj) 
+    viewObj = readViewTree(db, viewObj)
     return jsonify(viewObj)
 
 
@@ -963,14 +963,14 @@ def addviewimage(viewObj, imgdb):
     if viewObj.has_key("Children") :
         for child in viewObj["Children"]:
             addviewimage(child, imgdb)
-            
+
 @mod.route('/gettrackingdata')
 def gettrackingdata():
     collectionStr = request.args.get('col', "tracking")
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
-    
+
     #pdb.set_trace()
 
     viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
@@ -981,7 +981,7 @@ def gettrackingdata():
             viewObj["User"] = str(viewObj["User"])
             #viewObj["ParentId"] = str(viewObj["ParentId"])
         viewArray.append(viewObj)
-        
+
     #pdb.set_trace()
 
     data = {'viewArray': viewArray}
@@ -1024,10 +1024,10 @@ def getview():
     hideAnnotations = False
     if sessid :
         sessObj = models.Session.objects.with_id(sessid)
-        if sessObj and sessObj.hideAnnotations :
+        if sessObj and sessObj.hide_annotations :
             hideAnnotations = True
 
-    viewObj = readViewTree(db, viewid) 
+    viewObj = readViewTree(db, viewid)
 
     # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"

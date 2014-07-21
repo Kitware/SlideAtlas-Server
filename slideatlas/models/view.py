@@ -125,7 +125,7 @@ class View(MultipleDatabaseModelDocument):
     title = StringField(required=False, db_field='Title',
         verbose_name='', help_text='The short label used in note list or session list of views.')
 
-    hidden_title = StringField(required=False, db_field='HiddenTitle',
+    hidden_label = StringField(required=False, db_field='HiddenTitle',
         verbose_name='', help_text='Coded title for students.')
 
     text = StringField(required=False, db_field='Text',

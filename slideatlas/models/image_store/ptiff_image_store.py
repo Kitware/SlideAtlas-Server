@@ -57,7 +57,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         verbose_name='Root Path', help_text='Location on local filesystem for image files.')
 
     @property
-    def default_session_name(self):
+    def default_session_label(self):
         return 'All'
 
 
@@ -140,11 +140,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     def _import_new_images(self):
         # place new images in the default session
         try:
-            session = Session.objects.get(image_store=self, name=self.default_session_name)
+            session = Session.objects.get(image_store=self, label=self.default_session_label)
         except DoesNotExist:
             raise
             # TODO: need a collection to create the new session in
-            # session = Session(image_store=self, name=self.default_session_name, label=self.default_session_name)
+            # session = Session(image_store=self, label=self.default_session_label)
         except MultipleObjectsReturned:
             # TODO: this generally shouldn't happen, but should be handled
             raise
@@ -206,7 +206,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # newest images should be at the top of the session's view list
                 logging.error('adding view %s to session %s' % (view.id, session._get_collection()))
-                session.views.insert(0, RefItem(ref=view.id))
+                session.views.insert(0, RefItem(ref=view.id, db=self.id))
                 session.save()
 
                 new_images.append(image.to_mongo())
@@ -217,7 +217,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         # '_import_new_images' will have been called previously, so we can assume
         #   that a default session exists
-        default_session = Session.objects.get(image_store=self, name=self.default_session_name)
+        default_session = Session.objects.get(image_store=self, label=self.default_session_label)
 
         with self:
             # reverse to start with the oldest views at the end of the list, and
@@ -246,13 +246,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # get the inbox session for the collection
                 try:
-                    # search for "label='Inbox'", as session 'name' is not always accurate
                     inbox_session = Session.objects.get(collection=collection, label='Inbox')
                 except DoesNotExist:
                     # TODO: remove the image_store field, it shouldn't be required
                     inbox_session = Session(collection=collection,
                                             image_store=self,
-                                            name='Inbox',
                                             label='Inbox')
                 except MultipleObjectsReturned:
                     # TODO: this generally shouldn't happen, but should be handled
@@ -274,7 +272,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         - Verifies that all images referred in image collection are available in the file store.
         - Finds out new files are not yet added to the store
-        - Creates a view for these in the session with a matching "image creator code" or 'self.default_session_name' session
+        - Creates a view for these in the session with a matching "image creator code" or 'self.default_session_label' session
 
         It is assumed that the modification dates to any changes to folder are intact
         """
