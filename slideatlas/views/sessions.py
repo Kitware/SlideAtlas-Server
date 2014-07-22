@@ -152,18 +152,18 @@ def sessionsave():
 
     new_views = list()
     for view_item in view_items:
-        view_image_store_id = view_item['db']
+        view_image_store_id = ObjectId(view_item['db'])
         view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
 
         if 'view' in view_item:
-            view = view_image_store['views'].find_one({'_id': view_item['view']})
+            view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
             if create_new_session :
                 # if copying a session, copy the view objects too.
                 del view['_id']
         else:
             view = {
                 # 'view_item' should have 'img' if 'view' is not present
-                'img': view_item['img']
+                'img': ObjectId(view_item['img'])
             }
         view.update({
             'label': view_item['label'],
@@ -179,7 +179,7 @@ def sessionsave():
 
         new_views.append(models.RefItem(
             ref=ObjectId(view['_id']),
-            db=view_item['db']
+            db=view_image_store_id
         ))
 
     # delete the views that are left over, as views are owned by the session.
