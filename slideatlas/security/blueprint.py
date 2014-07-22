@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from flask import url_for
+from flask import Markup, url_for
 from flask.ext.security import Security, MongoEngineUserDatastore, user_registered
 from flask.ext.security.utils import send_mail
 from flask.ext.mail import Mail
@@ -107,6 +107,15 @@ def add_config(app):
         # uses 'confirmation_instructions' email body template
         SECURITY_CONFIRM_EMAIL_WITHIN='5 days',
         SECURITY_LOGIN_WITHOUT_CONFIRMATION=False,
+        SECURITY_MSG_EMAIL_CONFIRMED=(
+            Markup(
+                'Welcome to SlideAtlas! Your account has been confirmed.<br>'\
+                '<br>'\
+                'Site administrators will grant you access to additional content soon. '
+                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' % \
+                    {'email': app.config['SLIDEATLAS_ADMIN_EMAIL']}
+            ),
+            'success'),
 
         ## Recover / reset a lost password
         SECURITY_RECOVERABLE=True,

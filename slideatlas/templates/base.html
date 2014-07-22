@@ -149,7 +149,7 @@
     {% with msgs = get_flashed_messages(with_categories=True) %}
         {% if msgs %}
             {% for category, msg in msgs %}
-                show_alert( "{{msg}}", "{{category}}");
+                show_alert( {{ msg|tojson }}, {{ category|tojson }});
             {% endfor -%}
         {% endif %}
     {% endwith %}
