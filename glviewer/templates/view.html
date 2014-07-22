@@ -205,8 +205,10 @@ shape has visibility and
 
   // Might consider interactive resize feature too.
   function handleResize() {
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
+    //var width = CANVAS.innerWidth();
+    //var height = CANVAS.innerHeight();
+    var width = window.innerWidth;
+    var height = window.innerHeight;
     if (GL) {
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
