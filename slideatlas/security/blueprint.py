@@ -111,7 +111,7 @@ def add_config(app):
             Markup(
                 'Welcome to SlideAtlas! Your account has been confirmed.<br>'\
                 '<br>'\
-                'Site administrators will grant you access to additional content soon. '
+                'Site administrators may now grant you access to additional content. '
                 'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' % \
                     {'email': app.config['SLIDEATLAS_ADMIN_EMAIL']}
             ),
