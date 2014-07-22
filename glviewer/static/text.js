@@ -140,6 +140,11 @@ Text.prototype.Draw = function (view) {
   // convert view to pixels (view coordinate system).
   x = view.Viewport[2]*(0.5*(1.0+x));
   y = view.Viewport[3]*(0.5*(1.0-y));
+  
+  // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
+  if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
+    this.Anchor = [-50, 0];
+  }
 
   if (GL) {
     if (this.TextureLoaded == false) {
