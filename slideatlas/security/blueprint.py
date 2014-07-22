@@ -1,6 +1,8 @@
 # coding=utf-8
 
+from flask import url_for
 from flask.ext.security import Security, MongoEngineUserDatastore, user_registered
+from flask.ext.security.utils import send_mail
 from flask.ext.mail import Mail
 
 from slideatlas import models
@@ -54,6 +56,16 @@ def on_user_registered(app, user, confirm_token):
         brown_group = models.Group.objects.with_id('529d244959a3aee20f8a00ae')
         user.groups.append(brown_group)
         user.save()
+
+    send_mail(
+        'SlideAtlas: New User Registered',
+        app.config['SLIDEATLAS_ADMIN_EMAIL'],
+        'new_user_notify',
+        user=user,
+        admin_user_url=url_for('%sview.edit_view' % user.__class__.__name__.lower(),
+                               id=str(user.id),
+                               _external=True)
+    )
 
 
 ################################################################################

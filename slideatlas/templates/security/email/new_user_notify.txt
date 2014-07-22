@@ -1,0 +1,8 @@
+Attention SlideAtlas administrators,
+
+A new user has registered with SlideAtlas:
+  Name: "{{ user.full_name }}"
+  Email: "{{ user.email }}"
+
+Edit the new user:
+{{ admin_user_url|safe }}
