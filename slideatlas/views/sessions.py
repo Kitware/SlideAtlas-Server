@@ -152,25 +152,32 @@ def sessionsave():
 
     new_views = list()
     for view_item in view_items:
-        view_image_store_id = ObjectId(view_item['db'])
-        view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
-
         if 'view' in view_item:
+            # updating an existing view
+            view_image_store_id = ObjectId(view_item['db'])
+            view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
+
             view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
             if create_new_session :
                 # if copying a session, copy the view objects too.
                 del view['_id']
         else:
+            # creating a new view from an image
+
+            # TODO: there are way too many bugs with views not all in the same image store
+            #   so, for now, put all views in the session's default image store
+            view_image_store_id = sessObj.image_store.id
+            view_image_store = sessObj.image_store.to_pymongo()
+
             view = {
                 # 'view_item' should have 'img' if 'view' is not present
-                'img': ObjectId(view_item['img'])
+                'img': ObjectId(view_item['img']),
+                'imgdb': ObjectId(view_item['db']),
             }
         view.update({
             'label': view_item['label'],
             'Title': view_item['label'],
             'HiddenTitle': view_item['hiddenLabel'],
-            # to be safe and thorough, always add 'imgdb'
-            'imgdb': view_image_store_id,
         })
 
         # '_id' field will be added by 'save'
@@ -188,9 +195,9 @@ def sessionsave():
         new_view_ids = set((view_ref.ref, view_ref.db) for view_ref in new_views)
 
         removed_view_ids = old_view_ids - new_view_ids
-        for view_id, view_image_store_id in removed_view_ids:
-            view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
-            view_image_store['views'].remove({'_id': view_id})
+        for removed_view_id, removed_view_image_store_id in removed_view_ids:
+            removed_view_image_store = models.ImageStore.objects.get(id=removed_view_image_store_id).to_pymongo()
+            removed_view_image_store['views'].remove({'_id': removed_view_id})
 
     # update the session
     sessObj.label = label  # I am using the label for the annotated title, and name for the hidden title.
