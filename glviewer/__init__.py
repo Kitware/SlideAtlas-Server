@@ -303,9 +303,9 @@ def bookmark():
 # get all the children notes for a parent (authored by a specific user).
 @mod.route('/getchildnotes')
 def getchildnotes():
-    parentid = request.args.get('parentid', false)
+    parentid = request.args.get('parentid', False)
     if not parentid :
-        return "Error: missing parentid";
+        return "Error: missing parentid"
     dbid = request.args.get('db', "")
     # TODO: this should be an ObjectId by default, not a string
     user = getattr(security.current_user, 'id', '')
@@ -493,7 +493,7 @@ def glstacksession():
             pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
-    annotations = [];
+    annotations = []
     views = []
     viewIdx = 0
     for view in sessobj.views:
@@ -724,7 +724,7 @@ def getcomment():
     dbid = request.form["db"]
     commentid = request.form["id"]
 
-    database = models.ImageStore.objects.get_or_404(id=bid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     comment = db["comments"].find_one({"_id": ObjectId(commentid) })
@@ -842,7 +842,7 @@ def readViewTree(db, viewId) :
                     imgObj = imgdb["images"].find_one({ "_id" : record["Image"]})
                     imgObj["_id"] = str(imgObj["_id"])
                     imgObj["database"] = record["Database"]
-                    record["Image"] = imgObj;
+                    record["Image"] = imgObj
                 convertImageToPixelCoordinateSystem(record["Image"])
                 # Get rid of any lingering thumbnail images which do not jsonify.
                 if record["Image"].has_key("thumb") :
@@ -888,7 +888,7 @@ def savenote(db, note, user):
         for child in note["Children"]:
             child["ParentId"] = note["_id"]
             childrenRefs.append(savenote(db, child, user))
-        note["Children"] = childrenRefs;
+        note["Children"] = childrenRefs
 
     # Save the note for real.
     #db["views"].update({"_id" : ObjectId(viewId) },
@@ -899,10 +899,10 @@ def savenote(db, note, user):
     # remove all the children before saving the note.
     # The client must set the _ids of the notes / children
     # to keep them the same.
-    oldNote = db["views"].find_one({"_id":note["_id"]});
+    oldNote = db["views"].find_one({"_id":note["_id"]})
     if 'Children ' in oldNote:
         for child in oldNote["Children"] :
-            if instanceof(child,ObjectId) :
+            if isinstance(child,ObjectId) :
                 db["views"].remove({"_id":child})
 
     return db["views"].save(note)
