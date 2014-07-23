@@ -104,12 +104,13 @@ def view_a_session(session, next=None):
                 'img': view_son['image_id'],
                 'label': view_son['label'],
                 'view': view_son['id'],
+                'view_db': view_son['image_store_id'],
                 # 'comparison' is no longer included, but it doesn't appear to have been used
                 }
                 for view_son in session_son['views']
             ],
             'attachments': session_son['attachments'],
-            # 'db' : session.image_store.id, # TODO: deprecate and remove
+            'db' : session.image_store.id, # TODO: deprecate and remove
             'sessid' : session.id,
             'next' : url_for('.sessions', sessid=str(session.id), ajax=1, next=next + NUMBER_ON_PAGE)
         }
