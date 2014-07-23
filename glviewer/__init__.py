@@ -1014,7 +1014,7 @@ def getview():
     viewid = request.args.get('viewid', "")
     viewdb = request.args.get('db', "")
 
-    admindb = models.ImageStore._get_db
+    admindb = models.ImageStore._get_db()
     db = admindb
     if viewdb and viewdb != "None" :
         database = models.ImageStore.objects.get_or_404(id=viewdb)
@@ -1224,9 +1224,9 @@ def fixjustification():
     dbid = request.form['db']  # for post
     imgid  = request.form['img']
 
-    db = models.ImageStore._get_db().to_pydas()
+    db = models.ImageStore._get_db()
     if dbid != "None" :
-        db = models.ImageStore.objects.with_id(dbid).to_pydas()
+        db = models.ImageStore.objects.with_id(dbid).to_pymongo()
 
     imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
     #imgObj["CoordinateSystem"] = "Pixel"
