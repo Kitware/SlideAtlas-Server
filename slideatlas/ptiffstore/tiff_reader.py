@@ -156,8 +156,7 @@ class TileReader():
             fout.close()
 
         except Exception as E:
-            logging.log(logging.ERROR, "Image Description failed for valid Philips XML")
-            logging.log(logging.ERROR, E.message)
+            logging.log(logging.WARNING, "Image Description failed for valid Philips XML because %s"%(E.message))
 
     def get_embedded_image(self, imagetype):
         """
