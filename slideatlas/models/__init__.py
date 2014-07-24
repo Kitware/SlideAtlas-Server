@@ -11,3 +11,4 @@ from .collection import *
 from .session import *
 from .view import *
 from .image import *
+from .permalink import *
