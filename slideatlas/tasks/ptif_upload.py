@@ -19,16 +19,31 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
 from slideatlas  import create_app 
 from slideatlas import models
+from slideatlas.ptiffstore.tiff_reader import TileReader
 
 from bson import ObjectId
 from bson.objectid import InvalidId
+import pymongo
 
 # Create teh application objects 
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
 def mongo_uploader(args, logger):
-    
+    """
+    Expects -
+
+        input
+        imagestore
+        collection
+        tilesize
+        mongo-collection
+        force
+        dry-run
+        verbose
+        parallel
+
+    """
     # Obtain credentials for storing tiles in image store 
     imagestore = None
     
@@ -52,6 +67,56 @@ def mongo_uploader(args, logger):
         logger.error("Fatal Error: Image Store %s Not found"%(args.imagestore))
         return -1
 
+    # TODO: Whether the input is a url
+    # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
+
+    try:
+        # Now check the input
+        reader = TileReader()
+        reader.set_input_params({"fname" : args.input })
+
+        # Introspect
+        logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
+        reader.parse_image_description()
+        logger.info("Tilesize: %d, NoTiles: %d"%(reader.tile_width, reader.num_tiles))
+    except:
+        logger.error("Fatal Error: Unable to read input file %s"%(args.input))
+        return -1
+
+    fname = os.path.split(args.input)[1]
+    imageid = ObjectId()
+    logger.info("Using New ImageID: %s"%(imageid))
+
+    # Create image record
+    with flaskapp.app_context():
+        with imagestore:
+            image_doc = models.Image()
+            image_doc["filename"]= fname
+            image_doc["label"]= fname
+            image_doc["origin"] = [0,0,0]
+            image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
+            image_doc["dimensions"] =[reader.width, reader.height]
+            image_doc["bounds"] = [0, reader.width, 0, reader.height]
+            image_doc["levels"] = len(reader.levels)
+            image_doc["components"] = 3 # TODO: Get it from the data
+            image_doc["metadataready"] = True
+            image_doc["id"] = imageid
+            image_doc.validate()
+            print "Printing image doc"
+            print image_doc
+            image_doc.save()
+
+
+    # Upload the base
+    try:
+        if imagestore.replica_set:
+            conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
+            db = conn[imagestore.dbname]
+            db.authenticate(imagestore.username, imagestore.password)
+            print db["images"].find_one()
+    except:
+        logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+        return -1
 
 # Parse the command line
 if __name__ == '__main__':
