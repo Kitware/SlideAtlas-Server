@@ -35,6 +35,14 @@
                 var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session )}}";
                 attachmentUpload(attachmentPostUrl);
             });
+            $(".sa-view-permalink").click(function() {
+                var viewItem = $(this).parent().parent();
+                var viewId = viewItem.attr("imageid")
+                var viewGet = viewItem.find(".sa-view-get");
+                var viewUrl = viewGet.attr("href");
+                var viewName = viewGet.text();
+                getPermalink(viewName, viewId, viewUrl);
+            });
             {% endif %}
         });
     </script>
@@ -76,18 +84,28 @@
                     </td>
                     <td>
                         {% if view_son.label %}
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}" class="lead" imageid={{ view_son.image_id }}>
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}" class="lead sa-view-get" imageid={{ view_son.image_id }}>
                             {{ view_son.label }}
                         </a>
                         {% endif %}
                     </td>
-                    {% if not session_son.hide_annotations %}
                     <td align="right">
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}" type="button" class="btn imageitem" imageid="{{ view_son.image_id }}">
-                            edit
+                        {% if not session_son.hide_annotations %}
+                        {# TODO: what is imageitem? #}
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}"
+                            type="button" class="btn btn-warning badge sa-view-edit"
+                        >
+                            <span class="glyphicon glyphicon-edit"></span>
+                            Edit
                         </a>
+                        {% endif %}
+                        {% if is_session_admin %}
+                        <button type="button" class="btn btn-info badge sa-view-permalink">
+                            <span class="glyphicon glyphicon-link"></span>
+                            Permalink
+                        </button>
+                        {% endif %}
                     </td>
-                    {% endif %}
                 </tr>
              {% endfor %}
         </table>

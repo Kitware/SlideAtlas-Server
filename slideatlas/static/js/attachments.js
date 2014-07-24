@@ -89,3 +89,26 @@ function attachmentUpload(attachmentPostUrl) {
             },
         });
     }
+
+function getPermalink(viewName, viewId, viewUrl) {
+    $.ajax({
+        url: "/api/v2/permalinks",
+        type: "POST",
+        data: {
+            view: viewId,
+            destination: viewUrl
+        },
+        success: function (data, textStatus, jqXHR) {
+            bootbox.dialog({
+                message: "<div>" + viewName + "</div><br><input type=\"text\" value=\"" + data.permalinks.url + "\" size=\"30\" readonly>",
+                title: "Permanent Link",
+                closeButton: true,
+                buttons: {
+                    close: {
+                        label: "Close"
+                    }
+                }
+            });
+        }
+    });
+}

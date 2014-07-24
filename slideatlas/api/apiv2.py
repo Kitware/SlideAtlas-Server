@@ -6,6 +6,7 @@ import math
 import mimetypes
 
 from bson import Binary, ObjectId
+from bson.errors import InvalidId
 from flask import Blueprint, abort, current_app, make_response, request, url_for
 from flask.helpers import wrap_file
 from flask.json import jsonify
@@ -779,6 +780,41 @@ class SessionAttachmentItemAPI(ItemAPI):
 
 
 ################################################################################
+from bson import ObjectId
+class PermalinkListAPI(ListAPI):
+    # @security.AdminSiteRequirement.protected
+    # def get(self):
+    #     abort(501)  # Not Implemented
+
+    def post(self):
+        try:
+            view_id = ObjectId(request.form.get('view'))
+            destination = request.form.get('destination')
+        except (KeyError, InvalidId):
+            abort(400)  # Bad Request
+
+        try:
+            permalink = models.Permalink.objects.get(view=view_id)
+        except models.DoesNotExist:
+            permalink = models.Permalink(
+                destination=destination,
+                view=view_id,
+                created_by=security.current_user._get_current_object()
+            )
+            permalink.save()
+        except models.MultipleObjectsReturned:
+            # TODO: should not happen, log and recover
+            raise
+
+        permalink_son = permalink.to_son()
+        permalink_son['url'] = url_for('link', code=permalink.code, _external=True)
+
+        # TODO: make 201 Created / 303 See Other
+        # TODO: add Location header
+        return jsonify(permalinks=permalink_son)
+
+
+################################################################################
 
 # TODO: verify __name__ as 'import_name'
 blueprint = Blueprint('apiv2', __name__,
@@ -886,3 +922,8 @@ api.add_resource(SessionAttachmentItemAPI,
                  '/sessions/<Session:session>/attachments/<ObjectId:attachment_id>',
                  endpoint='session_attachment_item',
                  methods=('GET', 'PUT', 'DELETE'))  # PATCH not allowed
+
+api.add_resource(PermalinkListAPI,
+                 '/permalinks',
+                 endpoint='permalink_list',
+                 methods=('GET', 'POST'))
