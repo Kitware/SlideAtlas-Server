@@ -12,20 +12,24 @@ import time
 import sys
 import json
 import argparse
+import cStringIO as StringIO
+from math import floor
 
 import logging
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
-from slideatlas  import create_app 
+from slideatlas  import create_app
 from slideatlas import models
 from slideatlas.ptiffstore.tiff_reader import TileReader
+from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
 
-from bson import ObjectId
+
+from bson import ObjectId, Binary
 from bson.objectid import InvalidId
 import pymongo
 
-# Create teh application objects 
+# Create teh application objects
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
@@ -44,20 +48,20 @@ def mongo_uploader(args, logger):
         parallel
 
     """
-    # Obtain credentials for storing tiles in image store 
+    # Obtain credentials for storing tiles in image store
     imagestore = None
-    
+
     # If imagestore is  is objectid
     try:
         dbid = ObjectId(args.imagestore)
         imagestore = models.ImageStore.objects.get(id=dbid)
     except InvalidId:
         logger.warning("Invalid ObjectID: %s"%(args.imagestore))
-    
-    # Try to locate by 
+
+    # Try to locate by
     if not imagestore:
         try:
-            imagestore = models.MultipleDatabaseImageStore.objects.get(dbname=args.imagestore)    
+            imagestore = models.MultipleDatabaseImageStore.objects.get(dbname=args.imagestore)
         except:
             logger.warning("Image Store with key: %s Not found"%(args.imagestore))
 
@@ -101,11 +105,7 @@ def mongo_uploader(args, logger):
             image_doc["components"] = 3 # TODO: Get it from the data
             image_doc["metadataready"] = True
             image_doc["id"] = imageid
-            image_doc.validate()
-            print "Printing image doc"
-            print image_doc
             image_doc.save()
-
 
     # Upload the base
     try:
@@ -113,10 +113,87 @@ def mongo_uploader(args, logger):
             conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
             db = conn[imagestore.dbname]
             db.authenticate(imagestore.username, imagestore.password)
-            print db["images"].find_one()
     except:
         logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
         return -1
+
+    # Insert tiles
+    col = int(reader.width / reader.tile_width) + 1
+    row = int(reader.height / reader.tile_height) + 1
+
+    # Good old for loop
+    count = 0
+    for tilex in range(col):
+        for tiley in range(row):
+            x = tilex * reader.tile_width
+            y = tiley * reader.tile_height
+
+            if x >= reader.width or y >= reader.height:
+                continue
+
+            tile_buffer = StringIO.StringIO()
+            reader_result = reader.dump_tile(x, y, tile_buffer)
+
+            if reader_result == 0:
+                continue
+
+            maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
+            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel)
+            contents = tile_buffer.getvalue()
+
+            imageobj = { "name" : tilename, "level" : maxlevel }
+            imageobj["file"] = Binary(contents)
+
+            del tile_buffer
+
+            # # For debug
+            # fout = open(tilename, "wb")
+            # fout.write(contents)
+            # fout.close()
+
+            print count, tilex, tiley, tilename
+            count = count + 1
+
+            db[str(imageid)].insert(imageobj)
+
+    print "Found %d tiles"%(count)
+
+    # # Temp for testing
+    # # Insert the record in the session
+    # imageid = ObjectId("53d0a1010a3ee130811cc5df")
+    # new_view_id = ObjectId("53d0a4da0a3ee1316edaa5aa")
+
+    # Create a view
+    colviews = db["views"]
+    new_view_id = ObjectId()
+    colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
+    logger.warning("New view id: %s"%(new_view_id))
+
+
+    # Get session in the collection
+    from slideatlas.models import Collection
+    from slideatlas.models import Session
+
+    with flaskapp.app_context():
+        # Locate the session
+        coll = Collection.objects.get(id=ObjectId(args.collection))
+        print coll
+
+        session = Session.objects.get(id=ObjectId(args.session))
+        print session
+
+
+    from slideatlas.models import RefItem
+    item = RefItem()
+    item.ref = new_view_id
+    item.db = ObjectId(imagestore.id)
+
+    session.views.append(item)
+    session.save()
+
+
+
+
 
 # Parse the command line
 if __name__ == '__main__':
@@ -126,7 +203,7 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
-    
+
     # Input image
     parser.add_argument("-i", "--input", help='Input image', required=True)
 
@@ -135,9 +212,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-s", "--imagestore", help="Set database name. Default -d \"mydb\"", default="mydb")
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
-
-    # Optional parameters 
-    # Tile size if the input image is not already tiled 
+    parser.add_argument("-o", "--session", help="Session id", required=True)
+    # Optional parameters
+    # Tile size if the input image is not already tiled
     parser.add_argument("-t", "--tilesize", help="Tile size in pixes. (power of two recommended). Defaults to tiles in input or -t 256", default=256, type=int)
     parser.add_argument("-m", "--mongo-collection", help="Set collection name. A new one is generated if not supplied")
 
@@ -169,7 +246,7 @@ if __name__ == '__main__':
     rootLogger = logging.getLogger()
     logger = logging.getLogger("slideatlas.ptif_uploader")
     logger.setLevel(logging.INFO)
-    
+
     mongo_uploader(args, logger)
 
     # # Try opening the database
@@ -248,7 +325,7 @@ if __name__ == '__main__':
     #     ttr.join()
     #     tts.join()
     #     ttt.join()
-    
+
     # verbose = 0
     # if args.verbose:
     #     print "Ready to process"
