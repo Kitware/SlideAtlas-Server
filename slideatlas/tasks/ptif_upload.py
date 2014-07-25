@@ -92,7 +92,7 @@ def upload_level(reader, db, imageid, level=0, dry_run=False):
 
     logger.warning("Uploaded %d tiles"%(count))
 
-def mongo_uploader(args):
+def ptif_uploader(args):
     """
     Expects -
 
@@ -264,11 +264,15 @@ def make_argument_parser():
 if __name__ == '__main__':
     """
     Main entry point for image uploader
+    Sample commandline is
+
+    ..code-block:: shell-session
+
+        (slideatlas) $python slideatlas/tasks/ptif_upload.py -i ~/data/ptif/20140721T182320-963749.ptif -c 53d0971cdd98b50867b0eecd  -s 53d09798ca7b3a021caff678  -s dj1 -vv -n
+
     """
 
     parser = make_argument_parser()
-
-
     args = parser.parse_args()
 
     if args.verbose == None:
@@ -287,12 +291,10 @@ if __name__ == '__main__':
     else:
         print "Processing: ", args.input
 
-    # Identify the input
-
-    # If it is a url
-
-
-
-
-
-    mongo_uploader(args)
+    # Find the extension of the file
+    if args.input.endswith(".ptif"):
+        logger.info("Got a PTIF")
+        ptif_uploader(args)
+    elif args.input.endswith(".jp2"):
+        logger.info("Got an JPEG2000")
+        image_uploader_wrapper(args)
