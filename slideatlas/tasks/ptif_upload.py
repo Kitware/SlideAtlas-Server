@@ -84,7 +84,7 @@ def upload_level(reader, db, imageid, level=0, dry_run=False):
 
                 contents = tile_buffer.getvalue()
 
-                imageobj = { "name" : tilename, "level" : maxlevel }
+                imageobj = { "name" : tilename, "level" : level }
                 imageobj["file"] = Binary(contents)
 
                 del tile_buffer
