@@ -42,7 +42,12 @@ flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
 def upload_level(reader, db, imageid, level=0, dry_run=False):
-        # Insert tiles
+    """
+    Uploads a given level
+    """
+    # Insert tiles
+    reader.select_dir(level)
+
     logger.info("#### Uploading level %d"%(level))
     col = int(reader.width / reader.tile_width) + 1
     row = int(reader.height / reader.tile_height) + 1
@@ -63,7 +68,7 @@ def upload_level(reader, db, imageid, level=0, dry_run=False):
             # fout.write(contents)
             # fout.close()
             maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
-            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel)
+            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel-1)
 
             print count, level, tilex, tiley, tilename, dry_run
 
