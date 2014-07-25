@@ -24,7 +24,7 @@ Welcome to SlideAtlas's documentation!
     testing
     tasks
     user-guide
-
+    webhook
 
 Indices and tables
 ==================

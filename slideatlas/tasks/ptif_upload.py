@@ -233,17 +233,11 @@ def mongo_uploader(args):
     session.views.append(item)
     session.save()
 
-
-# Parse the command line
-if __name__ == '__main__':
-    """
-    Main entry point for image uploader
-    """
-
+def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
 
     # Input image
-    parser.add_argument("-i", "--input", help='Only ptif images on the file location are supported as of now', required=True)
+    parser.add_argument("-i", "--input", help='Only ptif images on the file location are supporte das of now', required=True)
 
     # Where to upload ?
     # The admin database will be already accessible from flaskapp
@@ -264,6 +258,16 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--dry-run', help='Entirely removes the session and re-creates', action='store_true')
     parser.add_argument('-v', '--verbose', help='Increases verbosity for each occurence', action='count')
 
+    return parser
+
+# Parse the command line
+if __name__ == '__main__':
+    """
+    Main entry point for image uploader
+    """
+
+    parser = make_argument_parser()
+
 
     args = parser.parse_args()
 
@@ -282,5 +286,13 @@ if __name__ == '__main__':
         sys.exit(255)
     else:
         print "Processing: ", args.input
+
+    # Identify the input
+
+    # If it is a url
+
+
+
+
 
     mongo_uploader(args)
