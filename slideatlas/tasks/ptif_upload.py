@@ -4,6 +4,9 @@
 # Designed to use models from slide-atlas
 __author__ = 'dhan'
 
+#TODO: Extend the uploader for
+# - Wrapping c++ image_uploader for ndpi and jp2 images
+
 import os
 from celery import Celery
 from celery.task.control import inspect
@@ -16,11 +19,16 @@ import cStringIO as StringIO
 from math import floor
 
 import logging
+logging.basicConfig()
+rootLogger = logging.getLogger()
+logger = logging.getLogger("slideatlas.ptif_uploader")
+logger.setLevel(logging.INFO)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
 from slideatlas  import create_app
-from slideatlas import models
+from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image
+
 from slideatlas.ptiffstore.tiff_reader import TileReader
 from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
 
@@ -33,7 +41,53 @@ import pymongo
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
-def mongo_uploader(args, logger):
+def upload_level(reader, db, imageid, level=0, dry_run=False):
+        # Insert tiles
+    logger.info("#### Uploading level %d"%(level))
+    col = int(reader.width / reader.tile_width) + 1
+    row = int(reader.height / reader.tile_height) + 1
+
+    # Good old for loop
+    count = 0
+    for tilex in range(col):
+        for tiley in range(row):
+            x = tilex * reader.tile_width
+            y = tiley * reader.tile_height
+
+            if x >= reader.width or y >= reader.height:
+                continue
+
+
+            # # For debug
+            # fout = open(tilename, "wb")
+            # fout.write(contents)
+            # fout.close()
+            maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
+            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel)
+
+            print count, level, tilex, tiley, tilename, dry_run
+
+            if dry_run:
+                pass
+            else:
+                tile_buffer = StringIO.StringIO()
+                reader_result = reader.dump_tile(x, y, tile_buffer)
+
+                if reader_result == 0:
+                    continue
+                count = count + 1
+
+                contents = tile_buffer.getvalue()
+
+                imageobj = { "name" : tilename, "level" : maxlevel }
+                imageobj["file"] = Binary(contents)
+
+                del tile_buffer
+                db[str(imageid)].insert(imageobj)
+
+    logger.warning("Uploaded %d tiles"%(count))
+
+def mongo_uploader(args):
     """
     Expects -
 
@@ -48,34 +102,11 @@ def mongo_uploader(args, logger):
         parallel
 
     """
-    # Obtain credentials for storing tiles in image store
-    imagestore = None
 
-    # If imagestore is  is objectid
-    try:
-        dbid = ObjectId(args.imagestore)
-        imagestore = models.ImageStore.objects.get(id=dbid)
-    except InvalidId:
-        logger.warning("Invalid ObjectID: %s"%(args.imagestore))
-
-    # Try to locate by
-    if not imagestore:
-        try:
-            imagestore = models.MultipleDatabaseImageStore.objects.get(dbname=args.imagestore)
-        except:
-            logger.warning("Image Store with key: %s Not found"%(args.imagestore))
-
-    if imagestore:
-        logger.info("Found imagestore \n %s"%(imagestore.to_son()))
-    else:
-        logger.error("Fatal Error: Image Store %s Not found"%(args.imagestore))
-        return -1
-
+    # Check the input
     # TODO: Whether the input is a url
     # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
-
     try:
-        # Now check the input
         reader = TileReader()
         reader.set_input_params({"fname" : args.input })
 
@@ -88,13 +119,52 @@ def mongo_uploader(args, logger):
         return -1
 
     fname = os.path.split(args.input)[1]
-    imageid = ObjectId()
-    logger.info("Using New ImageID: %s"%(imageid))
+
+    # Locate the destination
+    try:
+        if args.mongo_collection:
+            # Remove any image object and collection of that name
+            imageid = ObjectId(args.mongo_collection)
+            logger.info("Using specified ImageID: %s"%(imageid))
+        else:
+            imageid = ObjectId()
+            logger.info("Using specified ImageID: %s"%(imageid))
+
+    except InvalidId:
+        logger.warning("Invalid ObjectID for mongo collection: %s"%(args.mongo_collection))
+
+
+
+    # Get the destination session in the collection
+    # try:
+    with flaskapp.app_context():
+        # Locate the session
+
+        coll = Collection.objects.get(id=ObjectId(args.collection))
+        print "collection: ", coll.to_son()
+
+        imagestore = coll.image_store
+        print "imagestore: ", imagestore.to_son()
+
+        session = Session.objects.get(id=ObjectId(args.session))
+        print "session: ", session
+
+    # except Exception as e:
+    #     logger.error("Fatal Error: %s"%(e.message))
+    #     return -1
 
     # Create image record
     with flaskapp.app_context():
         with imagestore:
-            image_doc = models.Image()
+            if args.mongo_collection:
+                try:
+                    Image.objects.get(id=imageid)
+                    Image.objects.remove(id=imageid)
+                except:
+                    # As expected
+                    pass
+
+            image_doc = Image()
             image_doc["filename"]= fname
             image_doc["label"]= fname
             image_doc["origin"] = [0,0,0]
@@ -105,7 +175,10 @@ def mongo_uploader(args, logger):
             image_doc["components"] = 3 # TODO: Get it from the data
             image_doc["metadataready"] = True
             image_doc["id"] = imageid
-            image_doc.save()
+            if args.dry_run:
+                logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
+            else:
+                image_doc.save()
 
     # Upload the base
     try:
@@ -117,51 +190,30 @@ def mongo_uploader(args, logger):
         logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
         return -1
 
-    # Insert tiles
-    col = int(reader.width / reader.tile_width) + 1
-    row = int(reader.height / reader.tile_height) + 1
 
-    # Good old for loop
-    count = 0
-    for tilex in range(col):
-        for tiley in range(row):
-            x = tilex * reader.tile_width
-            y = tiley * reader.tile_height
+    if args.mongo_collection:
+        #Check whether the collection exists
+        # Removing the collections
+        if args.dry_run:
+            logger.info("Dry run .. not removing original image chunks")
+        else:
+            db.drop_collection(args.mongo_collection)
 
-            if x >= reader.width or y >= reader.height:
-                continue
-
-            tile_buffer = StringIO.StringIO()
-            reader_result = reader.dump_tile(x, y, tile_buffer)
-
-            if reader_result == 0:
-                continue
-
-            maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
-            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel)
-            contents = tile_buffer.getvalue()
-
-            imageobj = { "name" : tilename, "level" : maxlevel }
-            imageobj["file"] = Binary(contents)
-
-            del tile_buffer
-
-            # # For debug
-            # fout = open(tilename, "wb")
-            # fout.write(contents)
-            # fout.close()
-
-            print count, tilex, tiley, tilename
-            count = count + 1
-
-            db[str(imageid)].insert(imageobj)
-
-    print "Found %d tiles"%(count)
+    if args.base_only:
+        upload_level(reader, db, imageid, level=0, dry_run=args.dry_run)
+    else:
+        # Get the number of levels
+        for i in range(len(reader.levels)):
+            upload_level(reader, db, imageid, level=i, dry_run=args.dry_run)
 
     # # Temp for testing
     # # Insert the record in the session
     # imageid = ObjectId("53d0a1010a3ee130811cc5df")
     # new_view_id = ObjectId("53d0a4da0a3ee1316edaa5aa")
+
+    if args.dry_run:
+        logger.info("Exiting .. dry run .. so no view or session update")
+        return
 
     # Create a view
     colviews = db["views"]
@@ -169,21 +221,6 @@ def mongo_uploader(args, logger):
     colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
     logger.warning("New view id: %s"%(new_view_id))
 
-
-    # Get session in the collection
-    from slideatlas.models import Collection
-    from slideatlas.models import Session
-
-    with flaskapp.app_context():
-        # Locate the session
-        coll = Collection.objects.get(id=ObjectId(args.collection))
-        print coll
-
-        session = Session.objects.get(id=ObjectId(args.session))
-        print session
-
-
-    from slideatlas.models import RefItem
     item = RefItem()
     item.ref = new_view_id
     item.db = ObjectId(imagestore.id)
@@ -192,37 +229,36 @@ def mongo_uploader(args, logger):
     session.save()
 
 
-
-
-
 # Parse the command line
 if __name__ == '__main__':
     """
-    Main entry point for image uploader (should be common to all uploader wrappers)
-    Does read and dice image and uploads to a collection, and does only that.
+    Main entry point for image uploader
     """
 
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
 
     # Input image
-    parser.add_argument("-i", "--input", help='Input image', required=True)
+    parser.add_argument("-i", "--input", help='Only ptif images on the file location are supported as of now', required=True)
 
     # Where to upload ?
     # The admin database will be already accessible from flaskapp
-
-    parser.add_argument("-s", "--imagestore", help="Set database name. Default -d \"mydb\"", default="mydb")
+    # Collection implicitly contains image_store
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
-    parser.add_argument("-o", "--session", help="Session id", required=True)
+    parser.add_argument("-s", "--session", help="Session id", required=True)
+
     # Optional parameters
     # Tile size if the input image is not already tiled
-    parser.add_argument("-t", "--tilesize", help="Tile size in pixes. (power of two recommended). Defaults to tiles in input or -t 256", default=256, type=int)
-    parser.add_argument("-m", "--mongo-collection", help="Set collection name. A new one is generated if not supplied")
+    parser.add_argument("-t", "--tilesize", help="Tile size in pixes. (power of two recommended). Defaults to tiles in input or 256", default=256, type=int)
+    parser.add_argument("-m", "--mongo-collection", help="Set collection name. if the collection is specified it is overwritten if exists")
 
-    # boolean flags
-    parser.add_argument('-f', '--force', help='Entirely removes the image collection and re-creates', action='store_true')
+    # TODO: Support parallel operations
+    # parser.add_argument('-j', '--parallel', help='Turn parallel processing ON', action='store_true')
+
+    # Optional flags
+    parser.add_argument("-b", "--base-only", help="Upload only base, otherwise uploads all levels in a pyramidal tiff format", default=False, action='store_true')
     parser.add_argument('-n', '--dry-run', help='Entirely removes the session and re-creates', action='store_true')
-    parser.add_argument('-v', '--verbose', help='Turn verbosity ON', action='count')
-    parser.add_argument('-j', '--parallel', help='Turn parallel processing ON', action='store_true')
+    parser.add_argument('-v', '--verbose', help='Increases verbosity for each occurence', action='count')
+
 
     args = parser.parse_args()
 
@@ -242,157 +278,4 @@ if __name__ == '__main__':
     else:
         print "Processing: ", args.input
 
-    logging.basicConfig()
-    rootLogger = logging.getLogger()
-    logger = logging.getLogger("slideatlas.ptif_uploader")
-    logger.setLevel(logging.INFO)
-
-    mongo_uploader(args, logger)
-
-    # # Try opening the database
-    # if verbose > 1:
-    #     print "Verifying database connection .."
-
-    # # If opening the database fails, then just bail out
-    # conn = MongoClient(args.mongodb)
-    # db = conn.getDB(args.database)
-
-    # if len(args.username) > 0:
-    #     db.authenticate(args.username, args.password)
-
-    # if verbose > 1:
-    #     print "Setting up destination ..",
-
-    # if args.collection_name == None:
-    #     # Create one
-    #     colname = str(ObjectId().get())
-    # else:
-    #     colname = args.collection_name
-
-    # if verbose > 1:
-    #     print "Collection name: ", colname
-
-    # coll = db.getCollection(colname)
-
-    # if(args.parallel):
-    #     tqq = TileProcessor(args.input, 'tqq',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tqr = TileProcessor(args.input, 'tqr',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tqs = TileProcessor(args.input, 'tqs',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tqt = TileProcessor(args.input, 'tqt',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     trq = TileProcessor(args.input, 'trq',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     trr = TileProcessor(args.input, 'trr',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     trs = TileProcessor(args.input, 'trs',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     trt = TileProcessor(args.input, 'trt',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tsq = TileProcessor(args.input, 'tsq',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tsr = TileProcessor(args.input, 'tsr',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tss = TileProcessor(args.input, 'tss',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tst = TileProcessor(args.input, 'tst',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     ttq = TileProcessor(args.input, 'ttq',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     ttr = TileProcessor(args.input, 'ttr',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     tts = TileProcessor(args.input, 'tts',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-    #     ttt = TileProcessor(args.input, 'ttt',args.mongodb, args.database, username=args.username,password=args.password, verbose=verbose, collect_name=colname)
-
-    #     tqq.start()
-    #     tqr.start()
-    #     tqs.start()
-    #     tqt.start()
-    #     trq.start()
-    #     trr.start()
-    #     trs.start()
-    #     trt.start()
-    #     tsq.start()
-    #     tsr.start()
-    #     tss.start()
-    #     tst.start()
-    #     ttq.start()
-    #     ttr.start()
-    #     tts.start()
-    #     ttt.start()
-
-    #     tqq.join()
-    #     tqr.join()
-    #     tqs.join()
-    #     tqt.join()
-    #     trq.join()
-    #     trr.join()
-    #     trs.join()
-    #     trt.join()
-    #     tsq.join()
-    #     tsr.join()
-    #     tss.join()
-    #     tst.join()
-    #     ttq.join()
-    #     ttr.join()
-    #     tts.join()
-    #     ttt.join()
-
-    # verbose = 0
-    # if args.verbose:
-    #     print "Ready to process"
-    #     verbose = 1
-    # # import time
-    # start = time.clock()
-
-    # t = TileProcessor(args.input, "t", args.mongodb, args.database, colname, username=args.username,password=args.password, verbose=verbose)
-    # t.start()
-    # t.join()
-    # image_name = t.get_image_name()
-    # #
-    # if verbose > 1:
-    #     print "Uploading to image_name: " , image_name
-
-    # # Make sure that a view is updated in the session
-    # colviews = db.getCollection("views")
-
-    # # Locate the session
-    # colsession = db.getCollection("sessions")
-    # session = colsession.findOne(BasicDBObject("name",  args.session))
-
-    # if verbose > 1:
-    #     print "Session obj before creation : ", session
-
-    # if session == None:
-    #     # first create a chapter name
-    #     if verbose > 0:
-    #         print "Creating a session .."
-    #     colsession.insert(BasicDBObject("name", args.session))
-    #     session = colsession.findOne(BasicDBObject("name", args.session))
-    #     colsession.update(BasicDBObject("_id", session.get("_id")), BasicDBObject("$set", BasicDBObject("label", session["name"])))
-    #     session = colsession.findOne(BasicDBObject("name", args.session))
-    # else:
-    #     if verbose > 0:
-    #         print "Session already exists, will add images"
-
-    # if verbose > 1:
-    #     print "Session as of now: ", session
-
-    # # # Create a view
-    # new_view_id = ObjectId()
-    # colviews.insert(BasicDBObject("img", ObjectId(image_name)).append("_id", new_view_id))
-
-    # # Get the posision of the new image
-    # pos = 0
-    # views = BasicDBList()
-    # if not "views" in  session.keySet():
-    #     if verbose > 1:
-    #         print "No views yet"
-    # else :
-    #     views = session.get('views')
-    #     for aview in views:
-    #         if aview.get('pos') > pos :
-    #             pos = aview.get('pos')
-    #             # Increment the new position as we are going to increase the number
-    #     pos = pos + 1
-
-    # view_rec = BasicDBObject("pos", pos).append("ref", new_view_id).append("hide",False)
-    # if verbose > 1:
-    #     print "Type of views: ", type(views)
-    # views.add(view_rec)
-    # if verbose > 1:
-    #     print "Views: ", views
-
-    # # insert the view in session
-    # colsession.update(BasicDBObject("_id", session.get("_id")), BasicDBObject("$set", BasicDBObject("views", views)))
-
-    # if verbose > 0:
-    #     print 'Done Time: ',  time.clock() - start
+    mongo_uploader(args)
