@@ -95,15 +95,17 @@ CrossHairs.prototype.UpdateBuffers = function() {
   cellData.push(10);
   cellData.push(11);
 
-  this.VertexPositionBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-  GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
-  this.VertexPositionBuffer.itemSize = 3;
-  this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+  if (GL) {
+    this.VertexPositionBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    this.VertexPositionBuffer.itemSize = 3;
+    this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
 
-  this.CellBuffer = GL.createBuffer();
-  GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-  GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
-  this.CellBuffer.itemSize = 1;
-  this.CellBuffer.numItems = cellData.length;
+    this.CellBuffer = GL.createBuffer();
+    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+    GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(cellData), GL.STATIC_DRAW);
+    this.CellBuffer.itemSize = 1;
+    this.CellBuffer.numItems = cellData.length;
+  }
 }

@@ -158,8 +158,10 @@
                      // and back in browser does not reload page completely
                      //window.location.href = "sessions?sessid="+data;
                      SESSION_ID = data._id;
-                     // View ids changed (were copied). (Pain pain pain)
-                     for (var i = 0; i < data.images.length; ++i) {
+                     // I do not think this is an issue anymore.  
+                     // However, this code should not hurt.
+                     // ... legacy comment ... View ids changed (were copied). (Pain pain pain)
+                     for (var i = 0; i < data.views.length; ++i) {
                        guiViews[i].attr('view', data.views[i].ref);
                      }
                      $('#saveButton').css({"color":"#000"});
