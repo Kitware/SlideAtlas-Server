@@ -83,8 +83,8 @@ MobileAnnotationWidget.prototype.TextCallback = function() {
   var cam = this.Viewer.GetCamera();
   var x = cam.FocalPoint[0];
   var y = cam.FocalPoint[1];
-  widget.Shape.Anchor[0] = x;
-  widget.Shape.Anchor[1] = y;
+  widget.Text.Anchor[0] = x;
+  widget.Text.Anchor[1] = y;
   eventuallyRender();
 
   this.Viewer.ActiveWidget = widget;

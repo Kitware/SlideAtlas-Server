@@ -62,7 +62,7 @@ function Viewer (viewport, cache) {
         'width': '80%',
         'position': 'absolute',
         'text-align': 'center',
-        'opacity': '0.4',
+        'opacity': '0.7',
         'color': '#ccc',
         'z-index': '3'
       })
