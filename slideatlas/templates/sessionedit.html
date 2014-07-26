@@ -366,7 +366,7 @@
                               .attr("img", data.Images[i]._id)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
-                              .attr("src", "/tile?db="+data.Database+"&img="+data.Images[i]._id+"&name=t.jpg")
+                              .attr("src", "/thumb?db="+data.Database+"&img="+data.Images[i]._id)
                               .attr("alt", data.Images[i].label)
                               .hover(function(){
                                        var p = $(this).position();
@@ -400,7 +400,7 @@
                               .attr("img",data.images[i].img)
                               .attr("height", size+"px")
                               .attr("width", size+"px")
-                              .attr("src", "/tile?db="+data.images[i].db+"&img="+data.images[i].img+"&name=t.jpg")
+                              .attr("src", "/thumb?db="+data.images[i].db+"&img="+data.images[i].img)
                               .attr("alt", data.images[i].label)
                               .hover(function(){
                                        var p = $(this).position();
@@ -463,7 +463,7 @@
                  .click(function(){deleteView(img);});
       // I am trying to stop the drag effect of the image.  This does not work.
       $('<img>').appendTo(item)
-                .attr("src","/tile?db="+db+"&img="+img+"&name=t.jpg")
+                .attr("src","/thumb?db="+db+"&img="+img)
                 .on('dragstart', function(event) {
                   event.preventDefault(); return false;});
       $('<input type="text" class="descriptiveLabel">').appendTo(item).val(label);
