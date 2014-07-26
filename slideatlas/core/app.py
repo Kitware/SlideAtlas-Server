@@ -132,9 +132,6 @@ def create_blueprints(app):
     from slideatlas.views  import db_operations
     app.register_blueprint(db_operations.mod)
 
-    from slideatlas.views import attachments
-    app.register_blueprint(attachments.mod)
-
     from slideatlas.api import api
     app.register_blueprint(api.mod)
 
