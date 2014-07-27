@@ -204,6 +204,10 @@ shape has visibility and
   function ShowAnnotationEditMenu(x, y) {
   }
   
+  $(window).bind('orientationchange', function(event) {
+    alert(window.innerWidth + " " + VIEWER1.MainView.Canvas.parent().width + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas.parent().height);
+  });
+  
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
