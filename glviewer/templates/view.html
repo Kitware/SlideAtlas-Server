@@ -203,7 +203,7 @@ shape has visibility and
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-
+  
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
@@ -236,7 +236,7 @@ shape has visibility and
       VIEWER2.SetViewport([left+width1, 0, width2, height]);
       eventuallyRender();
     }
-  };
+  }
 
   function InitViews() {
     var width = CANVAS.innerWidth();
@@ -504,7 +504,7 @@ shape has visibility and
     });
 
 
-  $(document).ready(function() {
+  //$(document).ready(function() {
     Start();
   });
 
