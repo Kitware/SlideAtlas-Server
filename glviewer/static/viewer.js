@@ -1261,7 +1261,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
   // Handle connectome volume stuff.
   // TODO: integrate this with the 3d renal stack stuff.
   // connectome
-  if (keyCode == 37) {
+  /*if (keyCode == 37) {
     // Left cursor key
     var idx = SECTIONS.indexOf(this.MainView.Section);
     if(idx > 0) {
@@ -1274,7 +1274,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
       this.SetSection(idx+1);
     }
     eventuallyRender();
-  }
+  }*/
 
 
   //----------------------
@@ -1293,14 +1293,21 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
 
   if (keyCode == 38) {
     // Up cursor key
+    /*
     this.ZoomTarget *= 2;
     this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
     this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
+    */
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] - this.MainView.Camera.GetHeight();
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0;
     eventuallyRender();
   } else if (keyCode == 40) {
     // Down cursor key
+    /*
     if (this.ZoomTarget > 0.9 / (1 << 5)) {
       this.ZoomTarget *= 0.5;
       this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
@@ -1309,6 +1316,26 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
       this.AnimateDuration = 200.0;
       eventuallyRender();
     }
+    */
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + this.MainView.Camera.GetHeight();
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0;
+    eventuallyRender();
+  } else if (keyCode == 37) {
+    // Left cursor key
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] - this.MainView.Camera.GetWidth();
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0;
+    eventuallyRender();
+  } else if (keyCode == 39) {
+    // Right cursor key
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + this.MainView.Camera.GetWidth();
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0;
+    eventuallyRender();
   }
 }
 

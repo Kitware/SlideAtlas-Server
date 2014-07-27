@@ -85,6 +85,7 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialogWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowStampWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
@@ -202,7 +203,11 @@ shape has visibility and
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-
+  
+  $(window).bind('orientationchange', function(event) {
+    alert(window.innerWidth + " " + VIEWER1.MainView.Canvas.parent().width + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas.parent().height);
+  });
+  
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
@@ -235,7 +240,7 @@ shape has visibility and
       VIEWER2.SetViewport([left+width1, 0, width2, height]);
       eventuallyRender();
     }
-  };
+  }
 
   function InitViews() {
     var width = CANVAS.innerWidth();
@@ -401,9 +406,109 @@ shape has visibility and
   }
 
 
-  //********************************************************
+    //********************************************************
 
-  $(document).ready(function() {
+    $(document).ready(function() {
+      //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
+      $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
+
+      $("#text-properties-dialog").dialog({
+          autoOpen:false,
+          height:350,
+          width:450,
+          position: ['center', 'top'],
+          modal:true,
+          buttons:{
+              Delete: function() {
+                  TextPropertyDialogDelete();
+                  $(this).dialog("close");
+              },
+              Apply: function() {
+                  TextPropertyDialogApply();
+              }
+          },
+          close: function(event,ui) {
+              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+                  TextPropertyDialogCancel();
+                  $(this).dialog("close");
+              }
+              $("#textwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+          }
+      });
+
+      $("#arrow-properties-dialog").dialog({
+          autoOpen:false,
+          height:280,
+          width:350,
+          modal:true,
+          buttons:{
+              Delete: function() {
+                  ArrowPropertyDialogDelete();
+                  $(this).dialog("close");
+              },
+              Apply: function() {
+                  ArrowPropertyDialogApply();
+                  $(this).dialog("close");
+              }
+          },
+          close: function(event,ui) {
+              if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+                  ArrowPropertyDialogCancel();
+                  $(this).dialog("close");
+              }
+              //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+          }
+      });
+
+    $("#circle-properties-dialog").dialog({
+      autoOpen:false,
+      height:300,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          CirclePropertyDialogDelete();
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          CirclePropertyDialogApply();
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          CirclePropertyDialogCancel();
+          $(this).dialog("close");
+        }
+        //$("#arrowwidgetcontent").val( "" ).removeClass( "ui-state-error" );
+      }
+    });
+
+    $("#polyline-properties-dialog").dialog({
+      autoOpen:false,
+      height:250,
+      width:350,
+      modal:true,
+      buttons:{
+        Delete: function() {
+          PolylinePropertyDialogDelete();
+          $(this).dialog("close");
+        },
+        Apply: function() {
+          PolylinePropertyDialogApply();
+          $(this).dialog("close");
+        }
+      },
+      close: function(event,ui) {
+        if ( event.originalEvent && $(event.originalEvent.target).closest(".ui-dialog-titlebar-close").length ) {
+          PolylinePropertyDialogCancel();
+          $(this).dialog("close");
+        }
+      }
+    });
+
+
+  //$(document).ready(function() {
     Start();
   });
 

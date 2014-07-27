@@ -49,6 +49,7 @@ CrossWidget.prototype.RemoveFromViewer = function() {
 }
 
 CrossWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+  return false;
 }
 
 CrossWidget.prototype.HandleMouseDown = function(event) {
