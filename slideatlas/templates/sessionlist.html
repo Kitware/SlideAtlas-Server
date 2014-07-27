@@ -12,39 +12,26 @@ float:right;
 </style>
 
 <div class="container">
-    <h1>Displaying a session list for {{ current_user.full_name }} !</h1>
-
-    {% for (role, sessions) in all_sessions %}
-    <h2> {{ role.label }}</h2>
+    {% for (collection, sessions) in all_sessions %}
+    <h2> {{ collection.label }}</h2>
     <table class="table table-bordered table-hover" >
-        {% for session in sessions %}
-        {% if session.type == 'stack' %}
+        {% for session, can_admin in sessions %}
         <tr>
             <td>
-                <a href="/webgl-viewer/stack?db={{ role.db.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
+                {% if session.type == 'stack' %}
+                <a href="/webgl-viewer/stack?db={{ session.image_store.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
+                {% else %}
+                <a href="{{ url_for('.view_a_session', session=session) }}" class="lead">{{ session.label }}</a>
+                {% endif %}
             </td>
-            {% if role.db_admin %}
+            {% if can_admin %}
             <td>
-                <a href="{{ url_for('.sessionedit', database_obj=role.db, session_obj=session) }}" class="lead">
+                <a href="{{ url_for('.sessionedit', session=session) }}" class="lead">
                     <button type="button" class="btn btn-danger">Edit</button>
                 </a>
             </td>
             {% endif %}
         </tr>
-        {% else %}
-        <tr>
-            <td>
-                <a href="{{ url_for('.view_a_session', database_obj=role.db, session_obj=session) }}" class="lead">{{ session.label }}</a>
-            </td>
-            {% if role.db_admin %}
-            <td>
-                <a href="{{ url_for('.sessionedit', database_obj=role.db, session_obj=session) }}" class="lead">
-                    <button type="button" class="btn btn-danger">Edit</button>
-                </a>
-            </td>
-            {% endif %}
-        </tr>
-        {% endif %}
         {% endfor %}
     </table>
     <br>

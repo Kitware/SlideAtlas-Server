@@ -5,6 +5,8 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
+import pdb
+
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
     imgid = 0
@@ -213,6 +215,7 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 #@security.login_required
 def glview():
+
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
@@ -238,7 +241,8 @@ def glview():
         db = database.to_pymongo()
 
     if viewid :
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        viewobj = readViewTree(db, viewid)
+
         if ajax:
             return jsonifyView(db,dbid,viewid,viewobj)
         if bookmarks:
@@ -281,7 +285,8 @@ def bookmark():
     db = models.ImageStore.objects.get_or_404(id=dbid).to_pymongo()
 
     if viewid :
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        viewobj = readViewTree(db, viewid)
+
         if ajax:
             return jsonifyView(db,dbid,viewid,viewobj)
         if bookmarks:
@@ -298,7 +303,9 @@ def bookmark():
 # get all the children notes for a parent (authored by a specific user).
 @mod.route('/getchildnotes')
 def getchildnotes():
-    parentid = request.args.get('parentid', "")
+    parentid = request.args.get('parentid', False)
+    if not parentid :
+        return "Error: missing parentid"
     dbid = request.args.get('db', "")
     # TODO: this should be an ObjectId by default, not a string
     user = getattr(security.current_user, 'id', '')
@@ -310,12 +317,14 @@ def getchildnotes():
 
     notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
                                     "User" :     user})
+
     # make a new structure to return.  Convert the ids to strings.
     noteArray = []
     for note in notecursor:
-        note["Id"] = str(note["_id"])
-        note["_id"] = None
-        note["ParentId"] = str(note["ParentId"])
+        # this handles viewid as an object too
+        viewobj = readViewTree(db, note)
+        if note.has_key("ParentId") :
+            note["ParentId"] = str(note["ParentId"])
         noteArray.append(note)
 
     data = {}
@@ -340,9 +349,11 @@ def glcomparisonoption():
     database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
-    viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
+    viewobj = readViewTree(db, viewid)
+    if (viewobj.has_key("img")) :
+        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
+    if (viewobj.has_key("startup_view")) :
+        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
     # The base view is for the left panel
     data = {
@@ -388,7 +399,8 @@ def glcomparisonsave():
                                      { "$set" : { "options" : optionArray } })
 
     if operation == "view" :
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
+        viewobj = readViewTree(db, viewid)
+
         bookmarkid = viewobj["startup_view"]
 
         # Save the annotations
@@ -469,8 +481,7 @@ def glstacksession():
     database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
-    with database:
-        sessobj = models.Session.objects.get_or_404(id=sessid)
+    sessobj = models.Session.objects.get_or_404(id=sessid)
 
     # Make a transformation if one does not exist.
     if not sessobj.transformations :
@@ -482,11 +493,11 @@ def glstacksession():
             pair["View1"] = sessobj.views[idx+1].ref
             sessobj["transformations"].append(pair)
 
-    annotations = [];
+    annotations = []
     views = []
     viewIdx = 0
     for view in sessobj.views:
-        viewobj = db["views"].find_one({"_id" : view.ref})
+        viewobj = readViewTree(db, view.ref)
 
         # convert annotation to stack format.
         sectionAnnotations = []
@@ -574,11 +585,10 @@ def glstacksave():
 
     database = models.ImageStore.objects.get_or_404(id=dbid)
 
-    with database:
-        session = models.Session.objects.get_or_404(id=sessid)
+    session = models.Session.objects.get_or_404(id=sessid)
 
     if 'views' in stackObj:
-        session.views = [models.RefItem(ref=ObjectId(view['_id'])) for view in stackObj['views']]
+        session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
@@ -614,9 +624,8 @@ def glstackinsert():
     view_id = db["views"].insert(viewObj)
 
     # I do not know the insert toan array so I will just set the whole thing
-    with database:
-        session = models.Session.objects.first(name='RenalStack')
-    section = models.RefItem(ref=view_id)
+    session = models.Session.objects.first(name='RenalStack')
+    section = models.RefItem(ref=view_id, db=ObjectId(dbid))
     session.views.append(section)
     session.save()
 
@@ -715,7 +724,7 @@ def getcomment():
     dbid = request.form["db"]
     commentid = request.form["id"]
 
-    database = models.ImageStore.objects.get_or_404(id=bid)
+    database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
 
     comment = db["comments"].find_one({"_id": ObjectId(commentid) })
@@ -727,20 +736,39 @@ def getcomment():
 
 
 # This is close to a general purpose function to insert an object into the database.
+# Used to save favorites and tracking activity
+# It has a bad name which can be changed later.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+
     noteStr = request.form['note'] # for post
+    collectionStr = request.form['col'] # for post
 
     note = json.loads(noteStr)
-    note["ParentId"] = ObjectId(note["ParentId"])
-    note["User"] = ObjectId(session["user"]["id"])
+    if note.has_key("ParentId") :
+        note["ParentId"] = ObjectId(note["ParentId"])
+    note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = "UserNote"
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    noteId = admindb["views"].save(note)
+    noteId = admindb[collectionStr].save(note)
     return str(noteId)
+
+
+
+@mod.route('/deleteusernote', methods=['GET', 'POST'])
+def deleteusernote():
+
+    noteIdStr = request.form['noteId'] # for post
+    collectionStr = request.form['col'] # for post
+
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
+    return "success"
 
 # Save the note in a "notes" session.
 # Create a notes session if it does not already exist.
@@ -758,15 +786,139 @@ def recursiveSetUser(note, user):
         for child in note["Children"]:
             recursiveSetUser(child, user)
 
+# get the favorite views for a user
+# used to get favorites and recorded activity.
+# it has a bad name that can be changed later.
+@mod.route('/getfavoriteviews', methods=['GET', 'POST'])
+def getfavoriteviews():
+    collectionStr = request.args.get('col', "favorites")
 
- # This is close to a general purpose function to insert an object into the database.
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
+    viewArray = []
+    for viewObj in viewItr:
+        if "Type" in viewObj :
+            viewObj["_id"] = str(viewObj["_id"])
+            viewObj["User"] = str(viewObj["User"])
+            if viewObj.has_key("ParentId") :
+                viewObj["ParentId"] = str(viewObj["ParentId"])
+            addviewimage(viewObj, "")
+            convertViewToPixelCoordinateSystem(viewObj)
+        viewArray.append(viewObj)
+
+    data = {'viewArray': viewArray}
+    return jsonify(data)
+
+
+# This function reads a view from the database.  It collects all
+# children sub view and image objects and puts them inline
+# and returns a single structure.
+def readViewTree(db, viewId) :
+    if isinstance(viewId, basestring) :
+        viewId = ObjectId(viewId)
+    if isinstance(viewId, ObjectId) :
+        viewObj = db["views"].find_one({ "_id" : viewId })
+    else :
+        # incase the view was already inline
+        viewObj = viewId
+
+    # Read and add the image objects
+    if viewObj.has_key("ViewerRecords") :
+        for record in viewObj["ViewerRecords"] :
+            imgdb = db
+            if record.has_key("Database") :
+                # convert references to string to pass to the client
+                record["Database"] = str(record["Database"])
+                database = models.ImageStore.objects.get_or_404(id=ObjectId(record["Database"]))
+                imgdb = database.to_pymongo()
+            # Replace the image reference with the inline image object for the client
+            # Note: A bug caused some image objects to be embedded in views in te databse.
+            if record.has_key("Image") :
+                if isinstance(record["Image"], basestring) :
+                    record["Image"] = ObjectId(record["Image"])
+                if isinstance(record["Image"], ObjectId) :
+                    imgObj = imgdb["images"].find_one({ "_id" : record["Image"]})
+                    imgObj["_id"] = str(imgObj["_id"])
+                    imgObj["database"] = record["Database"]
+                    record["Image"] = imgObj
+                convertImageToPixelCoordinateSystem(record["Image"])
+                # Get rid of any lingering thumbnail images which do not jsonify.
+                if record["Image"].has_key("thumb") :
+                    record["Image"].pop("thumb")
+
+    # read and add the children
+    if viewObj.has_key("Children") :
+        children = []
+        for child in viewObj["Children"] :
+            child = readViewTree(db, child)
+            children.append(child)
+        viewObj["Children"] = children
+
+    return viewObj
+
+
+# I do not want to orphan children in the database.
+# reuse id's whenever possible,
+
+# _id is a string, but parent must be an ObjectId.
+# if no _id, then a new note is created in the database.
+# Save notes recursively.  Children notes are saved separately.
+def savenote(db, note, user):
+    note["user"] = user
+    if note.has_key("_id") :
+        note["_id"] = ObjectId(note["_id"])
+    else :
+        # We need the id to set the parent id of children.
+        # put a dumy object in the database as a placeholder
+        note["_id"] = db["views"].save({})
+
+    # convert the image strings to ObjectIds.
+    if note.has_key("ViewerRecords") :
+        for record in note["ViewerRecords"] :
+            if isinstance(record["Image"], basestring) :
+                record["Image"] = ObjectId(record["Image"])
+            if isinstance(record["Database"], basestring) :
+                record["Database"] = ObjectId(record["Database"])
+
+    # save the children as separate objects and keep an array of ObjectIds
+    childrenRefs = []
+    if note.has_key("Children") :
+        for child in note["Children"]:
+            child["ParentId"] = note["_id"]
+            childrenRefs.append(savenote(db, child, user))
+        note["Children"] = childrenRefs
+
+    # Save the note for real.
+    #db["views"].update({"_id" : ObjectId(viewId) },
+    #                   { "$set" : { "notes" : notes } })
+
+
+    # I do not want to orphan children in the database.
+    # remove all the children before saving the note.
+    # The client must set the _ids of the notes / children
+    # to keep them the same.
+    oldNote = db["views"].find_one({"_id":note["_id"]})
+    if 'Children ' in oldNote:
+        for child in oldNote["Children"] :
+            if isinstance(child,ObjectId) :
+                db["views"].remove({"_id":child})
+
+    return db["views"].save(note)
+
+
+# This is close to a general purpose function to insert an object into the database.
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
 #@security.login_required
 def saveviewnotes():
+    #pdb.set_trace()
     dbid    = request.form['db']  # for post
-    viewId  = request.form['view']
     noteObj = request.form['note']
     note    = json.loads(noteObj)
+
+    if note.has_key("ParentId") :
+        note["ParentId"] = ObjectId(note["ParentId"])
 
     database = models.ImageStore.objects.get_or_404(id=dbid)
     db = database.to_pymongo()
@@ -775,21 +927,13 @@ def saveviewnotes():
     # I think I will just try to retreive the user from the "Save Note" method.
     email = getattr(security.current_user, 'email', '')
 
-    recursiveSetUser(note, email)
+    viewObj = savenote(db,note, email)
 
-    # the root note is the view
+    # I want the client editor to display the correct links immediatly after saving, so
+    # I have to return the entire note tree with any new ids created.
+    viewObj = readViewTree(db, viewObj)
+    return jsonify(viewObj)
 
-    # Replace the viewobject with one of type 'notes'
-    #viewobj = db["views"].find_one({"_id" : ObjectId(viewId) })
-    # nothing to copy over except the id.
-    note["_id"] = ObjectId(viewId)
-
-    # Save the notes
-    #db["views"].update({"_id" : ObjectId(viewId) },
-    #                   { "$set" : { "notes" : notes } })
-    db["views"].save(note)
-
-    return str(viewId)
 
 # Replace the image reference with an image object.
 def addviewimage(viewObj, imgdb):
@@ -820,6 +964,29 @@ def addviewimage(viewObj, imgdb):
         for child in viewObj["Children"]:
             addviewimage(child, imgdb)
 
+@mod.route('/gettrackingdata')
+def gettrackingdata():
+    collectionStr = request.args.get('col', "tracking")
+
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    #pdb.set_trace()
+
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
+    viewArray = []
+    for viewObj in viewItr:
+        if "Type" in viewObj :
+            viewObj["_id"] = str(viewObj["_id"])
+            viewObj["User"] = str(viewObj["User"])
+            #viewObj["ParentId"] = str(viewObj["ParentId"])
+        viewArray.append(viewObj)
+
+    #pdb.set_trace()
+
+    data = {'viewArray': viewArray}
+    return jsonify(data)
+
 # Get all the images in a database.  Return them as json.
 @mod.route('/getimagenames')
 def getimagenames():
@@ -847,7 +1014,7 @@ def getview():
     viewid = request.args.get('viewid', "")
     viewdb = request.args.get('db', "")
 
-    admindb = models.ImageStore._get_db
+    admindb = models.ImageStore._get_db()
     db = admindb
     if viewdb and viewdb != "None" :
         database = models.ImageStore.objects.get_or_404(id=viewdb)
@@ -856,17 +1023,15 @@ def getview():
     # check the session to see if notes are hidden
     hideAnnotations = False
     if sessid :
-        with database:
-            sessObj = models.Session.objects.with_id(sessid)
-        if sessObj and sessObj.hideAnnotations :
+        sessObj = models.Session.objects.with_id(sessid)
+        if sessObj and sessObj.hide_annotations :
             hideAnnotations = True
 
-    viewObj = db["views"].find_one({ "_id" : ObjectId(viewid) })
-    viewObj["Id"] = viewid
+    viewObj = readViewTree(db, viewid)
+
+    # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
     if "Type" in viewObj :
-        viewObj["_id"] = str(viewObj["_id"])
-        addviewimage(viewObj,viewdb)
         if hideAnnotations :
             # use a cryptic label
             viewObj["Title"] = viewObj["HiddenTitle"]
@@ -903,8 +1068,7 @@ def getview():
         imgobj["TileSize"] = 256
 
     noteObj = {}
-    noteObj["Id"] = viewid
-    noteObj["ParentId"] = ""
+    noteObj["_id"] = viewid
     noteObj["Title"] = imgobj["label"]
     if viewObj.has_key("Title") :
         noteObj["Title"] = viewObj["Title"]
@@ -946,7 +1110,7 @@ def getview():
                 question["Title"] = "Question"
                 question["Text"] = ""
                 question["Type"] = "Bookmark"
-                question["Id"] = str(bookmark["_id"])
+                question["_id"] = str(bookmark["_id"])
                 question["ParentId"] = viewid
                 vrq = {}
                 vrq["AnnotationVisibility"] = 1
@@ -993,7 +1157,7 @@ def getview():
                 answer["Title"] = bookmark["title"]
                 answer["Text"] = bookmark["details"]
                 answer["Type"] = "Bookmark"
-                answer["Id"] = str(bookmark["_id"])
+                answer["_id"] = str(bookmark["_id"])
                 answer["ParentId"] = viewid
                 vra = {}
                 vra["AnnotationVisibility"] = 2
@@ -1009,7 +1173,7 @@ def getview():
                 note["Title"] = bookmark["title"]
                 note["Text"] = bookmark["details"]
                 note["Type"] = "Bookmark"
-                note["Id"] = str(bookmark["_id"])
+                note["_id"] = str(bookmark["_id"])
                 note["ParentId"] = viewid
                 vr = {}
                 vr["AnnotationVisibility"] = 1
@@ -1060,9 +1224,9 @@ def fixjustification():
     dbid = request.form['db']  # for post
     imgid  = request.form['img']
 
-    db = models.ImageStore._get_db().to_pydas()
+    db = models.ImageStore._get_db()
     if dbid != "None" :
-        db = models.ImageStore.objects.with_id(dbid).to_pydas()
+        db = models.ImageStore.objects.with_id(dbid).to_pymongo()
 
     imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
     #imgObj["CoordinateSystem"] = "Pixel"

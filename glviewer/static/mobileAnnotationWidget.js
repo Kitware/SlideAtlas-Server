@@ -58,8 +58,6 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
     this.Viewer.ActiveWidget.Deactivate();
   }
   var widget = new CircleWidget(this.Viewer, false);
-  widget.Shape.SetOutlineColor(document.getElementById("circlecolor").value);
-
   var cam = this.Viewer.GetCamera();
   var x = cam.FocalPoint[0];
   var y = cam.FocalPoint[1];
@@ -82,18 +80,11 @@ MobileAnnotationWidget.prototype.TextCallback = function() {
 
   this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
   var widget = new TextWidget(this.Viewer, "");
-  // Set default color rom the last text widget setting.
-  var hexcolor = document.getElementById("textcolor").value;
-  widget.Shape.SetColor(hexcolor);
-  widget.AnchorShape.SetFillColor(hexcolor);
-  // Default value for anchor shape visibility
-  widget.AnchorShape.Visibility = document.getElementById("TextMarker").value;
-
   var cam = this.Viewer.GetCamera();
   var x = cam.FocalPoint[0];
   var y = cam.FocalPoint[1];
-  widget.Shape.Anchor[0] = x;
-  widget.Shape.Anchor[1] = y;
+  widget.Text.Anchor[0] = x;
+  widget.Text.Anchor[1] = y;
   eventuallyRender();
 
   this.Viewer.ActiveWidget = widget;

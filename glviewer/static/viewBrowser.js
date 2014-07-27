@@ -93,12 +93,12 @@ function ViewBrowserAddSessionViews(sessionData) {
       var image = sessionData.images[i];
       var item = $('<li>').appendTo(viewList)
           // image.db did not work for ibriham stack (why?)
-          .attr('db', sessionData.db)
+          .attr('db', image.view_db)
           .attr('sessid', sessionData.sessid)
           .attr('viewid', image.view)
           .click(function(){ViewBrowserImageCallback(this);});
       $('<img>').appendTo(item)
-          .attr('src', "tile?db="+image.db+"&img="+image.img+"&name=t.jpg")     // all images should have thumb.jpg
+          .attr('src', "/thumb?db="+image.db+"&img="+image.img)
           .css({'height': '50px'});
       $('<span>').appendTo(item)
           .text(image.label);

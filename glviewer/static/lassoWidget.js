@@ -14,6 +14,73 @@ function LassoWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
+
+  this.Dialog = new Dialog(this);
+  // Customize dialog for a lasso.
+  this.Dialog.Title.text('Lasso Annotation Editor');
+  // Color
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+
+  // Area
+  this.Dialog.AreaDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.AreaLabel =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .text("Area:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.Area =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .css({'display':'table-cell'});
+
+
+  // Get default properties.
+  if (localStorage.LassoWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.LineWidth) {
+      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+    }
+  }
+
+
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   this.Viewer.WidgetList.push(this);
@@ -36,7 +103,7 @@ function LassoWidget (viewer, newFlag) {
 
   this.Loop = new Polyline();
   this.Loop.OutlineColor = [0.0, 0.0, 0.0];
-  this.Loop.SetOutlineColor(document.getElementById("lassocolor").value);
+  this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Loop.FixedSize = false;
   this.Loop.LineWidth = 0;
   this.Stroke = false;
@@ -123,7 +190,7 @@ LassoWidget.prototype.HandleMouseDown = function(event) {
     // When interaction stops, it is converted/merged with loop.
     this.Stroke = new Polyline();
     this.Stroke.OutlineColor = [0.0, 0.0, 0.0];
-    this.Stroke.SetOutlineColor(document.getElementById("lassocolor").value);
+    this.Stroke.SetOutlineColor(this.Dialog.ColorInput.val());
     this.Stroke.FixedSize = false;
     this.Stroke.LineWidth = 0;
 
@@ -265,59 +332,34 @@ LassoWidget.prototype.RemoveFromViewer = function() {
 }
 
 // Can we bind the dialog apply callback to an objects method?
-var LASSO_WIDGET_DIALOG_SELF;
 LassoWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("lassocolor");
-  color.value = ConvertColorToHex(this.Loop.OutlineColor);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Loop.OutlineColor));
 
-  var lineWidth = document.getElementById("lassowidth");
-  lineWidth.value = (this.Loop.LineWidth).toFixed(2);
+  this.Dialog.LineWidthInput.val((this.Loop.LineWidth).toFixed(2));
 
-  var areaLabel = document.getElementById("lassoarea");
   var area = this.ComputeArea();
-  areaLabel.innerHTML = "Area: " + area.toFixed(2);
-  areaLabel.innerHTML += " pixels^2";
-
-  LASSO_WIDGET_DIALOG_SELF = this;
-  $("#lasso-properties-dialog").dialog("open");
+  var areaString = "" + area.toFixed(2);
+  if (this.Loop.FixedSize) {
+    areaString += " pixels^2";
+  } else {
+    areaString += " units^2";
+  }
+  this.Dialog.Area.text(areaString);
+  this.Dialog.Show(true);
 }
 
-function LassoPropertyDialogApply() {
-  var widget = LASSO_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
-  }
-  var hexcolor = document.getElementById("lassocolor").value;
-  widget.Loop.SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("lassowidth");
-  widget.Loop.LineWidth = parseFloat(lineWidth.value);
-  widget.Loop.UpdateBuffers();
-  if (widget != null) {
-    widget.SetActive(false);
-  }
+LassoWidget.prototype.DialogApplyCallback = function() {
+  var hexcolor = this.Dialog.ColorInput.val();
+  this.Loop.SetOutlineColor(hexcolor);
+  this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+  this.Loop.UpdateBuffers();
+  this.SetActive(false);
   RecordState();
   eventuallyRender();
-  $("#lasso-properties-dialog").dialog("close");
+
+  localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
 }
 
-function LassoPropertyDialogCancel() {
-  var widget = LASSO_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-  }
-}
-
-function LassoPropertyDialogDelete() {
-  var widget = LASSO_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}
 
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
 // Pass in the spacing as a hint to get rid of aliasing.

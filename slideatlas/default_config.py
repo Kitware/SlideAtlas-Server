@@ -137,13 +137,17 @@ MAIL_PASSWORD = None
 """ The password to authenticate to the SMTP server with. """
 
 SECURITY_EMAIL_SENDER = 'no-reply@localhost'
-""" The email address to send emails as. """
+""" The email address to send outgoing emails as. """
 
 MAIL_MAX_EMAILS = None
 """ The maximum number of emails to send before reconnecting.
 
 Some mail servers set a limit on the number of emails sent in a single
 connection. """
+
+SLIDEATLAS_ADMIN_EMAIL = 'no-reply@localhost'
+""" The email address for SlideAtlas administrators, for sending application
+notifications. """
 
 
 ################################################################################

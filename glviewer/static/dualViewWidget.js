@@ -16,7 +16,7 @@ function InitDualViewWidget() {
         'width': '20x',
         'top' : '0px',
         'right' : '0%',
-        'z-index': '1'})
+        'z-index': '4'})
     .attr('id', 'dualWidgetLeft')
     .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
     .click(function(){ToggleDualView();});
@@ -30,7 +30,7 @@ function InitDualViewWidget() {
         'width': '20px',
         'top' : '0px',
         'left' : '50%',
-        'z-index': '1'})
+        'z-index': '4'})
     .attr('id', 'dualWidgetRight')
     .attr('src',"webgl-viewer/static/dualArrowRight2.png")
     .click(function(){ToggleDualView();});
@@ -128,6 +128,63 @@ function AnimateViewToggle() {
 }
 
 
+function CreateThumbnailImage(height) {
+  var canvas = document.createElement("canvas"); //create
+  var ctx = canvas.getContext("2d");
+  var img1 = VIEWER1.MainView.CaptureImage();
+  var scale = height / img1.height;
+  var width1 = Math.round(img1.width * scale);
+  var height1 = Math.round(img1.height * scale);
+  if (DUAL_VIEW) {
+    var img2 = VIEWER2.MainView.CaptureImage();
+    var width2 = Math.round(img2.width * scale);
+    var height2 = Math.round(img2.height * scale);
+    canvas.width = width1 + width2;
+    canvas.height = Math.max(height1, height2);
+    ctx.drawImage(img2, 0, 0, img2.width, img2.height,
+                  width1, 0, width2, height2);
+  } else {
+    canvas.width = width1;
+    canvas.height = height1;
+  }
+  ctx.drawImage(img1, 0, 0, img1.width, img1.height,
+                0, 0, width1, height1);
 
+  var url = canvas.toDataURL();
+  var thumb = document.createElement("img"); //create
+  thumb.src = url;
+
+  return thumb;
+}
+
+
+function ShowImage(img) {
+  //document.body.appendChild(img);
+  var disp = 
+    $('<img>').appendTo('body')
+      .css({'position': 'absolute',
+            'left': '50px',
+            'top' : '50px',
+            'z-index': '3'})
+      .attr('src',img.src);
+}
+
+
+
+
+
+//$.ajax({
+//    type: "POST",
+//    url: "script.php",
+//    data: { 
+//        imgBase64: dataURL
+//    }
+//}).done(function(o) {
+//    console.log('saved'); 
+  // If you want the file to be visible in the browser 
+  // - please modify the callback in javascript. All you
+  // need is to return the url to the file, you just saved 
+  // and than put the image in your browser.
+//});
 
 

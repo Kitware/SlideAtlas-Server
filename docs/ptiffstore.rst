@@ -97,3 +97,21 @@ We need
 - Site specific configuration and schedule settings
 - A site specific supervisor config file to start worker processe(s)
 
+Upload a ptiff file into mongodb
+================================
+
+- Accept parameters to locate the input file,
+
+    - first step is to get input file from a filesystem
+    - second step is to get pointer to a ptif file in image_store
+
+
+
+
+
+URL for attachment is as follows
+
+.. note::
+
+    https://slide-atlas.org/api/v2/sessions/4ec6c81124c1bf4b93009bea/attachments/53c457f0dd98b56a8f0d7aa0
+

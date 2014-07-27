@@ -66,7 +66,15 @@ class EmbeddedAnnotationField(GenericEmbeddedDocumentField):
 class View(MultipleDatabaseModelDocument):
     meta = {
         'collection': 'views',
-        }
+        'indexes': [
+            {
+                'fields': ('image',),
+                'cls': False,
+                'unique': False,
+                'sparse': True, # TODO: this should not be sparse, but the database needs to be fixed
+            },
+        ]
+    }
 
     # TODO: this is a string in some places
     image = ObjectIdField(required=True, db_field='img',
@@ -117,7 +125,7 @@ class View(MultipleDatabaseModelDocument):
     title = StringField(required=False, db_field='Title',
         verbose_name='', help_text='The short label used in note list or session list of views.')
 
-    hidden_title = StringField(required=False, db_field='HiddenTitle',
+    hidden_label = StringField(required=False, db_field='HiddenTitle',
         verbose_name='', help_text='Coded title for students.')
 
     text = StringField(required=False, db_field='Text',

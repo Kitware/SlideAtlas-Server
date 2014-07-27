@@ -22,6 +22,75 @@ function PolylineWidget (viewer, newFlag) {
   if (viewer === undefined) {
     return;
   }
+  
+  this.Dialog = new Dialog(this);
+  // Customize dialog for a lasso.
+  this.Dialog.Title.text('Lasso Annotation Editor');
+  // Color
+  this.Dialog.ColorDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ColorLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ColorDiv)
+      .text("Color:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ColorInput =
+    $('<input type="color">')
+      .appendTo(this.Dialog.ColorDiv)
+      .val('#30ff00')
+      .css({'display':'table-cell'});
+
+  // Line Width
+  this.Dialog.LineWidthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LineWidthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .text("Line Width:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.LineWidthInput =
+    $('<input type="number">')
+      .appendTo(this.Dialog.LineWidthDiv)
+      .css({'display':'table-cell'})
+      .keypress(function(event) { return event.keyCode != 13; });
+
+  // Area
+  this.Dialog.AreaDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.AreaLabel =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .text("Area:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.Area =
+    $('<div>')
+      .appendTo(this.Dialog.AreaDiv)
+      .css({'display':'table-cell'});
+
+
+  // Get default properties.
+  this.LineWidth = 10.0;
+  if (localStorage.PolylineWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
+    if (defaults.Color) {
+      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.LineWidth) {
+      this.LineWidth = defaults.LineWidth;
+      this.Dialog.LineWidthInput.val(this.LineWidth);
+    }
+  }
+
+
   this.Popup = new WidgetPopup(this);
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
@@ -38,7 +107,7 @@ function PolylineWidget (viewer, newFlag) {
 
   this.Shape = new Polyline();
   this.Shape.OutlineColor = [0.0, 0.0, 0.0];
-  this.Shape.SetOutlineColor(document.getElementById("polylinecolor").value);
+  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Shape.FixedSize = false;
 
   this.Viewer.WidgetList.push(this);
@@ -46,7 +115,6 @@ function PolylineWidget (viewer, newFlag) {
   // Set line thickness using viewer. (5 pixels).
   // The Line width of the shape switches to 0 (single line)
   // when the actual line with is too thin.
-  this.LineWidth = 5.0*cam.Height/viewport[3];
   this.Shape.LineWidth =this.LineWidth;
   this.Circle.Radius = this.LineWidth;
   this.Circle.UpdateBuffers();
@@ -62,13 +130,46 @@ function PolylineWidget (viewer, newFlag) {
     this.ActiveVertex == -1;
   }
   this.ActiveMidpoint = -1;
+
+  // Set some default values for bounds.
+  var cam = viewer.GetCamera();
+  var radius = cam.Height / 4;
+  this.Bounds = [cam.FocalPoint[0]-radius, cam.FocalPoint[0]+radius,
+                 cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
+  this.UpdateCircleRadius();
+
   eventuallyRender();
 }
 
+// This is called whenever the shape changes.
+PolylineWidget.prototype.UpdateBounds = function() {
+  if (this.Shape.Points.length < 2) { return; }
+  var xMin = this.Shape.Points[0][0];
+  var xMax = xMin;
+  var yMin = this.Shape.Points[0][1];
+  var yMax = yMin;
+  for (var i = 1; i < this.Shape.Points.length; ++i) {
+    var pt = this.Shape.Points[i];
+    xMin = Math.min(xMin, pt[0]);
+    xMax = Math.max(xMin, pt[0]);
+    yMin = Math.min(yMin, pt[1]);
+    yMax = Math.max(yMin, pt[1]);
+  }
+  this.Bounds = [xMin, xMax, yMin, yMax];
+}
+
+
+
+// Setting the circle radius based on line width does not work.
+// Choose maximum based on screen size and fraction of polyline bounds.
 PolylineWidget.prototype.UpdateCircleRadius = function() {
-    if (this.Circle.Radius < this.LineWidth) {
-        this.Circle.Radius = this.LineWidth;
-    }
+  var height = this.Viewer.GetCamera().Height;
+  var radius = height / 200;
+  radius = Math.min(radius, (this.Bounds[3]-this.Bounds[2]) * 0.25);
+  radius = Math.max(radius, this.LineWidth);
+
+  this.Circle.Radius = radius;
+  this.Circle.UpdateBuffers();
 }
 
 
@@ -90,6 +191,24 @@ PolylineWidget.prototype.Draw = function(view) {
 }
 
 
+PolylineWidget.prototype.PasteCallback = function(data) {
+  this.Load(data);
+  // Place the widget over the mouse.
+  // This is more difficult than the circle.  Compute the shift.
+  var xOffset = EVENT_MANAGER.MouseWorldX - (this.Bounds[0]+this.Bounds[1])/2;
+  var yOffset = EVENT_MANAGER.MouseWorldY - (this.Bounds[2]+this.Bounds[3])/2;
+  for (var i = 0; i < this.Shape.Points.length; ++i) {
+    this.Shape.Points[i][0] += xOffset;
+    this.Shape.Points[i][1] += yOffset;
+  }
+  this.UpdateBounds();
+  this.Shape.UpdateBuffers();
+
+  eventuallyRender();
+}
+
+
+
 PolylineWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
   var obj = new Object();
@@ -101,6 +220,7 @@ PolylineWidget.prototype.Serialize = function() {
   for (var i = 0; i < this.Shape.Points.length; ++i) {
     obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
   }
+  this.UpdateBounds();
 
   obj.closedloop = this.ClosedLoop;
   return obj;
@@ -118,6 +238,7 @@ PolylineWidget.prototype.Load = function(obj) {
                             parseFloat(obj.points[n][1])];
   }
   this.ClosedLoop = (obj.closedloop == "true");
+  this.UpdateBounds();
   this.Shape.UpdateBuffers();
 }
 
@@ -136,7 +257,33 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
 }
 
-PolylineWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // Copy
+  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+    // control-c for copy
+    // The extra identifier is not needed for widgets, but will be
+    // needed if we have some other object on the clipboard.
+    var clip = {Type:"PolylineWidget", Data: this.Serialize()};
+    localStorage.ClipBoard = JSON.stringify(clip);
+    return true;
+  }
+
+
+  return false;
+  if (keyCode == 27) { // escape
+    // Last resort.  ESC key always deactivates the widget.
+    // Deactivate.
+    this.Deactivate();
+    if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
+      // I do not check for closed loop yet.
+      this.ClosedLoop = false;
+      // Remove the last duplicate point.
+      this.Shape.Points.pop();
+      this.UpdateBounds();
+    }
+    RecordState();  
+  }
+
   return false;
 }
 
@@ -163,6 +310,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     this.Shape.Points.push([pt[0], pt[1]]); // avoid same reference.
     this.ActivateVertex(-1);
     this.State = POLYLINE_WIDGET_NEW_EDGE;
+    this.UpdateBounds();
     eventuallyRender();
     return;
   }
@@ -174,6 +322,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
         this.ClosedLoop = false;
         // Remove the last duplicate point.
         this.Shape.Points.pop();
+        this.UpdateBounds();
       }
       this.Deactivate();
       RecordState();
@@ -181,6 +330,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     }
     this.Shape.Points.push(pt);
     this.Shape.UpdateBuffers();
+    this.UpdateBounds();
     eventuallyRender();
     return;
   }
@@ -207,6 +357,7 @@ PolylineWidget.prototype.HandleMouseUp = function(event) {
   // Logic to remove a vertex. Drag it over a neighbor.
   //if (this.State do this later.
 
+  // Old, but could be useful.
   if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
@@ -239,6 +390,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
     var lastIdx = this.Shape.Points.length - 1;
     this.Shape.Points[lastIdx] = pt;
     this.Shape.UpdateBuffers();
+    this.UpdateBounds();
     var idx = this.WhichVertexShouldBeActive(pt);
     // Only the first or last vertexes will stop the new line.
     this.ActivateVertex(idx);
@@ -263,6 +415,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
       }
       this.LastMouseWorld = pt;
       this.Shape.UpdateBuffers();
+      this.UpdateBounds();
       this.PlacePopup();
       eventuallyRender();
       return;
@@ -470,54 +623,63 @@ PolylineWidget.prototype.PlacePopup = function () {
 }
 
 
-
-
 // Can we bind the dialog apply callback to an objects method?
 var POLYLINE_WIDGET_DIALOG_SELF;
 PolylineWidget.prototype.ShowPropertiesDialog = function () {
-  var color = document.getElementById("polylinecolor");
-  color.value = ConvertColorToHex(this.Shape.OutlineColor);
+  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var lineWidth = document.getElementById("polylinewidth");
-  lineWidth.value = (this.LineWidth).toFixed(2);
-
-  POLYLINE_WIDGET_DIALOG_SELF = this;
-  $("#polyline-properties-dialog").dialog("open");
+  if (this.Shape.Closed) {
+    this.Dialog.AreaDiv.show();
+    var area = this.ComputeArea();
+    var areaString = "" + area.toFixed(2);
+    if (this.Shape.FixedSize) {
+      areaString += " pixels^2";
+    } else {
+      areaString += " units^2";
+    }
+    this.Dialog.Area.text(areaString);
+  } else {
+    this.Dialog.AreaDiv.hide();
+  }
+  this.Dialog.Show(true);
 }
 
-function PolylinePropertyDialogApply() {
-  var widget = POLYLINE_WIDGET_DIALOG_SELF;
-  if ( ! widget) {
-    return;
-  }
-  var hexcolor = document.getElementById("polylinecolor").value;
-  widget.Shape.SetOutlineColor(hexcolor);
-  var lineWidth = document.getElementById("polylinewidth");
-  widget.LineWidth = parseFloat(lineWidth.value);
-  widget.Shape.LineWidth = widget.LineWidth;
-  widget.Shape.UpdateBuffers();
-  if (widget != null) {
-    widget.SetActive(false);
-  }
+PolylineWidget.prototype.DialogApplyCallback = function() {
+  var hexcolor = this.Dialog.ColorInput.val();
+  this.Shape.SetOutlineColor(hexcolor);
+  // Cannot use the shap line width because it is set to zero (single pixel)
+  // it the dialog value is too thin.
+  this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+  this.Shape.UpdateBuffers();
+  this.SetActive(false);
   RecordState();
   eventuallyRender();
+
+  localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.LineWidth});
 }
 
-function PolylinePropertyDialogCancel() {
-  var widget = POLYLINE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
+
+PolylineWidget.prototype.ComputeArea = function() {
+  var area = 0.0;
+  // Use the active center. It should be more numerical stable.
+  // Iterate over triangles
+  var last = this.Shape.Points.length-1;
+  var vx1 = this.Shape.Points[last][0] - this.ActiveCenter[0];    
+  var vy1 = this.Shape.Points[last][1] - this.ActiveCenter[1];
+  // First and last point form another triangle (they are not the same).
+  for (var j = 0; j < this.Shape.Points.length; ++j) {
+    // Area of triangle is 1/2 magnitude of cross product.
+    var vx2 = vx1;
+    var vy2 = vy1;
+    vx1 = this.Shape.Points[j][0] - this.ActiveCenter[0];    
+    vy1 = this.Shape.Points[j][1] - this.ActiveCenter[1];
+    area += (vx1*vy2) - (vx2*vy1);
   }
+
+  if (area < 0) {
+    area = -area;
+  }
+  return area;
 }
 
-function PolylinePropertyDialogDelete() {
-  var widget = POLYLINE_WIDGET_DIALOG_SELF;
-  if (widget != null) {
-    widget.SetActive(false);
-    // We need to remove an item from a list.
-    // shape list and widget list.
-    widget.RemoveFromViewer();
-    eventuallyRender();
-    RecordState();
-  }
-}

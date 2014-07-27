@@ -2,8 +2,9 @@
 
 import os.path
 
-from flask import current_app, render_template, send_from_directory
+from flask import abort, current_app, render_template, send_from_directory, redirect
 
+from slideatlas import models
 from slideatlas.version import get_version
 
 ################################################################################
@@ -16,6 +17,8 @@ def add_views(app):
     app.add_url_rule(rule='/home', view_func=home, alias=True)
 
     app.add_url_rule(rule='/status', view_func=status)
+
+    app.add_url_rule(rule='/link/<code>', view_func=link)
 
     app.add_url_rule(rule='/favicon.ico', view_func=favicon)
 
@@ -38,6 +41,19 @@ def status():
     return render_template('status.html',
                            site=site,
                            admin_db=admin_db)
+
+
+################################################################################
+def link(code):
+    try:
+        permalink = models.Permalink.objects.get(code=code)
+    except models.DoesNotExist:
+        abort(404) # Not Found
+    except models.MultipleObjectsReturned:
+        # TODO: log this
+        raise
+
+    return redirect(permalink.destination, 307)
 
 
 ################################################################################

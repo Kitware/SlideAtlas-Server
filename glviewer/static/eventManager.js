@@ -20,6 +20,9 @@
 
 
 function EventManager (canvas) {
+  // I cannot figure out how to do this with focus of canvas ...
+  // KeyFocus
+  this.HasFocus = true;
   this.Canvas = canvas[0];
   this.Viewers = [];
   this.CurrentViewer = null;
@@ -93,6 +96,11 @@ EventManager.prototype.HandleMouseDown = function(event) {
 
   this.SetMousePositionFromEvent(event);
   this.ChooseViewer();
+
+  // TODO:  Formalize a call back to make GUI disappear when navigation starts.
+  // Get rid of the favorites and the link divs if they are visible
+  if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+  if (typeof FAVORITES_WIDGET !== 'undefined' && FAVORITES_WIDGET.hidden == false) { FAVORITES_WIDGET.ShowHideFavorites();}
 
   if (this.CurrentViewer) {
     event.preventDefault();
@@ -175,14 +183,27 @@ EventManager.prototype.HandleMouseWheel = function(event) {
 
 //------------- Keys ---------------
 
+EventManager.prototype.FocusIn = function() {
+  this.HasFocus = true;
+}
+
+EventManager.prototype.FocusOut = function() {
+  this.HasFocus = false;
+}
+
 EventManager.prototype.HandleKeyDown = function(event) {
+  if ( ! this.HasFocus) {return;} 
+
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = true;
+    // Do not forward modifier keys events to objects that consume keypresses.
+    return;
   }
   if (event.keyCode == 17) {
     // Control key modifier.
     this.ControlKeyPressed = true;
+    return;
   }
 
   // Handle undo and redo (cntrl-z, cntrl-y)
@@ -197,11 +218,13 @@ EventManager.prototype.HandleKeyDown = function(event) {
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
-    this.CurrentViewer.HandleKeyPress(event.keyCode, this.ShiftKeyPressed);
+    this.CurrentViewer.HandleKeyPress(event.keyCode, this);
   }
 }
 
 EventManager.prototype.HandleKeyUp = function(event) {
+  if ( ! this.HasFocus) {return;} 
+
   if (event.keyCode == 16) {
     // Shift key modifier.
     this.ShiftKeyPressed = false;

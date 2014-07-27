@@ -1,6 +1,8 @@
 # coding=utf-8
 
+from flask import Markup, url_for
 from flask.ext.security import Security, MongoEngineUserDatastore, user_registered
+from flask.ext.security.utils import send_mail
 from flask.ext.mail import Mail
 
 from slideatlas import models
@@ -47,17 +49,23 @@ def register_with_app(app):
 
 
 ################################################################################
-# TODO: this is a short term solution until an "everyone" / publicly-viewable
-#   role can be implemented
+# TODO: find a way of automatically registering Shibboleth users with the
+#   appropriate group, similar to facebook_id
 def on_user_registered(app, user, confirm_token):
-    demo_group = models.GroupRole.objects.get(label='Atlas Demonstration')
-    user.groups.append(demo_group)
-
-    if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu') or user.email.endswith('kitware.com'):
-        brown_group = models.GroupRole.objects.with_id('529d244959a3aee20f8a00ae')
+    if isinstance(user, models.ShibbolethUser) or user.email.endswith('brown.edu'):
+        brown_group = models.Group.objects.with_id('529d244959a3aee20f8a00ae')
         user.groups.append(brown_group)
+        user.save()
 
-    user.save()
+    send_mail(
+        'SlideAtlas: New User Registered',
+        app.config['SLIDEATLAS_ADMIN_EMAIL'],
+        'new_user_notify',
+        user=user,
+        admin_user_url=url_for('%sview.edit_view' % user.__class__.__name__.lower(),
+                               id=str(user.id),
+                               _external=True)
+    )
 
 
 ################################################################################
@@ -87,7 +95,7 @@ def add_config(app):
         SECURITY_REGISTER_URL='/login/password/register',
         SECURITY_REGISTER_USER_TEMPLATE='security/signup.html',
         SECURITY_SEND_REGISTER_EMAIL=True,
-        SECURITY_EMAIL_SUBJECT_REGISTER='slide-atlas.org: Account Created',
+        SECURITY_EMAIL_SUBJECT_REGISTER='SlideAtlas: Account Created',
         # uses 'welcome' email body template
         # TODO: change the email body template, as the default contains a password confirmation link, and we want non-password users to receive a welcome email too
 
@@ -95,21 +103,30 @@ def add_config(app):
         SECURITY_CONFIRMABLE=True,
         SECURITY_CONFIRM_URL='/login/password/confirm',
         SECURITY_SEND_CONFIRMATION_TEMPLATE='security/resend_confirmation.html',
-        SECURITY_EMAIL_SUBJECT_CONFIRM='slide-atlas.org: Account Confirmation',
+        SECURITY_EMAIL_SUBJECT_CONFIRM='SlideAtlas: Account Confirmation',
         # uses 'confirmation_instructions' email body template
         SECURITY_CONFIRM_EMAIL_WITHIN='5 days',
         SECURITY_LOGIN_WITHOUT_CONFIRMATION=False,
+        SECURITY_MSG_EMAIL_CONFIRMED=(
+            Markup(
+                'Welcome to SlideAtlas! Your account has been confirmed.<br>'\
+                '<br>'\
+                'Site administrators may now grant you access to additional content. '
+                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' % \
+                    {'email': app.config['SLIDEATLAS_ADMIN_EMAIL']}
+            ),
+            'success'),
 
         ## Recover / reset a lost password
         SECURITY_RECOVERABLE=True,
         SECURITY_RESET_URL='/login/password/reset',
         SECURITY_FORGOT_PASSWORD_TEMPLATE='security/password_reset_1.html',  # step 1
         SECURITY_RESET_PASSWORD_TEMPLATE='security/password_reset_2.html',  # step 2
-        SECURITY_EMAIL_SUBJECT_PASSWORD_RESET='slide-atlas.org: Password Reset Instructions',
+        SECURITY_EMAIL_SUBJECT_PASSWORD_RESET='SlideAtlas: Password Reset Instructions',
         # uses 'reset_instructions' email body template
         SECURITY_RESET_PASSWORD_WITHIN='5 days',
         SECURITY_SEND_PASSWORD_RESET_NOTICE_EMAIL=False,  # TODO: do we want to send a confirmation email?
-        SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE='slide-atlas.org: Password Reset Successful',
+        SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE='SlideAtlas: Password Reset Successful',
         # uses 'reset_notice' email body template
 
         ## Change a password
@@ -117,7 +134,7 @@ def add_config(app):
         SECURITY_CHANGE_URL='/login/password/change',
         SECURITY_CHANGE_PASSWORD_TEMPLATE='security/password_change.html',
         SECURITY_SEND_PASSWORD_CHANGE_EMAIL=False,  # TODO: do we want to send a confirmation email?
-        SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE='slide-atlas.org: Password Change Successful',
+        SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE='SlideAtlas: Password Change Successful',
         # uses 'change notice' email body template
 
         ### Other options ###
@@ -145,7 +162,7 @@ def add_config(app):
 class SlideatlasMongoEngineUserDatastore(MongoEngineUserDatastore):
     def __init__(self):
         # 'db' parameter is not necessary for this subclass
-        super(SlideatlasMongoEngineUserDatastore, self).__init__(None, models.User, models.Role)
+        super(SlideatlasMongoEngineUserDatastore, self).__init__(None, models.User, None)
         self.user_creation_model = models.PasswordUser
 
     def create_user(self, **kwargs):

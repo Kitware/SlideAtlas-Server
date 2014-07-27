@@ -2,10 +2,10 @@
 
 <title>Stack Viewer</title>
 
+<!-- TODO: Stop using webgl rendering -->
 
-<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
-
+<script src="https://code.jquery.com/jquery-1.8.3.js"></script>
+<script src="https://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
@@ -100,10 +100,11 @@ shape has visibility and
 </body>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
-<script>
-var dia = new Dialog();
-</script>
 
+<!-- Stuff for downloading the image -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='Blob.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='canvas-toBlob.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='FileSaver.js') }}"></script>
 
 
 <!-- GUI widgets -->
@@ -207,6 +208,9 @@ var dia = new Dialog();
   var CONTROL_PRESSED = false;
   var DRAGGING_CROSS = null;
 
+  function test () {
+    alert("Test WOrked");
+  }
 
   //----------------------------------------------------------------------------
   // sets the global variable ARGS
@@ -414,21 +418,21 @@ function deleteCorrelation(x, y) {
 }
 
 
-
-
 function handleResize() {
-    if (GL) {
-      var width = CANVAS.innerWidth();
-      var height = CANVAS.innerHeight();
-      CANVAS.attr("width",width.toString());
-      CANVAS.attr("height",height.toString());
-      GL.viewport(0, 0, width, height);
-      if (VIEWER1) {
-        VIEWER1.SetViewport([0, 0, width, height]);
-        eventuallyRender();
-      }
-    }
+  var width = CANVAS.innerWidth();
+  var height = CANVAS.innerHeight();
+  if (GL) {
+    CANVAS.attr("width",width.toString());
+    CANVAS.attr("height",height.toString());
+    GL.viewport(0, 0, width, height);
+  } // GL.SetViewport does the work for 2d canvases.
+
+  if (VIEWER1) {
+    VIEWER1.SetViewport([0, 0, width, height]);
+    eventuallyRender();
+  }
 };
+
 
 
 function InitViews() {
@@ -456,6 +460,7 @@ function saveAnnotation() {
     var note = new Note();
     // What if no parent?
     note.ParentId = "";
+    note.Id = section.View;
     note.Title = "";
     note.HiddenTitle = "";
     note.Text = "";
@@ -470,15 +475,14 @@ function saveAnnotation() {
     }
 
     var noteObj = JSON.stringify(note.Serialize(false));
-
+    $("#saveButton").hide();
     $.ajax({
       type: "post",
       url: "/webgl-viewer/saveviewnotes",
       data: {"note" : noteObj,
              "db"   : GetSessionDatabase(),
-             "view" : section.View,
              "date" : d.getTime()},
-      success: function(data,status) {},
+      success: function(data,status) { $("#saveButton").show(); },
       error: function() { alert( "AJAX - error() : saveviewnotes (stack)" ); },
     });
   }
@@ -779,11 +783,11 @@ function ToggleAnnotationVisibility() {
 
   function Start() {
     detectMobile();
+    $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");
     // I think the webgl viewer crashes.
     // Maybe it is the texture leak I have seen in connectome.
-    // Just use the canvas for now.
     if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
       initGL(); // Sets CANVAS and GL global variables
     } else {
@@ -857,6 +861,7 @@ function ToggleAnnotationVisibility() {
         'bottom' : '12px',
         'right' : '326px',
         'z-index': '2'})
+      .attr('id', 'saveButton')
       .attr('class', 'viewer1')
       .attr('type','image')
       .attr('src',"{{ url_for('glviewer.static', filename='save.png')}}")

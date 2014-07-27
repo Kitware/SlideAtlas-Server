@@ -1,14 +1,17 @@
 # coding=utf-8
 
 import datetime
+from itertools import ifilter
 import math
 import mimetypes
 
-from bson import Binary
+from bson import Binary, ObjectId
+from bson.errors import InvalidId
 from flask import Blueprint, abort, current_app, make_response, request, url_for
 from flask.helpers import wrap_file
 from flask.json import jsonify
 from flask.views import MethodView
+from flask.ext.restful import Api
 from werkzeug.http import parse_content_range_header
 import gridfs
 
@@ -18,15 +21,28 @@ from slideatlas import models, security
 #TODO
 # from flask.json import JSONDecoder
 
-mod = Blueprint('apiv2', __name__,
-                url_prefix='/apiv2',
-                template_folder='templates',
-                static_folder='static',
-                )
+from flask.ext.restful import abort as restful_abort
+from flask.ext.restful.utils import error_data
+def abort(http_status_code, details=None):
+    """
+    Return an error response, with the given 'http_status_code' and a JSON body.
+
+    Optionally, supplemental 'details' may be provided, which will be included
+    with the response body.
+
+    This function provides the same {'status', 'message'} response body as
+    Flask-Restful, but also allows an optional 'details' field to be added.
+    """
+    data = error_data(http_status_code)
+    if details:
+        data['details'] = details
+    restful_abort(http_status_code, **data)
+
 
 
 ################################################################################
 class API(MethodView):
+    # TODO make this a Flask-RESTful 'Resource' subclass
     pass
 
 
@@ -123,35 +139,77 @@ class ItemAPI(API):
         return make_response('', 204)  # No Content
 
 
-
 ################################################################################
-class DatabaseListAPI(ListAPI):
+class UserListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
     def get(self):
-        databases = models.ImageStore.objects
-        return jsonify(databases=databases.to_son(only_fields=('label', 'dbname')))
+        users_son = list()
+        # TODO: order by 'label', rather than 'full_name'?
+        # TODO: order by last name?
+        # TODO: order case-insensitively
+        for user in models.User.objects.order_by('full_name'):
+            user_son = user.to_son(only_fields=('type', ))
+            user_son['label'] = user.label
+            users_son.append(user_son)
+        return jsonify(users=users_son)
 
     def post(self):
         abort(501)  # Not Implemented
 
 
-class DatabaseItemAPI(ItemAPI):
-    @security.AdminDatabasePermission.protected
-    def get(self, database):
-        return jsonify(databases=[database.to_son(exclude_fields=('username', 'password', 'auth_db'))])
+class UserItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, user):
+        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'groups'),
+                               include_empty=False)
 
-    def put(self, database):
+        user_son['groups'] = [group.to_son(only_fields=('label',)) for group in user.groups]
+        user_son['type'] = user._class_name
+        return jsonify(users=[user_son])
+
+    def put(self, user):
         abort(501)  # Not Implemented
 
-    def patch(self, database):
-        abort(501)  # Not Implemented
+    @security.AdminSiteRequirement.protected
+    def patch(self, user):
+        """
+        To update a user's data, following RFC 6902:
 
-    def delete(self):
+        Send a PATCH request with a "Content-Type: application/json" header to
+        the endpoint: "/apiv2/users/<user_id
+
+        The body of the patch request must follow:
+        [
+          { "op": "add", "path": "/<field_name>", "value": "<new_value>" },
+          { "op": "remove",  "path": "/<field_name>" },
+          ...
+        ]
+
+        Only the "add" and "remove" operations are supported currently. "add"
+        sets a field, and "remove" unsets a field.
+
+        <field_name> is the name of a user item's data field, as returned
+        by a corresponding GET request. Note the leading "/" on the name of the
+        field. Nested fields and arrays are not yet supported.
+
+        <new_value> is the new value that the field should take, and only is
+        required for the "add" operation.
+
+        Multiple fields may be changed, by including multiple {"op"...} items
+        in the top-level list.
+
+        A successful request will return 204 (No Content). Unsuccessful requests
+        will return a 4xx status code.
+        """
+        return self._do_patch(user)
+
+    def delete(self, user):
         abort(501)  # Not Implemented
 
 
 ################################################################################
 class GroupListAPI(ListAPI):
-    @security.AdminSitePermission.protected
+    @security.AdminSiteRequirement.protected
     def get(self):
         # filter_can_see = request.args.get('can_see')
         # filter_can_admin = request.args.get('can_admin')
@@ -169,10 +227,10 @@ class GroupListAPI(ListAPI):
         #     roles = [role for role in roles if role.can_admin_session(session)]
         # else:
         #     roles = list(roles)
-        groups = models.GroupRole.objects
+        groups = models.Group.objects.order_by('label')
         return jsonify(groups=groups.to_son(only_fields=('label',)))
 
-    @security.AdminSitePermission.protected
+    @security.AdminSiteRequirement.protected
     def post(self):
         abort(501)  # Not Implemented
         # request_args = request.args.to_json()
@@ -192,7 +250,7 @@ class GroupListAPI(ListAPI):
         #             user.save()
         #         roles.append(user.user_role)
         # elif 'create_group' in request_args:
-        #     role = models.GroupRole(
+        #     role = models.Group(
         #         db=request_args['create_group']['db'],
         #         name=request_args['create_group']['name'],
         #         description=request_args['create_group'].get('description', ''),
@@ -247,10 +305,11 @@ class GroupListAPI(ListAPI):
 
 
 class GroupItemAPI(ItemAPI):
-    @security.AdminSitePermission.protected
+    @security.AdminSiteRequirement.protected
     def get(self, group):
-        group_son = group.to_son(only_fields=('label', 'facebook_id'))
+        group_son = group.to_son()
         group_son['users'] = models.User.objects(groups=group).to_son(only_fields=('full_name', 'email'))
+        # group_son['permissions'] = list(group.permissions)
         return jsonify(groups=[group_son])
 
     def put(self, group):
@@ -264,167 +323,272 @@ class GroupItemAPI(ItemAPI):
 
 
 ################################################################################
-class UserListAPI(ListAPI):
-    @security.AdminSitePermission.protected
+class ImageStoreListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
     def get(self):
-        users = models.User.objects
-        return jsonify(users=users.to_son(only_fields=('full_name', 'email')))
+        image_stores = models.ImageStore.objects.order_by('label')
+        return jsonify(image_stores=image_stores.to_son(only_fields=('label',)))
 
     def post(self):
         abort(501)  # Not Implemented
 
 
-class UserItemAPI(ItemAPI):
-    @security.AdminSitePermission.protected
-    def get(self, user):
-        user_son = user.to_son(exclude_fields=('current_login_ip', 'last_login_ip', 'password', 'groups'),
-                               include_empty=False)
+class ImageStoreListSyncAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self):
+        for image_store in models.PtiffImageStore.objects.order_by('label'):
+            image_store.sync()
+        return make_response('', 204)  # No Content
 
-        user_son['groups'] = [group.to_son(only_fields=('label',)) for group in user.groups]
-        user_son['type'] = user._class_name
-        return jsonify(users=[user_son])
 
-    def put(self, user):
+class ImageStoreListDeliverAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self):
+        for image_store in models.PtiffImageStore.objects.order_by('label'):
+            image_store.deliver()
+        return make_response('', 204)  # No Content
+
+
+class ImageStoreItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, image_store):
+        return jsonify(image_stores=[image_store.to_son()])
+
+    def put(self, collection):
         abort(501)  # Not Implemented
 
-    @security.AdminSitePermission.protected
-    def patch(self, user):
-        """
-        To update a user's data, following RFC 6902:
+    def patch(self, collection):
+        abort(501)  # Not Implemented
 
-        Send a PATCH request with a "Content-Type: application/json" header to
-        the endpoint: "/apiv2/users/<user_id
+    def delete(self):
+        abort(501)  # Not Implemented
 
-        The body of the patch request must follow:
-        [
-          { "op": "add", "path": "/<field_name>", "value": "<new_value>" },
-          { "op": "remove",  "path": "/<field_name>" },
-          ...
-        ]
 
-        Only the "add" and "remove" operations are supported currently. "add"
-        sets a field, and "remove" unsets a field.
+class ImageStoreItemSyncAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
+        image_store.sync()
+        return make_response('', 204)  # No Content
 
-        <field_name> is the name of a user item's data field, as returned
-        by a corresponding GET request. Note the leading "/" on the name of the
-        field. Nested fields and arrays are not yet supported.
 
-        <new_value> is the new value that the field should take, and only is
-        required for the "add" operation.
+class ImageStoreItemDeliverAPI(API):
+    @security.AdminSiteRequirement.protected
+    def post(self, image_store):
+        if not isinstance(image_store, models.PtiffImageStore):
+            abort(410, details='Only Ptiff ImageStores may be delivered.')  # Gone
+        image_store.deliver()
+        return make_response('', 204)  # No Content
 
-        Multiple fields may be changed, by including multiple {"op"...} items
-        in the top-level list.
 
-        A successful request will return 204 (No Content). Unsuccessful requests
-        will return a 4xx status code.
-        """
-        return self._do_patch(user)
+################################################################################
+class CollectionListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self):
+        collections = models.Collection.objects.order_by('label')
+        return jsonify(collections=collections.to_son(only_fields=('label',)))
 
-    def delete(self, user):
+    def post(self):
+        abort(501)  # Not Implemented
+
+
+class CollectionItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, collection):
+        collection_son = collection.to_son()
+        sessions = models.Session.objects(collection=collection)
+        collection_son['sessions'] = sessions.to_son(only_fields=('label', 'type'))
+        return jsonify(collections=[collection_son])
+
+    def put(self, collection):
+        abort(501)  # Not Implemented
+
+    def patch(self, collection):
+        abort(501)  # Not Implemented
+
+    def delete(self):
+        abort(501)  # Not Implemented
+
+
+class CollectionAccessAPI(API):
+    @security.AdminCollectionRequirement.protected
+    def get(self, collection):
+        groups = models.Group.objects(permissions__resource_type='collection',
+                                      permissions__resource_id=collection.id
+                                     ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
         abort(501)  # Not Implemented
 
 
 ################################################################################
 class SessionListAPI(ListAPI):
-    @security.AdminDatabasePermission.protected
-    def get(self, database):
+    @security.AdminSiteRequirement.protected
+    def get(self):
         # TODO: currently, session administrative access is all-or-nothing on
         #   the database level, but it should be made granular
 
-        only_fields=('name', 'label', 'type')
+        only_fields=('label', 'type')
 
-        with database:
-            sessions = models.Session.objects.only(*only_fields)
+        sessions = models.Session.objects.only(*only_fields).order_by('label')
 
         return jsonify(sessions=sessions.to_son(only_fields=only_fields))
 
-    def post(self, database):
+    def post(self):
         abort(501)  # Not Implemented
 
 
 class SessionItemAPI(ItemAPI):
-    @security.AdminDatabasePermission.protected
-    def get(self, database, session):
-        with database:
-            image_only_fields = ('name', 'label', 'type', 'filename')
-            image_ids = [image_ref.ref for image_ref in session.images]
-            images_bulk_query = models.Image.objects.only(*image_only_fields).in_bulk(image_ids)
-            images_son = list()
-            for image_ref in session.images:
-                # TODO: some references are dangling, so catch the exception
-                try:
-                    image_son = images_bulk_query[image_ref.ref].to_son(only_fields=image_only_fields)
-                except KeyError:
-                    image_son = {'id': image_ref.ref}
-                image_son['hide'] = image_ref.hide
-                images_son.append(image_son)
+    @staticmethod
+    def _get(session, with_hidden_label=False):
+        unique_image_store_ids = set(ifilter(None, (view_ref.db for view_ref in session.views)))
+        image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
+        image_stores_by_id[session.image_store.id] = session.image_store
 
-            view_only_fields = ('label', 'type', 'type2', 'title', 'hidden_title', 'text')
-            view_ids = [view_ref.ref for view_ref in session.views]
-            views_bulk_query = models.View.objects.only(*view_only_fields).in_bulk(view_ids)
-            views_son = list()
-            for view_ref in session.views:
-                try:
-                    view_son = views_bulk_query[view_ref.ref].to_son(only_fields=view_only_fields)
-                except KeyError:
-                    view_son = {'id': view_ref.ref}
-                view_son['hide'] = view_ref.hide
-                views_son.append(view_son)
+        # iterate through the session objects
+        views_son = list()
+        for view_ref in session.views:
+            view_image_store_id = view_ref.db or session.image_store.id
+            view_image_store = image_stores_by_id[view_image_store_id].to_pymongo()
 
-        session_son = session.to_son(exclude_fields=('images', 'views'))
-        # TODO: hide
-        session_son['images'] = images_son
+            view_id = view_ref.ref
+            view = view_image_store['views'].find_one({'_id': view_id})
+            if not view:
+                # TODO: warning here
+                continue
+
+            # get 'image_id' and 'image_image_store_id'
+            image_image_store_id = view_image_store_id
+            if view.get('Type') == 'Note':
+                record = view['ViewerRecords'][0]
+                if isinstance(record['Image'], dict):
+                    image_id = ObjectId(record['Image']['_id'])
+                    image_image_store_id = ObjectId(record['Image']['database'])
+                else :
+                    image_id = ObjectId(record["Image"])
+                if 'Database' in record:
+                    image_image_store_id = ObjectId(record['Database'])
+            else:
+                image_id = ObjectId(view['img'])
+            if 'imgdb' in view:
+                image_image_store_id = ObjectId(view['imgdb'])
+
+            # get 'image'
+            if image_image_store_id not in image_stores_by_id:
+                image_stores_by_id[image_image_store_id] = models.ImageStore.objects.get(id=image_image_store_id)
+            image_image_store = image_stores_by_id[image_image_store_id].to_pymongo()
+            image = image_image_store['images'].find_one({'_id': image_id}, {'thumb': False})
+
+            # determine if view is hidden and will be skipped
+            if view_ref.hide or view.get('hide', False) or image.get('hide', False):
+                continue
+
+            # get 'view_label' and 'view_hidden_label'
+            if 'Title' in view:
+                view_label = view['Title']
+            elif view_ref.label:
+                view_label = view_ref.label
+            elif 'label' in view:
+                view_label = view['label']
+            elif 'label' in image:
+                view_label = image['label']
+            else:
+                view_label = ""
+            view_hidden_label = view.get('HiddenTitle', '')
+
+            # set 'ajax_view_item' and 'ajax_view_items' for output
+            view_son = {
+                'id': view_id,
+                'image_store_id': view_image_store_id,
+                'label': view_label,
+                'image_id': image_id,
+                'image_image_store_id': image_image_store_id,
+            }
+            if with_hidden_label:
+                view_son['label'] = view_label
+                view_son['hidden_label'] = view_hidden_label
+            else:
+                view_son['label'] = view_label if not session.hide_annotations else view_hidden_label
+            views_son.append(view_son)
+
+        session_son = session.to_son(exclude_fields=('views', 'attachments'))
         session_son['views'] = views_son
-        session_son['attachments'] = SessionAttachmentListAPI._get(database, session)
+        session_son['attachments'] = SessionAttachmentListAPI._get(session)
 
-        return jsonify(sessions=[session_son])
+        return session_son
 
-    def put(self, database, session):
+    @security.ViewSessionRequirement.protected
+    def get(self, session):
+        return jsonify(sessions=[self._get(session)])
+
+    def put(self, session):
         abort(501)  # Not Implemented
 
-    def patch(self, database, session):
+    def patch(self, session):
         abort(501)  # Not Implemented
 
-    def delete(self, database, session):
+    def delete(self, session):
+        abort(501)  # Not Implemented
+
+
+class SessionAccessAPI(API):
+    @security.AdminSessionRequirement.protected
+    def get(self, session):
+        groups = models.Group.objects(permissions__resource_type='session',
+                                      permissions__resource_id=session.id
+                                     ).order_by('label')
+
+        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
         abort(501)  # Not Implemented
 
 
 ################################################################################
 class SessionAttachmentListAPI(ListAPI):
     @staticmethod
-    def _get(database, session):
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+    def _get(session):
+        # look up image stores once in bulk for efficiency
+        unique_image_store_ids = set(ifilter(None, (attachment_ref.db for attachment_ref in session.attachments)))
+        image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
 
         attachments = list()
         for attachment_ref in session.attachments:
+            image_store = image_stores_by_id[attachment_ref.db]
+            attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
+
             attachment_obj = attachments_fs.get(attachment_ref.ref)
             attachments.append({
-                'id': attachment_ref.ref,
+                'id': attachment_obj._id,
                 'name': attachment_obj.name,
                 'length' : attachment_obj.length
             })
+
         return attachments
 
 
-    @security.ViewSessionPermission.protected
-    def get(self, database, session):
-        attachments = self._get(database, session)
+    @security.ViewSessionRequirement.protected
+    def get(self, session):
+        attachments = self._get(session)
         return jsonify(attachments=attachments)
 
 
-    @security.AdminSessionPermission.protected
-    def post(self, database, session):
-        # only accept a single file from a form
+    @security.AdminSessionRequirement.protected
+    def post(self, session):
         if len(request.files.items(multi=True)) != 1:
-            abort(400)  # Bad Request
+            abort(400, details='Exactly one file must be provided.')
         uploaded_file = request.files.itervalues().next()
 
         gridfs_args = dict()
 
         # file name
         if not uploaded_file.filename:
-            # the uploaded file must contain a filename
-            abort(400)
+            abort(400, details='The file must contain a filename.')
         # TODO: filter the filename to remove special characters and ensure length < 255
         gridfs_args['filename'] = uploaded_file.filename
 
@@ -432,11 +596,9 @@ class SessionAttachmentListAPI(ListAPI):
         content_range = parse_content_range_header(request.headers.get('Content-Range'))
         if content_range and (content_range.stop != content_range.length):
             if content_range.start != 0:
-                # a POST with partial content must not contain a fragment past the start of the entity
-                abort(400)  # Bad Request
+                abort(400, details='A POST with partial content must not contain a fragment past the start of the entity.')
             if content_range.units != 'bytes':
-                # only a range-unit of "bytes" may be used in a Content-Range header
-                abort(400)  # Bad Request
+                abort(400, details='Only a range-unit of "bytes" may be used in a Content-Range header.')
             content_chunk_size = content_range.stop - content_range.start
             gridfs_args['chunkSize'] = content_chunk_size
 
@@ -456,7 +618,8 @@ class SessionAttachmentListAPI(ListAPI):
         # if getting the content type failed, leave "gridfs_args['contentType']" unset
 
         # save into GridFS
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+        image_store = session.collection.image_store
+        attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
         attachment = attachments_fs.new_file(**gridfs_args)
         try:
             # this will stream the IO, instead of loading it all into memory
@@ -466,33 +629,44 @@ class SessionAttachmentListAPI(ListAPI):
             uploaded_file.close()
 
         # add to session
-        attachments_ref = models.RefItem(ref=attachment._id)
+        attachments_ref = models.RefItem(ref=attachment._id, db=image_store.id)
         session.attachments.append(attachments_ref)
         session.save()
 
         # return response
-        new_location = url_for('.session_attachment_item', database=database,
-                               session=session, attachment_id=attachment._id)
+        new_location = url_for('.session_attachment_item', session=session,
+                               attachment_id=attachment._id)
         return make_response(jsonify(),  # TODO: return body with metadata?
                              201,  # Created
                              {'Location': new_location})
 
 
 class SessionAttachmentItemAPI(ItemAPI):
-    @security.ViewSessionPermission.protected
-    def get(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
+
+    @staticmethod
+    def _fetch_attachment(session, attachment_id):
+        # find the requested attachment in the session
+        for attachment_ref in session.attachments:
+            if attachment_ref.ref == attachment_id:
+                break
+        else:
+            abort(404, details='The requested attachment was not found in the requested session.')
+
+        # use 'get' instead of 'with_id', so an exception will be thrown if not found
+        image_store = models.ImageStore.objects.get(id=attachment_ref.db)
+
+        attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), 'attachments')
         try:
             attachment = attachments_fs.get(attachment_id)
         except gridfs.NoFile:
-            abort(404)
+            abort(404, details='The requested attachment was not found in the requested session\'s image store.')
 
-        # check that the requested attachment is in the session
-        for attachment_ref in session.attachments:
-            if attachment_ref.ref == attachment._id:
-                break
-        else:
-            abort(404)  # Not Found
+        return image_store, attachments_fs, attachment
+
+
+    @security.ViewSessionRequirement.protected
+    def get(self, session, attachment_id):
+        attachment = self._fetch_attachment(session, attachment_id)[2]
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -509,7 +683,7 @@ class SessionAttachmentItemAPI(ItemAPI):
             direct_passthrough=True, # allows HEAD method to work without reading the attachment's data
             content_type=(attachment.content_type or 'application/octet-stream'))
         response.content_length = attachment.length
-        response.content_md5 = attachment.md5
+        response.content_md5 = attachment.md5.decode('hex').encode('base64').rstrip()
         # TODO: can an 'inline' download of an HTML-ish file be exploited for XSS?
         #   an 'attachment' download can be used for XSS with a client-local context
         #   http://www.gnucitizen.org/blog/content-disposition-hacking/
@@ -528,51 +702,41 @@ class SessionAttachmentItemAPI(ItemAPI):
         return response.make_conditional(request)
 
 
-    @security.AdminSessionPermission.protected
-    def put(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
-        try:
-            attachment = attachments_fs.get(attachment_id)
-        except gridfs.NoFile:
-            abort(404)
+    @security.AdminSessionRequirement.protected
+    def put(self, session, attachment_id):
+        image_store, _, attachment = self._fetch_attachment(session, attachment_id)
 
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
-            abort(400)  # Bad Request
+            abort(400, details='Exactly one file must be provided.')
         uploaded_file = request.files.itervalues().next()
 
         content_range = parse_content_range_header(request.headers.get('Content-Range'))
         if not content_range:
-            # a PUT request to modify an attachment must include a Content-Range header
-            abort(400)
+            abort(400, details='A PUT request to modify an attachment must include a Content-Range header.')
         if content_range.units != 'bytes':
-            # only a range-unit of "bytes" may be used in a Content-Range header
-            abort(400)  # Bad Request
+            abort(400, details='Only a range-unit of "bytes" may be used in a Content-Range header.')
         if content_range.start is None:
-            # the content's start and end positions must be specified in the Content-Range header
-            abort(400)
+            abort(400, details='The content\'s start and end positions must be specified in the Content-Range header.')
         # 'parse_content_range_header' guarantees that 'content_range.stop' must
         #   also be specified if 'start' is
         if content_range.length is None:
-            # the content's total length must be specified in the Content-Range header
             # TODO: getting rid of this restriction would be nice, but we'd need
             #   a way to know when the final chunk was uploaded
-            abort(400)
+            abort(400, details='The content\'s total length must be specified in the Content-Range header.')
+
+        if content_range.start % attachment.chunkSize != 0:
+            abort(400, details='The content\'s start location must be a multiple of the content\'s chunk size.')
 
         content_chunk_size = content_range.stop - content_range.start
-        if content_range.start % content_chunk_size != 0:
-            # upload content start location must be a multiple of content chunk size
-            abort(400)
-
         if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
             # only the end chunk can be shorter
-            # upload content chunk size does not match existing GridFS chunk size
-            abort(400)
+            abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
 
-        database_pymongo = database.to_pymongo()
+        image_store_pymongo = image_store.to_pymongo()
 
         chunk_num = (content_range.start / attachment.chunkSize)
-        database_pymongo['attachments.chunks'].insert({
+        image_store_pymongo['attachments.chunks'].insert({
             'files_id': attachment._id,
             'n': chunk_num,
             'data': Binary(uploaded_file.read()),
@@ -581,11 +745,11 @@ class SessionAttachmentItemAPI(ItemAPI):
         # chunks may be sent out of order, so the only way to determine if all
         #   chunks were received is to count
         expected_chunks = int(math.ceil(float(content_range.length) / float(attachment.chunkSize)))
-        received_chunks = database_pymongo['attachments.chunks'].find({'files_id': attachment._id}).count()
+        received_chunks = image_store_pymongo['attachments.chunks'].find({'files_id': attachment._id}).count()
         if expected_chunks == received_chunks:
             # update the attachment metadata
-            md5 = database_pymongo.command('filemd5', attachment._id, root='attachments')['md5']
-            database_pymongo['attachments.files'].update(
+            md5 = image_store_pymongo.command('filemd5', attachment._id, root='attachments')['md5']
+            image_store_pymongo['attachments.files'].update(
                 {'_id': attachment._id},
                 {'$set': {
                     'length': content_range.length,
@@ -597,70 +761,169 @@ class SessionAttachmentItemAPI(ItemAPI):
         return make_response(jsonify(), 204)  # No Content
 
 
-    def patch(self, database, session, attachment_id):
-        abort(405)  # Method Not Allowed
-
-
-    @security.AdminSessionPermission.protected
-    def delete(self, database, session, attachment_id):
-        attachments_fs = gridfs.GridFS(database.to_pymongo(raw_object=True), 'attachments')
-        try:
-            attachment = attachments_fs.get(attachment_id)
-        except gridfs.NoFile:
-            abort(404)  # Not Found
+    @security.AdminSessionRequirement.protected
+    def delete(self, session, attachment_id):
+        # this also ensures that the attachment actually exists
+        attachments_fs = self._fetch_attachment(session, attachment_id)[1]
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):
-            if attachment_ref.ref == attachment._id:
+            if attachment_ref.ref == attachment_id:
                 session.attachments.pop(pos)
-                session.save()
                 break
-        else:
-            abort(404)  # Not Found
+        session.save()
 
         # delete from attachments collection
-        attachments_fs.delete(attachment._id)
+        attachments_fs.delete(attachment_id)
 
         return make_response('', 204)  # No Content
 
 
 ################################################################################
-mod.add_url_rule('/databases',
-                 view_func=DatabaseListAPI.as_view('database_list'),
-                 methods=['GET', 'POST'])
+from bson import ObjectId
+class PermalinkListAPI(ListAPI):
+    # @security.AdminSiteRequirement.protected
+    # def get(self):
+    #     abort(501)  # Not Implemented
 
-mod.add_url_rule('/databases/<Database:database>',
-                 view_func=DatabaseItemAPI.as_view('database_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+    def post(self):
+        try:
+            view_id = ObjectId(request.form.get('view'))
+            destination = request.form.get('destination')
+        except (KeyError, InvalidId):
+            abort(400)  # Bad Request
 
-mod.add_url_rule('/groups',
-                 view_func=GroupListAPI.as_view('group_list'),
-                 methods=['GET', 'POST'])
+        try:
+            permalink = models.Permalink.objects.get(view=view_id)
+        except models.DoesNotExist:
+            permalink = models.Permalink(
+                destination=destination,
+                view=view_id,
+                created_by=security.current_user._get_current_object()
+            )
+            permalink.save()
+        except models.MultipleObjectsReturned:
+            # TODO: should not happen, log and recover
+            raise
 
-mod.add_url_rule('/groups/<GroupRole:group>',
-                 view_func=GroupItemAPI.as_view('group_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+        permalink_son = permalink.to_son()
+        permalink_son['url'] = url_for('link', code=permalink.code, _external=True)
 
-mod.add_url_rule('/users',
-                 view_func=UserListAPI.as_view('user_list'),
-                 methods=['GET', 'POST'])
+        # TODO: make 201 Created / 303 See Other
+        # TODO: add Location header
+        return jsonify(permalinks=permalink_son)
 
-mod.add_url_rule('/users/<User:user>',
-                 view_func=UserItemAPI.as_view('user_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 
-mod.add_url_rule('/<Database:database>/sessions',
-                 view_func=SessionListAPI.as_view('session_list'),
-                 methods=['GET', 'POST'])
+################################################################################
 
-mod.add_url_rule('/<Database:database>/sessions/<Session:session>',
-                 view_func=SessionItemAPI.as_view('session_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+# TODO: verify __name__ as 'import_name'
+blueprint = Blueprint('apiv2', __name__,
+                      url_prefix='/api'
+                      )
 
-mod.add_url_rule('/<Database:database>/sessions/<Session:session>/attachments',
-                 view_func=SessionAttachmentListAPI.as_view('session_attachment_list'),
-                 methods=['GET', 'POST'])
 
-mod.add_url_rule('/<Database:database>/sessions/<Session:session>/attachments/<ObjectId:attachment_id>',
-                 view_func=SessionAttachmentItemAPI.as_view('session_attachment_item'),
-                 methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+def register_with_app(app):
+    app.register_blueprint(blueprint)
+
+api = Api(blueprint,
+          prefix='/v2',
+          decorators=[security.login_required],
+          catch_all_404s=False, # TODO: do we want this?
+          )
+# TODO: explicitly set 'config["ERROR_404_HELP"] = True'
+
+
+api.add_resource(UserListAPI,
+                 '/users',
+                 endpoint='user_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(UserItemAPI,
+                 '/users/<User:user>',
+                 endpoint='user_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(GroupListAPI,
+                 '/groups',
+                 endpoint='group_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(GroupItemAPI,
+                 '/groups/<Group:group>',
+                 endpoint='group_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreListAPI,
+                 '/imagestores',
+                 endpoint='image_store_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(ImageStoreListSyncAPI,
+                 '/imagestores/sync',
+                 endpoint='image_store_list_sync',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreListDeliverAPI,
+                 '/imagestores/deliver',
+                 endpoint='image_store_list_deliver',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreItemAPI,
+                 '/imagestores/<ImageStore:image_store>',
+                 endpoint='image_store_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(ImageStoreItemSyncAPI,
+                 '/imagestores/<ImageStore:image_store>/sync',
+                 endpoint='image_store_item_sync',
+                 methods=('POST',))
+
+api.add_resource(ImageStoreItemDeliverAPI,
+                 '/imagestores/<ImageStore:image_store>/deliver',
+                 endpoint='image_store_item_deliver',
+                 methods=('POST',))
+
+api.add_resource(CollectionListAPI,
+                 '/collections',
+                 endpoint='collection_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(CollectionItemAPI,
+                 '/collections/<Collection:collection>',
+                 endpoint='collection_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(CollectionAccessAPI,
+                 '/collections/<Collection:collection>/access',
+                 endpoint='collection_access',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionListAPI,
+                 '/sessions',
+                 endpoint='session_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionItemAPI,
+                 '/sessions/<Session:session>',
+                 endpoint='session_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+
+api.add_resource(SessionAccessAPI,
+                 '/sessions/<Session:session>/access',
+                 endpoint='session_access',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionAttachmentListAPI,
+                 '/sessions/<Session:session>/attachments',
+                 endpoint='session_attachment_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionAttachmentItemAPI,
+                 '/sessions/<Session:session>/attachments/<ObjectId:attachment_id>',
+                 endpoint='session_attachment_item',
+                 methods=('GET', 'PUT', 'DELETE'))  # PATCH not allowed
+
+api.add_resource(PermalinkListAPI,
+                 '/permalinks',
+                 endpoint='permalink_list',
+                 methods=('GET', 'POST'))

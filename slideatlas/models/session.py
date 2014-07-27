@@ -1,16 +1,19 @@
 # coding=utf-8
 
 from bson import ObjectId
-from mongoengine import EmbeddedDocument, BooleanField, DictField,\
-    EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField,\
-    ListField, ObjectIdField, StringField
+
+from mongoengine import Q, EmbeddedDocument, BooleanField, DictField, \
+    EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField, \
+    ListField, ObjectIdField, ReferenceField, StringField
 from mongoengine.errors import NotRegistered
 
-from .common import MultipleDatabaseModelDocument
+from .common import ModelDocument, AdminSitePermission
+from .common.model_document import ModelQuerySet
+from .image_store import ImageStore
+from .collection import Collection
 
 ################################################################################
 __all__ = ('Session', 'RefItem')
-
 
 
 ################################################################################
@@ -107,7 +110,7 @@ class RefItem(EmbeddedDocument):
     ref = ObjectIdField(required=True)
     hide = BooleanField(required=False, default=False)
     label = StringField(required=False)
-    db = ObjectIdField(required=False)
+    db = ObjectIdField(required=True)
 
     def __eq__(self, other):
         if isinstance(other, ObjectId):
@@ -142,13 +145,61 @@ class RefListField(ListField):
 
 
 ################################################################################
-class Session(MultipleDatabaseModelDocument):
-    meta = {
-        'collection': 'sessions',
-        }
+class SessionQuerySet(ModelQuerySet):
+    def _can_access(self, permissions, access_operations):
+        if not isinstance(permissions, set):
+            raise ValueError('permissions must be a set of Permissions')
+        queryset = self.clone()
+        if AdminSitePermission() in permissions:
+            return queryset.all()
+        else:
+            query_collections = set()
+            query_sessions = set()
+            for permission in permissions:
+                if permission.operation in access_operations:
+                    if permission.resource_type == 'collection':
+                        query_collections.add(permission.resource_id)
+                    elif permission.resource_type == 'session':
+                        query_sessions.add(permission.resource_id)
+            query = Q(collection__in=list(query_collections)) | \
+                    Q(id__in=list(query_sessions))
+            return queryset.filter(query)
 
-    name = StringField(required=True,
-        verbose_name='Name', help_text='The session\'s name.')
+    def can_view(self, permissions):
+        return self._can_access(permissions, {'admin', 'view'})
+
+    def can_view_only(self, permissions):
+        if AdminSitePermission() in permissions:
+            # need to counter the optimization in '_can_access'
+            return self.none()
+        return self._can_access(permissions, {'view'})
+
+    def can_admin(self, permissions):
+        return self._can_access(permissions, {'admin'})
+
+
+################################################################################
+class Session(ModelDocument):
+    meta = {
+        'db_alias': 'admin_db',
+        'collection': 'sessions',
+        'queryset_class': SessionQuerySet,
+        'indexes': [
+            {
+                'fields': ('collection',),
+                'cls': False,
+                'unique': False,
+                'sparse': False,
+            },
+        ]
+    }
+
+    collection = ReferenceField(Collection, required=True,
+        verbose_name='Collection', help_text='')
+
+    # TODO: remove 'image_store', access it indirectly via 'collection'
+    image_store = ReferenceField(ImageStore, required=False,
+        verbose_name='Image Store', help_text='')
 
     label = StringField(required=True,
         verbose_name='Label', help_text='The sessions\'s label.')
@@ -159,13 +210,10 @@ class Session(MultipleDatabaseModelDocument):
     attachments = RefListField(required=False,
         verbose_name='Attachments', help_text='')
 
-    images = RefListField(required=False,
-        verbose_name='Images', help_text='')
-
     annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
 
-    hideAnnotations = BooleanField(required=False,
+    hide_annotations = BooleanField(required=False, db_field='hideAnnotations',
         verbose_name='', help_text='')
 
     # TODO: discuss this

@@ -79,7 +79,7 @@ function ImageBrowserAddSessionViews(sessionData) {
           .attr('db', image.db).attr('viewid', image.view)
           .click(function(){ImageBrowserImageCallback(this);});
       $('<img>').appendTo(item)
-          .attr('src', "tile?db="+image.db+"&img="+image.img+"&name=t.jpg")     // all images should have thumb.jpg
+          .attr('src', "/thumb?db="+image.db+"&img="+image.img)
           .css({'height': '50px'});
       $('<span>').appendTo(item)
           .text(image.label);

@@ -32,8 +32,16 @@
                 });
             });
             $(".sa-attachment-post").click(function() {
-                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', database=session_obj.database, session=session_obj )}}";
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session )}}";
                 attachmentUpload(attachmentPostUrl);
+            });
+            $(".sa-view-permalink").click(function() {
+                var viewItem = $(this).parent().parent();
+                var viewId = viewItem.attr("imageid")
+                var viewGet = viewItem.find(".sa-view-get");
+                var viewUrl = viewGet.attr("href");
+                var viewName = viewGet.text();
+                getPermalink(viewName, viewId, viewUrl);
             });
             {% endif %}
         });
@@ -44,166 +52,74 @@
 {% block body_content %}
 {{ super() }}
 
-  <div class="container">
-  <div class="row">
-  <h1> {{ data.session.label }} </h1>
+<div class="container">
+    <div class="row">
+        <h1> {{ session_son.label }} </h1>
 
-    {# data #}
-    {%if data.attachments or is_session_admin %}
-    <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
-    <ul class="list-group">
-        {% for attachment in data.attachments %}
-        <li class="list-group-item">
-            <a href="{{ url_for('apiv2.session_attachment_item', database=session_obj.database, session=session_obj, attachment_id=attachment.id) }}" class="lead sa-attachment-get">{{ attachment.name}}</a>
-            {% if is_session_admin %}
-            <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span> Delete</button>
-            {% endif %}
-        </li>
-         {% endfor %}
-    </ul>
-    {% endif %}
-
-    </br>
-
-    {%if data.images|length %}
-    <h2> {{ data.images|length }} Images </h2>
-    <table class="table table-bordered table-hover" >
-        {% for animage in data.images %}
-            <!-- script> alert("{{data.images[animage]}}"); </script  -->
-            <tr imageid="{{animage.img}}">
-                <td> <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}">
-                  <img src="{{url_for('tile.thumb_query', db=animage.db, img=animage.img) }}" width=100px></a></td>
-                <td>
-                  {% if animage.label %}
-                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view) }}" class="lead" imageid={{animage.img}}>{{ animage.label}}</a>
-                  {% endif %}
-                </td>
-                {% if data.session.hideAnnotations %}
-                {% else %}
-                  <td align="right">
-                    <a href="{{ url_for('glviewer.glview', db=data.db, view=animage.view, edit='true') }}" type="button" class="btn imageitem" imageid="{{animage.img}}"}> edit </button>
-                  </td>
+        {%if session_son.attachments or is_session_admin %}
+        <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+        <ul class="list-group">
+            {% for attachment_son in session_son.attachments %}
+            <li class="list-group-item">
+                <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id) }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                {% if is_session_admin %}
+                <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
                 {% endif %}
-            </tr>
-         {% endfor %}
-    </table>
-    {% endif %}
-</div>
+            </li>
+             {% endfor %}
+        </ul>
+        {% endif %}
+
+        <br>
+
+        {%if session_son.views %}
+        <h2> {{ session_son.views|length }} Images </h2>
+        <table class="table table-bordered table-hover" >
+            {% for view_son in session_son.views %}
+                <tr imageid="{{ view_son.image_id }}">
+                    <td>
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}">
+                            <img src="{{ url_for('tile.thumb_query', db=view_son.image_image_store_id, img=view_son.image_id) }}" width=100px>
+                        </a>
+                    </td>
+                    <td>
+                        {% if view_son.label %}
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}" class="lead sa-view-get" imageid={{ view_son.image_id }}>
+                            {{ view_son.label }}
+                        </a>
+                        {% endif %}
+                    </td>
+                    <td align="right">
+                        {% if not session_son.hide_annotations %}
+                        {# TODO: what is imageitem? #}
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}"
+                            type="button" class="btn btn-warning badge sa-view-edit"
+                        >
+                            <span class="glyphicon glyphicon-edit"></span>
+                            Edit
+                        </a>
+                        {% endif %}
+                        {% if is_session_admin %}
+                        <button type="button" class="btn btn-info badge sa-view-permalink">
+                            <span class="glyphicon glyphicon-link"></span>
+                            Permalink
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+             {% endfor %}
+        </table>
+        {% endif %}
+    </div>
 </div>
 
 <script>
-  $(document).ready(function(){
-    var imagelist = {{ data.images|tojson|safe }};
-
-    // Save the session in localStorage (needed for previous / next slide.
-    var views = [];
-    for (var i=0; i < imagelist.length; i++)
-      {
-      views.push(imagelist[i].view);
-      }
-    localStorage.session = JSON.stringify(views);
-    localStorage.sessionId = "{{data.sessid}}";
-  });
+    $(document).ready(function(){
+        // Save the session in localStorage (needed for previous / next slide.
+        var views = {{ session_son.views|map(attribute='id')|tojson|safe }};
+        localStorage.session = JSON.stringify(views);
+        localStorage.sessionId = "{{ session_son.id }}";
+    });
 </script>
 
-
-
-
-{% endblock %}
-
-
-{% block bootstrap_js_bottom %}
-    {{ super() }}
-  <script type="text/javascript" src="https://raw.github.com/makeusabrew/bootbox/v2.4.2/bootbox.min.js"></script>
-
-    <script>
-        var imagelist = {{ data.images|tojson|safe }};
-
-        $(".imageitem").click(function (e)
-            {
-            var id = $(this).attr('imageid');
-            // Locate the image
-            var image = {}
-
-            for (var i=0; i < imagelist.length; i++) {
-              if(id == imagelist[i]["img"])
-                {
-                image = imagelist[i]
-                }
-            };
-
-            e.preventDefault();
-            bootbox.prompt("Edit the image label :", "Cancel", "OK", function(result)
-                {
-                if (result == null)
-                    {
-                    return;
-                    }
-                // Launch AJAX request.
-                $.ajax(
-                    {
-                    // The link we are accessing.
-                    url: "modify",
-
-                    // The type of request.
-                    type: "get",
-
-                    // parameters
-                    data:
-                        {
-                        "_id" : id,
-                        "fields" :  JSON.stringify( { "label" : result}),
-                        "collection" : "images",
-                        "db" : "{{data.db}}"
-                        },
-
-                    // The type of data that is getting returned.
-                    dataType: "json",
-
-                    error: function()
-                        {
-                        // Flash an error message
-                        alert( "AJAX - error()" );
-                        },
-
-                        // complete: function()
-                        // {
-                        // // Show the status and
-                        // alert( "AJAX - complete()" );
-                        // // Refresh the label
-                        // },
-
-                    success: function(data)
-                        {
-                        //  alert( "AJAX - success()" );
-                        // Load the content in to the page.
-                        if( "error" in data)
-                            {
-                            alert(JSON.stringify(data));
-                            }
-                        if('success' in data)
-                            {
-                            // alert("sucess"+ JSON.stringify(data));
-                            // Update the label in DOM
-                            // find anchor tags with specified image id which are not buttons
-                            $("a:not(.btn)[imageid=" + data["id"] + "]").html(data["fields"]["label"])
-                            $("tr[imageid=" + data["id"] + "]").addClass("warning")
-
-                            // Update the information in the image list
-                            var image = {}
-
-                            for (var i=0; i < imagelist.length; i++)
-                                {
-                                if(data["id"] == imagelist[i]["img"])
-                                    {
-                                    imagelist[i]["label"] = data["fields"]["label"]
-                                    }
-                                }
-                            }
-                        }
-                    });
-                },
-                image["label"]);
-            });
-    </script>
 {% endblock %}

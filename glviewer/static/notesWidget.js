@@ -1,53 +1,67 @@
+
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
 // Notes within the same level are ordered.
 // Question answers can be sub notes.
 
 // Students can save comments that are not seen by other students.
-// A separate "Notes" collection is used.
+// Student notes are stored as "favorites".
 // Notes keep an ID of their parent in the database.
 // The recording API is used to save the state of viewers (ViewerRecord)
 // Notes just add a tree structure on top of these states (with GUI).
 
 // Right now we are loading the view and bookmarks as notes.
 // Bookmarks have two notes: Question and a child answer.
-// I want to hide the answer in the question note (not show the answer in the GUI).
-// My problem is that the answer note does not have enough information to draw
-// the Question GUI.  It is buried in the iterator.  I could have a state
-// internal to the question note, but this breaks the iterator pattern.
-// I am backing out of using the Answer array, but I am not removing it from the code.
+// I need to change this to be more like the origin open layers presentation.
 
 // TODO:
-// Save order of user notes.
-// Detect whether user has permission to save notes.
-// Automatically save view changes into application note.
-// Automatically save note text and title into application.
-// Refresh button to reload the current note. (Reload from database.) (should I refresh children?).
-// Link the Save button to store all application notes into database.
-// Keep track of whether application notes have been modified.
-// Warning pop-up message to save notes when navigating off page.
+// Highlight icon on hover.
+// Drag notes to change the order.
+// Show the user "favorite" notes.
+// Allow user to delete the favorite note (even if edit is not on).
 
 
-// Discussion:  We have a local (not saved to server) edit state (turned on by edit and off by cancel).
-// Edit is turned off by advancing to the next note or adding a note.  This is confusing.
-// Changes are automatically saved locally. Save button saves to server.  This is confusing.
-
-
-// How about a global lock / unlock button (like quick). Edit -> Clone, Save, Cancel.
-// hi (Gwenda)
-
+var LINk_DIV;
 
 // Time to make this an object to get rid of all these global variables.
 function InitNotesWidget() {
   NOTES_WIDGET = new NotesWidget();
   if (EDIT) {
-    NOTES_WIDGET.EditCallback();
+    // This handles making children sortable.
+    /*
+    var iter = this.RootNote.NewIterator();
+    do {
+      var note = iter.GetNote();
+      note.UpdateChildrenGUI();
+      iter.Next();
+    } while ( ! iter.IsEnd());
+    */
+  NOTES_WIDGET.ToggleNotesWindow();
   }
+
+  LINK_DIV = 
+    $("<div>")
+      .appendTo('body')
+      .attr('contenteditable', "true")
+      .css({'top':'30px',
+            'left': '10%',
+            'position': 'absolute',
+            'width':'80%',
+            'height': '50px',
+            'z-index':'3',
+            'background-color':'#FFF',
+            'border':'1px solid #777',
+            'border-radius': '8px',
+            'text-align': 'center',
+            'padding-top': '26px'})
+      .hide()
+      .mouseleave(function() { LINK_DIV.fadeOut(); });
 }
 
 
 function NotesWidget() {
   var self = this;
+
   // For animating the display of the notes window (DIV).
   this.WidthFraction = 0.0;
   this.Visibilty = false;
@@ -63,24 +77,12 @@ function NotesWidget() {
   // GUI elements
   this.Window;
   this.NoteTreeDiv;
-  this.TitleEntry;
-  this.TextEntry;
   this.NewButton;
-  this.CloneButton;
-  this.RandomButton;
-  this.DeleteButton;
-  this.SaveButton;
-  this.EditButton;
-  // We need this flag to record view and text into notes when advancing notes.
-  this.EditActive = false;
   // We need this flag so cancel will get rid of a pending new note.
   // User can be editing an old note, or a new note.
   this.EditNew = false;
   // Have any notes been modified (and need to be saved to the database)?
-  this.Modified = false;
-
-  this.PopupMenuButton;
-  this.PopupMenu;
+  this.ModifiedFlag = false;
 
   // It would be nice to animate the transition
   // It would be nice to integrate all animation in a flexible utility.
@@ -131,128 +133,54 @@ function NotesWidget() {
     .attr('id', 'NoteWindow');
 
 
+
+  if (EDIT) {
+    var buttonWrapper =
+      $('<div>')
+        .appendTo(this.Window)
+        .css({'position': 'absolute',
+              'width': '100%',
+              'height': '40px',
+              'top': '0px',
+              'border-bottom':'1px solid #B0B0B0'});
+    this.NewButton =
+      $('<button>')
+        .appendTo(buttonWrapper)
+        .text("New")
+        .css({'color' : '#278BFF',
+              'font-size': '18px',
+              'margin': '5px'})
+        .click(function(){self.NewCallback();});
+    this.SaveButton =
+      $('<button>')
+        .appendTo(buttonWrapper)
+        .text("Save")
+        .css({'color' : '#278BFF',
+              'font-size': '18px',
+              'margin': '5px'})
+        .click(function(){self.SaveCallback();});
+    /*this.RandomButton = $('<button>').appendTo(this.PopupMenu)
+                                .hide()
+                                .text("Randomize")
+                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+                                .click(function(){self.RandomCallback();});
+    */
+  }
+
+
   this.NoteTreeDiv = $('<div>').appendTo(this.Window)
     .css({
       'position': 'absolute',
-      'top' : '0%',
+      'top' : '45px',
       'left' : '0%',
-      'height' : '60%',
       'width': '100%',
+      'height': '90%',
       'overflow': 'auto',
       'text-align': 'left',
       'color': '#303030',
       'font-size': '18px'})
     .attr('id', 'NoteTree');
 
-
-  // The next three elements are to handle the addition of comments.  Currently placeholders.
-  // The top div wraps the text field and the submit button at the bottom of the widget.
-  var noteDetailDiv = $('<div>').appendTo(this.Window)
-    .css({'position': 'absolute',
-          'width': '100%',
-          'top': '60%',
-          'height': '40%'});
-
-  this.TitleEntry = $('<textarea>').appendTo(noteDetailDiv)
-                                    .css({'position': 'absolute',
-                                          'left': '3px',
-                                          'right': '3px',
-                                          'height': '20px',
-                                          'border-style': 'solid',
-                                          'background': '#ffffff',
-                                          'resize': 'none'});
-  this.TextEntry = $('<textarea>').appendTo(noteDetailDiv)
-                                   .css({'position': 'absolute',
-                                         'left': '3px',
-                                         'right': '3px',
-                                         'top': '26px',
-                                         'bottom': '43px',
-                                         'border-style': 'solid',
-                                         'background': '#ffffff',
-                                         'resize': 'none'});
-  this.TitleEntry.attr('readonly', 'readonly');
-  this.TextEntry.attr('readonly', 'readonly');
-
-  var buttonWrapper = $('<div>').appendTo(noteDetailDiv)
-                                       .css({'position': 'absolute',
-                                             'width': '100%',
-                                             'height': '40px',
-                                             'bottom': '0px'});
-
-  // Only visible when in edit mode.
-  this.PopupMenuButton = $('<div>').appendTo(buttonWrapper)
-                                .hide()
-                                .css({'position': 'relative',
-                                      'float': 'right',
-                                      'margin': '5px'});
-  this.EditButton = $('<button>').appendTo(buttonWrapper)
-                                .text("Edit")
-                                .css({'color' : '#278BFF',
-                                      'font-size': '18px',
-                                      'position': 'relative',
-                                      'float': 'right',
-                                      'margin': '5px'})
-                                .click(function(){self.EditCallback();});
-  this.NewButton = $('<button>').appendTo(buttonWrapper)
-                                .hide()
-                                .text("New")
-                                .css({'color' : '#278BFF',
-                                      'font-size': '18px',
-                                      'position': 'relative',
-                                      'float': 'right',
-                                      'margin': '5px'})
-                                .click(function(){self.NewCallback();});
-
-  // For less used buttons that appear when mouse is over the pulldown button.
-  // I would like to make a dynamic bar that puts extra buttons into the pulldown as it resizes.
-  this.PopupMenu = $('<div>').appendTo(this.PopupMenuButton)
-                       .css({'position': 'absolute',
-                             'left': '0px',
-                             'bottom': '0px',
-                             'background-color': 'white',
-                             'padding': '5px 5px 30px 5px',
-                             'border-radius': '8px',
-                             'border-style': 'solid',
-                             'border-width':'1px'})
-                       .hide()
-                       .mouseleave(function(){
-                          var self = $(this),
-                          timeoutId = setTimeout(function(){NOTES_WIDGET.PopupMenu.fadeOut();}, 650);
-                          //set the timeoutId, allowing us to clear this trigger if the mouse comes back over
-                          self.data('timeoutId', timeoutId);  })
-                       .mouseenter(function(){
-                          clearTimeout($(this).data('timeoutId')); });
-
-  this.DeleteButton = $('<button>').appendTo(this.PopupMenu)
-                                .hide()
-                                .text("Delete")
-                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                .click(function(){self.DeleteCallback();});
-
-  this.CloneButton = $('<button>').appendTo(this.PopupMenu)
-                                .hide()
-                                .text("Clone")
-                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                .click(function(){self.CloneCallback();});
-
-  this.RandomButton = $('<button>').appendTo(this.PopupMenu)
-                                .hide()
-                                .text("Randomize")
-                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                .click(function(){self.RandomCallback();});
-
-  this.SaveButton = $('<button>').appendTo(this.PopupMenu)
-                                  .hide()
-                                  .text("Save")
-                                  .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                  .click(function(){self.SaveCallback();});
-
-  var popupMenuButtonImage = $('<img>').appendTo(this.PopupMenuButton)
-    .css({'height': '30px',
-          'width': '30x',
-          'opacity': '0.6'})
-    .attr('src',"webgl-viewer/static/dropDown1.jpg")
-    .mouseenter(function() {NOTES_WIDGET.PopupMenu.fadeIn(); });
 
   // This sets "this.RootNote" and "this.Iterator"
   this.LoadViewId(VIEW_ID);
@@ -481,6 +409,8 @@ NoteIterator.prototype.ToEnd = function() {
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
 function Note () {
+  var self = this;
+
   this.User = GetUser(); // Reset by flask.
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
@@ -495,23 +425,72 @@ function Note () {
   // Hidden children for questions.
   this.Answers = [];
 
+  // ParentNote (it would be nice to make the session a note too).
+  this.Parent = null;
+
   // Sub notes
   this.Children = [];
   this.ChildrenVisibility = true;
 
   // GUI elements.
-  this.Div = $('<div>').attr({'class':'note'});
+  this.Div =
+    $('<div>').attr({'class':'note'})
+        .css({'position':'relative'});
 
-  this.Icon = $('<img>').css({'height': '20px',
-                              'width': '20x',
-                              'float':'left'})
-                        .attr('src',"webgl-viewer/static/dot.png")
-                        .appendTo(this.Div);
-  this.TitleDiv = $('<div>').css({'font-size': '18px',
-                                 'margin-left':'20px',
-                                 'color':'#379BFF',})
-                           .text(this.Title)
-                           .appendTo(this.Div);
+  //$('<div>').appendTo(this.Div)
+  //   .html('&#149;')
+    //.attr('class', "bullet")
+    //             'font-size': '30px',
+
+
+  this.Icon =
+    $('<img>')
+      .css({'height': '20px',
+            'width': '20x',
+            'float':'left'})
+      .attr('src',"webgl-viewer/static/dot.png")
+      .appendTo(this.Div);
+
+  // I could reuse this menu, but this is easy for callbacks
+  this.IconMenuDiv =
+    $('<div>').appendTo(this.Div)
+      .hide()
+      .css({'position': 'absolute',
+            'left': '0px',
+            'margin-top':'20px',
+            'top' : '0px',
+            'width' : '80px',
+            'z-index': '1',
+            'background-color': '#F0F0F0',
+            'padding': '5px',
+            'border-color': '#B0B0B0',
+            'border-radius': '8px',
+            'border-style': 'solid',
+            'border-width':'1px'});
+  this.SnapShotButton =
+    $('<button>').appendTo(this.IconMenuDiv)
+      .text("snap shot")
+      .css({'color' : '#278BFF',
+            'font-size': '14px',
+            'border-radius': '3px',
+            'width':'100%'});
+
+  this.TitleDiv = $('<div>')
+        .css({'font-size': '18px',
+               'margin-left':'20px',
+               'color':'#379BFF',})
+        .text(this.Title)
+        .appendTo(this.Div);
+
+  if (EDIT) {
+    this.TitleDiv
+      .attr('contenteditable', "true")
+      .focusin(function() { self.TitleFocusInCallback(); })
+      .focusout(function() { self.TitleFocusOutCallback(); })
+  } else {
+    this.TitleDiv.click(function() {self.Select()})
+  }
+
   // The div should attached even if nothing is in it.
   // A child may appear and UpdateChildrenGui called.
   // If we could tell is was removed, UpdateChildGUI could append it.
@@ -519,6 +498,113 @@ function Note () {
                                .appendTo(this.Div);
 
 }
+
+Note.prototype.SetParent = function(parent) {
+  var self = this;
+  this.Parent = parent;
+  if (parent) {
+    this.DeleteButton =
+      $('<button>').appendTo(this.IconMenuDiv)
+        .text("delete")
+        .css({'color' : '#278BFF',
+              'font-size': '14px',
+              'border-radius': '3px',
+              'width':'100%'});
+  }
+}
+
+Note.prototype.TitleFocusInCallback = function() {
+  // Keep the viewer from processing arrow keys.
+  EVENT_MANAGER.FocusOut();
+  this.Select();
+}
+
+
+Note.prototype.TitleFocusOutCallback = function() {
+  // Allow the viewer to process arrow keys.
+  EVENT_MANAGER.FocusIn();
+  var text = this.TitleDiv.text();
+  if (this.Title != text) {
+    this.Title = text;
+    NOTES_WIDGET.Modified();
+  }
+}
+
+
+Note.prototype.IconEnterCallback = function() {
+  if (EDIT) {
+    this.IconMenuDiv.fadeIn(1000);
+  }
+}
+
+Note.prototype.IconLeaveCallback = function() {
+  if (EDIT) {
+    var self = this;
+    this.HideIconMenuTimerId = setTimeout(
+      function() {
+        self.HideIconMenuTimerId = 0;
+        self.IconMenuDiv.hide();
+      },
+      300);
+  }
+}
+
+Note.prototype.IconMenuEnterCallback = function() {
+  if (this.HideIconMenuTimerId) {
+    clearTimeout(this.HideIconMenuTimerId);
+    this.HideIconMenuTimerId = 0;
+  }
+}
+
+Note.prototype.IconMenuLeaveCallback = function() {
+  this.IconMenuDiv.hide();
+}
+
+Note.prototype.SnapShotCallback = function() {
+  this.IconMenuDiv.hide();
+  this.RecordView();
+  NOTES_WIDGET.Modified();
+}
+
+Note.prototype.LinkCallback = function() {
+  this.IconMenuDiv.hide();
+  LINK_DIV.html("slide-atlas.org/webgl-viewer?db="+GetSessionDatabase()+"&view="+this.Id);
+  LINK_DIV.show();
+}
+
+Note.prototype.DeleteCallback = function() {
+  this.IconMenuDiv.hide();
+  var parent = this.Parent;
+  if (parent == null) {
+    return;
+  }
+
+  if (NOTES_WIDGET.Iterator.GetNote() == this) {
+    // Move the current note off this note.
+    // There is always a previous.
+    NAVIGATION_WIDGET.PreviousNote();
+  }
+
+  // Get rid of the note.
+  var index = parent.Children.indexOf(this);
+  parent.Children.splice(index, 1);
+  this.Parent = null;
+
+  NOTES_WIDGET.Modified();
+
+  // Redraw the GUI.
+  parent.UpdateChildrenGUI();
+}
+
+
+
+
+
+
+
+
+
+
 
 
 Note.prototype.UserCanEdit = function() {
@@ -538,6 +624,7 @@ Note.prototype.RecordView = function() {
     viewerRecord.CopyViewer(VIEWER2);
     this.ViewerRecords.push(viewerRecord);
   }
+
 }
 
 
@@ -564,29 +651,33 @@ Note.prototype.UpdateChildrenGUI = function() {
     this.Icon.attr('src',"webgl-viewer/static/dot.png");
     return;
   }
+  /*
   if (this.ChildrenVisibility == false) {
     this.Icon.attr('src',"webgl-viewer/static/plus.png")
              .click(function() {self.Expand();});
     return;
   }
-
+  */
   // Redraw
+  /*
   this.Icon.attr('src',"webgl-viewer/static/minus.png")
            .click(function() {self.Collapse();});
+  */
   for (var i = 0; i < this.Children.length; ++i) {
     this.Children[i].DisplayGUI(this.ChildrenDiv);
   }
 
-  if (this.Children.length > 1 && this.UserCanEdit() && NOTES_WIDGET.EditActive) {
+  if (this.Children.length > 1 && this.UserCanEdit() ) {
     // Make sure the indexes are set correctly.
     for (var i = 0; i < this.Children.length; ++i) {
       this.Children[i].Div.data("index", i);
     }
-    this.ChildrenDiv.sortable({axis: "y",
+    /*this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
                                update: function( event, ui ){self.ReorderChildren();}});
     // Indicate the children are sortable...
     this.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
+    */
   }
 
 }
@@ -602,7 +693,7 @@ Note.prototype.ReorderChildren = function() {
     var note = this.Children[oldIndex];
     note.Div.data("index", newIndex);
     if (newIndex != oldIndex) {
-      NOTES_WIDGET.NoteModified();
+      NOTES_WIDGET.Modified();
     }
     newChildren.push(note);
   }
@@ -628,8 +719,10 @@ Note.prototype.Contains = function(decendent) {
   return false;
 }
 
+
 // This should method should be split between Note and NotesWidget
 Note.prototype.Select = function() {
+  if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
   if (NOTES_WIDGET.Iterator.GetNote() != this) {
     // For when user selects a note from a list.
     // Find the note and set a new iterator
@@ -645,68 +738,22 @@ Note.prototype.Select = function() {
     NOTES_WIDGET.Iterator = iter;
   }
 
+
   // Handle the note that is being unselected.
   // Clear the selected background of the deselected note.
   if (NOTES_WIDGET.SelectedNote) {
     NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
-    if (NOTES_WIDGET.EditActive && NOTES_WIDGET.SelectedNote.UserCanEdit()) {
-      NOTES_WIDGET.SelectedNote.RecordGUIChanges();
-      NOTES_WIDGET.NoteModified();
-    }
   }
 
-  NOTES_WIDGET.RandomButton.hide();
-  if (this.UserCanEdit() && NOTES_WIDGET.EditActive) {
-    NOTES_WIDGET.TitleEntry.removeAttr('readonly');
-    NOTES_WIDGET.TitleEntry.css({'border-style': 'inset',
-                          'background': '#f5f8ff'});
-    NOTES_WIDGET.TextEntry.removeAttr('readonly');
-    NOTES_WIDGET.TextEntry.css({'border-style': 'inset',
-                         'background': '#f5f8ff'});
-    NOTES_WIDGET.DeleteButton.show();
-    if (this.Children.length > 1 && this.ChildrenVisibility) {
-      NOTES_WIDGET.RandomButton.show();
-    }
-  } else {
-    NOTES_WIDGET.TitleEntry.attr('readonly', 'readonly');
-    NOTES_WIDGET.TitleEntry.css({'border-style': 'solid',
-                          'background': '#ffffff'});
-    NOTES_WIDGET.TextEntry.attr('readonly', 'readonly');
-    NOTES_WIDGET.TextEntry.css({'border-style': 'solid',
-                         'background': '#ffffff'});
-    NOTES_WIDGET.DeleteButton.hide();
-  }
-
-  if (this == NOTES_WIDGET.RootNote){
-    // We do not allow the user to delete the root note / slide.
-    // We need a session editor to do that.
-    NOTES_WIDGET.DeleteButton.hide();
-    // Interesting:  TODO: If we clone the root, then a new slide is created.
-    NOTES_WIDGET.CloneButton.hide();
-  } else if (NOTES_WIDGET.EditActive) {
-    NOTES_WIDGET.CloneButton.show();
-  }
 
   NOTES_WIDGET.SelectedNote = this;
   // Indicate which note is selected.
   this.TitleDiv.css({'background':'#f0f0f0'});
-  // Put the note into the details section.
-  NOTES_WIDGET.TitleEntry.val(this.Title);
-  NOTES_WIDGET.TextEntry.val(this.Text);
 
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
   this.DisplayView();
 }
-
-
-Note.prototype.RecordGUIChanges = function () {
-  this.Title = NOTES_WIDGET.TitleEntry.val();
-  this.TitleDiv.text(NOTES_WIDGET.SelectedNote.Title);
-  this.Text = NOTES_WIDGET.TextEntry.val();
-  this.RecordView();
-}
-
 
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
@@ -717,10 +764,25 @@ Note.prototype.DisplayGUI = function(div) {
   var self = this;
 
   this.TitleDiv.text(this.Title);
-  this.TitleDiv.click(function() {self.Select()});
-  this.TitleDiv.hover(function(){self.TitleDiv.css({'text-decoration':'underline'});},
-                     function(){self.TitleDiv.css({'text-decoration':'none'});});
 
+  // Changing a div "parent/appendTo" removes all event bindings like click.
+  // I would like to find a better solution to redraw.
+  this.Icon
+    .click(function() {self.Select()})
+    .mouseenter(function() { self.IconEnterCallback(); })
+    .mouseleave(function() { self.IconLeaveCallback(); });
+  if (EDIT) {
+    this.IconMenuDiv
+      .mouseenter(function() { self.IconMenuEnterCallback(); })
+      .mouseleave(function() { self.IconMenuLeaveCallback(); });
+      if (this.LinkButton) {
+        this.LinkButton.click(function(){self.LinkCallback();});
+      }
+      this.SnapShotButton.click(function(){self.SnapShotCallback();});
+      if (this.DeleteButton) { 
+        this.DeleteButton.click(function(){self.DeleteCallback();});
+      }
+  }
   this.UpdateChildrenGUI();
 }
 
@@ -728,29 +790,34 @@ Note.prototype.DisplayGUI = function(div) {
 
 Note.prototype.Serialize = function(includeChildren) {
   var obj = {};
+  obj.SessionId = localStorage.sessionId;
   obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
-  obj.ParentId = this.ParentId;
+  if (this.Id) {
+    obj._id = this.Id;
+  }
+  // I would like to put the session as parent, but this would be an inclomplete reference.
+  // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
+  if (this.Parent) {
+    obj.ParentId = this.Parent.Id;
+  }
   obj.Title = this.Title;
   obj.HiddenTitle = this.HiddenTitle;
   obj.Text = this.Text;
   // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = this.ViewerRecords;
+  obj.ViewerRecords = [];
 
   // The database wants an image id, not an embedded iamge object.
   //  The server should really take care of this since if
-  for (var i = 0; i < obj.ViewerRecords.length; ++i) {
-    obj.ViewerRecords[i].Image = this.ViewerRecords[i].Image._id;
+  for (var i = 0; i < this.ViewerRecords.length; ++i) {
+    if(!this.ViewerRecords[i].Image) continue;
+    var record = this.ViewerRecords[i].Serialize();
+    obj.ViewerRecords.push(record);
   }
 
   // upper left pixel
   obj.CoordinateSystem = "Pixel";
-
-  //obj.Answers = [];
-  //for (var i = 0; i < this.Answers.length; ++i) {
-  //  obj.Answers.push(this.Answers[i].Serialize());
-  //}
 
   if (includeChildren) {
     obj.Children = [];
@@ -764,28 +831,32 @@ Note.prototype.Serialize = function(includeChildren) {
 // This method of loading is causing a pain.
 // Children ...
 Note.prototype.Load = function(obj){
+  var self = this;
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
+  // I am not sure blindly copying all of the variables is a good idea.
+  if (this._id) {
+    this.Id = this._id;
+  }
+  delete this._id;
+
   this.TitleDiv.text(this.Title);
-  //for (var i = 0; i < this.Answers.length; ++i) {
-  //  var answerObj = this.Answers[i];
-  //  this.Answers[i] = new Note();
-  //  this.Answers[i].Load(answerObj);
-  //}
   for (var i = 0; i < this.Children.length; ++i) {
     var childObj = this.Children[i];
     var childNote = new Note();
+    childNote.SetParent(this);
     childNote.Load(childObj);
     this.Children[i] = childNote;
     childNote.Div.data("index", i);
   }
   // Because we are not using add child.
-  if (this.Children.length > 1 && this.UserCanEdit() && NOTES_WIDGET.EditActive) {
-    var self = this;
+  if (this.Children.length > 1 && this.UserCanEdit()) {
+    /*
     this.ChildrenDiv.sortable({axis: "y",
                                containment: "parent",
                                update: function( event, ui ){self.ReorderChildren();}});
+    */
   }
 
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
@@ -796,6 +867,18 @@ Note.prototype.Load = function(obj){
       this.ViewerRecords[i].Load(obj);
     }
   }
+
+
+  if (this.Id) {
+    this.LinkButton =
+      $('<button>').appendTo(this.IconMenuDiv)
+        .text("link")
+        .css({'color' : '#278BFF',
+              'font-size': '14px',
+              'border-radius': '3px',
+              'width':'100%'});
+  }
+
 
   // Hack to fix timing (Load after select)
   if (this == NOTES_WIDGET.RootNote) {
@@ -826,7 +909,7 @@ Note.prototype.RequestUserNotes = function() {
   $.ajax({
     type: "get",
     url: "/webgl-viewer/getchildnotes",
-    data: {"parentid": this.Id,
+    data: {"ParentId": this.Id,
            "db"  : GetSessionDatabase()},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error() : getchildnotes" ); },
@@ -867,9 +950,10 @@ Note.prototype.Expand = function() {
 Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
-  VIEWER2.Reset();
-
-  SetNumberOfViews(this.ViewerRecords.length);
+  if (typeof VIEWER2 !== 'undefined') {
+    VIEWER2.Reset();
+    SetNumberOfViews(this.ViewerRecords.length);
+  }
 
   if (this.ViewerRecords.length > 0) {
     this.ViewerRecords[0].Apply(VIEWER1);
@@ -883,14 +967,17 @@ Note.prototype.DisplayView = function() {
 }
 
 
+NotesWidget.prototype.GetCurrentNote = function() {
+  return this.Iterator.GetNote();
+}
+
+
 NotesWidget.prototype.SaveUserNote = function() {
   // Create a new note.
   var childNote = new Note();
   var d = new Date();
   this.Date = d.getTime(); // Also reset later.
 
-  childNote.Text = this.TextEntry.val();
-  this.TextEntry.val("");
   childNote.ViewerRecords = [];
   //  Viewer1
   var viewerRecord = new ViewerRecord();
@@ -908,7 +995,7 @@ NotesWidget.prototype.SaveUserNote = function() {
   parentNote.Children.push(childNote);
   // ParentId is how we retrieve notes from the database.
   // It is the only tree structure saved.
-  childNote.ParentId = parentNote.Id;
+  childNote.SetParent(parentNote);
   // Expand the parent so that the new note is visible.
   parentNote.ChildrenVisible = true;
 
@@ -919,10 +1006,13 @@ NotesWidget.prototype.SaveUserNote = function() {
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(childNote.Serialize(false)),
+           "col" : "notes",
            "date": d.getTime()},
     success: function(data,status) { childNote.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
-    });
+    error: function() {
+      alert( "AJAX - error() : saveusernote 1" );
+    },
+  });
 
   // Redraw the GUI. should we make the parent or the new child active?
   // If we choose the child, then we need to update the iterator,
@@ -931,32 +1021,39 @@ NotesWidget.prototype.SaveUserNote = function() {
 }
 
 
+NotesWidget.prototype.Modified = function() {
+  window.onbeforeunload =
+    function () {
+      return "Some changes have not been saved to the database.";
+    }
+  this.ModifiedFlag = true;
+  this.SaveButton.css({'color' : '#E00'});
+}
+
+
 NotesWidget.prototype.SaveBrownNote = function() {
   // Create a new note.
   var note = new Note();
-  note.RecordGUIChanges();
+  note.RecordView();
 
   // The note will want to know its context
-  parentNote = this.Iterator.GetNote();
-  note.ParentId = parentNote.Id;
+  note.SetParent(this.Iterator.GetNote());
 
   // Save the note in the admin database for this specific user.
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
-    data: {"note": JSON.stringify(note.Serialize(false))},
-    success: function(data,status) { note.Id = data;},
-    error: function() { alert( "AJAX - error() : saveusernote" ); },
+      data: {"note": JSON.stringify(note.Serialize(false)),
+             "col" : "favorites"},
+    success: function(data,status) {
+      note.Id = data;
+    },
+    error: function() {
+      alert( "AJAX - error() : saveusernote 2" );
+    },
     });
 }
 
-
-
-
-
-NotesWidget.prototype.NoteModified = function () {
-  this.Modified = true;
-}
 
 NotesWidget.prototype.ToggleNotesWindow = function() {
   this.Visibilty = ! this.Visibilty;
@@ -976,40 +1073,6 @@ NotesWidget.prototype.ToggleNotesWindow = function() {
 }
 
 
-// Add a user note to the currently selected notes children.
-NotesWidget.prototype.NewCallback = function() {
-  // Create a new note.
-  var childNote = new Note();
-  childNote.Title = "New Note";
-  var d = new Date();
-  childNote.Date = d.getTime(); // Temporary. Set for real by server.
-
-  // Save the state of the viewers.
-  childNote.ViewerRecords = [];
-  //  Viewer1
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.CopyViewer(VIEWER1);
-  childNote.ViewerRecords.push(viewerRecord);
-  // Viewer2
-  if (DUAL_VIEW) {
-    var viewerRecord = new ViewerRecord();
-    viewerRecord.CopyViewer(VIEWER2);
-    childNote.ViewerRecords.push(viewerRecord);
-  }
-
-  // Now add the note as the last child to the current note.
-  parentNote = this.Iterator.GetNote();
-  parentNote.AddChild(childNote, true);
-  // ParentId is how we retrieve notes from the database.
-  // It is the only tree structure saved.
-  childNote.ParentId = parentNote.Id;
-  // Expand the parent so that the new note is visible.
-  parentNote.ChildrenVisibility = true;
-  parentNote.UpdateChildrenGUI();
-
-  childNote.Select();
-}
-
 // Randomize the order of the children
 NotesWidget.prototype.RandomCallback = function() {
   var note = this.Iterator.GetNote();
@@ -1017,187 +1080,35 @@ NotesWidget.prototype.RandomCallback = function() {
   note.UpdateChildrenGUI();
 }
 
-// Add a sibling note.
-// Do not copy children (maybe in the future?)
-NotesWidget.prototype.CloneCallback = function() {
-  var parentNote = this.Iterator.GetParentNote();
-  if ( ! parentNote) { return; }
-  var note = this.Iterator.GetNote();
-  var index = parentNote.Children.indexOf(note);
-  if (index < 0) { return; }
-
-  // Record any changes before we clone the note.
-  note.RecordGUIChanges();
-
-  // Create a new note.
-  var newNote = new Note();
-  newNote.Title = note.Title;
-  var d = new Date();
-  newNote.Date = d.getTime(); // Temporary. Set for real by server.
-
-  this.TitleEntry.val(newNote.Title);
-  this.TextEntry.val(newNote.Text);
-
-  // Save the state of the viewers.
-  newNote.ViewerRecords = [];
-  //  Viewer1
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.CopyViewer(VIEWER1);
-  newNote.ViewerRecords.push(viewerRecord);
-  // Viewer2
-  if (DUAL_VIEW) {
-    var viewerRecord = new ViewerRecord();
-    viewerRecord.CopyViewer(VIEWER2);
-    newNote.ViewerRecords.push(viewerRecord);
-  }
-
-  // Now insert the child after the current note.
-  parentNote.Children.splice(index+1,0,newNote);
-  // ParentId is how we retrieve notes from the database.
-  // It is the only tree structure saved.
-  newNote.ParentId = parentNote.Id;
-  parentNote.UpdateChildrenGUI();
-
-  newNote.Select();
-}
 
 
-
-// TODO: Activate and inactivate save button based on user owning note
-// This callback is for both the edit and cancel behaviours.
-NotesWidget.prototype.EditCallback = function() {
-  if (MOBILE_DEVICE) { return; }
-
-  this.EditActive = true;
-
-  this.EditButton.hide();
-  this.PopupMenuButton.show();
-  this.NewButton.show();
-  this.SaveButton.show();
-  // This handles making the note editable (including showing and hiding the delete button).
-  if (this.SelectedNote) {
-    this.SelectedNote.Select();
-  }
-
-  // This handles making children sortable.
-  var iter = this.RootNote.NewIterator();
-  do {
-    var note = iter.GetNote();
-    note.UpdateChildrenGUI();
-    iter.Next();
-  } while ( ! iter.IsEnd());
-
-  window.onbeforeunload = function () {
-    if (this.EditActive && this.SelectedNote.UserCanEdit()) {
-      this.SelectedNote.RecordGUIChanges();
-    }
-    return "Some changes have not been saved to the database.";
-  }
-}
 
 // TODO: Activate and inactivate save button based on whether anything has changed.
 NotesWidget.prototype.SaveCallback = function() {
-  this.PopupMenu.hide();
-
-  if (this.EditActive && this.SelectedNote.UserCanEdit()) {
-    this.SelectedNote.RecordGUIChanges();
-  }
-
+  // changing an annotation does not cause modified yet, so do not block the save.
+  //if ( ! this.ModifiedFlag) { return;}
+  var self = this;
   var d = new Date();
 
-  // If user owns the root note, then upload all notes to the view.
-  if (this.RootNote.UserCanEdit()) {
-    // Save this users notes in the user specific collection.
-    var noteObj = JSON.stringify(this.RootNote.Serialize(true));
-    $.ajax({
-      type: "post",
-      url: "/webgl-viewer/saveviewnotes",
-      data: {"note" : noteObj,
-             "db"   : GetSessionDatabase(),
-             "view" : GetViewId(),
-             "date" : d.getTime()},
-      success: function(data,status) {},
-      error: function() { alert( "AJAX - error() : saveviewnotes" ); },
-      });
-  } else {
-    // Save just the users notes to the notes collection.
-    // Save all of the users notes in the database for this specific user.
-    // Save this users notes in the user specific collection.
-    var iter = this.RootNote.GetIterator();
-    do {
-      var note = iter.GetNote();
-      if (note.UserCanEdit()) {
-        $.ajax({
-          type: "post",
-          url: "/webgl-viewer/saveusernote",
-          data: {"note": JSON.stringify(note.Serialize(false)),
-                 "db"  : GetSessionDatabase(),
-                 "date": d.getTime()},
-          success: function(data,status) { note.Id = data;},
-          error: function() { alert( "AJAX - error(): saveusernote" ); },
-          });
-      }
-    } while(iter.IsEnd());
-  }
-
-  window.onbeforeunload = null;
-  this.Modified = false;
-  this.EditActive = false;
-
-  this.PopupMenuButton.hide();
-  this.SaveButton.hide();
-  this.CloneButton.hide();
-  this.DeleteButton.hide();
-  this.NewButton.hide();
-  this.EditButton.show();
-  this.SelectedNote.Select();
-}
-
-// TODO: Disable button when we are not the root note or we do not own the note.
-NotesWidget.prototype.DeleteCallback = function() {
-  this.PopupMenu.hide();
-
-  this.NoteModified();
-
-  var parent = this.Iterator.GetParentNote();
-  if (parent == null) {
-    return;
-  }
-  var note = this.Iterator.GetNote();
-
-  // Move the current note off this note.
-  // There is always a previous.
-  NAVIGATION_WIDGET.PreviousNote();
-
-  // Get rid of the note.
-  var index = parent.Children.indexOf(note);
-  parent.Children.splice(index, 1);
-
-  // If this user does not own the lesson,
-  // then immediatley remove the note from the database.
-  // Lesson autho will have to select save to change the database.
-  /* Should we immediately change the database, or wait until the user selects save?
+  // Save this users notes in the user specific collection.
+  var noteObj = JSON.stringify(this.RootNote.Serialize(true));
   $.ajax({
     type: "post",
-    url: "/webgl-viewer/deleteusernote",
-    data: {"id"  : note.Id,
-           "db"  : GetSessionDatabase()},
-    success: function(data,status) {},
-    error: function() { alert( "AJAX - error()" ); },
-    });
-  */
-
-  // Redraw the GUI.
-  parent.UpdateChildrenGUI();
+    url: "/webgl-viewer/saveviewnotes",
+    data: {"note" : noteObj,
+           "db"   : GetSessionDatabase(),
+           "date" : d.getTime()},
+    success: function(data,status) {
+      self.SaveButton.css({'color' : '#278BFF'});
+      self.ModifiedFlag = false;
+      window.onbeforeunload = null;
+    },
+    error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+  });
 }
 
 NotesWidget.prototype.CheckForSave = function() {
-  if (this.EditActive && this.SelectedNote.UserCanEdit()) {
-    this.SelectedNote.RecordGUIChanges();
-    this.NoteModified();
-  }
-
-  if (this.Modified) {
+  if (this.ModifiedFlag) {
     var message = "Save changes in database?\n\nPress Cancel to discard changes.";
     if (confirm(message)) { SaveCallback(); }
   }
@@ -1253,4 +1164,31 @@ NotesWidget.prototype.LoadViewId = function(viewId) {
 }
 
 
+
+// Add a user note to the currently selected notes children.
+NotesWidget.prototype.NewCallback = function() {
+  var childIdx = 0;
+  var currentNote = this.Iterator.GetNote();
+  var parentNote = this.Iterator.GetParentNote();
+  if (parentNote) {
+    childIdx = parentNote.Children.indexOf(currentNote)+1;
+  } else {
+    parentNote = currentNote;
+  }
+
+  // Create a new note.
+  var childNote = new Note();
+  childNote.Title = "New Note";
+  var d = new Date();
+  childNote.Date = d.getTime(); // Temporary. Set for real by server.
+  childNote.RecordView();
+
+  // Now insert the child after the current note.
+  parentNote.Children.splice(childIdx,0,childNote);
+  childNote.SetParent(parentNote);
+  parentNote.UpdateChildrenGUI();
+  childNote.Select();
+
+  this.Modified();
+}
 

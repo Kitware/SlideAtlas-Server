@@ -148,9 +148,10 @@ class LoginProvider(object):
 
         if created:
             user_registered.send(current_app._get_current_object(), user=user, confirm_token=None)
-            flash('New user created. Welcome to SlideAtlas!', 'info')
+            flash(*current_app.config['SECURITY_MSG_EMAIL_CONFIRMED'])
         else:
-            flash('User account loaded from %s. Welcome back!' % self.pretty_name, 'info')
+            # TODO: password login doesn't display a message on login; flash one here?
+            flash('User account loaded from %s. Welcome back.' % self.pretty_name, 'info')
 
         return self.login_user(user)
 

@@ -2,21 +2,16 @@
 rest api for administrative interface
 refer to documentation
 """
-from werkzeug.wsgi import wrap_file
-from flask import Blueprint, render_template, request, current_app, Response, abort
+from flask import Blueprint, render_template, request, Response, abort
 from flask.views import MethodView
 from bson import ObjectId
 from slideatlas.common_utils import jsonify
 from gridfs import GridFS
-from slideatlas.common_utils import site_admin_required
 from slideatlas import models, security
 from slideatlas.ptiffstore import asset_store
-import re
-import gridfs
 import logging
 logger = logging.getLogger("slideatlas.apiv1")
 
-from bson.binary import Binary
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
                 template_folder="templates",
@@ -27,7 +22,7 @@ mod = Blueprint('api', __name__,
 class AdminDBAPI(MethodView):
     decorators = []
 
-    @site_admin_required(False)
+    @security.AdminSiteRequirement.protected
     def get(self, restype, resid=None):
         """
         Get restype with resid ['users'], if resid is not supplied, returns a list
@@ -56,38 +51,12 @@ class AdminDBAPI(MethodView):
             else:
                 return Response("{\"error\" : \"resource not found\"}" , status=405)
 
-    def post(self, restype):
-        """
-        create a new user
-        """
-        if restype == "rules":
-                return "You want to post rule"
-        elif restype == 'databases':
-                return "You want to add database"
-        elif restype == 'users':
-            # Posting to users means typically adding new rules to users
-            return "You want to add database"
-        pass
-
-    def delete(self, resid):
-        # Verify the access
-        # Remove one instance
-        # and remove the given resource
-        # Not implemented right now
-        pass
-
-    def put(self, restype, resid):
-        # update some information
-        pass
-
-
-
 
 # The urls for getting users for rules, posting grant / revoke etc
 class AdminDBItemsAPI(MethodView):
     decorators = []
 
-    @site_admin_required(False)
+    @security.AdminSiteRequirement.protected
     def get(self, restype, resid, listtype):
         admin_db = models.ImageStore._get_db()
         # Restype has to be between allowed ones or the request will not come here
@@ -119,7 +88,7 @@ class AdminDBItemsAPI(MethodView):
 # The url valid for databases, rules and users with supported queries
 
 class DatabaseAPI(AdminDBAPI):
-    decorators = [site_admin_required(False)]
+    decorators = [security.AdminSiteRequirement.protected]
 
     def delete(self, resid):
         obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
@@ -243,39 +212,8 @@ class DatabaseAPI(AdminDBAPI):
         try:
             if data["_id"] != resid:
                 raise Exception(1)
-        except:    #
-    # def delete(self, dbid, sessid, restype, resid=None):
-    #     if resid == None:
-    #         return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
-    #     else:
-    #         datadb = models.ImageStore.objects.with_id(dbid)
-    #         if datadb == None:
-    #             return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-    #
-    #         # TODO: This block of code to common and can be abstrated
-    #         with datadb:
-    #             sessobj = models.Session.objects.with_id(sessid)
-    #         if sessobj == None:
-    #             return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
-    #
-    #         if restype == "attachments" or restype == "rawfiles":
-    #             # Remove from the gridfs
-    #             gf = gridfs.GridFS(datadb.to_pymongo(raw_object=True) , restype)
-    #             gf.delete(ObjectId(resid))
-    #
-    #             # Remove the reference from session
-    #             attachments = [value for value in sessobj.attachments if value["ref"] != ObjectId(resid)]
-    #             # Find the index
-    #             # Remove that index
-    #             sessobj.attachments = attachments
-    #
-    #     if not sessobj.images:
-    #         sessobj.save()
-    #         return Response("{ \"Success \" : \" \"}", status=200)
-    #     else:
-    #         return "You want %s from views in %s/%s" % (resid, dbid, sessid)
-
-                return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
+        except:
+            return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # The object should exist
         for anobj in asset_store.TileStore.objects:
@@ -334,7 +272,7 @@ class DataSessionsAPI(MethodView):
     def get(self, dbid, sessid=None):
         """
         Gets details of a session if sessid is specified, or gets a list of sessions otherwise
-        Also provides thumbnails if thumb=true in the query string 
+        Also provides thumbnails if thumb=true in the query string
         """
         get_thumbs = bool(request.args.get("thumb","0"))
 
@@ -345,8 +283,7 @@ class DataSessionsAPI(MethodView):
 
         if sessid == None:
             sessionlist = list()
-            with database:
-                sessions = models.Session.objects.exclude("images","attachments", "views")
+            sessions = models.Session.objects(image_store=database).exclude("images","attachments", "views")
 
             for asession in sessions:
                 sessionlist.append(asession.to_mongo())
@@ -358,8 +295,7 @@ class DataSessionsAPI(MethodView):
         else:
             # Get and return a list of sessions from given database
             # TODO: Filter for the user that is requesting
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
+            sessobj = models.Session.objects.with_id(sessid)
             if sessobj == None:
                 return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
 
@@ -419,8 +355,7 @@ class DataSessionsAPI(MethodView):
             return Response("{ \"error \" : \"No session to delete\"}", status=405)
         else:
             # TODO: Important, Not all users are allowed to delete
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
+            sessobj = models.Session.objects.with_id(sessid)
 
             if sessobj:
                 # Delete if empty
@@ -458,8 +393,7 @@ class DataSessionsAPI(MethodView):
         if data.has_key("insert"):
             # Create the database object from the supplied parameters
             try:
-                with db:
-                    newsession = models.Session(label=data["insert"]["label"])
+                newsession = models.Session(image_store=db, label=data["insert"]["label"])
                 newsession.save()
             except Exception as inst:
                 # If valid database object cannot be constructed it is invalid request
@@ -474,8 +408,7 @@ class DataSessionsAPI(MethodView):
 
             try:
                 # Locate the resource
-                with db:
-                    newdb = models.Session.objects.with_id(sessid)
+                newdb = models.Session.objects.with_id(sessid)
                 if newdb == None:
                     raise Exception(" Resource %s not found" % (sessid))
             except Exception as inst:
@@ -501,234 +434,6 @@ class DataSessionsAPI(MethodView):
             # Only insert and modify commands are supported
             abort(400)
 
-class DataSessionItemsAPI(MethodView):
-    decorators = [security.login_required]
-
-    def get_data_db(self, dbid):
-        database = models.ImageStore.objects.with_id(dbid)
-        if database == None:
-            return None
-        return database
-
-    def delete(self, dbid, sessid, restype, resid=None):
-        if resid is None:
-            return Response("{ \"error \" : \"Deletion of all attachments not implemented Must provide resid\"}" , status=405)
-        else:
-            database = self.get_data_db(dbid)
-            if database is None:
-                return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-            datadb = database.to_pymongo(raw_object=True)
-
-            # TODO: This block of code to common and can be abstrated
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
-            if sessobj is None:
-                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
-
-            if restype == "attachments" or restype == "rawfiles":
-                # Remove from the gridfs
-                gf = gridfs.GridFS(datadb, restype)
-                gf.delete(ObjectId(resid))
-
-                # Remove the reference from session
-                attachments = [value for value in sessobj.attachments if value["ref"] != ObjectId(resid)]
-                # Find the index
-                # Remove that index
-                sessobj.attachments = attachments
-
-                sessobj.save()
-                return Response("{ \"Success \" : \" \"}", status=200)
-            else:
-                return "You want %s from views in %s/%s" % (resid, dbid, sessid)
-
-    def get(self, dbid, sessid, restype, resid=None):
-        if resid == None:
-            return "You want alist of %s/%s/%s" % (dbid, sessid, restype)
-        else:
-            database = self.get_data_db(dbid)
-            if database == None:
-                return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-            datadb = database.to_pymongo(raw_object=True)
-
-            with database:
-                sessobj = models.Session.objects.with_id(sessid)
-            if sessobj == None:
-                return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
-
-            # TODO: Make sure that resid exists in this session before being obtained from gridfs
-
-            if restype == "attachments" or restype == "rawfiles":
-                gf = gridfs.GridFS(datadb, restype)
-
-                fileobj = gf.get(ObjectId(resid))
-                data = wrap_file(request.environ, fileobj)
-                response = current_app.response_class(
-                    data,
-                    mimetype=fileobj.content_type,
-                    direct_passthrough=True)
-                response.content_length = fileobj.length
-                response.last_modified = fileobj.upload_date
-                response.set_etag(fileobj.md5)
-                response.cache_control.max_age = 0
-                response.cache_control.s_max_age = 0
-                response.cache_control.public = True
-                response.headers['Content-Disposition'] = 'attachment; filename=' + fileobj.filename
-                response.make_conditional(request)
-                return response
-            else:
-                return "You want %s from views in %s/%s" % (resid, dbid, sessid)
-
-    def put(self, dbid, sessid, restype, resid):
-        # we are expected to save the uploaded file and return some info about it:
-        # this is the name for input type=file
-        names = []
-        # Make sure to read the form before sending the reply
-        jsonresponse = {}
-        jsonresponse["_id"] = request.form['_id']
-
-        database = self.get_data_db(dbid)
-        if database == None:
-            return Response("{ \"error \" : \"Invalid database id %s\"}" % (dbid), status=405)
-        datadb = database.to_pymongo(raw_object=True)
-        with database:
-            sessobj = models.Session.objects.with_id(sessid)
-        if sessobj == None:
-            return Response("{ \"error \" : \"Session %s does not exist in db %s\"}" % (sessid, dbid), status=405)
-
-        # Parse headers
-        try:
-            #Get filename from content disposition
-            fnameheader = request.headers["Content-Disposition"]
-            disposition = re.search(r'filename="(.+?)"', fnameheader)
-            filename = disposition.group(0)[10:-1]
-
-            # Get the actual chunk position from Content-Range
-            range = request.headers["Content-Range"]
-            match = re.findall(r'\d+', range)
-            start = int(match[0])
-            end = int(match[1])
-            total = int(match[2])
-            success = True
-        except:
-            success = False
-
-        # Headers cannot be parsed, so try
-        if not success:
-            try:
-                bfile = request.files['file']
-
-                gf = gridfs.GridFS(datadb, restype)
-                afile = gf.new_file(chunk_size=1048576, filename=bfile.filename, _id=ObjectId(resid))
-                afile.write(bfile.read())
-                afile.close()
-                if not sessobj.attachments:
-                    sessobj.attachments = [ {"ref" : ObjectId(resid), "pos" : 0}]
-                    sessobj.save()
-                else:
-                    size_before = len(sessobj.attachments)
-                    sessobj.attachments.append({"ref" : ObjectId(resid), "pos" : size_before + 1})
-                    sessobj.save()
-
-                return Response("{\"success\" : \" - \"}", status=200)
-
-            except Exception as e:
-                return Response("{\"error\" : \" Error processing single chunk header" + e.message + " \"}", status=405)
-
-
-        # No need to return conventional file list
-        # Expect _id in the form
-        try:
-            jsonresponse["_id"] = request.form['_id']
-        except:
-            return Response("{\"error\" : \" each put request must include _id requested from server \"}", status=400)
-
-        n = int(start / 1048576.0)
-        # Craft the response json
-        jsonresponse["start"] = start
-        jsonresponse["end"] = end
-        jsonresponse["total"] = total
-        jsonresponse["done"] = end + 1
-
-        bfile = request.files['file']
-
-        first = False
-        last = False
-        # If first chunk
-        if start == 0 :
-            first = True
-            jsonresponse["first"] = 1
-            # Create a file
-            gf = gridfs.GridFS(datadb, restype)
-            afile = gf.new_file(chunk_size=1048576, filename=filename, _id=ObjectId(resid))
-            afile.write(bfile.read())
-            afile.close()
-
-        if total == end + 1:
-            last = True
-            jsonresponse["last"] = 1
-            # Add the attachment id to the
-            if not sessobj.attachments:
-                sessobj.attachments = [ {"ref" : ObjectId(resid), "pos" : 0}]
-                sessobj.save()
-            else:
-                size_before = len(sessobj["attachments"])
-                sessobj.attachments.append({"ref" : ObjectId(resid), "pos" : size_before + 1})
-                sessobj.save()
-
-        if not first:
-            obj = {
-                'n': n,
-                'files_id': ObjectId(resid),
-                'data': Binary(bfile.read())
-            }
-
-            datadb["attachments.chunks"].insert(obj)
-            fileobj = datadb["attachments.files"].find_one({"_id" : obj["files_id"]})
-            datadb["attachments.files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
-
-        # Finalize
-        # Append to the chunks collection
-        return jsonify(jsonresponse)
-
-
-    def post(self, dbid, sessid, restype, resid=None):
-        if resid == None:
-            # Supported for new creations
-            if restype == "attachments" or restype == "rawfiles":
-                data = request.form
-                # Only insert command is supported
-                if data == None:
-                    return Response("{\"error\" : \"Only create method is supported by post \"} " , status=405)
-
-                if data.has_key("insert") :
-                    id = ObjectId()
-                    # No need to return conventional file list
-                    jsonresponse = {}
-                    jsonresponse["_id"] = id
-                    jsonresponse["type"] = restype
-                    return jsonify(jsonresponse)
-                else:
-                    return Response("{\"error\" : \"Only create method is supported by post \"} " , status=405)
-        else:
-            return Response("{\"error\" : \"Only posting to all collections of %s are not implemented yet\"} " % (restype) , status=405)
-
-# For a list of resources within session
-mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
-                                '/sessions'
-                                '/<regex("[a-f0-9]{24}"):sessid>'
-                                '/<regex("(attachments|views)"):restype>'
-                                , view_func=DataSessionItemsAPI.as_view("show_session_items"),
-                                defaults={'resid':None},
-                                methods=["get", "post"])
-
-# For a particular resource from lists (e.g. attachments) within session
-mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
-                                '/sessions'
-                                '/<regex("[a-f0-9]{24}"):sessid>'
-                                '/<regex("(attachments|views|images)"):restype>'
-                                '/<regex("[a-f0-9]{24}"):resid>'
-                                , view_func=DataSessionItemsAPI.as_view("show_session_item"),
-                                methods=["get", "put", "delete"])
 
 # For a list of resources within session
 mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
@@ -745,35 +450,13 @@ mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
 
 
 
-class ThumbsAPI(MethodView):
-    """
-    API endpoint for requesting thumbnail images
-    """
-    decorators = [security.login_required]
-
-    def get_data_db(self, dbid):
-        database = models.ImageStore.objects.with_id(dbid)
-        if database == None:
-            return None
-        return database
-
-    def get(self, dbid, imgid):
-        return jsonify({"db" : dbid , "img" : imgid})
-
-
-# For getting thumbs
-mod.add_url_rule('/<regex("[a-f0-9]{24}"):dbid>'
-                                '/thumbs/<regex("[a-f0-9]{24}"):imgid>'
-                                , view_func=ThumbsAPI.as_view("show_thumbs"),
-                                methods=["get"])
-
 
 
 
 # Specially for session
 
 # Render admin template
-@site_admin_required(True)
+@security.AdminSiteRequirement.protected
 @mod.route('/admin')
 def admin_main():
     """
@@ -781,37 +464,10 @@ def admin_main():
     """
     return Response(render_template("admin.html"))
 
-@site_admin_required(True)
+@security.AdminSiteRequirement.protected
 @mod.route('/mysessions')
 def admin_main_sessions():
     """
     Single page application with uses this rest API to interactively do tasks
     """
     return Response(render_template("fullsessions.html"))
-
-
-################################################################################
-@site_admin_required(True)
-@mod.route('/sessions')
-def view_all_sessions():
-    all_sessions = list()
-    for role in security.current_user.groups:
-        with role.db:
-            if role.can_see_all:
-                sessions = list(models.Session.objects.as_pymongo())
-            else:
-                sessions = models.Session.objects.in_bulk(role.can_see).values().as_pymongo()
-        sessions.sort(key=itemgetter("label"))
-
-        all_sessions.append((role.to_mongo(), sessions))
-
-    all_sessions.sort(key=lambda (role, sessions): itemgetter("name"))
-
-    if request.args.get('json'):
-        # TODO: switch to using 'Content-Type: application/json' header to request JSON output
-        #   this can be checked for with 'request.get_json(silent=True)' or better in Flask 0.11 with 'request.is_json()'
-
-        return jsonify(sessions=all_sessions ,  ajax=1)
-        # return jsonify({})  # TODO: JSON output
-    else:
-        return render_template('sessionlist.html', all_sessions=all_sessions)
