@@ -42,6 +42,80 @@ import pymongo
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
+
+class Reader(object):
+    """
+    Generic reader for uploader
+    """
+    def __init__(self, params=None):
+        if params:
+            self.set_input_params(params)
+
+    def set_input_params(self, params):
+        self.params = params
+
+class WrapperReader(Reader):
+    def __init__(self, params=None):
+        super(WrapperReader, self).__init__(params)
+
+    def set_input_params(self, params):
+        """
+        Resets the state of the reader to the default using inputs provided
+        """
+        super(WrapperReader, self).set_input_params(params)
+
+        logger.info("Received following input params: %s"%(params))
+        fullname = params["fname"]
+        name = os.path.basename(fullname)
+        self.name = name
+
+        # Perform extension specific operation here
+        extension = os.path.splitext(fullname)
+
+        # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.params["fname"]]
+        # if len(istore.username) > 0:
+        #     params = params + ["-u", istore.username, "-p", istore.password]
+
+        args = ["./image_uploader", "-n", self.params["fname"]]
+
+        # Get the information in json
+        try:
+            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"]).communicate()[0]
+        except OSError as e:
+            logger.error("Fatal error from OS while executing image_uploader (possible incorrect --bindir): %s"%e.message)
+            sys.exit(0)
+
+        js = {}
+        try :
+            js = json.loads(output)
+        except:
+            logger.error("Fatal error Output of image_uploader not valid json: %s"%output)
+            sys.exit(0)
+
+        logger.info("JS: %s"%(js))
+
+        if js.has_key('error'):
+            anitem.textStatus.SetLabel("Error")
+            logger.error("Fatal error UNREADABLE input:\n%s"%(output))
+            sys.exit(0)
+
+        if not js.has_key("information"):
+            logger.error("Fatal error NO INFORMATION")
+            sys.exit(0)
+
+        self.width = js["dimensions"][0]
+        self.height = js["dimensions"][1]
+        self.num_levels = js["levels"]
+        # # Should have connection info
+        # if not js.has_key('connection'):
+        #     logger.error("Fatal error NO CONNECTION")
+        #     sys.exit(0)
+
+
+
+
+
+
 class MongoUploader(object):
     """
     Define common interface to interact with slide-atlas models
@@ -51,29 +125,138 @@ class MongoUploader(object):
         """
         Common initialization
         """
+        self.imageid = None  #: Id of the image collection to write to. It is not set initially but the init process will set it according to input parameter
         self.args = args
 
+        self.upload()
 
-    def load_connection_details(self, collection):
-        # TODO: would become member function of a class
-        # Get the destination session in the collection
-        # try:
+    def upload(self):
+        """
+        Implements basic workflow for interpreting arguments and uploading
+        """
+
+        # Locate the destination
+        try:
+            if self.args.mongo_collection:
+                # Remove any image object and collection of that name
+                self.imageid = ObjectId(self.args.mongo_collection)
+                logger.info("Using specified ImageID: %s"%(self.imageid))
+            else:
+                self.imageid = ObjectId()
+                logger.info("Using specified ImageID: %s"%(self.imageid))
+
+        except InvalidId:
+            logger.error("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
+
+        # Load reader
+        self.reader = self.make_reader()
+        logger.warning("%s"%self.reader)
+        # Load image store
+        self.setup_destination(args.collection)
+
+        # Insert image record
+        self.insert_metadata()
+
+        # Upload base / level
+
+        # build pyramid
+
+        self.update_collection()
+
+        # Image collection is ready,
+            # now add to the collection
+
+        # Create a view
+
+        # Done !
+    def update_collection(self):
+        """
+        Update the collection
+
+        i.e. Create a view, add the view to the session
+        """
+
+        logger.error("update_collection is not implemented yet")
+        sys.exit(1)
+
+    def make_reader(self):
+        logging.error("make_reader Not implemented")
+        sys.exit(1)
+
+    def setup_destination(self, collection):
+        """
+            Get the destination session in the collection
+        """
         with flaskapp.app_context():
             # Locate the session
 
-            coll = Collection.objects.get(id=ObjectId(self.args.collection))
-            print "collection: ", coll.to_son()
+            self.coll = Collection.objects.get(id=ObjectId(self.args.collection))
+            logger.info("collection: %s"%(self.coll.to_son()))
 
-            imagestore = coll.image_store
-            print "imagestore: ", imagestore.to_son()
+            self.imagestore = self.coll.image_store
+            logger.info("imagestore: %s"%(self.imagestore.to_son()))
 
-            return imagestore
+    # def get_metadata(self):
+    #     """
+    #     Each implementation would implement its own
+    #     """
+
+
+    def insert_metadata(self):
+        """
+        Inserts the created image metadata object if the flags permit
+        and connection established
+
+        Expects self.imagestore and self.reader to be set
+        """
+
+        if self.imagestore == None:
+            logger.error("Fatal Error: Imagestore not set")
+            sys.exit(1)
+
+        with flaskapp.app_context():
+            with self.imagestore:
+                image_doc = Image()
+                image_doc["filename"]= self.reader.name
+                image_doc["label"]= self.reader.name
+                image_doc["origin"] = [0,0,0]
+                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
+                image_doc["dimensions"] =[self.reader.width, self.reader.height]
+                image_doc["bounds"] = [0, self.reader.width, 0, self.reader.height]
+                image_doc["levels"] = self.reader.num_levels
+                image_doc["components"] = 3 # TODO: Get it from the data
+                image_doc["metadataready"] = True
+                image_doc["id"] = self.imageid
+
+                if self.args.dry_run:
+                    logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
+                else:
+                    image_doc.save()
+
 
 
 class MongoPtifUploader(MongoUploader):
     """
     Class for uploading ptif tiles into mongodb collection
     """
+    def make_reader(self):
+        """
+        Creates a ptif reader
+        """
+        try:
+            reader = TileReader()
+            reader.set_input_params({"fname" : self.args.input })
+
+            # Introspect
+            logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
+            reader.parse_image_description()
+            logger.info("Tilesize: %d, NoTiles: %d"%(reader.tile_width, reader.num_tiles))
+        except:
+            logger.error("Fatal Error: Unable to read input file %s"%(self.args.input))
+            return -1
+
+        return reader
+
     def __init__(self, args):
         """
         Expects -
@@ -95,34 +278,8 @@ class MongoPtifUploader(MongoUploader):
         # Check the input
         # TODO: Whether the input is a url
         # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
-        try:
-            reader = TileReader()
-            reader.set_input_params({"fname" : self.args.input })
-
-            # Introspect
-            logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
-            reader.parse_image_description()
-            logger.info("Tilesize: %d, NoTiles: %d"%(reader.tile_width, reader.num_tiles))
-        except:
-            logger.error("Fatal Error: Unable to read input file %s"%(self.args.input))
-            return -1
 
         fname = os.path.split(self.args.input)[1]
-
-        # Locate the destination
-        try:
-            if self.args.mongo_collection:
-                # Remove any image object and collection of that name
-                imageid = ObjectId(self.args.mongo_collection)
-                logger.info("Using specified ImageID: %s"%(imageid))
-            else:
-                imageid = ObjectId()
-                logger.info("Using specified ImageID: %s"%(imageid))
-
-        except InvalidId:
-            logger.warning("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
-
-
 
         # Get the destination session in the collection
         # try:
@@ -164,10 +321,6 @@ class MongoPtifUploader(MongoUploader):
                 image_doc["components"] = 3 # TODO: Get it from the data
                 image_doc["metadataready"] = True
                 image_doc["id"] = imageid
-                if self.args.dry_run:
-                    logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
-                else:
-                    image_doc.save()
 
         # Upload the base
         try:
@@ -276,7 +429,20 @@ class MongoUploaderWrapper(MongoUploader):
     """
     def __init__(self, args):
         super(MongoUploaderWrapper, self).__init__(args)
-        self.load_metadata()
+
+    def make_reader(self):
+        """
+        Creates a ptif reader
+        """
+        try:
+            reader = WrapperReader({"fname" : self.args.input, 'bindir' : self.args.bindir})
+            # Introspect
+            logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
+        except:
+            logger.error("Fatal Error: Unable to read input file %s"%(self.args.input))
+            sys.exit(0)
+
+        return reader
 
 
     def load_metadata(self):
@@ -284,52 +450,12 @@ class MongoUploaderWrapper(MongoUploader):
         Uses subprocess to get metadata
         """
 
-        logger.info("Received following self.args: %s"%(self.args))
+        # Update image record
 
-        name = os.path.basename(self.args.input)
+        update_image_record(self.reader)
 
-        # Perform extension specific operation here
-        extension = os.path.splitext(self.args.input)
+        return imageobj
 
-        #fullname = fullname.replace("\\","/")
-        #print os.getcwd()
-        # os.chdir(self.args.bindir)
-        logger.info("Current dir: %s"%(os.getcwd()))
-
-        # Obtain server name from the collection supplied
-
-        istore = self.load_connection_details(self.args.collection)
-
-        params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.args.input]
-        if len(istore.username) > 0:
-            params = params + ["-u", istore.username, "-p", istore.password]
-
-        print "Using params", params
-
-        # Get the information in json
-        output = subprocess.Popen   (params, stdout=subprocess.PIPE, cwd=self.args.bindir).communicate()[0]
-        print "Output: ", output
-        js = {}
-        try :
-            js = json.loads(output)
-        except:
-            pass
-
-        logger.info("JS: %s"%(js))
-
-        if js.has_key('error'):
-            anitem.textStatus.SetLabel("Error")
-            logger.error("Fatal error UNREADABLE input:\n%s"%(output))
-            sys.exit(0)
-
-        if not js.has_key("information"):
-            logger.error("Fatal error NO INFORMATION")
-            sys.exit(0)
-
-        # Should have connection info
-        if not js.has_key('connection'):
-            logger.error("Fatal error NO CONNECTION")
-            sys.exit(0)
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
@@ -347,7 +473,7 @@ def make_argument_parser():
     # Optional parameters
     # Tile size if the input image is not already tiled
     parser.add_argument("-t", "--tilesize", help="Tile size in pixes. (power of two recommended). Defaults to tiles in input or 256", default=256, type=int)
-    parser.add_argument("-m", "--mongo-collection", help="Set collection name. if the collection is specified it is overwritten if exists")
+    parser.add_argument("-m", "--mongo-collection", help="ObjectId, Destination mongodb collection name. If specified collection is emptied before overwriting")
 
     # TODO: Support parallel operations
     # parser.add_argument('-j', '--parallel', help='Turn parallel processing ON', action='store_true')

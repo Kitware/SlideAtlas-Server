@@ -172,6 +172,7 @@ class TileReader():
 
         self.tif = TIFF.open(params["fname"], "r")
         self.params = params
+        self.name = os.path.basename(self.params["fname"])
 
         self.tile_width = self.tif.GetField("TileWidth")
         self.tile_height = self.tif.GetField("TileLength")
