@@ -42,265 +42,294 @@ import pymongo
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
 
-
-def load_connection_details(collection):
-    # TODO: would become member function of a class
-    # Get the destination session in the collection
-    # try:
-    with flaskapp.app_context():
-        # Locate the session
-
-        coll = Collection.objects.get(id=ObjectId(args.collection))
-        print "collection: ", coll.to_son()
-
-        imagestore = coll.image_store
-        print "imagestore: ", imagestore.to_son()
-
-        return imagestore
-
-
-def upload_level(reader, db, imageid, level=0, dry_run=False):
+class MongoUploader(object):
     """
-    Uploads a given level
+    Define common interface to interact with slide-atlas models
+    Subclasses define
     """
-    # Insert tiles
-    reader.select_dir(level)
-
-    logger.info("#### Uploading level %d"%(level))
-    col = int(reader.width / reader.tile_width) + 1
-    row = int(reader.height / reader.tile_height) + 1
-
-    # Good old for loop
-    count = 0
-    for tilex in range(col):
-        for tiley in range(row):
-            x = tilex * reader.tile_width
-            y = tiley * reader.tile_height
-
-            if x >= reader.width or y >= reader.height:
-                continue
+    def __init__(self, args):
+        """
+        Common initialization
+        """
+        self.args = args
 
 
-            # # For debug
-            # fout = open(tilename, "wb")
-            # fout.write(contents)
-            # fout.close()
-            maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
-            tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel-1)
+    def load_connection_details(self, collection):
+        # TODO: would become member function of a class
+        # Get the destination session in the collection
+        # try:
+        with flaskapp.app_context():
+            # Locate the session
 
-            print count, level, tilex, tiley, tilename, dry_run
+            coll = Collection.objects.get(id=ObjectId(self.args.collection))
+            print "collection: ", coll.to_son()
 
-            if dry_run:
-                pass
+            imagestore = coll.image_store
+            print "imagestore: ", imagestore.to_son()
+
+            return imagestore
+
+
+class MongoPtifUploader(MongoUploader):
+    """
+    Class for uploading ptif tiles into mongodb collection
+    """
+    def __init__(self, args):
+        """
+        Expects -
+
+            input
+            imagestore
+            collection
+            tilesize
+            mongo-collection
+            force
+            dry-run
+            verbose
+            parallel
+
+        """
+
+        super(MongoPtifUploader, self).__init__(args)
+
+        # Check the input
+        # TODO: Whether the input is a url
+        # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
+        try:
+            reader = TileReader()
+            reader.set_input_params({"fname" : self.args.input })
+
+            # Introspect
+            logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
+            reader.parse_image_description()
+            logger.info("Tilesize: %d, NoTiles: %d"%(reader.tile_width, reader.num_tiles))
+        except:
+            logger.error("Fatal Error: Unable to read input file %s"%(self.args.input))
+            return -1
+
+        fname = os.path.split(self.args.input)[1]
+
+        # Locate the destination
+        try:
+            if self.args.mongo_collection:
+                # Remove any image object and collection of that name
+                imageid = ObjectId(self.args.mongo_collection)
+                logger.info("Using specified ImageID: %s"%(imageid))
             else:
-                tile_buffer = StringIO.StringIO()
-                reader_result = reader.dump_tile(x, y, tile_buffer)
+                imageid = ObjectId()
+                logger.info("Using specified ImageID: %s"%(imageid))
 
-                if reader_result == 0:
+        except InvalidId:
+            logger.warning("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
+
+
+
+        # Get the destination session in the collection
+        # try:
+        with flaskapp.app_context():
+            # Locate the session
+
+            coll = Collection.objects.get(id=ObjectId(self.args.collection))
+            print "collection: ", coll.to_son()
+
+            imagestore = coll.image_store
+            print "imagestore: ", imagestore.to_son()
+
+            session = Session.objects.get(id=ObjectId(self.args.session))
+            print "session: ", session
+
+        # except Exception as e:
+        #     logger.error("Fatal Error: %s"%(e.message))
+        #     return -1
+
+        # Create image record
+        with flaskapp.app_context():
+            with imagestore:
+                if self.args.mongo_collection:
+                    try:
+                        Image.objects.get(id=imageid)
+                        Image.objects.remove(id=imageid)
+                    except:
+                        # As expected
+                        pass
+
+                image_doc = Image()
+                image_doc["filename"]= fname
+                image_doc["label"]= fname
+                image_doc["origin"] = [0,0,0]
+                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
+                image_doc["dimensions"] =[reader.width, reader.height]
+                image_doc["bounds"] = [0, reader.width, 0, reader.height]
+                image_doc["levels"] = len(reader.levels)
+                image_doc["components"] = 3 # TODO: Get it from the data
+                image_doc["metadataready"] = True
+                image_doc["id"] = imageid
+                if self.args.dry_run:
+                    logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
+                else:
+                    image_doc.save()
+
+        # Upload the base
+        try:
+            if imagestore.replica_set:
+                conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
+                db = conn[imagestore.dbname]
+                db.authenticate(imagestore.username, imagestore.password)
+        except:
+            logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+            return -1
+
+
+        if self.args.mongo_collection:
+            #Check whether the collection exists
+            # Removing the collections
+            if self.args.dry_run:
+                logger.info("Dry run .. not removing original image chunks")
+            else:
+                db.drop_collection(self.args.mongo_collection)
+
+        if self.args.base_only:
+            self.upload_level(reader, db, imageid, level=0, dry_run=self.args.dry_run)
+        else:
+            # Get the number of levels
+            for i in range(len(reader.levels)):
+                self.upload_level(reader, db, imageid, level=i, dry_run=self.args.dry_run)
+
+        # # Temp for testing
+        # # Insert the record in the session
+        # imageid = ObjectId("53d0a1010a3ee130811cc5df")
+        # new_view_id = ObjectId("53d0a4da0a3ee1316edaa5aa")
+
+        if self.args.dry_run:
+            logger.info("Exiting .. dry run .. so no view or session update")
+            return
+
+        # Create a view
+        colviews = db["views"]
+        new_view_id = ObjectId()
+        colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
+        logger.warning("New view id: %s"%(new_view_id))
+
+        item = RefItem()
+        item.ref = new_view_id
+        item.db = ObjectId(imagestore.id)
+
+        session.views.append(item)
+        session.save()
+
+    def upload_level(self, reader, db, imageid, level=0, dry_run=False):
+        """
+        Uploads a given level
+        expects reader, db, imageid already stored in the __self__
+        """
+        # Insert tiles
+        reader.select_dir(level)
+
+        logger.info("#### Uploading level %d"%(level))
+        col = int(reader.width / reader.tile_width) + 1
+        row = int(reader.height / reader.tile_height) + 1
+
+        # Good old for loop
+        count = 0
+        for tilex in range(col):
+            for tiley in range(row):
+                x = tilex * reader.tile_width
+                y = tiley * reader.tile_height
+
+                if x >= reader.width or y >= reader.height:
                     continue
-                count = count + 1
-
-                contents = tile_buffer.getvalue()
-
-                imageobj = { "name" : tilename, "level" : level }
-                imageobj["file"] = Binary(contents)
-
-                del tile_buffer
-                db[str(imageid)].insert(imageobj)
-
-    logger.warning("Uploaded %d tiles"%(count))
-
-def ptif_uploader(args):
-    """
-    Expects -
-
-        input
-        imagestore
-        collection
-        tilesize
-        mongo-collection
-        force
-        dry-run
-        verbose
-        parallel
-
-    """
-
-    # Check the input
-    # TODO: Whether the input is a url
-    # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
-    try:
-        reader = TileReader()
-        reader.set_input_params({"fname" : args.input })
-
-        # Introspect
-        logger.info("Dimensions: (%d, %d)"%(reader.width, reader.height))
-        reader.parse_image_description()
-        logger.info("Tilesize: %d, NoTiles: %d"%(reader.tile_width, reader.num_tiles))
-    except:
-        logger.error("Fatal Error: Unable to read input file %s"%(args.input))
-        return -1
-
-    fname = os.path.split(args.input)[1]
-
-    # Locate the destination
-    try:
-        if args.mongo_collection:
-            # Remove any image object and collection of that name
-            imageid = ObjectId(args.mongo_collection)
-            logger.info("Using specified ImageID: %s"%(imageid))
-        else:
-            imageid = ObjectId()
-            logger.info("Using specified ImageID: %s"%(imageid))
-
-    except InvalidId:
-        logger.warning("Invalid ObjectID for mongo collection: %s"%(args.mongo_collection))
 
 
+                # # For debug
+                # fout = open(tilename, "wb")
+                # fout.write(contents)
+                # fout.close()
+                maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
+                tilename = get_tile_name_slideatlas(tilex,tiley, maxlevel-1)
 
-    # Get the destination session in the collection
-    # try:
-    with flaskapp.app_context():
-        # Locate the session
+                print count, level, tilex, tiley, tilename, dry_run
 
-        coll = Collection.objects.get(id=ObjectId(args.collection))
-        print "collection: ", coll.to_son()
-
-        imagestore = coll.image_store
-        print "imagestore: ", imagestore.to_son()
-
-        session = Session.objects.get(id=ObjectId(args.session))
-        print "session: ", session
-
-    # except Exception as e:
-    #     logger.error("Fatal Error: %s"%(e.message))
-    #     return -1
-
-    # Create image record
-    with flaskapp.app_context():
-        with imagestore:
-            if args.mongo_collection:
-                try:
-                    Image.objects.get(id=imageid)
-                    Image.objects.remove(id=imageid)
-                except:
-                    # As expected
+                if dry_run:
                     pass
+                else:
+                    tile_buffer = StringIO.StringIO()
+                    reader_result = reader.dump_tile(x, y, tile_buffer)
 
-            image_doc = Image()
-            image_doc["filename"]= fname
-            image_doc["label"]= fname
-            image_doc["origin"] = [0,0,0]
-            image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
-            image_doc["dimensions"] =[reader.width, reader.height]
-            image_doc["bounds"] = [0, reader.width, 0, reader.height]
-            image_doc["levels"] = len(reader.levels)
-            image_doc["components"] = 3 # TODO: Get it from the data
-            image_doc["metadataready"] = True
-            image_doc["id"] = imageid
-            if args.dry_run:
-                logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
-            else:
-                image_doc.save()
+                    if reader_result == 0:
+                        continue
+                    count = count + 1
 
-    # Upload the base
-    try:
-        if imagestore.replica_set:
-            conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
-            db = conn[imagestore.dbname]
-            db.authenticate(imagestore.username, imagestore.password)
-    except:
-        logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-        return -1
+                    contents = tile_buffer.getvalue()
+
+                    imageobj = { "name" : tilename, "level" : level }
+                    imageobj["file"] = Binary(contents)
+
+                    del tile_buffer
+                    db[str(imageid)].insert(imageobj)
+
+        logger.warning("Uploaded %d tiles"%(count))
 
 
-    if args.mongo_collection:
-        #Check whether the collection exists
-        # Removing the collections
-        if args.dry_run:
-            logger.info("Dry run .. not removing original image chunks")
-        else:
-            db.drop_collection(args.mongo_collection)
-
-    if args.base_only:
-        upload_level(reader, db, imageid, level=0, dry_run=args.dry_run)
-    else:
-        # Get the number of levels
-        for i in range(len(reader.levels)):
-            upload_level(reader, db, imageid, level=i, dry_run=args.dry_run)
-
-    # # Temp for testing
-    # # Insert the record in the session
-    # imageid = ObjectId("53d0a1010a3ee130811cc5df")
-    # new_view_id = ObjectId("53d0a4da0a3ee1316edaa5aa")
-
-    if args.dry_run:
-        logger.info("Exiting .. dry run .. so no view or session update")
-        return
-
-    # Create a view
-    colviews = db["views"]
-    new_view_id = ObjectId()
-    colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
-    logger.warning("New view id: %s"%(new_view_id))
-
-    item = RefItem()
-    item.ref = new_view_id
-    item.db = ObjectId(imagestore.id)
-
-    session.views.append(item)
-    session.save()
+class MongoUploaderWrapper(MongoUploader):
+    """
+    Class for uploading using image_uploader wrapper
+    """
+    def __init__(self, args):
+        super(MongoUploaderWrapper, self).__init__(args)
+        self.load_metadata()
 
 
+    def load_metadata(self):
+        """
+        Uses subprocess to get metadata
+        """
 
+        logger.info("Received following self.args: %s"%(self.args))
 
-def image_uploader_wrapper(args):
-    logger.info("Received following args: %s"%(args))
+        name = os.path.basename(self.args.input)
 
-    name = os.path.basename(args.input)
+        # Perform extension specific operation here
+        extension = os.path.splitext(self.args.input)
 
-    # Perform extension specific operation here
-    extension = os.path.splitext(args.input)
+        #fullname = fullname.replace("\\","/")
+        #print os.getcwd()
+        # os.chdir(self.args.bindir)
+        logger.info("Current dir: %s"%(os.getcwd()))
 
-    #fullname = fullname.replace("\\","/")
-    #print os.getcwd()
-    # os.chdir(args.bindir)
-    logger.info("Current dir: %s"%(os.getcwd()))
+        # Obtain server name from the collection supplied
 
-    # Obtain server name from the collection supplied
+        istore = self.load_connection_details(self.args.collection)
 
-    istore = load_connection_details(args.collection)
+        params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.args.input]
+        if len(istore.username) > 0:
+            params = params + ["-u", istore.username, "-p", istore.password]
 
-    params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", args.input]
-    if len(istore.username) > 0:
-        params = params + ["-u", istore.username, "-p", istore.password]
+        print "Using params", params
 
-    print "Using params", params
+        # Get the information in json
+        output = subprocess.Popen   (params, stdout=subprocess.PIPE, cwd=self.args.bindir).communicate()[0]
+        print "Output: ", output
+        js = {}
+        try :
+            js = json.loads(output)
+        except:
+            pass
 
-    # Get the information in json
-    output = subprocess.Popen   (params, stdout=subprocess.PIPE, cwd=args.bindir).communicate()[0]
-    print "Output: ", output
-    js = {}
-    try :
-        js = json.loads(output)
-    except:
-        pass
+        logger.info("JS: %s"%(js))
 
-    logger.info("JS: %s"%(js))
+        if js.has_key('error'):
+            anitem.textStatus.SetLabel("Error")
+            logger.error("Fatal error UNREADABLE input:\n%s"%(output))
+            sys.exit(0)
 
-    if js.has_key('error'):
-        anitem.textStatus.SetLabel("Error")
-        logger.error("Fatal error UNREADABLE input:\n%s"%(output))
-        sys.exit(0)
+        if not js.has_key("information"):
+            logger.error("Fatal error NO INFORMATION")
+            sys.exit(0)
 
-    if not js.has_key("information"):
-        logger.error("Fatal error NO INFORMATION")
-        sys.exit(0)
-
-    # Should have connection info
-    if not js.has_key('connection'):
-        logger.error("Fatal error NO CONNECTION")
-        sys.exit(0)
+        # Should have connection info
+        if not js.has_key('connection'):
+            logger.error("Fatal error NO CONNECTION")
+            sys.exit(0)
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
@@ -364,7 +393,7 @@ if __name__ == '__main__':
     # Find the extension of the file
     if args.input.endswith(".ptif"):
         logger.info("Got a PTIF")
-        ptif_uploader(args)
+        MongoPtifUploader(args)
     elif args.input.endswith(".jp2"):
         logger.info("Got an JPEG2000")
-        image_uploader_wrapper(args)
+        MongoUploaderWrapper(args)
