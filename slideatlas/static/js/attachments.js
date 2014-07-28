@@ -46,6 +46,9 @@ function attachmentUpload(attachmentPostUrl) {
             url: attachmentPostUrl,
             dataType: "json",
             maxChunkSize: 1048576, // 10 MB
+            // "replaceFileInput" helps with aborted uploads, but prevents the
+            //   selected file name from being displayed in the file widget
+            replaceFileInput: false,
             add: function (event, data) {
                 $(".sa-attachment-post-submit").removeClass("disabled");
                 $(".sa-attachment-post-submit").click(function() {
