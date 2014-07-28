@@ -17,6 +17,7 @@ import json
 import argparse
 import cStringIO as StringIO
 from math import floor
+import subprocess
 
 import logging
 logging.basicConfig()
@@ -40,6 +41,23 @@ import pymongo
 # Create teh application objects
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
+
+
+def load_connection_details(collection):
+    # TODO: would become member function of a class
+    # Get the destination session in the collection
+    # try:
+    with flaskapp.app_context():
+        # Locate the session
+
+        coll = Collection.objects.get(id=ObjectId(args.collection))
+        print "collection: ", coll.to_son()
+
+        imagestore = coll.image_store
+        print "imagestore: ", imagestore.to_son()
+
+        return imagestore
+
 
 def upload_level(reader, db, imageid, level=0, dry_run=False):
     """
@@ -233,6 +251,57 @@ def ptif_uploader(args):
     session.views.append(item)
     session.save()
 
+
+
+
+def image_uploader_wrapper(args):
+    logger.info("Received following args: %s"%(args))
+
+    name = os.path.basename(args.input)
+
+    # Perform extension specific operation here
+    extension = os.path.splitext(args.input)
+
+    #fullname = fullname.replace("\\","/")
+    #print os.getcwd()
+    # os.chdir(args.bindir)
+    logger.info("Current dir: %s"%(os.getcwd()))
+
+    # Obtain server name from the collection supplied
+
+    istore = load_connection_details(args.collection)
+
+    params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", args.input]
+    if len(istore.username) > 0:
+        params = params + ["-u", istore.username, "-p", istore.password]
+
+    print "Using params", params
+
+    # Get the information in json
+    output = subprocess.Popen   (params, stdout=subprocess.PIPE, cwd=args.bindir).communicate()[0]
+    print "Output: ", output
+    js = {}
+    try :
+        js = json.loads(output)
+    except:
+        pass
+
+    logger.info("JS: %s"%(js))
+
+    if js.has_key('error'):
+        anitem.textStatus.SetLabel("Error")
+        logger.error("Fatal error UNREADABLE input:\n%s"%(output))
+        sys.exit(0)
+
+    if not js.has_key("information"):
+        logger.error("Fatal error NO INFORMATION")
+        sys.exit(0)
+
+    # Should have connection info
+    if not js.has_key('connection'):
+        logger.error("Fatal error NO CONNECTION")
+        sys.exit(0)
+
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
 
@@ -244,6 +313,7 @@ def make_argument_parser():
     # Collection implicitly contains image_store
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
     parser.add_argument("-s", "--session", help="Session id", required=True)
+    parser.add_argument("--bindir", help="Path of the image uploader binary", required=False)
 
     # Optional parameters
     # Tile size if the input image is not already tiled
