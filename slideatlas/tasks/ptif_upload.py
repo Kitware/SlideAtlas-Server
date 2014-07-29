@@ -112,10 +112,6 @@ class WrapperReader(Reader):
         #     sys.exit(0)
 
 
-
-
-
-
 class MongoUploader(object):
     """
     Define common interface to interact with slide-atlas models
@@ -150,7 +146,7 @@ class MongoUploader(object):
 
         # Load reader
         self.reader = self.make_reader()
-        logger.warning("%s"%self.reader)
+
         # Load image store
         self.setup_destination(args.collection)
 
@@ -158,9 +154,9 @@ class MongoUploader(object):
         self.insert_metadata()
 
         # Upload base / level
+        self.upload_base()
 
         # build pyramid
-
         self.update_collection()
 
         # Image collection is ready,
@@ -180,7 +176,11 @@ class MongoUploader(object):
         sys.exit(1)
 
     def make_reader(self):
-        logging.error("make_reader Not implemented")
+        logging.error("make_reader NOT implemented")
+        sys.exit(1)
+
+    def upload_base(self):
+        logging.error("upload_base is NOT implemented")
         sys.exit(1)
 
     def setup_destination(self, collection):
@@ -196,11 +196,8 @@ class MongoUploader(object):
             self.imagestore = self.coll.image_store
             logger.info("imagestore: %s"%(self.imagestore.to_son()))
 
-    # def get_metadata(self):
-    #     """
-    #     Each implementation would implement its own
-    #     """
-
+            self.session = Session.objects.get(id=ObjectId(self.args.session))
+            logger.info("session: %s"%(self.session.to_son()))
 
     def insert_metadata(self):
         """
@@ -446,17 +443,7 @@ class MongoUploaderWrapper(MongoUploader):
 
         return reader
 
-
-    def load_metadata(self):
-        """
-        Uses subprocess to get metadata
-        """
-
-        # Update image record
-
-        update_image_record(self.reader)
-
-        return imageobj
+    def upload_base(self):
 
 
 def make_argument_parser():
