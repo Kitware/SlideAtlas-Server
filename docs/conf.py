@@ -15,7 +15,6 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "/.."))
 
 class Mock(object):
-
     __all__ = []
 
     def __init__(self, *args, **kwargs):
@@ -31,11 +30,12 @@ class Mock(object):
         elif name[0] == name[0].upper():
             mockType = type(name, (), {})
             mockType.__module__ = __name__
+
             return mockType
         else:
             return Mock()
 
-MOCK_MODULES = ['numpy', 'celery', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes']
+MOCK_MODULES = ['numpy', 'Celery', 'celery.result', 'celery.task', 'celery.task.control', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
@@ -58,6 +58,7 @@ from slideatlas.version import get_version
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinxcontrib.autohttp.flask', 'sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.ifconfig', 'sphinx.ext.viewcode']
+extensions += ['sphinxarg.ext']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -73,7 +74,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SlideAtlas'
-copyright = u'2012, Dhanannjay Deo'
+copyright = u'2012, Kitware Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
