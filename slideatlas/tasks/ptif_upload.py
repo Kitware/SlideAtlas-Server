@@ -278,11 +278,13 @@ class MongoPtifUploader(MongoUploader):
         # Check the input
         # TODO: Whether the input is a url
         # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
-
+        logger.error("Fatal error this implementation NEEDS A REVIEW, TODO: Use methods from base class ")
+        sys.exit(1)
         fname = os.path.split(self.args.input)[1]
 
         # Get the destination session in the collection
         # try:
+        self
         with flaskapp.app_context():
             # Locate the session
 
