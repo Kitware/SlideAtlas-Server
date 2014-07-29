@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
 from slideatlas  import create_app
-from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image
+from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image, View
 
 from slideatlas.ptiffstore.tiff_reader import TileReader
 from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
@@ -175,16 +175,34 @@ class MongoUploader(object):
         Update the collection
 
         i.e. Create a view, add the view to the session
+        expects imagestore and db to be setup
         """
 
-        logger.error("update_collection is not implemented yet")
-        sys.exit(1)
+        if self.args.dry_run:
+            logger.info("Dry run .. not updating collection record")
+            return
+
+        # Create a view
+        with flaskapp.app_context():
+            with self.imagestore:
+                aview = View(img=ObjectId(self.imageid))
+                aview.save()
+
+                item = RefItem(ref=aview.id, db = self.imagestore.id)
+                self.session.views.append(item)
+                self.session.save()
 
     def make_reader(self):
+        """
+        Will not be implemented in the base uploader class
+        """
         logging.error("make_reader NOT implemented")
         sys.exit(1)
 
     def upload_base(self):
+        """
+        Will not be implemented in the base uploader class
+        """
         logging.error("upload_base is NOT implemented")
         sys.exit(1)
 
@@ -203,6 +221,18 @@ class MongoUploader(object):
 
             self.session = Session.objects.get(id=ObjectId(self.args.session))
             logger.info("session: %s"%(self.session.to_son()))
+
+
+        # Create the pymongo connection, but not required here
+        # try:
+        #     if imagestore.replica_set:
+        #         conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
+        #         self.db = conn[imagestore.dbname]
+        #         self.db.authenticate(imagestore.username, imagestore.password)
+        # except:
+        #     logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+        #     return -1
+
 
     def insert_metadata(self):
         """
@@ -453,6 +483,10 @@ class MongoUploaderWrapper(MongoUploader):
         Does not depend on the reader, instead wraps the image_uploader utility
         Expects the reader and the imagestore to be setup before
         """
+
+        if self.args.dry_run:
+            logger.info("Dry run .. not uploading base")
+            return
 
         istore = self.imagestore
 
