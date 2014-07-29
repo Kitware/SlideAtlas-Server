@@ -54,6 +54,11 @@ class Reader(object):
     def set_input_params(self, params):
         self.params = params
 
+    def get_tile(self, x,y,tilesize=256):
+        logger.error("get_tile in Reader is not implemented yet")
+        sys.exit(1)
+
+
 class WrapperReader(Reader):
     def __init__(self, params=None):
         super(WrapperReader, self).__init__(params)
@@ -444,6 +449,55 @@ class MongoUploaderWrapper(MongoUploader):
         return reader
 
     def upload_base(self):
+        """
+        Does not depend on the reader, instead wraps the image_uploader utility
+        Expects the reader and the imagestore to be setup before
+        """
+
+        istore = self.imagestore
+
+        args = ["./image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+        if len(istore.username) > 0:
+            args = args + ["-u", istore.username, "-p", istore.password]
+
+        #shell is set to false so we don't get the black command line window
+        proc = subprocess.Popen(args, shell=False , stdout=subprocess.PIPE, cwd=self.args.bindir)
+
+        read = False
+
+        while True:
+            time.sleep(0)
+
+            result = proc.poll()
+
+            if not result == None:
+                # Process died
+                if not result == 0:
+                    logger.error("Fatal error: Process died without any output")
+                    sys.exit(1)
+
+            output = proc.stdout.readline()
+            #print output
+
+            try:
+                js = json.loads(output)
+            except:
+                logger.error("Fatal error: Invalid json output from image_uploader:\n%s"%(output))
+                sys.exit(1)
+
+            if js.has_key('error'):
+                logger.error("Fatal error: image_uploader says:%s"%(js["error"]))
+                sys.exit(1)
+
+            if js.has_key("information"):
+                logger.info("Information available")
+
+            if js.has_key('progress_percent'):
+                logger.info("Progress : %f"%(js['progress_percent']))
+
+            if js.has_key('success'):
+                logger.info("DONE !!")
+                break
 
 
 def make_argument_parser():
@@ -506,9 +560,9 @@ if __name__ == '__main__':
         print "Processing: ", args.input
 
     # Find the extension of the file
-    if args.input.endswith(".ptif"):
+    if args.input.endswith(".ptif") :
         logger.info("Got a PTIF")
         MongoPtifUploader(args)
-    elif args.input.endswith(".jp2"):
-        logger.info("Got an JPEG2000")
+    elif args.input.endswith(".jp2") or args.input.endswith(".jpg"):
+        logger.info("Got a " + args.input[-4:])
         MongoUploaderWrapper(args)
