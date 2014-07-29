@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% set active_page = "sessions" %}
 
+{% set is_session_admin = security.AdminSessionRequirement(session).can() %}
+
 {% block head_scripts %}
     <style>
     {% if is_session_admin %}

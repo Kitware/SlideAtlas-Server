@@ -119,6 +119,7 @@ def create_blueprints(app):
 
     from slideatlas import security
     security.register_with_app(app)
+    app.context_processor(lambda: {'security': security})
 
     from slideatlas.views import tile
     app.register_blueprint(tile.mod)

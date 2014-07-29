@@ -181,5 +181,3 @@ def register_principal(app, security):
     principal.skip_static = True
 
     app.register_error_handler(PermissionDenied, on_permission_denied)
-
-    app.context_processor(lambda: dict(show_admin=AdminRequirement().can()))

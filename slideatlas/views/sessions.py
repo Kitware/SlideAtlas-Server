@@ -118,8 +118,7 @@ def view_a_session(session, next=None):
     else:
         return render_template('session.html',
                                session=session,
-                               session_son=session_son,
-                               is_session_admin=security.AdminSessionRequirement(session).can())
+                               session_son=session_son)
 
 
 ################################################################################
