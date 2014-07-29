@@ -9,8 +9,9 @@ from .model_document import ToSonDocumentMixin
 
 ################################################################################
 __all__ = ('Permission', 'AdminSitePermission', 'AdminCollectionPermission',
-           'AdminSessionPermission', 'ViewCollectionPermission',
-            'ViewSessionPermission', 'PermissionDocument')
+           'AdminSessionPermission', 'EditCollectionPermission',
+           'EditSessionPermission', 'ViewCollectionPermission',
+           'ViewSessionPermission', 'PermissionDocument')
 
 
 ################################################################################
@@ -20,12 +21,14 @@ Permission = namedtuple('Permission', ('operation', 'resource_type', 'resource_i
 AdminSitePermission = partial(Permission, *('admin', 'site', None))
 AdminCollectionPermission = partial(Permission, *('admin', 'collection'))
 AdminSessionPermission = partial(Permission, *('admin', 'session'))
+EditCollectionPermission = partial(Permission, *('edit', 'collection'))
+EditSessionPermission = partial(Permission, *('edit', 'session'))
 ViewCollectionPermission = partial(Permission, *('view', 'collection'))
 ViewSessionPermission = partial(Permission, *('view', 'session'))
 
 class PermissionDocument(EmbeddedDocument, ToSonDocumentMixin):
 
-    operation = StringField(required=True, choices=('view', 'admin'),
+    operation = StringField(required=True, choices=('view', 'edit', 'admin'),
         verbose_name='Operation', help_text='')
 
     resource_type = StringField(required=True, choices=('session', 'collection', 'site'),

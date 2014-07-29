@@ -118,13 +118,12 @@ def view_a_session(session, next=None):
     else:
         return render_template('session.html',
                                session=session,
-                               session_son=session_son,
-                               is_session_admin=security.AdminSessionRequirement(session).can())
+                               session_son=session_son)
 
 
 ################################################################################
 @mod.route('/sessions/<Session:session>/edit')
-@security.AdminSessionRequirement.protected
+@security.EditSessionRequirement.protected
 def sessionedit(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
 
@@ -149,7 +148,7 @@ def sessionsave():
     # Todo: if session is undefined, create a new session (copy views when available).
     sessObj = models.Session.objects.with_id(session_id)
 
-    security.AdminSessionRequirement(sessObj).test()
+    security.EditSessionRequirement(sessObj).test()
 
     new_views = list()
     for view_item in view_items:

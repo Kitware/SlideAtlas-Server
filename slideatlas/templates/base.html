@@ -90,6 +90,7 @@
 <body>
 
     {# TODO: change to only showing Admin for users with some sort of privileges #}
+    {% set show_admin = security.AdminRequirement().can() %}
     {% set navigation_bar = [
         ('home', '/', 'Home', True),
         ('sessions', '/sessions', 'Sessions', True),
