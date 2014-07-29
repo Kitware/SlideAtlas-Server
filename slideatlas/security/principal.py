@@ -17,6 +17,7 @@ from slideatlas import models
 # TODO: populate __all__
 __all__ = ('AdminSiteRequirement', 'AdminCollectionRequirement',
            'AdminSessionRequirement', 'AdminRequirement',
+           'EditCollectionRequirement', 'EditSessionRequirement',
            'ViewSessionRequirement', 'UserRequirement')
 
 
@@ -25,7 +26,7 @@ UserPermission = partial(models.Permission, *('be', 'user'))
 
 
 ################################################################################
-class ModelProtectionMixin():
+class ModelProtectionMixin(object):
     model_type = None
 
     @classmethod
@@ -107,6 +108,30 @@ class AdminRequirement(Requirement, ModelProtectionMixin):
         raise NotImplementedError()
 
 
+class EditCollectionRequirement(Requirement, ModelProtectionMixin):
+    model_type = models.Collection
+
+    def __init__(self, collection):
+        super(EditCollectionRequirement, self).__init__(
+            models.AdminSitePermission(),
+            models.AdminCollectionPermission(collection.id),
+            models.EditCollectionPermission(collection.id),
+        )
+
+
+class EditSessionRequirement(Requirement, ModelProtectionMixin):
+    model_type = models.Session
+
+    def __init__(self, session):
+        super(EditSessionRequirement, self).__init__(
+            models.AdminSitePermission(),
+            models.AdminCollectionPermission(session.collection.id),
+            models.AdminSessionPermission(session.id),
+            models.EditCollectionPermission(session.collection.id),
+            models.EditSessionPermission(session.id),
+        )
+
+
 class ViewSessionRequirement(Requirement, ModelProtectionMixin):
     model_type = models.Session
 
@@ -115,6 +140,8 @@ class ViewSessionRequirement(Requirement, ModelProtectionMixin):
             models.AdminSitePermission(),
             models.AdminCollectionPermission(session.collection.id),
             models.AdminSessionPermission(session.id),
+            models.EditCollectionPermission(session.collection.id),
+            models.EditSessionPermission(session.id),
             models.ViewCollectionPermission(session.collection.id),
             models.ViewSessionPermission(session.id),
         )

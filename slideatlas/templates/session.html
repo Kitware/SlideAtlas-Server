@@ -101,7 +101,7 @@
                             Edit
                         </a>
                         {% endif %}
-                        {% if is_session_admin %}
+                        {% if security.EditSessionRequirement(session).can() %}
                         <button type="button" class="btn btn-info badge sa-view-permalink">
                             <span class="glyphicon glyphicon-link"></span>
                             Permalink

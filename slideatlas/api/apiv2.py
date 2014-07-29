@@ -536,7 +536,7 @@ class SessionItemAPI(ItemAPI):
 
 
 class SessionAccessAPI(API):
-    @security.AdminSessionRequirement.protected
+    @security.EditSessionRequirement.protected
     def get(self, session):
         groups = models.Group.objects(permissions__resource_type='session',
                                       permissions__resource_id=session.id
@@ -544,7 +544,7 @@ class SessionAccessAPI(API):
 
         return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
 
-    @security.AdminCollectionRequirement.protected
+    @security.EditCollectionRequirement.protected
     def post(self, collection):
         abort(501)  # Not Implemented
 
