@@ -12,7 +12,6 @@ flask-mongoengine==0.7.0
 
 Sphinx==1.2.2
 sphinxcontrib-httpdomain==1.2.1
-sphinx-argparse==0.1.12
 
 # For tilereader
 numpy==1.8.1
