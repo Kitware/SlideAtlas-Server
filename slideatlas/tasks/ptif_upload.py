@@ -52,7 +52,7 @@ class Reader(object):
             self.set_input_params(params)
         self.spacing = [1.0, 1.0, 1.0]
         self.origin = [0., 0., 0.]
-
+        self.components = 3
     def set_input_params(self, params):
         self.params = params
 
@@ -119,6 +119,7 @@ class WrapperReader(Reader):
         self.num_levels = js["levels"]
         self.origin = js["origin"]
         self.spacing = js["spacing"]
+        self.components = js["components"]
         # # Should have connection info
         # if not js.has_key('connection'):
         #     logger.error("Fatal error NO CONNECTION")
@@ -264,20 +265,18 @@ class MongoUploader(object):
                 image_doc = {}
                 image_doc["filename"]= self.reader.name
                 image_doc["label"]= self.reader.name
-                image_doc["origin"] = reader.origin
-                image_doc["spacing"] = reader.spacing #TODO: Get it from the data
+                image_doc["origin"] = self.reader.origin
+                image_doc["spacing"] = self.reader.spacing
                 image_doc["dimensions"] =[self.reader.width, self.reader.height]
                 image_doc["levels"] = self.reader.num_levels
-                image_doc["components"] = 3 # TODO: Get it from the data
+                image_doc["components"] = self.reader.components
                 image_doc["metadataready"] = True
                 image_doc["_id"] = self.imageid
 
                 if self.args.dry_run:
-                    logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
+                    logger.info("Dry run .. not creating image record: %s"%(image_doc))
                 else:
                     self.db["images"].insert(imgobj)
-
-
 
 class MongoPtifUploader(MongoUploader):
     """
@@ -480,6 +479,8 @@ class MongoUploaderWrapper(MongoUploader):
         """
         Creates a ptif reader
         """
+        reader = WrapperReader({"fname" : self.args.input, 'bindir' : self.args.bindir})
+
         try:
             reader = WrapperReader({"fname" : self.args.input, 'bindir' : self.args.bindir})
             # Introspect
@@ -608,12 +609,15 @@ if __name__ == '__main__':
         print "No input files ! (please use -i <inputfile>"
         sys.exit(255)
     else:
-        print "Processing: ", args.input
+        logger.info("Processing: %s"%(args.input))
 
+    logger.info(args.input)
     # Find the extension of the file
     if args.input.endswith(".ptif") :
         logger.info("Got a PTIF")
         MongoPtifUploader(args)
-    elif args.input.endswith(".jp2") or args.input.endswith(".jpg"):
+    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
         logger.info("Got a " + args.input[-4:])
         MongoUploaderWrapper(args)
+    else:
+        logger.error("Unsupported file: " + args.input[-4:])
