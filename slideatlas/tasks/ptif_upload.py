@@ -186,13 +186,17 @@ class MongoUploader(object):
             logger.info("Dry run .. not updating collection record")
             return
 
-        # Create a view
+        # Create and insert view
+        aview = {}
+        aview["img"] = img=ObjectId(self.imageid)
+
+        self.db["views"].insert(aview)
+
+        # Update the session
         with flaskapp.app_context():
             with self.imagestore:
-                aview = View(img=ObjectId(self.imageid))
-                aview.save()
 
-                item = RefItem(ref=aview.id, db = self.imagestore.id)
+                item = RefItem(ref=aview["_id"], db = self.imagestore.id)
                 self.session.views.append(item)
                 self.session.save()
 
@@ -227,15 +231,15 @@ class MongoUploader(object):
             logger.info("session: %s"%(self.session.to_son()))
 
 
-        # Create the pymongo connection, but not required here
-        # try:
-        #     if imagestore.replica_set:
-        #         conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
-        #         self.db = conn[imagestore.dbname]
-        #         self.db.authenticate(imagestore.username, imagestore.password)
-        # except:
-        #     logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-        #     return -1
+        # Create the pymongo connection, used for view and image
+        try:
+            if imagestore.replica_set:
+                conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
+                self.db = conn[imagestore.dbname]
+                self.db.authenticate(imagestore.username, imagestore.password)
+        except:
+            logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+            return -1
 
 
     def insert_metadata(self):
@@ -252,22 +256,22 @@ class MongoUploader(object):
 
         with flaskapp.app_context():
             with self.imagestore:
-                image_doc = Image()
+                # For now use pymongo
+                image_doc = {}
                 image_doc["filename"]= self.reader.name
                 image_doc["label"]= self.reader.name
                 image_doc["origin"] = reader.origin
                 image_doc["spacing"] = reader.spacing #TODO: Get it from the data
                 image_doc["dimensions"] =[self.reader.width, self.reader.height]
-                image_doc["bounds"] = [0, self.reader.width, 0, self.reader.height]
                 image_doc["levels"] = self.reader.num_levels
                 image_doc["components"] = 3 # TODO: Get it from the data
                 image_doc["metadataready"] = True
-                image_doc["id"] = self.imageid
+                image_doc["_id"] = self.imageid
 
                 if self.args.dry_run:
                     logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
                 else:
-                    image_doc.save()
+                    self.db["images"].insert(imgobj)
 
 
 
