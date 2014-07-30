@@ -53,7 +53,7 @@ function Viewer (viewport, cache) {
 
   this.GuiElements = [];
 
-  this.CopyrightWrapper =
+  /*this.CopyrightWrapper =
     $('<div>')
       //.appendTo(this.MainView.Canvas)
       .appendTo('body')
@@ -69,7 +69,7 @@ function Viewer (viewport, cache) {
       //.hide()
       .attr('id', 'copyright');
 
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
+  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);*/
 
   this.InitializeZoomGui();
 }
@@ -222,9 +222,9 @@ Viewer.prototype.SetCache = function(cache) {
     if (cache.Image.copyright == undefined) {
       cache.Image.copyright = "Copyright 2014";
     }
-    this.CopyrightWrapper
+    /*this.CopyrightWrapper
       .html(cache.Image.copyright)
-      .show();
+      .show();*/
   }
 
   this.MainView.SetCache(cache);
