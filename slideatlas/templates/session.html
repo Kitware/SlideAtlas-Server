@@ -91,23 +91,18 @@
                         </a>
                         {% endif %}
                     </td>
+                    {% if security.EditSessionRequirement(session).can() %}
                     <td align="right">
-                        {% if not session_son.hide_annotations %}
-                        {# TODO: what is imageitem? #}
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}"
-                            type="button" class="btn btn-warning badge sa-view-edit"
-                        >
+                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}" class="btn btn-warning badge sa-view-edit">
                             <span class="glyphicon glyphicon-edit"></span>
                             Edit
                         </a>
-                        {% endif %}
-                        {% if security.EditSessionRequirement(session).can() %}
                         <button type="button" class="btn btn-info badge sa-view-permalink">
                             <span class="glyphicon glyphicon-link"></span>
                             Permalink
                         </button>
-                        {% endif %}
                     </td>
+                    {% endif %}
                 </tr>
              {% endfor %}
         </table>
