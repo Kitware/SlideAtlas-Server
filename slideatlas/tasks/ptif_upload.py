@@ -82,12 +82,16 @@ class WrapperReader(Reader):
         # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.params["fname"]]
         # if len(istore.username) > 0:
         #     params = params + ["-u", istore.username, "-p", istore.password]
+        if os.name == 'nt':
+            self.executable = "image_uploader.exe"
+        else:
+            self.executable = "image_uploader"
 
-        args = ["./image_uploader", "-n", self.params["fname"]]
+        args = [self.executable, "-n", self.params["fname"]]
 
         # Get the information in json
         try:
-            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"]).communicate()[0]
+            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"], shell=True).communicate()[0]
         except OSError as e:
             logger.error("Fatal error from OS while executing image_uploader (possible incorrect --bindir): %s"%e.message)
             sys.exit(0)
@@ -498,12 +502,17 @@ class MongoUploaderWrapper(MongoUploader):
 
         istore = self.imagestore
 
-        args = ["./image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+        if os.name == 'nt':
+            self.executable = "image_uploader.exe"
+        else:
+            self.executable = "image_uploader"
+
+        args = [self.executable, "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
         if len(istore.username) > 0:
             args = args + ["-u", istore.username, "-p", istore.password]
 
         #shell is set to false so we don't get the black command line window
-        proc = subprocess.Popen(args, shell=False , stdout=subprocess.PIPE, cwd=self.args.bindir)
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
 
         read = False
 
