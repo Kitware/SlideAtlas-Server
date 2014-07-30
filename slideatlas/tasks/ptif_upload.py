@@ -50,6 +50,8 @@ class Reader(object):
     def __init__(self, params=None):
         if params:
             self.set_input_params(params)
+        self.spacing = [1.0, 1.0, 1.0]
+        self.origin = [0., 0., 0.]
 
     def set_input_params(self, params):
         self.params = params
@@ -111,6 +113,8 @@ class WrapperReader(Reader):
         self.width = js["dimensions"][0]
         self.height = js["dimensions"][1]
         self.num_levels = js["levels"]
+        self.origin = js["origin"]
+        self.spacing = js["spacing"]
         # # Should have connection info
         # if not js.has_key('connection'):
         #     logger.error("Fatal error NO CONNECTION")
@@ -251,8 +255,8 @@ class MongoUploader(object):
                 image_doc = Image()
                 image_doc["filename"]= self.reader.name
                 image_doc["label"]= self.reader.name
-                image_doc["origin"] = [0,0,0]
-                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
+                image_doc["origin"] = reader.origin
+                image_doc["spacing"] = reader.spacing #TODO: Get it from the data
                 image_doc["dimensions"] =[self.reader.width, self.reader.height]
                 image_doc["bounds"] = [0, self.reader.width, 0, self.reader.height]
                 image_doc["levels"] = self.reader.num_levels
