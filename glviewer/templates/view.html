@@ -246,7 +246,8 @@ shape has visibility and
       CANVAS.height(height);
       
       //document.documentElement.style.height = height + "px";
-      CANVAS.parent().parent().parent().height(height - 96);
+      document.documentElement.setAttribute('height', height + "px");
+      //CANVAS.parent().parent().parent().height(height - 96);
     }
     
     // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
@@ -270,8 +271,7 @@ shape has visibility and
     } // GL.SetViewport does the work for 2d canvases.
 
     // Handle resizing of the favorites bar.
-    /**/
-    if(FAVORITES_WIDGET){
+    if(FAVORITES_WIDGET != undefined){
       FAVORITES_WIDGET.resize(width);
     }
 
@@ -289,7 +289,7 @@ shape has visibility and
     if (VIEWER2) {
       VIEWER2.SetViewport([left+width1, 0, width2, height]);
       eventuallyRender();
-    }/**/
+    }
   }
 
   function InitViews() {

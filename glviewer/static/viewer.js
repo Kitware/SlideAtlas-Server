@@ -658,7 +658,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
   eventuallyRender();
 }
 
-
+/**/
 Viewer.prototype.HandleTouchStart = function(event) {
   this.MomentumX = 0.0;
   this.MomentumY = 0.0;
@@ -898,6 +898,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
   }
   this.HandleMomentum(event);
 }
+/**/
 
 Viewer.prototype.HandleMomentum = function(event) {
   // I see an odd intermittent camera matrix problem
