@@ -153,7 +153,7 @@ class MongoUploader(object):
                 logger.info("Using specified ImageID: %s"%(self.imageid))
             else:
                 self.imageid = ObjectId()
-                logger.info("Using specified ImageID: %s"%(self.imageid))
+                logger.info("Using new ImageID: %s"%(self.imageid))
 
         except InvalidId:
             logger.error("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
@@ -238,13 +238,16 @@ class MongoUploader(object):
 
         # Create the pymongo connection, used for view and image
         try:
-            if imagestore.replica_set:
-                conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
-                self.db = conn[imagestore.dbname]
-                self.db.authenticate(imagestore.username, imagestore.password)
+            if self.imagestore.replica_set:
+                conn = pymongo.ReplicaSetConnection(self.imagestore.host, replicaSet=self.imagestore.replica_set)
+            else:
+                conn = pymongo.MongoClient(self.imagestore.host)
+
+            self.db = conn[self.imagestore.dbname]
+            self.db.authenticate(self.imagestore.username, self.imagestore.password)
         except:
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-            return -1
+            sys.exit(1)
 
 
     def insert_metadata(self):
@@ -276,7 +279,7 @@ class MongoUploader(object):
                 if self.args.dry_run:
                     logger.info("Dry run .. not creating image record: %s"%(image_doc))
                 else:
-                    self.db["images"].insert(imgobj)
+                    self.db["images"].insert(image_doc)
 
 class MongoPtifUploader(MongoUploader):
     """
