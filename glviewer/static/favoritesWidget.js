@@ -60,6 +60,13 @@ function FavoritesWidget() {
       .attr('src',"webgl-viewer/static/saveNew.png")
       .click(function(){SaveFavorite();});
   this.TextTip = new ToolTip(this.SaveFavoriteButton, "Save Favorite");
+  
+  if(MOBILE_DEVICE){
+    this.SaveFavoriteButton
+        .css({
+          'margin-top': '0px'
+        });
+  }
 
   this.ImageList =
     $('<div>')
@@ -67,7 +74,8 @@ function FavoritesWidget() {
       .css({'float': 'left',
             'overflow-x': 'scroll',
             'overflow-y': 'hidden',
-            'white-space': 'nowrap'});
+            'white-space': 'nowrap',
+            'height': '100%'});
 
   var self = this;
   this.MenuFavoriteButton =
@@ -210,9 +218,15 @@ function deleteFavorite(img){
 }
 
 FavoritesWidget.prototype.resize = function(width){
-  this.ImageList.css({
-    'width': width - 60
-  });
+  if(MOBILE_DEVICE){
+    this.ImageList.css({
+      'width': width - 90
+    });
+  } else {
+    this.ImageList.css({
+      'width': width - 50
+    });
+  }
 }
 
 

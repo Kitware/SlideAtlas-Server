@@ -1,6 +1,10 @@
 <!doctype html>
 
-<title>Connectome Viewer</title>
+<head>
+  <title>Connectome Viewer</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+</head>
 <!-- view.html -->
 
 
@@ -10,6 +14,10 @@
 
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<!-- Hacky attempt to fix mobile device rotate-resize bug -->
+<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
@@ -110,7 +118,7 @@ shape has visibility and
 <!-- For websockets -->
 <script type="text/javascript" src="{{ url_for('static', filename='js/bson.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='websocket.js') }}"></script>
-
+<!---->
 <script id="shader-poly-fs" type="x-shader/x-fragment">
   precision mediump float;
   uniform vec3 uColor;
@@ -178,7 +186,7 @@ shape has visibility and
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
     vTextureCoord = aTextureCoord;
   }
-</script>
+</script> <!---->
 <script type="text/javascript">
   var TEMPLATE = "view.html";
   var USER = "{{user}}";
@@ -205,15 +213,57 @@ shape has visibility and
   }
   
   $(window).bind('orientationchange', function(event) {
-    alert(window.innerWidth + " " + VIEWER1.MainView.Canvas.parent().width + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas.parent().height);
+    //alert(window.innerWidth + " " + VIEWER1.MainView.Canvas[0].parentNode.clientWidth + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas[0].parentNode.clientHeight);
+    handleResize();
   });
   
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
     //var height = CANVAS.innerHeight();
-    var width = window.innerWidth;
-    var height = window.innerHeight;
+    //var width = window.innerWidth;
+    //var height = window.innerHeight;
+    
+    screenDiv = $('<div>').appendTo('body')
+                          .css({
+                            'background-color': '#f00',
+                            'border': '1px solid black',
+                            'width': '100%',
+                            'height': '100%',
+                            'z-index': '10'
+                          });
+    
+    
+    var width = CANVAS.width();
+    var height = CANVAS.height();
+    //var height = window.innerHeight;
+    
+    if(MOBILE_DEVICE == 'iPad'){
+      width = window.innerWidth;
+      //height = window.innerHeight;
+      height = window.innerHeight;
+      //var canvasParent = CANVAS[0].parentNode;
+      CANVAS.height(height);
+      
+      //document.documentElement.style.height = height + "px";
+      document.documentElement.setAttribute('height', height + "px");
+      //CANVAS.parent().parent().parent().height(height - 96);
+    }
+    
+    // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
+    if(GL){
+      var canvasParent = CANVAS[0].parentNode;
+      width = canvasParent.clientWidth;
+      height = canvasParent.clientHeight;
+    }
+    
+    
+    if(height == 0){
+      height = window.innerHeight;
+    }
+    
+    //setTimeout(function(){alert(width + " " + height);}, 200);
+    
     if (GL) {
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
@@ -221,7 +271,7 @@ shape has visibility and
     } // GL.SetViewport does the work for 2d canvases.
 
     // Handle resizing of the favorites bar.
-    if(FAVORITES_WIDGET){
+    if(FAVORITES_WIDGET != undefined){
       FAVORITES_WIDGET.resize(width);
     }
 
@@ -243,12 +293,13 @@ shape has visibility and
   }
 
   function InitViews() {
+  /**/
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
     VIEWER1 = initView([0,0, width, height]);
     VIEWER2 = initView([0,0, width, height]);
-
+/**/
     handleResize();
   }
 
@@ -256,6 +307,7 @@ shape has visibility and
   // in different threads.
   var DRAWING = false;
   function draw() {
+  /**/
     if (DRAWING) { return; }
     DRAWING = true;
     if (GL) {
@@ -268,6 +320,7 @@ shape has visibility and
     VIEWER1.Draw();
     if (DUAL_VIEW) { VIEWER2.Draw(); }
     DRAWING = false;
+    /**/
   }
 
   // The event manager detects single right click and double right click.
@@ -300,6 +353,7 @@ shape has visibility and
 
 
   function Start() {
+    /**/
     var dia = new Dialog();
     detectMobile();
     $(body).css({'overflow-x':'hidden'});
@@ -400,7 +454,7 @@ shape has visibility and
         .click(function(){ShowViewerEditMenu(VIEWER2);});
 
       VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
-    }
+    }/**/
 
     eventuallyRender();
   }
@@ -412,6 +466,7 @@ shape has visibility and
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
 
+      /**/
       $("#text-properties-dialog").dialog({
           autoOpen:false,
           height:350,
@@ -505,7 +560,7 @@ shape has visibility and
           $(this).dialog("close");
         }
       }
-    });
+    });/**/
 
 
   //$(document).ready(function() {
@@ -513,7 +568,6 @@ shape has visibility and
   });
 
 </script>
-
 
 <style>
 #feedback { font-size: 1.4em; }

@@ -53,7 +53,7 @@ function Viewer (viewport, cache) {
 
   this.GuiElements = [];
 
-  this.CopyrightWrapper =
+  /*this.CopyrightWrapper =
     $('<div>')
       //.appendTo(this.MainView.Canvas)
       .appendTo('body')
@@ -69,7 +69,7 @@ function Viewer (viewport, cache) {
       //.hide()
       .attr('id', 'copyright');
 
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);
+  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);*/
 
   this.InitializeZoomGui();
 }
@@ -222,9 +222,9 @@ Viewer.prototype.SetCache = function(cache) {
     if (cache.Image.copyright == undefined) {
       cache.Image.copyright = "Copyright 2014";
     }
-    this.CopyrightWrapper
+    /*this.CopyrightWrapper
       .html(cache.Image.copyright)
-      .show();
+      .show();*/
   }
 
   this.MainView.SetCache(cache);
@@ -658,7 +658,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
   eventuallyRender();
 }
 
-
+/**/
 Viewer.prototype.HandleTouchStart = function(event) {
   this.MomentumX = 0.0;
   this.MomentumY = 0.0;
@@ -898,6 +898,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
   }
   this.HandleMomentum(event);
 }
+/**/
 
 Viewer.prototype.HandleMomentum = function(event) {
   // I see an odd intermittent camera matrix problem
