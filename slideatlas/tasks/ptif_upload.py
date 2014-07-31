@@ -50,7 +50,9 @@ class Reader(object):
     def __init__(self, params=None):
         if params:
             self.set_input_params(params)
-
+        self.spacing = [1.0, 1.0, 1.0]
+        self.origin = [0., 0., 0.]
+        self.components = 3
     def set_input_params(self, params):
         self.params = params
 
@@ -80,12 +82,16 @@ class WrapperReader(Reader):
         # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.params["fname"]]
         # if len(istore.username) > 0:
         #     params = params + ["-u", istore.username, "-p", istore.password]
+        if os.name == 'nt':
+            self.executable = "image_uploader.exe"
+        else:
+            self.executable = "image_uploader"
 
-        args = ["./image_uploader", "-n", self.params["fname"]]
+        args = [self.executable, "-n", self.params["fname"]]
 
         # Get the information in json
         try:
-            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"]).communicate()[0]
+            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"], shell=True).communicate()[0]
         except OSError as e:
             logger.error("Fatal error from OS while executing image_uploader (possible incorrect --bindir): %s"%e.message)
             sys.exit(0)
@@ -111,6 +117,9 @@ class WrapperReader(Reader):
         self.width = js["dimensions"][0]
         self.height = js["dimensions"][1]
         self.num_levels = js["levels"]
+        self.origin = js["origin"]
+        self.spacing = js["spacing"]
+        self.components = js["components"]
         # # Should have connection info
         # if not js.has_key('connection'):
         #     logger.error("Fatal error NO CONNECTION")
@@ -144,7 +153,7 @@ class MongoUploader(object):
                 logger.info("Using specified ImageID: %s"%(self.imageid))
             else:
                 self.imageid = ObjectId()
-                logger.info("Using specified ImageID: %s"%(self.imageid))
+                logger.info("Using new ImageID: %s"%(self.imageid))
 
         except InvalidId:
             logger.error("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
@@ -182,13 +191,17 @@ class MongoUploader(object):
             logger.info("Dry run .. not updating collection record")
             return
 
-        # Create a view
+        # Create and insert view
+        aview = {}
+        aview["img"] = img=ObjectId(self.imageid)
+
+        self.db["views"].insert(aview)
+
+        # Update the session
         with flaskapp.app_context():
             with self.imagestore:
-                aview = View(img=ObjectId(self.imageid))
-                aview.save()
 
-                item = RefItem(ref=aview.id, db = self.imagestore.id)
+                item = RefItem(ref=aview["_id"], db = self.imagestore.id)
                 self.session.views.append(item)
                 self.session.save()
 
@@ -223,15 +236,18 @@ class MongoUploader(object):
             logger.info("session: %s"%(self.session.to_son()))
 
 
-        # Create the pymongo connection, but not required here
-        # try:
-        #     if imagestore.replica_set:
-        #         conn = pymongo.ReplicaSetConnection(imagestore.host, replicaSet=imagestore.replica_set)
-        #         self.db = conn[imagestore.dbname]
-        #         self.db.authenticate(imagestore.username, imagestore.password)
-        # except:
-        #     logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-        #     return -1
+        # Create the pymongo connection, used for view and image
+        try:
+            if self.imagestore.replica_set:
+                conn = pymongo.ReplicaSetConnection(self.imagestore.host, replicaSet=self.imagestore.replica_set)
+            else:
+                conn = pymongo.MongoClient(self.imagestore.host)
+
+            self.db = conn[self.imagestore.dbname]
+            self.db.authenticate(self.imagestore.username, self.imagestore.password)
+        except:
+            logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+            sys.exit(1)
 
 
     def insert_metadata(self):
@@ -248,24 +264,22 @@ class MongoUploader(object):
 
         with flaskapp.app_context():
             with self.imagestore:
-                image_doc = Image()
+                # For now use pymongo
+                image_doc = {}
                 image_doc["filename"]= self.reader.name
                 image_doc["label"]= self.reader.name
-                image_doc["origin"] = [0,0,0]
-                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
+                image_doc["origin"] = self.reader.origin
+                image_doc["spacing"] = self.reader.spacing
                 image_doc["dimensions"] =[self.reader.width, self.reader.height]
-                image_doc["bounds"] = [0, self.reader.width, 0, self.reader.height]
                 image_doc["levels"] = self.reader.num_levels
-                image_doc["components"] = 3 # TODO: Get it from the data
+                image_doc["components"] = self.reader.components
                 image_doc["metadataready"] = True
-                image_doc["id"] = self.imageid
+                image_doc["_id"] = self.imageid
 
                 if self.args.dry_run:
-                    logger.info("Dry run .. not creating image record: %s"%(image_doc.to_son()))
+                    logger.info("Dry run .. not creating image record: %s"%(image_doc))
                 else:
-                    image_doc.save()
-
-
+                    self.db["images"].insert(image_doc)
 
 class MongoPtifUploader(MongoUploader):
     """
@@ -468,6 +482,8 @@ class MongoUploaderWrapper(MongoUploader):
         """
         Creates a ptif reader
         """
+        reader = WrapperReader({"fname" : self.args.input, 'bindir' : self.args.bindir})
+
         try:
             reader = WrapperReader({"fname" : self.args.input, 'bindir' : self.args.bindir})
             # Introspect
@@ -490,12 +506,17 @@ class MongoUploaderWrapper(MongoUploader):
 
         istore = self.imagestore
 
-        args = ["./image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+        if os.name == 'nt':
+            self.executable = "image_uploader.exe"
+        else:
+            self.executable = "image_uploader"
+
+        args = [self.executable, "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
         if len(istore.username) > 0:
             args = args + ["-u", istore.username, "-p", istore.password]
 
         #shell is set to false so we don't get the black command line window
-        proc = subprocess.Popen(args, shell=False , stdout=subprocess.PIPE, cwd=self.args.bindir)
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
 
         read = False
 
@@ -591,12 +612,15 @@ if __name__ == '__main__':
         print "No input files ! (please use -i <inputfile>"
         sys.exit(255)
     else:
-        print "Processing: ", args.input
+        logger.info("Processing: %s"%(args.input))
 
+    logger.info(args.input)
     # Find the extension of the file
     if args.input.endswith(".ptif") :
         logger.info("Got a PTIF")
         MongoPtifUploader(args)
-    elif args.input.endswith(".jp2") or args.input.endswith(".jpg"):
+    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
         logger.info("Got a " + args.input[-4:])
         MongoUploaderWrapper(args)
+    else:
+        logger.error("Unsupported file: " + args.input[-4:])
