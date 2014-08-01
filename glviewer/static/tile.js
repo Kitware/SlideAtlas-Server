@@ -52,6 +52,7 @@ function GetErrorImageFunction (callback) {
 
 TILESTATS = new TileStats();
 
+
 // Three stages to loading a tile: (texture map is created when the tile is rendered.
 // 1: Create a tile object.
 // 2: Initialize the texture.
@@ -72,6 +73,8 @@ function Tile(x, y, z, level, name, cache) {
   this.Texture = null;
   this.TimeStamp = TIME_STAMP;
   this.BranchTimeStamp = TIME_STAMP;
+
+  
 
   this.Matrix = mat4.create();
   mat4.identity(this.Matrix);
@@ -188,6 +191,8 @@ Tile.prototype.StartLoad = function (cache) {
   }
 };
 
+
+
 Tile.prototype.LoadHttp = function (cache) {
   // For http simply set the data url and wait 
   var imageSrc;
@@ -195,6 +200,13 @@ Tile.prototype.LoadHttp = function (cache) {
     imageSrc = cache.GetSource() + this.Name + ".png";
   } else {
     imageSrc = cache.GetSource() + this.Name + ".jpg";
+  }
+
+  if (USE_IIP !== undefined && USE_IIP) {
+    var level = this.Level + 2;
+    var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
+    var idx = this.Y * xDim + this.X;
+    imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx
   }
 
   this.Image.src = imageSrc;

@@ -1,4 +1,4 @@
-
+var USE_IIP = undefined;
 
 // Source is the directory that contains the tile files.
 function Cache(image) {
@@ -12,6 +12,10 @@ function Cache(image) {
   var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
 
   this.Image = image;
+
+  if (USE_IIP === undefined && image.filename.split(".")[1] == 'ptif') {
+    USE_IIP = confirm("Use IIP"); 
+  }
 
   // For debugging
   //this.PendingTiles = [];
