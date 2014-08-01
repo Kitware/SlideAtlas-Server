@@ -13,6 +13,7 @@ function Cache(image) {
 
   this.Image = image;
 
+  USE_IIP = false;
   if (USE_IIP === undefined && image.filename.split(".")[1] == 'ptif') {
     USE_IIP = confirm("Use IIP"); 
   }
