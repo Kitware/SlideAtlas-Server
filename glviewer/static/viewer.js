@@ -574,6 +574,13 @@ Viewer.prototype.Draw = function() {
   if (this.OverView) {
     this.MainView.Camera.Draw(this.OverView);
   }
+
+  var cache = this.GetCache(); 
+  if (cache != undefined) {
+    var copyright = cache.Image.copyright;
+    this.MainView.DrawCopyright(copyright);
+  }
+
 }
 
 // Makes the viewer clean to setup a new slide...

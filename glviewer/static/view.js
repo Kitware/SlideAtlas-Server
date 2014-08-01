@@ -140,6 +140,25 @@ View.prototype.DrawTiles = function () {
 }
 
 
+View.prototype.DrawCopyright = function (copyright) {
+  if (copyright == undefined) {
+    return;
+  }
+  if ( GL) {
+    // not implemented yet.
+  } else {
+    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
+    this.Context2d.font = "18px Arial";
+    var x = this.Viewport[2]*0.5 - 50;
+    var y = this.Viewport[3]-10;
+    this.Context2d.fillStyle = "rgba(128,128,128,0.5)"; 
+    this.Context2d.fillText(copyright,x,y);
+    //this.Context2d.strokeStyle = "rgba(255,255,255,0.5)"; 
+    //this.Context2d.strokeText(copyright,x,y);
+  }
+}
+
+
 View.prototype.DrawOutline = function(backgroundFlag) {
   if (GL) {
     program = polyProgram;
