@@ -1,5 +1,3 @@
-var USE_IIP = undefined;
-
 // Source is the directory that contains the tile files.
 function Cache(image) {
   // Look through existing caches and reuse one if possible
@@ -13,10 +11,7 @@ function Cache(image) {
 
   this.Image = image;
 
-  USE_IIP = false;
-  if (USE_IIP === undefined && image.filename.split(".")[1] == 'ptif') {
-    USE_IIP = confirm("Use IIP"); 
-  }
+  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
 
   // For debugging
   //this.PendingTiles = [];

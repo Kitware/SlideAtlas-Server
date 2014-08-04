@@ -202,11 +202,11 @@ Tile.prototype.LoadHttp = function (cache) {
     imageSrc = cache.GetSource() + this.Name + ".jpg";
   }
 
-  if (USE_IIP !== undefined && USE_IIP) {
+  if (cache.UseIIP) {
     var level = this.Level + 2;
     var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
     var idx = this.Y * xDim + this.X;
-    imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx
+    imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
   }
 
   this.Image.src = imageSrc;
