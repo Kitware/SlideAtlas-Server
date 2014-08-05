@@ -6,19 +6,38 @@
 function MobileAnnotationWidget() {
 
   var size = '80px';
-  var left = '620px';
-  var bottom = '10px';
+  //var left = '620px';
+  var right = '0px';
+  var bottom = '170px';
   if (MOBILE_DEVICE == "iPhone") {
     size = '100px';
     bottom = '80px';
     left = '80px';
   }
+  
+  /*var self = this;
+  this.MenuFavoriteButton =
+    $('<img>')
+      .appendTo('body')
+      .css({'position': 'absolute',
+            'height': '40px',
+            'width': '40px',
+            'left': '0px',
+            'bottom': '10px',
+            'padding' : '5px',
+            'opacity': '0.6',
+            'z-index': '3'})
+      .attr('src',"webgl-viewer/static/favorite-star.png")
+      .click(function(){ self.ShowHideFavorites(); });
+  this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");*/
+
+  //VIEWER1.AddGuiObject(this.MenuFavoriteButton[0], "Bottom", 0, "Left", 0);
 
   var self = this;
   this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
-                    'left' : left,
+                    'right' : right,
                     'bottom' : bottom,
                     'z-index': '2'});
 
@@ -97,13 +116,16 @@ MobileAnnotationWidget.prototype.SetVisibility = function(v) {
   this.Visibility = v;
   if (v) {
     this.Div.show();
+    //this.MenuFavoriteButton.show();
   } else {
     this.Div.hide();
+    //this.MenuFavoriteButton.hide();
   }
 }
 
 MobileAnnotationWidget.prototype.ToggleVisibility = function() {
   this.SetVisibility( ! this.Visibility);
+  FAVORITES_WIDGET.FavoritesBar.ShowHideFavorites();
 }
 
 

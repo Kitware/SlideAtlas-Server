@@ -1,4 +1,3 @@
-// Singleton instance delegates events to viewers based on their viewport.
 // I assume that multiple threads will not access the manager.
 
 // I need to implement 3d widgets.

@@ -41,6 +41,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesWidget.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesBar.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
@@ -388,6 +389,7 @@ shape has visibility and
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
       MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+      //VIEWER1.AddGuiObject(MOBILE_ANNOTATION_WIDGET.MenuFavoriteButton, "Bottom", 0, "Left", 0);
     } else {
       VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
