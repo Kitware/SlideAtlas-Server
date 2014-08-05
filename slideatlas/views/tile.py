@@ -24,7 +24,9 @@ def tile(image_store, image_id, tile_name):
     """
     try:
         tile_data = image_store.get_tile(image_id, tile_name)
-        return Response(tile_data, mimetype='image/jpeg')
+        respone = Response(tile_data, mimetype='image/jpeg')
+        response.cache_control.max_age = 300
+        return response
     except models.DoesNotExist as e:
         # TODO: more specific exception
         logger.warning('Tile not loaded: %s' % e.message)
