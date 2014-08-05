@@ -1,8 +1,11 @@
 <!doctype html>
 
-<title>Stack Viewer</title>
+<head>
+  <title>Stack Viewer</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+</head>
 
-<!-- TODO: Stop using webgl rendering -->
 
 <script src="https://code.jquery.com/jquery-1.8.3.js"></script>
 <script src="https://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
@@ -288,10 +291,7 @@ function LoadStack(data) {
           }
       }
       if ( ! source) {
-          source = new Cache({'database':view.db,
-                              '_id':view.img._id,
-                              'levels':view.img.levels,
-                              'bounds':view.img.bounds});
+          source = new Cache(view.img);
       }
       var section = {"Source": source, "View": view._id, "Annotations": ANNOTATIONS[i]};
       SECTIONS.push(section);
@@ -788,7 +788,10 @@ function ToggleAnnotationVisibility() {
     var testCanvas = document.getElementById("gltest");
     // I think the webgl viewer crashes.
     // Maybe it is the texture leak I have seen in connectome.
-    if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
+
+    // Webgl will not load the iip images (security error)
+    // Force the canvas renderer.
+    if ( false && ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
       initGL(); // Sets CANVAS and GL global variables
     } else {
       initGC();
