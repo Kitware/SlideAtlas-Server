@@ -72,6 +72,12 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Slide Info")
              .click(function(){ShowSlideInformation();});
+
+    // Test for showing coverage of view histor.
+    $('<li>').appendTo(viewEditSelector)
+             .text("History Mask")
+             .click(function(){VIEWER1.MainView.DrawHistory();});
+
     // Hack until we have some sort of scale.
     $('<li>').appendTo(viewEditSelector)
              .attr('id', 'dualViewCopyZoom')

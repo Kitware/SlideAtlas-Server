@@ -1301,46 +1301,57 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
 
   if (keyCode == 38) {
     // Up cursor key
-    /*
-    this.ZoomTarget *= 2;
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-    this.AnimateLast = new Date().getTime();
-    this.AnimateDuration = 200.0;
-    */
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] - this.MainView.Camera.GetHeight();
+    var cam = this.GetCamera();
+    var c = Math.cos(cam.Roll);
+    var s = -Math.sin(cam.Roll);
+    var dx = 0.0;
+    var dy = - cam.GetHeight();
+    var rx = dx*c - dy*s;
+    var ry = dx*s + dy*c;
+    this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+    this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
   } else if (keyCode == 40) {
     // Down cursor key
-    /*
-    if (this.ZoomTarget > 0.9 / (1 << 5)) {
-      this.ZoomTarget *= 0.5;
-      this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-      this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-      this.AnimateLast = new Date().getTime();
-      this.AnimateDuration = 200.0;
-      eventuallyRender();
-    }
-    */
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + this.MainView.Camera.GetHeight();
+    var cam = this.GetCamera();
+    var c = Math.cos(cam.Roll);
+    var s = -Math.sin(cam.Roll);
+    var dx = 0.0;
+    var dy = cam.GetHeight();
+    var rx = dx*c - dy*s;
+    var ry = dx*s + dy*c;
+    this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+    this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
   } else if (keyCode == 37) {
     // Left cursor key
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] - this.MainView.Camera.GetWidth();
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var cam = this.GetCamera();
+    var c = Math.cos(cam.Roll);
+    var s = -Math.sin(cam.Roll);
+    var dx = -cam.GetWidth();
+    var dy = 0.0;
+    var rx = dx*c - dy*s;
+    var ry = dx*s + dy*c;
+    this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+    this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
   } else if (keyCode == 39) {
     // Right cursor key
-    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + this.MainView.Camera.GetWidth();
-    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var cam = this.GetCamera();
+    var c = Math.cos(cam.Roll);
+    var s = -Math.sin(cam.Roll);
+    var dx = cam.GetWidth();
+    var dy = 0.0;
+    var rx = dx*c - dy*s;
+    var ry = dx*s + dy*c;
+    this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+    this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
