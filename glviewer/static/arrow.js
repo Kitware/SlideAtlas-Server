@@ -24,7 +24,8 @@ Arrow.prototype.PointInShape = function(x, y) {
   xNew =  x*ct + y*st;
   yNew = -x*st + y*ct;
   tmp = this.Width / 2.0;
-  if (xNew > 0.0 && xNew < this.Length && yNew < tmp && yNew > -tmp) {
+  // Had to bump the y detection up by 3x because of unclickability on the iPad.
+  if (xNew > 0.0 && xNew < this.Length && yNew < tmp*3 && yNew > -tmp*3) {
     return true;
   }
 }

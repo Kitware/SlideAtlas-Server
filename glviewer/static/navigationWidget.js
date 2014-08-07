@@ -23,10 +23,12 @@ function NavigationWidget() {
   }
 
   var size = '40px';
-  var left = '120px';
+  var left = '170px';
   var bottom = '10px';
   if (MOBILE_DEVICE) {
     size = '80px';
+    bottom = '170px';
+    left = '0px';
     if (MOBILE_DEVICE == "iPhone") {
       size = '100px';
       bottom = '80px';
@@ -37,7 +39,7 @@ function NavigationWidget() {
   this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
-                    'left' : '170px',
+                    'left' : left,
                     'bottom' : bottom,
                     'z-index': '2'});
 
@@ -105,14 +107,14 @@ NavigationWidget.prototype.SetVisibility = function(v) {
 NavigationWidget.prototype.Update = function() {
   // Disable and enable prev/next note buttons so we cannot go past the end.
   if (NOTES_WIDGET.Iterator.IsStart()) {
-    this.PreviousNoteButton.css({'opacity': '0.1'});
+    this.PreviousNoteButton.css({'opacity': '0.2'});
     this.PreviousNoteTip.SetActive(false);
   } else {
     this.PreviousNoteButton.css({'opacity': '0.5'});
     this.PreviousNoteTip.SetActive(true);
   }
   if (NOTES_WIDGET.Iterator.IsEnd()) {
-    this.NextNoteButton.css({'opacity': '0.1'});
+    this.NextNoteButton.css({'opacity': '0.2'});
     this.NextNoteTip.SetActive(false);
   } else {
     this.NextNoteButton.css({'opacity': '0.5'});
@@ -121,14 +123,14 @@ NavigationWidget.prototype.Update = function() {
 
   // Disable and enable prev/next slide buttons so we cannot go past the end.
   if (this.SlideIndex <= 0) {
-    this.PreviousSlideButton.css({'opacity': '0.1'});
+    this.PreviousSlideButton.css({'opacity': '0.2'});
     this.PreviousSlideTip.SetActive(false);
   } else {
     this.PreviousSlideButton.css({'opacity': '0.5'});
     this.PreviousSlideTip.SetActive(true);
   }
   if (this.SlideIndex >= this.Session.length-1) {
-    this.NextSlideButton.css({'opacity': '0.1'});
+    this.NextSlideButton.css({'opacity': '0.2'});
     this.NextSlideTip.SetActive(false);
   } else {
     this.NextSlideButton.css({'opacity': '0.5'});

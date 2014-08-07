@@ -906,6 +906,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.ActiveWidget.HandleTouchEnd(event);
     return;
   }
+  //this.UpdateZoomGui();
   this.HandleMomentum(event);
 }
 /**/
@@ -963,6 +964,7 @@ Viewer.prototype.HandleMomentum = function(event) {
       this.InteractionState = INTERACTION_NONE;
       RecordState();
     }
+    this.UpdateZoomGui();
   } else {
     var self = this;
     this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
