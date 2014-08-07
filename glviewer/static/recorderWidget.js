@@ -210,10 +210,10 @@ function InitRecorderWidget() {
 // Should we name a recording?
 function RecordingUpdateGUI() {
   if (RECORDING) {
-    START_RECORDING_MENU_ITEM.hide();
+    //START_RECORDING_MENU_ITEM.hide();
     RECORD_BUTTON.show();
   } else {
-    START_RECORDING_MENU_ITEM.show();
+    //START_RECORDING_MENU_ITEM.show();
     RECORD_BUTTON.hide();
   }
 }

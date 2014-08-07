@@ -5,7 +5,6 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
-import pdb
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -534,6 +533,7 @@ def glstacksession():
             db2 = dbobj2.to_pymongo()
             imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
         convertImageToPixelCoordinateSystem(imgobj)
+        viewobj["img"] = imgobj
 
         center = [0.0,0.0]
         height = 10000.0
@@ -552,10 +552,7 @@ def glstacksession():
                   "height": height,
                   "rotation": 0,
                   "db": imgdb}
-        myimg = {"dimensions": imgobj["dimensions"],
-                 "bounds": imgobj["bounds"],
-                 "_id": str(imgobj["_id"]),
-                 "levels": imgobj["levels"]}
+        myimg = viewobj["img"]
 
         myview["img"] = myimg
         views.append(myview)
@@ -912,7 +909,6 @@ def savenote(db, note, user):
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
 #@security.login_required
 def saveviewnotes():
-    #pdb.set_trace()
     dbid    = request.form['db']  # for post
     noteObj = request.form['note']
     note    = json.loads(noteObj)
@@ -971,8 +967,6 @@ def gettrackingdata():
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    #pdb.set_trace()
-
     viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
     viewArray = []
     for viewObj in viewItr:
@@ -981,8 +975,6 @@ def gettrackingdata():
             viewObj["User"] = str(viewObj["User"])
             #viewObj["ParentId"] = str(viewObj["ParentId"])
         viewArray.append(viewObj)
-
-    #pdb.set_trace()
 
     data = {'viewArray': viewArray}
     return jsonify(data)

@@ -1,17 +1,21 @@
+// Legacy  get rid of this.
 // Used wrongly in textWidget.js
 // Stub it out until we fix this.
 function ComparisonSaveAnnotations() {}
 
 
+// Record the viewer into the current note and save into the database.
+function SaveView() {
+  var note = NOTES_WIDGET.GetCurrentNote(); 
+        note.SnapShotCallback();
+  NOTES_WIDGET.SaveCallback();
+}
 
-var START_RECORDING_MENU_ITEM;
 
 
 
 //==============================================================================
 // Create and manage the menu to edit dual views.
-
-
 
 
 function ShowViewEditMenu(x, y) {
@@ -58,8 +62,13 @@ function InitViewEditMenus() {
              .attr('id', 'viewEditSelector')
              .css({'width': '100%', 'list-style-type':'none'});
     $('<li>').appendTo(viewEditSelector)
-             .text("Load View")
+             .text("Load Slide")
              .click(function(){ShowViewBrowser();});
+    if (EDIT) {
+      $('<li>').appendTo(viewEditSelector)
+               .text("Save View")
+               .click(function(){SaveView();});
+    }
     $('<li>').appendTo(viewEditSelector)
              .text("Slide Info")
              .click(function(){ShowSlideInformation();});
@@ -72,11 +81,6 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
-    START_RECORDING_MENU_ITEM = $('<li>')
-             .appendTo(viewEditSelector)
-             .text("Start Recording")
-             .click(function(){$('#viewEditMenu').hide(); RecordingStart();});
-
 
 
     // Create a selection list of sessions.
