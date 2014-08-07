@@ -60,6 +60,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   var cameraRecord = {};
   cameraRecord.FocalPoint = cam.GetFocalPoint();
   cameraRecord.Height = cam.GetHeight();
+  cameraRecord.Width = cam.GetWidth();
   cameraRecord.Roll = cam.GetRotation();
   this.Camera = cameraRecord;
 

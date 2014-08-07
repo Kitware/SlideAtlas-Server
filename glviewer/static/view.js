@@ -139,6 +139,69 @@ View.prototype.DrawTiles = function () {
   }
 }
 
+// Note: Tile in the list may not be loaded yet.
+View.prototype.DrawHistory = function () {
+  if ( GL) {
+      alert("Draing history does not work with webGl yet.");
+  } else {
+    var ctx = this.Context2d;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Start with a transform that flips the y axis.
+    // This is an issue later because the images will be upside down.
+    ctx.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
+
+    // Map (-1->1, -1->1) to the viewport.
+    // Origin of the viewport does not matter because drawing is relative
+    // to this view's canvas.
+    ctx.transform(0.5*this.Viewport[2], 0.0,
+                  0.0, 0.5*this.Viewport[3],
+                  0.5*this.Viewport[2],
+                  0.5*this.Viewport[3]);
+
+    //ctx.fillRect(0.0,0.1,0.5,0.5); // left, right, width, height
+
+    // The camera maps the world coordinate system to (-1->1, -1->1).
+    var cam = this.Camera;
+    var aspectRatio = cam.ViewportWidth / cam.ViewportHeight;
+    var windowHeight = this.Viewport[3];
+
+    var h = 1.0 / cam.Matrix[15];
+    ctx.transform(cam.Matrix[0]*h, cam.Matrix[1]*h,
+                  cam.Matrix[4]*h, cam.Matrix[5]*h,
+                  cam.Matrix[12]*h, cam.Matrix[13]*h);
+
+    for (var i = 0; i < TIME_LINE.length; ++i) {
+      var cam = TIME_LINE[i].ViewerRecords[0].Camera;
+      var height = cam.Height;
+      if ( ! cam.Width) {
+        // We do not have a saved aspect ratio, so we will have to make an assumption.
+        cam.Width = height * aspectRatio;
+      }
+      var width = cam.Width;
+      var roll = cam.Roll * Math.PI / 180.0;
+      var c = Math.cos(roll);
+      var s = Math.sin(roll);
+      ctx.save();
+      // transform to put focal point at 0,0
+      ctx.transform(c, -s,
+                    s, c,
+                    cam.FocalPoint[0], cam.FocalPoint[1]);
+
+      // Compute the zoom factor for opacity.
+      var opacity = windowHeight / height;
+      if (opacity > 0.5) { opacity = 0.5; }
+
+      ctx.fillStyle = "rgba(0,128,0," + opacity + ")"; 
+      ctx.fillRect(-width/2, -height/2, width, height); // left, right, width, height
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+
 
 View.prototype.DrawCopyright = function (copyright) {
   if (copyright == undefined) {
