@@ -28,8 +28,8 @@ function FavoritesBar(){
                 'left': '0px',
                 'bottom': '0px',
                 //'padding': '5px',
-                'opacity': '0.6',
-                'background-color': '#000000',
+                //'opacity': '0.6',
+                'background-color': 'rgba(0,0,0,.6)',
                 'overflow': 'visible',
                 'z-index': '2'
               })
@@ -52,7 +52,7 @@ function FavoritesBar(){
   if(MOBILE_DEVICE){
     this.SaveFavoriteButton
         .css({
-          'margin-top': '0px'
+          'margin-top': '25px'
         });
   }
 
@@ -93,6 +93,8 @@ function SaveFavorite() {
                button.css({'opacity': '0.6'});
              }, 500); // one half second
 
+  //ShowImage(CreateThumbnailImage(110));
+
   LoadFavorites();
 }
 
@@ -123,23 +125,28 @@ function LoadFavoritesCallback(sessionData) {
     var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
                             .css({
                               'position': 'relative',
-                              'height': '120px',
-                              'width': '90px',
+                              'height': '110px',
+                              //'width': '90px',
                               'margin': '10px',
                               'display': 'inline-block',
-                              'background-color': '#0000ff',
-                              'opacity': '1.0'
+                              //'background-color': '#0000ff',
+                              'border': '5px solid rgba(0,0,255,1)',
+                              'background-color': 'rgba(255,0,0,1)'
+                              //'opacity': '1.0'
                             });
 
 
     var db = sessionData.viewArray[i].ViewerRecords[0].Database;
     var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
+    
+    var thumb = sessionData.viewArray[i].Thumb;
+    
     var view = $('<img>').appendTo(favorite)
-                         .attr('src', './thumb?db=' + db + "&img=" + img)
+                         .attr('src', thumb)
                          .attr('height', '110px')
-                         .attr('width', '80px')
+                         //.attr('width', '80px')
                          .css({
-                           'margin': '5px',
+                           //'margin': '5px',
                            'opacity': '1.0'
                          })
                          .attr('index', i)

@@ -1038,12 +1038,16 @@ NotesWidget.prototype.SaveBrownNote = function() {
 
   // The note will want to know its context
   note.SetParent(this.Iterator.GetNote());
+  
+  var thumb = CreateThumbnailImage(110);
 
   // Save the note in the admin database for this specific user.
+  /**/
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
       data: {"note": JSON.stringify(note.Serialize(false)),
+             "thumb": thumb.src,
              "col" : "favorites"},
     success: function(data,status) {
       note.Id = data;
@@ -1051,7 +1055,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     error: function() {
       alert( "AJAX - error() : saveusernote 2" );
     },
-    });
+    });/**/
 }
 
 
