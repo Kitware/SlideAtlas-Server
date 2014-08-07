@@ -1,3 +1,15 @@
+var HISTORY_MASK = false;
+var HISTORY_MENU_ITEM;
+function ToggleHistory() {
+  HISTORY_MASK = ! HISTORY_MASK;
+  if (HISTORY_MASK) {
+    HISTORY_MENU_ITEM.text("History Off")
+  } else {
+    HISTORY_MENU_ITEM.text("History On")
+  }
+  eventuallyRender();
+}
+
 // Legacy  get rid of this.
 // Used wrongly in textWidget.js
 // Stub it out until we fix this.
@@ -75,9 +87,9 @@ function InitViewEditMenus() {
              .click(function(){ShowSlideInformation();});
 
     // Test for showing coverage of view histor.
-    $('<li>').appendTo(viewEditSelector)
-             .text("History Mask")
-             .click(function(){VIEWER1.MainView.DrawHistory();});
+    HISTORY_MENU_ITEM = $('<li>').appendTo(viewEditSelector)
+             .text("History On")
+             .click(function(){ToggleHistory();});
 
     // Hack until we have some sort of scale.
     $('<li>').appendTo(viewEditSelector)

@@ -190,8 +190,8 @@ View.prototype.DrawHistory = function () {
                     cam.FocalPoint[0], cam.FocalPoint[1]);
 
       // Compute the zoom factor for opacity.
-      var opacity = windowHeight / height;
-      if (opacity > 0.5) { opacity = 0.5; }
+      var opacity = 2* windowHeight / height;
+      if (opacity > 1.0) { opacity = 1.0; }
 
       ctx.fillStyle = "rgba(0,128,0," + opacity + ")"; 
       ctx.fillRect(-width/2, -height/2, width, height); // left, right, width, height
