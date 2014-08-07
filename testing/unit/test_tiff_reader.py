@@ -10,7 +10,11 @@ sys.path.append(slideatlaspath)
 
 from slideatlas.ptiffstore.tiff_reader import TileReader
 
-DATA_ROOT = "/home/dhan/data/slideatlas_tests"
+try:
+    DATA_ROOT = os.environ["SLIDEATLAS_TEST_DATA_ROOT"]
+except:
+    logger.error("Fatal: SLIDEATLAS_TEST_DATA_ROOT not set")
+    sys.exit(0)
 
 def examine_ptif(path):
     reader = TileReader()
