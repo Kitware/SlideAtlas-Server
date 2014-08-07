@@ -1039,7 +1039,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
   // The note will want to know its context
   note.SetParent(this.Iterator.GetNote());
   
-  var thumb = CreateThumbnailImage(120);
+  var thumb = CreateThumbnailImage(110);
 
   // Save the note in the admin database for this specific user.
   /**/

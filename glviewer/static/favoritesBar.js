@@ -125,7 +125,7 @@ function LoadFavoritesCallback(sessionData) {
     var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
                             .css({
                               'position': 'relative',
-                              //'height': '120px',
+                              'height': '110px',
                               //'width': '90px',
                               'margin': '10px',
                               'display': 'inline-block',
