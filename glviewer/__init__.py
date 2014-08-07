@@ -740,12 +740,15 @@ def saveusernote():
 
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
+    
+    thumbStr = request.form['thumb']
 
     note = json.loads(noteStr)
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = "UserNote"
+    note["Thumb"] = thumbStr
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()

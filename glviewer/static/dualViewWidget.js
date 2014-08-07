@@ -150,7 +150,7 @@ function CreateThumbnailImage(height) {
   ctx.drawImage(img1, 0, 0, img1.width, img1.height,
                 0, 0, width1, height1);
 
-  var url = canvas.toDataURL();
+  var url = canvas.toDataURL('image/jpeg', 0.8);
   var thumb = document.createElement("img"); //create
   thumb.src = url;
 
