@@ -85,18 +85,17 @@
                         </a>
                     </td>
                     <td>
-                        {% if view_son.label %}
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}" class="lead sa-view-get" imageid={{ view_son.image_id }}>
-                            {{ view_son.label }}
-                        </a>
+                        {% with %}
+                        {% if security.EditSessionRequirement(session).can() %}
+                            {% set viewer_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
+                        {% else %}
+                            {% set viewer_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
                         {% endif %}
+                        <a href="{{ viewer_url }}" class="lead sa-view-get" imageid={{ view_son.image_id }}>{{ view_son.label }}</a>
+                        {% endwith %}
                     </td>
                     {% if security.EditSessionRequirement(session).can() %}
                     <td align="right">
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') }}" class="btn btn-warning badge sa-view-edit">
-                            <span class="glyphicon glyphicon-edit"></span>
-                            Edit
-                        </a>
                         <button type="button" class="btn btn-info badge sa-view-permalink">
                             <span class="glyphicon glyphicon-link"></span>
                             Permalink
