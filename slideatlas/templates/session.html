@@ -38,11 +38,9 @@
                 attachmentUpload(attachmentPostUrl);
             });
             $(".sa-view-permalink").click(function() {
-                var viewItem = $(this).parent().parent();
-                var viewId = viewItem.attr("imageid")
-                var viewGet = viewItem.find(".sa-view-get");
-                var viewUrl = viewGet.attr("href");
-                var viewName = viewGet.text();
+                var viewId = $(this).data("viewid");
+                var viewUrl = $(this).data("url");
+                var viewName = $(this).parent().parent().find(".sa-view-get").text();
                 getPermalink(viewName, viewId, viewUrl);
             });
             {% endif %}
@@ -78,25 +76,21 @@
         <h2> {{ session_son.views|length }} Images </h2>
         <table class="table table-bordered table-hover" >
             {% for view_son in session_son.views %}
-                <tr imageid="{{ view_son.image_id }}">
+                <tr>
                     <td>
                         <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}">
                             <img src="{{ url_for('tile.thumb_query', db=view_son.image_image_store_id, img=view_son.image_id) }}" width=100px>
                         </a>
                     </td>
                     <td>
-                        {% with %}
-                        {% if security.EditSessionRequirement(session).can() %}
-                            {% set viewer_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
-                        {% else %}
-                            {% set viewer_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
-                        {% endif %}
-                        <a href="{{ viewer_url }}" class="lead sa-view-get" imageid={{ view_son.image_id }}>{{ view_son.label }}</a>
-                        {% endwith %}
+                        {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
+                        {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
+                        <a href="{{ viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
                     </td>
                     {% if security.EditSessionRequirement(session).can() %}
                     <td align="right">
-                        <button type="button" class="btn btn-info badge sa-view-permalink">
+                        {# TODO: permalink should redirect to viewer_edit_url if another admin follows it #}
+                        <button type="button" class="btn btn-info badge sa-view-permalink" data-url="{{ viewer_view_url }}" data-viewid="{{ view_son.id }}">
                             <span class="glyphicon glyphicon-link"></span>
                             Permalink
                         </button>
