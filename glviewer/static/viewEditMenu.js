@@ -9,6 +9,7 @@ function SaveView() {
   var note = NOTES_WIDGET.GetCurrentNote(); 
         note.SnapShotCallback();
   NOTES_WIDGET.SaveCallback();
+  $('#viewEditMenu').hide();
 }
 
 
