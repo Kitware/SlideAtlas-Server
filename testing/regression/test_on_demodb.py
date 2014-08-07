@@ -20,6 +20,7 @@ BASE_URL = "http://new.slide-atlas.org"
 class DemoTests(unittest.TestCase):
     def setUp(self):
         self.driver = webdriver.Chrome()
+        self.mouse = webdriver.ActionChains(self.driver)
 #        self.driver = webdriver.Firefox()
         self.driver.set_window_size(1000, 1000)
 #        self.driver.maximize_window()
@@ -27,8 +28,7 @@ class DemoTests(unittest.TestCase):
         self.base_url = BASE_URL
         self.verificationErrors = []
 
-    def test_demo_tests(self):
-        print "Testing demo .."
+    def open_melanoma(self):
         driver = self.driver
         driver.get(BASE_URL + "/logout")
 #        self.driver.maximize_window()
@@ -49,11 +49,67 @@ class DemoTests(unittest.TestCase):
         driver.find_element_by_link_text("Skin").click()
         self.driver.implicitly_wait(1)
         driver.find_element_by_link_text("4815 - 2010-10-06 16.32.21.ndpi").click()
-        sleep(5)
+        sleep(3)
+
+
+    def test_navigation(self):
+        """
+        Following snippet is useful in deciding the test_navigation
+            document.onmousemove = function(e){
+            var x = e.pageX;
+            var y = e.pageY;
+            e.target.title = "X is "+x+" and Y is "+y;
+            };
+        """
+        driver = self.driver
+        self.open_melanoma()
+
+        canvas = self.driver.find_element_by_tag_name("canvas")
+
+        # Define zoomin and zoomout
+        pan = webdriver.ActionChains(driver)
+        pan.move_to_element_with_offset(canvas, 500,500)
+        pan.click_and_hold()
+        pan.move_to_element_with_offset(canvas, 600,500)
+        pan.release()
+
+        zoomin = webdriver.ActionChains(driver)
+        zoomin.click()
+        zoomin.click()
+
+        zoomout = webdriver.ActionChains(driver)
+        zoomout.context_click()
+        zoomout.context_click()
+
+        zoomout.perform()
+        sleep(1)
+        
+        zoomout.perform()
+        sleep(1)
+
+        pan.perform()
+        sleep(1)
+
+        zoomin.perform()
+        sleep(1)
+
+        zoomin.perform()
+        sleep(1)
+
+        zoomin.perform()
+        sleep(1)
+
+        averagefunc = "return (function () { var total = 0; for(var i = 0; i < TILESTATS.tiles.length; i ++) { total = total + TILESTATS.tiles[i].loadtime; } return total / TILESTATS.tiles.length;})();"
+
+        stats = driver.execute_script(averagefunc)
+        print "Average tile load time: ", stats
+
+    def test_glviewer_in_demo(self):
+        driver = self.driver
+        self.open_melanoma()
+        sleep(2)
         driver.save_screenshot('demo_glview.png')
-
-        print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"
-
+        # print "<DartMeasurementFile name=\"glview_demo\" type=\"image/png\"> demo_glview.png </DartMeasurementFile>"
         self.failUnless(sameimage("demo_glview.png", os.path.join(test_root,"imgs/demo_glview.png")), "Images not same, look at the difference score")
 
     def is_element_present(self, how, what):
