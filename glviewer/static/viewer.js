@@ -574,7 +574,7 @@ Viewer.prototype.Draw = function() {
   if (this.OverView) {
     this.MainView.Camera.Draw(this.OverView);
     if (HISTORY_MASK) {
-      this.OverView.DrawHistory();
+      this.OverView.DrawHistory(this.MainView.Viewport[3]);
     }
   }
 

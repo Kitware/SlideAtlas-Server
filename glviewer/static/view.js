@@ -140,9 +140,9 @@ View.prototype.DrawTiles = function () {
 }
 
 // Note: Tile in the list may not be loaded yet.
-View.prototype.DrawHistory = function () {
+View.prototype.DrawHistory = function (windowHeight) {
   if ( GL) {
-      alert("Draing history does not work with webGl yet.");
+      alert("Drawing history does not work with webGl yet.");
   } else {
     var ctx = this.Context2d;
     ctx.save();
@@ -165,7 +165,6 @@ View.prototype.DrawHistory = function () {
     // The camera maps the world coordinate system to (-1->1, -1->1).
     var cam = this.Camera;
     var aspectRatio = cam.ViewportWidth / cam.ViewportHeight;
-    var windowHeight = this.Viewport[3];
 
     var h = 1.0 / cam.Matrix[15];
     ctx.transform(cam.Matrix[0]*h, cam.Matrix[1]*h,
