@@ -570,9 +570,12 @@ Viewer.prototype.Draw = function() {
     }
   }
 
-    // Draw a rectangle in the overview representing the camera's view.
+  // Draw a rectangle in the overview representing the camera's view.
   if (this.OverView) {
     this.MainView.Camera.Draw(this.OverView);
+    if (HISTORY_MASK) {
+      this.OverView.DrawHistory();
+    }
   }
 
   var cache = this.GetCache(); 
@@ -1305,7 +1308,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     var c = Math.cos(cam.Roll);
     var s = -Math.sin(cam.Roll);
     var dx = 0.0;
-    var dy = - cam.GetHeight();
+    var dy = -0.9 * cam.GetHeight();
     var rx = dx*c - dy*s;
     var ry = dx*s + dy*c;
     this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -1319,7 +1322,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     var c = Math.cos(cam.Roll);
     var s = -Math.sin(cam.Roll);
     var dx = 0.0;
-    var dy = cam.GetHeight();
+    var dy = 0.9 * cam.GetHeight();
     var rx = dx*c - dy*s;
     var ry = dx*s + dy*c;
     this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
@@ -1332,7 +1335,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     var cam = this.GetCamera();
     var c = Math.cos(cam.Roll);
     var s = -Math.sin(cam.Roll);
-    var dx = -cam.GetWidth();
+    var dx = -0.9 * cam.GetWidth();
     var dy = 0.0;
     var rx = dx*c - dy*s;
     var ry = dx*s + dy*c;
@@ -1346,7 +1349,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     var cam = this.GetCamera();
     var c = Math.cos(cam.Roll);
     var s = -Math.sin(cam.Roll);
-    var dx = cam.GetWidth();
+    var dx = 0.9 * cam.GetWidth();
     var dy = 0.0;
     var rx = dx*c - dy*s;
     var ry = dx*s + dy*c;
