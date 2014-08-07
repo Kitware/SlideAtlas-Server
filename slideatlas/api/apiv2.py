@@ -696,7 +696,7 @@ class SessionAttachmentItemAPI(ItemAPI):
         response.last_modified = attachment.upload_date
         response.set_etag(attachment.md5)
         response.cache_control.public = True
-        response.cache_control.max_age = current_app.get_send_file_max_age(None)
+        # ETag is always sufficient to validate, so don't set max-age or Expires
 
         # TODO: call '.make_conditional(request)' as a post-request processor
         return response.make_conditional(request)
