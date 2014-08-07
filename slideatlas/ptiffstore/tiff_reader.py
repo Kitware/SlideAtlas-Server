@@ -104,6 +104,12 @@ class TileReader():
 
         self.meta = self.tif.GetField("ImageDescription")
 
+        if self.meta == None:
+            # Missing meta information (typical of zeiss files)
+            # Verify that the levels exist
+            logging.info("No ImageDescription in file")
+            return
+
         try:
             xml = ET.fromstring(self.meta)
 
