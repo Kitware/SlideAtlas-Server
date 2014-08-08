@@ -2,7 +2,7 @@
 
 <head>
   <title>Stack Viewer</title>
-  
+
   <meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
 
@@ -229,7 +229,7 @@ shape has visibility and
         data: {"db" :  DBID,
                "sess" : SESSID},
         success: function(data,status)
-                   { 
+                   {
                    LoadStack(data);
                    },
         error: function() { alert( "AJAX ARGS - error()" ); },
@@ -291,6 +291,10 @@ function LoadStack(data) {
           }
       }
       if ( ! source) {
+          // this fixes a bug, but views and images shouldn't always be expected
+          //   to have the same database
+          view.img.database = view.db;
+
           source = new Cache(view.img);
       }
       var section = {"Source": source, "View": view._id, "Annotations": ANNOTATIONS[i]};
@@ -321,7 +325,7 @@ function saveStack() {
            "data" :  JSON.stringify( {"views": VIEWS,
                                       "transformations": TRANSFORMATIONS })
           },
-                                      
+
     success: function(data,status){
        //alert(data + "\nStatus: " + status);
        },
@@ -334,8 +338,8 @@ function swapSections() {
     if (SECTION_INDEX <= 0) { return; }
     if (SECTION_INDEX > 1)
       { // transform correlations to point to new image.
-      var t0 = TRANSFORMATIONS[SECTION_INDEX-2];          
-      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
+      var t0 = TRANSFORMATIONS[SECTION_INDEX-2];
+      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];
       // convert the correlations
       var correlations = t0.Correlations;
       for (var i = 0; i < correlations.length; ++i)
@@ -346,8 +350,8 @@ function swapSections() {
       }
     if (SECTION_INDEX < TRANSFORMATIONS.length)
       { // transform correlations to point to new image.
-      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
-      var t2 = TRANSFORMATIONS[SECTION_INDEX];          
+      var t1 = TRANSFORMATIONS[SECTION_INDEX-1];
+      var t2 = TRANSFORMATIONS[SECTION_INDEX];
       // convert the correlation
       var correlations = t2.Correlations;
       for (var i = 0; i < correlations.length; ++i)
@@ -356,8 +360,8 @@ function swapSections() {
         cor.point0 = t1.ReverseTransform(cor.point0);
         }
       }
-    
-    var t1 = TRANSFORMATIONS[SECTION_INDEX-1];          
+
+    var t1 = TRANSFORMATIONS[SECTION_INDEX-1];
     // convert the correlation (swap points)
     var correlations = t1.Correlations;
     for (var i = 0; i < correlations.length; ++i)
@@ -385,7 +389,7 @@ function findCorrelation(pIdx, x, y) {
     var cam = VIEWER1.GetCamera();
     var threshold = cam.Height / 50;
     threshold = threshold*threshold;
-    var transformation = TRANSFORMATIONS[SECTION_INDEX];          
+    var transformation = TRANSFORMATIONS[SECTION_INDEX];
     var correlations = transformation.Correlations;
     var bestIdx = -1;
     var bestDists;
@@ -397,7 +401,7 @@ function findCorrelation(pIdx, x, y) {
       var dx = x-pt[0];
       var dy = y-pt[1];
       var dist2 = dx*dx + dy*dy;
-      if (bestIdx < 0 || dist2 < bestDist2) 
+      if (bestIdx < 0 || dist2 < bestDist2)
         {
         bestIdx = i;
         bestDist2 = dist2;
@@ -408,7 +412,7 @@ function findCorrelation(pIdx, x, y) {
 
 
 function deleteCorrelation(x, y) {
-    var transformation = TRANSFORMATIONS[SECTION_INDEX];          
+    var transformation = TRANSFORMATIONS[SECTION_INDEX];
     var index = findCorrelation(0,x,y);
     if (index > -1) {
       transformation.Correlations.splice(index, 1);
@@ -487,7 +491,7 @@ function saveAnnotation() {
     });
   }
 }
- 
+
 
 
 function updateSection(inc) {
@@ -642,7 +646,7 @@ function FeatureChainAdd(x,y) {
     }
   }
 
-  function handleMouseDown(event) { 
+  function handleMouseDown(event) {
     // hack drag
     if (CONTROL_PRESSED && EDIT_R) {
       var cam = VIEWER1.GetCamera();
@@ -666,13 +670,13 @@ function FeatureChainAdd(x,y) {
       DRAGGING_CROSS = bestCross;
     }
     if (DRAGGING_CROSS == null) {
-      EVENT_MANAGER.HandleMouseDown(event); 
+      EVENT_MANAGER.HandleMouseDown(event);
     }
   }
 
-  function handleMouseUp(event) { 
+  function handleMouseUp(event) {
     DRAGGING_CROSS = null;
-    EVENT_MANAGER.HandleMouseUp(event); 
+    EVENT_MANAGER.HandleMouseUp(event);
   }
 
   function handleMouseMove(event) {
@@ -698,7 +702,7 @@ function FeatureChainAdd(x,y) {
   function handleKeyDown(event) {
     if (DIALOG_OPEN) { return; } // Hack to keep stack from processing space events when a dialog is open.
     if (event.keyCode == 68) { D_DOWN = true;}
-    if (event.keyCode == 17) { 
+    if (event.keyCode == 17) {
       CONTROL_PRESSED = true;
     }
     if (event.keyCode == 69) { E_DOWN = true;}
@@ -742,7 +746,7 @@ function FeatureChainAdd(x,y) {
   }
 
   function handleKeyUp(event) {
-        if (event.keyCode == 17) { 
+        if (event.keyCode == 17) {
           CONTROL_PRESSED = false;
         }
         if (event.keyCode == 68) { D_DOWN = false;}
