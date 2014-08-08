@@ -4,6 +4,8 @@ import logging
 from bson import ObjectId
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("tests.ptiff")
+logger.setLevel(logging.INFO)
 
 slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(slideatlaspath)
@@ -22,6 +24,7 @@ def examine_ptif(path):
     reader.parse_image_description()
     logger.info("Width: %s"%reader.width)
     logger.info("Height: %s"%reader.height)
+    logger.info("TileSize: %d"%reader.tile_width)
     # logger.info("Components: %s"%reader.components)
 
 
@@ -38,10 +41,8 @@ if __name__ == "__main__":
     Run few tests
     This class will be finally imported from tiff server
     """
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
     test_tif_from_zeiss()
-    # test_ptif_from_philips()
+    test_ptif_from_philips()
 
     # import nose
     # nose.run(defaultTest=__name__)
