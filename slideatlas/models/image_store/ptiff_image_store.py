@@ -194,7 +194,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 reader.parse_image_description()
                 logging.info('Image barcode: %s' % reader.barcode)
 
-                if len(reader.barcode > 0):
+                if len(reader.barcode) > 0:
                     image.label = '%s (%s)' % (reader.barcode, image_file_name)
                 else:
                     # No barcode
@@ -218,7 +218,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 session.views.insert(0, RefItem(ref=view.id, db=self.id))
                 session.save()
 
-                new_images.append(image.to_mongo())
+                new_images.append(image.to_json())
+
         return new_images
 
 
