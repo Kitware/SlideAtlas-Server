@@ -76,7 +76,7 @@ class TileReader():
         self.dir = 0
         self.levels = {}
         self.isBigTIFF = False
-
+        self.barcode = ""
     def select_dir(self, dir):
         """
         :param dir: Number of Directory to select
@@ -104,6 +104,12 @@ class TileReader():
 
         self.meta = self.tif.GetField("ImageDescription")
 
+        if self.meta == None:
+            # Missing meta information (typical of zeiss files)
+            # Verify that the levels exist
+            logging.info("No ImageDescription in file")
+            return
+
         try:
             xml = ET.fromstring(self.meta)
 
@@ -112,12 +118,12 @@ class TileReader():
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
 
-            # Parse the barcode
-            self.barcode = {}
-            self.barcode["str"] = base64.b64decode(xml.find(".//*[@Name='PIM_DP_UFS_BARCODE']").text)
+            # Parse the barcode string
+            self.barcode = base64.b64decode(xml.find(".//*[@Name='PIM_DP_UFS_BARCODE']").text)
             # self.barcode["words"] = self.barcode["str"].split("|")
             # self.barcode["physician_id"],  self.barcode["case_id"]= self.barcode["words"][0].split(" ")
             # self.barcode["stain_id"] = self.barcode["words"][4]
+
             logging.log(logging.INFO, self.barcode)
 
             # Parse the attribute named "DICOM_DERIVATION_DESCRIPTION"
@@ -166,7 +172,11 @@ class TileReader():
         """
 
         """
-        return self.embedded_images[imagetype]
+        try:
+            img = self.embedded_images[imagetype]
+            return img
+        except:
+            return None
 
     def set_input_params(self, params):
         """
