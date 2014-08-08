@@ -740,7 +740,7 @@ def saveusernote():
 
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
-    
+
     thumbStr = request.form['thumb']
 
     note = json.loads(noteStr)
