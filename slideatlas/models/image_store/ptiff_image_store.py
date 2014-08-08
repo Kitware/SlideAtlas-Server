@@ -194,7 +194,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 reader.parse_image_description()
                 logging.info('Image barcode: %s' % reader.barcode)
 
-                if len(reader.barcode > 0):
+                if len(reader.barcode) > 0:
                     image.label = '%s (%s)' % (reader.barcode, image_file_name)
                 else:
                     # No barcode
