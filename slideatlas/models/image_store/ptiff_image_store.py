@@ -218,7 +218,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 session.views.insert(0, RefItem(ref=view.id, db=self.id))
                 session.save()
 
-                new_images.append(image.to_mongo())
+                new_images.append(image.to_json())
+
         return new_images
 
 
