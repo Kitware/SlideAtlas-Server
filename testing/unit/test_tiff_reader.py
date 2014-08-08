@@ -25,6 +25,8 @@ def examine_ptif(path):
     logger.info("Width: %s"%reader.width)
     logger.info("Height: %s"%reader.height)
     logger.info("TileSize: %d"%reader.tile_width)
+    logger.info("Barcode: %s"%reader.barcode)
+
     # logger.info("Components: %s"%reader.components)
 
 

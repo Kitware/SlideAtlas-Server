@@ -190,7 +190,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 reader.parse_image_description()
                 logging.info('Image barcode: %s' % reader.barcode)
 
-                image.label = '%s (%s)' % (reader.barcode['str'], image_file_name)
+                image.label = '%s (%s)' % (reader.barcode, image_file_name)
                 image.uploaded_at = file_modified_time
                 image.dimensions = [reader.width, reader.height, 1]
                 image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
