@@ -172,7 +172,11 @@ class TileReader():
         """
 
         """
-        return self.embedded_images[imagetype]
+        try:
+            img = self.embedded_images[imagetype]
+            return img
+        except:
+            return None
 
     def set_input_params(self, params):
         """

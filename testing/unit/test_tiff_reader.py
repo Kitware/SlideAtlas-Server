@@ -26,10 +26,18 @@ def examine_ptif(path):
     logger.info("Height: %s"%reader.height)
     logger.info("TileSize: %d"%reader.tile_width)
     logger.info("Barcode: %s"%reader.barcode)
+    label = reader.get_embedded_image('label')
+    if label == None:
+        logger.info("NO Label")
+    else:
+        logger.info("Label found")
 
+    macro = reader.get_embedded_image('macro')
+    if label == None:
+        logger.info("NO Macro")
+    else:
+        logger.info("Macro found")
     # logger.info("Components: %s"%reader.components)
-
-
 
 def test_ptif_from_philips():
     examine_ptif(DATA_ROOT + "/ptif-philips/20140721T182320-963749.ptif")
@@ -43,9 +51,9 @@ if __name__ == "__main__":
     Run few tests
     This class will be finally imported from tiff server
     """
-    test_tif_from_zeiss()
-    test_ptif_from_philips()
+    # test_tif_from_zeiss()
+    # test_ptif_from_philips()
 
-    # import nose
-    # nose.run(defaultTest=__name__)
+    import nose
+    nose.run(defaultTest=__name__)
 

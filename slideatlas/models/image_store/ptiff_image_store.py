@@ -115,6 +115,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         label_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('label'))))
         macro_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('macro'))))
 
+        if label_image == None or macro_image == None:
+            # TODO: Handle cases where the t.jpg are not stored
+            return self.get_tile(image.id, 't.jpg')
+
         # Resize both files for
         macro_width, macro_height = macro_image.size
         macro_image.thumbnail((macro_width * 100.0 / macro_height, 100))
@@ -190,7 +194,12 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 reader.parse_image_description()
                 logging.info('Image barcode: %s' % reader.barcode)
 
-                image.label = '%s (%s)' % (reader.barcode, image_file_name)
+                if len(reader.barcode > 0):
+                    image.label = '%s (%s)' % (reader.barcode, image_file_name)
+                else:
+                    # No barcode
+                    image.label = image_file_name
+
                 image.uploaded_at = file_modified_time
                 image.dimensions = [reader.width, reader.height, 1]
                 image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
