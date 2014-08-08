@@ -291,6 +291,10 @@ function LoadStack(data) {
           }
       }
       if ( ! source) {
+          // this fixes a bug, but views and images shouldn't always be expected
+          //   to have the same database
+          view.img.database = view.db;
+
           source = new Cache(view.img);
       }
       var section = {"Source": source, "View": view._id, "Annotations": ANNOTATIONS[i]};
