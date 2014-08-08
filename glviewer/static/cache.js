@@ -11,7 +11,8 @@ function Cache(image) {
 
   this.Image = image;
 
-  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
+//  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
+  this.UseIIP = false;
 
   // For debugging
   //this.PendingTiles = [];
