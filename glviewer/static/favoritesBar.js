@@ -98,7 +98,6 @@ function SaveFavorite() {
   LoadFavorites();
 }
 
-
 function LoadFavorites(){
   $.ajax({
     type: "get",
@@ -136,8 +135,8 @@ function LoadFavoritesCallback(sessionData) {
                             });
 
 
-    var db = sessionData.viewArray[i].ViewerRecords[0].Database;
-    var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
+    //var db = sessionData.viewArray[i].ViewerRecords[0].Database;
+    //var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
     
     var thumb = sessionData.viewArray[i].Thumb;
     

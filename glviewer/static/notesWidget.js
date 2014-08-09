@@ -1039,15 +1039,23 @@ NotesWidget.prototype.SaveBrownNote = function() {
   // The note will want to know its context
   note.SetParent(this.Iterator.GetNote());
   
-  var thumb = CreateThumbnailImage(110);
-
+  // Bug: canvas.getDataUrl() not supported in Safari on iPad.
+  // Fix: If on mobile, use the thumbnail for the entire slide.
+  var src;
+  if(MOBILE_DEVICE){
+    var image = VIEWER1.GetCache().Image;
+    src = "http://slide-atlas.org/thumb?db=" + image.database + "&img=" + image._id + "";
+  } else {
+    var thumb = CreateThumbnailImage(110);
+    src = thumb.src;
+  }
+  
   // Save the note in the admin database for this specific user.
-  /**/
   $.ajax({
     type: "post",
     url: "/webgl-viewer/saveusernote",
       data: {"note": JSON.stringify(note.Serialize(false)),
-             "thumb": thumb.src,
+             "thumb": src,
              "col" : "favorites"},
     success: function(data,status) {
       note.Id = data;
@@ -1055,7 +1063,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     error: function() {
       alert( "AJAX - error() : saveusernote 2" );
     },
-    });/**/
+    });
 }
 
 
