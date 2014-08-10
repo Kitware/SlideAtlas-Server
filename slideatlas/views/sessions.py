@@ -44,20 +44,20 @@ def view_all_sessions():
     # disable dereferencing of of sessions, to prevent running a seperate
     #   query for every single session's collection
 
-    adminable_sessions_query = all_sessions_query.can_admin(g.identity.provides)
+    editable_sessions_query = all_sessions_query.can_edit(g.identity.provides)
     viewable_sessions_query = all_sessions_query.can_view_only(g.identity.provides)
 
     # fetch the relevant collections in bulk
     collections_by_id = {collection.id: collection for collection in
-                         chain(adminable_sessions_query.distinct('collection'),
+                         chain(editable_sessions_query.distinct('collection'),
                                viewable_sessions_query.distinct('collection')
                          )}
 
     all_sessions = defaultdict(dict)
     for sessions_query, can_admin in [
-        # viewable must come first, so adminable can overwrite
+        # viewable must come first, so editable can overwrite
         (viewable_sessions_query, False),
-        (adminable_sessions_query, True),
+        (editable_sessions_query, True),
         ]:
         for collection_ref, sessions in groupby(sessions_query, attrgetter('collection')):
             collection = collections_by_id[collection_ref.id]
