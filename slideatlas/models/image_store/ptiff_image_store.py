@@ -81,7 +81,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         reader = make_reader({
             'fname': tiff_path,
-            'dir': image.levels - index_z -1,
+            'dir': image.levels - index_z - 1,
         })
 
         # Locate the tile name from x and y
@@ -115,7 +115,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         label_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('label'))))
         macro_image = PImage.open(StringIO.StringIO(base64.b64decode(reader.get_embedded_image('macro'))))
 
-        if label_image == None or macro_image == None:
+        if label_image is None or macro_image is None:
             # TODO: Handle cases where the t.jpg are not stored
             return self.get_tile(image.id, 't.jpg')
 
@@ -194,7 +194,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 reader.parse_image_description()
                 logging.info('Image barcode: %s' % reader.barcode)
 
-                if len(reader.barcode) > 0:
+                if reader.barcode:
                     image.label = '%s (%s)' % (reader.barcode, image_file_name)
                 else:
                     # No barcode
@@ -205,7 +205,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
                 image.tile_size = reader.tile_width
                 image.coordinate_system = 'Pixel'
-                image.bounds = [0, reader.width-1, 0, reader.height-1, 0, 0]
+                image.bounds = [0, reader.width - 1, 0, reader.height - 1, 0, 0]
 
                 # need to save images to give it an id
                 image.save()
@@ -214,7 +214,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 view.save()
 
                 # newest images should be at the top of the session's view list
-                logging.error('adding view %s to session %s' % (view.id, session._get_collection()))
+                logging.error('adding view %s to session %s/%s' % (view.id, session.collection, session))
                 session.views.insert(0, RefItem(ref=view.id, db=self.id))
                 session.save()
 
@@ -296,7 +296,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         self.save()
 
         resp = {
-            'count': None, # TODO: deprecated
+            'count': None,  # TODO: deprecated
             'synced': len(new_images),
             'images': new_images,
         }
