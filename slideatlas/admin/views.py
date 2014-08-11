@@ -77,8 +77,8 @@ class BaseUserView(SlideatlasModelView):
     category = 'Users'
 
     column_list = ('email', 'full_name', 'created_at', 'current_login_at', 'login_count')
-    column_default_sort = 'full_name' # TODO: sort by last name
-    column_searchable_list = ('email', 'full_name') # TODO: make search case-insensitive
+    column_default_sort = ('created_at', True)  # latest at the top
+    column_searchable_list = ('email', 'full_name')  # TODO: make search case-insensitive
 
     form_widget_args = dict.fromkeys(
         (
