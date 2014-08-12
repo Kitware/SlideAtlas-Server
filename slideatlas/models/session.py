@@ -166,13 +166,16 @@ class SessionQuerySet(ModelQuerySet):
             return queryset.filter(query)
 
     def can_view(self, permissions):
-        return self._can_access(permissions, {'admin', 'view'})
+        return self._can_access(permissions, {'admin', 'edit', 'view'})
 
     def can_view_only(self, permissions):
         if AdminSitePermission() in permissions:
             # need to counter the optimization in '_can_access'
             return self.none()
         return self._can_access(permissions, {'view'})
+
+    def can_edit(self, permissions):
+        return self._can_access(permissions, {'admin', 'edit'})
 
     def can_admin(self, permissions):
         return self._can_access(permissions, {'admin'})
