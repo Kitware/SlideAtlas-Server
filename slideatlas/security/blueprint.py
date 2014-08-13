@@ -109,10 +109,10 @@ def add_config(app):
         SECURITY_LOGIN_WITHOUT_CONFIRMATION=False,
         SECURITY_MSG_EMAIL_CONFIRMED=(
             Markup(
-                'Welcome to SlideAtlas! Your account has been confirmed.<br>'\
-                '<br>'\
+                'Welcome to SlideAtlas! Your account has been confirmed.<br>'
+                '<br>'
                 'Site administrators may now grant you access to additional content. '
-                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' % \
+                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' %
                     {'email': app.config['SLIDEATLAS_ADMIN_EMAIL']}
             ),
             'success'),
@@ -149,11 +149,11 @@ def add_config(app):
     app.config.update(
         SESSION_PROTECTION='basic',  # some extra security for cookies, see documentation for details
 
-        REMEMBER_COOKIE_DOMAIN = app.session_interface.get_cookie_domain(app),
+        REMEMBER_COOKIE_DOMAIN=app.session_interface.get_cookie_domain(app),
 
-        REMEMBER_COOKIE_HTTPONLY = True,
+        REMEMBER_COOKIE_HTTPONLY=True,
 
-        REMEMBER_COOKIE_SECURE = app.config['SLIDEATLAS_HTTPS'],
+        REMEMBER_COOKIE_SECURE=app.config['SLIDEATLAS_HTTPS'],
     )
 
 
