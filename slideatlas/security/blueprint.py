@@ -8,7 +8,7 @@ from flask.ext.mail import Mail
 from slideatlas import models
 from . import forms
 from .principal import register_principal
-from .views import add_views
+from .login_provider import add_views
 
 ################################################################################
 __all__ = ('blueprint', 'register_with_app')
