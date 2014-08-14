@@ -131,7 +131,7 @@ class User(ModelDocument, UserMixin):
 class PasswordUser(User):
     # TODO: index by token?
 
-    password = StringField(required=True, max_length=255,
+    password = StringField(required=False, max_length=255,
         verbose_name='Password', help_text='The user\'s current password.')
 
     confirmed_at = DateTimeField(required=False,

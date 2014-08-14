@@ -1,14 +1,19 @@
 # coding=utf-8
 
+import copy
+
 from flask import Markup, url_for
 from flask.ext.security import Security, MongoEngineUserDatastore, user_registered
+from flask.ext.security.core import _SecurityState
+from flask.ext.security.core import _context_processor as security_default_context_processor
+from flask.ext.security.views import create_blueprint as security_create_blueprint
+from flask.ext.security.views import send_confirmation as security_send_confirmation
 from flask.ext.security.utils import send_mail
 from flask.ext.mail import Mail
 
 from slideatlas import models
-from . import forms
+from . import forms, views, login_provider
 from .principal import register_principal
-from .views import add_views
 
 ################################################################################
 __all__ = ('blueprint', 'register_with_app')
@@ -18,12 +23,7 @@ __all__ = ('blueprint', 'register_with_app')
 def register_with_app(app):
     add_config(app)
 
-    # register Flask-Security with app and get blueprint
-    security = Security(app, SlideatlasMongoEngineUserDatastore(),
-                        register_blueprint=True,
-                        confirm_register_form=forms.ConfirmRegisterForm,
-                        login_form=forms.LoginForm)
-    blueprint = app.blueprints['security']
+    security, blueprint = create_security(app)
 
     # register Flask-Mail with app
     Mail(app)
@@ -35,7 +35,7 @@ def register_with_app(app):
 
     register_principal(app, security)
 
-    add_views(app, blueprint)
+    login_provider.add_views(app, blueprint)
 
     # TODO: move the 'site_url' value to config file
     security.mail_context_processor(lambda: dict(site_url='https://slide-atlas.org/'))
@@ -93,7 +93,7 @@ def add_config(app):
         ## New account registration
         SECURITY_REGISTERABLE=True,
         SECURITY_REGISTER_URL='/login/password/register',
-        SECURITY_REGISTER_USER_TEMPLATE='security/signup.html',
+        SECURITY_REGISTER_USER_TEMPLATE='security/register.html',
         SECURITY_SEND_REGISTER_EMAIL=True,
         SECURITY_EMAIL_SUBJECT_REGISTER='SlideAtlas: Account Created',
         # uses 'welcome' email body template
@@ -109,10 +109,10 @@ def add_config(app):
         SECURITY_LOGIN_WITHOUT_CONFIRMATION=False,
         SECURITY_MSG_EMAIL_CONFIRMED=(
             Markup(
-                'Welcome to SlideAtlas! Your account has been confirmed.<br>'\
-                '<br>'\
+                'Welcome to SlideAtlas! Your account has been confirmed.<br>'
+                '<br>'
                 'Site administrators may now grant you access to additional content. '
-                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' % \
+                'You can also contact <a href="mailto:%(email)s">%(email)s</a> with any requests.' %
                     {'email': app.config['SLIDEATLAS_ADMIN_EMAIL']}
             ),
             'success'),
@@ -149,13 +149,51 @@ def add_config(app):
     app.config.update(
         SESSION_PROTECTION='basic',  # some extra security for cookies, see documentation for details
 
-        REMEMBER_COOKIE_DOMAIN = app.session_interface.get_cookie_domain(app),
+        REMEMBER_COOKIE_DOMAIN=app.session_interface.get_cookie_domain(app),
 
-        REMEMBER_COOKIE_HTTPONLY = True,
+        REMEMBER_COOKIE_HTTPONLY=True,
 
-        REMEMBER_COOKIE_SECURE = app.config['SLIDEATLAS_HTTPS'],
+        REMEMBER_COOKIE_SECURE=app.config['SLIDEATLAS_HTTPS'],
     )
 
+
+################################################################################
+def create_security(app):
+    # register Flask-Security with app and get blueprint
+    security = Security(app, SlideatlasMongoEngineUserDatastore(),
+                        register_blueprint=False,
+                        confirm_register_form=forms.RegisterForm,
+                        login_form=forms.LoginForm)
+
+    # prevent Flask-Security from automatically creating register and confirm views
+    #   by calling 'security_create_blueprint' with a different state
+    security_blueprint_state = copy.copy(security._state)
+    security_blueprint_state.registerable = False
+    security_blueprint_state.confirmable = False
+    blueprint = security_create_blueprint(security_blueprint_state, 'flask_security.core')
+
+    # add SlideAtlas's own register view, which doesn't immediately require a password
+    blueprint.add_url_rule(security.register_url,
+                           endpoint='register',
+                           view_func=views.register,
+                           methods=['GET', 'POST'])
+    # use the Flask-Security's built-in view for re-sending a confirmation, which
+    #   needs to be manually added, since 'confirmable' was set to False
+    blueprint.add_url_rule(security.confirm_url,
+                           endpoint='send_confirmation',
+                           view_func=security_send_confirmation,
+                           methods=['GET', 'POST'])
+    # add SlideAtlas's own confirm view, which requires the user to set a password
+    blueprint.add_url_rule(security.confirm_url + '/<token>',
+                           endpoint='confirm_email',
+                           view_func=views.confirm_email,
+                           methods=['GET', 'POST'])
+
+    # do work that Flask-Security would have done if 'register_blueprint' were True
+    app.register_blueprint(blueprint)
+    app.context_processor(security_default_context_processor)
+
+    return security, blueprint
 
 
 ################################################################################
@@ -167,6 +205,5 @@ class SlideatlasMongoEngineUserDatastore(MongoEngineUserDatastore):
 
     def create_user(self, **kwargs):
         """Creates and returns a new user from the given parameters."""
-        kwargs = self._prepare_create_user_args(**kwargs)
         user = self.user_creation_model(**kwargs)
         return self.put(user)
