@@ -4,9 +4,7 @@ You recently created a new account at {{ site_url }}.  To proceed with your acco
 
     {{ confirmation_link }}
 
-If clicking on the link doesn't work, try copying and pasting it into your browser.
-
-This link will work only once.
+If clicking on the link doesn't work, try copying and pasting it into your browser. This link will only remain valid for the next 5 days.
 
 If you did not enter this address as your contact email, please disregard this message.
 
