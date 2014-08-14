@@ -38,13 +38,33 @@ def examine_ptif(path):
     else:
         logger.info("Macro found")
     # logger.info("Components: %s"%reader.components)
+    return reader
+
 
 def test_ptif_from_philips():
     examine_ptif(DATA_ROOT + "/ptif-philips/20140721T182320-963749.ptif")
 
+
 def test_tif_from_zeiss():
     examine_ptif(DATA_ROOT + "/ptif-zeiss/2014_07_01__0009-S09.tif")
 
+
+def test_extract_tiles():
+    reader = TileReader()
+    reader.set_input_params({'fname': "/home/dhan/data/bif/1048676_2_1.bif"})
+    reader.select_dir(2)
+    reader.parse_image_description()
+    logger.info("Width: %s" % reader.width)
+    logger.info("Height: %s" % reader.height)
+    logger.info("Tile Width: %d" % reader.tile_width)
+    logger.info("Tile Height: %d" % reader.tile_height)
+    # logger.info("Tile Rows: %s" % type(reader.tile_height) )
+    logger.info("Tile Rows: %d" % (reader.height / reader.tile_height + 1))
+    logger.info("Tile Cols: %d" % (reader.width / reader.tile_width + 1))
+
+
+    # logger.info("Barcode: %s" % reader.barcode)
+    reader.extract_all_tiles()
 
 if __name__ == "__main__":
     """
