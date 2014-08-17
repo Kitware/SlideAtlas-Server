@@ -60,6 +60,9 @@ def add_config(app):
         # SESSION_REFRESH_EACH_REQUEST
     )
 
+    # Flask template configuration
+    app.jinja_env.trim_blocks = True
+    app.jinja_env.lstrip_blocks = True
 
     class BSONJSONEncoder(JSONEncoder):
         def default(self, obj):
