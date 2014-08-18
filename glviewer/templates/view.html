@@ -2,7 +2,7 @@
 
 <head>
   <title>Connectome Viewer</title>
-  
+
   <meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
 <!-- view.html -->
@@ -24,7 +24,7 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
 
 <!-- Perspective camera etc. May be ready to remove -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/webgl-utils/webgl-utils.js"></script>
 
 <!-- Edit menu, right click -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
@@ -207,19 +207,19 @@ shape has visibility and
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   $(window).bind('orientationchange', function(event) {
     //alert(window.innerWidth + " " + VIEWER1.MainView.Canvas[0].parentNode.clientWidth + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas[0].parentNode.clientHeight);
     handleResize();
   });
-  
+
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
     //var height = CANVAS.innerHeight();
     //var width = window.innerWidth;
     //var height = window.innerHeight;
-    
+
     screenDiv = $('<div>').appendTo('body')
                           .css({
                             'background-color': '#f00',
@@ -228,38 +228,38 @@ shape has visibility and
                             'height': '100%',
                             'z-index': '10'
                           });
-    
-    
+
+
     var width = CANVAS.width();
     var height = CANVAS.height();
     //var height = window.innerHeight;
-    
+
     if(MOBILE_DEVICE == 'iPad'){
       width = window.innerWidth;
       //height = window.innerHeight;
       height = window.innerHeight;
       //var canvasParent = CANVAS[0].parentNode;
       CANVAS.height(height);
-      
+
       //document.documentElement.style.height = height + "px";
       document.documentElement.setAttribute('height', height + "px");
       //CANVAS.parent().parent().parent().height(height - 96);
     }
-    
+
     // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
     if(GL){
       var canvasParent = CANVAS[0].parentNode;
       width = canvasParent.clientWidth;
       height = canvasParent.clientHeight;
     }
-    
-    
+
+
     if(height == 0){
       height = window.innerHeight;
     }
-    
+
     //setTimeout(function(){alert(width + " " + height);}, 200);
-    
+
     if (GL) {
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
@@ -364,8 +364,8 @@ shape has visibility and
       initGC();
     //}
     EVENT_MANAGER = new EventManager(CANVAS);
-    
-    
+
+
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
@@ -377,10 +377,10 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
-    
+
     FAVORITES_WIDGET = new FavoritesWidget();
     FAVORITES_WIDGET.resize(CANVAS.innerWidth());
-    
+
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
       MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
