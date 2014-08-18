@@ -2,16 +2,10 @@
 
 <head>
   <title>Connectome Viewer</title>
-  
+
   <meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
 <!-- view.html -->
-
-
-<script src="https://code.jquery.com/jquery-1.8.3.js"></script>
-<script src="https://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
-
-
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
@@ -21,15 +15,16 @@
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
-<link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-1.7.2.min.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/jquery/1.7.2/jquery.min.js"></script>
+
+<link type="text/css" href="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css" rel="stylesheet" />
+<script type="text/javascript" src="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js"></script>
 
 <!-- used some objects, matrix as an array -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js"></script>
 
 <!-- Perspective camera etc. May be ready to remove -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='webgl-utils.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/webgl-utils/webgl-utils.js"></script>
 
 <!-- Edit menu, right click -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
@@ -75,9 +70,9 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <!-- Stuff for downloading the image -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='Blob.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='canvas-toBlob.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='FileSaver.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/blob/g7246d68/Blob.js"></script>
+<script type="text/javascript" src="/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js"></script>
+<script type="text/javascript" src="/static/thirdparty/filesaver/g4d049e9/FileSaver.js"></script>
 
 
 <!-- Widgets
@@ -117,7 +112,7 @@ shape has visibility and
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='text.js') }}"></script>
 
 <!-- For websockets -->
-<script type="text/javascript" src="{{ url_for('static', filename='js/bson.js') }}"></script>
+<script type="text/javascript" src="/static/thirdparty/bson/0.2.9/bson.js"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='websocket.js') }}"></script>
 <!---->
 <script id="shader-poly-fs" type="x-shader/x-fragment">
@@ -212,19 +207,19 @@ shape has visibility and
   // hack to avoid an undefined error (until we unify annotation stuff).
   function ShowAnnotationEditMenu(x, y) {
   }
-  
+
   $(window).bind('orientationchange', function(event) {
     //alert(window.innerWidth + " " + VIEWER1.MainView.Canvas[0].parentNode.clientWidth + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas[0].parentNode.clientHeight);
     handleResize();
   });
-  
+
   // Might consider interactive resize feature too.
   function handleResize() {
     //var width = CANVAS.innerWidth();
     //var height = CANVAS.innerHeight();
     //var width = window.innerWidth;
     //var height = window.innerHeight;
-    
+
     screenDiv = $('<div>').appendTo('body')
                           .css({
                             'background-color': '#f00',
@@ -233,38 +228,38 @@ shape has visibility and
                             'height': '100%',
                             'z-index': '10'
                           });
-    
-    
+
+
     var width = CANVAS.width();
     var height = CANVAS.height();
     //var height = window.innerHeight;
-    
+
     if(MOBILE_DEVICE == 'iPad'){
       width = window.innerWidth;
       //height = window.innerHeight;
       height = window.innerHeight;
       //var canvasParent = CANVAS[0].parentNode;
       CANVAS.height(height);
-      
+
       //document.documentElement.style.height = height + "px";
       document.documentElement.setAttribute('height', height + "px");
       //CANVAS.parent().parent().parent().height(height - 96);
     }
-    
+
     // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
     if(GL){
       var canvasParent = CANVAS[0].parentNode;
       width = canvasParent.clientWidth;
       height = canvasParent.clientHeight;
     }
-    
-    
+
+
     if(height == 0){
       height = window.innerHeight;
     }
-    
+
     //setTimeout(function(){alert(width + " " + height);}, 200);
-    
+
     if (GL) {
       CANVAS.attr("width",width.toString());
       CANVAS.attr("height",height.toString());
@@ -369,8 +364,8 @@ shape has visibility and
       initGC();
     //}
     EVENT_MANAGER = new EventManager(CANVAS);
-    
-    
+
+
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
@@ -382,10 +377,10 @@ shape has visibility and
     InitDualViewWidget();
     InitNotesWidget();
     InitRecorderWidget();
-    
+
     FAVORITES_WIDGET = new FavoritesWidget();
     FAVORITES_WIDGET.resize(CANVAS.innerWidth());
-    
+
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
       MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
