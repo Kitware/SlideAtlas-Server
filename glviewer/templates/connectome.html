@@ -3,17 +3,14 @@
 <title>Connectome Viewer</title>
 
 
-<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
-
-
-
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
-<link type="text/css" href="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.css') }}" rel="stylesheet" />
 <script type="text/javascript" src="/static/thirdparty/jquery/1.7.2/jquery.min.js"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='jquery/jquery-ui-1.8.22.custom.min.js') }}"></script>
+
+<link type="text/css" href="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css" rel="stylesheet" />
+<script type="text/javascript" src="/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js"></script>
 
 <!-- used some objects, matrix as an array  -->
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='glMatrix-0.9.5.min.js') }}"></script>
