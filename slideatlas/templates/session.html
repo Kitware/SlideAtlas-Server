@@ -77,16 +77,17 @@
         <h2> {{ session_son.views|length }} Images </h2>
         <table class="table table-bordered table-hover" >
             {% for view_son in session_son.views %}
+                {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
+                {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
+                {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) }}">
+                        <a href="{{ viewer_url }}">
                             <img src="{{ url_for('tile.thumb_query', db=view_son.image_image_store_id, img=view_son.image_id) }}" width=100px>
                         </a>
                     </td>
                     <td>
-                        {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
-                        {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
-                        <a href="{{ viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
+                        <a href="{{ viewer_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
                     </td>
                     {% if security.EditSessionRequirement(session).can() %}
                     <td align="right">
