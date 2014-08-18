@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, send_from_directory, Response
 from slideatlas.version import get_version
 from slideatlas import slconn as conn, admindb
 from werkzeug.routing import BaseConverter
-from flask_bootstrap import Bootstrap
 import mongokit
 
 import sys, os
@@ -30,8 +29,6 @@ if  app.config["LOGIN_REQUIRED"]:
 # set the secret key.  keep this really secret:
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
-app.config['BOOTSTRAP_USE_MINIFIED'] = False
-
 class RegexConverter(BaseConverter):
     def __init__(self, url_map, *items):
         super(RegexConverter, self).__init__(url_map)
@@ -39,8 +36,6 @@ class RegexConverter(BaseConverter):
 
 
 app.url_map.converters['regex'] = RegexConverter
-
-Bootstrap(app)
 
 import glviewer
 app.register_blueprint(glviewer.mod)

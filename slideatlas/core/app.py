@@ -6,7 +6,6 @@ from bson import ObjectId
 from bson import json_util as bson_json_util
 from flask import Flask
 from flask.json import JSONEncoder
-from flask.ext.bootstrap import Bootstrap
 
 from .url_processing import add_url_converters, add_url_value_preprocessors
 
@@ -61,10 +60,6 @@ def add_config(app):
         # SESSION_REFRESH_EACH_REQUEST
     )
 
-    # Flask-Bootstrap configuration
-    app.config.update(
-        BOOTSTRAP_USE_MINIFIED=False
-    )
 
     class BSONJSONEncoder(JSONEncoder):
         def default(self, obj):
@@ -110,9 +105,6 @@ def create_blueprints(app):
     #   http://flask.pocoo.org/docs/api/#flask.Blueprint.record
     #   http://flask.pocoo.org/docs/api/#flask.blueprints.BlueprintSetupState
     #  to setup blueprints internally
-
-    # Bootstrap is used by several other blueprints
-    Bootstrap(app)
 
     from slideatlas.core import views as core_views
     core_views.add_views(app)
