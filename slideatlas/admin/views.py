@@ -37,7 +37,7 @@ class ObjectIdField(IntegerField):
             if valuelist[0]:
                 try:
                     self.data = ObjectId(valuelist[0])
-                except ValueError:
+                except InvalidId:
                     raise ValueError(self.gettext('Not a valid ObjectId value'))
 
 class SlideatlasModelConverter(CustomModelConverter):
@@ -152,6 +152,25 @@ class ShibbolethUserView(BaseUserView):
 class BaseGroupView(SlideatlasModelView):
     category = 'Groups'
 
+
+from flask.ext.admin.contrib.mongoengine.ajax import QueryAjaxModelLoader
+from flask.ext.admin.model.fields import AjaxSelectMultipleField
+from flask.ext.admin.helpers import get_form_data
+
+class UserAjaxSelectMultipleField(AjaxSelectMultipleField):
+    def populate_obj(self, obj, name):
+        group = obj
+        updated_user_ids = [user.id for user in self.data]
+
+        # remove the group from users not in 'updated_users' who have it
+        models.User.objects(id__nin=updated_user_ids, groups=group).update(pull__groups=group)
+
+        # add the group to users in 'updated_users' who are missing it
+        models.User.objects(id__in=updated_user_ids).update(add_to_set__groups=group)
+
+
+
+
 class GroupView(BaseGroupView):
     model_class = models.Group
     name = 'Groups'
@@ -162,14 +181,34 @@ class GroupView(BaseGroupView):
 
     can_delete = False # TODO: set up reverse-deletion rules for users, so this can be removed
 
-    #form_ajax_refs = {
-        #'db': QueryAjaxModelLoader('db', models.Database, fields=('label',))
-        #}
+    _user_loader = QueryAjaxModelLoader(
+        'users',
+        models.User,
+        fields=('email', 'full_name'),
+        placeholder='Please select user')
 
-    # form_excluded_columns = ('permissions',) # TODO: temporary
-    # form_overrides = dict(permissions=permission_convert)
+    form_extra_fields = {
+        'users': UserAjaxSelectMultipleField(
+            loader=_user_loader,
+            label='Users',
+            validators=None,
+        )
+    }
 
-#from flask.ext.admin.contrib.mongoengine.ajax import QueryAjaxModelLoader
+    form_ajax_refs = {
+        'users': _user_loader,
+    }
+
+    def get_create_form(self):
+        form_class = super(GroupView, self).get_create_form()
+        delattr(form_class, 'users')
+        return form_class
+
+    def edit_form(self, obj=None):
+        users = models.User.objects(groups=obj)
+        return self._edit_form_class(get_form_data(), obj=obj,
+                                     users=users)
+
 
 class PublicGroupView(BaseGroupView):
     model_class = models.PublicGroup
