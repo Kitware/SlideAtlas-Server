@@ -7,6 +7,8 @@ __author__ = 'dhan'
 #TODO: Extend the uploader for
 # - Wrapping c++ image_uploader for ndpi and jp2 images
 
+#noqua E501
+
 import os
 from celery import Celery
 from celery.task.control import inspect
@@ -53,10 +55,11 @@ class Reader(object):
         self.spacing = [1.0, 1.0, 1.0]
         self.origin = [0., 0., 0.]
         self.components = 3
+
     def set_input_params(self, params):
         self.params = params
 
-    def get_tile(self, x,y,tilesize=256):
+    def get_tile(self, x, y, tilesize=256):
         logger.error("get_tile in Reader is not implemented yet")
         sys.exit(1)
 
@@ -71,17 +74,20 @@ class WrapperReader(Reader):
         """
         super(WrapperReader, self).set_input_params(params)
 
-        logger.info("Received following input params: %s"%(params))
+        logger.info("Received following input params: %s" % params)
         fullname = params["fname"]
         name = os.path.basename(fullname)
         self.name = name
 
         # Perform extension specific operation here
-        extension = os.path.splitext(fullname)
+        # TODO: Use the extension to determine the capability
+        # extension = os.path.splitext(fullname)
 
-        # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.params["fname"]]
+        # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d",
+        #                       istore.dbname, "-n", self.params["fname"]]
         # if len(istore.username) > 0:
         #     params = params + ["-u", istore.username, "-p", istore.password]
+
         if os.name == 'nt':
             self.executable = "image_uploader.exe"
         else:
@@ -91,19 +97,25 @@ class WrapperReader(Reader):
 
         # Get the information in json
         try:
-            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"], shell=True).communicate()[0]
+            output = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                      cwd=self.params["bindir"],
+                                      shell=True).communicate()[0]
         except OSError as e:
-            logger.error("Fatal error from OS while executing image_uploader (possible incorrect --bindir): %s"%e.message)
+            logger.error("Fatal error from OS while executing \
+                          image_uploader (possible incorrect --bindir): \
+                          %s" % e.message)
             sys.exit(0)
 
         js = {}
-        try :
+        try:
             js = json.loads(output)
         except:
-            logger.error("Fatal error Output of image_uploader not valid json: %s"%output)
+            logger.error("Fatal error Output of image_uploader \
+                not valid json: %s" % output)
+
             sys.exit(0)
 
-        logger.info("JS: %s"%(js))
+        logger.info("JS: %s" % js)
 
         if js.has_key('error'):
             anitem.textStatus.SetLabel("Error")
@@ -135,7 +147,11 @@ class MongoUploader(object):
         """
         Common initialization
         """
-        self.imageid = None  #: Id of the image collection to write to. It is not set initially but the init process will set it according to input parameter
+
+        """ Id of the image collection to write to. It is not set initially
+            but the init process will set it according to input parameter
+        """
+        self.imageid = None
         self.args = args
 
         self.upload()
@@ -150,13 +166,14 @@ class MongoUploader(object):
             if self.args.mongo_collection:
                 # Remove any image object and collection of that name
                 self.imageid = ObjectId(self.args.mongo_collection)
-                logger.info("Using specified ImageID: %s"%(self.imageid))
+                logger.info("Using specified ImageID: %s" % self.imageid)
             else:
                 self.imageid = ObjectId()
-                logger.info("Using new ImageID: %s"%(self.imageid))
+                logger.info("Using new ImageID: %s" % self.imageid)
 
         except InvalidId:
-            logger.error("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
+            logger.error("Invalid ObjectID for mongo collection: \
+                             %s" % self.args.mongo_collection)
 
         # Load reader
         self.reader = self.make_reader()
@@ -193,7 +210,7 @@ class MongoUploader(object):
 
         # Create and insert view
         aview = {}
-        aview["img"] = img=ObjectId(self.imageid)
+        aview["img"] = ObjectId(self.imageid)
 
         self.db["views"].insert(aview)
 
@@ -359,11 +376,11 @@ class MongoPtifUploader(MongoUploader):
                         pass
 
                 image_doc = Image()
-                image_doc["filename"]= fname
-                image_doc["label"]= fname
-                image_doc["origin"] = [0,0,0]
-                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
-                image_doc["dimensions"] =[reader.width, reader.height]
+                image_doc["filename"] = fname
+                image_doc["label"] = fname
+                image_doc["origin"] = [0, 0, 0]
+                image_doc["spacing"] = [1.0, 1.0, 1.0]  # TODO: Get it from the data
+                image_doc["dimensions"] = [reader.width, reader.height]
                 image_doc["bounds"] = [0, reader.width, 0, reader.height]
                 image_doc["levels"] = len(reader.levels)
                 image_doc["components"] = 3 # TODO: Get it from the data
@@ -518,14 +535,12 @@ class MongoUploaderWrapper(MongoUploader):
         #shell is set to false so we don't get the black command line window
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
 
-        read = False
-
         while True:
             time.sleep(0)
 
             result = proc.poll()
 
-            if not result == None:
+            if not (result is None):
                 # Process died
                 if not result == 0:
                     logger.error("Fatal error: Process died without any output")
@@ -537,20 +552,20 @@ class MongoUploaderWrapper(MongoUploader):
             try:
                 js = json.loads(output)
             except:
-                logger.error("Fatal error: Invalid json output from image_uploader:\n%s"%(output))
+                logger.error("Fatal error: Invalid json output from image_uploader:\n%s" % output)
                 sys.exit(1)
 
-            if js.has_key('error'):
-                logger.error("Fatal error: image_uploader says:%s"%(js["error"]))
+            if "error" in js:
+                logger.error("Fatal error: image_uploader says:%s" % js["error"])
                 sys.exit(1)
 
-            if js.has_key("information"):
+            if "information" in js:
                 logger.info("Information available")
 
-            if js.has_key('progress_percent'):
-                logger.info("Progress : %f"%(js['progress_percent']))
+            if "progress_percent" in js:
+                logger.info("Progress : %f" % js['progress_percent'])
 
-            if js.has_key('success'):
+            if "success" in js:
                 logger.info("DONE !!")
                 break
 
@@ -587,9 +602,9 @@ def make_argument_parser():
 if __name__ == '__main__':
     """
     Main entry point for image uploader
-    Sample commandline is
+    Uploads a single image
 
-    ..code-block:: shell-session
+        ..code-block:: shell-session
 
         (slideatlas) $python slideatlas/tasks/ptif_upload.py -i ~/data/ptif/20140721T182320-963749.ptif -c 53d0971cdd98b50867b0eecd  -s 53d09798ca7b3a021caff678  -s dj1 -vv -n
 
@@ -598,7 +613,7 @@ if __name__ == '__main__':
     parser = make_argument_parser()
     args = parser.parse_args()
 
-    if args.verbose == None:
+    if args.verbose is None:
         verbose = 0
     else:
         verbose = args.verbose
@@ -608,15 +623,15 @@ if __name__ == '__main__':
         for akey in vars(args).keys():
             print "   ", akey, ": ", vars(args)[akey]
 
-    if args.input == None:
+    if args.input is None:
         print "No input files ! (please use -i <inputfile>"
         sys.exit(255)
     else:
-        logger.info("Processing: %s"%(args.input))
+        logger.info("Processing: %s" % args.input)
 
     logger.info(args.input)
     # Find the extension of the file
-    if args.input.endswith(".ptif") :
+    if args.input.endswith(".ptif"):
         logger.info("Got a PTIF")
         MongoPtifUploader(args)
     elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):

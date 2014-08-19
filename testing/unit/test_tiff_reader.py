@@ -64,7 +64,7 @@ def test_extract_tiles():
 
 
     # logger.info("Barcode: %s" % reader.barcode)
-    reader.extract_all_tiles()
+    # reader.extract_all_tiles()
 
 if __name__ == "__main__":
     """
