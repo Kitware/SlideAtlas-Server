@@ -174,15 +174,23 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     # Needs to sync
                     logging.info('Creating new image from file: %s' % image_file_name)
                     image = Image(filename=image_file_name)
+                    new_image_record = True
                 except MultipleObjectsReturned:
                     # TODO: this generally shouldn't happen, but should be handled
                     raise
                 else:  # existing image found
                     if image.uploaded_at == file_modified_time:
                         # image unchanged as expected, skip processing
+                        logging.debug('Existing image unchanged: %s' % image_file_path)
                         continue
                     else:
+                        new_image_record = False
                         logging.warning('Existing image was modified: %s' % image_file_path)
+
+                    logging.debug('%s uploaded_at : %s' % (image_file_path, image.uploaded_at))
+                    logging.debug('Type of uploaded_at: %s' % type(image.uploaded_at))
+                    logging.debug('file_modified_time: %s' % file_modified_time)
+                    logging.debug('Type of file_modifide_time: %s' % type(file_modified_time))
 
                 reader = make_reader({
                     'fname': image_file_path,
@@ -210,13 +218,15 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # need to save images to give it an id
                 image.save()
 
-                view = View(image=image.id)
-                view.save()
+                # Create views only if the file is newly added to the folder
+                if new_image_record:
+                    view = View(image=image.id)
+                    view.save()
 
-                # newest images should be at the top of the session's view list
-                logging.error('adding view %s to session %s/%s' % (view.id, session.collection, session))
-                session.views.insert(0, RefItem(ref=view.id, db=self.id))
-                session.save()
+                    # newest images should be at the top of the session's view list
+                    logging.error('adding view %s to session %s/%s' % (view.id, session.collection, session))
+                    session.views.insert(0, RefItem(ref=view.id, db=self.id))
+                    session.save()
 
                 new_images.append(image.to_json())
 
