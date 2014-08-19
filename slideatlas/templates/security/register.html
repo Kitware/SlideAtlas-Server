@@ -1,38 +1,39 @@
-{% extends 'base.html' %}
+{% extends 'frontend_base.html' %}
+
 {% from 'security/_macros.html' import render_field_with_errors, render_field %}
 
-{% block body_content %}
-{{ super() }}
 
-<div class="container">
-    <div class="row">
-        <div class="span8">
-            <h1>Welcome to SlideAtlas</h1>
-            <h3>New Account Information</h3>
-        </div>
-    </div>
-    <br/>
-    <div class="row">
-        <form action="{{ url_for_security('register') }}" method="POST" name="register_user_form">
-            {{ register_user_form.hidden_tag() }}
+{% block content %}
+{{ super() }}
+    <div class="container">
+        <div class="row">
             <div class="span8">
-                <div>
-                    {{ render_field_with_errors(register_user_form.full_name, required=True, pattern="[A-Za-z0-9 -]{3,50}", title="Full name should be 3-50 alpha-numeric characters") }}
-                </div>
-                <div>
-                    {{ render_field_with_errors(register_user_form.email, required=True, title="Please enter a valid email here") }}
-                </div>
-                <p>After submitting this form, you will recieve an email with instructions to confirm your account and create a password.</p>
-                {{ render_field(register_user_form.submit, class="btn") }}
+                <h1>Welcome to SlideAtlas</h1>
+                <h3>New Account Information</h3>
             </div>
-        </form>
-    </div>
-    <br/>
-    <div class="row">
-        <div class="span8">
-            <p><i>Your email address will be used as a unique username to identify your affiliation and grant you access to content.<br/>
-            SlideAtlas will not share your email address with any third party, nor use it for any other purpose than SlideAtlas site administration.</i></p>
+        </div>
+        <br/>
+        <div class="row">
+            <form action="{{ url_for_security('register') }}" method="POST" name="register_user_form">
+                {{ register_user_form.hidden_tag() }}
+                <div class="span8">
+                    <div>
+                        {{ render_field_with_errors(register_user_form.full_name, required=True, pattern='[A-Za-z0-9 -]{3,50}', title='Full name should be 3-50 alpha-numeric characters') }}
+                    </div>
+                    <div>
+                        {{ render_field_with_errors(register_user_form.email, required=True, title='Please enter a valid email here') }}
+                    </div>
+                    <p>After submitting this form, you will receive an email with instructions to confirm your account and create a password.</p>
+                    {{ render_field(register_user_form.submit, class='btn') }}
+                </div>
+            </form>
+        </div>
+        <br/>
+        <div class="row">
+            <div class="span8">
+                <p><i>Your email address will be used as a unique username to identify your affiliation and grant you access to content.<br/>
+                SlideAtlas will not share your email address with any third party, nor use it for any other purpose than SlideAtlas site administration.</i></p>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+{% endblock content %}

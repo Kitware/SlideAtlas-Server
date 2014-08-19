@@ -1,69 +1,68 @@
-{% from "security/_macros.html" import render_field_with_errors, render_field %}
-{% extends "base.html" %}
+{% extends 'frontend_base.html' %}
 {% set active_page = "login" %}
 
-{% block body_content %}
+{% from 'security/_macros.html' import render_field_with_errors, render_field %}
+
+
+{% block content %}
 {{ super() }}
-
-<div class="container">
-    <div class="row">
-        <div class="span8 offset1">
-            <h1>Welcome to SlideAtlas</h1>
-            <br/>
-            <br/>
-            <h3>Please sign in or <a class="btn btn-primary" href="{{ url_for_security('register') }}">Sign Up</a></h3>
+    <div class="container">
+        <div class="row">
+            <div class="span8 offset1">
+                <h1>Welcome to SlideAtlas</h1>
+                <br/>
+                <br/>
+                <h3>Please sign in or <a class="btn btn-primary" href="{{ url_for_security('register') }}">Sign Up</a></h3>
+            </div>
         </div>
-    </div>
-    <br/>
-    <div class="row">
-        <div class="col-md-8 col-md-offset-1">
-            <form action="{{ url_for_security('login') }}" method="POST" name="login_user_form" role="form" class="form-horizontal">
-                {{ login_user_form.hidden_tag() }}
-                {{ login_user_form.next() }}
-                <div class="form-group{% if login_user_form.email.errors %} has-error{% endif %}">
-                    {{ login_user_form.email.label(class="col-sm-2 control-label") }}
-                    <div class="col-sm-8">
-                        {{ login_user_form.email(class="form-control", required=True) }}
-                        {% for error in login_user_form.email.errors %}
-                        <span class="help-block">{{ error }}</span>
-                        {% endfor %}
+        <br/>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-1">
+                <form action="{{ url_for_security('login') }}" method="POST" name="login_user_form" role="form" class="form-horizontal">
+                    {{ login_user_form.hidden_tag() }}
+                    {{ login_user_form.next() }}
+                    <div class="form-group{% if login_user_form.email.errors %} has-error{% endif %}">
+                        {{ login_user_form.email.label(class='col-sm-2 control-label') }}
+                        <div class="col-sm-8">
+                            {{ login_user_form.email(class='form-control', required=True) }}
+                            {% for error in login_user_form.email.errors %}
+                            <span class="help-block">{{ error }}</span>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-                <div class="form-group{% if login_user_form.password.errors %} has-error{% endif %}">
-                    {{ login_user_form.password.label(class="col-sm-2 control-label") }}
-                    <div class="col-sm-8">
-                        {{ login_user_form.password(class="form-control") }}
-                        {% for error in login_user_form.password.errors %}
-                        <span class="help-block">{{ error }}</span>
-                        {% endfor %}
+                    <div class="form-group{% if login_user_form.password.errors %} has-error{% endif %}">
+                        {{ login_user_form.password.label(class='col-sm-2 control-label') }}
+                        <div class="col-sm-8">
+                            {{ login_user_form.password(class='form-control') }}
+                            {% for error in login_user_form.password.errors %}
+                            <span class="help-block">{{ error }}</span>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-                {# TODO: add "login_user_form.remember" checkbox #}
-                <div class="form-group">
-                    <label class="col-sm-2 control-label"></label>
-                    <div class="col-sm-8">
-                        {{ login_user_form.submit(class="btn btn-default") }}
-                        <a href="{{ url_for_security('forgot_password') }}">Forgot password</a>
+                    {# TODO: add "login_user_form.remember" checkbox #}
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label"></label>
+                        <div class="col-sm-8">
+                            {{ login_user_form.submit(class='btn btn-default') }}
+                            <a href="{{ url_for_security('forgot_password') }}">Forgot password</a>
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span8 offset1">
+                <h3>Or login with:</h3>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+            {% for provider in login_providers %}
+                {% if provider.is_enabled() %}
+                <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
+                {% endif %}
+            {% endfor %}
+            </div>
         </div>
     </div>
-
-    <div class="row">
-        <div class="span8 offset1">
-            <h3>Or login with:</h3>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-8 col-md-offset-2">
-        {% for provider in login_providers %}
-            {% if provider.is_enabled() %}
-            <a href="{{ url_for_security(provider.endpoint) }}" class="btn btn-default"><img class="login-logo" src="{{ provider.icon_url }}"> {{ provider.pretty_name }}</a>
-            {% endif %}
-        {% endfor %}
-        </div>
-    </div>
-</div>
-{% endblock %}
+{% endblock content %}

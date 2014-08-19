@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+
+{% block title %}SlideAtlas{% endblock title %}
+
+
+{% block styles %}
+    <link rel="stylesheet" href="/static/thirdparty/bootstrap/3.0.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/slideatlas.css">
+    <style>
+        body {
+            padding-top: 60px;
+            padding-bottom: 40px;
+        }
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+        @media (max-width: 980px) {
+            /* Enable use of floated navbar text */
+            .navbar-text.pull-right {
+                float: none;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+    </style>
+    <style>
+        [ng\:cloak], [ng-cloak], .ng-cloak {
+          display: none !important;
+        }
+    </style>
+{% endblock styles %}
+
+
+{% block scripts %}
+    <script src="/static/thirdparty/jquery/1.9.1/jquery.min.js"></script>
+    <script src="/static/thirdparty/jquery-migrate/1.1.0/jquery-migrate.min.js"></script>
+    <script src="/static/thirdparty/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('ul.nav > li').click(function(e) {
+                $('ul.nav > li').removeClass('active');
+                $(this).addClass('active');
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            /**
+            Bootstrap Alerts -
+            Function Name - showalert()
+            Inputs - message,alerttype
+            Example - showalert("Invalid Login","alert-error")
+            Types of alerts -- "alert-error","alert-success","alert-info"
+            Required - You only need to add a alert_placeholder div in your html page wherever you want to display these alerts "<div id="alert_placeholder"></div>"
+            Written On - 14-Jun-2013
+            **/
+
+            show_alert = function (message,alerttype) {
+                console.log(message)
+                console.log(alerttype)
+
+                if(alerttype == "error") { alerttype = "danger";}
+
+                $('#alert_placeholder').append('<div id="alertdiv" class="alert alert-' +  alerttype + '"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>')
+
+                // Uncomment following snippet to remove flashed messages after certain timeout
+                {#                setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs#}
+                {#                    $("#alertdiv").remove();#}
+                {##}
+                {#                }, 10000);#}
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            {% with msgs = get_flashed_messages(with_categories=True) %}
+                {% if msgs %}
+                    {% for category, msg in msgs %}
+                        show_alert( {{ msg|tojson }}, {{ category|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+{% endblock scripts %}
+
+
+{% block navbar %}
+    {# TODO: change to only showing Admin for users with some sort of privileges #}
+    {% set show_admin = security.AdminRequirement().can() %}
+    {% set navigation_bar = [
+        ('home', '/', 'Home', True),
+        ('sessions', '/sessions', 'Sessions', True),
+        ('admin', '/apiv1/admin#/', 'Admin', show_admin),
+        ('admin', url_for('admin.index'), 'Admin 2', show_admin),
+        ('status', '/status', 'Status', True),
+    ] %}
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle Navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">SlideAtlas</a>
+            </div>
+            <div class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    {% for id, href, label, show in navigation_bar %}
+                        {% if show %}
+                        <li {% if id == active_page %} class="active"{% endif %}>
+                            <a href="{{ href|escape }}">{{ label|escape }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    <li>
+                        <a href="http://slideatlas.kitware.com/" target="_blank">About</a>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if not current_user.is_authenticated() %}
+                    <li class="login-link{% if 'login' == active_page %} active{% endif %}">
+                        <a class="login-link" href="{{ url_for_security('login') }}">Login</a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{{ url_for_security('logout') }}">{{ current_user.full_name }} ~ Logout</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock navbar %}
+
+
+{% block content %}
+    <div class="container">
+        <div id="alert_placeholder">
+        </div>
+    </div>
+{% endblock content %}

@@ -1,40 +1,43 @@
-{% extends "base.html" %}
-{% set active_page = "sessions" %}
+{% extends 'frontend_base.html' %}
+{% set active_page = 'sessions' %}
 
-{% block body_content %}
+
+{% block styles %}
 {{ super() }}
+    <style>
+        button {
+            float: right;
+        }
+    </style>
+{% endblock styles %}
 
-<style>
-button
-{
-float:right;
-}
-</style>
 
-<div class="container">
-    {% for (collection, sessions) in all_sessions %}
-    <h2> {{ collection.label }}</h2>
-    <table class="table table-bordered table-hover" >
-        {% for session, can_admin in sessions %}
-        <tr>
-            <td>
-                {% if session.type == 'stack' %}
-                <a href="/webgl-viewer/stack?db={{ session.image_store.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
-                {% else %}
-                <a href="{{ url_for('.view_a_session', session=session) }}" class="lead">{{ session.label }}</a>
+{% block content %}
+{{ super() }}
+    <div class="container">
+        {% for (collection, sessions) in all_sessions %}
+        <h2>{{ collection.label }}</h2>
+        <table class="table table-bordered table-hover" >
+            {% for session, can_admin in sessions %}
+            <tr>
+                <td>
+                    {% if session.type == 'stack' %}
+                    <a href="/webgl-viewer/stack?db={{ session.image_store.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
+                    {% else %}
+                    <a href="{{ url_for('.view_a_session', session=session) }}" class="lead">{{ session.label }}</a>
+                    {% endif %}
+                </td>
+                {% if can_admin %}
+                <td>
+                    <a href="{{ url_for('.sessionedit', session=session) }}" class="lead">
+                        <button type="button" class="btn btn-danger">Edit</button>
+                    </a>
+                </td>
                 {% endif %}
-            </td>
-            {% if can_admin %}
-            <td>
-                <a href="{{ url_for('.sessionedit', session=session) }}" class="lead">
-                    <button type="button" class="btn btn-danger">Edit</button>
-                </a>
-            </td>
-            {% endif %}
-        </tr>
+            </tr>
+            {% endfor %}
+        </table>
+        <br>
         {% endfor %}
-    </table>
-    <br>
-    {% endfor %}
-</div>
-{% endblock %}
+    </div>
+{% endblock content %}

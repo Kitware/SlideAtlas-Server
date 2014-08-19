@@ -1,60 +1,61 @@
-{% extends "base.html" %}
-{% set active_page = "status" %}
+{% extends 'frontend_base.html' %}
+{% set active_page = 'status' %}
 
-{% block body_content %}
+
+{% block content %}
 {{ super() }}
-<div class="container">
-    <h1>Welcome to SlideAtlas</h1>
-    <br/>
-    <br/>
-    <table class="table table-bordered table-hover">
-        <tr>
-            <th colspan="2">Site</th>
-        </tr>
-        <tr>
-            <td>Version</td>
-            <td>{{ site.version }}</td>
-        </tr>
-    </table>
-    <table class="table table-bordered table-hover">
-        <tr>
-            <th colspan="2">Admin Database</th>
-        </tr>
-        <tr>
-            <td>Host</td>
-            <td>{{ admin_db.host}}</td>
-        </tr>
-        <tr>
-            <td>Replica Set</td>
-            <td>{{ admin_db.replica_set }}</td>
-        </tr>
-        <tr>
-            <td>Name</td>
-            <td>{{ admin_db.name }}</td>
-        </tr>
-    </table>
-    <table class="table table-bordered table-hover">
-        <tr>
-            <th colspan="2">Current User</th>
-        </tr>
-        {% if current_user.is_authenticated() %}
-        <tr>
-            <td>ID</td>
-            <td>{{ current_user.id }}</td>
-        </tr>
-        <tr>
-            <td>Email</td>
-            <td>{{ current_user.email }}</td>
-        </tr>
-        <tr>
-            <td>Full Name</td>
-            <td>{{ current_user.full_name }}</td>
-        </tr>
-        {% else %}
-        <tr>
-            <td>User not authenticated</td>
-        </tr>
-        {% endif %}
-    </table>
-</div>
-{% endblock %}
+    <div class="container">
+        <h1>Welcome to SlideAtlas</h1>
+        <br/>
+        <br/>
+        <table class="table table-bordered table-hover">
+            <tr>
+                <th colspan="2">Site</th>
+            </tr>
+            <tr>
+                <td>Version</td>
+                <td>{{ site.version }}</td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-hover">
+            <tr>
+                <th colspan="2">Admin Database</th>
+            </tr>
+            <tr>
+                <td>Host</td>
+                <td>{{ admin_db.host}}</td>
+            </tr>
+            <tr>
+                <td>Replica Set</td>
+                <td>{{ admin_db.replica_set }}</td>
+            </tr>
+            <tr>
+                <td>Name</td>
+                <td>{{ admin_db.name }}</td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-hover">
+            <tr>
+                <th colspan="2">Current User</th>
+            </tr>
+            {% if current_user.is_authenticated() %}
+                <tr>
+                    <td>ID</td>
+                    <td>{{ current_user.id }}</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td>{{ current_user.email }}</td>
+                </tr>
+                <tr>
+                    <td>Full Name</td>
+                    <td>{{ current_user.full_name }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td>User not authenticated</td>
+                </tr>
+            {% endif %}
+        </table>
+    </div>
+{% endblock content %}
