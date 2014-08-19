@@ -61,7 +61,7 @@ class Reader(object):
 
     def get_tile(self, x, y, tilesize=256):
         logger.error("get_tile in Reader is not implemented yet")
-        sys.exit(1)
+        sys.exit(-1)
 
 
 class WrapperReader(Reader):
@@ -104,7 +104,7 @@ class WrapperReader(Reader):
             logger.error("Fatal error from OS while executing \
                           image_uploader (possible incorrect --bindir): \
                           %s" % e.message)
-            sys.exit(0)
+            sys.exit(-1)
 
         js = {}
         try:
@@ -113,18 +113,18 @@ class WrapperReader(Reader):
             logger.error("Fatal error Output of image_uploader \
                 not valid json: %s" % output)
 
-            sys.exit(0)
+            sys.exit(-1)
 
         logger.info("JS: %s" % js)
 
         if js.has_key('error'):
             anitem.textStatus.SetLabel("Error")
             logger.error("Fatal error UNREADABLE input:\n%s"%(output))
-            sys.exit(0)
+            sys.exit(-1)
 
         if not js.has_key("information"):
             logger.error("Fatal error NO INFORMATION")
-            sys.exit(0)
+            sys.exit(-1)
 
         self.width = js["dimensions"][0]
         self.height = js["dimensions"][1]
@@ -227,14 +227,14 @@ class MongoUploader(object):
         Will not be implemented in the base uploader class
         """
         logging.error("make_reader NOT implemented")
-        sys.exit(1)
+        sys.exit(-1)
 
     def upload_base(self):
         """
         Will not be implemented in the base uploader class
         """
         logging.error("upload_base is NOT implemented")
-        sys.exit(1)
+        sys.exit(-1)
 
     def setup_destination(self, collection):
         """
@@ -264,7 +264,7 @@ class MongoUploader(object):
             self.db.authenticate(self.imagestore.username, self.imagestore.password)
         except:
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-            sys.exit(1)
+            sys.exit(-1)
 
 
     def insert_metadata(self):
@@ -277,7 +277,7 @@ class MongoUploader(object):
 
         if self.imagestore == None:
             logger.error("Fatal Error: Imagestore not set")
-            sys.exit(1)
+            sys.exit(-1)
 
         with flaskapp.app_context():
             with self.imagestore:
@@ -297,6 +297,8 @@ class MongoUploader(object):
                     logger.info("Dry run .. not creating image record: %s"%(image_doc))
                 else:
                     self.db["images"].insert(image_doc)
+
+
 
 class MongoPtifUploader(MongoUploader):
     """
@@ -342,7 +344,7 @@ class MongoPtifUploader(MongoUploader):
         # TODO: Whether the input is a url
         # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
         logger.error("Fatal error this implementation NEEDS A REVIEW, TODO: Use methods from base class ")
-        sys.exit(1)
+        sys.exit(-1)
         fname = os.path.split(self.args.input)[1]
 
         # Get the destination session in the collection
@@ -570,6 +572,43 @@ class MongoUploaderWrapper(MongoUploader):
                 break
 
 
+def process_zip(args):
+    """
+    """
+
+    # Extracts zip
+    zname = args.input
+    assert zname.endswith("zip")
+    session = os.path.splitext(os.path.basename(zname))[0]
+    logger.info("Session name wil be: " + session)
+    # Creates the session
+
+    from bson import ObjectId
+    temp = ObjectId()
+
+    import zipfile
+
+    fh = open(zname,  'rb')
+    z = zipfile.ZipFile(fh)
+    for name in z.namelist():
+        logger.info("Extracting .." + name)
+        outpath = str(temp)
+        z.extract(name, outpath)
+
+    fh.close()
+    # In a loop calls the corresponding files
+
+    import glob
+    for afile in glob.glob(str(temp) + "/*"):
+        logger.info("Processing inside of: " + afile)
+        args.input =  afile
+        MongoUploaderWrapper(args)
+
+    # Remove the folder
+    # import shutil
+    # shutil.rmtree(str(temp))
+
+
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
 
@@ -580,7 +619,8 @@ def make_argument_parser():
     # The admin database will be already accessible from flaskapp
     # Collection implicitly contains image_store
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
-    parser.add_argument("-s", "--session", help="Session id", required=True)
+
+    parser.add_argument("-s", "--session", help="Required for non-zip files", required=False)
     parser.add_argument("--bindir", help="Path of the image uploader binary", required=False)
 
     # Optional parameters
@@ -625,17 +665,24 @@ if __name__ == '__main__':
 
     if args.input is None:
         print "No input files ! (please use -i <inputfile>"
-        sys.exit(255)
+        sys.exit(-1)
     else:
         logger.info("Processing: %s" % args.input)
 
-    logger.info(args.input)
     # Find the extension of the file
-    if args.input.endswith(".ptif"):
-        logger.info("Got a PTIF")
-        MongoPtifUploader(args)
-    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+    if args.input.endswith(".zip"):
         logger.info("Got a " + args.input[-4:])
-        MongoUploaderWrapper(args)
+        process_zip(args)
     else:
-        logger.error("Unsupported file: " + args.input[-4:])
+        if args.session is None:
+            logger.error("Fatal: Session required for non-zip input")
+            sys.exit(-1)
+
+        if args.input.endswith(".ptif"):
+            logger.info("Got a PTIF")
+            MongoPtifUploader(args)
+        elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+            logger.info("Got a " + args.input[-4:])
+            MongoUploaderWrapper(args)
+        else:
+            logger.error("Unsupported file: " + args.input[-4:])
