@@ -26,18 +26,6 @@ var LINk_DIV;
 // Time to make this an object to get rid of all these global variables.
 function InitNotesWidget() {
   NOTES_WIDGET = new NotesWidget();
-  if (EDIT) {
-    // This handles making children sortable.
-    /*
-    var iter = this.RootNote.NewIterator();
-    do {
-      var note = iter.GetNote();
-      note.UpdateChildrenGUI();
-      iter.Next();
-    } while ( ! iter.IsEnd());
-    */
-  NOTES_WIDGET.ToggleNotesWindow();
-  }
 
   LINK_DIV = 
     $("<div>")
