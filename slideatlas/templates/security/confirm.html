@@ -1,32 +1,33 @@
-{% extends 'base.html' %}
+{% extends 'frontend_base.html' %}
+
 {% from 'security/_macros.html' import render_field_with_errors, render_field %}
 
-{% block body_content %}
-{{ super() }}
 
-<div class="container">
-    <div class="row">
-        <div class="span8">
-            <h1>Welcome to SlideAtlas</h1>
-            <h3>Confirm New Account</h3>
-        </div>
-        <p>Your email has been confirmed.<br>
-        Please create a password for your new account to finalize registration.</p>
-    </div>
-    <br/>
-    <div class="row">
-        <form action="{{ url_for_security('confirm_email', token=token) }}" method="POST" name="confirm_form">
-            {{ confirm_form.hidden_tag() }}
+{% block content %}
+{{ super() }}
+    <div class="container">
+        <div class="row">
             <div class="span8">
-                <div>
-                    {{ render_field_with_errors(confirm_form.password, required=True) }}
-                </div>
-                <div>
-                    {{ render_field_with_errors(confirm_form.password_confirm, required=True) }}
-                </div>
-                {{ render_field(confirm_form.submit, class="btn") }}
+                <h1>Welcome to SlideAtlas</h1>
+                <h3>Confirm New Account</h3>
             </div>
-        </form>
+            <p>Your email has been confirmed.<br>
+            Please create a password for your new account to finalize registration.</p>
+        </div>
+        <br/>
+        <div class="row">
+            <form action="{{ url_for_security('confirm_email', token=token) }}" method="POST" name="confirm_form">
+                {{ confirm_form.hidden_tag() }}
+                <div class="span8">
+                    <div>
+                        {{ render_field_with_errors(confirm_form.password, required=True) }}
+                    </div>
+                    <div>
+                        {{ render_field_with_errors(confirm_form.password_confirm, required=True) }}
+                    </div>
+                    {{ render_field(confirm_form.submit, class='btn') }}
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-{% endblock %}
+{% endblock content %}

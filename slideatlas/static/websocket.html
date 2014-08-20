@@ -36,7 +36,7 @@
 
                     sock.onopen = function() {
                         log("Connected to " + wsuri);
-                    
+
                     }
 
                     sock.onclose = function(e) {
@@ -77,12 +77,12 @@
             };
 
             function init() {
-                send(BSON.serialize({init : { db : "5074589302e31023d4292d91" }})); 
+                send(BSON.serialize({init : { db : "5074589302e31023d4292d91" }}));
             };
 
             function get_tile() {
                 var msgstr = document.getElementById('message').value;
-                send(msg = BSON.serialize({tile: { image: "501c98104834a31238000000", name:msgstr}})); 
+                send(msg = BSON.serialize({tile: { image: "501c98104834a31238000000", name:msgstr}}));
             };
 
             function log(m) {
@@ -94,9 +94,9 @@
     <body>
         <h1>WebSocket Echo Test</h1>
         <noscript>You must enable JavaScript</noscript>
-        <p>Message: <input id="message" type="text" size="50" maxlength="50" value="t.jpg" 
+        <p>Message: <input id="message" type="text" size="50" maxlength="50" value="t.jpg"
                 onkeydown="if (event.keyCode == 13) $('#get_tile').click()"></p>
-        
+
         <button id="get_tile" onclick='get_tile();'>Request Tile</button>
         <button id="init" onclick='init();'>Init </button>
         <div id="img"> </div>

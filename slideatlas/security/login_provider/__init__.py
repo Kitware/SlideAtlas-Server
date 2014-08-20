@@ -41,7 +41,5 @@ def add_views(app, blueprint):
 
     # TODO: password change page
 
-    # TODO: add view for and update profile.html template
-
     # the blueprint was updated, so it must be re-registered
     app.register_blueprint(blueprint)

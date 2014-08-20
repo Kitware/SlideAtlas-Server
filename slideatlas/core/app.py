@@ -11,7 +11,7 @@ from .url_processing import add_url_converters, add_url_value_preprocessors
 
 from celery import Celery
 ################################################################################
-__all__ = ('create_app','create_celery_app')
+__all__ = ('create_app', 'create_celery_app')
 
 
 ################################################################################
@@ -50,9 +50,9 @@ def add_config(app):
     """
     # Flask configuration
     app.config.update(
-        PREFERRED_URL_SCHEME = 'https' if app.config['SLIDEATLAS_HTTPS'] else 'http',
+        PREFERRED_URL_SCHEME='https' if app.config['SLIDEATLAS_HTTPS'] else 'http',
 
-        SESSION_COOKIE_SECURE = app.config['SLIDEATLAS_HTTPS'],
+        SESSION_COOKIE_SECURE=app.config['SLIDEATLAS_HTTPS'],
 
         # The following options only apply if Flask sessions are configured
         #   to be permanent, which they presently are not
@@ -60,6 +60,9 @@ def add_config(app):
         # SESSION_REFRESH_EACH_REQUEST
     )
 
+    # Flask template configuration
+    app.jinja_env.trim_blocks = True
+    app.jinja_env.lstrip_blocks = True
 
     class BSONJSONEncoder(JSONEncoder):
         def default(self, obj):
@@ -122,7 +125,7 @@ def create_blueprints(app):
     from slideatlas.views import sessions
     app.register_blueprint(sessions.mod)
 
-    from slideatlas.views  import db_operations
+    from slideatlas.views import db_operations
     app.register_blueprint(db_operations.mod)
 
     from slideatlas.api import api
