@@ -58,6 +58,8 @@ class Reader(object):
 
     def set_input_params(self, params):
         self.params = params
+        if not params["bindir"].endswith("/"):
+            params["bindir"] = params["bindir"] + "/"
 
     def get_tile(self, x, y, tilesize=256):
         logger.error("get_tile in Reader is not implemented yet")
@@ -89,23 +91,26 @@ class WrapperReader(Reader):
         #     params = params + ["-u", istore.username, "-p", istore.password]
 
         if os.name == 'nt':
-            self.executable = "image_uploader.exe"
+            params = ["image_uploader.exe", "-n", fullname]
         else:
-            self.executable = "image_uploader"
+            params = [self.params["bindir"] + "image_uploader", "-n", fullname]
+            params = " ".join(params)
 
-        args = [self.executable, "-n", self.params["fname"]]
-
+        logger.info("Params: " + params)
         # Get the information in json
+
         try:
-            output = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                      cwd=self.params["bindir"],
-                                      shell=True).communicate()[0]
+            output, erroutput = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                                 cwd=self.params["bindir"],
+                                                 shell=True).communicate()
         except OSError as e:
             logger.error("Fatal error from OS while executing \
                           image_uploader (possible incorrect --bindir): \
                           %s" % e.message)
             sys.exit(-1)
 
+        logger.error("ErrOutput")
+        logger.error(erroutput)
         js = {}
         try:
             js = json.loads(output)
@@ -526,15 +531,19 @@ class MongoUploaderWrapper(MongoUploader):
         istore = self.imagestore
 
         if os.name == 'nt':
-            self.executable = "image_uploader.exe"
+            args = ["image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            if len(istore.username) > 0:
+                args = args + ["-u", istore.username, "-p", istore.password]
         else:
-            self.executable = "image_uploader"
+            args = [self.args.bindir + "/image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            if len(istore.username) > 0:
+                args = args + ["-u", istore.username, "-p", istore.password]
 
-        args = [self.executable, "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
-        if len(istore.username) > 0:
-            args = args + ["-u", istore.username, "-p", istore.password]
+            args = " ".join(args)
 
-        #shell is set to false so we don't get the black command line window
+        logger.info("Params: " + args)
+        # Get the information in json
+
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
 
         while True:
