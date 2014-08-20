@@ -782,6 +782,7 @@ Note.prototype.Serialize = function(includeChildren) {
   obj.Type = this.Type;
   obj.User = this.User;
   obj.Date = this.Date;
+
   if (this.Id) {
     obj._id = this.Id;
   }
@@ -1083,7 +1084,6 @@ NotesWidget.prototype.RandomCallback = function() {
 
 
 
-// TODO: Activate and inactivate save button based on whether anything has changed.
 NotesWidget.prototype.SaveCallback = function() {
   // changing an annotation does not cause modified yet, so do not block the save.
   //if ( ! this.ModifiedFlag) { return;}

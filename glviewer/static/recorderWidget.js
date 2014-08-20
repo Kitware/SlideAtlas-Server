@@ -34,6 +34,10 @@ ViewerRecord.prototype.Load = function(obj) {
     this[ivar] = obj[ivar];
   }
 
+  if (this.OverviewBounds) {
+     this.Image.bounds = this.OverviewBounds;
+  }
+
   if (this.Annotations) {
     for (var i = 0; i < this.Annotations.length; ++ i) {
       var a = this.Annotations[i];
@@ -84,6 +88,10 @@ ViewerRecord.prototype.Serialize = function (viewer) {
   rec.Camera = this.Camera;
   rec.Annotations = this.Annotations;
   rec.AnnotationVisibility = this.AnnotationVisibility;
+
+  if (this.OverviewBounds) {
+     rec.OverviewBounds = this.OverviewBounds;
+  }
 
   return rec;
 }

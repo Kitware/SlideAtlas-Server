@@ -19,12 +19,35 @@ function ComparisonSaveAnnotations() {}
 // Record the viewer into the current note and save into the database.
 function SaveView() {
   var note = NOTES_WIDGET.GetCurrentNote(); 
-        note.SnapShotCallback();
+  note.SnapShotCallback();
   NOTES_WIDGET.SaveCallback();
   $('#viewEditMenu').hide();
 }
 
+// Add bounds to view to overide image bounds.
+function SetBounds() {
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  var cam = EVENT_MANAGER.CurrentViewer.GetCamera();
+  var fp = cam.GetFocalPoint(); 
+  var halfWidth = cam.GetWidth()/2;
+  var halfHeight = cam.GetHeight()/2;
+  var note = NOTES_WIDGET.GetCurrentNote();
+  // Which view record?  Hack.
+  var viewerRecord = note.ViewerRecords[0];
+  if (viewer == VIEWER2) {
+    var viewerRecord = note.ViewerRecords[1];
+  }
+  viewerRecord.OverviewBounds = [fp[0]-halfWidth, fp[0]+halfWidth, fp[1]-halfHeight, fp[1]+halfHeight];
+  // Set the image bounds so the new bounds are used immediately.
+  viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
+  viewer.OverView.Camera.SetFocalPoint(fp[0], fp[1]);
+  viewer.OverView.Camera.SetHeight(halfHeight*2);
+  viewer.OverView.Camera.ComputeMatrix();
+  eventuallyRender();
 
+  NOTES_WIDGET.SaveCallback();
+  $('#viewEditMenu').hide();
+}
 
 
 //==============================================================================
@@ -100,7 +123,11 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
-
+    if (EDIT) {
+      $('<li>').appendTo(viewEditSelector)
+               .text("Set Bounds")
+               .click(function(){SetBounds();});
+    }
 
     // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
