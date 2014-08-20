@@ -579,11 +579,27 @@ def process_zip(args):
     # Extracts zip
     zname = args.input
     assert zname.endswith("zip")
-    session = os.path.splitext(os.path.basename(zname))[0]
-    logger.info("Session name wil be: " + session)
+    session_name = os.path.splitext(os.path.basename(zname))[0]
+    logger.info("Session name wil be: " + session_name)
     # Creates the session
 
-    from bson import ObjectId
+    # Get collection
+    with flaskapp.app_context():
+        # Locate the session
+        try:
+            coll = Collection.objects.get(id=ObjectId(args.collection))
+            logger.info("collection: %s" % coll.to_son())
+
+            session = Session(collection=coll, image_store=coll.image_store, label=session_name)
+            logger.info("Creating session: " + str(session.to_json()))
+            session.save()
+        except Exception as e:
+            logger.error("Fatal Error while creating session: " + e.message)
+
+            sys.exit(-1)
+
+    args.session = str(session.id)
+
     temp = ObjectId()
 
     import zipfile
@@ -601,7 +617,7 @@ def process_zip(args):
     import glob
     for afile in glob.glob(str(temp) + "/*"):
         logger.info("Processing inside of: " + afile)
-        args.input =  afile
+        args.input =  os.path.abspath(afile)
         MongoUploaderWrapper(args)
 
     # Remove the folder
