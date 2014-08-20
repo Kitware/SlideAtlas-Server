@@ -1180,7 +1180,7 @@ def getview():
                 cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
-                vrq["Camera"] = cam
+                vr["Camera"] = cam
                 annot = {}
                 annot["type"] = "circle"
                 annot["color"] = bookmark["annotation"]["color"]
