@@ -94,8 +94,6 @@ function SaveFavorite() {
              }, 500); // one half second
 
   //ShowImage(CreateThumbnailImage(110));
-
-  LoadFavorites();
 }
 
 function LoadFavorites(){

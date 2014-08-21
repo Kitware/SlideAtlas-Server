@@ -1048,6 +1048,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
              "col" : "favorites"},
     success: function(data,status) {
       note.Id = data;
+      LoadFavorites();
     },
     error: function() {
       alert( "AJAX - error() : saveusernote 2" );
