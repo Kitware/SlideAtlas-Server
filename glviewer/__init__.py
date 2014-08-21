@@ -5,6 +5,8 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
+import pdb
+
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -761,6 +763,9 @@ def saveusernote():
 
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
+    typeStr = request.form['type'] # for post
+    
+    #pdb.set_trace()
 
     thumbStr = request.form['thumb']
 
@@ -768,7 +773,7 @@ def saveusernote():
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = getattr(security.current_user, 'id', '')
-    note["Type"] = "UserNote"
+    note["Type"] = typeStr
     note["Thumb"] = thumbStr
 
     # Saving notes in admin db now.
@@ -787,6 +792,8 @@ def deleteusernote():
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
+    
+    #pdb.set_trace()
 
     admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
     return "success"
@@ -812,15 +819,17 @@ def recursiveSetUser(note, user):
 # it has a bad name that can be changed later.
 @mod.route('/getfavoriteviews', methods=['GET', 'POST'])
 def getfavoriteviews():
-    collectionStr = request.args.get('col', "favorites")
+    collectionStr = request.args.get('col', "views") #"favorites"
+
+    #pdb.set_trace()
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', ''), "Type": "Favorite"})
     viewArray = []
     for viewObj in viewItr:
-        if "Type" in viewObj :
+        if "Type" in viewObj:
             viewObj["_id"] = str(viewObj["_id"])
             viewObj["User"] = str(viewObj["User"])
             if viewObj.has_key("ParentId") :

@@ -299,7 +299,8 @@ function RecordStateCallback() {
     type: "post",
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(note.Serialize(false)),
-           "col" : "tracking"},
+           "col" : "tracking",
+           "type": "Record"},
     success: function(data,status) {
       note.Id = data;
     },
