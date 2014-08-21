@@ -404,7 +404,15 @@ class CollectionItemAPI(ItemAPI):
     def put(self, collection):
         abort(501)  # Not Implemented
 
+    @security.AdminCollectionRequirement.protected
+    def post(self, collection):
+        """
+        Create session in the given collection
+        """
+        abort(501)
+
     def patch(self, collection):
+        "Patch this collectino item "
         abort(501)  # Not Implemented
 
     def delete(self):
@@ -891,7 +899,7 @@ api.add_resource(CollectionListAPI,
 api.add_resource(CollectionItemAPI,
                  '/collections/<Collection:collection>',
                  endpoint='collection_item',
-                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
+                 methods=('GET', 'POST', 'PUT', 'PATCH', 'DELETE'))
 
 api.add_resource(CollectionAccessAPI,
                  '/collections/<Collection:collection>/access',
