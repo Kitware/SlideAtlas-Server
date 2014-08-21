@@ -7,6 +7,8 @@ __author__ = 'dhan'
 #TODO: Extend the uploader for
 # - Wrapping c++ image_uploader for ndpi and jp2 images
 
+#noqua E501
+
 import os
 from celery import Celery
 from celery.task.control import inspect
@@ -53,12 +55,15 @@ class Reader(object):
         self.spacing = [1.0, 1.0, 1.0]
         self.origin = [0., 0., 0.]
         self.components = 3
+
     def set_input_params(self, params):
         self.params = params
+        if not params["bindir"].endswith("/"):
+            params["bindir"] = params["bindir"] + "/"
 
-    def get_tile(self, x,y,tilesize=256):
+    def get_tile(self, x, y, tilesize=256):
         logger.error("get_tile in Reader is not implemented yet")
-        sys.exit(1)
+        sys.exit(-1)
 
 
 class WrapperReader(Reader):
@@ -71,48 +76,60 @@ class WrapperReader(Reader):
         """
         super(WrapperReader, self).set_input_params(params)
 
-        logger.info("Received following input params: %s"%(params))
+        logger.info("Received following input params: %s" % params)
         fullname = params["fname"]
         name = os.path.basename(fullname)
         self.name = name
 
         # Perform extension specific operation here
-        extension = os.path.splitext(fullname)
+        # TODO: Use the extension to determine the capability
+        # extension = os.path.splitext(fullname)
 
-        # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d", istore.dbname, "-n", self.params["fname"]]
+        # params = ["./image_uploader", "-m", "new.slide-atlas.org", "-d",
+        #                       istore.dbname, "-n", self.params["fname"]]
         # if len(istore.username) > 0:
         #     params = params + ["-u", istore.username, "-p", istore.password]
+
         if os.name == 'nt':
-            self.executable = "image_uploader.exe"
+            params = ["image_uploader.exe", "-n", fullname]
         else:
-            self.executable = "image_uploader"
+            params = [self.params["bindir"] + "image_uploader", "-n", fullname]
+            params = " ".join(params)
 
-        args = [self.executable, "-n", self.params["fname"]]
-
+        logger.info("Params: " + params)
         # Get the information in json
-        try:
-            output = subprocess.Popen   (args, stdout=subprocess.PIPE, cwd=self.params["bindir"], shell=True).communicate()[0]
-        except OSError as e:
-            logger.error("Fatal error from OS while executing image_uploader (possible incorrect --bindir): %s"%e.message)
-            sys.exit(0)
 
+        try:
+            output, erroutput = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                                 cwd=self.params["bindir"],
+                                                 shell=True).communicate()
+        except OSError as e:
+            logger.error("Fatal error from OS while executing \
+                          image_uploader (possible incorrect --bindir): \
+                          %s" % e.message)
+            sys.exit(-1)
+
+        logger.error("ErrOutput")
+        logger.error(erroutput)
         js = {}
-        try :
+        try:
             js = json.loads(output)
         except:
-            logger.error("Fatal error Output of image_uploader not valid json: %s"%output)
-            sys.exit(0)
+            logger.error("Fatal error Output of image_uploader \
+                not valid json: %s" % output)
 
-        logger.info("JS: %s"%(js))
+            sys.exit(-1)
+
+        logger.info("JS: %s" % js)
 
         if js.has_key('error'):
             anitem.textStatus.SetLabel("Error")
             logger.error("Fatal error UNREADABLE input:\n%s"%(output))
-            sys.exit(0)
+            sys.exit(-1)
 
         if not js.has_key("information"):
             logger.error("Fatal error NO INFORMATION")
-            sys.exit(0)
+            sys.exit(-1)
 
         self.width = js["dimensions"][0]
         self.height = js["dimensions"][1]
@@ -135,7 +152,11 @@ class MongoUploader(object):
         """
         Common initialization
         """
-        self.imageid = None  #: Id of the image collection to write to. It is not set initially but the init process will set it according to input parameter
+
+        """ Id of the image collection to write to. It is not set initially
+            but the init process will set it according to input parameter
+        """
+        self.imageid = None
         self.args = args
 
         self.upload()
@@ -150,13 +171,14 @@ class MongoUploader(object):
             if self.args.mongo_collection:
                 # Remove any image object and collection of that name
                 self.imageid = ObjectId(self.args.mongo_collection)
-                logger.info("Using specified ImageID: %s"%(self.imageid))
+                logger.info("Using specified ImageID: %s" % self.imageid)
             else:
                 self.imageid = ObjectId()
-                logger.info("Using new ImageID: %s"%(self.imageid))
+                logger.info("Using new ImageID: %s" % self.imageid)
 
         except InvalidId:
-            logger.error("Invalid ObjectID for mongo collection: %s"%(self.args.mongo_collection))
+            logger.error("Invalid ObjectID for mongo collection: \
+                             %s" % self.args.mongo_collection)
 
         # Load reader
         self.reader = self.make_reader()
@@ -193,7 +215,7 @@ class MongoUploader(object):
 
         # Create and insert view
         aview = {}
-        aview["img"] = img=ObjectId(self.imageid)
+        aview["img"] = ObjectId(self.imageid)
 
         self.db["views"].insert(aview)
 
@@ -210,14 +232,14 @@ class MongoUploader(object):
         Will not be implemented in the base uploader class
         """
         logging.error("make_reader NOT implemented")
-        sys.exit(1)
+        sys.exit(-1)
 
     def upload_base(self):
         """
         Will not be implemented in the base uploader class
         """
         logging.error("upload_base is NOT implemented")
-        sys.exit(1)
+        sys.exit(-1)
 
     def setup_destination(self, collection):
         """
@@ -247,7 +269,7 @@ class MongoUploader(object):
             self.db.authenticate(self.imagestore.username, self.imagestore.password)
         except:
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-            sys.exit(1)
+            sys.exit(-1)
 
 
     def insert_metadata(self):
@@ -260,7 +282,7 @@ class MongoUploader(object):
 
         if self.imagestore == None:
             logger.error("Fatal Error: Imagestore not set")
-            sys.exit(1)
+            sys.exit(-1)
 
         with flaskapp.app_context():
             with self.imagestore:
@@ -280,6 +302,8 @@ class MongoUploader(object):
                     logger.info("Dry run .. not creating image record: %s"%(image_doc))
                 else:
                     self.db["images"].insert(image_doc)
+
+
 
 class MongoPtifUploader(MongoUploader):
     """
@@ -325,7 +349,7 @@ class MongoPtifUploader(MongoUploader):
         # TODO: Whether the input is a url
         # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
         logger.error("Fatal error this implementation NEEDS A REVIEW, TODO: Use methods from base class ")
-        sys.exit(1)
+        sys.exit(-1)
         fname = os.path.split(self.args.input)[1]
 
         # Get the destination session in the collection
@@ -359,11 +383,11 @@ class MongoPtifUploader(MongoUploader):
                         pass
 
                 image_doc = Image()
-                image_doc["filename"]= fname
-                image_doc["label"]= fname
-                image_doc["origin"] = [0,0,0]
-                image_doc["spacing"] = [1.0,1.0, 1.0] #TODO: Get it from the data
-                image_doc["dimensions"] =[reader.width, reader.height]
+                image_doc["filename"] = fname
+                image_doc["label"] = fname
+                image_doc["origin"] = [0, 0, 0]
+                image_doc["spacing"] = [1.0, 1.0, 1.0]  # TODO: Get it from the data
+                image_doc["dimensions"] = [reader.width, reader.height]
                 image_doc["bounds"] = [0, reader.width, 0, reader.height]
                 image_doc["levels"] = len(reader.levels)
                 image_doc["components"] = 3 # TODO: Get it from the data
@@ -507,25 +531,27 @@ class MongoUploaderWrapper(MongoUploader):
         istore = self.imagestore
 
         if os.name == 'nt':
-            self.executable = "image_uploader.exe"
+            args = ["image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            if len(istore.username) > 0:
+                args = args + ["-u", istore.username, "-p", istore.password]
         else:
-            self.executable = "image_uploader"
+            args = [self.args.bindir + "/image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            if len(istore.username) > 0:
+                args = args + ["-u", istore.username, "-p", istore.password]
 
-        args = [self.executable, "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
-        if len(istore.username) > 0:
-            args = args + ["-u", istore.username, "-p", istore.password]
+            args = " ".join(args)
 
-        #shell is set to false so we don't get the black command line window
+        logger.info("Params: " + args)
+        # Get the information in json
+
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
-
-        read = False
 
         while True:
             time.sleep(0)
 
             result = proc.poll()
 
-            if not result == None:
+            if not (result is None):
                 # Process died
                 if not result == 0:
                     logger.error("Fatal error: Process died without any output")
@@ -537,22 +563,75 @@ class MongoUploaderWrapper(MongoUploader):
             try:
                 js = json.loads(output)
             except:
-                logger.error("Fatal error: Invalid json output from image_uploader:\n%s"%(output))
+                logger.error("Fatal error: Invalid json output from image_uploader:\n%s" % output)
                 sys.exit(1)
 
-            if js.has_key('error'):
-                logger.error("Fatal error: image_uploader says:%s"%(js["error"]))
+            if "error" in js:
+                logger.error("Fatal error: image_uploader says:%s" % js["error"])
                 sys.exit(1)
 
-            if js.has_key("information"):
+            if "information" in js:
                 logger.info("Information available")
 
-            if js.has_key('progress_percent'):
-                logger.info("Progress : %f"%(js['progress_percent']))
+            if "progress_percent" in js:
+                logger.info("Progress : %f" % js['progress_percent'])
 
-            if js.has_key('success'):
+            if "success" in js:
                 logger.info("DONE !!")
                 break
+
+
+def process_zip(args):
+    """
+    """
+
+    # Extracts zip
+    zname = args.input
+    assert zname.endswith("zip")
+    session_name = os.path.splitext(os.path.basename(zname))[0]
+    logger.info("Session name wil be: " + session_name)
+    # Creates the session
+
+    # Get collection
+    with flaskapp.app_context():
+        # Locate the session
+        try:
+            coll = Collection.objects.get(id=ObjectId(args.collection))
+            logger.info("collection: %s" % coll.to_son())
+
+            session = Session(collection=coll, image_store=coll.image_store, label=session_name)
+            logger.info("Creating session: " + str(session.to_json()))
+            session.save()
+        except Exception as e:
+            logger.error("Fatal Error while creating session: " + e.message)
+
+            sys.exit(-1)
+
+    args.session = str(session.id)
+
+    temp = ObjectId()
+
+    import zipfile
+
+    fh = open(zname,  'rb')
+    z = zipfile.ZipFile(fh)
+    for name in z.namelist():
+        logger.info("Extracting .." + name)
+        outpath = str(temp)
+        z.extract(name, outpath)
+
+    fh.close()
+    # In a loop calls the corresponding files
+
+    import glob
+    for afile in glob.glob(str(temp) + "/*"):
+        logger.info("Processing inside of: " + afile)
+        args.input =  os.path.abspath(afile)
+        MongoUploaderWrapper(args)
+
+    # Remove the folder
+    # import shutil
+    # shutil.rmtree(str(temp))
 
 
 def make_argument_parser():
@@ -565,7 +644,8 @@ def make_argument_parser():
     # The admin database will be already accessible from flaskapp
     # Collection implicitly contains image_store
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
-    parser.add_argument("-s", "--session", help="Session id", required=True)
+
+    parser.add_argument("-s", "--session", help="Required for non-zip files", required=False)
     parser.add_argument("--bindir", help="Path of the image uploader binary", required=False)
 
     # Optional parameters
@@ -587,9 +667,9 @@ def make_argument_parser():
 if __name__ == '__main__':
     """
     Main entry point for image uploader
-    Sample commandline is
+    Uploads a single image
 
-    ..code-block:: shell-session
+        ..code-block:: shell-session
 
         (slideatlas) $python slideatlas/tasks/ptif_upload.py -i ~/data/ptif/20140721T182320-963749.ptif -c 53d0971cdd98b50867b0eecd  -s 53d09798ca7b3a021caff678  -s dj1 -vv -n
 
@@ -598,7 +678,7 @@ if __name__ == '__main__':
     parser = make_argument_parser()
     args = parser.parse_args()
 
-    if args.verbose == None:
+    if args.verbose is None:
         verbose = 0
     else:
         verbose = args.verbose
@@ -608,19 +688,26 @@ if __name__ == '__main__':
         for akey in vars(args).keys():
             print "   ", akey, ": ", vars(args)[akey]
 
-    if args.input == None:
+    if args.input is None:
         print "No input files ! (please use -i <inputfile>"
-        sys.exit(255)
+        sys.exit(-1)
     else:
-        logger.info("Processing: %s"%(args.input))
+        logger.info("Processing: %s" % args.input)
 
-    logger.info(args.input)
     # Find the extension of the file
-    if args.input.endswith(".ptif") :
-        logger.info("Got a PTIF")
-        MongoPtifUploader(args)
-    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+    if args.input.endswith(".zip"):
         logger.info("Got a " + args.input[-4:])
-        MongoUploaderWrapper(args)
+        process_zip(args)
     else:
-        logger.error("Unsupported file: " + args.input[-4:])
+        if args.session is None:
+            logger.error("Fatal: Session required for non-zip input")
+            sys.exit(-1)
+
+        if args.input.endswith(".ptif"):
+            logger.info("Got a PTIF")
+            MongoPtifUploader(args)
+        elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+            logger.info("Got a " + args.input[-4:])
+            MongoUploaderWrapper(args)
+        else:
+            logger.error("Unsupported file: " + args.input[-4:])
