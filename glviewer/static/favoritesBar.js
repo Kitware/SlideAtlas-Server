@@ -68,7 +68,20 @@ function FavoritesBar(){
   VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
 
   LoadFavorites();
+
+
+  var self = this;
+  EVENT_MANAGER.OnStartInteraction( function () { self.Hide();} );
 }
+
+
+FavoritesBar.prototype.Hide = function(){
+  if( ! this.hidden){
+    this.FavoritesList.fadeOut();
+    this.hidden = true;
+  }
+}
+
 
 FavoritesBar.prototype.ShowHideFavorites = function(){
   if(this.hidden){
@@ -81,7 +94,6 @@ FavoritesBar.prototype.ShowHideFavorites = function(){
 }
 
 var FAVORITES;
-
 
 
 function SaveFavorite() {

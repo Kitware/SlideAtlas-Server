@@ -64,6 +64,9 @@ function MobileAnnotationWidget() {
   this.TextTip = new ToolTip(this.TextButton, "Text Annotation");
 
   this.Visibility = false;
+
+  var self = this;
+  EVENT_MANAGER.OnStartInteraction( function () { self.SetVisibility(false);} );
 }
 
 
