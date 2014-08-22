@@ -377,6 +377,8 @@ def glcomparisonoption():
 
 
 
+
+
 # Saves comparison view back into the database.
 @mod.route('/comparison-save', methods=['GET', 'POST'])
 def glcomparisonsave():
@@ -570,6 +572,25 @@ def glstacksession():
                     "transformations": sessobj.transformations,
                     "annotations": annotations,
                     })
+
+
+
+# This method sets the bounds of an image.
+@mod.route('/set-image-bounds', methods=['GET', 'POST'])
+def glsetimagebounds():
+    imageId = request.form['img']  # for post
+    dbid = request.form['db']  # for post
+    boundsStr = request.form['bds']  # for post
+    bounds = json.loads(boundsStr)
+
+    database = models.ImageStore.objects.get_or_404(id=dbid)
+    db = database.to_pymongo()
+    imgobj = db["images"].find_one({'_id' : ObjectId(imageId)})
+    imgobj["bounds"] = bounds;
+    db["images"].save( imgobj )
+
+    return "Success"
+
 
 
 # This method saves transformations and/or annotations (whatever exists in data.
@@ -1232,3 +1253,7 @@ def fixjustification():
 
     db["images"].save(imgObj)
     return "success"
+
+
+
+

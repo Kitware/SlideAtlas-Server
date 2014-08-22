@@ -378,8 +378,11 @@ shape has visibility and
     InitNotesWidget();
     InitRecorderWidget();
 
-    FAVORITES_WIDGET = new FavoritesWidget();
-    FAVORITES_WIDGET.resize(CANVAS.innerWidth());
+    // Do not let guests create favorites.
+    if (USER != "") {
+      FAVORITES_WIDGET = new FavoritesWidget();
+      FAVORITES_WIDGET.resize(CANVAS.innerWidth());
+    }
 
     if (MOBILE_DEVICE) {
       NAVIGATION_WIDGET.SetVisibility(false);
