@@ -7,7 +7,7 @@ import mimetypes
 
 from bson import Binary, ObjectId
 from bson.errors import InvalidId
-from flask import Blueprint, abort, current_app, make_response, request, url_for
+from flask import Blueprint, abort, current_app, make_response, request, url_for, Response
 from flask.helpers import wrap_file
 from flask.json import jsonify
 from flask.views import MethodView
@@ -408,9 +408,22 @@ class CollectionItemAPI(ItemAPI):
     def post(self, collection):
         """
         Create session in the given collection
+        post request is in the form of-
+
+        { "session" : { "label" : "Desired label" } }
         """
-        data = request.json
-        return jsonify(state="Work in progress", input=data)
+        try:
+            data = request.json
+            session = models.Session(collection=collection, image_store=collection.image_store, label=data["session"]["label"])
+            session.save()
+
+        except Exception as e:
+            return jsonify(error="Fatal error while creating session: " + e.message)
+
+        if "debug" in data:
+            return jsonify(state="Work in progress", input=data, sessionstr= session.to_json())
+        else:
+            return Response("",status=201)
 
     def patch(self, collection):
         "Patch this collectino item "
