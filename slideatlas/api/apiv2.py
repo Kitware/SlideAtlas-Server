@@ -409,7 +409,8 @@ class CollectionItemAPI(ItemAPI):
         """
         Create session in the given collection
         """
-        abort(501)
+        data = request.json
+        return jsonify(state="Work in progress", input=data)
 
     def patch(self, collection):
         "Patch this collectino item "
