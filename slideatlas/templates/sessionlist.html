@@ -16,7 +16,16 @@
 {{ super() }}
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
-        <h2>{{ collection.label }}</h2>
+        <div class="row">
+            <h2>{{ collection.label }}
+                {% if site_admin %}
+                <a href="{{ '#' }}" class="lead">
+                    <button type="button" class="btn btn-primary">Add new session </button>
+                </a></h2>
+                {% endif  %}
+        </div>
+        <div class="row">
+        </div>
         <table class="table table-bordered table-hover" >
             {% for session, can_admin in sessions %}
             <tr>
