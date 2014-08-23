@@ -13,6 +13,7 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -133,6 +134,10 @@ def sessionedit(session):
 
 
 ################################################################################
+# It is up to the client to set the view database properly when copying.
+# this is a temporary pain.  Sessions has moved to admin but not views.
+# We need the source db and the destination db.  
+# Use the copy var for the source.
 @mod.route('/session-save', methods=['GET', 'POST'])
 def sessionsave():
     inputStr = request.form['input']  # for post
@@ -153,22 +158,34 @@ def sessionsave():
     new_views = list()
     for view_item in view_items:
         if 'view' in view_item:
-            # updating an existing view
+            # deep or shallow copy of an existing view.
+            if 'copy' in view_item :
+                view_image_store_id = ObjectId(view_item['copy'])                
+                view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
+                view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
+                # this forces a deep copy
+                del view['_id']
+            else :
+                view_image_store_id = ObjectId(view_item['db'])
+                view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
+                view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
+
+            # Because views are not stored in the admin database  we need to set the store to be the destination.
             view_image_store_id = ObjectId(view_item['db'])
             view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
 
-            view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
+            # if copying a session, deep copy all the view objects.
             if create_new_session :
-                # if copying a session, copy the view objects too.
+                # _id may have been deleted previously.
                 del view['_id']
+            
         else:
             # creating a new view from an image
 
-            # TODO: there are way too many bugs with views not all in the same image store
-            #   so, for now, put all views in the session's default image store
+            # TODO: views should be in the admin database.
             view_image_store_id = sessObj.image_store.id
             view_image_store = sessObj.image_store.to_pymongo()
-
+            # TODO: Change this to the standard note / view.
             view = {
                 # 'view_item' should have 'img' if 'view' is not present
                 'img': ObjectId(view_item['img']),
