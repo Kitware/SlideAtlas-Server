@@ -200,7 +200,7 @@ function TextWidget (viewer, string) {
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
   this.Text.BackgroundFlag = this.Dialog.BackgroundInput.prop("checked");
-  this.SetArrowVisibility(true);//this.Dialog.MarkerInput.prop("checked"));
+  this.SetArrowVisibility(2);//this.Dialog.MarkerInput.prop("checked"));
   //TODO
 
   // It is odd the way the Anchor is set.  Leave the above for now.
@@ -237,8 +237,14 @@ TextWidget.prototype.Serialize = function() {
   obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
   obj.position = this.Text.Position;
   obj.string = this.Text.String;
-  if(this.
-  obj.visibility = this.Text.Visibility;
+  if(this.Dialog.MarkerInput1.checked){
+    obj.visibility = 0;
+  } else if(this.Dialog.MarkerInput2.checked){
+    obj.visibility = 1;
+  } else { // markerInput3.checked
+    obj.visibility = 2;
+  }
+  //obj.visibility = this.Text.Visibility;
   obj.backgroundFlag = this.Text.BackgroundFlag;
   return obj;
 }
@@ -271,7 +277,7 @@ TextWidget.prototype.Load = function(obj) {
     this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
   }
-  this.SetArrowVisibility(obj.anchorVisibility);
+  this.SetArrowVisibility(obj.visibility);
   this.Arrow.SetFillColor(rgb);
   this.Arrow.ChooseOutlineColor();
 
@@ -298,7 +304,7 @@ TextWidget.prototype.SetArrowVisibility = function(flag) {
   if (this.Arrow.Visibility == flag) {
     return;
   }
-  if (flag) { // turn glyph on
+  if (flag == 2 || flag == 1) { // turn glyph on
     if (this.SavedTextAnchor == undefined) {
       this.SavedTextAnchor = [-30, 0];
       }
@@ -306,7 +312,7 @@ TextWidget.prototype.SetArrowVisibility = function(flag) {
     this.Arrow.Visibility = true;
     this.Arrow.Origin = this.Text.Position;
     this.UpdateArrow();
-  } else { // turn glyph off
+  } else if(flag == 0) { // turn glyph off
     // save the old anchor incase glyph is turned back on.
     this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
     // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
@@ -572,11 +578,11 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
-  var Visibility = 2;
+  var visibility = 2;
   if(this.Dialog.MarkerInput1.checked){
-    Visibility = 0;
+    visibility = 0;
   } else if(this.Dialog.MarkerInput2.checked){
-    Visibility = 1;
+    visibility = 1;
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
@@ -590,7 +596,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
   
   this.Text.BackgroundFlag = backgroundFlag;
 
-  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, MarkerFlag: markerFlag, BackgroundFlag: backgroundFlag});
+  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, Visibility: visibility, BackgroundFlag: backgroundFlag});
 
   RecordState();
 

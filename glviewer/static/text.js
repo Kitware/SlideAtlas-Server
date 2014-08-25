@@ -138,6 +138,11 @@ Text.prototype.HandleLoadedTexture = function() {
 }
 
 Text.prototype.Draw = function (view) {
+  // Cases in which text should not be drawn:
+  // Status 1, not currently hovering.
+  if(this.Visibility == 1 && !this.Active){
+    return;
+  }
   // Place the anchor of the text.
   // First transform the world anchor to view.
   var m = view.Camera.Matrix;
