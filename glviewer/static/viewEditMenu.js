@@ -24,28 +24,64 @@ function SaveView() {
   $('#viewEditMenu').hide();
 }
 
-// Add bounds to view to overide image bounds.
-function SetBounds() {
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  var cam = EVENT_MANAGER.CurrentViewer.GetCamera();
+function GetViewerBounds (viewer) {
+  var cam = viewer.GetCamera();
   var fp = cam.GetFocalPoint(); 
   var halfWidth = cam.GetWidth()/2;
   var halfHeight = cam.GetHeight()/2;
+  return [fp[0]-halfWidth, fp[0]+halfWidth, fp[1]-halfHeight, fp[1]+halfHeight];
+}
+
+// Add bounds to view to overide image bounds.
+function SetViewBounds() {
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  var bounds = GetViewerBounds(viewer);
   var note = NOTES_WIDGET.GetCurrentNote();
   // Which view record?  Hack.
   var viewerRecord = note.ViewerRecords[0];
   if (viewer == VIEWER2) {
     var viewerRecord = note.ViewerRecords[1];
   }
-  viewerRecord.OverviewBounds = [fp[0]-halfWidth, fp[0]+halfWidth, fp[1]-halfHeight, fp[1]+halfHeight];
+  viewerRecord.OverviewBounds = bounds;
   // Set the image bounds so the new bounds are used immediately.
   viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
-  viewer.OverView.Camera.SetFocalPoint(fp[0], fp[1]);
-  viewer.OverView.Camera.SetHeight(halfHeight*2);
+  viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
+  viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
   viewer.OverView.Camera.ComputeMatrix();
   eventuallyRender();
 
   NOTES_WIDGET.SaveCallback();
+  $('#viewEditMenu').hide();
+}
+
+// Add bounds to view to overide image bounds.
+function SetImageBounds() {
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  var imageDb = viewer.GetCache().Image.database;
+  var imageId = viewer.GetCache().Image._id;
+  var bounds = GetViewerBounds(viewer);
+
+  // Set the image bounds so the new bounds are used immediately.
+  viewer.GetCache().Image.bounds = bounds;
+  viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
+  viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+  viewer.OverView.Camera.ComputeMatrix();
+  eventuallyRender();
+
+  var data = JSON.stringify(bounds);
+  $.ajax({
+    type: "post",
+    url: "/webgl-viewer/set-image-bounds",
+    data: {"img" : imageId,
+           "db"  : imageDb,
+           "bds" : JSON.stringify(bounds)},
+    success: function(data,status) {},
+    error: function() {
+      alert( "AJAX - error() : saveusernote 1" );
+    },
+  });
+
+
   $('#viewEditMenu').hide();
 }
 
@@ -125,8 +161,8 @@ function InitViewEditMenus() {
              .click(function(){FlipHorizontal();});
     if (EDIT) {
       $('<li>').appendTo(viewEditSelector)
-               .text("Set Bounds")
-               .click(function(){SetBounds();});
+               .text("Set View Bounds")
+               .click(function(){SetViewBounds();});
     }
 
     // Create a selection list of sessions.
