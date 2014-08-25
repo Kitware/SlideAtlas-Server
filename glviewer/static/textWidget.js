@@ -208,12 +208,17 @@ function TextWidget (viewer, string) {
 }
 
 // Three state visibility so text can be hidden during calss questions.
+// The combined visibilities is confusing.
+// Global text visibility is passed in as argument.
+// Local visiblity mode is the hover state of this text. (0 text only, 1: hover, 2: both on).
 TextWidget.prototype.Draw = function(view, visibility) {
-  if (visibility != ANNOTATION_OFF) {
+  if (visibility != ANNOTATION_OFF && this.VisibilityMode != 0) {
     this.Arrow.Draw(view);
   }
   if (visibility == ANNOTATION_ON) {
-    this.Text.Draw(view);
+    if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
+      this.Text.Draw(view);
+    }
   }
 }
 
@@ -517,9 +522,12 @@ TextWidget.prototype.SetActive = function(flag) {
 
   if (flag) {
     this.State = TEXT_WIDGET_ACTIVE;
-    this.Text.Active = true;
     if (this.ActiveReason == 1) {
+      this.Text.Active = false;
       this.Arrow.Active = true;
+    } else {
+      this.Text.Active = true;
+      this.Arrow.Active = false;
     }
     this.Viewer.ActivateWidget(this);
     this.PlacePopup();
@@ -578,11 +586,11 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
-  this.Text.Visibility = 2;
+  this.VisibilityMode = 2;
   if(this.Dialog.MarkerInput1[0].checked){
-    this.Text.Visibility = 0;
+    this.VisibilityMode = 0;
   } else if(this.Dialog.MarkerInput2[0].checked){
-    this.Text.Visibility = 1;
+    this.VisibilityMode = 1;
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
@@ -592,7 +600,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  this.SetArrowVisibility(visibility);
+  this.SetArrowVisibility(this.Text.Visibility);
   
   this.Text.BackgroundFlag = backgroundFlag;
 

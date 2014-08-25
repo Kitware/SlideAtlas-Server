@@ -109,12 +109,6 @@ function Text() {
   // Pixel bounds are in text box coordiante system.
   this.PixelBounds = [0,0,0,0];
   
-  // Whether or not to show value on hover.
-  // Default is 2; both text and arrow visible
-  // 1 means turn on hover.  Arrow always visible.
-  // 0 means no arrow, text always visible.
-  this.Visibility = 2;
-  
   this.BackgroundFlag = false;
 };
 
@@ -138,11 +132,6 @@ Text.prototype.HandleLoadedTexture = function() {
 }
 
 Text.prototype.Draw = function (view) {
-  // Cases in which text should not be drawn:
-  // Status 1, not currently hovering.
-  if(this.Visibility == 1 && !this.Active){
-    return;
-  }
   // Place the anchor of the text.
   // First transform the world anchor to view.
   var m = view.Camera.Matrix;
