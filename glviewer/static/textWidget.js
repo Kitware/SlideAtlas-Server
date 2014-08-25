@@ -104,21 +104,21 @@ function TextWidget (viewer, string) {
       .css({'display': 'table-cell'});
       
   this.Dialog.MarkerInput1 = 
-    $('<input type="radio" name="visibilityoptions">Text only</input>')
+    $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
       .appendTo(this.Dialog.MarkerInputButtons)
       .attr('checked', 'false')
       
   $('<br>').appendTo(this.Dialog.MarkerInputButtons);
   
   this.Dialog.MarkerInput2 = 
-    $('<input type="radio" name="visibilityoptions">Arrow only, text on hover</input>')
+    $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
       .appendTo(this.Dialog.MarkerInputButtons)
       .attr('checked', 'false')
       
   $('<br>').appendTo(this.Dialog.MarkerInputButtons);
   
   this.Dialog.MarkerInput3 = 
-    $('<input type="radio" name="visibilityoptions">Arrow and text visible</input>')
+    $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
       .appendTo(this.Dialog.MarkerInputButtons)
       .attr('checked', 'true')
   
@@ -579,9 +579,9 @@ TextWidget.prototype.DialogApplyCallback = function () {
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
   var visibility = 2;
-  if(this.Dialog.MarkerInput1.checked){
+  if(this.Dialog.MarkerInput1[0].checked){
     visibility = 0;
-  } else if(this.Dialog.MarkerInput2.checked){
+  } else if(this.Dialog.MarkerInput2[0].checked){
     visibility = 1;
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
@@ -592,7 +592,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  //this.SetArrowVisibility(markerFlag);
+  this.SetArrowVisibility(visibility);
   
   this.Text.BackgroundFlag = backgroundFlag;
 
