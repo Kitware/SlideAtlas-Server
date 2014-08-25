@@ -136,6 +136,9 @@ function PolylineWidget (viewer, newFlag) {
                  cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
   this.UpdateCircleRadius();
 
+  // Set to be the width of a pixel.
+  this.MinLine = 1.0;
+
   eventuallyRender();
 }
 
@@ -176,8 +179,8 @@ PolylineWidget.prototype.Draw = function(view) {
     // Change it to line drawing.
     var cam = this.Viewer.MainView.Camera;
     var viewport = this.Viewer.MainView.Viewport;
-    var minLine = cam.Height/viewport[3];
-    if (this.LineWidth < minLine) {
+    this.MinLine = cam.Height/viewport[3];
+    if (this.LineWidth < this.MinLine) {
       // Too thin. Use a single line.
       this.Shape.LineWidth = 0;
     } else {
@@ -500,14 +503,27 @@ PolylineWidget.prototype.CheckActive = function(event) {
   }
 
   // Check for mouse touching an edge.
+  var width = Math.max(this.MinLine * 4, this.LineWidth);
   for (var i = 1; i < this.Shape.Points.length; ++i) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.LineWidth)) {
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], 
+                                      this.Shape.Points[i], width)) {
       this.State = POLYLINE_WIDGET_ACTIVE;
       this.Shape.Active = true;
       this.PlacePopup();
       return true;
     }
   }
+  if (this.Shape.Closed) {
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[0],
+                                      this.Shape.Points[this.Shape.Points.length-1], width)) {
+      this.State = POLYLINE_WIDGET_ACTIVE;
+      this.Shape.Active = true;
+      this.PlacePopup();
+      return true;
+    }
+  }
+
+
 
   return false;
 }
