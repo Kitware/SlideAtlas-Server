@@ -95,6 +95,8 @@
     <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
     <script>
         var SESSION_ID = "{{ session.id }}";
+        // Database to save the views until views are moved to admin
+        var SESSION_DB = "{{ session_son.image_store }}";
         $(function() {
             $( "#sortable" ).sortable({change:modified});
             $( "#sortable" ).disableSelection();
@@ -112,6 +114,7 @@
             }
         }
 
+
         function save(saveNew) {
             var views = [];
             var guiViews = [];
@@ -121,6 +124,7 @@
                 guiViews.push($(this));
                 var view = {
                     'view': $(this).attr('view'),
+                    'copy': $(this).attr('copy'),
                     'label' : $('.descriptiveLabel',this).val(),
                     'hiddenLabel' : $('.hiddenLabel',this).val(),
                     'db' : $(this).attr('db'),
@@ -128,6 +132,7 @@
                 };
                 views.push(view);
             });
+
             // Save the new order in the database.
             // Python will have to detect if any view objects have to be deleted.
             var args = {};
@@ -142,26 +147,29 @@
                 type: "post",
                 url: "{{ url_for('.sessionsave') }}",
                 data: {"input" :  JSON.stringify( args )},
-                success: function(data,status){
+                success: 
+                  function save_success (data, status) {
                     if (data != "") {
-                        // Redirect is problematic because I want to save multiple times
-                        // and back in browser does not reload page completely
-                        //window.location.href = "sessions?sessid="+data;
-                        SESSION_ID = data._id;
-                        // I do not think this is an issue anymore.
-                        // However, this code should not hurt.
-                        // ... legacy comment ... View ids changed (were copied). (Pain pain pain)
-                        for (var i = 0; i < data.views.length; ++i) {
-                            guiViews[i].attr('view', data.views[i].ref);
-                        }
-                        $('#saveButton').css({"color":"#000"});
+                      // Redirect is problematic because I want to save multiple times
+                      // and back in browser does not reload page completely
+                      //window.location.href = "sessions?sessid="+data;
+                      SESSION_ID = data._id;
+                      SESSION_DB = data.db;
+                      // We need the ids of the new views so they will
+                      // stay the same if we save again.
+                      for (var i = 0; i<data.views.length; ++i) {
+                        guiViews[i].attr('view', data.views[i].ref);
+                        guiViews[i].removeAttr('copy');
+                      }
+                      $('#saveButton').css({"color":"#000"});
                     } else {
-                        // Session was empty and deleted from the database.
-                        window.location.href = "sessions";
+                      // Session was empty and deleted from the database.
+                      window.location.href = "sessions";
                     }
-                },
+                  },
                 error: function() { alert( "AJAX - error: session-save" ); }
             });
+
         }
 
         function cancel() {
@@ -363,6 +371,41 @@
                 labelStrings.push(data.Images[i].label);
                 var listItem = $('<li>').appendTo($('#gallery'));
                 var image = $('<img>').appendTo(listItem)
+                        .attr("db", SESSION_DB)
+                        .attr("img", data.Images[i]._id)
+                        .attr("height", size+"px")
+                        .attr("width", size+"px")
+                        .attr("src", "/thumb?db="+data.Database+"&img="+data.Images[i]._id)
+                        .attr("alt", data.Images[i].label)
+                        .hover(function(){
+                            var p = $(this).position();
+                            var y = p.top-10+$('#gallery').scrollTop();
+                            var label = $(this).attr('alt');
+                            IMAGE_HOVER_LABEL.show()
+                                    .css({'left':p.left+10, 'top':y+50})
+                                    .text(label);
+                            },
+                            function(){IMAGE_HOVER_LABEL.hide();})
+                        .mousedown(function(event) {
+                            AddViewToSession($(this).attr('db'),
+                                             $(this).attr('img'),
+                                             $(this).attr('alt'),
+                                             "", "");
+                        });
+            }
+            $('#imagesearch').autocomplete({source: labelStrings});
+        }
+
+        // Same as LoadSession.  This is not called.  Remove it.
+/*        function LoadViews(data) {
+            var labelStrings = [];
+            $('#gallery').empty();
+            // Lets compute an optimal size for images.
+            var size = ComputeGalleryImageSize(data.Images.length);
+            for (var i = 0; i < data.Images.length; ++i) {
+                labelStrings.push(data.Images[i].label);
+                var listItem = $('<li>').appendTo($('#gallery'));
+                var image = $('<img>').appendTo(listItem)
                         .attr("db", data.Database)
                         .attr("img", data.Images[i]._id)
                         .attr("height", size+"px")
@@ -379,27 +422,30 @@
                             },
                             function(){IMAGE_HOVER_LABEL.hide();})
                         .mousedown(function(event) {
-                            AddImageToSession($(this).attr('db'),
-                                    $(this).attr('img'),
-                                    $(this).attr('alt'),
-                                    event);
+                            AddViewToSession($(this).attr('db'),
+                                             $(this).attr('img'),
+                                             $(this).attr('alt'),
+                                             $(this).attr('copy'),
+                                             $(this).attr('view'));
                         });
             }
             $('#imagesearch').autocomplete({source: labelStrings});
         }
-
+*/
         function LoadSession(data) {
             var labelStrings = [];
             $('#gallery').empty();
             var size = ComputeGalleryImageSize(data.images.length);
             // It is odd that sessions have separate image and view arrays.
             // (The one I inspected had different number of elements).
-            for (var i = 0; i < data.images.length; ++i) {
-                labelStrings.push(data.images[i].label);
+            for (var i = 0; i < data.session.views.length; ++i) {
+                labelStrings.push(data.session.views[i].label);
                 var listItem = $('<li>').appendTo($('#gallery'));
                 var image = $('<img>').appendTo(listItem)
-                        .attr("db", data.images[i].db)
-                        .attr("img",data.images[i].img)
+                        .attr("db",  SESSION_DB)
+                        .attr("copy",  data.session.views[i].image_store_id)
+                        .attr("img", data.session.views[i].image_id)
+                        .attr("view", data.session.views[i].id)
                         .attr("height", size+"px")
                         .attr("width", size+"px")
                         .attr("src", "/thumb?db="+data.images[i].db+"&img="+data.images[i].img)
@@ -413,9 +459,11 @@
                             },
                             function(){IMAGE_HOVER_LABEL.hide();})
                         .mousedown(function() {
-                            AddImageToSession($(this).attr("db"),
-                                    $(this).attr("img"),
-                                    $(this).attr("alt"));
+                            AddViewToSession($(this).attr('db'),
+                                             $(this).attr('img'),
+                                             $(this).attr('alt'),
+                                             $(this).attr('copy'),
+                                             $(this).attr('view'));
                         });
             }
             $('#imagesearch').autocomplete({source: labelStrings});
@@ -450,15 +498,18 @@
             SelectSession(parseInt(idx));
         }
 
-        function AddImageToSession(db, img, label, event) {
+        function AddViewToSession(db, img, label, sourceDb, view) {
             // Indicate the session needs saving
             modified();
+            // db is the destination database, copy is the source.
             var item = $('<li>').appendTo($('#sortable'))
                     .attr("class", "ui-state-default")
                     // We will have to create a new when id is not set.
                     .attr("db",db)
                     .attr("id",img)
-                    .attr("img",img);
+                    .attr("view",view)
+                    .attr("copy",sourceDb)
+                    .attr("img",img)
             $('<span>').appendTo(item)
                     .attr("class","ui-icon ui-icon-circle-close")
                     .click(function(){deleteView(img);});
@@ -525,7 +576,8 @@
                 <div id="slideList">
                     <ul id="sortable">
                         {% for view_son in session_son.views %}
-                        <li class="ui-state-default" id="{{ view_son.id }}" view="{{ view_son.id }}" db="{{ view_son.image_store_id }}">
+                        <li class="ui-state-default" id="{{ view_son.id }}"  
+                            view="{{ view_son.id }}" db="{{ view_son.image_store_id }}">
                             <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{ view_son.id }}')"></span>
                             <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_image_store_id }}&img={{ view_son.image_id }}">
                             <!-- switch between annotation and hidden labels -->
