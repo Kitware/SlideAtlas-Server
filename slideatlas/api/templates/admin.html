@@ -1,7 +1,7 @@
-{% extends "base.html" %}
-{% set active_page = "admin" %}
+{% extends 'frontend_base.html' %}
+{% set active_page = 'admin' %}
 
-{% block body_content %}
+{% block content %}
   {{ super() }}
   <div ng-app="adminapi" class="container">
   <!-- For demo of a custom directive <hello-world> </hello-world> -->
