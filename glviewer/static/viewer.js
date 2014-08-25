@@ -1024,8 +1024,7 @@ Viewer.prototype.ConstrainCamera = function () {
 Viewer.prototype.HandleMouseDown = function(event) {
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleMouseDown(event);
-    return;
+    return this.ActiveWidget.HandleMouseDown(event);
   }
 
   // Are we in the overview or the main view?
@@ -1059,16 +1058,18 @@ Viewer.prototype.HandleMouseDown = function(event) {
     } else {
       this.InteractionState = INTERACTION_DRAG;
     }
+    return true;
   }
   if (event.SystemEvent.which == 2 ) {
     this.InteractionState = INTERACTION_ROTATE;
+    return true;
   }
+  return false;
 }
 
 Viewer.prototype.HandleDoubleClick = function(event) {
   if (this.ActiveWidget != null) {
-    this.ActiveWidget.HandleDoubleClick(event);
-    return;
+    return this.ActiveWidget.HandleDoubleClick(event);
   }
 
   // Detect double click.
@@ -1078,6 +1079,7 @@ Viewer.prototype.HandleDoubleClick = function(event) {
   } else if (event.SystemEvent.which == 3) {
     this.AnimateZoomTo(2.0, mWorld);
   }
+  return true;
 }
 
 Viewer.prototype.HandleMouseUp = function(event) {
@@ -1204,8 +1206,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
 Viewer.prototype.HandleMouseWheel = function(event) {
   // Forward the events to the widget if one is active.
   if (this.ActiveWidget != null) {
-    //this.ActiveWidget.HandleMouseDown(event);
-    return;
+    return false;
   }
 
 
@@ -1233,6 +1234,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
   this.AnimateLast = new Date().getTime();
   this.AnimateDuration = 200.0; // hard code 200 milliseconds
   eventuallyRender();
+  return true;
 }
 
 Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {

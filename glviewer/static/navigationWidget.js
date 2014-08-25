@@ -89,6 +89,7 @@ function NavigationWidget() {
                 'width': '100%',
                 'text-align': 'center'
               }).html();
+
 }
 
 NavigationWidget.prototype.ToggleVisibility = function() {

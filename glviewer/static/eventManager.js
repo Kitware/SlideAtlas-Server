@@ -44,7 +44,21 @@ function EventManager (canvas) {
     //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
     //                                             function(sweep) {self.GoFullScreen();});
   }
+
+  this.StartInteractionListeners = [];
 }
+
+EventManager.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+EventManager.prototype.TriggerStartInteraction = function() {
+  for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+    callback = this.StartInteractionListeners[i];
+    callback();
+  }
+}
+
 
 EventManager.prototype.AddViewer = function(viewer) {
     this.Viewers.push(viewer);
@@ -109,12 +123,16 @@ EventManager.prototype.HandleMouseDown = function(event) {
     var dTime = date.getTime() - this.MouseUpTime;
     if (dTime < 200.0) { // 200 milliseconds
       PENDING_SHOW_PROPERTIES_MENU = false;
-      this.CurrentViewer.HandleDoubleClick(this);
+      if (this.CurrentViewer.HandleDoubleClick(this)) {
+        this.TriggerStartInteraction();
+      }
       return;
     }
 
     this.MouseDown = true;
-    this.CurrentViewer.HandleMouseDown(this);
+    if (this.CurrentViewer.HandleMouseDown(this)) {
+      this.TriggerStartInteraction();
+    }
   }
 }
 
@@ -176,7 +194,9 @@ EventManager.prototype.HandleMouseWheel = function(event) {
   if (this.CurrentViewer) {
     event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
-    this.CurrentViewer.HandleMouseWheel(this);
+    if (this.CurrentViewer.HandleMouseWheel(this)) {
+      this.TriggerStartInteraction();
+    }
   }
 }
 
@@ -466,12 +486,7 @@ EventManager.prototype.HandleTouchStart = function(e) {
   this.ChooseViewer();
   if (this.CurrentViewer) {
     if (this.CurrentViewer.HandleTouchStart(this)) {
-      if (NAVIGATION_WIDGET.Visibility) {
-        NAVIGATION_WIDGET.ToggleVisibility();
-      }
-      if (MOBILE_ANNOTATION_WIDGET.Visibility) {
-        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-      }
+      this.TriggerStartInteraction();
     }
   }
 }
