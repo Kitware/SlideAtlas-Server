@@ -152,9 +152,9 @@ function TextWidget (viewer, string) {
     if (defaults.BackgroundFlag !== undefined) {
       this.Dialog.BackgroundInput.prop('checked', defaults.BackgroundFlag);
     }
-    if (defaults.MarkerFlag !== undefined) {
+    /*if (defaults.MarkerFlag !== undefined) {
       this.Dialog.MarkerInput.prop('checked', defaults.MarkerFlag);
-    }
+    }*/
   }
 
   this.Popup = new WidgetPopup(this);
@@ -578,11 +578,11 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
-  var visibility = 2;
+  this.Text.Visibility = 2;
   if(this.Dialog.MarkerInput1[0].checked){
-    visibility = 0;
+    this.Text.Visibility = 0;
   } else if(this.Dialog.MarkerInput2[0].checked){
-    visibility = 1;
+    this.Text.Visibility = 1;
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
@@ -596,7 +596,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
   
   this.Text.BackgroundFlag = backgroundFlag;
 
-  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, Visibility: visibility, BackgroundFlag: backgroundFlag});
+  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, Visibility: this.Text.Visibility, BackgroundFlag: backgroundFlag});
 
   RecordState();
 
