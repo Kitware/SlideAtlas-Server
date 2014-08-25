@@ -136,7 +136,7 @@ def sessionedit(session):
 ################################################################################
 # It is up to the client to set the view database properly when copying.
 # this is a temporary pain.  Sessions has moved to admin but not views.
-# We need the source db and the destination db.  
+# We need the source db and the destination db.
 # Use the copy var for the source.
 @mod.route('/session-save', methods=['GET', 'POST'])
 def sessionsave():
@@ -159,13 +159,13 @@ def sessionsave():
     for view_item in view_items:
         if 'view' in view_item:
             # deep or shallow copy of an existing view.
-            if 'copy' in view_item :
-                view_image_store_id = ObjectId(view_item['copy'])                
+            if 'copy' in view_item:
+                view_image_store_id = ObjectId(view_item['copy'])
                 view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
                 view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
                 # this forces a deep copy
                 del view['_id']
-            else :
+            else:
                 view_image_store_id = ObjectId(view_item['db'])
                 view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
                 view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
@@ -175,10 +175,10 @@ def sessionsave():
             view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
 
             # if copying a session, deep copy all the view objects.
-            if create_new_session :
+            if create_new_session:
                 # _id may have been deleted previously.
                 del view['_id']
-            
+
         else:
             # creating a new view from an image
 
