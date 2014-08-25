@@ -109,6 +109,12 @@ function Text() {
   // Pixel bounds are in text box coordiante system.
   this.PixelBounds = [0,0,0,0];
   
+  // Whether or not to show value on hover.
+  // Default is 2; both text and arrow visible
+  // 1 means turn on hover.  Arrow always visible.
+  // 0 means no arrow, text always visible.
+  this.Visibility = 2;
+  
   this.BackgroundFlag = false;
 };
 

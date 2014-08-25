@@ -67,6 +67,7 @@ function TextWidget (viewer, string) {
       .val('#30ff00')
       .css({'display':'table-cell'});
   
+  /*
   this.Dialog.MarkerDiv =
     $('<div>')
       .appendTo(this.Dialog.Body)
@@ -83,6 +84,43 @@ function TextWidget (viewer, string) {
       //.text("Marker")
       .attr('checked', 'true')
       .css({'display': 'table-cell'});
+      */
+  
+  this.Dialog.MarkerDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.MarkerLabel =
+    $('<div>')
+      .appendTo(this.Dialog.MarkerDiv)
+      .text("Visibility:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.MarkerInputButtons =
+    $('<div>')
+      .appendTo(this.Dialog.MarkerDiv)
+      //.text("Marker")
+      .attr('checked', 'false')
+      .css({'display': 'table-cell'});
+      
+  this.Dialog.MarkerInput1 = 
+    $('<input type="radio" name="visibilityoptions">Text only</input>')
+      .appendTo(this.Dialog.MarkerInputButtons)
+      .attr('checked', 'false')
+      
+  $('<br>').appendTo(this.Dialog.MarkerInputButtons);
+  
+  this.Dialog.MarkerInput2 = 
+    $('<input type="radio" name="visibilityoptions">Arrow only, text on hover</input>')
+      .appendTo(this.Dialog.MarkerInputButtons)
+      .attr('checked', 'false')
+      
+  $('<br>').appendTo(this.Dialog.MarkerInputButtons);
+  
+  this.Dialog.MarkerInput3 = 
+    $('<input type="radio" name="visibilityoptions">Arrow and text visible</input>')
+      .appendTo(this.Dialog.MarkerInputButtons)
+      .attr('checked', 'true')
   
   this.Dialog.BackgroundDiv =
     $('<div>')
@@ -162,7 +200,8 @@ function TextWidget (viewer, string) {
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
   this.Text.BackgroundFlag = this.Dialog.BackgroundInput.prop("checked");
-  this.SetArrowVisibility(this.Dialog.MarkerInput.prop("checked"));
+  this.SetArrowVisibility(true);//this.Dialog.MarkerInput.prop("checked"));
+  //TODO
 
   // It is odd the way the Anchor is set.  Leave the above for now.
   this.SetTextOffset(50,0);
@@ -198,7 +237,8 @@ TextWidget.prototype.Serialize = function() {
   obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
   obj.position = this.Text.Position;
   obj.string = this.Text.String;
-  obj.anchorVisibility = this.Arrow.Visibility;
+  if(this.
+  obj.visibility = this.Text.Visibility;
   obj.backgroundFlag = this.Text.BackgroundFlag;
   return obj;
 }
@@ -501,7 +541,8 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
   this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
   this.Dialog.TextInput.val(this.Text.String);
-  this.Dialog.MarkerInput.prop('checked', this.Arrow.Visibility);
+  //this.Dialog.MarkerInput.prop('checked', this.Arrow.Visibility);
+  //TODO
 
   // hack to suppress viewer key events.
   DIALOG_OPEN = true;
@@ -531,7 +572,12 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
-  var markerFlag = this.Dialog.MarkerInput.prop("checked");
+  var Visibility = 2;
+  if(this.Dialog.MarkerInput1.checked){
+    Visibility = 0;
+  } else if(this.Dialog.MarkerInput2.checked){
+    Visibility = 1;
+  }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
   this.Text.String = string;
@@ -540,7 +586,8 @@ TextWidget.prototype.DialogApplyCallback = function () {
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  this.SetArrowVisibility(markerFlag);
+  //this.SetArrowVisibility(markerFlag);
+  
   this.Text.BackgroundFlag = backgroundFlag;
 
   localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, MarkerFlag: markerFlag, BackgroundFlag: backgroundFlag});
