@@ -8,6 +8,27 @@
         button {
             float: right;
         }
+
+        .header-link {
+          opacity: 0;
+
+          -webkit-transition: opacity 0.2s ease-in-out 0.1s;
+          -moz-transition: opacity 0.2s ease-in-out 0.1s;
+          -ms-transition: opacity 0.2s ease-in-out 0.1s;
+        }
+
+        h2:hover .header-link,
+        h3:hover .header-link,
+        h4:hover .header-link,
+        h5:hover .header-link,
+        h6:hover .header-link {
+          opacity: 1;
+        }
+
+        .anchor {
+            padding-top: 60px;
+            margin-top: -60px;
+        }
     </style>
 {% endblock styles %}
 
@@ -17,12 +38,13 @@
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
         <div class="row">
-            <h2>{{ collection.label }}
-                {% if site_admin %}
+            <h2 id="{{ collection.id}}" class="anchor">{{ collection.label }} <a class="header-link" href="#{{collection.id}}"><span style="font-size:20px"><i class="glyphicon glyphicon-th"></i></span></a>
+            {% if site_admin %}
                 <a href="{{ '#' }}" class="lead">
                     <button type="button" class="btn btn-primary">Add new session </button>
-                </a></h2>
-                {% endif  %}
+                </a>
+            {% endif  %}
+            </h2>
         </div>
         <div class="row">
         </div>
