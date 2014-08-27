@@ -29,6 +29,14 @@
 
     <script src="/static/js/attachments.js"></script>
 
+
+    <!--script src="/static/thirdparty/jquery-fileupload/9.5.7/js/vendor/jquery.ui.widget.js"></script>
+    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.iframe-transport.js"></script>
+    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.fileupload.js"></script-->
+    <script src="/static/thirdparty/flow/flow.min.js"></script>
+
+    <script src="/static/js/image-uploads.js"></script>
+
     {% if is_session_admin %}
     <script>
         $( function () {
@@ -84,8 +92,12 @@
             </ul>
             {% endif %}
             <br>
-            {%if session_son.views %}
-            <h2>{{ session_son.views|length }} Images</h2>
+            <h2>{{ session_son.views|length }} Images
+                {% if is_session_admin %}
+                    <button type="button" class="btn btn-primary sa-upload-images pull-right"><span class="glyphicon glyphicon-upload"></span> Upload</button>
+                {% endif  %}
+            </h2>
+
             <table class="table table-bordered table-hover" >
                 {% for view_son in session_son.views %}
                 {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
@@ -112,7 +124,6 @@
                 </tr>
                 {% endfor %}
             </table>
-            {% endif %}
         </div>
     </div>
 {% endblock content %}
