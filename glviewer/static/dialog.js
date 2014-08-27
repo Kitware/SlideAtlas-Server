@@ -70,7 +70,7 @@ function Dialog(widget) {
         'text-align': 'right',
         'text-decoration': 'none'})
       .text("Close")
-      .click(function (e) {self.Hide(); e.preventDefault();});
+      .click(function (e) {widget.Dialog.Hide(); e.preventDefault();});
 
   this.Row2 = $('<tr>').appendTo(this.Table);
   this.Space2a = $('<td>').appendTo(this.Row2).html("&nbsp");
@@ -99,7 +99,10 @@ function Dialog(widget) {
       .css({'margin-bottom': '6px'})
       .click(function (e) {
                widget.DialogApplyCallback();
-               self.Hide();
+               // This "self" trick does not work :( with multiple dialogs.
+               // however "widget" does work.  Let widget handle hiding the dialog.
+               //self.Hide();
+               widget.Dialog.Hide();
                e.preventDefault(); });
 
 }
