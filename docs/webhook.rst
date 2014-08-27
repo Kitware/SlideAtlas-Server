@@ -17,10 +17,10 @@ A celery task will be submitted every time the url is called, this mechanism is 
 The celery tasks should thus consider following -
 
 - The operations should be ideally be idempotent, i.e. if the urls are called multiple times
-with the same data, the result should be same. For example, in the context of slide-atlas the "sync" operation. If the new ptif files are transferred from wsiserver3, new data is available
-and hence the operation will be different for the same url endpoint.
+  with the same data, the result should be same. For example, in the context of slide-atlas the "sync" operation. If the new ptif files are transferred from wsiserver3, new data is available and hence the operation will be different for the same url endpoint.
 
-- Any intermediate data should be isolated / protected from simultaneous execution of multiple tasks to avoid collisions and race conditions when two workers are simultaneously processing same tasks. This can be avoided through configuration.
+- Any intermediate data should be isolated / protected from simultaneous execution of multiple tasks 
+  to avoid collisions and race conditions when two workers are simultaneously processing same tasks. This can be avoided through configuration.
 
 A suggested procedure to create webhooks
 ----------------------------------------

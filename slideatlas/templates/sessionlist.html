@@ -1,6 +1,7 @@
 {% extends 'frontend_base.html' %}
 {% set active_page = 'sessions' %}
 
+{% set is_site_admin = security.AdminSiteRequirement().can() %}
 
 {% block styles %}
 {{ super() }}
@@ -8,15 +9,66 @@
         button {
             float: right;
         }
+
+        .header-link {
+          opacity: 0;
+
+          -webkit-transition: opacity 0.2s ease-in-out 0.1s;
+          -moz-transition: opacity 0.2s ease-in-out 0.1s;
+          -ms-transition: opacity 0.2s ease-in-out 0.1s;
+        }
+
+        h2:hover .header-link,
+        h3:hover .header-link,
+        h4:hover .header-link,
+        h5:hover .header-link,
+        h6:hover .header-link {
+          opacity: 1;
+        }
+
+        .anchor {
+            padding-top: 60px;
+            margin-top: -60px;
+        }
     </style>
 {% endblock styles %}
 
+{% if is_site_admin %}
+    {% block scripts %}
+        {{ super() }}
+
+
+        {# TODO: These standard scripts will be included higher up in the inheritance  #}
+        <script src="/static/thirdparty/bootbox/4.2.0/bootbox.min.js"></script>
+
+        <script src="/static/js/sessions.js"></script>
+        <script>
+                $(".sa-create-session").click(function() {
+                    var collection_id = $(this).parent().attr("id");
+                    createNewSession(collection_id, function() {
+                        // Todo think of another mechanism to load the page
+                        window.location = "?reload=" + Date() + "#" + collection_id;
+                        console.log("Yay !!");
+                    });
+                });
+
+        </script>
+    {% endblock scripts %}
+{% endif %}
 
 {% block content %}
 {{ super() }}
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
-        <h2>{{ collection.label }}</h2>
+        <div class="row">
+            <h2 id="{{ collection.id}}" class="anchor">{{ collection.label }} <a class="header-link" href="#{{collection.id}}"><span style="font-size:20px"><i class="glyphicon glyphicon-th"></i></span></a>
+            {% if site_admin %}
+                <button type="button" class="btn btn-primary sa-create-session lead">Add new session </button>
+            {% endif  %}
+            </h2>
+        </div>
+        <div class="row">
+        </div>
         <table class="table table-bordered table-hover" >
             {% for session, can_admin in sessions %}
             <tr>
