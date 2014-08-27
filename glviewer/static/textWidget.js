@@ -67,59 +67,40 @@ function TextWidget (viewer, string) {
       .val('#30ff00')
       .css({'display':'table-cell'});
   
-  /*
-  this.Dialog.MarkerDiv =
+  this.Dialog.VisibilityModeDiv =
     $('<div>')
       .appendTo(this.Dialog.Body)
       .css({'display':'table-row'});
-  this.Dialog.MarkerLabel =
+  this.Dialog.VisibilityModeLabel =
     $('<div>')
-      .appendTo(this.Dialog.MarkerDiv)
-      .text("Arrow:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.MarkerInput =
-    $('<input type="checkbox">')
-      .appendTo(this.Dialog.MarkerDiv)
-      //.text("Marker")
-      .attr('checked', 'true')
-      .css({'display': 'table-cell'});
-      */
-  
-  this.Dialog.MarkerDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.MarkerLabel =
-    $('<div>')
-      .appendTo(this.Dialog.MarkerDiv)
+      .appendTo(this.Dialog.VisibilityModeDiv)
       .text("Visibility:")
       .css({'display':'table-cell',
             'text-align': 'left'});
-  this.Dialog.MarkerInputButtons =
+  this.Dialog.VisibilityModeInputButtons =
     $('<div>')
-      .appendTo(this.Dialog.MarkerDiv)
-      //.text("Marker")
+      .appendTo(this.Dialog.VisibilityModeDiv)
+      //.text("VisibilityMode")
       .attr('checked', 'false')
       .css({'display': 'table-cell'});
       
-  this.Dialog.MarkerInput1 = 
+  this.Dialog.VisibilityModeInput1 = 
     $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
-      .appendTo(this.Dialog.MarkerInputButtons)
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
       .attr('checked', 'false')
       
-  $('<br>').appendTo(this.Dialog.MarkerInputButtons);
+  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
   
-  this.Dialog.MarkerInput2 = 
+  this.Dialog.VisibilityModeInput2 = 
     $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
-      .appendTo(this.Dialog.MarkerInputButtons)
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
       .attr('checked', 'false')
       
-  $('<br>').appendTo(this.Dialog.MarkerInputButtons);
+  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
   
-  this.Dialog.MarkerInput3 = 
+  this.Dialog.VisibilityModeInput3 = 
     $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
-      .appendTo(this.Dialog.MarkerInputButtons)
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
       .attr('checked', 'true')
   
   this.Dialog.BackgroundDiv =
@@ -152,9 +133,6 @@ function TextWidget (viewer, string) {
     if (defaults.BackgroundFlag !== undefined) {
       this.Dialog.BackgroundInput.prop('checked', defaults.BackgroundFlag);
     }
-    /*if (defaults.MarkerFlag !== undefined) {
-      this.Dialog.MarkerInput.prop('checked', defaults.MarkerFlag);
-    }*/
   }
 
   this.Popup = new WidgetPopup(this);
@@ -194,14 +172,14 @@ function TextWidget (viewer, string) {
   this.ActiveReason = 1;
 
   // Sloppy defaults.
+  this.VisibilityMode = 2;
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   this.Text.Size = parseFloat(this.Dialog.FontInput.val());
   this.Text.Color = hexcolor;
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
   this.Text.BackgroundFlag = this.Dialog.BackgroundInput.prop("checked");
-  this.SetArrowVisibility(2);//this.Dialog.MarkerInput.prop("checked"));
-  //TODO
+  this.SetVisibilityMode(2);
 
   // It is odd the way the Anchor is set.  Leave the above for now.
   this.SetTextOffset(50,0);
@@ -222,7 +200,6 @@ TextWidget.prototype.Draw = function(view, visibility) {
   }
 }
 
-
 TextWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
     return;
@@ -242,11 +219,11 @@ TextWidget.prototype.Serialize = function() {
   obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
   obj.position = this.Text.Position;
   obj.string = this.Text.String;
-  if(this.Dialog.MarkerInput1.checked){
+  if(this.Dialog.VisibilityModeInput1.checked){
     obj.visibility = 0;
-  } else if(this.Dialog.MarkerInput2.checked){
+  } else if(this.Dialog.VisibilityModeInput2.checked){
     obj.visibility = 1;
-  } else { // markerInput3.checked
+  } else { 
     obj.visibility = 2;
   }
   //obj.visibility = this.Text.Visibility;
@@ -282,7 +259,7 @@ TextWidget.prototype.Load = function(obj) {
     this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
   }
-  this.SetArrowVisibility(obj.visibility);
+  this.SetVisibilityMode(obj.visibility);
   this.Arrow.SetFillColor(rgb);
   this.Arrow.ChooseOutlineColor();
 
@@ -305,11 +282,11 @@ TextWidget.prototype.SetPosition = function(x, y) {
 }
 
 // Anchor is in the middle of the bounds when the shape is not visible.
-TextWidget.prototype.SetArrowVisibility = function(flag) {
-  if (this.Arrow.Visibility == flag) {
+TextWidget.prototype.SetVisibilityMode = function(mode) {
+  if (this.Arrow.Visibility == mode) {
     return;
   }
-  if (flag == 2 || flag == 1) { // turn glyph on
+  if (mode == 2 || mode == 1) { // turn glyph on
     if (this.SavedTextAnchor == undefined) {
       this.SavedTextAnchor = [-30, 0];
       }
@@ -317,7 +294,7 @@ TextWidget.prototype.SetArrowVisibility = function(flag) {
     this.Arrow.Visibility = true;
     this.Arrow.Origin = this.Text.Position;
     this.UpdateArrow();
-  } else if(flag == 0) { // turn glyph off
+  } else if(mode == 0) { // turn glyph off
     // save the old anchor incase glyph is turned back on.
     this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
     // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
@@ -555,13 +532,11 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
   this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
   this.Dialog.TextInput.val(this.Text.String);
-  //this.Dialog.MarkerInput.prop('checked', this.Arrow.Visibility);
-  //TODO
 
   // hack to suppress viewer key events.
   DIALOG_OPEN = true;
 
-  this.Dialog.Show();
+  this.Dialog.Show(true);
 }
 
 // Used?
@@ -587,9 +562,9 @@ TextWidget.prototype.DialogApplyCallback = function () {
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
   this.VisibilityMode = 2;
-  if(this.Dialog.MarkerInput1[0].checked){
+  if(this.Dialog.VisibilityModeInput1[0].checked){
     this.VisibilityMode = 0;
-  } else if(this.Dialog.MarkerInput2[0].checked){
+  } else if(this.Dialog.VisibilityModeInput2[0].checked){
     this.VisibilityMode = 1;
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
@@ -600,11 +575,14 @@ TextWidget.prototype.DialogApplyCallback = function () {
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  this.SetArrowVisibility(this.Text.Visibility);
+  this.SetVisibilityMode(this.Text.Visibility);
   
   this.Text.BackgroundFlag = backgroundFlag;
 
-  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, Visibility: this.Text.Visibility, BackgroundFlag: backgroundFlag});
+  localStorage.TextWidgetDefaults = JSON.stringify({Color         : hexcolor, 
+                                                    FontSize      : fontSize, 
+                                                    VisibilityMode: this.VisibilityMode, 
+                                                    BackgroundFlag: backgroundFlag});
 
   RecordState();
 
