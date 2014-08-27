@@ -421,9 +421,9 @@ class CollectionItemAPI(ItemAPI):
             return jsonify(error="Fatal error while creating session: " + e.message)
 
         if "debug" in data:
-            return jsonify(state="Work in progress", input=data, sessionstr= session.to_json())
+            return jsonify(state="Work in progress", input=data, sessionstr=session.to_json())
         else:
-            return Response("",status=201)
+            return Response("", status=201)
 
     def patch(self, collection):
         "Patch this collectino item "
