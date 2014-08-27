@@ -45,7 +45,11 @@
         <script>
                 $(".sa-create-session").click(function() {
                     var collection_id = $(this).parent().attr("id");
-                    createNewSession(collection_id);
+                    createNewSession(collection_id, function() {
+                        // Todo think of another mechanism to load the page
+                        window.location = "?reload=" + Date() + "#" + collection_id;
+                        console.log("Yay !!");
+                    });
                 });
 
         </script>
