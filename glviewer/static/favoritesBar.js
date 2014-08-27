@@ -172,9 +172,10 @@ function LoadFavoritesCallback(sessionData) {
                         })
                         .attr('index', i)
                         .click(function(){ deleteFavorite(this); });
-
   }
 }
+
+
 
 function loadFavorite(img){
   var note = new Note();
@@ -191,7 +192,7 @@ function deleteFavorite(img){
     type: "post",
     url: "/webgl-viewer/deleteusernote",
       data: {"noteId": FAVORITES[index]._id,
-             "col" : "favorites"},
+             "col" : "views"},//"favorites"
     success: function(data,status) {
 
     },

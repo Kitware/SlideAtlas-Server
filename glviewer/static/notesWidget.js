@@ -996,7 +996,8 @@ NotesWidget.prototype.SaveUserNote = function() {
     url: "/webgl-viewer/saveusernote",
     data: {"note": JSON.stringify(childNote.Serialize(false)),
            "col" : "notes",
-           "date": d.getTime()},
+           "date": d.getTime(),
+           "type": "UserNote"},
     success: function(data,status) { childNote.Id = data;},
     error: function() {
       alert( "AJAX - error() : saveusernote 1" );
@@ -1045,7 +1046,8 @@ NotesWidget.prototype.SaveBrownNote = function() {
     url: "/webgl-viewer/saveusernote",
       data: {"note": JSON.stringify(note.Serialize(false)),
              "thumb": src,
-             "col" : "favorites"},
+             "col" : "views",
+             "type": "Favorite"},//"favorites"
     success: function(data,status) {
       note.Id = data;
       LoadFavorites();

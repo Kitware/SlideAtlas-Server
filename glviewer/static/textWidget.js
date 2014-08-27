@@ -27,6 +27,7 @@ function TextWidget (viewer, string) {
     return null;
   }
 
+  // create and cuystomize the dialog properties popup.
   this.Dialog = new Dialog(this);
   this.Dialog.Title.text('Text Annotation Editor');
   
@@ -67,22 +68,42 @@ function TextWidget (viewer, string) {
       .val('#30ff00')
       .css({'display':'table-cell'});
   
-  this.Dialog.MarkerDiv =
+  this.Dialog.VisibilityModeDiv =
     $('<div>')
       .appendTo(this.Dialog.Body)
       .css({'display':'table-row'});
-  this.Dialog.MarkerLabel =
+  this.Dialog.VisibilityModeLabel =
     $('<div>')
-      .appendTo(this.Dialog.MarkerDiv)
-      .text("Arrow:")
+      .appendTo(this.Dialog.VisibilityModeDiv)
+      .text("Visibility:")
       .css({'display':'table-cell',
             'text-align': 'left'});
-  this.Dialog.MarkerInput =
-    $('<input type="checkbox">')
-      .appendTo(this.Dialog.MarkerDiv)
-      //.text("Marker")
-      .attr('checked', 'true')
+  this.Dialog.VisibilityModeInputButtons =
+    $('<div>')
+      .appendTo(this.Dialog.VisibilityModeDiv)
+      //.text("VisibilityMode")
+      .attr('checked', 'false')
       .css({'display': 'table-cell'});
+      
+  this.Dialog.VisibilityModeInputs = []; 
+  this.Dialog.VisibilityModeInputs[0] = 
+    $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
+      .attr('checked', 'false')
+      
+  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
+  
+  this.Dialog.VisibilityModeInputs[1] = 
+    $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
+      .attr('checked', 'false')
+      
+  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
+  
+  this.Dialog.VisibilityModeInputs[2] = 
+    $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
+      .appendTo(this.Dialog.VisibilityModeInputButtons)
+      .attr('checked', 'true')
   
   this.Dialog.BackgroundDiv =
     $('<div>')
@@ -100,29 +121,13 @@ function TextWidget (viewer, string) {
       //.text("Background")
       .attr('checked', 'true')
       .css({'display': 'table-cell'});
-  
-  // Get default properties.
-  this.Dialog.BackgroundInput.prop('checked', true);
-  if (localStorage.TextWidgetDefaults) {
-    var defaults = JSON.parse(localStorage.TextWidgetDefaults);
-    if (defaults.Color) {
-      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
-    }
-    if (defaults.FontSize) {
-      this.Dialog.FontInput.val(defaults.FontSize);
-    }
-    if (defaults.BackgroundFlag !== undefined) {
-      this.Dialog.BackgroundInput.prop('checked', defaults.BackgroundFlag);
-    }
-    if (defaults.MarkerFlag !== undefined) {
-      this.Dialog.MarkerInput.prop('checked', defaults.MarkerFlag);
-    }
-  }
 
+  // Create the hover popup for deleting and showing properties dialog.
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   // Text widgets are created with the dialog open (to set the string).
-  this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+  // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
+  this.State = TEXT_WIDGET_WAITING;
   this.CursorLocation = 0; // REMOVE
 
   var cam = this.Viewer.MainView.Camera;
@@ -145,7 +150,7 @@ function TextWidget (viewer, string) {
   this.Arrow.Length = 50;
   this.Arrow.Width = 10;
   this.Arrow.UpdateBuffers();
-  this.Arrow.Visibility = false;
+  this.Arrow.Visibility = true;
   this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
   this.Arrow.FillColor = [0,0,1];
   this.Arrow.OutlineColor = [1,1,0];
@@ -155,29 +160,49 @@ function TextWidget (viewer, string) {
   viewer.WidgetList.push(this);
   this.ActiveReason = 1;
 
-  // Sloppy defaults.
+  // Get default properties.
+  this.VisibilityMode = 2;
+  this.Text.BackgroundFlag = true;
+  this.Dialog.BackgroundInput.prop('checked', true);
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
-  this.Text.Size = parseFloat(this.Dialog.FontInput.val());
+  if (localStorage.TextWidgetDefaults) {
+    var defaults = JSON.parse(localStorage.TextWidgetDefaults);
+    if (defaults.Color) {
+      hexcolor = ConvertColorToHex(defaults.Color);
+    }
+    if (defaults.FontSize) {
+      // font size was wrongly saved as a string.
+      this.Text.Size = parseFloat(defaults.FontSize);
+    }
+    if (defaults.BackgroundFlag !== undefined) {
+      this.Text.BackgroundFlag = defaults.BackgroundFlag;
+    }
+    if (defaults.VisibilityMode !== undefined) {
+      this.VisibilityMode = defaults.VisibilityMode;
+    }
+  }
   this.Text.Color = hexcolor;
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  this.Text.BackgroundFlag = this.Dialog.BackgroundInput.prop("checked");
-  this.SetArrowVisibility(this.Dialog.MarkerInput.prop("checked"));
 
   // It is odd the way the Anchor is set.  Leave the above for now.
   this.SetTextOffset(50,0);
 }
 
 // Three state visibility so text can be hidden during calss questions.
+// The combined visibilities is confusing.
+// Global text visibility is passed in as argument.
+// Local visiblity mode is the hover state of this text. (0 text only, 1: hover, 2: both on).
 TextWidget.prototype.Draw = function(view, visibility) {
-  if (visibility != ANNOTATION_OFF) {
+  if (visibility != ANNOTATION_OFF && this.VisibilityMode != 0) {
     this.Arrow.Draw(view);
   }
   if (visibility == ANNOTATION_ON) {
-    this.Text.Draw(view);
+    if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
+      this.Text.Draw(view);
+    }
   }
 }
-
 
 TextWidget.prototype.RemoveFromViewer = function() {
   if (this.Viewer == null) {
@@ -198,7 +223,7 @@ TextWidget.prototype.Serialize = function() {
   obj.offset = [-this.Text.Anchor[0], -this.Text.Anchor[1]];
   obj.position = this.Text.Position;
   obj.string = this.Text.String;
-  obj.anchorVisibility = this.Arrow.Visibility;
+  obj.visibility = this.VisibilityMode;
   obj.backgroundFlag = this.Text.BackgroundFlag;
   return obj;
 }
@@ -231,7 +256,14 @@ TextWidget.prototype.Load = function(obj) {
     this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
   }
-  this.SetArrowVisibility(obj.anchorVisibility);
+
+  if (obj.anchorVisibility !== undefined) {
+    // Old schema.
+    this.SetVisibilityMode(obj.anchorVisibility)
+  } else if (obj.visibility !== undefined) {
+    this.SetVisibilityMode(obj.visibility)
+  }
+
   this.Arrow.SetFillColor(rgb);
   this.Arrow.ChooseOutlineColor();
 
@@ -253,20 +285,23 @@ TextWidget.prototype.SetPosition = function(x, y) {
   this.Arrow.Origin = this.Text.Position;
 }
 
+
 // Anchor is in the middle of the bounds when the shape is not visible.
-TextWidget.prototype.SetArrowVisibility = function(flag) {
-  if (this.Arrow.Visibility == flag) {
+TextWidget.prototype.SetVisibilityMode = function(mode) {
+  if (this.VisibilityMode == mode) {
     return;
   }
-  if (flag) { // turn glyph on
+  this.VisibilityMode = mode;
+
+  if (mode == 2 || mode == 1) { // turn glyph on
     if (this.SavedTextAnchor == undefined) {
       this.SavedTextAnchor = [-30, 0];
-      }
+    }
     this.Text.Anchor = this.SavedTextAnchor;
     this.Arrow.Visibility = true;
     this.Arrow.Origin = this.Text.Position;
     this.UpdateArrow();
-  } else { // turn glyph off
+  } else if(mode == 0) { // turn glyph off
     // save the old anchor incase glyph is turned back on.
     this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
     // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
@@ -471,9 +506,12 @@ TextWidget.prototype.SetActive = function(flag) {
 
   if (flag) {
     this.State = TEXT_WIDGET_ACTIVE;
-    this.Text.Active = true;
     if (this.ActiveReason == 1) {
+      this.Text.Active = false;
       this.Arrow.Active = true;
+    } else {
+      this.Text.Active = true;
+      this.Arrow.Active = false;
     }
     this.Viewer.ActivateWidget(this);
     this.PlacePopup();
@@ -501,20 +539,12 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
   this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
   this.Dialog.TextInput.val(this.Text.String);
-  this.Dialog.MarkerInput.prop('checked', this.Arrow.Visibility);
+  this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
 
   // hack to suppress viewer key events.
   DIALOG_OPEN = true;
 
-  this.Dialog.Show();
-}
-
-// Used?
-function TextPropertyDialogApplyCheck() {
-  var string = document.getElementById("textwidgetcontent").value;
-  if (string.length > 1 && string.slice(-2) == "\n\n") {
-    TextPropertyDialogApply();
-  }
+  this.Dialog.Show(true);
 }
 
 TextWidget.prototype.DialogApplyCallback = function () {
@@ -531,7 +561,13 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
-  var markerFlag = this.Dialog.MarkerInput.prop("checked");
+  if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
+    this.SetVisibilityMode(0);
+  } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
+    this.SetVisibilityMode(1);
+  } else {
+    this.SetVisibilityMode(2);
+  }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
   this.Text.String = string;
@@ -540,10 +576,13 @@ TextWidget.prototype.DialogApplyCallback = function () {
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-  this.SetArrowVisibility(markerFlag);
+  
   this.Text.BackgroundFlag = backgroundFlag;
 
-  localStorage.TextWidgetDefaults = JSON.stringify({Color: hexcolor, FontSize: fontSize, MarkerFlag: markerFlag, BackgroundFlag: backgroundFlag});
+  localStorage.TextWidgetDefaults = JSON.stringify({Color         : hexcolor, 
+                                                    FontSize      : this.Text.Size, 
+                                                    VisibilityMode: this.VisibilityMode, 
+                                                    BackgroundFlag: backgroundFlag});
 
   RecordState();
 
