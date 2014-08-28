@@ -4,6 +4,7 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+from copy import copy, deepcopy
 
 import pdb
 
@@ -249,7 +250,6 @@ def glview():
         if bookmarks:
             return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
-        # This will be the only path in the future. Everything else is legacy.
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
                 return glcomparison(db,dbid,viewid,viewobj)
@@ -293,7 +293,6 @@ def bookmark():
         if bookmarks:
             return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
-      # This will be the only path in the future. Everything else is legacy.
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
                 return glcomparison(db,dbid,viewid,viewobj)
@@ -1119,7 +1118,7 @@ def getview():
         cam["Roll"] = 0
         cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
     viewerRecord["Camera"] = cam
-    viewerRecord["AnnotationVisibility"] = 0
+    viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
 
     # lets make the first slide have all the annotations (hover for text).
@@ -1136,8 +1135,10 @@ def getview():
                 annot["color"] = "#1030FF"
                 annot["size"] = 30
                 annot["position"] = bookmark["annotation"]["points"][0]
-                annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
-                                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+                #annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
+                #                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+                # try short arrows
+                annot["offset"] = [45,0]
                 # flip y axis
                 annot["position"][1] = paddedHeight-annot["position"][1]
                 annot["offset"][1] = -annot["offset"][1]-30
@@ -1182,7 +1183,7 @@ def getview():
             bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
             if bookmark["annotation"]["type"] == "pointer" :
                 question = {}
-                question["Title"] = "Question"
+                question["Title"] = bookmark["title"]
                 question["Text"] = ""
                 question["Type"] = "Bookmark"
                 question["_id"] = str(bookmark["_id"])
@@ -1193,12 +1194,16 @@ def getview():
                 # camera object.
                 cam = {}
                 cam["FocalPoint"] = bookmark["center"]
+                # try centering the arrow tip
+                cam["FocalPoint"] = bookmark["annotation"]["points"][0]
                 # flip y axis
                 cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vrq["Camera"] = cam
-                vrq["Annotations"] = viewerRecord["Annotations"]
+                vrq["Annotations"] = deepcopy(viewerRecord["Annotations"])
+                vrq["Annotations"][len(children)]["color"] = "#10DF00"
+
                 question["ViewerRecords"] = [vrq]
                 children.append(question)
 
@@ -1220,8 +1225,11 @@ def getview():
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vr["Camera"] = cam
-                vr["Annotations"] = [annot]
-                note["ViewerRecords"] = viewerRecord["Annotation"]
+                vr["Annotations"] = deepcopy(viewerRecord["Annotations"])
+                vr["Annotations"][len(children)]["outlinecolor"] = "#10DF00"
+                vr["Annotations"][len(children)]["color"] = "#10DF00"
+
+                note["ViewerRecords"] = [vr]
                 children.append(note)
 
     noteObj["Children"] = children
