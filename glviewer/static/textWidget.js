@@ -200,6 +200,9 @@ TextWidget.prototype.Draw = function(view, visibility) {
   if (visibility == ANNOTATION_ON) {
     if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
       this.Text.Draw(view);
+      this.Text.Visibility = true;
+    } else {
+      this.Text.Visibility = false;
     }
   }
 }
@@ -471,11 +474,14 @@ TextWidget.prototype.CheckActive = function(event) {
     this.SetActive(true);
     return true;
   }
-  if (tMouse[0] > this.Text.PixelBounds[0] && tMouse[0] < this.Text.PixelBounds[1] &&
-      tMouse[1] > this.Text.PixelBounds[2] && tMouse[1] < this.Text.PixelBounds[3]) {
-    this.ActiveReason = 0;
-    this.SetActive(true);
-    return true;
+  if (this.Text.Visibility) {
+    // Only check the text if it is visible.
+    if (tMouse[0] > this.Text.PixelBounds[0] && tMouse[0] < this.Text.PixelBounds[1] &&
+        tMouse[1] > this.Text.PixelBounds[2] && tMouse[1] < this.Text.PixelBounds[3]) {
+      this.ActiveReason = 0;
+      this.SetActive(true);
+      return true;
+    }
   }
   this.SetActive(false);
   return false;
