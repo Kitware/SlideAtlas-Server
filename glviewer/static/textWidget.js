@@ -259,7 +259,11 @@ TextWidget.prototype.Load = function(obj) {
 
   if (obj.anchorVisibility !== undefined) {
     // Old schema.
-    this.SetVisibilityMode(obj.anchorVisibility)
+    if (obj.anchorVisibility) {
+      this.SetVisibilityMode(1);
+    } else {
+      this.SetVisibilityMode(0);
+    }
   } else if (obj.visibility !== undefined) {
     this.SetVisibilityMode(obj.visibility)
   }
