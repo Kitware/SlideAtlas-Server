@@ -4,6 +4,7 @@ from flask import Blueprint, request, render_template, session, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+from copy import copy, deepcopy
 
 import pdb
 
@@ -249,7 +250,6 @@ def glview():
         if bookmarks:
             return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
-        # This will be the only path in the future. Everything else is legacy.
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
                 return glcomparison(db,dbid,viewid,viewobj)
@@ -293,7 +293,6 @@ def bookmark():
         if bookmarks:
             return jsonifyBookmarks(db,dbid,viewid,viewobj)
 
-      # This will be the only path in the future. Everything else is legacy.
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
                 return glcomparison(db,dbid,viewid,viewobj)
@@ -765,8 +764,6 @@ def saveusernote():
     collectionStr = request.form['col'] # for post
     typeStr = request.form['type'] # for post
     
-    #pdb.set_trace()
-
     thumbStr = request.form['thumb']
 
     note = json.loads(noteStr)
@@ -793,8 +790,6 @@ def deleteusernote():
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
     
-    #pdb.set_trace()
-
     admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
     return "success"
 
@@ -820,8 +815,6 @@ def recursiveSetUser(note, user):
 @mod.route('/getfavoriteviews', methods=['GET', 'POST'])
 def getfavoriteviews():
     collectionStr = request.args.get('col', "views") #"favorites"
-
-    #pdb.set_trace()
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
@@ -1070,6 +1063,8 @@ def getview():
     # legacy: Rework bookmarks into the same structure.
     # a pain, but necessary to generalize next/previous slide.
     # An array of children and an array of ViewerRecords
+    #pdb.set_trace()
+
     imgdb = viewdb
     if "imgdb" in viewObj :
         # support for images in database different than view
@@ -1123,31 +1118,16 @@ def getview():
         cam["Roll"] = 0
         cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
     viewerRecord["Camera"] = cam
+    viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
 
+    # lets make the first slide have all the annotations (hover for text).
     # Now for the children (Bookmarks).
     children = []
     if 'bookmarks' in viewObj:
         for bookmarkid in viewObj["bookmarks"]:
             bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
             if bookmark["annotation"]["type"] == "pointer" :
-                question = {}
-                question["Title"] = "Question"
-                question["Text"] = ""
-                question["Type"] = "Bookmark"
-                question["_id"] = str(bookmark["_id"])
-                question["ParentId"] = viewid
-                vrq = {}
-                vrq["AnnotationVisibility"] = 1
-                vrq["Image"] = viewerRecord["Image"]
-                # camera object.
-                cam = {}
-                cam["FocalPoint"] = bookmark["center"]
-                # flip y axis
-                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-                cam["Height"] = 900 << int(bookmark["zoom"])
-                cam["Roll"] = -bookmark["rotation"]
-                vrq["Camera"] = cam
                 annot = {}
                 annot["type"] = "text"
                 # colors are wrong
@@ -1155,8 +1135,10 @@ def getview():
                 annot["color"] = "#1030FF"
                 annot["size"] = 30
                 annot["position"] = bookmark["annotation"]["points"][0]
-                annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
-                                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+                #annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
+                #                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
+                # try short arrows
+                annot["offset"] = [45,0]
                 # flip y axis
                 annot["position"][1] = paddedHeight-annot["position"][1]
                 annot["offset"][1] = -annot["offset"][1]-30
@@ -1173,44 +1155,10 @@ def getview():
                     annot["offset"][0] = annot["offset"][0] * 10 / mag
                     annot["offset"][1] = annot["offset"][1] * 10 / mag
                 annot["string"] = bookmark["title"]
-                annot["anchorVisibility"] = True
-                vrq["Annotations"] = [annot]
-                question["ViewerRecords"] = [vrq]
-                children.append(question)
-
-                answer = {}
-                answer["Title"] = bookmark["title"]
-                answer["Text"] = bookmark["details"]
-                answer["Type"] = "Bookmark"
-                answer["_id"] = str(bookmark["_id"])
-                answer["ParentId"] = viewid
-                vra = {}
-                vra["AnnotationVisibility"] = 2
-                vra["Type"] = "Answer"
-                vra["Image"] = viewerRecord["Image"]
-                vra["Camera"] = cam
-                vra["Annotations"] = [annot]
-                answer["ViewerRecords"] = [vra]
-                question["Children"] = [answer]
+                annot["visibility"] = 1
+                viewerRecord["Annotations"].append(annot)
 
             if bookmark["annotation"]["type"] == "circle" :
-                note = {}
-                note["Title"] = bookmark["title"]
-                note["Text"] = bookmark["details"]
-                note["Type"] = "Bookmark"
-                note["_id"] = str(bookmark["_id"])
-                note["ParentId"] = viewid
-                vr = {}
-                vr["AnnotationVisibility"] = 1
-                vr["Image"] = viewerRecord["Image"]
-                # camera object.
-                cam = {}
-                cam["FocalPoint"] = bookmark["center"]
-                # flip y axis
-                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-                cam["Height"] = 900 << int(bookmark["zoom"])
-                cam["Roll"] = -bookmark["rotation"]
-                vr["Camera"] = cam
                 annot = {}
                 annot["type"] = "circle"
                 annot["color"] = bookmark["annotation"]["color"]
@@ -1225,8 +1173,62 @@ def getview():
                 else :
                     annot["radius"] = 1000.0
                 annot["linewidth"] = annot["radius"] / 20
+                viewerRecord["Annotations"].append(annot)
 
-                vr["Annotations"] = [annot]
+
+    # Now for the children (Bookmarks).
+    children = []
+    if 'bookmarks' in viewObj:
+        for bookmarkid in viewObj["bookmarks"]:
+            bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+            if bookmark["annotation"]["type"] == "pointer" :
+                question = {}
+                question["Title"] = bookmark["title"]
+                question["Text"] = ""
+                question["Type"] = "Bookmark"
+                question["_id"] = str(bookmark["_id"])
+                question["ParentId"] = viewid
+                vrq = {}
+                vrq["AnnotationVisibility"] = 2
+                vrq["Image"] = viewerRecord["Image"]
+                # camera object.
+                cam = {}
+                cam["FocalPoint"] = bookmark["center"]
+                # try centering the arrow tip
+                cam["FocalPoint"] = bookmark["annotation"]["points"][0]
+                # flip y axis
+                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
+                cam["Height"] = 900 << int(bookmark["zoom"])
+                cam["Roll"] = -bookmark["rotation"]
+                vrq["Camera"] = cam
+                vrq["Annotations"] = deepcopy(viewerRecord["Annotations"])
+                vrq["Annotations"][len(children)]["color"] = "#10DF00"
+
+                question["ViewerRecords"] = [vrq]
+                children.append(question)
+
+            if bookmark["annotation"]["type"] == "circle" :
+                note = {}
+                note["Title"] = bookmark["title"]
+                note["Text"] = bookmark["details"]
+                note["Type"] = "Bookmark"
+                note["_id"] = str(bookmark["_id"])
+                note["ParentId"] = viewid
+                vr = {}
+                vr["AnnotationVisibility"] = 2
+                vr["Image"] = viewerRecord["Image"]
+                # camera object.
+                cam = {}
+                cam["FocalPoint"] = bookmark["center"]
+                # flip y axis
+                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
+                cam["Height"] = 900 << int(bookmark["zoom"])
+                cam["Roll"] = -bookmark["rotation"]
+                vr["Camera"] = cam
+                vr["Annotations"] = deepcopy(viewerRecord["Annotations"])
+                vr["Annotations"][len(children)]["outlinecolor"] = "#10DF00"
+                vr["Annotations"][len(children)]["color"] = "#10DF00"
+
                 note["ViewerRecords"] = [vr]
                 children.append(note)
 
