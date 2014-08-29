@@ -71,11 +71,6 @@ function AnnotationWidget (viewer) {
       .attr('type','image')
       .attr('src',"/webgl-viewer/static/select_lasso.png")
       .click(function(){self.NewLasso();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/arrowWidget.png")
-      .click(function(){self.NewArrowStamp();});
   }
 }
 
@@ -153,17 +148,6 @@ AnnotationWidget.prototype.NewLasso = function() {
   }
   this.SetVisibility(ANNOTATION_ON);
   var widget = new LassoWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
-}
-
-AnnotationWidget.prototype.NewArrowStamp = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof ArrowStampWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new ArrowStampWidget(this.Viewer, true);
   this.Viewer.ActiveWidget = widget;
 }
 

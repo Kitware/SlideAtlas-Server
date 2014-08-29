@@ -491,10 +491,6 @@ Viewer.prototype.LoadWidget = function(obj) {
       var pencil = new PencilWidget(this, false);
       pencil.Load(obj);
       break;
-    case "arrow":
-      var arrow = new ArrowStampWidget(this, false);
-      arrow.Load(obj);
-      break;
     case "text":
       var text = new TextWidget(this, "");
       text.Load(obj);
@@ -1249,6 +1245,10 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     }
     if (clip.Type == "PolylineWidget") {
       var widget = new PolylineWidget(this, false);
+      widget.PasteCallback(clip.Data);
+    }
+    if (clip.Type == "TextWidget") {
+      var widget = new TextWidget(this, "");
       widget.PasteCallback(clip.Data);
     }
 

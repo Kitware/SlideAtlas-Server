@@ -222,6 +222,17 @@ TextWidget.prototype.RemoveFromViewer = function() {
   }
 }
 
+
+TextWidget.prototype.PasteCallback = function(data) {
+  this.Load(data);
+  // Place the tip of the arrow at the mose location.
+  this.Text.Position[0] = EVENT_MANAGER.MouseWorldX;
+  this.Text.Position[1] = EVENT_MANAGER.MouseWorldY;
+  this.UpdateArrow();
+  eventuallyRender();
+}
+
+
 TextWidget.prototype.Serialize = function() {
   if(this.Text === undefined){ return null; }
   var obj = new Object();
@@ -359,9 +370,20 @@ TextWidget.prototype.UpdateArrow = function() {
   this.Arrow.UpdateBuffers();
 }
 
-TextWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+TextWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // Copy
+  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+    // control-c for copy
+    // The extra identifier is not needed for widgets, but will be
+    // needed if we have some other object on the clipboard.
+    var clip = {Type:"TextWidget", Data: this.Serialize()};
+    localStorage.ClipBoard = JSON.stringify(clip);
+    return true;
+  }
+
   return false;
 }
+
 
 TextWidget.prototype.HandleDoubleClick = function(event) {
 }
