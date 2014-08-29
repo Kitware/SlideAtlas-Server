@@ -89,6 +89,11 @@ function PencilWidget (viewer, newFlag) {
       this.State = PENCIL_WIDGET_WAITING;
       this.Cursor.hide();
   }
+
+  // Lets save the zoom level (sort of).
+  // Load will overwrite this for existing annotations.
+  // This will allow us to expand annotations into notes.
+  this.CreationCamera = viewer.GetCamera().Serialize;
 }
 
 
@@ -111,6 +116,7 @@ PencilWidget.prototype.Serialize = function() {
     }
     obj.shapes.push(points);
   }
+  obj.creation_camera = this.CreationCamera;
 
   return obj;
 }
@@ -128,6 +134,11 @@ PencilWidget.prototype.Load = function(obj) {
       shape.Points[m] = [points[m][0], points[m][1]];
     }
     shape.UpdateBuffers();
+  }
+
+  // How zoomed in was the view when the annotation was created.
+  if (obj.view_height !== undefined) {
+    this.CreationCamera = obj.creation_camera;
   }
 }
 
