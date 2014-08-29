@@ -229,15 +229,25 @@ EventManager.prototype.HandleKeyDown = function(event) {
   if (this.ControlKeyPressed && event.keyCode == 90) {
     // Function in recordWidget.
     UndoState();
+    return;
   } else if (this.ControlKeyPressed && event.keyCode == 89) {
     // Function in recordWidget.
     RedoState();
+    return;
   }
 
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
-    this.CurrentViewer.HandleKeyPress(event.keyCode, this);
+    if (this.CurrentViewer.HandleKeyPress(event.keyCode, this)) {
+      return;
+    }
+  }
+
+  if (typeof(NAVIGATION_WIDGET) != "undefined") {
+      if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
+      return;
+    }
   }
 }
 

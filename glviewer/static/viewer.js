@@ -1295,7 +1295,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
   //----------------------
   if (this.ActiveWidget != null) {
     if (this.ActiveWidget.HandleKeyPress(keyCode, modifiers)) {
-      return;
+      return true;
     }
   }
 
@@ -1304,6 +1304,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     this.MainView.Camera.ComputeMatrix();
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     eventuallyRender();
+    return true;
   }
 
   if (keyCode == 38) {
@@ -1320,6 +1321,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
+    return true;
   } else if (keyCode == 40) {
     // Down cursor key
     var cam = this.GetCamera();
@@ -1334,6 +1336,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
+    return true;
   } else if (keyCode == 37) {
     // Left cursor key
     var cam = this.GetCamera();
@@ -1348,6 +1351,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
+    return true;
   } else if (keyCode == 39) {
     // Right cursor key
     var cam = this.GetCamera();
@@ -1362,7 +1366,9 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0;
     eventuallyRender();
+    return true;
   }
+  return false;
 }
 
 
