@@ -455,6 +455,15 @@ function Note () {
             'border-radius': '8px',
             'border-style': 'solid',
             'border-width':'1px'});
+  // Only show this button if we have annotations to convert.
+  this.AnnotationToNotesButton = $('<button>')
+      .appendTo(this.IconMenuDiv)
+      .text("annotation to notes")
+      .hide()
+      .css({'color' : '#278BFF',
+            'font-size': '14px',
+            'border-radius': '3px',
+            'width':'100%'});
   this.SnapShotButton =
     $('<button>').appendTo(this.IconMenuDiv)
       .text("snap shot")
@@ -521,6 +530,12 @@ Note.prototype.TitleFocusOutCallback = function() {
 
 Note.prototype.IconEnterCallback = function() {
   if (EDIT) {
+    // Only show this button if we have annotations to convert.
+    if (this.ViewerRecords.length > 0 && this.ViewerRecords[0].Annotations.length > 0) {
+      this.AnnotationToNotesButton.show();
+    } else {
+      this.AnnotationToNotesButton.hide();
+    }
     this.IconMenuDiv.fadeIn(1000);
   }
 }
@@ -546,6 +561,43 @@ Note.prototype.IconMenuEnterCallback = function() {
 
 Note.prototype.IconMenuLeaveCallback = function() {
   this.IconMenuDiv.hide();
+}
+
+Note.prototype.AnnotationToNotesCallback = function() {
+  this.IconMenuDiv.hide();
+
+  // Loop over the annotations
+  var annotations = this.ViewerRecords[0].Annotations;
+  for (var i = 0; i < annotations.length; ++i) {
+    var annotation = annotations[i];
+    // Annotations in notes are in serialized form.
+    if (annotation.creation_camera !== undefined) {
+      // Copy this note and add it as a child.
+      var obj = this.Serialize(false);
+      var child = new Note();
+      child.Load(obj);
+      // Serialize / Load changes Image into an ObjectId string.
+      child.ViewerRecords[0].Image = this.ViewerRecords[0].Image;
+      // Change the view to focus on the annotation.
+      child.ViewerRecords[0].Camera = annotation.creation_camera;
+      if (child.ViewerRecords[0].Annotations[i].type == "text") {
+        // Change the color of the active annotation.
+        child.ViewerRecords[0].Annotations[i].color = [0,0.9,0];
+        // Change the title of the note
+        child.Title = annotation.string;
+        // What about other viewer records???  Later... 
+      }
+      // Change the title of the note
+      child.Title
+      this.Children.push(child);
+    }
+  }
+
+  // Update the gui
+  this.UpdateChildrenGUI();
+  if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
+
+  NOTES_WIDGET.Modified();
 }
 
 Note.prototype.SnapShotCallback = function() {
@@ -763,13 +815,14 @@ Note.prototype.DisplayGUI = function(div) {
     this.IconMenuDiv
       .mouseenter(function() { self.IconMenuEnterCallback(); })
       .mouseleave(function() { self.IconMenuLeaveCallback(); });
-      if (this.LinkButton) {
-        this.LinkButton.click(function(){self.LinkCallback();});
-      }
-      this.SnapShotButton.click(function(){self.SnapShotCallback();});
-      if (this.DeleteButton) { 
-        this.DeleteButton.click(function(){self.DeleteCallback();});
-      }
+    if (this.LinkButton) {
+      this.LinkButton.click(function(){self.LinkCallback();});
+    }
+    this.AnnotationToNotesButton.click(function(){self.AnnotationToNotesCallback();});
+    this.SnapShotButton.click(function(){self.SnapShotCallback();});
+    if (this.DeleteButton) { 
+      this.DeleteButton.click(function(){self.DeleteCallback();});
+    }
   }
   this.UpdateChildrenGUI();
 }

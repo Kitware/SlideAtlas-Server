@@ -19,6 +19,23 @@ function Camera (viewportWidth, viewportHeight) {
     this.Mirror = false;
 }
 
+Camera.prototype.Serialize = function () {
+  var obj = {};
+  obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
+  obj.Roll = this.Roll;
+  obj.Height = this.GetHeight();
+  obj.Width = this.GetWidth();
+  return obj;
+}
+
+Camera.prototype.Load = function (obj) {
+  this.FocalPoint[0] = obj.FocalPoint[0];
+  this.FocalPoint[1] = obj.FocalPoint[1];
+  this.Roll = obj.Roll;
+  this.Height = obj.Height;
+  // Width is computed from height and aspect.
+  this.ComputeMatrix();
+}
 
 Camera.prototype.SetViewport = function (viewport) {
   if (10*viewport[3] < viewport[2]) {

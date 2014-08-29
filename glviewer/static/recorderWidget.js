@@ -59,14 +59,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   }
 
   this.Image = cache.Image;
-
-  var cam = viewer.GetCamera();
-  var cameraRecord = {};
-  cameraRecord.FocalPoint = cam.GetFocalPoint();
-  cameraRecord.Height = cam.GetHeight();
-  cameraRecord.Width = cam.GetWidth();
-  cameraRecord.Roll = cam.GetRotation();
-  this.Camera = cameraRecord;
+  this.Camera = viewer.GetCamera().Serialize();
 
   this.AnnotationVisibility = viewer.GetAnnotationVisibility();
   if (this.AnnotationVisibility) {
@@ -86,7 +79,8 @@ ViewerRecord.prototype.Serialize = function (viewer) {
   rec.Database = this.Image.database;
   rec.NumberOfLevels = this.Image.levels;
   rec.Camera = this.Camera;
-  rec.Annotations = this.Annotations;
+  // deep copy
+  rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
   rec.AnnotationVisibility = this.AnnotationVisibility;
 
   if (this.OverviewBounds) {
@@ -113,6 +107,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
   if (this.Camera != undefined) {
     var cameraRecord = this.Camera;
+    // We should use camera.Load here.
     viewer.SetCamera(cameraRecord.FocalPoint,
                      cameraRecord.Roll,
                      cameraRecord.Height);

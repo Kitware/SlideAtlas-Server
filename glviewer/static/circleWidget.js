@@ -86,6 +86,12 @@ function CircleWidget (viewer, newFlag) {
   if (viewer == null) {
     return;
   }
+
+  // Lets save the zoom level (sort of).
+  // Load will overwrite this for existing annotations.
+  // This will allow us to expand annotations into notes.
+  this.CreationCamera = viewer.GetCamera().Serialize();
+
   this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
   var cam = viewer.MainView.Camera;
@@ -144,6 +150,7 @@ CircleWidget.prototype.Serialize = function() {
   obj.outlinecolor = this.Shape.OutlineColor;
   obj.radius = this.Shape.Radius;
   obj.linewidth = this.Shape.LineWidth;
+  obj.creation_camera = this.CreationCamera;
   return obj;
 }
 
@@ -158,6 +165,11 @@ CircleWidget.prototype.Load = function(obj) {
   this.Shape.LineWidth = parseFloat(obj.linewidth);
   this.Shape.FixedSize = false;
   this.Shape.UpdateBuffers();
+
+  // How zoomed in was the view when the annotation was created.
+  if (obj.creation_camera !== undefined) {
+    this.CreationCamera = obj.CreationCamera;
+  }
 }
 
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {

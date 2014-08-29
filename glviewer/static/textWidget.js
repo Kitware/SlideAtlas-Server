@@ -187,6 +187,11 @@ function TextWidget (viewer, string) {
 
   // It is odd the way the Anchor is set.  Leave the above for now.
   this.SetTextOffset(50,0);
+
+  // Lets save the zoom level (sort of).
+  // Load will overwrite this for existing annotations.
+  // This will allow us to expand annotations into notes.
+  this.CreationCamera = viewer.GetCamera().Serialize();
 }
 
 // Three state visibility so text can be hidden during calss questions.
@@ -228,6 +233,7 @@ TextWidget.prototype.Serialize = function() {
   obj.string = this.Text.String;
   obj.visibility = this.VisibilityMode;
   obj.backgroundFlag = this.Text.BackgroundFlag;
+  obj.creation_camera = this.CreationCamera;
   return obj;
 }
 
@@ -258,6 +264,11 @@ TextWidget.prototype.Load = function(obj) {
   if (obj.offset) { // how to try / catch in javascript?
     this.SetTextOffset(parseFloat(obj.offset[0]),
                        parseFloat(obj.offset[1]));
+  }
+
+  // How zoomed in was the view when the annotation was created.
+  if (obj.creation_camera !== undefined) {
+    this.CreationCamera = obj.creation_camera;
   }
 
   if (obj.anchorVisibility !== undefined) {

@@ -138,6 +138,11 @@ function PolylineWidget (viewer, newFlag) {
                  cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
   this.UpdateCircleRadius();
 
+  // Lets save the zoom level (sort of).
+  // Load will overwrite this for existing annotations.
+  // This will allow us to expand annotations into notes.
+  this.CreationCamera = viewer.GetCamera().Serialize;
+
   eventuallyRender();
 }
 
@@ -223,6 +228,7 @@ PolylineWidget.prototype.Serialize = function() {
   this.UpdateBounds();
 
   obj.closedloop = this.ClosedLoop;
+  obj.creation_camera = this.CreationCamera;
   return obj;
 }
 
@@ -240,6 +246,11 @@ PolylineWidget.prototype.Load = function(obj) {
   this.ClosedLoop = (obj.closedloop == "true");
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
+
+  // How zoomed in was the view when the annotation was created.
+  if (obj.view_height !== undefined) {
+    this.CreationCamera = obj.creation_camera;
+  }
 }
 
 PolylineWidget.prototype.RemoveFromViewer = function() {
