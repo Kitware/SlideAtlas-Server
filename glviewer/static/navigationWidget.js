@@ -92,6 +92,23 @@ function NavigationWidget() {
 
 }
 
+
+NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // 34=page down, 78=n, 32=space
+  if (keyCode == 34 || keyCode == 78 || keyCode == 32) {
+    this.NextNote();
+    return true;
+  }
+  // 33=page up, 80=p
+  if (keyCode == 33 || keyCode == 80) {
+    this.PreviousNote();
+    return true;
+  }
+
+  return false;
+}
+
+
 NavigationWidget.prototype.ToggleVisibility = function() {
   this.SetVisibility( ! this.Visibility);
 }
