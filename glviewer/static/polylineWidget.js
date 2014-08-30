@@ -328,8 +328,16 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
 
   if (this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE) {
     // Compute the midpoint.
-    var x = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][0] + this.Shape.Points[this.ActiveMidpoint][0]);
-    var y = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][1] + this.Shape.Points[this.ActiveMidpoint][1]);
+    var x, y;
+    if (this.ActiveMidpoint == 0) {
+      var numPoints = this.Shape.Points.length;
+      // The closed option is becoming a pain.
+      x = 0.5 * (this.Shape.Points[numPoints-1][0] + this.Shape.Points[0][0]);
+      y = 0.5 * (this.Shape.Points[numPoints-1][1] + this.Shape.Points[0][1]);
+    } else {
+      x = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][0] + this.Shape.Points[this.ActiveMidpoint][0]);
+      y = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][1] + this.Shape.Points[this.ActiveMidpoint][1]);
+    }
     // Insert the midpoint in the loop.
     this.Shape.Points.splice(this.ActiveMidpoint,0,[x,y]);
     // Now set up dragging interaction on the new point.
@@ -486,9 +494,19 @@ PolylineWidget.prototype.CheckActive = function(event) {
   // Check for the mouse over a midpoint.
   this.UpdateCircleRadius();
   var r2 = this.Circle.Radius * this.Circle.Radius;
-  for (idx = 1; idx < this.Shape.Points.length; ++idx) {
-    x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
-    y = 0.5 *(this.Shape.Points[idx-1][1] + this.Shape.Points[idx][1]);
+  var numPoints = this.Shape.Points.length;
+  for (idx = 0; idx < numPoints; ++idx) {
+    // Some juggling to detect the closing edget from end to 0.
+    if (idx == 0) {
+      if ( ! this.Shape.Closed) {
+        continue;
+      }
+      x = 0.5 *(this.Shape.Points[numPoints-1][0] + this.Shape.Points[idx][0]);
+      y = 0.5 *(this.Shape.Points[numPoints-1][1] + this.Shape.Points[idx][1]);
+    } else {
+      x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
+      y = 0.5 *(this.Shape.Points[idx-1][1] + this.Shape.Points[idx][1]);
+    }
     var dx = pt[0] - x;
     var dy = pt[1] - y;
     if ((dx*dx + dy*dy) <= r2) {
@@ -499,7 +517,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
       this.ActiveMidpoint = idx;
       this.PlacePopup();
       return true;
-      }
+    }
   }
 
   // Check for mouse touching an edge.
