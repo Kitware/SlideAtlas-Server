@@ -96,8 +96,6 @@ function PolylineWidget (viewer, newFlag) {
   var viewport = viewer.MainView.Viewport;
 
   this.Viewer = viewer;
-  // If the last point is the same as the first point, ClosedLoop is true.
-  this.ClosedLoop = false;
   // Circle is to show an active vertex.
   this.Circle = new Circle();
   this.Circle.FillColor = [1.0, 1.0, 0.2];
@@ -143,6 +141,9 @@ function PolylineWidget (viewer, newFlag) {
   // This will allow us to expand annotations into notes.
   this.CreationCamera = viewer.GetCamera().Serialize;
 
+  // Set to be the width of a pixel.
+  this.MinLine = 1.0;
+
   eventuallyRender();
 }
 
@@ -183,8 +184,8 @@ PolylineWidget.prototype.Draw = function(view) {
     // Change it to line drawing.
     var cam = this.Viewer.MainView.Camera;
     var viewport = this.Viewer.MainView.Viewport;
-    var minLine = cam.Height/viewport[3];
-    if (this.LineWidth < minLine) {
+    this.MinLine = cam.Height/viewport[3];
+    if (this.LineWidth < this.MinLine) {
       // Too thin. Use a single line.
       this.Shape.LineWidth = 0;
     } else {
@@ -212,8 +213,6 @@ PolylineWidget.prototype.PasteCallback = function(data) {
   eventuallyRender();
 }
 
-
-
 PolylineWidget.prototype.Serialize = function() {
   if(this.Shape === undefined){ return null; }
   var obj = new Object();
@@ -227,8 +226,9 @@ PolylineWidget.prototype.Serialize = function() {
   }
   this.UpdateBounds();
 
-  obj.closedloop = this.ClosedLoop;
   obj.creation_camera = this.CreationCamera;
+  obj.closedloop = this.Shape.Closed;
+
   return obj;
 }
 
@@ -243,7 +243,7 @@ PolylineWidget.prototype.Load = function(obj) {
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
   }
-  this.ClosedLoop = (obj.closedloop == "true");
+  this.Shape.Closed = (obj.closedloop == "true");
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
 
@@ -285,13 +285,6 @@ PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
     // Last resort.  ESC key always deactivates the widget.
     // Deactivate.
     this.Deactivate();
-    if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-      // I do not check for closed loop yet.
-      this.ClosedLoop = false;
-      // Remove the last duplicate point.
-      this.Shape.Points.pop();
-      this.UpdateBounds();
-    }
     RecordState();  
   }
 
@@ -327,13 +320,12 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
     if (this.ActiveVertex >= 0) { // The user clicked on an active vertex. End the line.
+      // Remove the temporary point at end used for drawining.
+      this.Shape.Points.pop();
       if (this.ActiveVertex == 0) {
-        this.ClosedLoop = true;
+        this.Shape.Closed = true;
       } else {
-        this.ClosedLoop = false;
-        // Remove the last duplicate point.
-        this.Shape.Points.pop();
-        this.UpdateBounds();
+        this.Shape.Closed = false;
       }
       this.Deactivate();
       RecordState();
@@ -348,8 +340,16 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
 
   if (this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE) {
     // Compute the midpoint.
-    var x = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][0] + this.Shape.Points[this.ActiveMidpoint][0]);
-    var y = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][1] + this.Shape.Points[this.ActiveMidpoint][1]);
+    var x, y;
+    if (this.ActiveMidpoint == 0) {
+      var numPoints = this.Shape.Points.length;
+      // The closed option is becoming a pain.
+      x = 0.5 * (this.Shape.Points[numPoints-1][0] + this.Shape.Points[0][0]);
+      y = 0.5 * (this.Shape.Points[numPoints-1][1] + this.Shape.Points[0][1]);
+    } else {
+      x = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][0] + this.Shape.Points[this.ActiveMidpoint][0]);
+      y = 0.5 * (this.Shape.Points[this.ActiveMidpoint-1][1] + this.Shape.Points[this.ActiveMidpoint][1]);
+    }
     // Insert the midpoint in the loop.
     this.Shape.Points.splice(this.ActiveMidpoint,0,[x,y]);
     // Now set up dragging interaction on the new point.
@@ -433,15 +433,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
     }
     if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.SystemEvent.which == 1) {
       //drag the vertex
-      var last = this.Shape.Points.length-1;
-      if (this.ClosedLoop && (this.ActiveVertex == 0 || this.ActiveVertex == last)) {
-        this.Shape.Points[0] = pt;
-        this.Shape.Points[last] = [pt[0],pt[1]]; // Bug moving entire line with shared points incremented twice.
-        }
-      else
-        {
-        this.Shape.Points[this.ActiveVertex] = pt;
-        }
+      this.Shape.Points[this.ActiveVertex] = pt;
       this.Circle.Origin = pt;
       this.Shape.UpdateBuffers();
       this.PlacePopup();
@@ -514,9 +506,19 @@ PolylineWidget.prototype.CheckActive = function(event) {
   // Check for the mouse over a midpoint.
   this.UpdateCircleRadius();
   var r2 = this.Circle.Radius * this.Circle.Radius;
-  for (idx = 1; idx < this.Shape.Points.length; ++idx) {
-    x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
-    y = 0.5 *(this.Shape.Points[idx-1][1] + this.Shape.Points[idx][1]);
+  var numPoints = this.Shape.Points.length;
+  for (idx = 0; idx < numPoints; ++idx) {
+    // Some juggling to detect the closing edget from end to 0.
+    if (idx == 0) {
+      if ( ! this.Shape.Closed) {
+        continue;
+      }
+      x = 0.5 *(this.Shape.Points[numPoints-1][0] + this.Shape.Points[idx][0]);
+      y = 0.5 *(this.Shape.Points[numPoints-1][1] + this.Shape.Points[idx][1]);
+    } else {
+      x = 0.5 *(this.Shape.Points[idx-1][0] + this.Shape.Points[idx][0]);
+      y = 0.5 *(this.Shape.Points[idx-1][1] + this.Shape.Points[idx][1]);
+    }
     var dx = pt[0] - x;
     var dy = pt[1] - y;
     if ((dx*dx + dy*dy) <= r2) {
@@ -527,18 +529,31 @@ PolylineWidget.prototype.CheckActive = function(event) {
       this.ActiveMidpoint = idx;
       this.PlacePopup();
       return true;
-      }
+    }
   }
 
   // Check for mouse touching an edge.
+  var width = Math.max(this.MinLine * 4, this.LineWidth);
   for (var i = 1; i < this.Shape.Points.length; ++i) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], this.Shape.Points[i], this.LineWidth)) {
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], 
+                                      this.Shape.Points[i], width)) {
       this.State = POLYLINE_WIDGET_ACTIVE;
       this.Shape.Active = true;
       this.PlacePopup();
       return true;
     }
   }
+  if (this.Shape.Closed) {
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[0],
+                                      this.Shape.Points[this.Shape.Points.length-1], width)) {
+      this.State = POLYLINE_WIDGET_ACTIVE;
+      this.Shape.Active = true;
+      this.PlacePopup();
+      return true;
+    }
+  }
+
+
 
   return false;
 }

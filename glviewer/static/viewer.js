@@ -83,7 +83,8 @@ Viewer.prototype.InitializeZoomGui = function() {
   this.ZoomDiv = $('<div>')
         .appendTo('body')
         .css({
-          'opacity': '0.8',
+          'opacity': '0.6',
+          'background-color': '#fff',
           'position': 'absolute',
           'height': '120px',
           'width': '54px',
@@ -92,7 +93,7 @@ Viewer.prototype.InitializeZoomGui = function() {
           'border-style'  : 'solid',
           'border-width'  : '1px',
           'border-radius' : '27px',
-          'border-color'  : '#bbb',
+          'border-color'  : '#888',
           'z-index': '2'});
   this.ZoomInButton = $('<img>')
         .appendTo(this.ZoomDiv)
@@ -115,7 +116,7 @@ Viewer.prototype.InitializeZoomGui = function() {
           'height':  '20px',
           'width':   '100%',
           'text-align' : 'center',
-          'color' : '#555',
+          'color' : '#000',
           'top' : '51px',
           'left' : '0px'})
         .html("");

@@ -106,6 +106,7 @@ function LassoWidget (viewer, newFlag) {
   this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Loop.FixedSize = false;
   this.Loop.LineWidth = 0;
+  this.Loop.Closed = true;  
   this.Stroke = false;
 
   this.ActiveCenter = [0,0];
@@ -214,11 +215,7 @@ LassoWidget.prototype.HandleMouseUp = function(event) {
     if (this.Loop && this.Loop.Points.length > 0) {
       this.CombineStroke(); 
     } else {
-
-      //this.Stroke.Points = [[34000,40000],[45000,40000],[45000,70000],[34000,70000]];
-
-
-      this.Stroke.Points.push([this.Stroke.Points[0][0], this.Stroke.Points[0][1]]);
+      this.Stroke.Closed = true;
       this.Stroke.UpdateBuffers();
       this.Loop = this.Stroke;
       this.Stroke = false;
@@ -425,7 +422,14 @@ LassoWidget.prototype.Decimate = function(shape, spacing) {
 
 
 LassoWidget.prototype.CombineStroke = function() {
-  
+
+  // This algorithm was desinged to have the first point be the same as the last point.
+  // To generalize polylineWidgets and lassoWidgets, I changed this and put a closed 
+  // flag (which implicitely draws the last segment) in polyline.
+  // It is easier to temporarily add the extra point and them remove it, than change the algorithm.
+  this.Loop.Points.push(this.Loop.Points[0]);
+
+
   // Find the first and last intersection points between stroke and loop.
   var intersection0;
   var intersection1;
@@ -516,10 +520,14 @@ LassoWidget.prototype.CombineStroke = function() {
       this.Loop.Points = points1;
     }
 
-    this.Loop.UpdateBuffers();
-    this.ComputeActiveCenter();
     RecordState();
   }
+
+  // Remove the extra point added at the begining of this method.
+  this.Loop.Points.pop();
+  this.Loop.UpdateBuffers();
+  this.ComputeActiveCenter();
+
   this.Stroke = false;
   eventuallyRender();
 }
@@ -543,7 +551,7 @@ LassoWidget.prototype.FindIntersection = function(p0, p1) {
 
   for (var i = 1; i < this.Loop.Points.length; ++i) {
     var m1 = this.Loop.Points[i];
-    // Infinite loop because we are inserting points.
+    // Avoid an infinite loop inserting points.
     if (p0 == m0 || p0 == m1) { continue;}
     var n1 = [(m1[0]-p0[0])/mag, (m1[1]-p0[1])/mag];
     var k1 = [(n1[0]*p[0]+n1[1]*p[1]), (n1[1]*p[0]-n1[0]*p[1])];
