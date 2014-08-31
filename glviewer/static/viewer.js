@@ -570,7 +570,7 @@ Viewer.prototype.Draw = function() {
   // Draw a rectangle in the overview representing the camera's view.
   if (this.OverView) {
     this.MainView.Camera.Draw(this.OverView);
-    if (HISTORY_MASK) {
+    if (typeof(HISTORY_MASK) !== "undefinded") {
       this.OverView.DrawHistory(this.MainView.Viewport[3]);
     }
   }
