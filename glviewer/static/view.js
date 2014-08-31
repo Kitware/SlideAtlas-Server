@@ -179,9 +179,9 @@ View.prototype.DrawHistory = function (windowHeight) {
         cam.Width = height * aspectRatio;
       }
       var width = cam.Width;
-      var roll = cam.Roll * Math.PI / 180.0;
-      var c = Math.cos(roll);
-      var s = Math.sin(roll);
+      // camer roll is already in radians.
+      var c = Math.cos(cam.Roll);
+      var s = Math.sin(cam.Roll);
       ctx.save();
       // transform to put focal point at 0,0
       ctx.transform(c, -s,

@@ -14,6 +14,8 @@ var INTERACTION_ROTATE = 2;
 var INTERACTION_ZOOM = 3;
 
 function Viewer (viewport, cache) {
+  this.HistoryFlag = false;
+
   // Some of these could get transitioned to view or style ...
   // Left click option: Drag in main window, place in overview.
   this.OverViewEventFlag = false;
@@ -570,7 +572,7 @@ Viewer.prototype.Draw = function() {
   // Draw a rectangle in the overview representing the camera's view.
   if (this.OverView) {
     this.MainView.Camera.Draw(this.OverView);
-    if (typeof(HISTORY_MASK) !== "undefinded") {
+    if (this.HistoryFlag) {
       this.OverView.DrawHistory(this.MainView.Viewport[3]);
     }
   }
