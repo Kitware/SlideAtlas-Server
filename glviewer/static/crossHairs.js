@@ -11,6 +11,7 @@ function CrossHairs() {
   this.Origin = [10000,10000]; // position in world coordinates.
   this.FillColor    = [0,0,0];
   this.OutlineColor = [1,1,1];
+  this.PointBuffer = [];
 };
 CrossHairs.prototype = new Shape;
 
@@ -19,7 +20,7 @@ CrossHairs.prototype.destructor=function() {
 }
 
 CrossHairs.prototype.UpdateBuffers = function() {
-  var vertexPositionData = [];
+  this.PointBuffer = [];
   var cellData = [];
   var halfLength = (this.Length * 0.5) + 0.5;
   var halfWidth = (this.Width * 0.5) + 0.5;
@@ -27,57 +28,57 @@ CrossHairs.prototype.UpdateBuffers = function() {
   this.Matrix = mat4.create();
   mat4.identity(this.Matrix);
 
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfLength);
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfLength);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfLength);
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfLength);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(halfLength);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(halfLength);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(halfLength);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(halfLength);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfLength);
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfLength);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfLength);
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfLength);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(halfWidth);
-  vertexPositionData.push(-halfLength);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(halfWidth);
+  this.PointBuffer.push(-halfLength);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(-halfLength);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(-halfLength);
+  this.PointBuffer.push(0.0);
 
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(-halfWidth);
-  vertexPositionData.push(0.0);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(-halfWidth);
+  this.PointBuffer.push(0.0);
 
   cellData.push(1);
   cellData.push(2);
@@ -98,9 +99,9 @@ CrossHairs.prototype.UpdateBuffers = function() {
   if (GL) {
     this.VertexPositionBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(vertexPositionData), GL.STATIC_DRAW);
+    GL.bufferData(GL.ARRAY_BUFFER, new Float32Array(this.PointBuffer), GL.STATIC_DRAW);
     this.VertexPositionBuffer.itemSize = 3;
-    this.VertexPositionBuffer.numItems = vertexPositionData.length / 3;
+    this.VertexPositionBuffer.numItems = this.PointBuffer.length / 3;
 
     this.CellBuffer = GL.createBuffer();
     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
