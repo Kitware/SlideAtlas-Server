@@ -760,18 +760,21 @@ def getcomment():
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
 
+    pdb.set_trace()
+
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
     typeStr = request.form['type'] # for post
     
-    thumbStr = request.form['thumb']
-
     note = json.loads(noteStr)
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = typeStr
-    note["Thumb"] = thumbStr
+
+    if request.form.has_key('thumb') :
+        thumbStr = request.form['thumb']
+        note["Thumb"] = thumbStr
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
