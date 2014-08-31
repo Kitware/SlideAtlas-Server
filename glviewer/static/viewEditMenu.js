@@ -1,8 +1,15 @@
-var HISTORY_MASK = false;
+// Todo There are two viewer menues for dual view.  
+// I do not think we handle this well.
+
+
 var HISTORY_MENU_ITEM;
 function ToggleHistory() {
-  HISTORY_MASK = ! HISTORY_MASK;
-  if (HISTORY_MASK) {
+  $('#viewEditMenu').hide();
+  var viewer = EVENT_MANAGER.CurrentViewer;
+  if ( ! viewer) { return; }
+
+  viewer.HistoryFlag = ! viewer.HitoryFlag;
+  if (viewer.HistoryFlag) {
     HISTORY_MENU_ITEM.text("History Off")
   } else {
     HISTORY_MENU_ITEM.text("History On")
@@ -50,7 +57,10 @@ function SetViewBounds() {
   viewer.OverView.Camera.ComputeMatrix();
   eventuallyRender();
 
-  NOTES_WIDGET.SaveCallback();
+  // Save automatically if user has permission.
+  if (EDIT) {
+    NOTES_WIDGET.SaveCallback();
+  }
   $('#viewEditMenu').hide();
 }
 
@@ -159,12 +169,17 @@ function InitViewEditMenus() {
     $('<li>').appendTo(viewEditSelector)
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
+    // I need some indication that the behavior id different in edit mode.
+    // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
+      $('<li>').appendTo(viewEditSelector)
+               .text("Save View Bounds")
+               .click(function(){SetViewBounds();});
+    } else {
       $('<li>').appendTo(viewEditSelector)
                .text("Set View Bounds")
                .click(function(){SetViewBounds();});
     }
-
     // Create a selection list of sessions.
     $('<div>').appendTo('body').css({
         'background-color': 'white',
