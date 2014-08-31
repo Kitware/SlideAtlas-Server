@@ -6,8 +6,6 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
-import pdb
-
 
 # I am going to make this ajax call the standard way to load a view.
 def jsonifyView(db,dbid,viewid,viewobj):
@@ -760,8 +758,6 @@ def getcomment():
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
 
-    pdb.set_trace()
-
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
     typeStr = request.form['type'] # for post
@@ -1066,7 +1062,6 @@ def getview():
     # legacy: Rework bookmarks into the same structure.
     # a pain, but necessary to generalize next/previous slide.
     # An array of children and an array of ViewerRecords
-    #pdb.set_trace()
 
     imgdb = viewdb
     if "imgdb" in viewObj :
