@@ -464,13 +464,6 @@ function Note () {
             'font-size': '14px',
             'border-radius': '3px',
             'width':'100%'});
-  this.SnapShotButton =
-    $('<button>').appendTo(this.IconMenuDiv)
-      .text("snap shot")
-      .css({'color' : '#278BFF',
-            'font-size': '14px',
-            'border-radius': '3px',
-            'width':'100%'});
 
   this.TitleDiv = $('<div>')
         .css({'font-size': '18px',
@@ -597,12 +590,6 @@ Note.prototype.AnnotationToNotesCallback = function() {
   this.UpdateChildrenGUI();
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
-  NOTES_WIDGET.Modified();
-}
-
-Note.prototype.SnapShotCallback = function() {
-  this.IconMenuDiv.hide();
-  this.RecordView();
   NOTES_WIDGET.Modified();
 }
 
@@ -819,7 +806,7 @@ Note.prototype.DisplayGUI = function(div) {
       this.LinkButton.click(function(){self.LinkCallback();});
     }
     this.AnnotationToNotesButton.click(function(){self.AnnotationToNotesCallback();});
-    this.SnapShotButton.click(function(){self.SnapShotCallback();});
+
     if (this.DeleteButton) { 
       this.DeleteButton.click(function(){self.DeleteCallback();});
     }
@@ -1139,8 +1126,11 @@ NotesWidget.prototype.RandomCallback = function() {
 
 
 
-
 NotesWidget.prototype.SaveCallback = function() {
+  // Copy the current view into the note.
+  // This used to be "Snap Shot", which was too complex.
+  this.GetCurrentNote().RecordView();
+
   // changing an annotation does not cause modified yet, so do not block the save.
   //if ( ! this.ModifiedFlag) { return;}
   var self = this;

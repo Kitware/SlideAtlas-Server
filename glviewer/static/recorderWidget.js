@@ -80,7 +80,9 @@ ViewerRecord.prototype.Serialize = function (viewer) {
   rec.NumberOfLevels = this.Image.levels;
   rec.Camera = this.Camera;
   // deep copy
-  rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
+  if ( this.Annotations) {
+    rec.Annotations = JSON.parse(JSON.stringify(this.Annotations));
+  }
   rec.AnnotationVisibility = this.AnnotationVisibility;
 
   if (this.OverviewBounds) {
