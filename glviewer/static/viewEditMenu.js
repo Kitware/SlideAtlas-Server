@@ -59,7 +59,21 @@ function SetViewBounds() {
 
   // Save automatically if user has permission.
   if (EDIT) {
-    NOTES_WIDGET.SaveCallback();
+    // I cannot do this because it first sets the viewer record and bounds are lost.
+    //NOTES_WIDGET.SaveCallback();
+    // Lets try just setting this one note.
+    var noteObj = JSON.stringify(note.Serialize(false));
+    var d = new Date();
+    $.ajax({
+      type: "post",
+      url: "/webgl-viewer/saveviewnotes",
+      data: {"note" : noteObj,
+             "db"   : GetSessionDatabase(),
+             "date" : d.getTime()},
+      success: function(data,status) {},
+      error: function() { alert( "AJAX - error() : saveviewnotes (bounds)" ); },
+    });
+
   }
   $('#viewEditMenu').hide();
 }

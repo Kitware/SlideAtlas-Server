@@ -1,3 +1,5 @@
+
+
 // for debugging
 function MOVE_TO(x,y) {
   VIEWER1.MainView.Camera.SetFocalPoint(x,y);
@@ -436,5 +438,277 @@ function FixJustification () {
     });
 }
 
+
+
+//----------------------------------------------------------
+// In an attempt to simplify the view.html template file, I am putting 
+// as much of the javascript from that file into this file as I can.
+// As I abstract viewer features, these variables and functions
+// should migrate into objects and other files.
+
+var CANVAS;
+var EVENT_MANAGER;
+var VIEWER1;
+var VIEWER2;
+var DUAL_VIEW = false;
+var NAVIGATION_WIDGET;
+var FAVORITES_WIDGET;
+var MOBILE_ANNOTATION_WIDGET;
+var NOTES_WIDGET;
+
+
+// hack to avoid an undefined error (until we unify annotation stuff).
+function ShowAnnotationEditMenu(x, y) {
+}
+
+
+$(window).bind('orientationchange', function(event) {
+    //alert(window.innerWidth + " " + VIEWER1.MainView.Canvas[0].parentNode.clientWidth + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas[0].parentNode.clientHeight);
+    handleResize();
+});
+
+// Getting resize right was a major pain.
+function handleResize() {
+    screenDiv = $('<div>').appendTo('body')
+                          .css({
+                            'background-color': '#f00',
+                            'border': '1px solid black',
+                            'width': '100%',
+                            'height': '100%',
+                            'z-index': '10'
+                          });
+
+
+    var width = CANVAS.width();
+    var height = CANVAS.height();
+
+    if(MOBILE_DEVICE == 'iPad'){
+      width = window.innerWidth;
+      height = window.innerHeight;
+      CANVAS.height(height);
+
+      document.documentElement.setAttribute('height', height + "px");
+    }
+
+    // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
+    if(GL){
+      var canvasParent = CANVAS[0].parentNode;
+      width = canvasParent.clientWidth;
+      height = canvasParent.clientHeight;
+    }
+
+    if(height == 0){
+      height = window.innerHeight;
+    }
+
+    if (GL) {
+      CANVAS.attr("width",width.toString());
+      CANVAS.attr("height",height.toString());
+      GL.viewport(0, 0, width, height);
+    } // GL.SetViewport does the work for 2d canvases.
+
+    // Handle resizing of the favorites bar.
+    // TODO: Make a resize callback.
+    if(FAVORITES_WIDGET != undefined){
+      FAVORITES_WIDGET.resize(width);
+    }
+
+    // we set the left border to leave space for the notes window.
+    var left = 0;
+    if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
+    // The remaining width is split between the two viewers.
+    var width1 = (width-left) * VIEWER1_FRACTION;
+    var width2 = (width-left) - width1;
+
+    // TODO: Make a multi-view object.
+    if (VIEWER1) {
+      VIEWER1.SetViewport([left, 0, width1, height]);
+      eventuallyRender();
+    }
+    if (VIEWER2) {
+      VIEWER2.SetViewport([left+width1, 0, width2, height]);
+      eventuallyRender();
+    }
+}
+
+
+
+function InitViews() {
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    var halfWidth = width/2;
+    VIEWER1 = initView([0,0, width, height]);
+    VIEWER2 = initView([0,0, width, height]);
+
+    handleResize();
+}
+
+// Hack mutex. iPad2 must execute multiple draw callbacks at the same time
+// in different threads.
+// This was not actually the problem.  iPad had a bug in the javascript interpreter.
+var DRAWING = false;
+function draw() {
+    if (DRAWING) { return; }
+    DRAWING = true;
+    if (GL) {
+      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    }
+
+    // This just changes the camera based on the current time.
+    VIEWER1.Animate();
+    if (DUAL_VIEW) { VIEWER2.Animate(); }
+    VIEWER1.Draw();
+    if (DUAL_VIEW) { VIEWER2.Draw(); }
+    DRAWING = false;
+}
+
+// The event manager detects single right click and double right click.
+// This gets galled on the single.
+function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
+// I am getting rid of the right click feature now.
+
+function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
+function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
+function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
+function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
+
+function handleTouchStart(event) {EVENT_MANAGER.HandleTouchStart(event);}
+function handleTouchMove(event) {EVENT_MANAGER.HandleTouchMove(event);}
+function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}
+function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}
+
+function handleKeyDown(event) {
+    // control: 17, z: 90, y: 89
+    if (event.keyCode == 34) { SessionAdvance();}
+    EVENT_MANAGER.HandleKeyDown(event);}
+    function handleKeyUp(event) {
+    EVENT_MANAGER.HandleKeyUp(event);
+}
+
+function cancelContextMenu(e) {
+    //alert("Try to cancel context menu");
+    if (e && e.stopPropagation) {
+        e.stopPropagation();
+    }
+    return false;
+}
+
+
+// Main function called by the default view.html template
+function StartView() {
+    var dia = new Dialog();
+    detectMobile();
+    $(body).css({'overflow-x':'hidden'});
+    // Just to see if webgl is supported:
+    var testCanvas = document.getElementById("gltest");
+    // I think the webgl viewer crashes.
+    // Maybe it is the texture leak I have seen in connectome.
+    // Just use the canvas for now.
+    // I have been getting crashes I attribute to not freeing texture
+    // memory properly.
+    // NOTE: I am getting similar crashe with the canvas too.
+    // Stack is running out of some resource.
+    //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
+    // initGL(); // Sets CANVAS and GL global variables
+    //} else {
+      initGC();
+    //}
+    EVENT_MANAGER = new EventManager(CANVAS);
+
+
+
+    NAVIGATION_WIDGET = new NavigationWidget();
+    if (MOBILE_DEVICE) {
+        MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
+    }
+    InitViews();
+    InitViewEditMenus();
+    InitViewBrowser();
+    InitDualViewWidget();
+    InitNotesWidget();
+    InitRecorderWidget();
+
+    // Do not let guests create favorites.
+    if (USER != "") {
+        FAVORITES_WIDGET = new FavoritesWidget();
+        FAVORITES_WIDGET.resize(CANVAS.innerWidth());
+    }
+
+    if (MOBILE_DEVICE) {
+        NAVIGATION_WIDGET.SetVisibility(false);
+        MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+        //VIEWER1.AddGuiObject(MOBILE_ANNOTATION_WIDGET.MenuFavoriteButton, "Bottom", 0, "Left", 0);
+    } else {
+        VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
+    }
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+    var can = CANVAS[0];
+    can.addEventListener("mousedown", handleMouseDown, false);
+    can.addEventListener("mousemove", handleMouseMove, false);
+    can.addEventListener("touchstart", handleTouchStart, false);
+    can.addEventListener("touchmove", handleTouchMove, true);
+    can.addEventListener("touchend", handleTouchEnd, false);
+    can.addEventListener("mousewheel", handleMouseWheel, false);
+
+    document.body.addEventListener("mouseup", handleMouseUp, false);
+    document.body.addEventListener("touchcancel", handleTouchCancel, false);
+
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+    document.oncontextmenu = cancelContextMenu;
+
+    var annotationWidget1 = new AnnotationWidget(VIEWER1);
+    annotationWidget1.SetVisibility(2);
+    var annotationWidget2 = new AnnotationWidget(VIEWER2);
+    annotationWidget1.SetVisibility(2);
+    handleResize();
+    DualViewUpdateGui();
+
+    if ( ! MOBILE_DEVICE) {
+        $('<img>')
+            .appendTo('body')
+            .css({
+                'opacity': '0.4',
+                'position': 'absolute',
+                'width': '40px',
+                'bottom' : '5px',
+                'right' : '60px',
+                'z-index': '2'})
+            .attr('id', 'viewMenu1')
+            .attr('class', 'viewer1')
+            .attr('type','image')
+            .attr('src', MENU_IMAGE_URL)
+            .click(function(){ ShowViewerEditMenu(VIEWER1);});
+
+
+        // Formalize this later (actual object and methods in viewer).
+        // Register these buttons with the viewer.
+        VIEWER1.AddGuiElement("#viewMenu1", "Bottom", 5, "Right", 105);
+
+
+        $('<img>')
+            .appendTo('body')
+            .css({
+                'opacity': '0.4',
+                'position': 'absolute',
+                'width': '40px',
+                'bottom' : '5px',
+                'right' : '60px',
+                'z-index': '2'})
+            .attr('id', 'viewMenu2')
+            .attr('class', 'viewer2')
+            .attr('type','image')
+            .attr('src', MENU_IMAGE_URL)
+            .click(function(){ShowViewerEditMenu(VIEWER2);});
+
+        VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
+    }/**/
+
+    eventuallyRender();
+}
 
 
