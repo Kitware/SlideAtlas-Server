@@ -58,8 +58,6 @@ function ImageBrowserSessionCallback(obj) {
   $(obj).unbind('click');
 
   // We need the information in view, image and bookmark (startup_view) object.
-  //window.location = "http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
-  //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
   var db = $(obj).attr('db');
   var sess = $(obj).attr('sessid');
   $.get("/sessions?json=true"+"&sessdb="+$(obj).attr('db')+"&sessid="+$(obj).attr('sessid'),

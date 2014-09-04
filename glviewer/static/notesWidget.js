@@ -595,7 +595,7 @@ Note.prototype.AnnotationToNotesCallback = function() {
 
 Note.prototype.LinkCallback = function() {
   this.IconMenuDiv.hide();
-  LINK_DIV.html("slide-atlas.org/webgl-viewer?db="+GetSessionDatabase()+"&view="+this.Id);
+  LINK_DIV.html("slide-atlas.org/webgl-viewer?view="+this.Id);
   LINK_DIV.show();
 }
 
@@ -922,8 +922,7 @@ Note.prototype.LoadViewId = function(viewId) {
     type: "get",
     url: "/webgl-viewer/getview",
     data: {"sessid": localStorage.sessionId,
-           "viewid": viewId,
-           "db"  : GetSessionDatabase()},
+           "viewid": viewId},
     success: function(data,status) { self.Load(data);},
     error: function() { alert( "AJAX - error() : getview" ); },
     });
@@ -938,8 +937,7 @@ Note.prototype.RequestUserNotes = function() {
   $.ajax({
     type: "get",
     url: "/webgl-viewer/getchildnotes",
-    data: {"ParentId": this.Id,
-           "db"  : GetSessionDatabase()},
+    data: {"ParentId": this.Id},
     success: function(data,status) { self.LoadUserNotes(data);},
     error: function() { alert( "AJAX - error() : getchildnotes" ); },
     });
@@ -1142,7 +1140,6 @@ NotesWidget.prototype.SaveCallback = function() {
     type: "post",
     url: "/webgl-viewer/saveviewnotes",
     data: {"note" : noteObj,
-           "db"   : GetSessionDatabase(),
            "date" : d.getTime()},
     success: function(data,status) {
       self.SaveButton.css({'color' : '#278BFF'});

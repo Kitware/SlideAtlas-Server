@@ -151,7 +151,6 @@ function InitSessionMenuAjax(data) {
     }
 }
 
-
 function ShowViewMenu(obj) {
     // Get info from the databse to fillout the the rest of the view menu.
     //$.get("http://localhost:8080/sessions?json=1&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
@@ -168,16 +167,14 @@ function ShowViewMenuAjax(data) {
         var slide = data.images[i];
         $('<li>').appendTo('#viewMenuSelector') // <option> for drop down
             .text(slide.label)
-            .attr('db', slide.db).attr('viewid', slide.view)
+            .attr('viewid', slide.view)
             .click(function(){ViewMenuCallback(this);});
     }
     $('#viewMenu').show();
 }
 function ViewMenuCallback(obj) {
     // We need the information in view, image and bookmark (startup_view) object.
-    //window.location = "http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid');
-    //$.get("http://localhost:8080/webgl-viewer/comparison-option?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
-    $.get(COMPARISON_OPTION_URL+"?db="+$(obj).attr('db')+"&viewid="+$(obj).attr('viewid'),
+    $.get(COMPARISON_OPTION_URL+"?viewid="+$(obj).attr('viewid'),
           function(data,status){
             if (status == "success") {
               AddComparisonOption(data);

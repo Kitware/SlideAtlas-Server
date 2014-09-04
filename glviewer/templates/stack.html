@@ -183,11 +183,9 @@ shape has visibility and
 </script>
 <script type="text/javascript">
   var TEMPLATE = "stack.html";
-  var SESSION_DATABASE;
   var USER;
 
   // Arguments
-  var DBID;
   var SESSID;
   var VIEWS;
   var TRANSFORMATIONS;
@@ -216,15 +214,13 @@ shape has visibility and
   // sets the global variable ARGS
   function InitStack() {
 
-    SESSION_DATABASE = "{{ db }}";
     USER = "";
     SESSID = "{{ sess }}";
-    DBID  = "{{ db }}";
+
     $.ajax({
         type: "get",
         url: "/webgl-viewer/stack-session",
-        data: {"db" :  DBID,
-               "sess" : SESSID},
+        data: {"sess" : SESSID},
         success: function(data,status)
                    {
                    LoadStack(data);
@@ -317,8 +313,7 @@ function saveStack() {
   $.ajax({
     type: "post",
     url: "/webgl-viewer/stack-save",
-    data: {"db": DBID,
-           "sess": SESSID,
+    data: {"sess": SESSID,
            "data" :  JSON.stringify( {"views": VIEWS,
                                       "transformations": TRANSFORMATIONS })
           },
@@ -481,7 +476,6 @@ function saveAnnotation() {
       type: "post",
       url: "/webgl-viewer/saveviewnotes",
       data: {"note" : noteObj,
-             "db"   : GetSessionDatabase(),
              "date" : d.getTime()},
       success: function(data,status) { $("#saveButton").show(); },
       error: function() { alert( "AJAX - error() : saveviewnotes (stack)" ); },

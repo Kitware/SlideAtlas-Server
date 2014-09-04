@@ -6,20 +6,22 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
+import pdb
 
-# I am going to make this ajax call the standard way to load a view.
-def jsonifyView(db,dbid,viewid,viewobj):
+def jsonifyView(db,viewid,viewobj):
     imgid = 0
-    if 'Type' in viewobj :
-        if viewobj["Type"] == "Note" or viewobj["Type"] == "UserNote":
-            imgid = viewobj["ViewerRecords"][0]["Image"]
+    imgdb = 0
+    if viewobj.has_key("ViewerRecords") :
+        imgdb = viewobj["ViewerRecords"][0]["Database"]
+        imgid = viewobj["ViewerRecords"][0]["Image"]
     if imgid == 0 :
+        imgdb = viewobj["imgdb"]
         imgid = viewobj["img"]
 
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
 
     img = {}
-    img["db"] = dbid
+    img["db"] = imgdb
     img["viewid"] = viewid
     img["image"] = str(imgobj["_id"])
     img["origin"] = imgobj["origin"]
@@ -47,7 +49,7 @@ def jsonifyView(db,dbid,viewid,viewobj):
 
 
 # bookmarks are really notes.
-def jsonifyBookmarks(db, dbid, viewid, viewobj):
+def jsonifyBookmarks(db, viewid, viewobj):
     # I do not think we can pass an array back.
     val = {}
     val["Bookmarks"] = []
@@ -64,9 +66,9 @@ def jsonifyBookmarks(db, dbid, viewid, viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, dbid, viewid, viewobj, edit):
+def glnote(db, viewid, viewobj, edit):
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('view.html', sessdb=dbid, view=viewid, user=email, edit=edit))
+    return make_response(render_template('view.html', view=viewid, user=email, edit=edit))
 
 
 
@@ -126,7 +128,7 @@ def convertViewToPixelCoordinateSystem(viewObj) :
     viewObj["CoordinateSystem"] = "Pixel"
 
 # For depreciated content.
-def glcomparison(db, dbid, viewid, viewobj):
+def glcomparison(db, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
@@ -138,7 +140,9 @@ def glcomparison(db, dbid, viewid, viewobj):
 
     # The base view is for the left panel
     img = {}
-    img["db"] = dbid
+    # this is probably wrong.  .....
+    #img["db"] = str(db["_id"])
+
     img["viewid"] = viewid
     img["image"] = str(imgobj["_id"])
     img["origin"] = str(imgobj["origin"])
@@ -180,7 +184,9 @@ def glcomparison(db, dbid, viewid, viewobj):
             # The optionView stores the image and anything that can change with the comparison view.
             optionView = {}
             optionView["label"] = str(viewobj["label"])
-            optionView["db"] = dbid
+            optionView["db"] = str(viewobj["db"])
+            # hack for legacy ...
+            img["db"] = str(viewobj["db"])
             optionView["img"] = str(viewobj["img"])
             optionView["viewHeight"] = str(viewobj["viewHeight"])
             optionView["center"] = str(viewobj["center"])
@@ -228,31 +234,27 @@ def glview():
     # get bookmarks. (Legacy)
     bookmarks = request.args.get('bookmarks', None)
 
-    # this is the same as the sessions db in the sessions page.
-    # TODO: Store database in the view and do not pass as arg.
-    dbid = request.args.get('db', None)
-
     # in the future, the admin database will contain everything except
     # the image data and attachments.
     admindb = models.ImageStore._get_db()
     db = admindb
-    if dbid :
-        database = models.ImageStore.objects.with_id(dbid)
-        db = database.to_pymongo()
+
+    pdb.set_trace()
 
     if viewid :
         viewobj = readViewTree(db, viewid)
 
         if ajax:
-            return jsonifyView(db,dbid,viewid,viewobj)
+            return jsonifyView(db,viewid,viewobj)
         if bookmarks:
-            return jsonifyBookmarks(db,dbid,viewid,viewobj)
+            return jsonifyBookmarks(db,viewid,viewobj)
 
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
-                return glcomparison(db,dbid,viewid,viewobj)
+                return glcomparison(db,viewid,viewobj)
+
         # default
-        return glnote(db,dbid,viewid,viewobj,edit)
+        return glnote(db,viewid,viewobj,edit)
 
 
 @mod.route('/bookmark')
@@ -276,26 +278,22 @@ def bookmark():
     ajax = request.args.get('json', None)
     # get bookmarks. (Legacy)
     bookmarks = request.args.get('bookmarks', None)
-
-    # this is the same as the sessions db in the sessions page.
-    # TODO: Store database in the view and do not pass as arg.
-    dbid = request.args.get('db')
-
-    db = models.ImageStore.objects.get_or_404(id=dbid).to_pymongo()
+    admindb = models.ImageStore._get_db()
+    db = admindb
 
     if viewid :
         viewobj = readViewTree(db, viewid)
 
         if ajax:
-            return jsonifyView(db,dbid,viewid,viewobj)
+            return jsonifyView(db,viewid,viewobj)
         if bookmarks:
-            return jsonifyBookmarks(db,dbid,viewid,viewobj)
+            return jsonifyBookmarks(db,viewid,viewobj)
 
         if 'type' in viewobj:
             if viewobj["type"] == "comparison" :
-                return glcomparison(db,dbid,viewid,viewobj)
+                return glcomparison(db,viewid,viewobj)
         # default
-        return glnote(db,dbid,viewid,viewobj,edit)
+        return glnote(db,viewid,viewobj,edit)
 
 
 # get all the children notes for a parent (authored by a specific user).
@@ -304,14 +302,12 @@ def getchildnotes():
     parentid = request.args.get('parentid', False)
     if not parentid :
         return "Error: missing parentid"
-    dbid = request.args.get('db', "")
+
     # TODO: this should be an ObjectId by default, not a string
     user = getattr(security.current_user, 'id', '')
 
     admindb = models.ImageStore._get_db()
     db = admindb
-    #database = models.ImageStore.objects.get_or_404(id=dbid)
-    #db = database.to_pymongo()
 
     notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
                                     "User" :     user})
@@ -452,16 +448,8 @@ def glstack():
     sessid = request.args.get('sess')
     if not sessid:
         sessid = "51256ae6894f5931098069d5"
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db')
-    if not dbid:
-        dbid = "5123c81782778fd2f954a34a"
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    return make_response(render_template('stack.html',
-                         db = dbid, sess = sessid))
+    return make_response(render_template('stack.html', sess = sessid))
 
 
 # stack viewer gets the stack info with ajax.
@@ -469,17 +457,15 @@ def glstack():
 @mod.route('/stack-session')
 def glstacksession():
     """
-    - /webgl-viewer/stack-session?db=5123c81782778fd2f954a34a&sess=51256ae6894f5931098069d5
+    - /webgl-viewer/stack-session?sess=51256ae6894f5931098069d5
     """
     # Comparison is a modified view.
     sessid = request.args.get('sess')
     if not sessid:
         sessid = "51256ae6894f5931098069d5"
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db')
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
+    admindb = models.ImageStore._get_db()
+    db = admindb
 
     sessobj = models.Session.objects.get_or_404(id=sessid)
 
@@ -508,7 +494,7 @@ def glstacksession():
         annotations.append(sectionAnnotations)
 
         # other just that needs to be simplified
-        imgdb = dbid
+        imgdb = sessobj["image_store"]
         if viewobj.has_key("db") :
             imgdb = viewobj["db"]
         if "imgdb" in viewobj :
@@ -527,7 +513,7 @@ def glstacksession():
                 imgdb = viewerRecord["Database"]
 
         # support for images from different database than the session.
-        if imgdb == dbid :
+        if imgdb == sessobj["image_store"] :
             imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
         else :
             dbobj2 = models.ImageStore.objects.with_id(imgdb)
@@ -578,11 +564,11 @@ def glstacksession():
 @mod.route('/set-image-bounds', methods=['GET', 'POST'])
 def glsetimagebounds():
     imageId = request.form['img']  # for post
-    dbid = request.form['db']  # for post
+    imageDb = request.form['imgdb']  # for post
     boundsStr = request.form['bds']  # for post
     bounds = json.loads(boundsStr)
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
+    database = models.ImageStore.objects.get_or_404(id=imageDb)
     db = database.to_pymongo()
     imgobj = db["images"].find_one({'_id' : ObjectId(imageId)})
     imgobj["bounds"] = bounds;
@@ -595,17 +581,15 @@ def glsetimagebounds():
 # This method saves transformations and/or annotations (whatever exists in data.
 @mod.route('/stack-save', methods=['GET', 'POST'])
 def glstacksave():
-    dbid = request.form['db']  # for post
     sessid = request.form['sess']  # for post
     dataStr = request.form['data']  # for post
     stackObj = json.loads(dataStr)
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-
     session = models.Session.objects.get_or_404(id=sessid)
 
-    if 'views' in stackObj:
-        session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
+    # I do not understand the models object.
+    #if 'views' in stackObj:
+    #    session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:
@@ -623,32 +607,6 @@ def glstacksave():
     return "Success"
 
 
-# For initial creation of the stack.  Add a view to the stack.
-@mod.route('/stack-insert', methods=['GET', 'POST'])
-def glstackinsert():
-    dbid = request.form['db']  # for post
-    imgid = request.form['img']  # for post
-    camStr = request.form['cam']  # for post
-    #inputStr = request.args.get('input', "{}") # for get
-
-    viewObj = json.loads(camStr)
-    viewObj["img"] = ObjectId(imgid)
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    # add the view
-    view_id = db["views"].insert(viewObj)
-
-    # I do not know the insert toan array so I will just set the whole thing
-    session = models.Session.objects.first(name='RenalStack')
-    section = models.RefItem(ref=view_id, db=ObjectId(dbid))
-    session.views.append(section)
-    session.save()
-
-    return "Success"
-
-
 # I need to unify.  Comparison, stack and single view.
 # Saves the default view back into the database.
 @mod.route('/save-view', methods=['GET', 'POST'])
@@ -656,11 +614,11 @@ def glsaveview():
     messageStr = request.form['message']  # for post
 
     messageObj = json.loads(messageStr)
-    dbid = messageObj["db"]
     viewid = inputObj["viewid"]
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
+    # not used.    
+    admindb = models.ImageStore._get_db()
+    db = admindb
 
     if operation == "view" :
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
@@ -679,38 +637,6 @@ def glsaveview():
                                      { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
 
     return operation
-
-
-# Starts a recording
-# name is a way to identify a recording session.
-@mod.route('/record-save', methods=['GET', 'POST'])
-def glrecordsave():
-    user = getattr(security.current_user, 'email', '')
-
-    dbid      = request.form['db']  # for post
-    name      = request.form['name']
-    date      = request.form['date']  # used only when creating a new recording
-    recordStr = request.form['record']
-    record = json.loads(recordStr)
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    recordingobj = db["recordings"].find_one({"name" : name })
-
-    if not recordingobj:
-        # construct a new object.
-        recordingobj = {
-            'name': name,
-            'user': user,
-            'date': int(date),
-            'records': [record]
-        }
-        db["recordings"].save( recordingobj )
-    else :
-        db["recordings"].update( {"name": name}, { "$push" : { 'records': record}})
-
-    return "success"
 
 
 # These methods are required to work with the note widget.
@@ -849,6 +775,7 @@ def readViewTree(db, viewId) :
     # Read and add the image objects
     if viewObj.has_key("ViewerRecords") :
         for record in viewObj["ViewerRecords"] :
+            # This default does not make sense anymore
             imgdb = db
             if record.has_key("Database") :
                 # convert references to string to pass to the client
@@ -934,15 +861,14 @@ def savenote(db, note, user):
 @mod.route('/saveviewnotes', methods=['GET', 'POST'])
 #@security.login_required
 def saveviewnotes():
-    dbid    = request.form['db']  # for post
     noteObj = request.form['note']
     note    = json.loads(noteObj)
 
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
 
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
+    admindb = models.ImageStore._get_db()
+    db = admindb
 
     # I was going get the user id from the session, and pass it to the viewer.
     # I think I will just try to retreive the user from the "Save Note" method.
@@ -1029,13 +955,9 @@ def getimagenames():
 def getview():
     sessid = request.args.get('sessid', None)
     viewid = request.args.get('viewid', "")
-    viewdb = request.args.get('db', "")
 
     admindb = models.ImageStore._get_db()
     db = admindb
-    if viewdb and viewdb != "None" :
-        database = models.ImageStore.objects.get_or_404(id=viewdb)
-        db = database.to_pymongo()
 
     # check the session to see if notes are hidden
     hideAnnotations = False
@@ -1063,7 +985,8 @@ def getview():
     # a pain, but necessary to generalize next/previous slide.
     # An array of children and an array of ViewerRecords
 
-    imgdb = viewdb
+    # This is clearly the wrong default now that db is admin.
+    imgdb = db
     if "imgdb" in viewObj :
         # support for images in database different than view
         imgdb = viewObj["imgdb"]
