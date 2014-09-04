@@ -6,8 +6,6 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
-import pdb
-
 def jsonifyView(db,viewid,viewobj):
     imgid = 0
     imgdb = 0
@@ -238,8 +236,6 @@ def glview():
     # the image data and attachments.
     admindb = models.ImageStore._get_db()
     db = admindb
-
-    pdb.set_trace()
 
     if viewid :
         viewobj = readViewTree(db, viewid)
