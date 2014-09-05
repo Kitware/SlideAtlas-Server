@@ -481,7 +481,12 @@ class SessionItemAPI(ItemAPI):
             view = view_image_store['views'].find_one({'_id': view_id})
             if not view:
                 # TODO: warning here
-                continue
+                # Try fetching from admin database
+                try:
+                    view = models.NewView.objects.get(id=view_id).to_mongo()
+                    view_image_store_id = view["db"]
+                except:
+                    continue
 
             # get 'image_id' and 'image_image_store_id'
             image_image_store_id = view_image_store_id
