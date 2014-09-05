@@ -6,6 +6,8 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
+import pdb
+
 def jsonifyView(db,viewid,viewobj):
     imgid = 0
     imgdb = 0
@@ -768,6 +770,9 @@ def readViewTree(db, viewId) :
         # incase the view was already inline
         viewObj = viewId
 
+    if viewObj == None:
+        return None
+
     # Read and add the image objects
     if viewObj.has_key("ViewerRecords") :
         for record in viewObj["ViewerRecords"] :
@@ -798,7 +803,8 @@ def readViewTree(db, viewId) :
         children = []
         for child in viewObj["Children"] :
             child = readViewTree(db, child)
-            children.append(child)
+            if child != None :
+                children.append(child)
         viewObj["Children"] = children
 
     return viewObj
@@ -939,8 +945,6 @@ def getimagenames():
     for img in imgItr:
         img["_id"] = str(img["_id"])
         imgArray.append(img)
-
-    data = {}
     data["Database"] = dbid
     data["Images"] = imgArray
     return jsonify(data)
@@ -989,6 +993,12 @@ def getview():
         database2 = models.ImageStore.objects.get_or_404(id=imgdb)
         db2 = database2.to_pymongo()
         imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+    elif "db" in viewObj :
+        # support for images in database different than view
+        imgdb = viewObj["db"]
+        database2 = models.ImageStore.objects.get_or_404(id=imgdb)
+        db2 = database2.to_pymongo()
+        imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
     else :
         imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
 
@@ -1021,7 +1031,7 @@ def getview():
     # camera object.
     cam = {}
     if 'startup_view' in viewObj:
-        bookmark = db["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
+        bookmark = db2["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
         cam["FocalPoint"] = bookmark["center"]
         # flip y axis
         cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
@@ -1043,7 +1053,7 @@ def getview():
     children = []
     if 'bookmarks' in viewObj:
         for bookmarkid in viewObj["bookmarks"]:
-            bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+            bookmark = db2["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
             if bookmark["annotation"]["type"] == "pointer" :
                 annot = {}
                 annot["type"] = "text"
@@ -1097,7 +1107,7 @@ def getview():
     children = []
     if 'bookmarks' in viewObj:
         for bookmarkid in viewObj["bookmarks"]:
-            bookmark = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
+            bookmark = db2["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
             if bookmark["annotation"]["type"] == "pointer" :
                 question = {}
                 question["Title"] = bookmark["title"]

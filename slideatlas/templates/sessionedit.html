@@ -96,7 +96,6 @@
     <script>
         var SESSION_ID = "{{ session.id }}";
         // Database to save the views until views are moved to admin
-        var SESSION_DB = "{{ session_son.image_store }}";
         $(function() {
             $( "#sortable" ).sortable({change:modified});
             $( "#sortable" ).disableSelection();
@@ -127,7 +126,7 @@
                     'copy': $(this).attr('copy'),
                     'label' : $('.descriptiveLabel',this).val(),
                     'hiddenLabel' : $('.hiddenLabel',this).val(),
-                    'db' : $(this).attr('db'),
+                    'imgdb' : $(this).attr('imgdb'),
                     'img': $(this).attr('img')
                 };
                 views.push(view);
@@ -154,7 +153,6 @@
                       // and back in browser does not reload page completely
                       //window.location.href = "sessions?sessid="+data;
                       SESSION_ID = data._id;
-                      SESSION_DB = data.db;
                       // We need the ids of the new views so they will
                       // stay the same if we save again.
                       for (var i = 0; i<data.views.length; ++i) {
@@ -212,7 +210,7 @@
         }
 
         var IMAGE_HOVER_LABEL;
-        $(document).ready(function(){
+        $(document).ready(function() {
             {% if session_son.hide_annotations %}
             $('#hideCheck').attr('checked','checked');
             hideAnnotation(true);
@@ -309,7 +307,7 @@
                 $.get("/webgl-viewer/getimagenames?db="+image_store_id,
                     function(data,status){
                         if (status == "success") {
-                            LoadImages(data);
+                            LoadImages(data, image_store_id);
                         } else {
                             alert("ajax failed.");
                         }
@@ -362,7 +360,7 @@
             return size;
         }
 
-        function LoadImages(data) {
+        function LoadImages(data, imgdb) {
             var labelStrings = [];
             $('#gallery').empty();
             // Lets compute an optimal size for images.
@@ -371,11 +369,11 @@
                 labelStrings.push(data.Images[i].label);
                 var listItem = $('<li>').appendTo($('#gallery'));
                 var image = $('<img>').appendTo(listItem)
-                        .attr("db", SESSION_DB)
+                        .attr("imgdb", imgdb)
                         .attr("img", data.Images[i]._id)
                         .attr("height", size+"px")
                         .attr("width", size+"px")
-                        .attr("src", "/thumb?db="+data.Database+"&img="+data.Images[i]._id)
+                        .attr("src", "/thumb?db="+imgdb+"&img="+data.Images[i]._id)
                         .attr("alt", data.Images[i].label)
                         .hover(function(){
                             var p = $(this).position();
@@ -387,51 +385,15 @@
                             },
                             function(){IMAGE_HOVER_LABEL.hide();})
                         .mousedown(function(event) {
-                            AddViewToSession($(this).attr('db'),
+                            AddViewToSession($(this).attr('imgdb'),
                                              $(this).attr('img'),
                                              $(this).attr('alt'),
-                                             "", "");
+                                             "");
                         });
             }
             $('#imagesearch').autocomplete({source: labelStrings});
         }
 
-        // Same as LoadSession.  This is not called.  Remove it.
-/*        function LoadViews(data) {
-            var labelStrings = [];
-            $('#gallery').empty();
-            // Lets compute an optimal size for images.
-            var size = ComputeGalleryImageSize(data.Images.length);
-            for (var i = 0; i < data.Images.length; ++i) {
-                labelStrings.push(data.Images[i].label);
-                var listItem = $('<li>').appendTo($('#gallery'));
-                var image = $('<img>').appendTo(listItem)
-                        .attr("db", data.Database)
-                        .attr("img", data.Images[i]._id)
-                        .attr("height", size+"px")
-                        .attr("width", size+"px")
-                        .attr("src", "/thumb?db="+data.Database+"&img="+data.Images[i]._id)
-                        .attr("alt", data.Images[i].label)
-                        .hover(function(){
-                            var p = $(this).position();
-                            var y = p.top-10+$('#gallery').scrollTop();
-                            var label = $(this).attr('alt');
-                            IMAGE_HOVER_LABEL.show()
-                                    .css({'left':p.left+10, 'top':y+50})
-                                    .text(label);
-                            },
-                            function(){IMAGE_HOVER_LABEL.hide();})
-                        .mousedown(function(event) {
-                            AddViewToSession($(this).attr('db'),
-                                             $(this).attr('img'),
-                                             $(this).attr('alt'),
-                                             $(this).attr('copy'),
-                                             $(this).attr('view'));
-                        });
-            }
-            $('#imagesearch').autocomplete({source: labelStrings});
-        }
-*/
         function LoadSession(data) {
             var labelStrings = [];
             $('#gallery').empty();
@@ -441,10 +403,11 @@
             for (var i = 0; i < data.session.views.length; ++i) {
                 labelStrings.push(data.session.views[i].label);
                 var listItem = $('<li>').appendTo($('#gallery'));
-                var image = $('<img>').appendTo(listItem)
-                        .attr("db",  SESSION_DB)
-                        .attr("copy",  data.session.views[i].image_store_id)
-                        .attr("img", data.session.views[i].image_id)
+                var image = $('<img>')
+                        .appendTo(listItem)
+                        .attr("copy",  1)
+                        .attr("imgdb", data.images[i].db)
+                        .attr("img", data.images[i].img)
                         .attr("view", data.session.views[i].id)
                         .attr("height", size+"px")
                         .attr("width", size+"px")
@@ -459,10 +422,9 @@
                             },
                             function(){IMAGE_HOVER_LABEL.hide();})
                         .mousedown(function() {
-                            AddViewToSession($(this).attr('db'),
+                            AddViewToSession($(this).attr('imgdb'),
                                              $(this).attr('img'),
                                              $(this).attr('alt'),
-                                             $(this).attr('copy'),
                                              $(this).attr('view'));
                         });
             }
@@ -498,24 +460,23 @@
             SelectSession(parseInt(idx));
         }
 
-        function AddViewToSession(db, img, label, sourceDb, view) {
+        function AddViewToSession(imgdb, img, label, view) {
             // Indicate the session needs saving
             modified();
-            // db is the destination database, copy is the source.
             var item = $('<li>').appendTo($('#sortable'))
                     .attr("class", "ui-state-default")
                     // We will have to create a new when id is not set.
-                    .attr("db",db)
+                    .attr("imgdb",imgdb)
                     .attr("id",img)
                     .attr("view",view)
-                    .attr("copy",sourceDb)
+                    .attr("copy", 1)
                     .attr("img",img)
             $('<span>').appendTo(item)
                     .attr("class","ui-icon ui-icon-circle-close")
                     .click(function(){deleteView(img);});
             // I am trying to stop the drag effect of the image.  This does not work.
             $('<img>').appendTo(item)
-                    .attr("src","/thumb?db="+db+"&img="+img)
+                    .attr("src","/thumb?db="+imgdb+"&img="+img)
                     .on('dragstart', function(event) {
                         event.preventDefault();
                         return false;
@@ -577,7 +538,7 @@
                     <ul id="sortable">
                         {% for view_son in session_son.views %}
                         <li class="ui-state-default" id="{{ view_son.id }}"  
-                            view="{{ view_son.id }}" db="{{ view_son.image_store_id }}">
+                            view="{{ view_son.id }}" imgdb="{{ view_son.image_store_id }}">
                             <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{ view_son.id }}')"></span>
                             <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_image_store_id }}&img={{ view_son.image_id }}">
                             <!-- switch between annotation and hidden labels -->

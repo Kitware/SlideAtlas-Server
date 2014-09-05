@@ -148,31 +148,36 @@ image data/pyramid collection (named *ObjectId*)
 
 Note (a recursive structure, which replaces view):
 - User  : who created this view / note (email)
-- Date  : When this view was created (javascript Date.getTime();)
+- Date  : When this view was created (javascript Date.getTime();) (Optional)
 - Type  : To find out scheme.  Currently set to "Note".
 - Title : The short label used in note list or session list of views.
-- HiddenTitle : Coded title for students.
-- Text  : More descriptive and longer text.
+- HiddenTitle : Coded title for students.   (Optional)
+- Text  : More descriptive and longer text. (Optional)
 - ViewerRecords: An array of objects defining views.  The client currently supports an array of up to two views for the dual viewer.
-- Children: An array of notes objects that replaces bookmarks.
-- ChildrenVisibility: A boolean indicating whether the children will be displayed and traversed by default.
-- ParentId: Object id of parent note.  Used when a student makes a comment note which is saved in the Notes collection.
+- Children: An array of notes objects that replaces bookmarks. (Optional)
+
+- ChildrenVisibility: A boolean indicating whether the children will be
+  displayed and traversed by default. (Optional)
+- ParentId: Object id of parent note.  Used when a student makes a comment
+  note which is saved in the Notes collection. (Optional)
+- SessionId: If this note belongs to a session, this is the session id (Optional)
 
 ViewerRecord (Contains one slide image, camera and annotation).
 
 - Database : String name of the database containing the image.
 - Image    : String name of the image collection.
-- NumberOfLevels:  The number of levels in the image pyramid.
-- Camera   : a camera object
+- Camera   : a camera object (optional)
 
    - FocalPoint : [x, y]
    - Height     : Height of the view in world coordinates
+   - Width      : (Optional)
    - Rotation   : Rotation of the view in Radians.
 
-- Annotations: An array of annotation objects.
+- Annotations: An array of annotation objects. (Optional)
 
    - type   : one of "circle", "pencil", "text" or "polyline"
    - color  : [r,g,b]
+   - (creation camera)
    - ...
 
 
