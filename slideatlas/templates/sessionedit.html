@@ -95,7 +95,7 @@
     <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
     <script>
         var SESSION_ID = "{{ session.id }}";
-        // Database to save the views until views are moved to admin
+
         $(function() {
             $( "#sortable" ).sortable({change:modified});
             $( "#sortable" ).disableSelection();
@@ -162,7 +162,8 @@
                       $('#saveButton').css({"color":"#000"});
                     } else {
                       // Session was empty and deleted from the database.
-                      window.location.href = "sessions";
+                      //window.location.href = "sessions";
+                      alert("session deleted");
                     }
                   },
                 error: function() { alert( "AJAX - error: session-save" ); }

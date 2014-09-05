@@ -165,7 +165,7 @@ Note (a recursive structure, which replaces view):
 ViewerRecord (Contains one slide image, camera and annotation).
 
 - Database : String name of the database containing the image.
-- Image    : String name of the image collection.
+- Image    : ObjectId(imageId), 
 - Camera   : a camera object (optional)
 
    - FocalPoint : [x, y]

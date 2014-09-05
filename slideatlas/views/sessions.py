@@ -13,6 +13,8 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+import pdb
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -180,9 +182,12 @@ def deleteview(viewid):
 def sessionsave():
     inputStr = request.form['input']  # for post
 
+    #pdb.set_trace()
+
     inputObj = json.loads(inputStr)
     create_new_session = inputObj["new"]
     session_id = ObjectId(inputObj["session"])
+    # I assume the session uses this to get the thumbnail
     label = inputObj["label"]
     view_items = inputObj["views"]
     hide_annotations = inputObj["hideAnnotation"]
@@ -200,10 +205,8 @@ def sessionsave():
         # View or Image
         if 'view' in view_item:
             # deep or shallow copy of an existing view.
-            if 'copy' in view_item:
-                view_item['view'] = deepcopyview(ObjectId(view_item['view']))
             # A bit confusing because no viewdb implies no copy unless 'create_new_session'
-            if create_new_session:
+            if 'copy' in view_item or create_new_session:
                 view_item['view'] = deepcopyview(ObjectId(view_item['view']))
             # get the view
             view = admindb['views'].find_one({'_id': ObjectId(view_item['view'])})
@@ -231,6 +234,26 @@ def sessionsave():
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
 
+        # The view list in the session.  The session needs the imgdb to display the thumb.
+        # At the moment, the database has many different places to find the db.
+        # We will simplify this in the future.
+        imgdb = None
+        if view.has_key("db") :
+            # the original legacy oper layers format
+            imgdb = ObjectId(view["db"])
+        else :
+            record = view["ViewerRecords"][0]
+            if record.has_key("Database") :
+                # this is the correct location for the image database.
+                # convert references to string to pass to the client
+                imgdb = ObjectId(record["Database"])
+            elif record.has_key("Image") :
+                # A bug caused some image objects to be embedded in views in te databse.
+                imgdb = ObjectId(record["Image"].database);
+
+        new_views.append(models.RefItem(ref=ObjectId(view['_id']),
+                                        db=imgdb))
+
     # delete the views that are left over, as views are owned by the session.
     if not create_new_session :
         old_view_ids = set(view_ref.ref for view_ref in sessObj.views)
@@ -253,7 +276,7 @@ def sessionsave():
     if create_new_session :
         sessObj.user = security.current_user.email
         # TODO: it might be helpful to add a '.clone()' method to 'ModelDocument',
-        #  for convenience and to properly set '_created', etc.
+        #  for convenience and to properly set '_created', etc.`
         sessObj.id = ObjectId()
         sessObj.save(force_insert=True)
     elif not new_views:

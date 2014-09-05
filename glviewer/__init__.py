@@ -1049,7 +1049,6 @@ def getview():
     noteObj["ViewerRecords"] = [viewerRecord]
 
     # lets make the first slide have all the annotations (hover for text).
-    # Now for the children (Bookmarks).
     children = []
     if 'bookmarks' in viewObj:
         for bookmarkid in viewObj["bookmarks"]:
@@ -1102,7 +1101,7 @@ def getview():
                 annot["linewidth"] = annot["radius"] / 20
                 viewerRecord["Annotations"].append(annot)
 
-
+    # the notes will show only one annotation
     # Now for the children (Bookmarks).
     children = []
     if 'bookmarks' in viewObj:
@@ -1122,15 +1121,14 @@ def getview():
                 cam = {}
                 cam["FocalPoint"] = bookmark["center"]
                 # try centering the arrow tip
-                cam["FocalPoint"] = bookmark["annotation"]["points"][0]
+                #cam["FocalPoint"] = bookmark["annotation"]["points"][0]
                 # flip y axis
                 cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vrq["Camera"] = cam
-                vrq["Annotations"] = deepcopy(viewerRecord["Annotations"])
-                vrq["Annotations"][len(children)]["color"] = "#10DF00"
-
+                annot = viewerRecord["Annotations"][len(children)]
+                vrq["Annotations"] = [deepcopy(annot)]
                 question["ViewerRecords"] = [vrq]
                 children.append(question)
 
@@ -1152,10 +1150,8 @@ def getview():
                 cam["Height"] = 900 << int(bookmark["zoom"])
                 cam["Roll"] = -bookmark["rotation"]
                 vr["Camera"] = cam
-                vr["Annotations"] = deepcopy(viewerRecord["Annotations"])
-                vr["Annotations"][len(children)]["outlinecolor"] = "#10DF00"
-                vr["Annotations"][len(children)]["color"] = "#10DF00"
-
+                annot = viewerRecord["Annotations"][len(children)]
+                vr["Annotations"] = [deepcopy(annot)]
                 note["ViewerRecords"] = [vr]
                 children.append(note)
 
