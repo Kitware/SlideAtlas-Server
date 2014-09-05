@@ -97,18 +97,6 @@ function GetViewId () {
   return "";
 }
 
-function GetSessionDatabase() {
-  if (typeof(SESSION_DATABASE) != "undefined") {
-    return SESSION_DATABASE;
-  }
-  if (typeof(ARGS) != "undefined") {
-    return ARGS.Viewer1.db;
-  }
-  alert ("Could not find session database");
-  return "";
-}
-
-
 // WebGL Initialization
 
 function doesBrowserSupportWebGL(canvas) {

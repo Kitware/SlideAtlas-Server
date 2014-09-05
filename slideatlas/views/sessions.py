@@ -13,6 +13,7 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+import pdb
 
 NUMBER_ON_PAGE = 10
 
@@ -135,22 +136,64 @@ def sessionedit(session):
                            session_son=session_son)
 
 
+
+def deepcopyview(viewid):
+    if viewid == None :
+        return None
+    admindb = models.ImageStore._get_db()
+    view = admindb['views'].find_one({'_id': ObjectId(viewid)})
+    if view == None :
+        return None
+    # copy children
+    if view.has_key("Children") :
+        newChildren = []
+        for child in view["Children"] :
+            new_child = deepcopyview(indb, outdb, child)
+            if new_child != None :
+                newChildren.append(new_child)
+        view["Children"] = newChildren
+
+    # this forces a deep copy
+    del view['_id']
+    newviewid = admindb['views'].save(view)
+    return newviewid;
+
+
+def deleteview(viewid):
+    admindb = models.ImageStore._get_db()
+    view = admindb['views'].find_one({'_id': ObjectId(viewid)})
+    if view == None :
+        return
+    # delete children
+    if view.has_key("Children") :
+        for child in view["Children"] :
+            deleteview(viewdb, child)
+    # delete
+    admindb['views'].remove({'_id': viewid})
+
+
+
 ################################################################################
 # It is up to the client to set the view database properly when copying.
 # this is a temporary pain.  Sessions has moved to admin but not views.
 # We need the source db and the destination db.
-# Use the copy var for the source.
+# Use the viewdb var for the source.
 @mod.route('/session-save', methods=['GET', 'POST'])
 def sessionsave():
     inputStr = request.form['input']  # for post
 
+    #pdb.set_trace()
+
     inputObj = json.loads(inputStr)
     create_new_session = inputObj["new"]
     session_id = ObjectId(inputObj["session"])
+    # I assume the session uses this to get the thumbnail
     label = inputObj["label"]
     view_items = inputObj["views"]
     hide_annotations = inputObj["hideAnnotation"]
     stack = inputObj["stack"]
+
+    admindb = models.ImageStore._get_db()
 
     # Todo: if session is undefined, create a new session (copy views when available).
     sessObj = models.Session.objects.with_id(session_id)
@@ -159,69 +202,72 @@ def sessionsave():
 
     new_views = list()
     for view_item in view_items:
+        # View or Image
         if 'view' in view_item:
             # deep or shallow copy of an existing view.
-            if 'copy' in view_item:
-                view_image_store_id = ObjectId(view_item['copy'])
-                view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
-                view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
-                # this forces a deep copy
-                del view['_id']
-            else:
-                view_image_store_id = ObjectId(view_item['db'])
-                view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
-                view = view_image_store['views'].find_one({'_id': ObjectId(view_item['view'])})
-
-            # Because views are not stored in the admin database  we need to set the store to be the destination.
-            view_image_store_id = ObjectId(view_item['db'])
-            view_image_store = models.ImageStore.objects.get(id=view_image_store_id).to_pymongo()
-
-            # if copying a session, deep copy all the view objects.
-            if create_new_session:
-                # _id may have been deleted previously.
-                del view['_id']
+            # A bit confusing because no viewdb implies no copy unless 'create_new_session'
+            if 'copy' in view_item or create_new_session:
+                view_item['view'] = deepcopyview(ObjectId(view_item['view']))
+            # get the view
+            view = admindb['views'].find_one({'_id': ObjectId(view_item['view'])})
 
         else:
-            # creating a new view from an image
-
-            # TODO: views should be in the admin database.
-            view_image_store_id = sessObj.image_store.id
-            view_image_store = sessObj.image_store.to_pymongo()
-            # TODO: Change this to the standard note / view.
+            # Make a new minimal note / view
+            user = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
+            viewer_records = []
+            viewer_records.append({
+                'Image'    : ObjectId(view_item['img']),
+                'Database' : ObjectId(view_item['imgdb']),
+            })
             view = {
-                # 'view_item' should have 'img' if 'view' is not present
-                'img': ObjectId(view_item['img']),
-                'imgdb': ObjectId(view_item['db']),
+                'User'          : user,
+                'Type'          : "Note",
+                'SessionId'     : session_id,
+                'ViewerRecords' : viewer_records
             }
+
         view.update({
-            'label': view_item['label'],
             'Title': view_item['label'],
             'HiddenTitle': view_item['hiddenLabel'],
-        })
+        });
 
-        # '_id' field will be added by 'save'
         # TODO: don't save until the end, to make failure transactional
-        view_image_store['views'].save(view, manipulate=True)
+        admindb['views'].save(view, manipulate=True)
 
-        new_views.append(models.RefItem(
-            ref=ObjectId(view['_id']),
-            db=view_image_store_id
-        ))
+        # The view list in the session.  The session needs the imgdb to display the thumb.
+        # At the moment, the database has many different places to find the db.
+        # We will simplify this in the future.
+        imgdb = None
+        if view.has_key("db") :
+            # the original legacy oper layers format
+            imgdb = ObjectId(view["db"])
+        else :
+            record = view["ViewerRecords"][0]
+            if record.has_key("Database") :
+                # this is the correct location for the image database.
+                # convert references to string to pass to the client
+                imgdb = ObjectId(record["Database"])
+            elif record.has_key("Image") :
+                # A bug caused some image objects to be embedded in views in te databse.
+                imgdb = ObjectId(record["Image"].database);
+
+        new_views.append(models.RefItem(ref=ObjectId(view['_id']),
+                                        db=imgdb))
 
     # delete the views that are left over, as views are owned by the session.
     if not create_new_session :
-        old_view_ids = set((view_ref.ref, view_ref.db) for view_ref in sessObj.views)
-        new_view_ids = set((view_ref.ref, view_ref.db) for view_ref in new_views)
+        old_view_ids = set(view_ref.ref for view_ref in sessObj.views)
+        new_view_ids = set(view_ref.ref for view_ref in new_views)
 
         removed_view_ids = old_view_ids - new_view_ids
-        for removed_view_id, removed_view_image_store_id in removed_view_ids:
-            removed_view_image_store = models.ImageStore.objects.get(id=removed_view_image_store_id).to_pymongo()
-            removed_view_image_store['views'].remove({'_id': removed_view_id})
+        for view_id in removed_view_ids:
+            deleteview(view_id)
 
     # update the session
     sessObj.label = label  # I am using the label for the annotated title, and name for the hidden title.
     sessObj.views = new_views
     sessObj.hide_annotations = bool(hide_annotations)
+    # session stacks are going away
     if stack :
       sessObj.type = "stack"
     else :
@@ -230,7 +276,7 @@ def sessionsave():
     if create_new_session :
         sessObj.user = security.current_user.email
         # TODO: it might be helpful to add a '.clone()' method to 'ModelDocument',
-        #  for convenience and to properly set '_created', etc.
+        #  for convenience and to properly set '_created', etc.`
         sessObj.id = ObjectId()
         sessObj.save(force_insert=True)
     elif not new_views:
@@ -239,6 +285,7 @@ def sessionsave():
     else:
         sessObj.save()
     return jsonify(sessObj.to_mongo())
+
 
 
 ################################################################################

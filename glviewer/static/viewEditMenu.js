@@ -68,7 +68,6 @@ function SetViewBounds() {
       type: "post",
       url: "/webgl-viewer/saveviewnotes",
       data: {"note" : noteObj,
-             "db"   : GetSessionDatabase(),
              "date" : d.getTime()},
       success: function(data,status) {},
       error: function() { alert( "AJAX - error() : saveviewnotes (bounds)" ); },
@@ -97,7 +96,7 @@ function SetImageBounds() {
     type: "post",
     url: "/webgl-viewer/set-image-bounds",
     data: {"img" : imageId,
-           "db"  : imageDb,
+           "imgdb"  : imageDb,
            "bds" : JSON.stringify(bounds)},
     success: function(data,status) {},
     error: function() {

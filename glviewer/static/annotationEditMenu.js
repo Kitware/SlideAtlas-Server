@@ -210,7 +210,6 @@ function InitAnnotationEditMenus() {
 }
 
 
-// url: "http://localhost:8080/webgl-viewer/stack-save",
 function SaveAnnotations() {
    $('#AnnotationEditMenu').hide();
   if ( ! EDIT) {
@@ -231,8 +230,7 @@ function SaveAnnotations() {
   $.ajax({
     type: "post",
     url: "/webgl-viewer/stack-save",
-    data: {"db": DBID,
-           "sess": SESSID,
+    data: {"sess": SESSID,
            "data" :  JSON.stringify( {"annotations": stack} )},
     success: function(data,status){
        //alert(data + "\nStatus: " + status);
@@ -311,7 +309,6 @@ function SaveView() {
   var cam = VIEWER1.GetCamera();
 
   var messageObj = {};
-  messageObj.db = DBID;
   messageObj.viewid = VIEWID;
   messageObj.cam = {};
 
