@@ -47,7 +47,8 @@ Camera.prototype.SetViewport = function (viewport) {
 }
 
 
-
+// Roll is in Radians
+// Rotation is in Degrees
 Camera.prototype.GetRotation = function () {
     return this.Roll * 180.0 / 3.1415926535;
 }

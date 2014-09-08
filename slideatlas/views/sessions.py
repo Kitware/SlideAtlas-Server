@@ -13,8 +13,6 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
-import pdb
-
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -148,7 +146,7 @@ def deepcopyview(viewid):
     if view.has_key("Children") :
         newChildren = []
         for child in view["Children"] :
-            new_child = deepcopyview(indb, outdb, child)
+            new_child = deepcopyview(child)
             if new_child != None :
                 newChildren.append(new_child)
         view["Children"] = newChildren
@@ -181,8 +179,6 @@ def deleteview(viewid):
 @mod.route('/session-save', methods=['GET', 'POST'])
 def sessionsave():
     inputStr = request.form['input']  # for post
-
-    #pdb.set_trace()
 
     inputObj = json.loads(inputStr)
     create_new_session = inputObj["new"]

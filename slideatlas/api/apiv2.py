@@ -474,25 +474,20 @@ class SessionItemAPI(ItemAPI):
         # iterate through the session objects
         views_son = list()
         for view_ref in session.views:
-            view_image_store_id = view_ref.db or session.image_store.id
-            view_image_store = image_stores_by_id[view_image_store_id].to_pymongo()
+            admindb = models.ImageStore._get_db()
 
             view_id = view_ref.ref
-            view = view_image_store['views'].find_one({'_id': view_id})
+            view = admindb['views'].find_one({'_id': view_id})
+            #view = models.NewView.objects.get(id=view_id).to_mongo()
             if not view:
-                # TODO: warning here
-                # Try fetching from admin database
-                try:
-                    view = models.NewView.objects.get(id=view_id).to_mongo()
-                    view_image_store_id = view["db"]
-                except:
-                    continue
+                continue
 
             # get 'image_id' and 'image_image_store_id'
-            image_image_store_id = view_image_store_id
+            image_image_store_id = None
             if view.get('Type') == 'Note':
                 record = view['ViewerRecords'][0]
                 if isinstance(record['Image'], dict):
+                    # this is no longer necessary
                     image_id = ObjectId(record['Image']['_id'])
                     image_image_store_id = ObjectId(record['Image']['database'])
                 else :
@@ -501,8 +496,14 @@ class SessionItemAPI(ItemAPI):
                     image_image_store_id = ObjectId(record['Database'])
             else:
                 image_id = ObjectId(view['img'])
+            # These are also legacy and will go away soon. 
             if 'imgdb' in view:
                 image_image_store_id = ObjectId(view['imgdb'])
+            if 'db' in view:
+                image_image_store_id = ObjectId(view['db'])
+
+            #if not image_image_store_id:
+            #    continue
 
             # get 'image'
             if image_image_store_id not in image_stores_by_id:
@@ -530,7 +531,7 @@ class SessionItemAPI(ItemAPI):
             # set 'ajax_view_item' and 'ajax_view_items' for output
             view_son = {
                 'id': view_id,
-                'image_store_id': view_image_store_id,
+                'image_store_id': image_image_store_id,
                 'label': view_label,
                 'image_id': image_id,
                 'image_image_store_id': image_image_store_id,

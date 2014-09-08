@@ -25,8 +25,6 @@ function ComparisonSaveAnnotations() {}
 
 // Record the viewer into the current note and save into the database.
 function SaveView() {
-  var note = NOTES_WIDGET.GetCurrentNote(); 
-  note.SnapShotCallback();
   NOTES_WIDGET.SaveCallback();
   $('#viewEditMenu').hide();
 }
