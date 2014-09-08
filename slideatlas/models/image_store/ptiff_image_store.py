@@ -188,10 +188,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                         new_image_record = False
                         logging.warning('Existing image was modified: %s' % image_file_path)
 
-                    logging.debug('%s uploaded_at : %s' % (image_file_path, image.uploaded_at))
-                    logging.debug('Type of uploaded_at: %s' % type(image.uploaded_at))
-                    logging.debug('file_modified_time: %s' % file_modified_time)
-                    logging.debug('Type of file_modifide_time: %s' % type(file_modified_time))
+                    # logging.debug('%s uploaded_at : %s' % (image_file_path, image.uploaded_at))
+                    # logging.debug('Type of uploaded_at: %s' % type(image.uploaded_at))
+                    # logging.debug('file_modified_time: %s' % file_modified_time)
+                    # logging.debug('Type of file_modified_time: %s' % type(file_modified_time))
 
                 reader = make_reader({
                     'fname': image_file_path,
