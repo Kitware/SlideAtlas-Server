@@ -18,7 +18,7 @@ from PIL import Image as PImage
 
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
-from ..view import View
+from ..view import View, NewView
 from ..session import Collection, Session, RefItem
 
 from slideatlas.common_utils import reversed_enumerate
@@ -221,7 +221,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # Create views only if the file is newly added to the folder
                 if new_image_record:
-                    view = View(image=image.id)
+                    view = NewView(image=image.id, db=self.id)
                     view.save()
 
                     # newest images should be at the top of the session's view list
