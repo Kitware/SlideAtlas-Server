@@ -633,6 +633,13 @@ def process_zip(args):
     # import shutil
     # shutil.rmtree(str(temp))
 
+def process_dir(args):
+    """
+    processes dir
+    """
+    pass
+
+
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
