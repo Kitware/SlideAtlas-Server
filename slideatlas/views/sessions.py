@@ -165,7 +165,7 @@ def deleteview(viewid):
     # delete children
     if view.has_key("Children") :
         for child in view["Children"] :
-            deleteview(viewdb, child)
+            deleteview(child)
     # delete
     admindb['views'].remove({'_id': viewid})
 
