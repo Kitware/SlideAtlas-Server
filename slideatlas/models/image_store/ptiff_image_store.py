@@ -179,7 +179,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     # TODO: this generally shouldn't happen, but should be handled
                     raise
                 else:  # existing image found
-                    if image.uploaded_at == file_modified_time:
+                    timediff = image.uploaded_at - file_modified_time
+                    if timediff.total_seconds() < 0.5:
                         # image unchanged as expected, skip processing
                         logging.debug('Existing image unchanged: %s' % image_file_path)
                         continue
