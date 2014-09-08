@@ -18,7 +18,7 @@ from PIL import Image as PImage
 
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
-from ..view import View
+from ..view import View, NewView
 from ..session import Collection, Session, RefItem
 
 from slideatlas.common_utils import reversed_enumerate
@@ -179,7 +179,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     # TODO: this generally shouldn't happen, but should be handled
                     raise
                 else:  # existing image found
-                    if image.uploaded_at == file_modified_time:
+                    timediff = image.uploaded_at - file_modified_time
+                    if timediff.total_seconds() < 0.5:
                         # image unchanged as expected, skip processing
                         logging.debug('Existing image unchanged: %s' % image_file_path)
                         continue
@@ -187,10 +188,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                         new_image_record = False
                         logging.warning('Existing image was modified: %s' % image_file_path)
 
-                    logging.debug('%s uploaded_at : %s' % (image_file_path, image.uploaded_at))
-                    logging.debug('Type of uploaded_at: %s' % type(image.uploaded_at))
-                    logging.debug('file_modified_time: %s' % file_modified_time)
-                    logging.debug('Type of file_modifide_time: %s' % type(file_modified_time))
+                    # logging.debug('%s uploaded_at : %s' % (image_file_path, image.uploaded_at))
+                    # logging.debug('Type of uploaded_at: %s' % type(image.uploaded_at))
+                    # logging.debug('file_modified_time: %s' % file_modified_time)
+                    # logging.debug('Type of file_modified_time: %s' % type(file_modified_time))
 
                 reader = make_reader({
                     'fname': image_file_path,
@@ -220,7 +221,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # Create views only if the file is newly added to the folder
                 if new_image_record:
-                    view = View(image=image.id)
+                    view = NewView(image=image.id, db=self.id)
                     view.save()
 
                     # newest images should be at the top of the session's view list
