@@ -511,6 +511,9 @@ class SessionItemAPI(ItemAPI):
             image_image_store = image_stores_by_id[image_image_store_id].to_pymongo()
             image = image_image_store['images'].find_one({'_id': image_id}, {'thumb': False})
 
+            if not image:
+                continue
+
             # determine if view is hidden and will be skipped
             if view_ref.hide or view.get('hide', False) or image.get('hide', False):
                 continue
