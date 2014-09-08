@@ -6,8 +6,6 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
-import pdb
-
 def jsonifyView(db,viewid,viewobj):
     imgid = 0
     imgdb = 0
