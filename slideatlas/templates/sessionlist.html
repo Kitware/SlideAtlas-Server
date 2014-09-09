@@ -30,6 +30,17 @@
             padding-top: 60px;
             margin-top: -60px;
         }
+
+        .sa-session-delete {
+            color: #e55;
+            margin-left: 5px;
+        } 
+        .sa-session-delete:hover {
+            color: #C00;
+        }
+
+
+
     </style>
 {% endblock styles %}
 
@@ -51,6 +62,22 @@
                         console.log("Yay !!");
                     });
                 });
+                $(".sa-session-delete")
+                    .click(function() {
+                        var session_id = $(this).attr("id");
+                        var collection_id = $(this).attr("collection");
+                        if (confirm("Delete the session and views, but not the whole-slide images.")) {
+                            $.ajax({
+                                type: "delete",
+                                url: "/api/v2/sessions/" + session_id,
+                                success: function() {
+                                    window.location = "?reload=" + Date()
+                                        + "#" + collection_id;
+                                },
+                                error: function() {alert( "AJAX - error() : session-delete" );},
+                            });
+                        }
+                    });
 
         </script>
     {% endblock scripts %}
@@ -61,7 +88,7 @@
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
         <div class="row">
-            <h2 id="{{ collection.id}}" class="anchor">{{ collection.label }} <a class="header-link" href="#{{collection.id}}"><span style="font-size:20px"><i class="glyphicon glyphicon-th"></i></span></a>
+            <h2 id="{{ collection.id}}" class="anchor">{{ collection.label }} <a class="header-link" href="#{{collection.id}}"><span style="font-size:20px"><i class="glyphicon glyphicon-link"></i></span></a>
             {% if site_admin %}
                 <button type="button" class="btn btn-primary sa-create-session lead">Add new session </button>
             {% endif  %}
@@ -81,6 +108,10 @@
                 </td>
                 {% if can_admin %}
                 <td>
+                    <span class="glyphicon glyphicon-remove-sign
+                                 sa-session-delete pull-right"
+                          id= {{ session.id }}
+                          collection= {{collection.id}} ></span>
                     <a href="{{ url_for('.sessionedit', session=session) }}" class="lead">
                         <button type="button" class="btn btn-danger">Edit</button>
                     </a>

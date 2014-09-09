@@ -110,6 +110,8 @@ ViewerRecord.prototype.Apply = function (viewer) {
   if (this.Camera != undefined) {
     var cameraRecord = this.Camera;
     viewer.GetCamera().Load(cameraRecord);
+    viewer.OverView.Camera.Roll = cameraRecord.Roll;
+    viewer.OverView.Camera.ComputeMatrix();
   }
 
   if (this.AnnotationVisibility != undefined) {

@@ -128,11 +128,14 @@ def view_a_session(session, next=None):
 @security.EditSessionRequirement.protected
 def sessionedit(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
+    #collection_son = apiv2.CollectionItemAPI._get(session_son["collection"]) # not implemented
+    admindb = models.ImageStore._get_db()
+    collection = admindb["collections"].find_one({"_id": session_son["collection"]});
 
     return render_template('sessionedit.html',
+                           collection=collection["label"],
                            session=session,
                            session_son=session_son)
-
 
 
 def deepcopyview(viewid):
@@ -275,9 +278,6 @@ def sessionsave():
         #  for convenience and to properly set '_created', etc.`
         sessObj.id = ObjectId()
         sessObj.save(force_insert=True)
-    elif not new_views:
-        sessObj.delete()
-        return ""
     else:
         sessObj.save()
     return jsonify(sessObj.to_mongo())
