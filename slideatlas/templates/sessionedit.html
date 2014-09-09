@@ -106,11 +106,6 @@
             // A hack, but how should it be done right?
             var tmp = "#"+arg;
             $(tmp).remove();
-
-            var numViews = $("#sortable").children().length;
-            if (numViews == 0) {
-                $('#saveButton').text("Delete");
-            }
         }
 
 
@@ -148,7 +143,6 @@
                 data: {"input" :  JSON.stringify( args )},
                 success: 
                   function save_success (data, status) {
-                    if (data != "") {
                       // Redirect is problematic because I want to save multiple times
                       // and back in browser does not reload page completely
                       //window.location.href = "sessions?sessid="+data;
@@ -160,11 +154,6 @@
                         guiViews[i].removeAttr('copy');
                       }
                       $('#saveButton').css({"color":"#000"});
-                    } else {
-                      // Session was empty and deleted from the database.
-                      //window.location.href = "sessions";
-                      alert("session deleted");
-                    }
                   },
                 error: function() { alert( "AJAX - error: session-save" ); }
             });
@@ -510,7 +499,7 @@
 {{ super() }}
     <div id="wrapper">
         <div id="session">
-            <h2>Session</h2>
+            <h2> {{ collection }} </h2>
             <div>
                 <label>Title</label>
                 <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width: 340px;" value="{{ session_son.label }}"/>
