@@ -18,7 +18,7 @@ from PIL import Image as PImage
 
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
-from ..view import View, NewView
+from ..view import NewView
 from ..session import Collection, Session, RefItem
 
 from slideatlas.common_utils import reversed_enumerate
@@ -244,7 +244,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             # reverse to start with the oldest views at the end of the list, and
             #   more importantly, to permit deletion from the list while iterating
             for view_ref_pos, view_ref in reversed_enumerate(default_session.views):
-                view = View.objects.only('image').with_id(view_ref.ref)
+                view = NewView.objects.only('image').with_id(view_ref.ref)
                 image = Image.objects.only('label', 'filename').with_id(view.image)
 
                 # get creator_code
