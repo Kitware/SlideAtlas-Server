@@ -91,7 +91,7 @@ class WrapperReader(Reader):
         #     params = params + ["-u", istore.username, "-p", istore.password]
 
         if os.name == 'nt':
-            params = ["image_uploader.exe", "-n", fullname]
+            params = [self.params["bindir"] + "image_uploader.exe", "-n", fullname]
         else:
             params = [self.params["bindir"] + "image_uploader", "-n", fullname]
             params = " ".join(params)
@@ -102,7 +102,7 @@ class WrapperReader(Reader):
         try:
             output, erroutput = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                                  cwd=self.params["bindir"],
-                                                 shell=True).communicate()
+                                                 shell=False).communicate()
         except OSError as e:
             logger.error("Fatal error from OS while executing \
                           image_uploader (possible incorrect --bindir): \
@@ -223,8 +223,6 @@ class MongoUploader(object):
 
             item = RefItem(ref=aview.id, db=self.imagestore.id)
             self.session.views.append(item)
-            import pdb
-            pdb.set_trace()
             self.session.save()
 
     def make_reader(self):
@@ -546,7 +544,7 @@ class MongoUploaderWrapper(MongoUploader):
         istore = self.imagestore
 
         if os.name == 'nt':
-            args = ["image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            args = [self.args.bindir + "image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
             if len(istore.username) > 0:
                 args = args + ["-u", istore.username, "-p", istore.password]
         else:
@@ -556,10 +554,10 @@ class MongoUploaderWrapper(MongoUploader):
 
             args = " ".join(args)
 
-        # logger.info("Params: " + args)
+        logger.info("Params: " + str(args))
         # Get the information in json
 
-        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=False)
 
         while True:
             time.sleep(0)
