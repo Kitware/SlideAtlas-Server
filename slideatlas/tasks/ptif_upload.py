@@ -30,7 +30,7 @@ logger.setLevel(logging.INFO)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_celery_app
 from slideatlas  import create_app
-from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image, View
+from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image, NewView
 
 from slideatlas.ptiffstore.tiff_reader import TileReader
 from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
@@ -91,18 +91,18 @@ class WrapperReader(Reader):
         #     params = params + ["-u", istore.username, "-p", istore.password]
 
         if os.name == 'nt':
-            params = ["image_uploader.exe", "-n", fullname]
+            params = [self.params["bindir"] + "image_uploader.exe", "-n", fullname]
         else:
             params = [self.params["bindir"] + "image_uploader", "-n", fullname]
             params = " ".join(params)
 
-        logger.info("Params: " + params)
+        # logger.info("Params: " + str(params)
         # Get the information in json
 
         try:
             output, erroutput = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                                  cwd=self.params["bindir"],
-                                                 shell=True).communicate()
+                                                 shell=False).communicate()
         except OSError as e:
             logger.error("Fatal error from OS while executing \
                           image_uploader (possible incorrect --bindir): \
@@ -180,11 +180,18 @@ class MongoUploader(object):
             logger.error("Invalid ObjectID for mongo collection: \
                              %s" % self.args.mongo_collection)
 
+        # Load image store
+        self.setup_destination()
+
+        # Check whether image exists already
+        if self.check_exists_already():
+            logger.info("Image will be skipped")
+            return
+        else:
+            logger.info("Image will be uploaded")
+
         # Load reader
         self.reader = self.make_reader()
-
-        # Load image store
-        self.setup_destination(args.collection)
 
         # Insert image record
         self.insert_metadata()
@@ -194,11 +201,6 @@ class MongoUploader(object):
 
         # build pyramid
         self.update_collection()
-
-        # Image collection is ready,
-            # now add to the collection
-
-        # Create a view
 
         # Done !
     def update_collection(self):
@@ -213,19 +215,15 @@ class MongoUploader(object):
             logger.info("Dry run .. not updating collection record")
             return
 
-        # Create and insert view
-        aview = {}
-        aview["img"] = ObjectId(self.imageid)
-
-        self.db["views"].insert(aview)
-
         # Update the session
         with flaskapp.app_context():
-            with self.imagestore:
+            # Create and insert view
+            aview = NewView(image=ObjectId(self.imageid), db=self.imagestore.id)
+            aview.save()
 
-                item = RefItem(ref=aview["_id"], db = self.imagestore.id)
-                self.session.views.append(item)
-                self.session.save()
+            item = RefItem(ref=aview.id, db=self.imagestore.id)
+            self.session.views.append(item)
+            self.session.save()
 
     def make_reader(self):
         """
@@ -241,7 +239,7 @@ class MongoUploader(object):
         logging.error("upload_base is NOT implemented")
         sys.exit(-1)
 
-    def setup_destination(self, collection):
+    def setup_destination(self):
         """
             Get the destination session in the collection
         """
@@ -258,7 +256,8 @@ class MongoUploader(object):
             logger.info("session: %s"%(self.session.to_son()))
 
 
-        # Create the pymongo connection, used for view and image
+        # Create the pymongo connection, used for image
+        # For view use NewView
         try:
             if self.imagestore.replica_set:
                 conn = pymongo.ReplicaSetConnection(self.imagestore.host, replicaSet=self.imagestore.replica_set)
@@ -271,6 +270,20 @@ class MongoUploader(object):
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
             sys.exit(-1)
 
+    def check_exists_already(self):
+        """
+        Verifies if the destination image appears to be in the images session
+        """
+        image_name = os.path.split(self.args.input)[1]
+
+        image_doc = self.db["images"].find_one({"filename" : image_name})
+
+        if image_doc is not None:
+            logger.info("Image exists already")
+            return True
+
+        else:
+            return False
 
     def insert_metadata(self):
         """
@@ -531,7 +544,7 @@ class MongoUploaderWrapper(MongoUploader):
         istore = self.imagestore
 
         if os.name == 'nt':
-            args = ["image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            args = [self.args.bindir + "image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
             if len(istore.username) > 0:
                 args = args + ["-u", istore.username, "-p", istore.password]
         else:
@@ -541,10 +554,10 @@ class MongoUploaderWrapper(MongoUploader):
 
             args = " ".join(args)
 
-        logger.info("Params: " + args)
+        logger.info("Params: " + str(args))
         # Get the information in json
 
-        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=True)
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=False)
 
         while True:
             time.sleep(0)
@@ -583,6 +596,7 @@ class MongoUploaderWrapper(MongoUploader):
 
 def process_zip(args):
     """
+    TODO: Extract files and call process_dir
     """
 
     # Extracts zip
@@ -633,6 +647,68 @@ def process_zip(args):
     # import shutil
     # shutil.rmtree(str(temp))
 
+def process_dir(args):
+    """
+    processes dir
+    """
+    # Extracts zip
+    dir_name = args.input
+    session_name = os.path.split(dir_name)[1]
+    logger.info("Session name wil be: " + session_name)
+    # Creates the session
+
+    # Get collection
+    with flaskapp.app_context():
+        # Locate the session
+        try:
+            coll = Collection.objects.get(id=ObjectId(args.collection))
+            logger.info("collection: %s" % coll.to_son())
+
+        except Exception as e:
+            logger.error("Fatal: Collection not found: " + e.message)
+            sys.exit(-1)
+
+        try:
+
+            session = Session.objects.get(label=session_name)
+
+        except Exception as e:
+            logger.info("No session:" + e.message)
+            session = None
+
+        if session is None:
+            logger.info("Session will be created")
+            try:
+                logger.info("Creating session: " + str(session.to_json()))
+                session.save()
+
+            except Exception as e:
+                logger.error("Fatal: Could not create session: " + e.message)
+                sys.exit(-1)
+        else:
+            logger.info("Session Exists")
+
+    args.session = str(session.id)
+
+    import glob
+    for afile in glob.glob(str(dir_name) + "/*"):
+        logger.info("Processing inside of: " + afile)
+        args.input =  os.path.abspath(afile)
+        process_file(args)
+
+def process_file(args):
+    """
+    Deliver the file to appropriate
+    """
+    if args.input.endswith(".ptif"):
+        logger.info("Got a PTIF")
+        MongoPtifUploader(args)
+    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+        logger.info("Got a " + args.input)
+        MongoUploaderWrapper(args)
+    else:
+        # Check if the input is a dir
+        logger.error("Unsupported file: " + args.input[-4:])
 
 def make_argument_parser():
     parser = argparse.ArgumentParser(description='Utility to upload images to slide-atlas using BioFormats')
@@ -646,7 +722,7 @@ def make_argument_parser():
     parser.add_argument("-c", "--collection", help="Collection id", required=True)
 
     parser.add_argument("-s", "--session", help="Required for non-zip files", required=False)
-    parser.add_argument("--bindir", help="Path of the image uploader binary", required=False)
+    parser.add_argument("--bindir", help="Path of the image uploader binary", required=False, default="./")
 
     # Optional parameters
     # Tile size if the input image is not already tiled
@@ -698,16 +774,13 @@ if __name__ == '__main__':
     if args.input.endswith(".zip"):
         logger.info("Got a " + args.input[-4:])
         process_zip(args)
+    elif os.path.isdir(args.input):
+        logger.info("Got a DIR !!")
+        logger.info("Got: " + args.input)
+        process_dir(args)
     else:
         if args.session is None:
             logger.error("Fatal: Session required for non-zip input")
             sys.exit(-1)
 
-        if args.input.endswith(".ptif"):
-            logger.info("Got a PTIF")
-            MongoPtifUploader(args)
-        elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
-            logger.info("Got a " + args.input[-4:])
-            MongoUploaderWrapper(args)
-        else:
-            logger.error("Unsupported file: " + args.input[-4:])
+        process_file(args)
