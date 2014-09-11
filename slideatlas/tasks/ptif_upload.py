@@ -684,7 +684,7 @@ def process_file(args):
     if args.input.endswith(".ptif"):
         logger.info("Got a PTIF")
         MongoPtifUploader(args)
-    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi"):
+    elif args.input.endswith(".jp2") or args.input.endswith(".jpg") or args.input.endswith(".ndpi") or args.input.endswith(".tif"):
         logger.info("Got a " + args.input)
         MongoUploaderWrapper(args)
     else:
