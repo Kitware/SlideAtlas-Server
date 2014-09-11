@@ -60,6 +60,22 @@ function PolylineWidget (viewer, newFlag) {
       .css({'display':'table-cell'})
       .keypress(function(event) { return event.keyCode != 13; });
 
+  // Length
+  this.Dialog.LengthDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.LengthLabel =
+    $('<div>')
+      .appendTo(this.Dialog.LengthDiv)
+      .text("Length:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.Length =
+    $('<div>')
+      .appendTo(this.Dialog.LengthDiv)
+      .css({'display':'table-cell'});
+
   // Area
   this.Dialog.AreaDiv =
     $('<div>')
@@ -655,6 +671,16 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
+  var length = this.ComputeLength();
+  var lengthString = "" + length.toFixed(2);
+  if (this.Shape.FixedSize) {
+    lengthString += " pixels";
+  } else {
+    lengthString += " units";
+  }
+  this.Dialog.Length.text(lengthString);
+
+
   if (this.Shape.Closed) {
     this.Dialog.AreaDiv.show();
     var area = this.ComputeArea();
@@ -685,27 +711,66 @@ PolylineWidget.prototype.DialogApplyCallback = function() {
   localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.LineWidth});
 }
 
-
+// Note, self intersection can cause unexpected areas.
+// i.e looping around a point twice ...
 PolylineWidget.prototype.ComputeArea = function() {
-  var area = 0.0;
-  // Use the active center. It should be more numerical stable.
-  // Iterate over triangles
-  var last = this.Shape.Points.length-1;
-  var vx1 = this.Shape.Points[last][0] - this.ActiveCenter[0];    
-  var vy1 = this.Shape.Points[last][1] - this.ActiveCenter[1];
-  // First and last point form another triangle (they are not the same).
-  for (var j = 0; j < this.Shape.Points.length; ++j) {
-    // Area of triangle is 1/2 magnitude of cross product.
-    var vx2 = vx1;
-    var vy2 = vy1;
-    vx1 = this.Shape.Points[j][0] - this.ActiveCenter[0];    
-    vy1 = this.Shape.Points[j][1] - this.ActiveCenter[1];
-    area += (vx1*vy2) - (vx2*vy1);
-  }
+    if (this.Shape.Points.length == 0) {
+        return 0.0;
+    }
 
-  if (area < 0) {
-    area = -area;
-  }
-  return area;
+    // Compute the center. It should be more numerically stable.
+    // I could just choose the first point as the origin.
+    var cx = 0;
+    var cy = 0;
+    for (var j = 0; j < this.Shape.Points.length; ++j) {
+        cx += this.Shape.Points[j][0];    
+        cy += this.Shape.Points[j][1];    
+    }
+    cx = cx / this.Shape.Points.length;
+    cy = cy / this.Shape.Points.length;
+
+    var area = 0.0;
+    // Iterate over triangles adding the area of each
+    var last = this.Shape.Points.length-1;
+    var vx1 = this.Shape.Points[last][0] - cx;    
+    var vy1 = this.Shape.Points[last][1] - cy;
+    // First and last point form another triangle (they are not the same).
+    for (var j = 0; j < this.Shape.Points.length; ++j) {
+        // Area of triangle is 1/2 magnitude of cross product.
+        var vx2 = vx1;
+        var vy2 = vy1;
+        vx1 = this.Shape.Points[j][0] - cx;    
+        vy1 = this.Shape.Points[j][1] - cy;
+        area += (vx1*vy2) - (vx2*vy1);
+    }
+
+    // Handle both left hand loops and right hand loops.
+    if (area < 0) {
+        area = -area;
+    }
+    return area;
+}
+
+// Note, self intersection can cause unexpected areas.
+// i.e looping around a point twice ...
+PolylineWidget.prototype.ComputeLength = function() {
+    if (this.Shape.Points.length < 2) {
+        return 0.0;
+    }
+
+    var length = 0;
+    var x0 = this.Shape.Points[0][0];    
+    var y0 = this.Shape.Points[0][1];
+    for (var j = 1; j < this.Shape.Points.length; ++j) {
+        var x1 = this.Shape.Points[j][0];    
+        var y1 = this.Shape.Points[j][1];
+        var dx = x1-x0;
+        var dy = y1-y0;
+        x0 = x1;
+        y0 = y1;
+        length += Math.sqrt(dx*dx + dy*dy);
+    }
+
+    return length;
 }
 
