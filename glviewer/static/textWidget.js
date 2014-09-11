@@ -371,6 +371,12 @@ TextWidget.prototype.UpdateArrow = function() {
 }
 
 TextWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  // The dialog consumes all key events.
+  if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
+      return true;
+  }
+
+
   // Copy
   if (keyCode == 67 && modifiers.ControlKeyPressed) {
     // control-c for copy
@@ -584,9 +590,8 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.TextInput.val(this.Text.String);
   this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
 
-  // hack to suppress viewer key events.
-  DIALOG_OPEN = true;
-
+  this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+  
   this.Dialog.Show(true);
 }
 
