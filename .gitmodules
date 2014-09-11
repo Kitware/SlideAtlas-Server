@@ -6,3 +6,6 @@
     path = slideatlas/ptiffstore/tpl/pylibtiff-read-only
     url = https://github.com/brianhelba/pylibtiff.git
     ignore = untracked
+[submodule "slideatlas/ptiffstore/tpl/openslide"]
+	path = slideatlas/ptiffstore/tpl/openslide
+	url = https://github.com/openslide/openslide.git
