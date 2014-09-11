@@ -31,6 +31,8 @@ openslide
 
 Openslide is cloned from https://github.com/openslide/openslide.git
 
+required compilation and installation of latest openjpeg2 from sources. TODO: Add that to the tpl as well.
+
 .. code-block::
 
     autoreconf -i

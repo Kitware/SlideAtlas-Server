@@ -1,20 +1,14 @@
 import sys
 import os
 
-
 tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
 
 # TODO: Make following paths work in windows after openslide is compiled in windows
-openslide_libpath = os.path.join(tplpath, "openslide", "src", ".libs", "libopenslide.so.0")
-# openslide_pythonpath = os.path.join(tplpath, "openslide-python", "build", "lib.linux-x86_64-2.7")
-
-# sys.path = [openslide_pythonpath] + sys.path
-# sys.path = [openslide_libpath] + sys.path
-# os.environ["PATH"] = openslide_libpath + ":" + os.environ["PATH"]
-# Load the library before so that openslide module will find it
+openslide_lib = os.path.join(tplpath, "openslide", "src", ".libs", "libopenslide.so.0")
 
 from ctypes import cdll
-_dummylib = cdll.LoadLibrary(openslide_libpath)
+_dummylib2 = cdll.LoadLibrary("libopenjp2.so.7")
+_dummylib = cdll.LoadLibrary(openslide_lib)
 
 import openslide
 
@@ -32,6 +26,9 @@ class OpenSlideReader(SlideAtlasImageReader):
 
     def set_input_params(self, params):
         self._reader = openslide.OpenSlide(params['fname'])
+        print self._reader.dimensions
+
+
 
 
 if __name__ == "__main__":
