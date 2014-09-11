@@ -129,12 +129,9 @@ def view_a_session(session):
 @security.EditSessionRequirement.protected
 def session_edit_view(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
-    #collection_son = apiv2.CollectionItemAPI._get(session_son["collection"]) # not implemented
-    admindb = models.ImageStore._get_db()
-    collection = admindb["collections"].find_one({"_id": session_son["collection"]});
 
     return render_template('sessionedit.html',
-                           collection=collection["label"],
+                           collection=session.collection,
                            session=session,
                            session_son=session_son)
 

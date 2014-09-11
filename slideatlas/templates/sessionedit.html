@@ -499,7 +499,7 @@
 {{ super() }}
     <div id="wrapper">
         <div id="session">
-            <h2> {{ collection }} </h2>
+            <h2>{{ collection.label }}</h2>
             <div>
                 <label>Title</label>
                 <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width: 340px;" value="{{ session_son.label }}"/>
