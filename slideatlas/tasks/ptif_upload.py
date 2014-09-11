@@ -659,7 +659,8 @@ def process_dir(args):
         if session is None:
             logger.info("Session will be created")
             try:
-                logger.info("Creating session: " + str(session.to_json()))
+                logger.info("Creating session: " + session_name)
+                session = Session(collection=coll, image_store=coll.image_store, label=session_name)
                 session.save()
 
             except Exception as e:
