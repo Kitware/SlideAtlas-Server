@@ -24,3 +24,15 @@ It depends on the libtiff version mentioned previously
 .. code-block::
 
     svn checkout http://pylibtiff.googlecode.com/svn/trunk/ pylibtiff-read-only
+
+
+openslide
+---------
+
+Openslide is cloned from https://github.com/openslide/openslide.git
+
+.. code-block::
+
+    autoreconf -i
+    ./configure
+    make
