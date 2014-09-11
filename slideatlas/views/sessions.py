@@ -44,8 +44,6 @@ def view_all_sessions():
     # disable dereferencing of of sessions, to prevent running a seperate
     #   query for every single session's collection
 
-    site_admin = models.common.AdminSitePermission() in g.identity.provides
-
     editable_sessions_query = all_sessions_query.can_edit(g.identity.provides)
     viewable_sessions_query = all_sessions_query.can_view_only(g.identity.provides)
 
@@ -85,7 +83,7 @@ def view_all_sessions():
         user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
         return jsonify(sessions=ajax_session_list, name=user_name, ajax=1)
     else:
-        return render_template('sessionlist.html', all_sessions=all_sessions, site_admin=site_admin)
+        return render_template('sessionlist.html', all_sessions=all_sessions)
 
 
 ################################################################################
