@@ -32,6 +32,7 @@ from slideatlas import create_celery_app
 from slideatlas  import create_app
 from slideatlas.models import Collection, Session, MultipleDatabaseImageStore, ImageStore, RefItem, Image, NewView
 
+from slideatlas.ptiffstore.base_reader import Reader
 from slideatlas.ptiffstore.tiff_reader import TileReader
 from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
 
@@ -43,27 +44,6 @@ import pymongo
 # Create teh application objects
 flaskapp = create_app()
 celeryapp = create_celery_app(flaskapp)
-
-
-class Reader(object):
-    """
-    Generic reader for uploader
-    """
-    def __init__(self, params=None):
-        if params:
-            self.set_input_params(params)
-        self.spacing = [1.0, 1.0, 1.0]
-        self.origin = [0., 0., 0.]
-        self.components = 3
-
-    def set_input_params(self, params):
-        self.params = params
-        if not params["bindir"].endswith("/"):
-            params["bindir"] = params["bindir"] + "/"
-
-    def get_tile(self, x, y, tilesize=256):
-        logger.error("get_tile in Reader is not implemented yet")
-        sys.exit(-1)
 
 
 class WrapperReader(Reader):
@@ -94,9 +74,9 @@ class WrapperReader(Reader):
             params = [self.params["bindir"] + "image_uploader.exe", "-n", fullname]
         else:
             params = [self.params["bindir"] + "image_uploader", "-n", fullname]
-            params = " ".join(params)
+            # params = " ".join(params)
 
-        # logger.info("Params: " + str(params)
+        logger.info("Params: " + str(params))
         # Get the information in json
 
         try:
@@ -552,7 +532,7 @@ class MongoUploaderWrapper(MongoUploader):
             if len(istore.username) > 0:
                 args = args + ["-u", istore.username, "-p", istore.password]
 
-            args = " ".join(args)
+            # args = " ".join(args)
 
         logger.info("Params: " + str(args))
         # Get the information in json
