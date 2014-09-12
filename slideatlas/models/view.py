@@ -8,7 +8,7 @@ from mongoengine.errors import NotRegistered
 from .common import MultipleDatabaseModelDocument, ModelDocument
 
 ################################################################################
-__all__ = ('View','NewView')
+__all__ = ('View', 'NewView')
 
 
 ################################################################################

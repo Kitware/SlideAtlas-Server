@@ -464,19 +464,6 @@ class SessionListAPI(ListAPI):
         abort(501)  # Not Implemented
 
 
-
-def _deleteView(viewId) : 
-    admindb = models.ImageStore._get_db()
-    view = admindb["views"].find_one({"_id": ObjectId(viewId)});
-    if view == None:
-        return
-    if view.has_key("Children") :
-        for child in view["Children"] :
-            _deleteView(child)
-    admindb["views"].remove({"_id": ObjectId(viewId)});
-
-
-
 class SessionItemAPI(ItemAPI):
     @staticmethod
     def _get(session, with_hidden_label=False):
@@ -509,7 +496,7 @@ class SessionItemAPI(ItemAPI):
                     image_image_store_id = ObjectId(record['Database'])
             else:
                 image_id = ObjectId(view['img'])
-            # These are also legacy and will go away soon. 
+            # These are also legacy and will go away soon.
             if 'imgdb' in view:
                 image_image_store_id = ObjectId(view['imgdb'])
             if 'db' in view:
