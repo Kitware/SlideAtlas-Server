@@ -249,6 +249,7 @@ PolylineWidget.prototype.Serialize = function() {
 }
 
 // Load a widget from a json object (origin MongoDB).
+// Object already json decoded.
 PolylineWidget.prototype.Load = function(obj) {
   this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
   this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
@@ -259,7 +260,7 @@ PolylineWidget.prototype.Load = function(obj) {
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
   }
-  this.Shape.Closed = (obj.closedloop == "true");
+  this.Shape.Closed = obj.closedloop;
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
 
@@ -672,11 +673,17 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
   var length = this.ComputeLength();
-  var lengthString = "" + length.toFixed(2);
+  var lengthString = "";
   if (this.Shape.FixedSize) {
-    lengthString += " pixels";
+    var lengthString += length.toFixed(2);
+    lengthString += " px";
   } else {
-    lengthString += " units";
+      if (length > 1000) {
+          lengthString += (length/1000).toFixed(2) + "mm";
+      } else {
+          lengthString += length.toFixed(2) + "mm";
+          lengthString += " um";
+      }
   }
   this.Dialog.Length.text(lengthString);
 
@@ -684,11 +691,18 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   if (this.Shape.Closed) {
     this.Dialog.AreaDiv.show();
     var area = this.ComputeArea();
-    var areaString = "" + area.toFixed(2);
+    var areaString = "";
     if (this.Shape.FixedSize) {
-      areaString += " pixels^2";
+        areaString += area.toFixed(2);
+        areaString += " pixels^2";
     } else {
-      areaString += " units^2";
+        if (area > 1000000) {
+            areaString += (area/1000000).toFixed(2);
+            areaString += " mm^2";
+        } else {
+            areaString += area.toFixed(2);
+            areaString += " um^2";
+        }
     }
     this.Dialog.Area.text(areaString);
   } else {
