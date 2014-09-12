@@ -259,7 +259,7 @@ PolylineWidget.prototype.Load = function(obj) {
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
   }
-  this.Shape.Closed = (obj.closedloop == "true");
+  this.Shape.Closed = obj.closedloop;
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
 
