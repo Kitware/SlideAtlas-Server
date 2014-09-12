@@ -158,21 +158,6 @@ def deepcopyview(view_id):
 
 
 ################################################################################
-def deleteview(view_id):
-    admin_db = models.ImageStore._get_db()
-    view = admin_db['views'].find_one({'_id': ObjectId(view_id)})
-    if view is None:
-        return
-    # delete children
-    if 'Children' in view:
-        for child in view['Children']:
-            deleteview(child)
-    # delete
-    admin_db['views'].remove({'_id': view_id})
-
-
-
-################################################################################
 # It is up to the client to set the view database properly when copying.
 # this is a temporary pain.  Sessions has moved to admin but not views.
 # We need the source db and the destination db.
@@ -256,7 +241,7 @@ def session_save_view():
 
         removed_view_ids = old_view_ids - new_view_ids
         for view_id in removed_view_ids:
-            deleteview(view_id)
+            apiv2.SessionViewItemAPI._delete(view_id)
 
     # update the session
     session.label = label  # I am using the label for the annotated title, and name for the hidden title.
