@@ -382,11 +382,19 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var areaString = "" + (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius).toFixed(2);
+  var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius);
+  var areaString = "";
   if (this.Shape.FixedSize) {
-    areaString += " pixels^2";
+      areaString += area.toFixed(2);
+      areaString += " pixels^2";
   } else {
-    areaString += " units^2";
+      if (area > 1000000) {
+          areaString += (area/1000000).toFixed(2);
+          areaString += " mm^2";
+      } else {
+          areaString += area.toFixed(2);
+          areaString += " um^2";
+      }
   }
   this.Dialog.Area.text(areaString);
 
