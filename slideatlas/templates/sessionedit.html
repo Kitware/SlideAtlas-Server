@@ -139,7 +139,7 @@
 
             $.ajax({
                 type: "post",
-                url: "{{ url_for('.sessionsave') }}",
+                url: "{{ url_for('.session_save_view') }}",
                 data: {"input" :  JSON.stringify( args )},
                 success: 
                   function save_success (data, status) {

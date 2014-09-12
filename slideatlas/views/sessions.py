@@ -20,7 +20,7 @@ mod = Blueprint('session', __name__)
 
 ################################################################################
 @mod.route('/sessions')
-def sessions():
+def sessions_view():
     """
     - /sessions  With no argument displays list of sessions accessible to current user
     - /sessions?sessid=10239094124  searches for the session id
@@ -91,7 +91,7 @@ def view_all_sessions():
 ################################################################################
 @mod.route('/sessions/<Session:session>')
 @security.ViewSessionRequirement.protected
-def view_a_session(session, next=None):
+def view_a_session(session):
     # TODO: the template doesn't seem use 'next'
     next_arg = int(request.args.get('next', 0))
 
@@ -127,7 +127,7 @@ def view_a_session(session, next=None):
 ################################################################################
 @mod.route('/sessions/<Session:session>/edit')
 @security.EditSessionRequirement.protected
-def sessionedit(session):
+def session_edit_view(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
     #collection_son = apiv2.CollectionItemAPI._get(session_son["collection"]) # not implemented
     admindb = models.ImageStore._get_db()
@@ -183,7 +183,7 @@ def deleteview(view_id):
 # We need the source db and the destination db.
 # Use the viewdb var for the source.
 @mod.route('/session-save', methods=['GET', 'POST'])
-def sessionsave():
+def session_save_view():
     input_str = request.form['input']  # for post
 
     input_obj = json.loads(input_str)
@@ -288,7 +288,7 @@ def sessionsave():
 ################################################################################
 @mod.route('/bookmarks')
 @security.login_required
-def bookmarks():
+def bookmarks_view():
     user_id = security.current_user.id
 
     # Compile the rules
