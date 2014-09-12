@@ -113,7 +113,7 @@ def view_a_session(session):
             'attachments': session_son['attachments'],
             'db': session.image_store.id,  # TODO: deprecate and remove
             'sessid': session.id,
-            'next': url_for('.sessions', sessid=str(session.id), ajax=1, next=next_arg + NUMBER_ON_PAGE)
+            'next': url_for('.sessions_view', sessid=str(session.id), ajax=1, next=next_arg + NUMBER_ON_PAGE)
         }
         return jsonify(ajax_data)
     else:
