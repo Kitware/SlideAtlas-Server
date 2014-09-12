@@ -141,7 +141,7 @@
                 type: "post",
                 url: "{{ url_for('.session_save_view') }}",
                 data: {"input" :  JSON.stringify( args )},
-                success: 
+                success:
                   function save_success (data, status) {
                       // Redirect is problematic because I want to save multiple times
                       // and back in browser does not reload page completely
@@ -527,7 +527,7 @@
                 <div id="slideList">
                     <ul id="sortable">
                         {% for view_son in session_son.views %}
-                        <li class="ui-state-default" id="{{ view_son.id }}"  
+                        <li class="ui-state-default" id="{{ view_son.id }}"
                             view="{{ view_son.id }}" imgdb="{{ view_son.image_store_id }}">
                             <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{ view_son.id }}')"></span>
                             <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_image_store_id }}&img={{ view_son.image_id }}">

@@ -3,6 +3,7 @@
 
 {% set is_site_admin = security.AdminSiteRequirement().can() %}
 
+
 {% block styles %}
 {{ super() }}
     <style>
@@ -38,34 +39,30 @@
         .sa-session-delete:hover {
             color: #C00;
         }
-
-
-
     </style>
 {% endblock styles %}
 
-{% if is_site_admin %}
-    {% block scripts %}
-        {{ super() }}
 
+{% block scripts %}
+    {{ super() }}
 
+    {% if is_site_admin %}
         {# TODO: These standard scripts will be included higher up in the inheritance  #}
         <script src="/static/thirdparty/bootbox/4.2.0/bootbox.min.js"></script>
 
         <script src="/static/js/sessions.js"></script>
         <script>
                 $(".sa-create-session").click(function() {
-                    var collection_id = $(this).parent().attr("id");
+                    var collection_id = $(this).parent().data("collection-id");
                     createNewSession(collection_id, function() {
                         // Todo think of another mechanism to load the page
                         window.location = "?reload=" + Date() + "#" + collection_id;
-                        console.log("Yay !!");
                     });
                 });
                 $(".sa-session-delete")
                     .click(function() {
-                        var session_id = $(this).attr("id");
-                        var collection_id = $(this).attr("collection");
+                        var session_id = $(this).data("session-id");
+                        var collection_id = $(this).data("collection-id");
                         if (confirm("Delete the session and views, but not the whole-slide images.")) {
                             $.ajax({
                                 type: "delete",
@@ -74,27 +71,32 @@
                                     window.location = "?reload=" + Date()
                                         + "#" + collection_id;
                                 },
-                                error: function() {alert( "AJAX - error() : session-delete" );},
+                                error: function() {
+                                    alert( "AJAX - error() : session-delete" );
+                                }
                             });
                         }
                     });
-
         </script>
-    {% endblock scripts %}
-{% endif %}
+    {% endif %}
+{% endblock scripts %}
 
 {% block content %}
 {{ super() }}
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
-        <div class="row">
-            <h2 id="{{ collection.id}}" class="anchor">{{ collection.label }} <a class="header-link" href="#{{collection.id}}"><span style="font-size:20px"><i class="glyphicon glyphicon-link"></i></span></a>
-            {% if site_admin %}
-                <button type="button" class="btn btn-primary sa-create-session lead">Add new session </button>
-            {% endif  %}
+        <div class="row" data-collection-id="{{ collection.id }}">
+            <h2 class="anchor pull-left">
+                <span>{{ collection.label }}</span>
+                <a class="header-link" href="#{{ collection.id }}">
+                    <span style="font-size: 20px;">
+                        <i class="glyphicon glyphicon-link"></i>
+                    </span>
+                </a>
             </h2>
-        </div>
-        <div class="row">
+            {% if is_site_admin %}
+            <button type="button" class="btn btn-primary pull-right sa-create-session">Add new session</button>
+            {% endif %}
         </div>
         <table class="table table-bordered table-hover" >
             {% for session, can_admin in sessions %}
@@ -108,10 +110,9 @@
                 </td>
                 {% if can_admin %}
                 <td>
-                    <span class="glyphicon glyphicon-remove-sign
-                                 sa-session-delete pull-right"
-                          id= {{ session.id }}
-                          collection= {{collection.id}} ></span>
+                    <span class="glyphicon glyphicon-remove-sign sa-session-delete pull-right"
+                          data-session-id={{ session.id }}
+                          data-collection-id={{ collection.id }}></span>
                     <a href="{{ url_for('.session_edit_view', session=session) }}" class="lead">
                         <button type="button" class="btn btn-danger">Edit</button>
                     </a>
