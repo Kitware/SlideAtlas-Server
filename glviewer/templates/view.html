@@ -189,7 +189,7 @@ shape has visibility and
   // A view has the same structure as a note.
   var VIEW_ID = "{{view}}";
   var EDIT = {{edit}}; // Temporary way to hide editing.
-  var SESSIONS_URL = "{{url_for('session.sessions')}}";
+  var SESSIONS_URL = "{{url_for('session.sessions_view')}}";
   var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
   var MENU_IMAGE_URL = "{{ url_for('glviewer.static', filename='Menu.jpg')}}";
 
@@ -198,7 +198,7 @@ shape has visibility and
 
   $(document).ready(function() {
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
-      $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});  
+      $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
       StartView();
   });
 
