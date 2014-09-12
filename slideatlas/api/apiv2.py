@@ -464,19 +464,6 @@ class SessionListAPI(ListAPI):
         abort(501)  # Not Implemented
 
 
-
-def _deleteView(viewId) : 
-    admindb = models.ImageStore._get_db()
-    view = admindb["views"].find_one({"_id": ObjectId(viewId)});
-    if view == None:
-        return
-    if view.has_key("Children") :
-        for child in view["Children"] :
-            _deleteView(child)
-    admindb["views"].remove({"_id": ObjectId(viewId)});
-
-
-
 class SessionItemAPI(ItemAPI):
     @staticmethod
     def _get(session, with_hidden_label=False):
@@ -509,7 +496,7 @@ class SessionItemAPI(ItemAPI):
                     image_image_store_id = ObjectId(record['Database'])
             else:
                 image_id = ObjectId(view['img'])
-            # These are also legacy and will go away soon. 
+            # These are also legacy and will go away soon.
             if 'imgdb' in view:
                 image_image_store_id = ObjectId(view['imgdb'])
             if 'db' in view:
@@ -575,12 +562,13 @@ class SessionItemAPI(ItemAPI):
     def patch(self, session):
         abort(501)  # Not Implemented
 
+    @security.AdminSessionRequirement.protected
     def delete(self, session):
-        for viewInfo in session.views :
-            viewId = viewInfo.ref
-            _deleteView(viewId)
+        for view_ref in session.views:
+            view_id = view_ref.ref
+            SessionViewItemAPI._delete(view_id)
         session.delete()
-        return Response("", status=204);
+        return make_response('', 204)  # No Content
 
 
 class SessionAccessAPI(API):
@@ -594,6 +582,41 @@ class SessionAccessAPI(API):
 
     @security.EditCollectionRequirement.protected
     def post(self, collection):
+        abort(501)  # Not Implemented
+
+
+################################################################################
+class SessionViewListAPI(ListAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, session):
+        abort(501)  # Not Implemented
+
+    def post(self, session):
+        abort(501)  # Not Implemented
+
+
+class SessionViewItemAPI(ItemAPI):
+    @security.AdminSiteRequirement.protected
+    def get(self, session, view_id):
+        abort(501)  # Not Implemented
+
+    def put(self, session, view_id):
+        abort(501)  # Not Implemented
+
+    def patch(self, session, view_id):
+        abort(501)  # Not Implemented
+
+    @staticmethod
+    def _delete(view_id):
+        view_id = ObjectId(view_id)
+        admin_db = models.ImageStore._get_db()
+        view = admin_db['views'].find_one({'_id': view_id})
+        if view:
+            for child in view.get('Children', list()):
+                SessionViewItemAPI._delete(child)
+            admin_db['views'].remove({'_id': view_id})
+
+    def delete(self, session, view_id):
         abort(501)  # Not Implemented
 
 
@@ -960,6 +983,16 @@ api.add_resource(SessionAccessAPI,
                  '/sessions/<Session:session>/access',
                  endpoint='session_access',
                  methods=('GET', 'POST'))
+
+api.add_resource(SessionViewListAPI,
+                 '/sessions/<Session:session>/views',
+                 endpoint='session_view_list',
+                 methods=('GET', 'POST'))
+
+api.add_resource(SessionViewItemAPI,
+                 '/sessions/<Session:session>/views/<ObjectId:view_id>',
+                 endpoint='session_view_item',
+                 methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
 api.add_resource(SessionAttachmentListAPI,
                  '/sessions/<Session:session>/attachments',
