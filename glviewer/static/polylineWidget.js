@@ -672,17 +672,16 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var length = this.ComputeLength();
+  var length = this.ComputeLength() * 0.25; // microns per pixel.
   var lengthString = "";
   if (this.Shape.FixedSize) {
-    var lengthString += length.toFixed(2);
+    lengthString += length.toFixed(2);
     lengthString += " px";
   } else {
       if (length > 1000) {
-          lengthString += (length/1000).toFixed(2) + "mm";
+          lengthString += (length/1000).toFixed(2) + " mm";
       } else {
-          lengthString += length.toFixed(2) + "mm";
-          lengthString += " um";
+          lengthString += length.toFixed(2) + " um";
       }
   }
   this.Dialog.Length.text(lengthString);
@@ -690,18 +689,16 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
 
   if (this.Shape.Closed) {
     this.Dialog.AreaDiv.show();
-    var area = this.ComputeArea();
+    var area = this.ComputeArea() * 0.25 * 0.25;
     var areaString = "";
     if (this.Shape.FixedSize) {
         areaString += area.toFixed(2);
         areaString += " pixels^2";
     } else {
         if (area > 1000000) {
-            areaString += (area/1000000).toFixed(2);
-            areaString += " mm^2";
+            areaString += (area/1000000).toFixed(2) + " mm^2";
         } else {
-            areaString += area.toFixed(2);
-            areaString += " um^2";
+            areaString += area.toFixed(2) + " um^2";
         }
     }
     this.Dialog.Area.text(areaString);

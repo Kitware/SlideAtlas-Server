@@ -382,7 +382,7 @@ CircleWidget.prototype.ShowPropertiesDialog = function () {
 
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius);
+  var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius) * 0.25 * 0.25;
   var areaString = "";
   if (this.Shape.FixedSize) {
       areaString += area.toFixed(2);
