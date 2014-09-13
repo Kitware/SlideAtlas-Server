@@ -22,7 +22,7 @@ function PolylineWidget (viewer, newFlag) {
   if (viewer === undefined) {
     return;
   }
-  
+
   this.Dialog = new Dialog(this);
   // Customize dialog for a lasso.
   this.Dialog.Title.text('Lasso Annotation Editor');
@@ -302,7 +302,7 @@ PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
     // Last resort.  ESC key always deactivates the widget.
     // Deactivate.
     this.Deactivate();
-    RecordState();  
+    RecordState();
   }
 
   return false;
@@ -552,7 +552,7 @@ PolylineWidget.prototype.CheckActive = function(event) {
   // Check for mouse touching an edge.
   var width = Math.max(this.MinLine * 4, this.LineWidth);
   for (var i = 1; i < this.Shape.Points.length; ++i) {
-    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1], 
+    if (this.Shape.IntersectPointLine(pt, this.Shape.Points[i-1],
                                       this.Shape.Points[i], width)) {
       this.State = POLYLINE_WIDGET_ACTIVE;
       this.Shape.Active = true;
@@ -633,7 +633,7 @@ PolylineWidget.prototype.SetActive = function(flag) {
 //This also shows the popup if it is not visible already.
 PolylineWidget.prototype.PlacePopup = function () {
   // The popup gets in the way when firt creating the line.
-  if (this.State == POLYLINE_WIDGET_NEW_EDGE || 
+  if (this.State == POLYLINE_WIDGET_NEW_EDGE ||
       this.State == POLYLINE_WIDGET_NEW) {
     return;
   }
@@ -734,8 +734,8 @@ PolylineWidget.prototype.ComputeArea = function() {
     var cx = 0;
     var cy = 0;
     for (var j = 0; j < this.Shape.Points.length; ++j) {
-        cx += this.Shape.Points[j][0];    
-        cy += this.Shape.Points[j][1];    
+        cx += this.Shape.Points[j][0];
+        cy += this.Shape.Points[j][1];
     }
     cx = cx / this.Shape.Points.length;
     cy = cy / this.Shape.Points.length;
@@ -743,14 +743,14 @@ PolylineWidget.prototype.ComputeArea = function() {
     var area = 0.0;
     // Iterate over triangles adding the area of each
     var last = this.Shape.Points.length-1;
-    var vx1 = this.Shape.Points[last][0] - cx;    
+    var vx1 = this.Shape.Points[last][0] - cx;
     var vy1 = this.Shape.Points[last][1] - cy;
     // First and last point form another triangle (they are not the same).
     for (var j = 0; j < this.Shape.Points.length; ++j) {
         // Area of triangle is 1/2 magnitude of cross product.
         var vx2 = vx1;
         var vy2 = vy1;
-        vx1 = this.Shape.Points[j][0] - cx;    
+        vx1 = this.Shape.Points[j][0] - cx;
         vy1 = this.Shape.Points[j][1] - cy;
         area += (vx1*vy2) - (vx2*vy1);
     }
@@ -770,10 +770,10 @@ PolylineWidget.prototype.ComputeLength = function() {
     }
 
     var length = 0;
-    var x0 = this.Shape.Points[0][0];    
+    var x0 = this.Shape.Points[0][0];
     var y0 = this.Shape.Points[0][1];
     for (var j = 1; j < this.Shape.Points.length; ++j) {
-        var x1 = this.Shape.Points[j][0];    
+        var x1 = this.Shape.Points[j][0];
         var y1 = this.Shape.Points[j][1];
         var dx = x1-x0;
         var dy = y1-y0;
