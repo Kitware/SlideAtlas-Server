@@ -681,7 +681,8 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
       if (length > 1000) {
           lengthString += (length/1000).toFixed(2) + " mm";
       } else {
-          lengthString += length.toFixed(2) + " um";
+          // Latin-1 00B5 is micro sign
+          lengthString += length.toFixed(2) + " \xB5m";
       }
   }
   this.Dialog.Length.text(lengthString);
@@ -698,7 +699,8 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
         if (area > 1000000) {
             areaString += (area/1000000).toFixed(2) + " mm^2";
         } else {
-            areaString += area.toFixed(2) + " um^2";
+            // Latin-1 00B5 is micro sign
+            areaString += area.toFixed(2) + " \xB5m^2";
         }
     }
     this.Dialog.Area.text(areaString);
