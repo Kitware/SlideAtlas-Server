@@ -7,6 +7,11 @@ function Cache(image) {
     }
   }
 
+  if ( ! image.TileSize) {
+      image.TileSize = 256;
+  }
+  
+
   var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
 
   this.Image = image;
@@ -32,7 +37,7 @@ function Cache(image) {
       LoadQueueAdd(qTile);
     }
   } else {
-    this.TileDimensions = [256, 256];
+    this.TileDimensions = [image.TileSize, image.TileSize];
     this.NumberOfSections = 1;
   }
 }

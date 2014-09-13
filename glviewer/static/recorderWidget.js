@@ -112,6 +112,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.GetCamera().Load(cameraRecord);
     viewer.OverView.Camera.Roll = cameraRecord.Roll;
     viewer.OverView.Camera.ComputeMatrix();
+    viewer.UpdateZoomGui();
   }
 
   if (this.AnnotationVisibility != undefined) {
