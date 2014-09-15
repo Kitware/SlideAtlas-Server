@@ -5,16 +5,19 @@
       server/tile.py/database/collection/filename.jpg:
 """
 import pymongo
-from pymongo.binary import Binary
+from bson import Binary
 import sys
-import Image
+from PIL import Image
 import StringIO
 import re
 import argparse
 from . import MongoUploader
 
-__all__ = ('MongoUploaderPyramid')
+__all__ = ('MongoUploaderPyramid', )
 
+import logging
+logger = logging.getLogger("UploaderPyramid")
+logger.setLevel(logging.INFO)
 
 class MongoUploaderPyramid(MongoUploader):
     pass

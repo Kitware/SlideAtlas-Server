@@ -26,7 +26,7 @@ import argparse
 import logging
 logging.basicConfig()
 rootLogger = logging.getLogger()
-logger = logging.getLogger("slideatlas.ptif_uploader")
+logger = logging.getLogger("uploader_driver")
 logger.setLevel(logging.INFO)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")

@@ -8,13 +8,11 @@ from slideatlas import create_app
 from slideatlas.models import Collection, Session, RefItem, NewView
 
 import logging
-logging.basicConfig()
-rootLogger = logging.getLogger()
-logger = logging.getLogger("slideatlas.ptif_uploader")
+logger = logging.getLogger("UploaderBase")
 logger.setLevel(logging.INFO)
 
 import pymongo
-from bson import ObjectId, InvalidId
+from bson.objectid import ObjectId, InvalidId
 
 # Create teh application objects
 __all__ = ('MongoUploader', )
@@ -106,14 +104,14 @@ class MongoUploader(object):
         """
         Will not be implemented in the base uploader class
         """
-        logging.error("make_reader NOT implemented")
+        logger.error("make_reader NOT implemented")
         sys.exit(-1)
 
     def upload_base(self):
         """
         Will not be implemented in the base uploader class
         """
-        logging.error("upload_base is NOT implemented")
+        logger.error("upload_base is NOT implemented")
         sys.exit(-1)
 
     def setup_destination(self):

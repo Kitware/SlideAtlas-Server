@@ -1,8 +1,14 @@
+import sys
+import os
+import subprocess
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
+
 from .base_reader import Reader
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
-from slideatlas import create_app
-from slideatlas.models import Collection, Session, RefItem, NewView
+import logging
+logger = logging.getLogger("WrapperReader")
+logger.setLevel(logging.INFO)
+
 
 class WrapperReader(Reader):
     def __init__(self, params=None):
