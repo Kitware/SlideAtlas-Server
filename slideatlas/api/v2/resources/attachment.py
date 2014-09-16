@@ -6,9 +6,8 @@ import math
 import mimetypes
 
 from bson import Binary
-from flask import current_app, make_response, request, url_for
+from flask import current_app, request, url_for
 from flask.helpers import wrap_file
-from flask.json import jsonify
 import gridfs
 from werkzeug.http import parse_content_range_header
 
@@ -47,7 +46,7 @@ class SessionAttachmentListAPI(ListAPIResource):
     @security.ViewSessionRequirement.protected
     def get(self, session):
         attachments = self._get(session)
-        return jsonify(attachments=attachments)
+        return dict(attachments=attachments)
 
 
     @security.AdminSessionRequirement.protected
@@ -108,9 +107,9 @@ class SessionAttachmentListAPI(ListAPIResource):
         # return response
         new_location = url_for('.session_attachment_item', session=session,
                                attachment_id=attachment._id)
-        return make_response(jsonify(),  # TODO: return body with metadata?
-                             201,  # Created
-                             {'Location': new_location})
+        return (None,  # TODO: return body with metadata?
+                201,  # Created
+                {'Location': new_location})
 
 
 ################################################################################
@@ -163,7 +162,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         if attachment.filename:
             content_disposition['filename'] = attachment.filename
         # TODO: make 'attachment' if file is a very large image
-        response.headers.set('Content-Disposition', 'inline', **content_disposition) # RFC 6266
+        response.headers.set('Content-Disposition', 'inline', **content_disposition)  # RFC 6266
 
         response.last_modified = attachment.upload_date
         response.set_etag(attachment.md5)
@@ -230,7 +229,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
                     }}
             )
 
-        return make_response(jsonify(), 204)  # No Content
+        return None, 204  # No Content
 
 
     @security.AdminSessionRequirement.protected
@@ -248,7 +247,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # delete from attachments collection
         attachments_fs.delete(attachment_id)
 
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################

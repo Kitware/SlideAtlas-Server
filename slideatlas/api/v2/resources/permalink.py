@@ -3,7 +3,6 @@
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import request, url_for
-from flask.json import jsonify
 
 from slideatlas import models, security
 from ..base import ListAPIResource
@@ -45,7 +44,7 @@ class PermalinkListAPI(ListAPIResource):
 
         # TODO: make 201 Created / 303 See Other
         # TODO: add Location header
-        return jsonify(permalinks=permalink_son)
+        return dict(permalinks=permalink_son)
 
 
 ################################################################################

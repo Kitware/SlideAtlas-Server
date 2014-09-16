@@ -17,7 +17,7 @@ class CollectionListAPI(ListAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self):
         collections = models.Collection.objects.order_by('label')
-        return jsonify(collections=collections.to_son(only_fields=('label',)))
+        return dict(collections=collections.to_son(only_fields=('label',)))
 
     def post(self):
         abort(501)  # Not Implemented
@@ -30,7 +30,7 @@ class CollectionItemAPI(ItemAPIResource):
         collection_son = collection.to_son()
         sessions = models.Session.objects(collection=collection)
         collection_son['sessions'] = sessions.to_son(only_fields=('label', 'type'))
-        return jsonify(collections=[collection_son])
+        return dict(collections=[collection_son])
 
     def put(self, collection):
         abort(501)  # Not Implemented
@@ -71,7 +71,7 @@ class CollectionAccessAPI(APIResource):
                                       permissions__resource_id=collection.id
                                      ).order_by('label')
 
-        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+        return dict(users=[], groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminCollectionRequirement.protected
     def post(self, collection):

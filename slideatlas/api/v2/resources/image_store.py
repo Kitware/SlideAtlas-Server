@@ -1,8 +1,5 @@
 # coding=utf-8
 
-from flask import make_response
-from flask.json import jsonify
-
 from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
 from ..blueprint import api
@@ -20,7 +17,7 @@ class ImageStoreListAPI(ListAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self):
         image_stores = models.ImageStore.objects.order_by('label')
-        return jsonify(image_stores=image_stores.to_son(only_fields=('label',)))
+        return dict(image_stores=image_stores.to_son(only_fields=('label',)))
 
     def post(self):
         abort(501)  # Not Implemented
@@ -32,7 +29,7 @@ class ImageStoreListSyncAPI(APIResource):
     def post(self):
         for image_store in models.PtiffImageStore.objects.order_by('label'):
             image_store.sync()
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################
@@ -41,14 +38,14 @@ class ImageStoreListDeliverAPI(APIResource):
     def post(self):
         for image_store in models.PtiffImageStore.objects.order_by('label'):
             image_store.deliver()
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################
 class ImageStoreItemAPI(ItemAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self, image_store):
-        return jsonify(image_stores=[image_store.to_son()])
+        return dict(image_stores=[image_store.to_son()])
 
     def put(self, collection):
         abort(501)  # Not Implemented
@@ -67,7 +64,7 @@ class ImageStoreItemSyncAPI(APIResource):
         if not isinstance(image_store, models.PtiffImageStore):
             abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
         image_store.sync()
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################
@@ -77,7 +74,7 @@ class ImageStoreItemDeliverAPI(APIResource):
         if not isinstance(image_store, models.PtiffImageStore):
             abort(410, details='Only Ptiff ImageStores may be delivered.')  # Gone
         image_store.deliver()
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################

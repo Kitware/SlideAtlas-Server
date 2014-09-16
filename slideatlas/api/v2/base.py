@@ -1,17 +1,20 @@
 # coding=utf-8
 
-from flask.views import MethodView
+from flask.ext.restful import Resource
 
-from .common import abort
+from slideatlas import security
+from .common import abort, output_json
 
 ################################################################################
 __all__ = ()
 
 
 ################################################################################
-class APIResource(MethodView):
-    # TODO make this a Flask-RESTful 'Resource' subclass
-    pass
+class APIResource(Resource):
+    representations = {
+        'application/json': output_json,
+    }
+    method_decorators = [security.login_required]
 
 
 class ListAPIResource(APIResource):

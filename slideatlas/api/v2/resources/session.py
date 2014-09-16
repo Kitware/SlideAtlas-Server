@@ -3,8 +3,6 @@
 from itertools import ifilter
 
 from bson import ObjectId
-from flask import make_response
-from flask.json import jsonify
 
 from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
@@ -28,7 +26,7 @@ class SessionListAPI(ListAPIResource):
 
         sessions = models.Session.objects.only(*only_fields).order_by('label')
 
-        return jsonify(sessions=sessions.to_son(only_fields=only_fields))
+        return dict(sessions=sessions.to_son(only_fields=only_fields))
 
     def post(self):
         abort(501)  # Not Implemented
@@ -125,7 +123,7 @@ class SessionItemAPI(ItemAPIResource):
 
     @security.ViewSessionRequirement.protected
     def get(self, session):
-        return jsonify(sessions=[self._get(session)])
+        return dict(sessions=[self._get(session)])
 
     def put(self, session):
         abort(501)  # Not Implemented
@@ -139,7 +137,7 @@ class SessionItemAPI(ItemAPIResource):
             view_id = view_ref.ref
             SessionViewItemAPI._delete(view_id)
         session.delete()
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
 
 ################################################################################
@@ -150,7 +148,7 @@ class SessionAccessAPI(APIResource):
                                       permissions__resource_id=session.id
                                      ).order_by('label')
 
-        return jsonify(users=[], groups=groups.to_son(only_fields=('label',)))
+        return dict(users=[], groups=groups.to_son(only_fields=('label',)))
 
     @security.EditCollectionRequirement.protected
     def post(self, collection):

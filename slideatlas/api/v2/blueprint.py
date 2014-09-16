@@ -3,8 +3,6 @@
 from flask import Blueprint
 from flask.ext.restful import Api
 
-from slideatlas import security
-
 ################################################################################
 __all__ = ('blueprint', )
 
@@ -22,7 +20,7 @@ blueprint = Blueprint('apiv2', __name__,
 #   attached directly to the app
 api = Api(blueprint,
           prefix='/v2',
-          decorators=[security.login_required],
           catch_all_404s=False,  # TODO: do we want this?
+          default_mediatype='application/json',
           )
 # TODO: explicitly set 'config["ERROR_404_HELP"] = True'

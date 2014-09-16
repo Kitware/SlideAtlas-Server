@@ -1,7 +1,6 @@
 # coding=utf-8
 
-from flask import request, make_response
-from flask.json import jsonify
+from flask import request
 
 from slideatlas import models, security
 from ..base import ListAPIResource, ItemAPIResource
@@ -24,7 +23,7 @@ class UserListAPI(ListAPIResource):
             user_son = user.to_son(only_fields=('type', ))
             user_son['label'] = user.label
             users_son.append(user_son)
-        return jsonify(users=users_son)
+        return dict(users=users_son)
 
     def post(self):
         abort(501)  # Not Implemented
@@ -39,7 +38,7 @@ class UserItemAPI(ItemAPIResource):
 
         user_son['groups'] = [group.to_son(only_fields=('label',)) for group in user.groups]
         user_son['type'] = user._class_name
-        return jsonify(users=[user_son])
+        return dict(users=[user_son])
 
     def put(self, user):
         abort(501)  # Not Implemented
@@ -110,7 +109,7 @@ class UserItemAPI(ItemAPIResource):
 
         document.save()
 
-        return make_response('', 204)  # No Content
+        return None, 204  # No Content
 
     @security.AdminSiteRequirement.protected
     def patch(self, user):

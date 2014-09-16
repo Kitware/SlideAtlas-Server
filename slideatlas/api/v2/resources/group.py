@@ -1,7 +1,5 @@
 # coding=utf-8
 
-from flask.json import jsonify
-
 from slideatlas import models, security
 from ..base import ListAPIResource, ItemAPIResource
 from ..blueprint import api
@@ -32,7 +30,7 @@ class GroupListAPI(ListAPIResource):
         # else:
         #     roles = list(roles)
         groups = models.Group.objects.order_by('label')
-        return jsonify(groups=groups.to_son(only_fields=('label',)))
+        return dict(groups=groups.to_son(only_fields=('label',)))
 
     @security.AdminSiteRequirement.protected
     def post(self):
@@ -115,7 +113,7 @@ class GroupItemAPI(ItemAPIResource):
         group_son = group.to_son()
         group_son['users'] = models.User.objects(groups=group).to_son(only_fields=('full_name', 'email'))
         # group_son['permissions'] = list(group.permissions)
-        return jsonify(groups=[group_son])
+        return dict(groups=[group_son])
 
     def put(self, group):
         abort(501)  # Not Implemented
