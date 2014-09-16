@@ -3,6 +3,7 @@
 from itertools import ifilter
 
 from bson import ObjectId
+from flask import request, url_for
 
 from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
@@ -29,7 +30,41 @@ class SessionListAPI(ListAPIResource):
         return dict(sessions=sessions.to_son(only_fields=only_fields))
 
     def post(self):
-        abort(501)  # Not Implemented
+        """
+        Create a session.
+
+        The request should be of type 'application/json', not
+        'application/x-www-form-urlencoded'.
+
+        The request must be of the format:
+          {
+            "collection": "0123456789abcdef01234567",
+            "label" : "New Session Name"
+          }
+        """
+        request_json = request.get_json()
+        if request_json is None:
+            abort(415)  # Unsupported Media Type
+
+        try:
+            collection_id = request_json['collection']
+            session_label = request_json['label']
+        except KeyError as e:
+            abort(400, details='The request is missing the "%s" field.' % e.message)  # TODO
+
+        collection = models.Collection.objects.get_or_404(id=collection_id)
+        security.AdminCollectionRequirement(collection).test()
+
+        session = models.Session(collection=collection, image_store=collection.image_store, label=session_label)
+        try:
+            session.save()
+        except models.ValidationError as e:
+            abort(400, details='The new session was invalid because: %s' % e.message)
+
+        new_location = url_for('.session_item', session=session)
+        return (None,  # TODO: return body with metadata?
+                201,  # Created
+                {'Location': new_location})
 
 
 ################################################################################

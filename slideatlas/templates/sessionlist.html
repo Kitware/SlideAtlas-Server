@@ -65,7 +65,7 @@
                         var collection_id = $(this).data("collection-id");
                         if (confirm("Delete the session and views, but not the whole-slide images.")) {
                             $.ajax({
-                                type: "delete",
+                                type: "DELETE",
                                 url: "/api/v2/sessions/" + session_id,
                                 success: function() {
                                     window.location = "?reload=" + Date()
