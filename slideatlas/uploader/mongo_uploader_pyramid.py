@@ -31,15 +31,13 @@ level = 0
 total = 0
 
 max_levels = 8
-from threading import Thread
-db = "mydb"
-collection = "small"
+from multiprocessing import Process
 
 
-class TileProcessor(Thread):
+class TileProcessor(Process):
     def __init__(self, args):
         # Iterate from here
-        Thread.__init__(self)
+        Process.__init__(self)
 
         #TODO: Remove this safegaurd
         if "max_name_length" not in args:
@@ -101,7 +99,7 @@ class TileProcessor(Thread):
             'file': Binary(contents)
             }
 
-        logger.info("Done with: " + name)
+        # logger.info("Done with: " + name)
         self.col.insert(res_obj)
         del newim
         return smallim
