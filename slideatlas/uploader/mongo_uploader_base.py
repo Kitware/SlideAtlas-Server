@@ -2,6 +2,7 @@
 
 import sys
 import os
+import pdb
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_app
@@ -13,6 +14,9 @@ logger.setLevel(logging.INFO)
 
 import pymongo
 from bson.objectid import ObjectId, InvalidId
+
+from slideatlas.ptiffstore import OpenslideReader
+from slideatlas.ptiffstore import PilReader
 
 # Create teh application objects
 __all__ = ('MongoUploader', )
@@ -59,9 +63,19 @@ class MongoUploader(object):
         self.setup_destination()
 
         # Check whether image exists already
-        if self.check_exists_already():
-            logger.info("Image will be skipped")
-            return
+        image_name = os.path.split(self.args.input)[1]
+        image_doc = self.db["images"].find_one({"filename": image_name})
+
+        if image_doc is not None:
+            logger.info("Image exists already")
+
+            # Should we cleanup the image_store ?
+            if not self.args.overwrite:
+                logger.info("Image will be skipped")
+                return
+            else:
+                logger.info("Image will be removed")
+                self.imagestore.remove_image(image_doc["_id"])
         else:
             logger.info("Image will be uploaded")
 
@@ -104,8 +118,20 @@ class MongoUploader(object):
         """
         Will not be implemented in the base uploader class
         """
-        logger.error("make_reader NOT implemented")
-        sys.exit(-1)
+        #todo: choose the reader here
+
+        ext = os.path.splitext(self.args.input)[1][1:]
+
+        if ext in ["svs", "ndpi", "scn"]:
+            reader = OpenslideReader()
+        elif ext in ["jpg", "png"]:
+            reader = PilReader()
+        else:
+            logger.error("Unknown extension: ", ext)
+            sys.exit(-1)
+
+        reader.set_input_params({'fname': self.args.input})
+        return reader
 
     def upload_base(self):
         """
@@ -140,24 +166,11 @@ class MongoUploader(object):
 
             self.db = conn[self.imagestore.dbname]
             self.db.authenticate(self.imagestore.username, self.imagestore.password)
-        except:
+            self.destination = self.db[str(self.imageid)]
+        except Exception as e:
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+            logger.error("Error: " + e.message)
             sys.exit(-1)
-
-    def check_exists_already(self):
-        """
-        Verifies if the destination image appears to be in the images session
-        """
-        image_name = os.path.split(self.args.input)[1]
-
-        image_doc = self.db["images"].find_one({"filename": image_name})
-
-        if image_doc is not None:
-            logger.info("Image exists already")
-            return True
-
-        else:
-            return False
 
     def insert_metadata(self):
         """
