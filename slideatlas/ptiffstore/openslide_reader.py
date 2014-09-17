@@ -1,6 +1,7 @@
 import sys
 import os
 from base_reader import Reader
+from common_utils import get_max_depth
 tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
 
 # TODO: Make following paths work in windows after openslide is compiled in windows
@@ -23,14 +24,23 @@ class OpenSlideReader(Reader):
 
         self.width = self._reader.dimensions[0]
         self.height = self._reader.dimensions[1]
-        self.num_levels = self._reader.level_count
-        self.origin = js["origin"]
-        self.spacing = js["spacing"]
-        self.components = js["components"]
-        print self._reader.dimensions
+        self.num_levels = get_max_depth(self.width, self.height)
+
+        # TODO: deduce the vendor specific metadata
+        self.origin = [0, 0, 0]
+        self.spacing = [1, 1, 1]
+        self.components = 3
+
+    def read_region(self, location, size, level=0):
+        """
+        Implementing read_region for openslide reader
+        """
+        return self._reader.read_region(location, level, size)
 
 
 if __name__ == "__main__":
 
     reader = OpenSlideReader()
     reader.set_input_params({"fname": "/home/dhan/Downloads/Leica-1.scn"})
+    i = reader.get_tile(26000, 83000)
+    i.save("tile.jpg")

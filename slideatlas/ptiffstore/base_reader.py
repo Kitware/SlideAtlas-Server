@@ -17,4 +17,14 @@ class Reader(object):
             params["bindir"] = params["bindir"] + "/"
 
     def get_tile(self, x, y, tilesize=256):
+        """
+        helper function to get a particular tile.
+        The tile containing absolute pixels specified by x and y
+        is returned
+        """
+        return self.read_region((x, y), (tilesize, tilesize))
+
+    def read_region(self, location, size, level=0):
+        """
+        """
         raise NotImplementedError
