@@ -195,7 +195,9 @@ def make_argument_parser():
     # Optional parameters
     # Tile size if the input image is not already tiled
     parser.add_argument("-t", "--tilesize", help="Tile size in pixes. (power of two recommended). Defaults to tiles in input or 256", default=256, type=int)
-    parser.add_argument("-m", "--mongo-collection", help="ObjectId, Destination mongodb collection name. If specified collection is emptied before overwriting")
+    parser.add_argument("-m", "--mongo-collection", help="ObjectId, Destination mongodb collection name")
+
+    parser.add_argument("-o", "--overwrite", help="Specified image, if exists, is emptied before upload is attempted", action='store_true', default=False)
 
     # TODO: Support parallel operations
     # parser.add_argument('-j', '--parallel', help='Turn parallel processing ON', action='store_true')

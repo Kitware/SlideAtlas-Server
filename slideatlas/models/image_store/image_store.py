@@ -38,6 +38,10 @@ class ImageStore(ModelDocument):
     def get_thumb(self, image):
         raise NotImplementedError()
 
+    def remove_image(self, image_id):
+        raise NotImplementedError
+
+
 
 ################################################################################
 class MultipleDatabaseImageStore(ImageStore):

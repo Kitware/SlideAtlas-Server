@@ -59,9 +59,19 @@ class MongoUploader(object):
         self.setup_destination()
 
         # Check whether image exists already
-        if self.check_exists_already():
-            logger.info("Image will be skipped")
-            return
+        image_name = os.path.split(self.args.input)[1]
+        image_doc = self.db["images"].find_one({"filename": image_name})
+
+        if image_doc is not None:
+            logger.info("Image exists already")
+
+            # Should we cleanup the image_store ?
+            if not self.args.overwrite:
+                logger.info("Image will be skipped")
+                return
+            else:
+                logger.info("Image will be removed")
+                self.imagestore.remove_image(image_doc["_id"])
         else:
             logger.info("Image will be uploaded")
 
@@ -145,21 +155,6 @@ class MongoUploader(object):
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
             logger.error("Error: " + e.message)
             sys.exit(-1)
-
-    def check_exists_already(self):
-        """
-        Verifies if the destination image appears to be in the images session
-        """
-        image_name = os.path.split(self.args.input)[1]
-
-        image_doc = self.db["images"].find_one({"filename": image_name})
-
-        if image_doc is not None:
-            logger.info("Image exists already")
-            return True
-
-        else:
-            return False
 
     def insert_metadata(self):
         """
