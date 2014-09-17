@@ -13,14 +13,17 @@ _dummylib = cdll.LoadLibrary(openslide_lib)
 
 import openslide
 
+__all__ = ("OpenslideReader", )
 
-class OpenSlideReader(Reader):
+
+class OpenslideReader(Reader):
 
     def __init__(self):
-        super(OpenSlideReader, self).__init__()
+        super(OpenslideReader, self).__init__()
 
     def set_input_params(self, params):
         self._reader = openslide.OpenSlide(params['fname'])
+        self.name = os.path.basename(params["fname"])
 
         self.width = self._reader.dimensions[0]
         self.height = self._reader.dimensions[1]
@@ -40,7 +43,8 @@ class OpenSlideReader(Reader):
 
 if __name__ == "__main__":
 
-    reader = OpenSlideReader()
+    reader = OpenslideReader()
     reader.set_input_params({"fname": "/home/dhan/Downloads/Leica-1.scn"})
     i = reader.get_tile(26000, 83000)
+    print reader.name
     i.save("tile.jpg")

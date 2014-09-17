@@ -165,6 +165,10 @@ def process_file(args):
         logger.info("Got a " + args.input)
         MongoUploaderWrapper(args)
 
+    elif args.input.endswith(".scn") or args.input.endswith(".svs"):
+        logger.info("Got a " + args.input)
+        MongoUploaderPyramid(args)
+
     elif args.input.endswith(".jpg"):
         logger.info("Got a " + args.input)
         MongoUploaderPyramid(args)

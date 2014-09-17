@@ -140,8 +140,10 @@ class MongoUploader(object):
 
             self.db = conn[self.imagestore.dbname]
             self.db.authenticate(self.imagestore.username, self.imagestore.password)
-        except:
+            self.destination = self.db[str(self.imageid)]
+        except Exception as e:
             logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+            logger.error("Error: " + e.message)
             sys.exit(-1)
 
     def check_exists_already(self):
