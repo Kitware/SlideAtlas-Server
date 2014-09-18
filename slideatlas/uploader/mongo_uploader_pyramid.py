@@ -117,7 +117,7 @@ class TileProcessor(Process):
             endy = starty + tilesize
 
             if endx > self.reader.width:
-                endx = self.width
+                endx = self.reader.width
 
             if endy > self.reader.height:
                 endy = self.reader.height
@@ -145,8 +145,8 @@ class TileProcessor(Process):
                     del bi
                     bi = wi
 
-                # Save it out
-                bi.save(name + ".jpg")
+                # Upload
+                self.insert_to_imagestore(name, bi)
                 return bi
 
         # Get parents
@@ -166,11 +166,22 @@ class TileProcessor(Process):
         # Resize
         smallim = newim.resize((tilesize, tilesize), Image.ANTIALIAS)
 
+        # Upload
+        self.insert_to_imagestore(name, smallim)
+
+        del newim
+        return smallim
+
+    def insert_to_imagestore(self, name, image_in):
+
         # Compress
         output = StringIO.StringIO()
-        smallim.save(output, format='JPEG')
+        image_in.save(output, format='JPEG')
         contents = output.getvalue()
         output.close()
+
+        # Introspection
+        image_in.save(name + ".jpg")
 
         # Upload
         res_obj = {
@@ -180,9 +191,6 @@ class TileProcessor(Process):
             }
 
         self.col.insert(res_obj)
-
-        del newim
-        return smallim
 
 
 class MongoUploaderPyramid(MongoUploader, Process):
