@@ -68,6 +68,40 @@ Building pylibtiff
    $ cd ../pylibtiff-read-only
    $ python setup.py build
 
+Building openslide
+-----------------------------
+
+Slideatlas "expects" openslide installed. Instructions for building are as follows-
+
+Libtiff4
+~~~~~~~~
+
+.. code-block:: none
+
+  wget ftp://ftp.remotesensing.org/pub/libtiff/tiff-4.0.3.tar.gz
+
+  tar xvzf tiff-4.0.3.tar.gz
+  cd tiff-4.0.3/
+  ./configure
+  make
+  sudo make install
+
+Openslide
+~~~~~~~~~
+
+.. code-block:: none
+
+  git clone git://github.com/openslide/openslide.git
+  cd openslide
+  autoreconf -i
+  make
+  sudo make install
+
+
+
+
+
+
 Building documentation
 ----------------------
 

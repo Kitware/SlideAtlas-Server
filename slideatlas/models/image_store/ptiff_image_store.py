@@ -23,7 +23,7 @@ from ..session import Collection, Session, RefItem
 
 from slideatlas.common_utils import reversed_enumerate
 from slideatlas.ptiffstore.reader_cache import make_reader
-from slideatlas.ptiffstore.common_utils import get_max_depth, getcoords
+from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_index
 
 ################################################################################
 __all__ = ('PtiffImageStore',)
@@ -77,7 +77,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         tile_size = image.tile_size
         tiff_path = os.path.join(self.root_path, image.filename)
 
-        index_x, index_y, index_z = getcoords(tile_name[:-4])
+        index_x, index_y, index_z = get_tile_index(tile_name[:-4])
 
         reader = make_reader({
             'fname': tiff_path,

@@ -6,3 +6,4 @@
     path = slideatlas/ptiffstore/tpl/pylibtiff-read-only
     url = https://github.com/brianhelba/pylibtiff.git
     ignore = untracked
+
