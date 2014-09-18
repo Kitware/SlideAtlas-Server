@@ -122,12 +122,12 @@ class MongoUploader(object):
 
         ext = os.path.splitext(self.args.input)[1][1:]
         logger.info("Got extension: " + ext)
-        if ext in ["svs", "ndpi", "scn"]:
+        if ext in ["svs", "ndpi", "scn", "tif"]:
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
             reader = PilReader()
         else:
-            logger.error("Unknown extension: ", ext)
+            logger.error("Unknown extension: " + ext)
             sys.exit(-1)
 
         reader.set_input_params({'fname': self.args.input})

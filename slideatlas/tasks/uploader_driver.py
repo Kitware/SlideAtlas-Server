@@ -157,19 +157,18 @@ def process_file(args):
     """
     Deliver the file to appropriate
     """
-    if args.input.endswith(".ptif"):
+    ext = os.path.splitext(args.input)[1][1:]
+    logger.warning("Extension: " + ext)
+
+    if ext in ["ptif", ]:
         logger.info("Got a PTIF")
         MongoUploaderPtiff(args)
 
-    elif args.input.endswith(".jp2") or args.input.endswith(".tif"):
+    elif ext in ["jp2", ]:
         logger.info("Got a " + args.input)
         MongoUploaderWrapper(args)
 
-    elif args.input.endswith(".scn") or args.input.endswith(".ndpi") or args.input.endswith(".svs"):
-        logger.info("Got a " + args.input)
-        MongoUploaderPyramid(args)
-
-    elif args.input.endswith(".jpg"):
+    elif ext in ["scn", "ndpi", "svs", "tif", "jpg", "png"]:
         logger.info("Got a " + args.input)
         MongoUploaderPyramid(args)
 
