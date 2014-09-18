@@ -1,6 +1,6 @@
 import sys
 import os
-from base_reader import Reader
+from base_reader import InvertedReader
 from common_utils import get_max_depth
 tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
 
@@ -16,7 +16,7 @@ import openslide
 __all__ = ("OpenslideReader", )
 
 
-class OpenslideReader(Reader):
+class OpenslideReader(InvertedReader):
 
     def __init__(self):
         super(OpenslideReader, self).__init__()

@@ -2,7 +2,7 @@ import sys
 import os
 from PIL import Image
 
-from base_reader import Reader
+from base_reader import InvertedReader
 from common_utils import get_max_depth, get_tile_index
 import logging
 logger = logging.getLogger("PilReader")
@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 __all__ = ("PilReader", )
 
 
-class PilReader(Reader):
+class PilReader(InvertedReader):
 
     def __init__(self):
         super(PilReader, self).__init__()
@@ -55,7 +55,7 @@ class PilReader(Reader):
 
         # If bottom more than width
         logger.info("left: %d, top: %d, right: %d, bottom: %d" % (left, top, right, bottom))
-        output = self._reader.crop([left, top, right, bottom])
+        output = self.read_region([left, top, right, bottom])
 
         if needs_padding:
             # Paste the acquired image into white_tile
@@ -72,22 +72,11 @@ class PilReader(Reader):
 
         return output
 
-    def read_region(self, location, size, level=0, name=None):
+    def read_region(self, box):
         """
         Implementing read_region for openslide reader
         """
-
-        assert name is not None
-        # Translate the location with respect to
-        # Left, top, right, bottom
-        #TODO: Convert the coordimates
-        [x_index, y_index, zoom] = get_tile_index(name)
-        left = location[0]
-        top = self.height - (y_index + 1)
-        right = left + size[0]
-        bottom = top - size[1]
-        logger.info("left: %d, top: %d, right: %d, bottom: %d" % (left, top, right, bottom))
-        return self._reader.copy().crop([left, bottom, right, top])
+        return self._reader.crop(box)
 
 
 if __name__ == "__main__":
