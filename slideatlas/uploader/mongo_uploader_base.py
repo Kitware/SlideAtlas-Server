@@ -15,7 +15,6 @@ logger.setLevel(logging.INFO)
 import pymongo
 from bson.objectid import ObjectId, InvalidId
 
-from slideatlas.ptiffstore import OpenslideReader
 from slideatlas.ptiffstore import PilReader
 
 # Create teh application objects
@@ -123,6 +122,7 @@ class MongoUploader(object):
         ext = os.path.splitext(self.args.input)[1][1:]
         logger.info("Got extension: " + ext)
         if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
+            from slideatlas.ptiffstore.openslide_reader import OpenslideReader
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
             reader = PilReader()
