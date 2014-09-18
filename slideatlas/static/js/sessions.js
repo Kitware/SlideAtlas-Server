@@ -5,13 +5,18 @@ function createNewSession(collectionId, onSuccess) {
         callback: function(value) {
             if(value !== null) {
                 console.log("Collection id: " + collectionId)
-                console.log("Label enetered: " + value);
+                console.log("Label entered: " + value);
                 $.ajax({
-                    url: "/api/v2/collections/" + collectionId,
+                    url: "/api/v2/sessions",
                     type: "POST",
                     dataType: "json",
                     contentType: 'application/json;charset=UTF-8',
-                    data: JSON.stringify({ "session" : { "label" : value }, "debug" : 1}, null, "\t"),
+                    data: JSON.stringify(
+                        {
+                            "collection": collectionId,
+                            "label" : value,
+                        },
+                        null, "\t"),
                     success: onSuccess,
                     error: function () {
                         console.log("Something went wrong");
@@ -19,7 +24,7 @@ function createNewSession(collectionId, onSuccess) {
                 });
             }
             else {
-                console.log("Cancelled ");
+                console.log("Cancelled");
             }
         }
     });
