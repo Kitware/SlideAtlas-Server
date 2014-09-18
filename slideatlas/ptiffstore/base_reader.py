@@ -1,3 +1,4 @@
+from PIL import Image
 
 
 class Reader(object):
@@ -10,6 +11,9 @@ class Reader(object):
         self.spacing = [1.0, 1.0, 1.0]
         self.origin = [0., 0., 0.]
         self.components = 3
+
+    def get_white_tile(self, tilesize):
+        return Image.new('RGB', (tilesize, tilesize), color=(255, 255, 255))
 
     def set_input_params(self, params):
         self.params = params

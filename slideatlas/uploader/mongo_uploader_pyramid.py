@@ -177,7 +177,7 @@ class TileProcessor(Process):
         output.close()
 
         # Introspection
-        image_in.save(name + ".jpg")
+        # image_in.save(name + ".jpg")
 
         # Upload
         res_obj = {
