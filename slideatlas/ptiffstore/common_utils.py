@@ -9,7 +9,7 @@ def get_max_depth(width, height, tilesize = 256):
     pow = math.log(extent) / math.log(2)
     return int(math.ceil(pow) + 1)
 
-def getcoords(name):
+def get_tile_index(name):
     """
     Returns the tile indexes in x, y and zoom
     """
@@ -121,8 +121,8 @@ class Test(unittest.TestCase):
         self.failUnlessEqual(get_tile_name_slideatlas(8,15,5), "tqsttt.jpg")# ['tqsttt', 8, 15]
 
     def test_GetcoordT(self):
-        self.failUnlessEqual(getcoords("t"),(0,0,0))# ['tqsttt', 8, 15]
-        self.failUnlessEqual(getcoords("tt"),(0,1,1))# ['tqsttt', 8, 15]
+        self.failUnlessEqual(get_tile_index("t"),(0,0,0))# ['tqsttt', 8, 15]
+        self.failUnlessEqual(get_tile_index("tt"),(0,1,1))# ['tqsttt', 8, 15]
 
 if __name__ == "__main__":
     unittest.main()

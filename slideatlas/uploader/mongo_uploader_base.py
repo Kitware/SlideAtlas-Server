@@ -121,7 +121,7 @@ class MongoUploader(object):
         #todo: choose the reader here
 
         ext = os.path.splitext(self.args.input)[1][1:]
-
+        logger.info("Got extension: " + ext)
         if ext in ["svs", "ndpi", "scn"]:
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
