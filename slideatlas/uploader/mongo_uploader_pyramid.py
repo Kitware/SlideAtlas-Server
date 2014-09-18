@@ -198,25 +198,25 @@ class MongoUploaderPyramid(MongoUploader, Process):
         import time
         start = time.clock()
 
-        # Create 4 processes
-        tq = TileProcessor({"name": 'tq', "input": self.args.input, "imagestore": self.imagestore, "imageid": self.imageid, "tilesize": 256})
-        tq.start()
+        args = {
+            "input": self.args.input,
+            "imagestore": self.imagestore,
+            "imageid": self.imageid,
+            "tilesize": 256
+            }
 
-        tr = TileProcessor({"name": 'tr', "input": self.args.input, "imagestore": self.imagestore, "imageid": self.imageid, "tilesize": 256})
-        tr.start()
+        processes = []
+        for name in ["tq", "tr", "ts", "tt"]:
+            args["name"] = name
+            process = TileProcessor(args)
+            process.start()
+            processes.append(process)
 
-        ts = TileProcessor({"name": 'ts', "input": self.args.input, "imagestore": self.imagestore, "imageid": self.imageid, "tilesize": 256})
-        ts.start()
+        for process in processes:
+            process.join()
 
-        tt = TileProcessor({"name": 'tt', "input": self.args.input, "imagestore": self.imagestore, "imageid": self.imageid, "tilesize": 256})
-        tt.start()
-
-        tq.join()
-        tr.join()
-        ts.join()
-        tt.join()
-
-        t = TileProcessor({"name": 'tq', "input": self.args.input, "imagestore": self.imagestore, "imageid": self.imageid, "tilesize": 256})
+        args["name"] = "t"
+        t = TileProcessor(args)
         t.start()
         t.join()
 
