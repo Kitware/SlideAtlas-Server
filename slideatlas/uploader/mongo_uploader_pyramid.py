@@ -120,26 +120,13 @@ class TileProcessor(Process):
             # verify if within image
             if(startx >= endx or starty >= endy):
                 logger.info("Not in image : %d, %d, %d, %d" % (startx, starty, endx - startx, endy - starty))
-
+                return self.white_tile
             else:
                 w = endx - startx
                 h = endy - starty
 
                 logger.info("Reading from the image: %d, %d, %d, %d" % (startx, starty, w, h))
                 bi = self.reader.read_tile(coords[0], coords[1], self.tilesize)
-                logger.info("Size of bi " + str(bi.size))
-                # Perform padding
-                if w < self.tilesize or h < self.tilesize:
-                    logger.info("Needs filling ..")
-
-                    # Paste the acquired image into white_tile
-                    wi = self.white_tile.copy()
-                    logger.info("Pasting at: %s" % [0, self.tilesize-h])
-                    wi.paste(bi, (0, self.tilesize-h))
-
-                    # empty bi
-                    del bi
-                    bi = wi
 
                 # Upload
                 self.insert_to_imagestore(name, bi)
