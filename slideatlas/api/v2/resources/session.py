@@ -9,7 +9,7 @@ from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
 from ..blueprint import api
 from ..common import abort
-from .attachment import SessionAttachmentListAPI
+from .attachment import SessionAttachmentListAPI, SessionAttachmentItemAPI
 from .view import SessionViewItemAPI
 
 ################################################################################
@@ -171,6 +171,17 @@ class SessionItemAPI(ItemAPIResource):
         for view_ref in session.views:
             view_id = view_ref.ref
             SessionViewItemAPI._delete(view_id)
+        for attachment_ref in session.attachments:
+            attachment_id = attachment_ref.ref
+            # TODO: this is slow, as the session is re-saved as each attachment
+            #   is deleted; this should be refactored to delete all attachments
+            #   at once, without updating the session
+            SessionAttachmentItemAPI().delete(session, attachment_id)
+        models.User.objects(permissions__resource_id=session.id)\
+            .update(pull__permissions__resource_id=session.id)
+        models.Group.objects(permissions__resource_id=session.id)\
+            .update(pull__permissions__resource_id=session.id)
+
         session.delete()
         return None, 204  # No Content
 
