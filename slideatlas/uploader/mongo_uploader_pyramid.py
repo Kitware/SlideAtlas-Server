@@ -15,7 +15,7 @@ from . import MongoUploader
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
-from slideatlas.ptiffstore import OpenslideReader, PilReader
+from slideatlas.ptiffstore import PilReader
 from slideatlas.ptiffstore.common_utils import get_tile_index, get_max_depth
 
 __all__ = ('MongoUploaderPyramid', )
@@ -56,6 +56,7 @@ class TileProcessor(Process):
         ext = os.path.splitext(self.args["input"])[1][1:]
         if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
             logger.info("%d) Using OpenslideReader for: %s" % (os.getpid(), ext))
+            from slideatlas.ptiffstore.openslide_reader import OpenslideReader
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
             logger.info("%d) Using PilReader for: %s" % (os.getpid(), ext))
