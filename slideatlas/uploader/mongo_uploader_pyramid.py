@@ -26,13 +26,6 @@ import logging
 logger = logging.getLogger("UploaderPyramid")
 logger.setLevel(logging.INFO)
 
-debug = False
-tilesize = 256
-force = 0
-level = 0
-total = 0
-
-max_levels = 8
 from multiprocessing import Process
 
 
@@ -44,7 +37,8 @@ class TileProcessor(Process):
         logger.info("ARGS: " + str(args))
         self.args = args
         self.name = self.args["name"]
-        self.white_tile = Image.new('RGB', (tilesize, tilesize), color=(255, 255, 255))
+        self.tilesize = self.args["tilesize"]
+        self.white_tile = Image.new('RGB', (self.tilesize, self.tilesize), color=(255, 255, 255))
 
     def run(self):
         # This executes in another process
@@ -72,6 +66,7 @@ class TileProcessor(Process):
             sys.exit(-1)
 
         reader.set_input_params({'fname': self.args["input"]})
+        logger.info("ImageSize (%d,%d)" % (reader.width, reader.height))
         return reader
 
     def setup_destination(self):
@@ -96,7 +91,7 @@ class TileProcessor(Process):
         name = name + toadd
         logger.info(str(os.getpid()) + "): getting " + name)
 
-        [a, startx, starty] = get_tile_index(name)
+        [startx, starty, zoom] = get_tile_index(name)
 
         limitx = (startx + 1) * self.args["tilesize"]
         limity = (starty + 1) * self.args["tilesize"]
@@ -111,10 +106,10 @@ class TileProcessor(Process):
             # Read from file
             coords = get_tile_index(name)
             logger.info('coords: ' + str(coords))
-            startx = coords[1] * tilesize
-            starty = coords[2] * tilesize
-            endx = startx + tilesize
-            endy = starty + tilesize
+            startx = coords[0] * self.tilesize
+            starty = coords[1] * self.tilesize
+            endx = startx + self.tilesize
+            endy = starty + self.tilesize
 
             if endx > self.reader.width:
                 endx = self.reader.width
@@ -131,15 +126,16 @@ class TileProcessor(Process):
                 h = endy - starty
 
                 logger.info("Reading from the image: %d, %d, %d, %d" % (startx, starty, w, h))
-                bi = self.reader.read_region((startx, starty), (w, h))
-
+                bi = self.reader.read_tile(coords[0], coords[1], self.tilesize)
+                logger.info("Size of bi " + str(bi.size))
                 # Perform padding
-                if w < tilesize or h < tilesize:
+                if w < self.tilesize or h < self.tilesize:
                     logger.info("Needs filling ..")
 
                     # Paste the acquired image into white_tile
                     wi = self.white_tile.copy()
-                    wi.paste(bi, [0, 0, w, h])
+                    logger.info("Pasting at: %s" % [0, self.tilesize-h])
+                    wi.paste(bi, (0, self.tilesize-h))
 
                     # empty bi
                     del bi
@@ -150,21 +146,21 @@ class TileProcessor(Process):
                 return bi
 
         # Get parents
-        q = self.process(name, 'q')
-        r = self.process(name, 'r')
-        s = self.process(name, 's')
         t = self.process(name, 't')
+        s = self.process(name, 's')
+        r = self.process(name, 'r')
+        q = self.process(name, 'q')
 
-        newim = Image.new('RGB', (tilesize * 2, tilesize * 2), color=None)
+        newim = Image.new('RGB', (self.tilesize * 2, self.tilesize * 2), color=None)
 
         # Combine
         newim.paste(q, (0, 0))
-        newim.paste(r, (tilesize, 0))
-        newim.paste(s, (tilesize, tilesize))
-        newim.paste(t, (0, tilesize))
+        newim.paste(r, (self.tilesize, 0))
+        newim.paste(s, (self.tilesize, self.tilesize))
+        newim.paste(t, (0, self.tilesize))
 
         # Resize
-        smallim = newim.resize((tilesize, tilesize), Image.ANTIALIAS)
+        smallim = newim.resize((self.tilesize, self.tilesize), Image.ANTIALIAS)
 
         # Upload
         self.insert_to_imagestore(name, smallim)
@@ -213,15 +209,15 @@ class MongoUploaderPyramid(MongoUploader, Process):
             "tilesize": 256
             }
 
-        processes = []
-        for name in ["tq", "tr", "ts", "tt"]:
-            args["name"] = name
-            process = TileProcessor(args)
-            process.start()
-            processes.append(process)
+        # processes = []
+        # for name in ["tq", "tr", "ts", "tt"]:
+        #     args["name"] = name
+        #     process = TileProcessor(args)
+        #     process.start()
+        #     processes.append(process)
 
-        for process in processes:
-            process.join()
+        # for process in processes:
+        #     process.join()
 
         args["name"] = "t"
         t = TileProcessor(args)
