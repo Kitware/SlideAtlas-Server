@@ -15,6 +15,10 @@ import openslide
 
 __all__ = ("OpenslideReader", )
 
+import logging
+logger = logging.getLogger("OpenslideReader")
+logger.setLevel(logging.ERROR)
+
 
 class OpenslideReader(InvertedReader):
 
@@ -28,17 +32,18 @@ class OpenslideReader(InvertedReader):
         self.width = self._reader.dimensions[0]
         self.height = self._reader.dimensions[1]
         self.num_levels = get_max_depth(self.width, self.height)
-
+        logger.info("Num Levels: %s" % self.num_levels)
         # TODO: deduce the vendor specific metadata
         self.origin = [0, 0, 0]
         self.spacing = [1, 1, 1]
         self.components = 3
 
-    def read_region(self, location, size, level=0):
+    def read_region(self, box):
         """
         Implementing read_region for openslide reader
         """
-        return self._reader.read_region(location, level, size)
+        logger.info("BOX: " + str(box))
+        return self._reader.read_region((box[0], box[1]), 0, (box[2] - box[0], box[3] - box[1]))
 
 
 if __name__ == "__main__":

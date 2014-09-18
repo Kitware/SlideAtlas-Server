@@ -2,7 +2,7 @@ from PIL import Image
 
 import logging
 logger = logging.getLogger("BaseReader")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 
 
 class Reader(object):
@@ -48,21 +48,23 @@ class InvertedReader(Reader):
 
         left = x_index * tilesize
         right = left + tilesize
-        top = self._reader.size[1] - ((y_index + 1) * tilesize)
+        top = self.height - ((y_index + 1) * tilesize)
         bottom = top + tilesize
 
+        logger.info("Before: left: %d, top: %d, right: %d, bottom: %d" % (left, top, right, bottom))
+        logger.info("Width: %d, Height: %d" % (self.width, self.height))
         needs_padding = False
         # Clip the bounds with respect to image size
-        if bottom > self._reader.size[1]:
-            bottom = self._reader.size[1]
+        if bottom > self.height:
+            bottom = self.height
             needs_padding = True
 
         if top < 0:
             top = 0
             needs_padding = True
 
-        if right > self._reader.size[0]:
-            right = self._reader.size[0]
+        if right > self.width:
+            right = self.width
             needs_padding = True
 
         # If bottom more than width

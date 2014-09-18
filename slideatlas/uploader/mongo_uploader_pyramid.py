@@ -8,12 +8,10 @@ import pymongo
 from bson import Binary
 import sys
 import os
+import time
 from PIL import Image
 import StringIO
-import re
-import argparse
 from . import MongoUploader
-import pdb
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
@@ -24,7 +22,7 @@ __all__ = ('MongoUploaderPyramid', )
 
 import logging
 logger = logging.getLogger("UploaderPyramid")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 
 from multiprocessing import Process
 
@@ -51,6 +49,7 @@ class TileProcessor(Process):
         # Setup the mongo collection to add image chunks to
         self.setup_destination()
         self.process(self.name[:-1], self.name[-1])
+        self.col.ensure_index("name")
 
     def make_reader(self):
         logger.info(str(self.args))
@@ -91,46 +90,45 @@ class TileProcessor(Process):
         name = name + toadd
         logger.info(str(os.getpid()) + "): getting " + name)
 
-        [startx, starty, zoom] = get_tile_index(name)
+        [x_index, y_index, _] = get_tile_index(name)
 
-        limitx = (startx + 1) * self.args["tilesize"]
-        limity = (starty + 1) * self.args["tilesize"]
+        startx = x_index * self.tilesize
+        starty = y_index * self.tilesize
 
-        if limitx > self.reader.width:
-            limitx = self.reader.width
+        endx = startx + self.tilesize
+        endy = starty + self.tilesize
 
-        if limity > self.reader.height:
-            limity = self.reader.height
+        if endx > self.reader.width:
+            endx = self.reader.width
+
+        if endy > self.reader.height:
+            endy = self.reader.height
+
+        # verify if within image
+        if(startx >= endx or starty >= endy):
+            # No need to dig deeper in the image
+            logger.info("Not in image : %d, %d, %d, %d" % (startx, starty, endx - startx, endy - starty))
+            return self.white_tile.copy()
+
+        # verify whether the tile already exists in the image_store
+        if self.args["verify"]:
+            image_rec = self.col.find_one({"name": name + ".jpg"}, {"file": 0})
+            if image_rec is not None:
+                # Exists already
+                image_rec = self.col.find_one({"name": name + ".jpg"})
+                return Image.open(StringIO.StringIO(image_rec["file"]))
 
         if len(name) == self.max_name_length:
             # Read from file
-            coords = get_tile_index(name)
-            logger.info('coords: ' + str(coords))
-            startx = coords[0] * self.tilesize
-            starty = coords[1] * self.tilesize
-            endx = startx + self.tilesize
-            endy = starty + self.tilesize
+            w = endx - startx
+            h = endy - starty
 
-            if endx > self.reader.width:
-                endx = self.reader.width
+            logger.info("Reading from the image: %d, %d, %d, %d" % (startx, starty, w, h))
+            bi = self.reader.read_tile(x_index, y_index, self.tilesize)
 
-            if endy > self.reader.height:
-                endy = self.reader.height
-
-            # verify if within image
-            if(startx >= endx or starty >= endy):
-                logger.info("Not in image : %d, %d, %d, %d" % (startx, starty, endx - startx, endy - starty))
-                return self.white_tile
-            else:
-                w = endx - startx
-                h = endy - starty
-
-                logger.info("Reading from the image: %d, %d, %d, %d" % (startx, starty, w, h))
-                bi = self.reader.read_tile(coords[0], coords[1], self.tilesize)
-
-                # Upload
-                self.insert_to_imagestore(name, bi)
-                return bi
+            # Upload
+            self.insert_to_imagestore(name, bi)
+            return bi
 
         # Get parents
         t = self.process(name, 't')
@@ -183,34 +181,41 @@ class MongoUploaderPyramid(MongoUploader, Process):
     def __init__(self, args):
         super(MongoUploaderPyramid, self).__init__(args)
 
-    # TODO: could re-imlement but not bothering right now
-
     def upload_base(self):
-        import time
-        start = time.clock()
+        start = time.time()
 
+        # Parameters for the TileProcessor
         args = {
             "input": self.args.input,
             "imagestore": self.imagestore,
             "imageid": self.imageid,
-            "tilesize": 256
+            "tilesize": 256,
+            "verify": False
             }
 
-        # processes = []
-        # for name in ["tq", "tr", "ts", "tt"]:
-        #     args["name"] = name
-        #     process = TileProcessor(args)
-        #     process.start()
-        #     processes.append(process)
+        #Create the names for 3rd level from the top
+        names = []
+        quads = ["q", "r", "s", "t"]
+        for letter1 in quads:
+            for letter2 in quads:
+                    names.append("t%c%c" % (letter1, letter2))
 
-        # for process in processes:
-        #     process.join()
+        # Launch the tasks and wait for them to finish
+        processes = []
+        for name in names:
+            args["name"] = name
+            process = TileProcessor(args)
+            process.start()
+            processes.append(process)
+
+        for process in processes:
+            process.join()
 
         args["name"] = "t"
+        args["verify"] = True
         t = TileProcessor(args)
         t.start()
         t.join()
 
-        print 'Time: ',  time.clock() - start
+        logger.error('Time: %f' % (time.time() - start))
         print 'Done'
-

@@ -161,11 +161,11 @@ def process_file(args):
         logger.info("Got a PTIF")
         MongoUploaderPtiff(args)
 
-    elif args.input.endswith(".jp2") or args.input.endswith(".ndpi") or args.input.endswith(".tif"):
+    elif args.input.endswith(".jp2") or args.input.endswith(".tif"):
         logger.info("Got a " + args.input)
         MongoUploaderWrapper(args)
 
-    elif args.input.endswith(".scn") or args.input.endswith(".svs"):
+    elif args.input.endswith(".scn") or args.input.endswith(".ndpi") or args.input.endswith(".svs"):
         logger.info("Got a " + args.input)
         MongoUploaderPyramid(args)
 
