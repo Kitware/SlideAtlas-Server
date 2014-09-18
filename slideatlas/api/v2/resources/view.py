@@ -35,16 +35,34 @@ class SessionViewItemAPI(ItemAPIResource):
 
     @staticmethod
     def _delete(view_id):
-        view_id = ObjectId(view_id)
+        """
+        Internal helper to delete a view and all of its children.
+
+        TODO: this should be moved to the View model
+        """
         admin_db = models.ImageStore._get_db()
         view = admin_db['views'].find_one({'_id': view_id})
         if view:
             for child in view.get('Children', list()):
-                SessionViewItemAPI._delete(child)
+                SessionViewItemAPI._delete(ObjectId(child))
             admin_db['views'].remove({'_id': view_id})
 
+    @security.EditSessionRequirement.protected
     def delete(self, session, view_id):
-        abort(501)  # Not Implemented
+        # TODO: verify that the view actually exists; but don't enable until
+        #   the database is cleaned of broken links
+
+        # delete from session
+        for (pos, view_ref) in enumerate(session.views):
+            if view_ref.ref == view_id:
+                session.views.pop(pos)
+                break
+        session.save()
+
+        # delete from views collection
+        self._delete(view_id)
+
+        return None, 204  # No Content
 
 
 ################################################################################
