@@ -23,9 +23,26 @@ class SessionViewListAPI(ListAPIResource):
 
 ################################################################################
 class SessionViewItemAPI(ItemAPIResource):
-    @security.AdminSiteRequirement.protected
+    @staticmethod
+    def _fetch_view(session, view_id):
+        # find the requested view in the session
+        for view_ref in session.views:
+            if view_ref.ref == view_id:
+                break
+        else:
+            abort(404, details='The requested view was not found in the requested session.')
+
+        admin_db = models.ImageStore._get_db()
+        view = admin_db['views'].find_one({'_id': view_id})
+        return view
+
+    @security.ViewSessionRequirement.protected
     def get(self, session, view_id):
-        abort(501)  # Not Implemented
+        view = self._fetch_view(session, view_id)
+        if not view:
+            abort(404, details='The requested view was not found.')
+        view['id'] = view.pop('_id')
+        return view
 
     def put(self, session, view_id):
         abort(501)  # Not Implemented
