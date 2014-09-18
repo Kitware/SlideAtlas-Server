@@ -54,7 +54,7 @@ class TileProcessor(Process):
     def make_reader(self):
         logger.info(str(self.args))
         ext = os.path.splitext(self.args["input"])[1][1:]
-        if ext in ["svs", "ndpi", "scn", "tif"]:
+        if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
             logger.info("%d) Using OpenslideReader for: %s" % (os.getpid(), ext))
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:

@@ -168,7 +168,7 @@ def process_file(args):
         logger.info("Got a " + args.input)
         MongoUploaderWrapper(args)
 
-    elif ext in ["scn", "ndpi", "svs", "tif", "jpg", "png"]:
+    elif ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif"]:
         logger.info("Got a " + args.input)
         MongoUploaderPyramid(args)
 
