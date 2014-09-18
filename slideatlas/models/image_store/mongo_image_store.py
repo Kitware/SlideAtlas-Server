@@ -46,7 +46,7 @@ class MongoImageStore(MultipleDatabaseImageStore):
         try:
             # Attempt to remove the image record
             if image_doc is not None:
-                image_database.remove({"_id": ObjectId(image_id)})
+                image_database["images"].remove({"_id": ObjectId(image_id)})
 
             # Attempt to remove the collection
             image_database.drop_collection(str(image_id))
