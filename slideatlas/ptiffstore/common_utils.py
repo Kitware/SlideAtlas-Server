@@ -11,7 +11,7 @@ def get_max_depth(width, height, tilesize=256):
     return int(math.ceil(pow) + 1)
 
 
-def get_tile_index(name):
+def get_tile_index(name, invert=True):
     """
     Returns the tile indexes in x, y and zoom
     """
@@ -23,24 +23,45 @@ def get_tile_index(name):
     name = name[1:]
     level = len(name)
 
-    while len(name) > 0:
-        current = name[0]
-        name = name[1:]
+    if invert:
+        while len(name) > 0:
+            current = name[0]
+            name = name[1:]
 
-        startx = startx * 2
-        starty = starty * 2
+            startx = startx * 2
+            starty = starty * 2
 
-        if current == 't':
-            pass
-        elif current == 'q':
-            starty = starty + 1
-        elif current == 's':
-            startx = startx + 1
-        elif current == 'r':
-            startx = startx + 1
-            starty = starty + 1
-        else:
-            raise Exception("Invalid character in name")
+            if current == 't':
+                pass
+            elif current == 'q':
+                starty = starty + 1
+            elif current == 's':
+                startx = startx + 1
+            elif current == 'r':
+                startx = startx + 1
+                starty = starty + 1
+            else:
+                raise Exception("Invalid character in name")
+
+    else:
+        while len(name) > 0:
+            current = name[0]
+            name = name[1:]
+
+            startx = startx * 2
+            starty = starty * 2
+
+            if current == 'q':
+                pass
+            elif current == 't':
+                starty = starty + 1
+            elif current == 'r':
+                startx = startx + 1
+            elif current == 's':
+                startx = startx + 1
+                starty = starty + 1
+            else:
+                raise Exception("Invalid character in name")
 
     return startx, starty, level
 
