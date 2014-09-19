@@ -82,7 +82,7 @@ class SessionItemAPI(ItemAPIResource):
 
             view_id = view_ref.ref
             view = admindb['views'].find_one({'_id': view_id})
-            #view = models.NewView.objects.get(id=view_id).to_mongo()
+            #view = models.View.objects.get(id=view_id).to_mongo()
             if not view:
                 continue
 

@@ -6,7 +6,7 @@ import pdb
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_app
-from slideatlas.models import Collection, Session, RefItem, NewView
+from slideatlas.models import Collection, Session, RefItem, View
 
 import logging
 logger = logging.getLogger("UploaderBase")
@@ -106,7 +106,7 @@ class MongoUploader(object):
         # Update the session
         with self.flaskapp.app_context():
             # Create and insert view
-            aview = NewView(image=ObjectId(self.imageid), db=self.imagestore.id)
+            aview = View(image=ObjectId(self.imageid), db=self.imagestore.id)
             aview.save()
 
             item = RefItem(ref=aview.id, db=self.imagestore.id)
@@ -157,7 +157,7 @@ class MongoUploader(object):
             logger.info("session: %s" % (self.session.to_son()))
 
         # Create the pymongo connection, used for image
-        # For view use NewView
+        # For view use View
         try:
             if self.imagestore.replica_set:
                 conn = pymongo.ReplicaSetConnection(self.imagestore.host, replicaSet=self.imagestore.replica_set)
