@@ -156,9 +156,6 @@ class View(ModelDocument):
     coordinate_system = StringField(required=False, db_field='CoordinateSystem',
         verbose_name='', help_text='')
 
-    # TODO: in some places this is a bare dict, not in a list
-    annotations = ListField(EmbeddedAnnotationField(), required=False,
-        verbose_name='', help_text='')
 
     # TODO: in some places this is a list of both ints and floats
     center = ListField(FloatField(), required=False,
