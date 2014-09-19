@@ -157,6 +157,22 @@ Viewer.prototype.SaveImage = function(fileName) {
   this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
 }
 
+// This method waits until all tiles are loaded before saving.
+var SAVE_FINISH_CALLBACK;
+Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
+    var self = this;
+    SetFinishedLoadingCallback(
+        function () {
+            self.SaveImage(fileName); 
+            if (finishedCallback) {
+                finishedCallback();
+            }
+        }
+    );
+    eventuallyRender()
+}
+
+
 Viewer.prototype.GetAnnotationVisibility = function() {
   return this.AnnotationVisibility;
 }

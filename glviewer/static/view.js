@@ -111,8 +111,13 @@ View.prototype.SetViewport = function(viewport) {
   this.Camera.SetViewport(viewport);
 }
 
+// I want only the annotation to create a mask image.
+var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawTiles = function () {
+  if (MASK_HACK ) {
+      return;
+  }
   if ( GL) {
     this.Section.Draw(this, GL);
   } else {

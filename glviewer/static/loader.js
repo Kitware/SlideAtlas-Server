@@ -25,6 +25,11 @@ var LOAD_TIMEOUT_ID = 0;
 var LOAD_PROGRESS_MAX = 0;
 var PROGRESS_BAR = null;
 
+// Only used for saving images right now.
+var FINISHED_LOADING_CALLBACK;
+
+
+
 function InitProgressBar () {
   if (PROGRESS_BAR) { return;}
   PROGRESS_BAR = $("<div>")
@@ -213,7 +218,24 @@ function LoadQueueUpdate() {
       LOAD_PROGRESS_MAX = 0;
     }
   }
+
+  if (FINISHED_LOADING_CALLBACK && LOAD_QUEUE.length == 0 && LOADING_COUNT == 0) {
+      FINISHED_LOADING_CALLBACK();
+      // One time call.
+      FINISHED_LOADING_CALLBACK = undefined;
+  }
 }
+
+function SetFinishedLoadingCallback(callback) {
+    if (FINISHED_LOADING_CALLBACK) {
+        alert("Finished loading callback already set.");
+        return false;
+    }
+    FINISHED_LOADING_CALLBACK = callback;
+    return true;
+}
+
+
 
 // Issue: Tiles call this method when their image gets loaded.
 // How does the tile know which cache it belongs too.
