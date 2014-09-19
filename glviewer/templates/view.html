@@ -74,6 +74,9 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <script type="text/javascript" src="/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js"></script>
 <script type="text/javascript" src="/static/thirdparty/filesaver/g4d049e9/FileSaver.js"></script>
 
+<!-- For 3d pathology -->
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
+
 
 <!-- Widgets
 
@@ -91,7 +94,6 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialogWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowStampWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
 
 <!-- Shapes starting with superclass

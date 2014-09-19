@@ -157,17 +157,25 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-  if (NOTES_WIDGET.Iterator.IsStart()) { return; }
+    var iterator = NOTES_WIDGET.Iterator;
+    if (iterator.IsStart()) { return; }
 
-  NOTES_WIDGET.Iterator.Previous();
-  NOTES_WIDGET.Iterator.GetNote().Select();
+    // We need both the last active note and next note
+    // To implement transformations for stacks.
+    var current = iterator.GetNote();
+    iterator.Previous();
+    iterator.GetNote().Select(current);
 }
 
 NavigationWidget.prototype.NextNote = function() {
-  if (NOTES_WIDGET.Iterator.IsEnd()) { return; }
+    var iterator = NOTES_WIDGET.Iterator;
+    if (iterator.IsEnd()) { return; }
 
-  NOTES_WIDGET.Iterator.Next();
-  NOTES_WIDGET.Iterator.GetNote().Select();
+    // We need both the last active note and next note
+    // To implement transformations for stacks.
+    var current = iterator.GetNote();
+    iterator.Next();
+    iterator.GetNote().Select(current);
 }
 
 

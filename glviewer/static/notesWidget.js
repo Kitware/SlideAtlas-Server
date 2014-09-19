@@ -185,18 +185,14 @@ function NotesWidget() {
 // notes so I made an array of answers (which are hidden).
 function NoteIterator(note) {
   this.Note = note;
-  this.IteratingAnswers = false;
   this.ChildIterator = null;
 }
 
 // Because of sorting, the child array gets reset on us.
-// I need a dynamic way to get the Children or Answers array based on the state.
+// I need a dynamic way to get the Children array based on the state.
 NoteIterator.prototype.GetChildArray = function() {
   if ( ! this.Note) {
     return [];
-  }
-  if (this.IteratingAnswers) {
-    return this.Note.Answers;
   }
   return this.Note.Children;
 }
@@ -250,10 +246,6 @@ NoteIterator.prototype.IsStart = function() {
 NoteIterator.prototype.IsEnd = function() {
   // Case note is active.
   if (this.ChildIterator == null) {
-    // Always iterate through answers
-    if (this.Note.Answers.length > 0) {
-      return false;
-    }
     if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
       return false;
     }
@@ -262,18 +254,6 @@ NoteIterator.prototype.IsEnd = function() {
 
   // sub answer is active.
   var childIndex = this.GetChildIndex();
-  if (this.IteratingAnswers) {
-    if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
-      // We have children which come after answers.
-      return false;
-    }
-    // No children.  Answer array is the last. Check is current is last answer.
-    if (childIndex == this.GetChildArray().length - 1) {
-      return this.ChildIterator.IsEnd();
-    }
-    // More answers after current.
-    return false;
-  }
 
   // sub child is active
   if (childIndex == this.GetChildArray().length - 1) {
@@ -289,17 +269,9 @@ NoteIterator.prototype.IsEnd = function() {
 NoteIterator.prototype.Next = function() {
   // Case 1:  Iterator is on its own node.
   if (this.ChildIterator == null) {
-    // First check for answers
-    if (this.Note.Answers.length > 0) {
-      // Move to the first answer.
-      this.IteratingAnswers = true;
-      this.ChildIterator = this.GetChildArray()[0].NewIterator();
-      return this.ChildIterator.GetNote();
-    }
     // Next check for children notes
     if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
       // Move to the first child.
-      this.IteratingAnswers = false;
       this.ChildIterator = this.GetChildArray()[0].NewIterator();
       return this.ChildIterator.GetNote();
     }
@@ -317,15 +289,6 @@ NoteIterator.prototype.Next = function() {
   var childIndex = this.GetChildIndex();
   if (childIndex < this.GetChildArray().length-1) {
     this.ChildIterator = this.GetChildArray()[childIndex+1].NewIterator();
-    return this.ChildIterator.GetNote();
-  }
-
-  // Move from answers to children
-  if (this.IteratingAnswers &&
-      this.Note.Children.length > 0 &&
-      this.Note.ChildrenVisibility) {
-    this.IteratingAnswers = false;
-    this.ChildIterator = this.Note.Children[0].NewIterator();
     return this.ChildIterator.GetNote();
   }
 
@@ -352,19 +315,8 @@ NoteIterator.prototype.Previous = function() {
     return this.ChildIterator.GetNote();
   }
 
-  // We are at the begining of an array.
-  // If we are in the child array, try to move to the answer array
-  if ( ! this.IteratingAnswers && this.Note.Answers.length > 0) {
-    this.IteratingAnswers = true;
-    var childIndex = this.GetChildArray().length -1;
-    this.ChildIterator = this.GetChildArray()[childIndex].NewIterator();
-    this.ChildIterator.ToEnd();
-    return this.ChildIterator.GetNote();
-  }
-
   // No more sub notes left.  Move to the root.
   this.ChildIterator = null;
-  this.IteratingAnswers = false;
   return this.Note;
 }
 
@@ -373,12 +325,6 @@ NoteIterator.prototype.Previous = function() {
 NoteIterator.prototype.ToEnd = function() {
   if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
     this.ChildArray = this.Note.Children;
-    var childIndex = this.ChildArray.length - 1;
-    this.ChildIterator = this.ChildArray[childIndex].NewIterator();
-    return this.ChildIterator.ToEnd();
-  }
-  if (this.Note.Answers.length > 0) {
-    this.ChildArray = this.Note.Answers;
     var childIndex = this.ChildArray.length - 1;
     this.ChildIterator = this.ChildArray[childIndex].NewIterator();
     return this.ChildIterator.ToEnd();
@@ -409,9 +355,6 @@ function Note () {
   this.Text = "";
   // Upto two for dual view.
   this.ViewerRecords = [];
-
-  // Hidden children for questions.
-  this.Answers = [];
 
   // ParentNote (it would be nice to make the session a note too).
   this.Parent = null;
@@ -747,8 +690,10 @@ Note.prototype.Contains = function(decendent) {
 }
 
 
-// This should method should be split between Note and NotesWidget
-Note.prototype.Select = function() {
+// The optional argument 'currentNote' is used for
+// stack view transformations. 
+Note.prototype.Select = function(currentNote) {
+  // This should method should be split between Note and NotesWidget
   if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
   if (NOTES_WIDGET.Iterator.GetNote() != this) {
     // For when user selects a note from a list.
@@ -779,7 +724,7 @@ Note.prototype.Select = function() {
 
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
-  this.DisplayView();
+  this.DisplayView(currentNote);
 }
 
 // No clearing.  Just draw this notes GUI in a div.
@@ -974,7 +919,9 @@ Note.prototype.Expand = function() {
 }
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
-Note.prototype.DisplayView = function() {
+// The Argument 'currentNote' is the note that set the current view.
+// It is used for stack view transformations.
+Note.prototype.DisplayView = function(currentNote) {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
   if (typeof VIEWER2 !== 'undefined') {

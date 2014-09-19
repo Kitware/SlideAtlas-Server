@@ -30,6 +30,15 @@ function ViewerRecord () {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
+  if ( ! obj.Camera) {
+      var bds = obj.Image.bounds;
+      if (bds) {
+          obj.Camera = {FocalPoint: [(bds[0]+bds[1])/2, (bds[2]+bds[3])/2],
+                        Height: bds[3]-bds[2],
+                        Roll: 0};
+      }
+  }
+
   for (ivar in obj) {
     this[ivar] = obj[ivar];
   }
@@ -45,6 +54,12 @@ ViewerRecord.prototype.Load = function(obj) {
         a.color = ConvertColor(a.color);
       }
     }
+  }
+
+  if (this.Transformation) {
+      var t = new PairTransformation;
+      t.Load(this.Transformation);
+      this.Transformation = t;
   }
 }
 
@@ -89,6 +104,10 @@ ViewerRecord.prototype.Serialize = function (viewer) {
      rec.OverviewBounds = this.OverviewBounds;
   }
 
+  if (this.Transformation) {
+      rec.Transformation = this.Transformation.Serialize();
+  }
+
   return rec;
 }
 
@@ -114,6 +133,21 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.OverView.Camera.ComputeMatrix();
     viewer.UpdateZoomGui();
   }
+
+  if (this.Transformation != undefined) {
+      var cam = viewer.GetCamera();
+      cam.FocalPoint = this.Transformation.ForwardTransform(cam.FocalPoint);
+      cam.Roll += this.Transformation.DeltaRotation * 3.14159 / 180;
+      cam.ComputeMatrix();
+      viewer.UpdateZoomGui();
+  } else if (this.Camera != undefined) {
+      var cameraRecord = this.Camera;
+      viewer.GetCamera().Load(cameraRecord);
+      viewer.OverView.Camera.Roll = cameraRecord.Roll;
+      viewer.OverView.Camera.ComputeMatrix();
+      viewer.UpdateZoomGui();
+  }
+
 
   if (this.AnnotationVisibility != undefined) {
     viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);

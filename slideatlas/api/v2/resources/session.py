@@ -88,26 +88,18 @@ class SessionItemAPI(ItemAPIResource):
 
             # get 'image_id' and 'image_image_store_id'
             image_image_store_id = None
-            if view.get('Type') == 'Note':
+            if 'ViewerRecords' in view:
                 record = view['ViewerRecords'][0]
-                if isinstance(record['Image'], dict):
-                    # this is no longer necessary
-                    image_id = ObjectId(record['Image']['_id'])
-                    image_image_store_id = ObjectId(record['Image']['database'])
-                else :
-                    image_id = ObjectId(record["Image"])
-                if 'Database' in record:
-                    image_image_store_id = ObjectId(record['Database'])
+                image_id = record["Image"]
+                image_image_store_id = record['Database']
             else:
                 image_id = ObjectId(view['img'])
-            # These are also legacy and will go away soon.
+
+            # These are legacy and will go away soon.
             if 'imgdb' in view:
                 image_image_store_id = ObjectId(view['imgdb'])
             if 'db' in view:
                 image_image_store_id = ObjectId(view['db'])
-
-            #if not image_image_store_id:
-            #    continue
 
             # get 'image'
             if image_image_store_id not in image_stores_by_id:
