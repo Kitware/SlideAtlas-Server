@@ -77,7 +77,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         tile_size = image.tile_size
         tiff_path = os.path.join(self.root_path, image.filename)
 
-        index_x, index_y, index_z = get_tile_index(tile_name[:-4])
+        index_x, index_y, index_z = get_tile_index(tile_name[:-4], invert=False)
 
         reader = make_reader({
             'fname': tiff_path,
