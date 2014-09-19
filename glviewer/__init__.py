@@ -589,12 +589,13 @@ def glstacksave():
 # Saves the default view back into the database.
 @mod.route('/save-view', methods=['GET', 'POST'])
 def glsaveview():
+    # This method is legacy and not called
     messageStr = request.form['message']  # for post
 
     messageObj = json.loads(messageStr)
     viewid = inputObj["viewid"]
 
-    # not used.    
+    # not used.
     admindb = models.ImageStore._get_db()
     db = admindb
 
@@ -661,7 +662,7 @@ def saveusernote():
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
     typeStr = request.form['type'] # for post
-    
+
     note = json.loads(noteStr)
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
@@ -688,7 +689,7 @@ def deleteusernote():
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
-    
+
     admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
     return "success"
 
