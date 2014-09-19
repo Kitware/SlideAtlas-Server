@@ -132,12 +132,6 @@ def glcomparison(db, viewid, viewobj):
     imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
     bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
 
-    # I cannot figure out how to pass a string with newlines  and quotes
-    # Templating sucks. Ajax (with JQuery) is so much better.
-    #annotationsStr = json.dumps(viewobj["annotations"])
-    #annotationsStr = annotationsStr.replace("&#34;","'")
-    #annotationsStr = annotationsStr.replace("\n","\\n")
-
     # The base view is for the left panel
     img = {}
     # this is probably wrong.  .....
@@ -158,16 +152,6 @@ def glcomparison(db, viewid, viewobj):
         img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
     if 'viewHeight' in bookmarkobj:
         img["viewHeight"] = str(bookmarkobj["viewHeight"])
-
-    # record the bookmarks as annotation.
-    annotations = []
-    if 'annotations' in viewobj:
-        for annotation in viewobj["annotations"]:
-            if 'type' in annotation:
-                if annotation["type"] == "text" :
-                    annotation["string"] = annotation["string"].replace("\n", "\\n")
-                    annotations.append(annotation)
-    img["annotations"] = annotations
 
     question = {}
     question["viewer1"] = img
@@ -397,10 +381,6 @@ def glcomparisonsave():
 
         bookmarkid = viewobj["startup_view"]
 
-        # Save the annotations
-        db["views"].update({"_id" : ObjectId(viewid) },
-                                     { "$set" : { "annotations" : inputObj["Viewer1"]["annotations"] } })
-
         # Save the startup view / bookmark
         db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
                                      { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
@@ -609,22 +589,19 @@ def glstacksave():
 # Saves the default view back into the database.
 @mod.route('/save-view', methods=['GET', 'POST'])
 def glsaveview():
+    # This method is legacy and not called
     messageStr = request.form['message']  # for post
 
     messageObj = json.loads(messageStr)
     viewid = inputObj["viewid"]
 
-    # not used.    
+    # not used.
     admindb = models.ImageStore._get_db()
     db = admindb
 
     if operation == "view" :
         viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
         bookmarkid = viewobj["startup_view"]
-
-        # Save the annotations
-        db["views"].update({"_id" : ObjectId(viewid) },
-                                     { "$set" : { "annotations" : inputObj["Viewer1"]["annotations"] } })
 
         # Save the startup view / bookmark
         db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
@@ -685,7 +662,7 @@ def saveusernote():
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
     typeStr = request.form['type'] # for post
-    
+
     note = json.loads(noteStr)
     if note.has_key("ParentId") :
         note["ParentId"] = ObjectId(note["ParentId"])
@@ -712,7 +689,7 @@ def deleteusernote():
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
-    
+
     admindb[collectionStr].remove({'_id': ObjectId(noteIdStr)})
     return "success"
 
