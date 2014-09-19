@@ -71,7 +71,6 @@ Widgets have serialize method which creates an object
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowStampWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
@@ -239,17 +238,7 @@ function LoadStack(data) {
   TRANSFORMATIONS = [];
   for (var i=0; i < transformations.length; ++i) {
     var trans = new PairTransformation();
-    if (transformations[i].View0) {
-      trans.View0 = transformations[i].View0;
-    } else {   // one time change database.
-      trans.View0 = VIEWS[i]._id;
-    }
-    if (transformations[i].View1) {
-      trans.View1 = transformations[i].View1;
-    } else {    // one time change database.
-      trans.View1 = VIEWS[i+1]._id;
-    }
-    trans.Correlations = transformations[i].Correlations;
+    trans.Load(transformations[i]);
     TRANSFORMATIONS.push(trans);
   }
 
@@ -336,8 +325,7 @@ function swapSections() {
       var correlations = t0.Correlations;
       for (var i = 0; i < correlations.length; ++i)
         {
-        var cor = correlations[i];
-        cor.point1 = t1.ForwardTransform(cor.point1);
+        cor.SetPoint1(t1.ForwardTransform(cor.point1));
         }
       }
     if (SECTION_INDEX < TRANSFORMATIONS.length)
@@ -349,7 +337,7 @@ function swapSections() {
       for (var i = 0; i < correlations.length; ++i)
         {
         var cor = correlations[i];
-        cor.point0 = t1.ReverseTransform(cor.point0);
+        cor.SetPoint0(t1.ReverseTransform(cor.point0));
         }
       }
 
@@ -359,9 +347,9 @@ function swapSections() {
     for (var i = 0; i < correlations.length; ++i)
       {
       var cor = correlations[i];
-      var tmp = cor.point0;
-      cor.point0 = cor.point1;
-      cor.point1 = tmp;
+      var tmp = cor.GetPoint0();
+      cor.SetPoint0(cor.point1);
+      cor.SetPoint1(tmp);
       }
 
     // Now swap the section
@@ -388,8 +376,8 @@ function findCorrelation(pIdx, x, y) {
     for (var i = 0; i < correlations.length; ++i)
       {
       var cor = correlations[i];
-      var pt = cor.point0;
-      if (pIdx) { pt = cor.point1; }
+      var pt = cor.GetPoint0();
+      if (pIdx) { pt = cor.GetPoint1(); }
       var dx = x-pt[0];
       var dy = y-pt[1];
       var dist2 = dx*dx + dy*dy;
@@ -506,15 +494,18 @@ function updateSection(inc) {
     VIEWER1.WidgetList = SECTIONS[newIdx].Annotations;
 
     // Compute the new camera.
+    var sigma = cam.Height / 2;
     if (inc < 0) {
-        center = TRANSFORMATIONS[newIdx].ReverseTransform(center);
+        center = TRANSFORMATIONS[newIdx].ReverseTransform(center, sigma);
         rotation += TRANSFORMATIONS[newIdx].DeltaRotation;
     } else {
-        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(center);
+        center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(center, sigma);
         rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRotation;
         // We need to transform the event world point to avoid bug with chain when
         // Mouse is not moved.
-        var tmp = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform([EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY]);
+        var tmp = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(
+              [EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY], 
+              sigma);
         EVENT_MANAGER.MouseWorldX = tmp[0];
         EVENT_MANAGER.MouseWorldY = tmp[1];
     }
@@ -594,15 +585,16 @@ function FeatureChainAdd(x,y) {
 
     // Create the correlation.
     var trans = TRANSFORMATIONS[SECTION_INDEX-1];
-    trans.Correlations.push({"point0": [FeatureChainEndCross.Origin[0],FeatureChainEndCross.Origin[1]],
-                             "point1": [x,y]});
+    trans.AddCorrelation(
+        [FeatureChainEndCross.Origin[0],FeatureChainEndCross.Origin[1]],
+        [x,y]);
     // Create a widget just for show.
     var cross = new CrossHairs();
     cross.FillColor    = [0,1,1];
     cross.OutlineColor = [1,0,0];
     // A dance to set cross origin as pointer to correlation array.
     var correlation = trans.Correlations[trans.Correlations.length-1];
-    cross.Origin       = correlation.point1;
+    cross.Origin       = correlation.GetPoint1();
     VIEWER1.AddShape(cross);
     cross.Correlation = correlation;
     cross.CorrelationPoint = 1;
@@ -678,9 +670,9 @@ function FeatureChainAdd(x,y) {
       // This only handles dragging the second half of the transformation.
       DRAGGING_CROSS.Origin = [EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY];
       if (DRAGGING_CROSS.CorrelationPoint == 0) {
-        DRAGGING_CROSS.Correlation.point0 = DRAGGING_CROSS.Origin;
+        DRAGGING_CROSS.Correlation.SetPoint0(DRAGGING_CROSS.Origin);
       } else {
-        DRAGGING_CROSS.Correlation.point1 = DRAGGING_CROSS.Origin;
+        DRAGGING_CROSS.Correlation.SetPoint1(DRAGGING_CROSS.Origin);
       }
       eventuallyRender();
     } else {

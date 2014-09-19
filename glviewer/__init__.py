@@ -6,6 +6,7 @@ import json
 from slideatlas.common_utils import jsonify
 from copy import copy, deepcopy
 
+
 def jsonifyView(db,viewid,viewobj):
     imgid = 0
     imgdb = 0
@@ -91,9 +92,10 @@ def flipAnnotation(annot, paddedHeight) :
 def flipViewerRecord(viewerRecord) :
     # this is wrong.  It should not be in the databse this way
     paddedHeight = 256 << (viewerRecord["Image"]["levels"] - 1)
-    viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
-    viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
-    if viewerRecord.has_key("Annotations") :
+    if 'Camera' in viewerRecord :
+        viewerRecord["Camera"]["Roll"] = -viewerRecord["Camera"]["Roll"]
+        viewerRecord["Camera"]["FocalPoint"][1] = paddedHeight - viewerRecord["Camera"]["FocalPoint"][1]
+    if 'Annotations' in viewerRecord:
         for annotation in viewerRecord["Annotations"] :
             flipAnnotation(annotation, paddedHeight)
 
@@ -951,6 +953,7 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
+
     sessid = request.args.get('sessid', None)
     viewid = request.args.get('viewid', "")
 
