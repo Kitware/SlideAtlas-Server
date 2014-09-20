@@ -190,8 +190,14 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma)
         // Now combine weights.
         gauss = gauss * Math.sqrt(Math.min(dist0, dist1));
 
-        // Sum
-        sumTheta += (angle1 - angle0) * gauss;
+        // Averaging angles is tricky because of cycles.
+        // Assume all angles are small.
+        var dAngle = (angle1 - angle0);
+        var twoPi = Math.PI * 2;
+        while (dAngle > Math.PI) { dAngle -= twoPi;}
+        while (dAngle < -Math.PI) { dAngle += twoPi;}
+
+        sumTheta += dAngle * gauss;
         sumGauss += gauss;
     }
     if (sumGauss > 0) {
