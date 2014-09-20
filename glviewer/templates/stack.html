@@ -53,7 +53,6 @@ Manages the list, and gives to camera, either lowres, or appropriate tiles
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
 
 <!-- For 3d annotations -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 
 
@@ -620,14 +619,6 @@ function FeatureChainAdd(x,y) {
   var E_DOWN = false;
   var D_DOWN = false;
   var R_DOWN = false;
-
-  // The event manager detects single right click and double right click.
-  // This gets galled on the single.
-  function ShowPropertiesMenu(x, y) {
-    if (EDIT) {
-      ShowAnnotationEditMenu(x, y);
-    }
-  }
 
   function handleMouseDown(event) {
     // hack drag

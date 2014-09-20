@@ -257,6 +257,15 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
 // Get ids of all visible tiles (including ones that have not been
 // loaded yet.)
 Cache.prototype.GetVisibleTileIds = function (level, bounds) {
+    // Intersect the view bounds with the image bounds.
+    // The ptif reader gives wrong times when out of bounds.
+    if ( this.Image.bounds) {
+        bounds[0] = Math.max(bounds[0], this.Image.bounds[0]);
+        bounds[1] = Math.min(bounds[1], this.Image.bounds[1]);
+        bounds[2] = Math.max(bounds[2], this.Image.bounds[2]);
+        bounds[3] = Math.min(bounds[3], this.Image.bounds[3]);
+    }
+
     var id;
     var idList = [];
     var dim = 1 << level;
