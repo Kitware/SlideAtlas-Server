@@ -211,7 +211,7 @@ View.prototype.DrawHistory = function (windowHeight) {
 
 
 View.prototype.DrawCopyright = function (copyright) {
-  if (copyright == undefined) {
+  if (copyright == undefined || MASK_HACK) {
     return;
   }
   if ( GL) {
