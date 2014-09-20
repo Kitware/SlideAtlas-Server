@@ -598,7 +598,8 @@ Viewer.prototype.Draw = function() {
     var copyright = cache.Image.copyright;
     this.MainView.DrawCopyright(copyright);
   }
-
+  // Here to trigger FINISHED_LOADING_CALLBACK
+  LoadQueueUpdate();
 }
 
 // Makes the viewer clean to setup a new slide...

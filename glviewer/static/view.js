@@ -115,10 +115,10 @@ View.prototype.SetViewport = function(viewport) {
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawTiles = function () {
-  if (MASK_HACK ) {
-      return;
-  }
   if ( GL) {
+    if (MASK_HACK ) {
+        return;
+    }
     this.Section.Draw(this, GL);
   } else {
     this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
@@ -140,6 +140,9 @@ View.prototype.DrawTiles = function () {
                              0.5*this.Viewport[2],
                              0.5*this.Viewport[3]);
 
+    if (MASK_HACK ) {
+        return;
+    }
     this.Section.Draw(this, this.Context2d);
   }
 }
