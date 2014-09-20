@@ -220,9 +220,10 @@ function LoadQueueUpdate() {
   }
 
   if (FINISHED_LOADING_CALLBACK && LOAD_QUEUE.length == 0 && LOADING_COUNT == 0) {
-      FINISHED_LOADING_CALLBACK();
       // One time call.
+      var callback = FINISHED_LOADING_CALLBACK;
       FINISHED_LOADING_CALLBACK = undefined;
+      callback();
   }
 }
 
