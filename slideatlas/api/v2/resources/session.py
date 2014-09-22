@@ -88,7 +88,7 @@ class SessionItemAPI(ItemAPIResource):
 
             # get 'image_id' and 'image_image_store_id'
             image_image_store_id = None
-            if 'ViewerRecords' in view:
+            if view.get('ViewerRecords') :
                 record = view['ViewerRecords'][0]
                 image_id = record["Image"]
                 image_image_store_id = record['Database']

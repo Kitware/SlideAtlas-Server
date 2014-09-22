@@ -465,7 +465,7 @@ def glstacksession():
 
         # convert annotation to stack format.
         sectionAnnotations = []
-        if viewobj.has_key("ViewerRecords") :
+        if viewobj.has_key("ViewerRecords") and viewobj["ViewerRecords"]:
             record = viewobj["ViewerRecords"][0]
             if record.has_key("Annotations") :
                 sectionAnnotations = record["Annotations"]
