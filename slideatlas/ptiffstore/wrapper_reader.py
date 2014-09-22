@@ -1,6 +1,7 @@
 import sys
 import os
 import subprocess
+import json
 # sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
 from .base_reader import Reader
@@ -58,10 +59,11 @@ class WrapperReader(Reader):
         js = {}
         try:
             js = json.loads(output)
-        except:
+        except Exception as e:
             logger.error("Fatal error Output of image_uploader \
                 not valid json: %s" % output)
 
+            logger.error("Message : %s" % e.message)
             sys.exit(-1)
 
         logger.info("JS: %s" % js)
