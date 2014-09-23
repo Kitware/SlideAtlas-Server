@@ -127,73 +127,6 @@ def convertViewToPixelCoordinateSystem(viewObj) :
         flipViewerRecord(record)
     viewObj["CoordinateSystem"] = "Pixel"
 
-# For depreciated content.
-def glcomparison(db, viewid, viewobj):
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-
-    # The base view is for the left panel
-    img = {}
-    # this is probably wrong.  .....
-    #img["db"] = str(db["_id"])
-
-    img["viewid"] = viewid
-    img["image"] = str(imgobj["_id"])
-    img["origin"] = str(imgobj["origin"])
-    img["spacing"] = str(imgobj["spacing"])
-    img["levels"] = str(imgobj["levels"])
-    img["dimensions"] = str(imgobj["dimensions"])
-    img["center"] = str(bookmarkobj["center"])
-    img["rotation"] = str(bookmarkobj["rotation"])
-    # hack for flip
-    img["paddedHeight"] = 256 << (imgobj["levels"] - 1)
-
-    if 'zoom' in bookmarkobj:
-        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
-        img["viewHeight"] = str(bookmarkobj["viewHeight"])
-
-    question = {}
-    question["viewer1"] = img
-
-    # now create a list of options.
-    # this array will get saved back into the view
-    optionViews = []
-    # I am separating out the image information because we get it from the images
-    optionImages = []
-
-    # I am embedding views in the options array rather than referencing object ids.
-    if 'options' in viewobj:
-        for viewobj in viewobj["options"]:
-            # The optionView stores the image and anything that can change with the comparison view.
-            optionView = {}
-            optionView["label"] = str(viewobj["label"])
-            optionView["db"] = str(viewobj["db"])
-            # hack for legacy ...
-            img["db"] = str(viewobj["db"])
-            optionView["img"] = str(viewobj["img"])
-            optionView["viewHeight"] = str(viewobj["viewHeight"])
-            optionView["center"] = str(viewobj["center"])
-            optionView["rotation"] = str(viewobj["rotation"])
-            optionViews.append(optionView)
-
-            # now for the info needed for display, but not put back into the database view object
-            # get the option image database object to copy its info.
-            imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-            optionView["paddedHeight"] = 256 << (imgobj2["levels"] - 1)
-            # Start of the info object
-            optionImage = {}
-            optionImage["paddedHeight"] = optionView["paddedHeight"]
-            optionImage["origin"] = str(imgobj2["origin"])
-            optionImage["spacing"] = str(imgobj2["spacing"])
-            optionImage["levels"] = str(imgobj2["levels"])
-            optionImage["dimensions"] = str(imgobj2["dimensions"])
-            optionImages.append(optionImage)
-    question["options"] = optionViews
-    question["optionInfo"] = optionImages
-
-    return make_response(render_template('comparison.html', question=question))
-
 
 
 mod = Blueprint('glviewer', __name__,
@@ -231,10 +164,6 @@ def glview():
         if bookmarks:
             return jsonifyBookmarks(db,viewid,viewobj)
 
-        if 'type' in viewobj:
-            if viewobj["type"] == "comparison" :
-                return glcomparison(db,viewid,viewobj)
-
         # default
         return glnote(db,viewid,viewobj,edit)
 
@@ -271,9 +200,6 @@ def bookmark():
         if bookmarks:
             return jsonifyBookmarks(db,viewid,viewobj)
 
-        if 'type' in viewobj:
-            if viewobj["type"] == "comparison" :
-                return glcomparison(db,viewid,viewobj)
         # default
         return glnote(db,viewid,viewobj,edit)
 
@@ -307,112 +233,6 @@ def getchildnotes():
     data["Notes"] = noteArray
 
     return jsonify(data)
-
-
-# returns json info needed to add a comparison to the view.
-# The startup view and annotations will be the default for the option.
-@mod.route('/comparison-option')
-def glcomparisonoption():
-    """
-    - /webgl-viewer/comparison-option?db=507619bb0a3ee10434ae0827&viewid=5074528302e3100db8429cb4
-    """
-
-    # Comparison is a modified view.
-    viewid = request.args.get('viewid')
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db')
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    viewobj = readViewTree(db, viewid)
-    if (viewobj.has_key("img")) :
-        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    if (viewobj.has_key("startup_view")) :
-        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-
-    # The base view is for the left panel
-    data = {
-         'success': 1,
-         'db': dbid,
-         'label': imgobj["label"],
-         'img': str(imgobj["_id"]),
-         'center': bookmarkobj["center"],
-         'origin': imgobj["origin"],
-         'spacing': imgobj["spacing"],
-         'levels': imgobj["levels"],
-         'dimensions': str(imgobj["dimensions"]),
-         'rotation': bookmarkobj["rotation"]
-         }
-
-    if 'zoom' in bookmarkobj:
-        data["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
-        data["viewHeight"] = bookmarkobj["viewHeight"]
-
-    return jsonify(data)
-
-
-
-
-
-# Saves comparison view back into the database.
-@mod.route('/comparison-save', methods=['GET', 'POST'])
-def glcomparisonsave():
-
-    inputStr = request.form['input']  # for post
-    operation = request.form['operation']  # for post
-    #inputStr = request.args.get('input', "{}") # for get
-
-    inputObj = json.loads(inputStr)
-    dbid = inputObj["Viewer1"]["db"]
-    viewid = inputObj["Viewer1"]["viewid"]
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    if operation == "options" :
-        optionArray = inputObj["Options"]
-        db["views"].update({"_id" : ObjectId(viewid) },
-                                     { "$set" : { "options" : optionArray } })
-
-    if operation == "view" :
-        viewobj = readViewTree(db, viewid)
-
-        bookmarkid = viewobj["startup_view"]
-
-        # Save the startup view / bookmark
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
-
-                                     # may or may not work
-        #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmarkobj["center"] = inputStr["Viewer1"]["center"]
-        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"]
-        #bookmarkobj["height"] = inputStr["Viewer1"]["height"]
-        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
-
-    return operation
-
-
-# Converts a view into a comparison.
-@mod.route('/comparison-convert')
-def glcomparisonconvert():
-    dbid = request.args.get('db', "") # for get
-    viewid = request.args.get('view', "") # for get
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    viewobj = db["views"].update({"_id" : ObjectId(viewid) },
-                                 { "$set" : { "type" : "comparison" } })
-
-    return viewid
-
 
 
 # Stack viewer.

@@ -106,7 +106,6 @@ def view_a_session(session):
                     'label': view_son['label'],
                     'view': view_son['id'],
                     'view_db': view_son['image_store_id'],
-                    # 'comparison' is no longer included, but it doesn't appear to have been used
                 }
                 for view_son in session_son['views']
             ],
