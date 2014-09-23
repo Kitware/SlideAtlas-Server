@@ -34,16 +34,6 @@ def jsonifyView(db,viewid,viewobj):
     else :
         img["TileSize"] = 256
 
-    # I want to change the schema to get rid of this startup bookmark.
-    if 'startup_view' in viewobj:
-        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-        img["center"] = bookmarkobj["center"]
-        img["rotation"] = bookmarkobj["rotation"]
-        if 'zoom' in bookmarkobj:
-            img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-        if 'viewHeight' in bookmarkobj:
-            img["viewHeight"] = bookmarkobj["viewHeight"]
-
     return jsonify(img)
 
 
@@ -101,7 +91,6 @@ def flipViewerRecord(viewerRecord) :
 
 def convertImageToPixelCoordinateSystem(imageObj) :
     # origin ?
-    # Skip startup view.  GetView handles this old format
 
     if not imageObj.has_key("bounds") :
         imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
@@ -403,35 +392,6 @@ def glstacksave():
     session.save()
 
     return "Success"
-
-
-# I need to unify.  Comparison, stack and single view.
-# Saves the default view back into the database.
-@mod.route('/save-view', methods=['GET', 'POST'])
-def glsaveview():
-    # This method is legacy and not called
-    messageStr = request.form['message']  # for post
-
-    messageObj = json.loads(messageStr)
-    viewid = inputObj["viewid"]
-
-    # not used.
-    admindb = models.ImageStore._get_db()
-    db = admindb
-
-    if operation == "view" :
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-        bookmarkid = viewobj["startup_view"]
-
-        # Save the startup view / bookmark
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
-
-    return operation
 
 
 # These methods are required to work with the note widget.
@@ -827,22 +787,11 @@ def getview():
     viewerRecord["Image"] = imgobj
 
     # camera object.
-    cam = {}
-    if 'startup_view' in viewObj:
-        bookmark = db2["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
-        cam["FocalPoint"] = bookmark["center"]
-        # flip y axis
-        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-        cam["Roll"] = -bookmark["rotation"]
-        if 'zoom' in bookmark:
-            cam["Height"] = 900 << int(bookmark["zoom"])
-        if 'viewHeight' in bookmark:
-            cam["Height"] = bookmark["viewHeight"]
-    else:
-        cam["Height"] = imgobj["dimensions"][1]
-        cam["Roll"] = 0
-        cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
-    viewerRecord["Camera"] = cam
+    viewerRecord["Camera"] = {
+        "Height": imgobj["dimensions"][1],
+        "Roll": 0,
+        "FocalPoint": [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
+    }
     viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
 

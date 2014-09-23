@@ -93,9 +93,6 @@ class View(ModelDocument):
     label = StringField(required=False,
         verbose_name='', help_text='')
 
-    startup_view = ObjectIdField(required=False,
-        verbose_name='', help_text='')
-
     bookmarks = ListField(ObjectIdField(), required=False,
         verbose_name='', help_text='')
 
