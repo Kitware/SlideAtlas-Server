@@ -115,9 +115,10 @@ PairTransformation.prototype.Load = function(obj) {
 // Weighted neighbor.
 // Until we implement a closed form solution:
 // Compute the weighted average of points as center of rotation and translation.
-PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma) {
+PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigma) {
+    var fpOut = [fpIn[0], fpIn[1]];
     if (this.Correlations.length == 0) {
-        return fp;
+        return fpOut;
     }
 
     if (sigma === undefined) {
@@ -135,8 +136,8 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma)
         pt0 = correlation.GetPoint(idx0);
         pt1 = correlation.GetPoint(idx1);
         // Distance from the focal point being transformed (for weight)
-        x = pt0[0] - fp[0];
-        y = pt0[1] - fp[1];
+        x = pt0[0] - fpIn[0];
+        y = pt0[1] - fpIn[1];
         var dist2 = x*x + y*y;
         // Compute the gaussian
         var gauss = Math.exp(-dist2/sigma2);
@@ -155,9 +156,9 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma)
     this.DeltaRotation = 0;
     if (this.Correlations.length <= 1) {
         // simple translation
-        fp[0] += sum1[0] - sum0[0]; 
-        fp[1] = sum1[1] - sum0[1];
-        return fp;
+        fpOut[0] += sum1[0] - sum0[0]; 
+        fpOut[1] += sum1[1] - sum0[1];
+        return fpOut;
     }
 
     // Compute rotation
@@ -169,8 +170,8 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma)
         pt0 = correlation.GetPoint(idx0);
         pt1 = correlation.GetPoint(idx1);
         // Distance from the focal point (for weight).
-        x = pt0[0] - fp[0];
-        y = pt0[1] - fp[1];
+        x = pt0[0] - fpIn[0];
+        y = pt0[1] - fpIn[1];
         var dist = x*x + y*y;
         var gauss = Math.exp(-dist/sigma2);
         // Compute the two angles using the average centers.
@@ -209,18 +210,18 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fp, sigma)
 
     // Since focal points are not at center of rotation (sum0 and sum1).
     // We need to translate center to origin, rotate, then translate back.
-    fp[0] -= sum0[0];
-    fp[1] -= sum0[1];
+    fpOut[0] -= sum0[0];
+    fpOut[1] -= sum0[1];
     var c = Math.cos(roll);
     var s = Math.sin(roll);
     // Left handed pixel coordinate system messes the rotation.
-    var x = c*fp[0] + s*fp[1];
-    var y = c*fp[1] - s*fp[0];
+    var x = c*fpOut[0] + s*fpOut[1];
+    var y = c*fpOut[1] - s*fpOut[0];
 
-    fp[0] = x + sum1[0];
-    fp[1] = y + sum1[1];
+    fpOut[0] = x + sum1[0];
+    fpOut[1] = y + sum1[1];
 
-    return fp;
+    return fpOut;
 }
 
 
@@ -232,62 +233,6 @@ PairTransformation.prototype.ForwardTransform = function(pt0, sigma) {
     }
 
     return this.WeightedTransform(0, 1, pt0, sigma);
-
-
-
-    // Find the two nearest correlations.
-    // Nearest for translation, second nearest for rotation.
-    var correlation1;
-    var dist1;
-    var correlation2; // second best
-    var dist2;
-    for ( var i = 0; i < this.Correlations.length; ++i) {
-        var correlation = this.Correlations[i];
-        x = pt0[0] - correlation.point0[0];
-        y = pt0[1] - correlation.point0[1];
-        var dist = x*x + y*y;
-        if ( dist1 == undefined || dist < dist1) {
-            // Save the one we are replacing as second best.
-            if (dist1) {
-                dist2 = dist1;
-                correlation2 = correlation1;
-            }
-            // Save the new best.
-            dist1 = dist;
-            correlation1 = correlation;
-        } else {
-            // We also have to compare the second best.
-            if ( dist2 == undefined || dist < dist2) {
-                // Save the new second best.
-                dist2 = dist;
-                correlation2 = correlation;
-            }
-        }
-    }
-
-    if (this.Correlations.length > 1) {
-        // Compute the delta rotation.
-        var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
-                                correlation2.point0[1] - correlation1.point0[1]);
-        var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
-                                correlation2.point1[1] - correlation1.point1[1]);
-        this.DeltaRotation = (angle1 - angle0);
-    }
-
-
-    var x = pt0[0] - correlation1.point0[0];
-    var y = pt0[1] - correlation1.point0[1];
-    var c = Math.cos(this.DeltaRotation);
-    var s = Math.sin(this.DeltaRotation)
-    var rx =  c*x+s*y;
-    var ry = -s*x+c*y;
-
-    rx = correlation1.point1[0] + rx;
-    ry = correlation1.point1[1] + ry;
-
-    this.DeltaRotation = this.DeltaRotation * 180.0 / 3.14159;
-
-    return [rx,ry];
 }
 
 // Nearest neighbor.
@@ -298,65 +243,5 @@ PairTransformation.prototype.ReverseTransform = function(pt1, sigma) {
     }
 
     return this.WeightedTransform(1, 0, pt1, sigma);
-
-
-    // Find the two nearest correlations.
-    // Nearest for translation, second nearest for rotation.
-    var correlation1;
-    var dist1;
-    var correlation2; // second best
-    var dist2;
-    for ( var i = 0; i < this.Correlations.length; ++i) {
-        var correlation = this.Correlations[i];
-        x = pt1[0] - correlation.point1[0];
-        y = pt1[1] - correlation.point1[1];
-        var dist = x*x + y*y;
-        if ( dist1 == undefined || dist < dist1) {
-            // Save the one we are replacing as second best.
-            if (dist1) {
-                dist2 = dist1;
-                correlation2 = correlation1;
-            }
-            // Save the new best.
-            dist1 = dist;
-            correlation1 = correlation;
-        } else {
-            // We also have to compare the second best.
-            if ( dist2 == undefined || dist < dist2) {
-                // Save the new second best.
-                dist2 = dist;
-                correlation2 = correlation;
-            }
-        }
-    }
-
-
-    if (this.Correlations.length > 1) {
-      // Compute the delta rotation.
-      var angle1 = Math.atan2(correlation2.point1[0] - correlation1.point1[0],
-                              correlation2.point1[1] - correlation1.point1[1]);
-      var angle0 = Math.atan2(correlation2.point0[0] - correlation1.point0[0],
-                              correlation2.point0[1] - correlation1.point0[1]);
-      this.DeltaRotation = (angle0 - angle1);
-    }
-
-    var x = pt1[0] - correlation1.point1[0] + correlation1.point0[0];
-    var y = pt1[1] - correlation1.point1[1] + correlation1.point0[1];
-
-
-    var x = pt1[0] - correlation1.point1[0];
-    var y = pt1[1] - correlation1.point1[1];
-    var c = Math.cos(this.DeltaRotation);
-    var s = Math.sin(this.DeltaRotation)
-    var rx =  c*x+s*y;
-    var ry = -s*x+c*y;
-
-    rx = correlation1.point0[0] + rx;
-    ry = correlation1.point0[1] + ry;
-
-    this.DeltaRotation = this.DeltaRotation * 180.0 / 3.14159;
-
-    return [rx,ry];
-
 }
 

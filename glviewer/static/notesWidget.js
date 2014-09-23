@@ -368,12 +368,6 @@ function Note () {
     $('<div>').attr({'class':'note'})
         .css({'position':'relative'});
 
-  //$('<div>').appendTo(this.Div)
-  //   .html('&#149;')
-    //.attr('class', "bullet")
-    //             'font-size': '30px',
-
-
   this.Icon =
     $('<img>')
       .css({'height': '20px',
@@ -621,18 +615,7 @@ Note.prototype.UpdateChildrenGUI = function() {
     this.Icon.attr('src',"webgl-viewer/static/dot.png");
     return;
   }
-  /*
-  if (this.ChildrenVisibility == false) {
-    this.Icon.attr('src',"webgl-viewer/static/plus.png")
-             .click(function() {self.Expand();});
-    return;
-  }
-  */
-  // Redraw
-  /*
-  this.Icon.attr('src',"webgl-viewer/static/minus.png")
-           .click(function() {self.Collapse();});
-  */
+
   for (var i = 0; i < this.Children.length; ++i) {
     this.Children[i].DisplayGUI(this.ChildrenDiv);
   }
@@ -642,12 +625,6 @@ Note.prototype.UpdateChildrenGUI = function() {
     for (var i = 0; i < this.Children.length; ++i) {
       this.Children[i].Div.data("index", i);
     }
-    /*this.ChildrenDiv.sortable({axis: "y",
-                               containment: "parent",
-                               update: function( event, ui ){self.ReorderChildren();}});
-    // Indicate the children are sortable...
-    this.ChildrenDiv.css({'border-left': '2px solid #00a0ff'});
-    */
   }
 
 }
@@ -690,9 +667,7 @@ Note.prototype.Contains = function(decendent) {
 }
 
 
-// The optional argument 'currentNote' is used for
-// stack view transformations. 
-Note.prototype.Select = function(currentNote) {
+Note.prototype.Select = function() {
   // This should method should be split between Note and NotesWidget
   if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
   if (NOTES_WIDGET.Iterator.GetNote() != this) {
@@ -724,7 +699,7 @@ Note.prototype.Select = function(currentNote) {
 
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
-  this.DisplayView(currentNote);
+  this.DisplayView();
 }
 
 // No clearing.  Just draw this notes GUI in a div.
@@ -824,14 +799,6 @@ Note.prototype.Load = function(obj){
     this.Children[i] = childNote;
     childNote.Div.data("index", i);
   }
-  // Because we are not using add child.
-  if (this.Children.length > 1 && this.UserCanEdit()) {
-    /*
-    this.ChildrenDiv.sortable({axis: "y",
-                               containment: "parent",
-                               update: function( event, ui ){self.ReorderChildren();}});
-    */
-  }
 
   for (var i = 0; i < this.ViewerRecords.length; ++i) {
     if (this.ViewerRecords[i]) {
@@ -919,9 +886,7 @@ Note.prototype.Expand = function() {
 }
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
-// The Argument 'currentNote' is the note that set the current view.
-// It is used for stack view transformations.
-Note.prototype.DisplayView = function(currentNote) {
+Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
   if (typeof VIEWER2 !== 'undefined') {
@@ -938,7 +903,46 @@ Note.prototype.DisplayView = function(currentNote) {
     // Default source.
     VIEWER2.SetCache(VIEWER1.GetCache());
   }
+
+  // Link views if this not is a stack
+  if (this.Type == "Stack") {
+      var self = this;
+      VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
+      VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
+  } else {
+      // Unlink the viewers.
+      VIEWER1.OnInteraction();
+      VIEWER2.OnInteraction();
+  }
 }
+
+
+// viewerIdx is the viewer that changed.
+// all other viewers need to be updated to match that viewer.
+Note.prototype.SynchronizeViews = function (viewerIdx) {
+    // Hard coded for two viewers (recored 0 and 1 too).
+    if (this.ViewerRecords.length < 2 || ! this.ViewerRecords[1].Transform) {
+        return;
+    }
+    var trans = this.ViewerRecords[1].Transform;
+    if (viewerIdx == 0) {
+        var cam = VIEWER1.GetCamera();
+        var fp = trans.ForwardTransform(cam.FocalPoint);
+        var rotation = cam.GetRotation() + trans.DeltaRotation;
+        VIEWER2.SetCamera(fp,rotation, cam.Height)
+    }
+    if (viewerIdx == 1) {
+        var cam = VIEWER2.GetCamera();
+        var fp = trans.ReverseTransform(cam.FocalPoint);
+        var rotation = cam.GetRotation() + trans.DeltaRotation;
+        VIEWER1.SetCamera(fp,rotation, cam.Height)
+    }
+}
+
+
+
+
+
 
 
 NotesWidget.prototype.GetCurrentNote = function() {

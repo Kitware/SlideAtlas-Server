@@ -55,26 +55,35 @@ function Viewer (viewport, cache) {
 
   this.GuiElements = [];
 
-  /*this.CopyrightWrapper =
-    $('<div>')
-      //.appendTo(this.MainView.Canvas)
-      .appendTo('body')
-      .css({
-        'left' : '10%',
-        'width': '80%',
-        'position': 'absolute',
-        'text-align': 'center',
-        'opacity': '0.7',
-        'color': '#ccc',
-        'z-index': '3'
-      })
-      //.hide()
-      .attr('id', 'copyright');
-
-  this.AddGuiObject(this.CopyrightWrapper, 'Left', 0, "Top", 0);*/
+  this.InteractionListeners = [];
 
   this.InitializeZoomGui();
 }
+
+
+// A way to have a method called every time the camera changes.
+// Will be used for synchronizing viewers for stacks.
+Viewer.prototype.OnInteraction = function(callback) {
+    // How should we remove listners?
+    // Global clear for now.
+    if ( ! callback) {
+        this.InteractionListeners = [];
+    } else {
+        this.InteractionListeners.push(callback);
+    }
+}
+
+
+Viewer.prototype.TriggerInteraction = function() {
+    for (var i = 0; i < this.InteractionListeners.length; ++i) {
+        callback = this.InteractionListeners[i];
+        callback();
+    }
+}
+
+
+
+
 
 Viewer.prototype.InitializeZoomGui = function() {
   // Place the zoom in / out buttons.
@@ -660,6 +669,8 @@ Viewer.prototype.Animate = function() {
   }
   this.AnimateDuration -= (timeNow-this.AnimateLast);
   this.AnimateLast = timeNow;
+  // Synchronize cameras is necessary
+  this.TriggerInteraction();
 }
 
 Viewer.prototype.OverViewPlaceCamera = function(x, y) {
@@ -1216,6 +1227,8 @@ Viewer.prototype.HandleMouseMove = function(event) {
     dy = dy * speed;
     this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
   }
+  // The only interaction that does not go through animate camera.
+  this.TriggerInteraction();
   eventuallyRender();
 }
 
