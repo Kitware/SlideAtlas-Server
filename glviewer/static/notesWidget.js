@@ -424,6 +424,8 @@ function Note () {
   this.ChildrenDiv = $('<div>').css({'margin-left':'15px'})
                                .appendTo(this.Div);
 
+  // This is for stack notes (which could be a subclass).
+  this.StartIndex = 0;
 }
 
 Note.prototype.SetParent = function(parent) {
@@ -699,7 +701,27 @@ Note.prototype.Select = function() {
 
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
+  if (typeof VIEWER2 !== 'undefined') {
+    VIEWER2.Reset();
+    // TODO: This causes dual view mode when advancing the stack.
+    // We do not want this. Move this to select method.
+    SetNumberOfViews(this.ViewerRecords.length);
+  }
+
   this.DisplayView();
+  if (this.Type == "Stack") {
+      // Select only gets called when the stack is first loaded.
+      var self = this;
+      VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
+      VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
+      // First view is set by viewer record camera.
+      // Second is set relative to the first.
+      this.SynchronizeViews(0);
+  } else {
+      // Clear the sync callback.
+      VIEWER1.OnInteraction();
+      VIEWER2.OnInteraction();
+  }
 }
 
 // No clearing.  Just draw this notes GUI in a div.
@@ -889,30 +911,27 @@ Note.prototype.Expand = function() {
 Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
   VIEWER1.Reset();
-  if (typeof VIEWER2 !== 'undefined') {
-    VIEWER2.Reset();
-    SetNumberOfViews(this.ViewerRecords.length);
-  }
-
-  if (this.ViewerRecords.length > 0) {
+  // Two views should always exist.  Check anyway (for now).
+  if (typeof VIEWER2 === 'undefined') {
     this.ViewerRecords[0].Apply(VIEWER1);
   }
-  if (this.ViewerRecords.length > 1) {
-    this.ViewerRecords[1].Apply(VIEWER2);
-  } else {
-    // Default source.
-    VIEWER2.SetCache(VIEWER1.GetCache());
+
+  VIEWER2.Reset();
+  if (this.Type != "Stack") {
+      SetNumberOfViews(this.ViewerRecords.length);
+      this.ViewerRecords[0].Apply(VIEWER1);
+      this.ViewerRecords[1].Apply(VIEWER2);
+      return;
   }
 
-  // Link views if this not is a stack
-  if (this.Type == "Stack") {
-      var self = this;
-      VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
-      VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
-  } else {
-      // Unlink the viewers.
-      VIEWER1.OnInteraction();
-      VIEWER2.OnInteraction();
+  var idx0 = this.StartIndex;
+  var idx1 = idx0 + 1;
+
+  if (this.ViewerRecords.length > idx0) {
+      this.ViewerRecords[idx0].Apply(VIEWER1);
+  }
+  if (this.ViewerRecords.length > idx1) {
+      this.ViewerRecords[idx1].Apply(VIEWER2);
   }
 }
 
@@ -921,10 +940,11 @@ Note.prototype.DisplayView = function() {
 // all other viewers need to be updated to match that viewer.
 Note.prototype.SynchronizeViews = function (viewerIdx) {
     // Hard coded for two viewers (recored 0 and 1 too).
-    if (this.ViewerRecords.length < 2 || ! this.ViewerRecords[1].Transform) {
+    var idx = this.StartIndex + 1;
+    if (idx >= this.ViewerRecords.length || ! this.ViewerRecords[idx].Transform) {
         return;
     }
-    var trans = this.ViewerRecords[1].Transform;
+    var trans = this.ViewerRecords[idx].Transform;
     if (viewerIdx == 0) {
         var cam = VIEWER1.GetCamera();
         var fp = trans.ForwardTransform(cam.FocalPoint);
