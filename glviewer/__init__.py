@@ -34,33 +34,7 @@ def jsonifyView(db,viewid,viewobj):
     else :
         img["TileSize"] = 256
 
-    # I want to change the schema to get rid of this startup bookmark.
-    if 'startup_view' in viewobj:
-        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-        img["center"] = bookmarkobj["center"]
-        img["rotation"] = bookmarkobj["rotation"]
-        if 'zoom' in bookmarkobj:
-            img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-        if 'viewHeight' in bookmarkobj:
-            img["viewHeight"] = bookmarkobj["viewHeight"]
-
     return jsonify(img)
-
-
-# bookmarks are really notes.
-def jsonifyBookmarks(db, viewid, viewobj):
-    # I do not think we can pass an array back.
-    val = {}
-    val["Bookmarks"] = []
-    if 'bookmarks' in viewobj :
-        for bookmarkId in viewobj["bookmarks"] :
-            bookmarkObj = db["bookmarks"].find_one({'_id': bookmarkId})
-            bookmark = bookmarkObj
-            bookmark["_id"] = str(bookmark["_id"])
-            bookmark["img"] = str(bookmark["img"])
-            val["Bookmarks"].append(bookmark)
-
-    return jsonify(val)
 
 
 # view and note are the same in the new schema.
@@ -101,7 +75,6 @@ def flipViewerRecord(viewerRecord) :
 
 def convertImageToPixelCoordinateSystem(imageObj) :
     # origin ?
-    # Skip startup view.  GetView handles this old format
 
     if not imageObj.has_key("bounds") :
         imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
@@ -127,73 +100,6 @@ def convertViewToPixelCoordinateSystem(viewObj) :
         flipViewerRecord(record)
     viewObj["CoordinateSystem"] = "Pixel"
 
-# For depreciated content.
-def glcomparison(db, viewid, viewobj):
-    imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-
-    # The base view is for the left panel
-    img = {}
-    # this is probably wrong.  .....
-    #img["db"] = str(db["_id"])
-
-    img["viewid"] = viewid
-    img["image"] = str(imgobj["_id"])
-    img["origin"] = str(imgobj["origin"])
-    img["spacing"] = str(imgobj["spacing"])
-    img["levels"] = str(imgobj["levels"])
-    img["dimensions"] = str(imgobj["dimensions"])
-    img["center"] = str(bookmarkobj["center"])
-    img["rotation"] = str(bookmarkobj["rotation"])
-    # hack for flip
-    img["paddedHeight"] = 256 << (imgobj["levels"] - 1)
-
-    if 'zoom' in bookmarkobj:
-        img["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
-        img["viewHeight"] = str(bookmarkobj["viewHeight"])
-
-    question = {}
-    question["viewer1"] = img
-
-    # now create a list of options.
-    # this array will get saved back into the view
-    optionViews = []
-    # I am separating out the image information because we get it from the images
-    optionImages = []
-
-    # I am embedding views in the options array rather than referencing object ids.
-    if 'options' in viewobj:
-        for viewobj in viewobj["options"]:
-            # The optionView stores the image and anything that can change with the comparison view.
-            optionView = {}
-            optionView["label"] = str(viewobj["label"])
-            optionView["db"] = str(viewobj["db"])
-            # hack for legacy ...
-            img["db"] = str(viewobj["db"])
-            optionView["img"] = str(viewobj["img"])
-            optionView["viewHeight"] = str(viewobj["viewHeight"])
-            optionView["center"] = str(viewobj["center"])
-            optionView["rotation"] = str(viewobj["rotation"])
-            optionViews.append(optionView)
-
-            # now for the info needed for display, but not put back into the database view object
-            # get the option image database object to copy its info.
-            imgobj2 = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-            optionView["paddedHeight"] = 256 << (imgobj2["levels"] - 1)
-            # Start of the info object
-            optionImage = {}
-            optionImage["paddedHeight"] = optionView["paddedHeight"]
-            optionImage["origin"] = str(imgobj2["origin"])
-            optionImage["spacing"] = str(imgobj2["spacing"])
-            optionImage["levels"] = str(imgobj2["levels"])
-            optionImage["dimensions"] = str(imgobj2["dimensions"])
-            optionImages.append(optionImage)
-    question["options"] = optionViews
-    question["optionInfo"] = optionImages
-
-    return make_response(render_template('comparison.html', question=question))
-
 
 
 mod = Blueprint('glviewer', __name__,
@@ -215,8 +121,6 @@ def glview():
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
-    # get bookmarks. (Legacy)
-    bookmarks = request.args.get('bookmarks', None)
 
     # in the future, the admin database will contain everything except
     # the image data and attachments.
@@ -228,12 +132,6 @@ def glview():
 
         if ajax:
             return jsonifyView(db,viewid,viewobj)
-        if bookmarks:
-            return jsonifyBookmarks(db,viewid,viewobj)
-
-        if 'type' in viewobj:
-            if viewobj["type"] == "comparison" :
-                return glcomparison(db,viewid,viewobj)
 
         # default
         return glnote(db,viewid,viewobj,edit)
@@ -258,8 +156,6 @@ def bookmark():
     viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
-    # get bookmarks. (Legacy)
-    bookmarks = request.args.get('bookmarks', None)
     admindb = models.ImageStore._get_db()
     db = admindb
 
@@ -268,12 +164,7 @@ def bookmark():
 
         if ajax:
             return jsonifyView(db,viewid,viewobj)
-        if bookmarks:
-            return jsonifyBookmarks(db,viewid,viewobj)
 
-        if 'type' in viewobj:
-            if viewobj["type"] == "comparison" :
-                return glcomparison(db,viewid,viewobj)
         # default
         return glnote(db,viewid,viewobj,edit)
 
@@ -307,112 +198,6 @@ def getchildnotes():
     data["Notes"] = noteArray
 
     return jsonify(data)
-
-
-# returns json info needed to add a comparison to the view.
-# The startup view and annotations will be the default for the option.
-@mod.route('/comparison-option')
-def glcomparisonoption():
-    """
-    - /webgl-viewer/comparison-option?db=507619bb0a3ee10434ae0827&viewid=5074528302e3100db8429cb4
-    """
-
-    # Comparison is a modified view.
-    viewid = request.args.get('viewid')
-    # this is the same as the sessions db in the sessions page.
-    dbid = request.args.get('db')
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    viewobj = readViewTree(db, viewid)
-    if (viewobj.has_key("img")) :
-        imgobj = db["images"].find_one({'_id' : ObjectId(viewobj["img"])})
-    if (viewobj.has_key("startup_view")) :
-        bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(viewobj["startup_view"])})
-
-    # The base view is for the left panel
-    data = {
-         'success': 1,
-         'db': dbid,
-         'label': imgobj["label"],
-         'img': str(imgobj["_id"]),
-         'center': bookmarkobj["center"],
-         'origin': imgobj["origin"],
-         'spacing': imgobj["spacing"],
-         'levels': imgobj["levels"],
-         'dimensions': str(imgobj["dimensions"]),
-         'rotation': bookmarkobj["rotation"]
-         }
-
-    if 'zoom' in bookmarkobj:
-        data["viewHeight"] = 900 << int(bookmarkobj["zoom"])
-    if 'viewHeight' in bookmarkobj:
-        data["viewHeight"] = bookmarkobj["viewHeight"]
-
-    return jsonify(data)
-
-
-
-
-
-# Saves comparison view back into the database.
-@mod.route('/comparison-save', methods=['GET', 'POST'])
-def glcomparisonsave():
-
-    inputStr = request.form['input']  # for post
-    operation = request.form['operation']  # for post
-    #inputStr = request.args.get('input', "{}") # for get
-
-    inputObj = json.loads(inputStr)
-    dbid = inputObj["Viewer1"]["db"]
-    viewid = inputObj["Viewer1"]["viewid"]
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    if operation == "options" :
-        optionArray = inputObj["Options"]
-        db["views"].update({"_id" : ObjectId(viewid) },
-                                     { "$set" : { "options" : optionArray } })
-
-    if operation == "view" :
-        viewobj = readViewTree(db, viewid)
-
-        bookmarkid = viewobj["startup_view"]
-
-        # Save the startup view / bookmark
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
-
-                                     # may or may not work
-        #bookmarkobj = db["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-        #bookmarkobj["center"] = inputStr["Viewer1"]["center"]
-        #bookmarkobj["rotation"] = inputStr["Viewer1"]["rotation"]
-        #bookmarkobj["height"] = inputStr["Viewer1"]["height"]
-        #db["views"].update({"_id" : ObjectId(viewid) }, bookmarkobj)
-
-    return operation
-
-
-# Converts a view into a comparison.
-@mod.route('/comparison-convert')
-def glcomparisonconvert():
-    dbid = request.args.get('db', "") # for get
-    viewid = request.args.get('view', "") # for get
-
-    database = models.ImageStore.objects.get_or_404(id=dbid)
-    db = database.to_pymongo()
-
-    viewobj = db["views"].update({"_id" : ObjectId(viewid) },
-                                 { "$set" : { "type" : "comparison" } })
-
-    return viewid
-
 
 
 # Stack viewer.
@@ -583,35 +368,6 @@ def glstacksave():
     session.save()
 
     return "Success"
-
-
-# I need to unify.  Comparison, stack and single view.
-# Saves the default view back into the database.
-@mod.route('/save-view', methods=['GET', 'POST'])
-def glsaveview():
-    # This method is legacy and not called
-    messageStr = request.form['message']  # for post
-
-    messageObj = json.loads(messageStr)
-    viewid = inputObj["viewid"]
-
-    # not used.
-    admindb = models.ImageStore._get_db()
-    db = admindb
-
-    if operation == "view" :
-        viewobj = db["views"].find_one({"_id" : ObjectId(viewid) })
-        bookmarkid = viewobj["startup_view"]
-
-        # Save the startup view / bookmark
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "center" : inputObj["Viewer1"]["center"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "viewHeight" : inputObj["Viewer1"]["viewHeight"] } })
-        db["bookmarks"].update({"_id" : ObjectId(bookmarkid) },
-                                     { "$set" : { "rotation" : inputObj["Viewer1"]["rotation"] } })
-
-    return operation
 
 
 # These methods are required to work with the note widget.
@@ -1007,133 +763,15 @@ def getview():
     viewerRecord["Image"] = imgobj
 
     # camera object.
-    cam = {}
-    if 'startup_view' in viewObj:
-        bookmark = db2["bookmarks"].find_one({'_id':ObjectId(viewObj["startup_view"])})
-        cam["FocalPoint"] = bookmark["center"]
-        # flip y axis
-        cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-        cam["Roll"] = -bookmark["rotation"]
-        if 'zoom' in bookmark:
-            cam["Height"] = 900 << int(bookmark["zoom"])
-        if 'viewHeight' in bookmark:
-            cam["Height"] = bookmark["viewHeight"]
-    else:
-        cam["Height"] = imgobj["dimensions"][1]
-        cam["Roll"] = 0
-        cam["FocalPoint"] = [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
-    viewerRecord["Camera"] = cam
+    viewerRecord["Camera"] = {
+        "Height": imgobj["dimensions"][1],
+        "Roll": 0,
+        "FocalPoint": [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
+    }
     viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
 
-    # lets make the first slide have all the annotations (hover for text).
-    children = []
-    if 'bookmarks' in viewObj:
-        for bookmarkid in viewObj["bookmarks"]:
-            bookmark = db2["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-            if bookmark["annotation"]["type"] == "pointer" :
-                annot = {}
-                annot["type"] = "text"
-                # colors are wrong
-                #annot["color"] = bookmark["annotation"]["color"]
-                annot["color"] = "#1030FF"
-                annot["size"] = 30
-                annot["position"] = bookmark["annotation"]["points"][0]
-                #annot["offset"] = [bookmark["annotation"]["points"][1][0]-annot["position"][0],
-                #                   bookmark["annotation"]["points"][1][1]-annot["position"][1]]
-                # try short arrows
-                annot["offset"] = [45,0]
-                # flip y axis
-                annot["position"][1] = paddedHeight-annot["position"][1]
-                annot["offset"][1] = -annot["offset"][1]-30
-
-                # problem with offsets too big or small.  (Screen pixels / fixed size)
-                mag = math.sqrt((annot["offset"][0]*annot["offset"][0]) + (annot["offset"][1]*annot["offset"][1]))
-                if mag == 0 :
-                    annot["offset"][1] = 1
-                    mag = 1
-                if mag > 200 :
-                    annot["offset"][0] = annot["offset"][0] * 200 / mag
-                    annot["offset"][1] = annot["offset"][1] * 200 / mag
-                if mag < 10 :
-                    annot["offset"][0] = annot["offset"][0] * 10 / mag
-                    annot["offset"][1] = annot["offset"][1] * 10 / mag
-                annot["string"] = bookmark["title"]
-                annot["visibility"] = 1
-                viewerRecord["Annotations"].append(annot)
-
-            if bookmark["annotation"]["type"] == "circle" :
-                annot = {}
-                annot["type"] = "circle"
-                annot["color"] = bookmark["annotation"]["color"]
-                annot["outlinecolor"] = bookmark["annotation"]["color"]
-                annot["origin"] = bookmark["annotation"]["points"][0]
-                # flip y axis
-                annot["origin"][1] = paddedHeight-annot["origin"][1]
-
-                # why does radius have value False?
-                if bookmark["annotation"]["radius"] :
-                    annot["radius"] = bookmark["annotation"]["radius"]
-                else :
-                    annot["radius"] = 1000.0
-                annot["linewidth"] = annot["radius"] / 20
-                viewerRecord["Annotations"].append(annot)
-
-    # the notes will show only one annotation
-    # Now for the children (Bookmarks).
-    children = []
-    if 'bookmarks' in viewObj:
-        for bookmarkid in viewObj["bookmarks"]:
-            bookmark = db2["bookmarks"].find_one({'_id':ObjectId(bookmarkid)})
-            if bookmark["annotation"]["type"] == "pointer" :
-                question = {}
-                question["Title"] = bookmark["title"]
-                question["Text"] = ""
-                question["Type"] = "Bookmark"
-                question["_id"] = str(bookmark["_id"])
-                question["ParentId"] = viewid
-                vrq = {}
-                vrq["AnnotationVisibility"] = 2
-                vrq["Image"] = viewerRecord["Image"]
-                # camera object.
-                cam = {}
-                cam["FocalPoint"] = bookmark["center"]
-                # try centering the arrow tip
-                #cam["FocalPoint"] = bookmark["annotation"]["points"][0]
-                # flip y axis
-                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-                cam["Height"] = 900 << int(bookmark["zoom"])
-                cam["Roll"] = -bookmark["rotation"]
-                vrq["Camera"] = cam
-                annot = viewerRecord["Annotations"][len(children)]
-                vrq["Annotations"] = [deepcopy(annot)]
-                question["ViewerRecords"] = [vrq]
-                children.append(question)
-
-            if bookmark["annotation"]["type"] == "circle" :
-                note = {}
-                note["Title"] = bookmark["title"]
-                note["Text"] = bookmark["details"]
-                note["Type"] = "Bookmark"
-                note["_id"] = str(bookmark["_id"])
-                note["ParentId"] = viewid
-                vr = {}
-                vr["AnnotationVisibility"] = 2
-                vr["Image"] = viewerRecord["Image"]
-                # camera object.
-                cam = {}
-                cam["FocalPoint"] = bookmark["center"]
-                # flip y axis
-                cam["FocalPoint"][1] = paddedHeight-cam["FocalPoint"][1]
-                cam["Height"] = 900 << int(bookmark["zoom"])
-                cam["Roll"] = -bookmark["rotation"]
-                vr["Camera"] = cam
-                annot = viewerRecord["Annotations"][len(children)]
-                vr["Annotations"] = [deepcopy(annot)]
-                note["ViewerRecords"] = [vr]
-                children.append(note)
-
-    noteObj["Children"] = children
+    noteObj["Children"] = []
 
     # it is easier to delete annotations than not generate them in the first place.
     if hideAnnotations :
