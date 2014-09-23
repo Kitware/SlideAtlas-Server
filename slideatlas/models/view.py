@@ -93,9 +93,6 @@ class View(ModelDocument):
     label = StringField(required=False,
         verbose_name='', help_text='')
 
-    bookmarks = ListField(ObjectIdField(), required=False,
-        verbose_name='', help_text='')
-
     def __unicode__(self):
         return unicode(self.label)
 
