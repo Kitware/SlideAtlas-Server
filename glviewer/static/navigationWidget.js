@@ -124,19 +124,39 @@ NavigationWidget.prototype.SetVisibility = function(v) {
 
 NavigationWidget.prototype.Update = function() {
   // Disable and enable prev/next note buttons so we cannot go past the end.
-  if (NOTES_WIDGET.Iterator.IsStart()) {
-    this.PreviousNoteButton.css({'opacity': '0.2'});
-    this.PreviousNoteTip.SetActive(false);
+  var note = NOTES_WIDGET.GetCurrentNote();
+  if (note.Type == "Stack") {
+      // Next note refers to ViewerRecords.
+      if (note.StartIndex > 0) {
+          this.PreviousNoteButton.css({'opacity': '0.5'});
+          this.PreviousNoteTip.SetActive(true);
+      } else {
+          this.PreviousNoteButton.css({'opacity': '0.2'});
+          this.PreviousNoteTip.SetActive(false);
+      }
+      if (note.StartIndex < note.ViewerRecords.length - 1) {
+          this.NextNoteButton.css({'opacity': '0.5'});
+          this.NextNoteTip.SetActive(true);
+      } else {
+          this.NextNoteButton.css({'opacity': '0.2'});
+          this.NextNoteTip.SetActive(false);
+      }
   } else {
-    this.PreviousNoteButton.css({'opacity': '0.5'});
-    this.PreviousNoteTip.SetActive(true);
-  }
-  if (NOTES_WIDGET.Iterator.IsEnd()) {
-    this.NextNoteButton.css({'opacity': '0.2'});
-    this.NextNoteTip.SetActive(false);
-  } else {
-    this.NextNoteButton.css({'opacity': '0.5'});
-    this.NextNoteTip.SetActive(true);
+      // Next note refers to children.
+      if (NOTES_WIDGET.Iterator.IsStart()) {
+          this.PreviousNoteButton.css({'opacity': '0.2'});
+          this.PreviousNoteTip.SetActive(false);
+      } else {
+          this.PreviousNoteButton.css({'opacity': '0.5'});
+          this.PreviousNoteTip.SetActive(true);
+      }
+      if (NOTES_WIDGET.Iterator.IsEnd()) {
+          this.NextNoteButton.css({'opacity': '0.2'});
+          this.NextNoteTip.SetActive(false);
+      } else {
+          this.NextNoteButton.css({'opacity': '0.5'});
+          this.NextNoteTip.SetActive(true);
+      }
   }
 
   // Disable and enable prev/next slide buttons so we cannot go past the end.
@@ -158,22 +178,50 @@ NavigationWidget.prototype.Update = function() {
 
 NavigationWidget.prototype.PreviousNote = function() {
     var iterator = NOTES_WIDGET.Iterator;
+    var current = iterator.GetNote();
+    if (current.Type == "Stack") {
+        if (current.StartIndex <= 0) { return;}
+        // Move camera
+        var cam = VIEWER1.GetCamera();
+        VIEWER2.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
+        --current.StartIndex;
+        current.DisplayView();
+        current.SynchronizeViews(1);
+        // activate or deactivate buttons.
+        this.Update();
+        return;
+    }
+
     if (iterator.IsStart()) { return; }
 
     // We need both the last active note and next note
     // To implement transformations for stacks.
-    var current = iterator.GetNote();
     iterator.Previous();
     iterator.GetNote().Select(current);
 }
 
 NavigationWidget.prototype.NextNote = function() {
     var iterator = NOTES_WIDGET.Iterator;
+    var current = iterator.GetNote();
+    if (current.Type == "Stack") {
+        if (current.StartIndex >= current.ViewerRecords.length - 1) {
+            return;
+        }
+        // Move camera
+        var cam = VIEWER2.GetCamera();
+        VIEWER1.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
+        ++current.StartIndex;
+        current.DisplayView();
+        current.SynchronizeViews(0);
+        // activate or deactivate buttons.
+        this.Update();
+        return;
+    }
+
     if (iterator.IsEnd()) { return; }
 
     // We need both the last active note and next note
     // To implement transformations for stacks.
-    var current = iterator.GetNote();
     iterator.Next();
     iterator.GetNote().Select(current);
 }

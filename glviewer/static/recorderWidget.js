@@ -126,7 +126,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.SetCache(newCache);
   }
 
-  if (this.Camera != undefined) {
+  if (this.Camera !== undefined && this.Transform === undefined) {
     var cameraRecord = this.Camera;
     viewer.GetCamera().Load(cameraRecord);
     viewer.OverView.Camera.Roll = cameraRecord.Roll;
