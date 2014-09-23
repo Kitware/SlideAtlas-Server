@@ -56,10 +56,10 @@ ViewerRecord.prototype.Load = function(obj) {
     }
   }
 
-  if (this.Transformation) {
+  if (this.Transform) {
       var t = new PairTransformation;
-      t.Load(this.Transformation);
-      this.Transformation = t;
+      t.Load(this.Transform);
+      this.Transform = t;
   }
 }
 
@@ -104,8 +104,8 @@ ViewerRecord.prototype.Serialize = function (viewer) {
      rec.OverviewBounds = this.OverviewBounds;
   }
 
-  if (this.Transformation) {
-      rec.Transformation = this.Transformation.Serialize();
+  if (this.Transform) {
+      rec.Transform = this.Transform.Serialize();
   }
 
   return rec;
@@ -133,21 +133,6 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.OverView.Camera.ComputeMatrix();
     viewer.UpdateZoomGui();
   }
-
-  if (this.Transformation != undefined) {
-      var cam = viewer.GetCamera();
-      cam.FocalPoint = this.Transformation.ForwardTransform(cam.FocalPoint);
-      cam.Roll += this.Transformation.DeltaRotation * 3.14159 / 180;
-      cam.ComputeMatrix();
-      viewer.UpdateZoomGui();
-  } else if (this.Camera != undefined) {
-      var cameraRecord = this.Camera;
-      viewer.GetCamera().Load(cameraRecord);
-      viewer.OverView.Camera.Roll = cameraRecord.Roll;
-      viewer.OverView.Camera.ComputeMatrix();
-      viewer.UpdateZoomGui();
-  }
-
 
   if (this.AnnotationVisibility != undefined) {
     viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
