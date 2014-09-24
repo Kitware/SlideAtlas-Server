@@ -1,4 +1,6 @@
-// Source is the directory that contains the tile files.
+
+
+
 function Cache(image) {
   // Look through existing caches and reuse one if possible
   for (var i = 0; i < CACHES.length; ++i) {
@@ -134,6 +136,7 @@ Cache.prototype.LoadRoots = function () {
 // This could get expensive because it is called so often.
 // Eventually I want a quick coverage test to exit early.
 // iPad flag includes low resolution ancestors to get rid of white lines between tiles.
+// Tiles is actually the return value.  It is not used for anything else.
 Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   // I am prioritizing tiles in the queue by time stamp.
   // Loader sets the the tiles time stamp.
