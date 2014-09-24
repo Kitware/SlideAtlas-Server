@@ -1,3 +1,6 @@
+// Stacks and notes are both in this file.  I should clean this up and make separate classes
+// that possibly share a superclass.
+
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
@@ -427,6 +430,7 @@ function Note () {
   // This is for stack notes (which could be a subclass).
   this.StartIndex = 0;
   this.ActiveCorrelation = undefined;
+  this.StackDivs = [];
 }
 
 Note.prototype.SetParent = function(parent) {
@@ -618,27 +622,46 @@ Note.prototype.AddChild = function(childNote, first) {
 }
 
 Note.prototype.UpdateChildrenGUI = function() {
-  // Callback trick
-  var self = this;
+    // Callback trick
+    var self = this;
+    
+    // Clear
+    this.ChildrenDiv.empty();
 
-  // Clear
-  this.ChildrenDiv.empty();
-  if (this.Children.length == 0) {
-    this.Icon.attr('src',"webgl-viewer/static/dot.png");
-    return;
-  }
-
-  for (var i = 0; i < this.Children.length; ++i) {
-    this.Children[i].DisplayGUI(this.ChildrenDiv);
-  }
-
-  if (this.Children.length > 1 && this.UserCanEdit() ) {
-    // Make sure the indexes are set correctly.
-    for (var i = 0; i < this.Children.length; ++i) {
-      this.Children[i].Div.data("index", i);
+    // Stacks
+    if (this.Type == "Stack") {
+        // I want viewer records to look like children for stacks.
+        this.StackDivs = [];
+        for (var i = 0; i < this.ViewerRecords.length; ++i) {
+            var sectionDiv = $('<div>')
+                .attr({'class':'note'})
+                .text(this.ViewerRecords[i].Image.label)
+                .css({'position':'relative'})
+                .appendTo(this.ChildrenDiv);
+            this.StackDivs.push(sectionDiv);
+            if (i == this.StartIndex) {
+                sectionDiv.css({'background-color':'#BBB'});
+            }
+        }
+        return;
     }
-  }
 
+    // Notes
+    if (this.Children.length == 0) {
+        this.Icon.attr('src',"webgl-viewer/static/dot.png");
+        return;
+    }
+    
+    for (var i = 0; i < this.Children.length; ++i) {
+        this.Children[i].DisplayGUI(this.ChildrenDiv);
+    }
+    
+    if (this.Children.length > 1 && this.UserCanEdit() ) {
+        // Make sure the indexes are set correctly.
+        for (var i = 0; i < this.Children.length; ++i) {
+            this.Children[i].Div.data("index", i);
+        }
+    }
 }
 
 // So this is a real pain.  I need to get the order of the notes from
@@ -712,10 +735,12 @@ Note.prototype.Select = function() {
   if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
   if (typeof VIEWER2 !== 'undefined') {
-    VIEWER2.Reset();
-    // TODO: This causes dual view mode when advancing the stack.
-    // We do not want this. Move this to select method.
-    SetNumberOfViews(this.ViewerRecords.length);
+      VIEWER2.Reset();
+      // TODO:
+      // It would be nice to store the viewer configuration 
+      // as a separate state variable.  We might want a stack
+      // that defaults to a single viewer.
+      SetNumberOfViews(this.ViewerRecords.length);
   }
 
   if (this.Type == "Stack") {
@@ -728,7 +753,8 @@ Note.prototype.Select = function() {
       // Second is set relative to the first.
       this.SynchronizeViews(0);
       this.PreloadStackSection(2);
-
+      // We do not support inserting sections in a stack right now.
+      NOTES_WIDGET.NewButton.hide();
   } else {
       // Clear the sync callback.
       VIEWER1.OnInteraction();
@@ -939,6 +965,14 @@ Note.prototype.DisplayStack = function() {
         if (trans) {
             VIEWER1.StackCorrelations = trans.Correlations;
             VIEWER2.StackCorrelations = trans.Correlations;
+        }
+    }
+    // Indicate which section is being displayed in VIEWER1
+    for (var i = 0; i < this.StackDivs.length; ++i) {
+        if (i == this.StartIndex) {
+            this.StackDivs[i].css({'background-color':'#BBB'});
+        } else {
+            this.StackDivs[i].css({'background-color':'#FFF'});
         }
     }
 }
