@@ -189,6 +189,8 @@ NavigationWidget.prototype.PreviousNote = function() {
         --current.StartIndex;
         current.DisplayStack();
         current.SynchronizeViews(1);
+        // Fetch/preload the next section
+        current.PreloadStackSection(current.StartIndex - 1);
         // activate or deactivate buttons.
         this.Update();
         return;
@@ -220,6 +222,8 @@ NavigationWidget.prototype.NextNote = function() {
         ++current.StartIndex;
         current.DisplayStack();
         current.SynchronizeViews(0);
+        // Fetch/preload the next section
+        current.PreloadStackSection(current.StartIndex + 1);
         // activate or deactivate buttons.
         this.Update();
         return;

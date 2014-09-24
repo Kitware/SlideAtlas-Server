@@ -727,6 +727,8 @@ Note.prototype.Select = function() {
       // First view is set by viewer record camera.
       // Second is set relative to the first.
       this.SynchronizeViews(0);
+      this.PreloadStackSection(2);
+
   } else {
       // Clear the sync callback.
       VIEWER1.OnInteraction();
@@ -983,6 +985,20 @@ Note.prototype.InitializeStackTransforms = function () {
         }
     }
 }
+
+
+// For preloading a section of the stack.
+// This skips out of bounds indexes.
+Note.prototype.PreloadStackSection = function(idx) { 
+    if (idx < 0 || idx >= this.ViewerRecords.length) {
+        return;
+    }
+    // This works because the constructor returns an existing cache if possible.
+    var cache = new Cache(this.ViewerRecords[idx].Image);
+    // The view is only needed for the camera and viewport.
+    cache.ChooseTiles(VIEWER1.MainView, 0, []);
+}
+
 
 
 // viewerIdx is the viewer that changed.
