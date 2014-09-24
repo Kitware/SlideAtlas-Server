@@ -520,13 +520,14 @@ function handleResize() {
 }
 
 
-
 function InitViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
     VIEWER1 = initView([0,0, width, height]);
+    VIEWER1.ViewerIndex = 0;
     VIEWER2 = initView([0,0, width, height]);
+    VIEWER2.ViewerIndex = 1;
 
     handleResize();
 }

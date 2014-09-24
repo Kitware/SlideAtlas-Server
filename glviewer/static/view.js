@@ -157,7 +157,6 @@ View.prototype.DrawHistory = function (windowHeight) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // Start with a transform that flips the y axis.
-    // This is an issue later because the images will be upside down.
     ctx.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
 
     // Map (-1->1, -1->1) to the viewport.
@@ -209,6 +208,64 @@ View.prototype.DrawHistory = function (windowHeight) {
   }
 }
 
+// Draw a cross hair in the center of the view.
+View.prototype.DrawFocalPoint = function () {
+    if ( GL) {
+        alert("Drawing focal point does not work with webGl yet.");
+    } else {
+        var x = this.Viewport[2] * 0.5;
+        var y = this.Viewport[3] * 0.5;
+        var ctx = this.Context2d;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = "rgba(255,255,200,100)"; 
+        ctx.fillStyle = "rgba(0,0,50,100)"; 
+
+        ctx.beginPath();
+        ctx.fillRect(x-30,y-1,60,3);
+        ctx.rect(x-30,y-1,60,3);
+        ctx.fillRect(x-1,y-30,3,60);
+        ctx.rect(x-1,y-30,3,60);
+        
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+// Draw a cross hair at each correlation point.
+// pointIdx is 0 or 1.  It indicates which correlation point should be drawn.
+View.prototype.DrawCorrelations = function (correlations, pointIdx) {
+    if ( GL) {
+        alert("Drawing correlations does not work with webGl yet.");
+    } else {
+        var ctx = this.Context2d;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = "rgba(200,255,255,100)"; 
+        ctx.fillStyle = "rgba(255,0,0,100)"; 
+        for (var i = 0; i < correlations.length; ++i) {
+            var wPt = correlations[i].GetPoint(pointIdx);
+            var m = this.Camera.Matrix;
+            // Change coordinate system from world to -1->1
+            var x = (wPt[0]*m[0] + wPt[1]*m[4]
+                     + m[12]) / m[15];
+            var y = (wPt[0]*m[1] + wPt[1]*m[5]
+                     + m[13]) / m[15];
+            // Transform coordinate system from -1->1 to canvas
+            x = (1.0 + x) * this.Viewport[2] * 0.5;
+            y = (1.0 - y) * this.Viewport[3] * 0.5;
+
+            ctx.beginPath();
+            ctx.fillRect(x-20,y-1,40,3);
+            ctx.rect(x-20,y-1,40,3);
+            ctx.fillRect(x-1,y-20,3,40);
+            ctx.rect(x-1,y-20,3,40);
+        
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
 
 View.prototype.DrawCopyright = function (copyright) {
   if (copyright == undefined || MASK_HACK) {

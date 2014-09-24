@@ -214,10 +214,12 @@ EventManager.prototype.HandleKeyDown = function(event) {
   if ( ! this.HasFocus) {return;} 
 
   if (event.keyCode == 16) {
-    // Shift key modifier.
-    this.ShiftKeyPressed = true;
-    // Do not forward modifier keys events to objects that consume keypresses.
-    return;
+      // Shift key modifier.
+      this.ShiftKeyPressed = true;
+      // I am using the shift key to display to focal point cursor
+      eventuallyRender();
+      // Do not forward modifier keys events to objects that consume keypresses.
+      return;
   }
   if (event.keyCode == 17) {
     // Control key modifier.
@@ -252,15 +254,17 @@ EventManager.prototype.HandleKeyDown = function(event) {
 }
 
 EventManager.prototype.HandleKeyUp = function(event) {
-  if ( ! this.HasFocus) {return;} 
-
-  if (event.keyCode == 16) {
-    // Shift key modifier.
-    this.ShiftKeyPressed = false;
-  } else if (event.keyCode == 17) {
-    // Control key modifier.
-    this.ControlKeyPressed = false;
-  }
+    if ( ! this.HasFocus) {return;} 
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        // I am using the shift key to display to focal point cursor
+        eventuallyRender();
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
 }
 
 
