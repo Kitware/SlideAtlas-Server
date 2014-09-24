@@ -58,6 +58,10 @@ function Viewer (viewport, cache) {
   this.InteractionListeners = [];
 
   this.InitializeZoomGui();
+
+  // For stack correlations.
+  this.StackCorrelations = undefined;
+  this.ViewerIndex = 0; // VIEWER1 has this set to 0, VIEWER2: 1
 }
 
 
@@ -607,6 +611,15 @@ Viewer.prototype.Draw = function() {
     var copyright = cache.Image.copyright;
     this.MainView.DrawCopyright(copyright);
   }
+  // I am using shift for stack interaction.
+  // Turn on the focal point when shift is pressed.
+  if (EVENT_MANAGER.ShiftKeyPressed && EDIT) {
+      this.MainView.DrawFocalPoint();
+      if (this.StackCorrelations) {
+          this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
+      }
+  }
+
   // Here to trigger FINISHED_LOADING_CALLBACK
   LoadQueueUpdate();
 }

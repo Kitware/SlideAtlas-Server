@@ -426,6 +426,7 @@ function Note () {
 
   // This is for stack notes (which could be a subclass).
   this.StartIndex = 0;
+  this.ActiveCorrelation = undefined;
 }
 
 Note.prototype.SetParent = function(parent) {
@@ -579,17 +580,26 @@ Note.prototype.UserCanEdit = function() {
 
 
 Note.prototype.RecordView = function() {
-  this.ViewerRecords = [];
-  //  Viewer1
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.CopyViewer(VIEWER1);
-  this.ViewerRecords.push(viewerRecord);
-  // Viewer2
-  if (DUAL_VIEW) {
+    if (this.Type == "Stack") {
+        // All we want to do is record the default
+        // camera of the first section (if we at 
+        // the start of the stack).
+        if (this.StartIndex == 0) {
+            this.ViewerRecords[0].CopyViewer(VIEWER1);
+        }
+        return;
+    }
+    this.ViewerRecords = [];
+    //  Viewer1
     var viewerRecord = new ViewerRecord();
-    viewerRecord.CopyViewer(VIEWER2);
+    viewerRecord.CopyViewer(VIEWER1);
     this.ViewerRecords.push(viewerRecord);
-  }
+    // Viewer2
+    if (DUAL_VIEW) {
+        var viewerRecord = new ViewerRecord();
+        viewerRecord.CopyViewer(VIEWER2);
+        this.ViewerRecords.push(viewerRecord);
+    }
 
 }
 
@@ -708,12 +718,12 @@ Note.prototype.Select = function() {
     SetNumberOfViews(this.ViewerRecords.length);
   }
 
-  this.DisplayView();
   if (this.Type == "Stack") {
       // Select only gets called when the stack is first loaded.
       var self = this;
       VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
       VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
+      this.DisplayStack();
       // First view is set by viewer record camera.
       // Second is set relative to the first.
       this.SynchronizeViews(0);
@@ -721,7 +731,17 @@ Note.prototype.Select = function() {
       // Clear the sync callback.
       VIEWER1.OnInteraction();
       VIEWER2.OnInteraction();
+      this.DisplayView();
   }
+}
+
+
+
+Note.prototype.RecordAnnotations = function() {
+    this.ViewerRecords[this.StartIndex].CopyAnnotations(VIEWER1);
+    if (this.StartIndex + 1 < this.ViewerRecords.length) {
+        this.ViewerRecords[this.StartIndex+1].CopyAnnotations(VIEWER2);
+    }
 }
 
 // No clearing.  Just draw this notes GUI in a div.
@@ -907,6 +927,20 @@ Note.prototype.Expand = function() {
   NAVIGATION_WIDGET.Update();
 }
 
+
+// Extra stuff for stack.
+Note.prototype.DisplayStack = function() {
+    this.DisplayView();
+    // For editing correlations
+    if (EDIT && this.StartIndex+1 < this.ViewerRecords.length) {
+        var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
+        if (trans) {
+            VIEWER1.StackCorrelations = trans.Correlations;
+            VIEWER2.StackCorrelations = trans.Correlations;
+        }
+    }
+}
+
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function() {
   // Remove Annotations from the previous note.
@@ -936,9 +970,62 @@ Note.prototype.DisplayView = function() {
 }
 
 
+
+// Creates default transforms for Viewer Records 1-n
+// (if they do not exist already).  Uses cameras focal point.
+Note.prototype.InitializeStackTransforms = function () {
+    for (var i = 1; i < this.ViewerRecords.length; ++i) {
+        if ( ! this.ViewerRecords[i].Transform) {
+            var trans = new PairTransformation();
+            trans.AddCorrelation(this.ViewerRecords[i-1].Camera.FocalPoint,
+                                 this.ViewerRecords[i].Camera.FocalPoint);
+            this.ViewerRecords[i].Transform = trans;
+        }
+    }
+}
+
+
 // viewerIdx is the viewer that changed.
 // all other viewers need to be updated to match that viewer.
 Note.prototype.SynchronizeViews = function (viewerIdx) {
+    if (EDIT && EVENT_MANAGER.ShiftKeyPressed) {
+        if ( ! this.ActiveCorrelation) {
+            // Find a close correlation or make a new one.
+            // With only two viewers this is easy.
+            var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
+            if ( ! trans) {
+                alert("Missing transform");
+                return;
+            }
+            // Closest
+            var cam = VIEWER1.GetCamera();
+            var fp = cam.GetFocalPoint();
+            var minDist = cam.Height / 3;
+            for (var i = 0; i < trans.Correlations.length; ++i) {
+                var cor = trans.Correlations[i];
+                var dx = fp[0] - cor.point0[0];
+                var dy = fp[1] - cor.point0[1];
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    this.ActiveCorrelation = cor;
+                }
+            }
+            if ( ! this.ActiveCorrelation) {
+                this.ActiveCorrelation = new PairCorrelation();
+                trans.Correlations.push(this.ActiveCorrelation);
+            }
+        }
+        this.ActiveCorrelation.SetPoint0(VIEWER1.GetCamera().GetFocalPoint());
+        this.ActiveCorrelation.SetPoint1(VIEWER2.GetCamera().GetFocalPoint());
+        return;
+    } else {
+        // A round about way to set and unset the active correlation.
+        // This is OK, because if there is no interaction without the shift key
+        // the active correlation will not change anyway.
+        this.ActiveCorrelation = undefined;
+    }
+
     // Hard coded for two viewers (recored 0 and 1 too).
     var idx = this.StartIndex + 1;
     if (idx >= this.ViewerRecords.length || ! this.ViewerRecords[idx].Transform) {

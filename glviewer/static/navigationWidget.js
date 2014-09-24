@@ -181,11 +181,13 @@ NavigationWidget.prototype.PreviousNote = function() {
     var current = iterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
+        // Copy viewer annotation to the viewer record.
+        current.RecordAnnotations();
         // Move camera
         var cam = VIEWER1.GetCamera();
         VIEWER2.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
         --current.StartIndex;
-        current.DisplayView();
+        current.DisplayStack();
         current.SynchronizeViews(1);
         // activate or deactivate buttons.
         this.Update();
@@ -194,10 +196,13 @@ NavigationWidget.prototype.PreviousNote = function() {
 
     if (iterator.IsStart()) { return; }
 
-    // We need both the last active note and next note
-    // To implement transformations for stacks.
+    // This is such a good idea I am doing it with children notes too.
+    // Before everytime a new child was selected, we lost new annotations.
+    // Copy viewer annotation to the viewer record.
+    current.RecordAnnotations();
+
     iterator.Previous();
-    iterator.GetNote().Select(current);
+    iterator.GetNote().Select();
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -207,11 +212,13 @@ NavigationWidget.prototype.NextNote = function() {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
         }
+        // Copy viewer annotation to the viewer record.
+        current.RecordAnnotations();
         // Move camera
         var cam = VIEWER2.GetCamera();
         VIEWER1.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
         ++current.StartIndex;
-        current.DisplayView();
+        current.DisplayStack();
         current.SynchronizeViews(0);
         // activate or deactivate buttons.
         this.Update();
@@ -220,10 +227,13 @@ NavigationWidget.prototype.NextNote = function() {
 
     if (iterator.IsEnd()) { return; }
 
-    // We need both the last active note and next note
-    // To implement transformations for stacks.
+    // This is such a good idea I am doing it with children notes too.
+    // Before everytime a new child was selected, we lost new annotations.
+    // Copy viewer annotation to the viewer record.
+    current.RecordAnnotations();
+
     iterator.Next();
-    iterator.GetNote().Select(current);
+    iterator.GetNote().Select();
 }
 
 

@@ -85,6 +85,14 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   }
 }
 
+// For stacks.  A reduced version of copy view. 
+ViewerRecord.prototype.CopyAnnotations = function (viewer) {
+    this.Annotations = [];
+    for (var i = 0; i < viewer.WidgetList.length; ++i) {
+        this.Annotations.push(viewer.WidgetList[i].Serialize());
+    }
+}
+
 // I am not sure we need to serialize.  
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.

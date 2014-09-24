@@ -70,7 +70,6 @@ function PairTransformation () {
 }
 
 
-
 PairTransformation.prototype.Serialize = function() {
     return JSON.parse(JSON.stringify(this));
 }
@@ -94,16 +93,13 @@ PairTransformation.prototype.AddCorrelation = function(pt0, pt1) {
 
 
 PairTransformation.prototype.Load = function(obj) {
+    // Views are not used anymore for viewer record stacks.
     if (obj.View0) {
         this.View0 = obj.View0;
-    } //else {   // one time change database.
-    //    this.View0 = VIEWS[i]._id;
-    //}
+    }
     if (obj.View1) {
         this.View1 = obj.View1;
-    }// else {    // one time change database.
-    //    this.View1 = VIEWS[i+1]._id;
-    //}
+    }
     for (var i = 0; i < obj.Correlations.length; ++i) {
         var correlation = new PairCorrelation();
         correlation.Load(obj.Correlations[i]);
