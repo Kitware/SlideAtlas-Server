@@ -18,7 +18,6 @@ from ..blueprint import api
 from ..common import abort
 
 import bson
-import pdb
 
 ################################################################################
 __all__ = ('SessionAttachmentListAPI', 'SessionAttachmentItemAPI')
@@ -336,76 +335,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             last = True
             result["last"] = 1
 
-#             if not sessobj.has_key("attachments"):
-#                 sessobj["attachments"] = [ {"ref" : ObjectId(resid), "pos" : 0}]
-#                 sessobj.validate()
-#                 sessobj.save()
-# #                print "Inserted attachments", str(sessobj["attachments"])
-#             else:
-#                 size_before = len(sessobj["attachments"])
-#                 sessobj["attachments"].append({"ref" : ObjectId(resid), "pos" : size_before + 1})
-#                 sessobj.validate()
-#                 sessobj.save()
-# #                print "Appended to  attachments", str(sessobj["attachments"])
-
-
         return result, 201  # No Content
-
-        # image_store, _, attachment = self._fetch_attachment(session, attachment_id)
-
-        # # only accept a single file from a form
-        # if len(request.files.items(multi=True)) != 1:
-        #     abort(400, details='Exactly one file must be provided.')
-        # uploaded_file = request.files.itervalues().next()
-
-        # content_range = parse_content_range_header(request.headers.get('Content-Range'))
-        # if not content_range:
-        #     abort(400, details='A PUT request to modify an attachment must include a Content-Range header.')
-        # if content_range.units != 'bytes':
-        #     abort(400, details='Only a range-unit of "bytes" may be used in a Content-Range header.')
-        # if content_range.start is None:
-        #     abort(400, details='The content\'s start and end positions must be specified in the Content-Range header.')
-        # # 'parse_content_range_header' guarantees that 'content_range.stop' must
-        # #   also be specified if 'start' is
-        # if content_range.length is None:
-        #     # TODO: getting rid of this restriction would be nice, but we'd need
-        #     #   a way to know when the final chunk was uploaded
-        #     abort(400, details='The content\'s total length must be specified in the Content-Range header.')
-
-        # if content_range.start % attachment.chunkSize != 0:
-        #     abort(400, details='The content\'s start location must be a multiple of the content\'s chunk size.')
-
-        # content_chunk_size = content_range.stop - content_range.start
-        # if (content_chunk_size != attachment.chunkSize) and (content_range.stop != content_range.length):
-        #     # only the end chunk can be shorter
-        #     abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
-
-        # image_store_pymongo = image_store.to_pymongo()
-
-        # chunk_num = (content_range.start / attachment.chunkSize)
-        # image_store_pymongo['attachments.chunks'].insert({
-        #     'files_id': attachment._id,
-        #     'n': chunk_num,
-        #     'data': Binary(uploaded_file.read()),
-        # })
-
-        # # chunks may be sent out of order, so the only way to determine if all
-        # #   chunks were received is to count
-        # expected_chunks = int(math.ceil(float(content_range.length) / float(attachment.chunkSize)))
-        # received_chunks = image_store_pymongo['attachments.chunks'].find({'files_id': attachment._id}).count()
-        # if expected_chunks == received_chunks:
-        #     # update the attachment metadata
-        #     md5 = image_store_pymongo.command('filemd5', attachment._id, root='attachments')['md5']
-        #     image_store_pymongo['attachments.files'].update(
-        #         {'_id': attachment._id},
-        #         {'$set': {
-        #             'length': content_range.length,
-        #             'md5': md5,
-        #             'uploadDate': datetime.datetime.utcnow()
-        #             }}
-        #     )
-
-        # return make_response(jsonify(), 204)  # No Content
 
     @security.AdminSessionRequirement.protected
     def delete(self, session, restype, attachment_id):
