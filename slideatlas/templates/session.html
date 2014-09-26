@@ -14,6 +14,7 @@
             background: green;
         }
     </style>
+    <link rel="stylesheet" href="/static/css/uploads.css">
     {% endif %}
 {% endblock styles %}
 
@@ -29,6 +30,12 @@
 
     <script src="/static/js/attachments.js"></script>
 
+
+    <!--script src="/static/thirdparty/jquery-fileupload/9.5.7/js/vendor/jquery.ui.widget.js"></script>
+    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.iframe-transport.js"></script>
+    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.fileupload.js"></script-->
+    <script src="/static/thirdparty/flow/flow.min.js"></script>
+
     {% if is_session_admin %}
     <script>
         $( function () {
@@ -42,7 +49,7 @@
                 });
             });
             $(".sa-attachment-post").click(function() {
-                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session )}}";
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session, restype='attachments' )}}";
                 attachmentUpload(attachmentPostUrl);
             });
             $(".sa-view-permalink").click(function() {
@@ -51,7 +58,191 @@
                 var viewName = $(this).parent().parent().find(".sa-view-get").text();
                 getPermalink(viewName, viewId, viewUrl);
             });
+
+            // By Djay
+            $(".sa-upload-images").click(function() {
+                alert("Working on this ..");
+            });
         });
+
+    $(document).ready(function() {
+        // Code for own management of step meters
+
+        // var results = new VideoProgress({container : $("#videos")});
+        // results.AddVideo("123456789012345678901234567890");
+        //
+        var r = new Flow({
+            target: function(file) {
+                var post_target = "{{ url_for('apiv2.session_attachment_list', session=session, restype='imagefiles' )}}";
+                console.log("Target was set to: " + post_target + "/" + file.uniqueIdentifier);
+                return post_target + "/" + file.uniqueIdentifier;
+            },
+            chunkSize: 1024*1024, // 1 mb
+            generateUniqueIdentifier: function() {
+                var html;
+                console.log("Getting unique identifier.");
+                $.ajax({
+                    type: "POST",
+                    url: "{{ url_for('apiv2.session_attachment_list', session=session, restype='imagefiles' )}}",
+                    async: false,
+                    success: function (data){
+                        html = data;
+                    }
+                });
+                return html.id;
+              },
+            testChunks: false,
+            simultaneousUploads : 1
+        });
+
+        // Flow.js isn't supported, fall back on a different method
+        if (!r.support) {
+            $('.flow-error').show();
+            return ;
+        }
+        // Show a place for dropping/selecting files
+        $('.flow-drop').show();
+        r.assignDrop($('.flow-drop')[0]);
+        r.assignBrowse($('.flow-browse')[0]);
+        r.assignBrowse($('.flow-browse-folder')[0], true);
+
+        // Handle file add event
+        r.on('fileAdded', function(file){
+            console.log("File Added: ");
+            console.log(file);
+
+            // Show progress bar
+            $('.flow-progress, .flow-list').show();
+            // Add the file to the list
+            $('.flow-list').append(
+              '<li class="flow-file flow-file-'+file.uniqueIdentifier+'">' +
+              'Uploading <span class="flow-file-name"></span> ' +
+              '<span class="flow-file-size"></span> ' +
+              '<span class="flow-file-progress"></span>' +
+              '<span class="flow-file-pause">' +
+              ' <img src="/oneshot/static/pause.png" title="Pause upload" />' +
+              '</span>' +
+              '<span class="flow-file-resume">' +
+              ' <img src="/oneshot/static/resume.png" title="Resume upload" />' +
+              '</span>' +
+              '<span class="flow-file-cancel">' +
+              ' <img src="/oneshot/static/cancel.png" title="Cancel upload" />' +
+              '</span>'
+            );
+            var $self = $('.flow-file-'+file.uniqueIdentifier);
+            $self.find('.flow-file-name').text(file.name);
+            $self.find('.flow-file-size').text(readablizeBytes(file.size));
+            $self.find('.flow-file-pause').on('click', function () {
+              file.pause();
+              $self.find('.flow-file-pause').hide();
+              $self.find('.flow-file-resume').show();
+            });
+            $self.find('.flow-file-resume').on('click', function () {
+              file.resume();
+              $self.find('.flow-file-pause').show();
+              $self.find('.flow-file-resume').hide();
+            });
+            $self.find('.flow-file-cancel').on('click', function () {
+              file.cancel();
+              $self.remove();
+            });
+        });
+
+        r.on('filesSubmitted', function(file) {
+            r.upload();
+        });
+
+        r.on('complete', function(){
+        // Hide pause/resume when the upload has completed
+        $('.flow-progress .progress-resume-link, .flow-progress .progress-pause-link').hide();
+        });
+        r.on('fileSuccess', function(file,message){
+
+        // Reflect that the file upload has completed
+        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
+          .text('(completed)');
+        $('.flow-file-'+file.uniqueIdentifier+'')
+          .find('.flow-file-pause, .flow-file-resume')
+          .remove();
+            console.log("Completed: " + file.uniqueIdentifier);
+            // results.AddVideo(file.uniqueIdentifier);
+        });
+
+        r.on('fileError', function(file, message){
+        // Reflect that the file upload has resulted in error
+        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress').html('(file could not be uploaded: '+message+')');
+        });
+        r.on('fileProgress', function(file){
+        // Handle progress for both the file and the overall upload
+        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
+          .html(Math.floor(file.progress()*100) + '% '
+            + readablizeBytes(file.averageSpeed) + '/s '
+            + secondsToStr(file.timeRemaining()) + ' remaining') ;
+        $('.progress-bar').css({width:Math.floor(r.progress()*100) + '%'});
+        });
+
+        r.on('uploadStart', function(){
+            // Show pause, hide resume
+            $('.flow-progress .progress-resume-link').hide();
+            $('.flow-progress .progress-pause-link').show();
+        });
+
+        r.on('catchAll', function() {
+            console.log.apply(console, arguments);
+        });
+
+        window.r = {
+            pause: function () {
+                r.pause();
+                // Show resume, hide pause
+                $('.flow-file-resume').show();
+                $('.flow-file-pause').hide();
+                $('.flow-progress .progress-resume-link').show();
+                $('.flow-progress .progress-pause-link').hide();
+            },
+            cancel: function() {
+                r.cancel();
+                $('.flow-file').remove();
+            },
+            upload: function() {
+                $('.flow-file-pause').show();
+                $('.flow-file-resume').hide();
+                r.resume();
+            },
+            flow: r
+        };
+
+        function readablizeBytes(bytes) {
+          var s = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'];
+          var e = Math.floor(Math.log(bytes) / Math.log(1024));
+          return (bytes / Math.pow(1024, e)).toFixed(2) + " " + s[e];
+        }
+
+        function secondsToStr (temp) {
+          function numberEnding (number) {
+            return (number > 1) ? 's' : '';
+          }
+          var years = Math.floor(temp / 31536000);
+          if (years) {
+            return years + ' year' + numberEnding(years);
+          }
+          var days = Math.floor((temp %= 31536000) / 86400);
+          if (days) {
+            return days + ' day' + numberEnding(days);
+          }
+          var hours = Math.floor((temp %= 86400) / 3600);
+          if (hours) {
+            return hours + ' hour' + numberEnding(hours);
+          }
+          var minutes = Math.floor((temp %= 3600) / 60);
+          if (minutes) {
+            return minutes + ' minute' + numberEnding(minutes);
+          }
+          var seconds = temp % 60;
+          return seconds + ' second' + numberEnding(seconds);
+        }
+    });
+
     </script>
     {% endif %}
     <script>
@@ -75,7 +266,7 @@
             <ul class="list-group">
                 {% for attachment_son in session_son.attachments %}
                 <li class="list-group-item">
-                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id) }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
                     {% if is_session_admin %}
                     <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
                     {% endif %}
@@ -84,8 +275,32 @@
             </ul>
             {% endif %}
             <br>
-            {%if session_son.views %}
-            <h2>{{ session_son.views|length }} Images</h2>
+            <h2>{{ session_son.views|length }} Images
+                {% if is_session_admin %}
+                    <button type="button" class="btn btn-primary sa-upload-images pull-right"><span class="glyphicon glyphicon-upload"></span> Upload</button>
+                {% endif  %}
+            </h2>
+            {% if is_session_admin %}
+            <div class="flow-drop" ondragenter="jQuery(this).addClass('flow-dragover');" ondragend="jQuery(this).removeClass('flow-dragover');" ondrop="jQuery(this).removeClass('flow-dragover');">
+            Drop images here or <a class="flow-browse-folder"><u>select a folder</u></a> or <a class="flow-browse"><u>select individual images</u> </a> to upload
+            </div>
+
+            <div class="flow-progress">
+            <table>
+              <tr>
+                <td width="100%"><div class="progress-container"><div class="progress-bar"></div></div></td>
+                <td class="progress-text" nowrap="nowrap"></td>
+                <td class="progress-pause" nowrap="nowrap">
+                  <a href="#" onclick="r.upload(); return(false);" class="progress-resume-link"><img src="/static/img/resume.png" title="Resume upload" /></a>
+                  <a href="#" onclick="r.pause(); return(false);" class="progress-pause-link"><img src="/static/img/pause.png" title="Pause upload" /></a>
+                  <a href="#" onclick="r.cancel(); return(false);" class="progress-cancel-link"><img src="/static/img/cancel.png" title="Cancel upload" /></a>
+                </td>
+              </tr>
+            </table>
+            </div>
+            {% endif  %}
+
+
             <table class="table table-bordered table-hover" >
                 {% for view_son in session_son.views %}
                 {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
@@ -112,7 +327,6 @@
                 </tr>
                 {% endfor %}
             </table>
-            {% endif %}
         </div>
     </div>
 {% endblock content %}
