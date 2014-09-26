@@ -144,7 +144,8 @@ class SessionItemAPI(ItemAPIResource):
 
         session_son = session.to_son(exclude_fields=('views', 'attachments'))
         session_son['views'] = views_son
-        session_son['attachments'] = SessionAttachmentListAPI._get(session)
+        session_son['attachments'] = SessionAttachmentListAPI._get(session, 'attachments')
+        session_son['imagefiles'] = SessionAttachmentListAPI._get(session, 'imagefiles')
 
         return session_son
 

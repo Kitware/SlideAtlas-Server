@@ -18,6 +18,7 @@ from ..blueprint import api
 from ..common import abort
 
 import bson
+import pdb
 
 ################################################################################
 __all__ = ('SessionAttachmentListAPI', 'SessionAttachmentItemAPI')
@@ -28,7 +29,7 @@ class SessionAttachmentListAPI(ListAPIResource):
     @staticmethod
     def _get(session, restype="attachments"):
         # look up image stores once in bulk for efficiency
-        unique_image_store_ids = set(ifilter(None, (attachment_ref.db for attachment_ref in session.attachments + session.imagefiles)))
+        unique_image_store_ids = set(ifilter(None, (attachment_ref.db for attachment_ref in (session.attachments + session.imagefiles))))
         image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
 
         if restype == "attachments":
@@ -36,18 +37,29 @@ class SessionAttachmentListAPI(ListAPIResource):
         elif restype == "imagefiles":
             reslist = session.imagefiles
 
-        for attachment_ref in reslist:
-            image_store = image_stores_by_id[attachment_ref.db]
-            attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), restype)
+        result = []
 
-            attachment_obj = attachments_fs.get(attachment_ref.ref)
-            reslist.append({
+        for attachment_ref in reslist:
+
+            image_store = image_stores_by_id[attachment_ref.db]
+            try:
+                attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), restype)
+                attachment_obj = attachments_fs.get(attachment_ref.ref)
+            except Exception as e:
+                result.append({
+                    'id': attachment_ref.ref,
+                    'name': e.message,
+                    'length': 0
+                })
+                continue
+
+            result.append({
                 'id': attachment_obj._id,
                 'name': attachment_obj.name,
                 'length': attachment_obj.length
             })
 
-        return reslist
+        return result
 
     @security.ViewSessionRequirement.protected
     def get(self, session, restype="attachments"):
@@ -114,12 +126,12 @@ class SessionAttachmentListAPI(ListAPIResource):
 
             # return response
             new_location = url_for('.session_attachment_item', session=session,
-                                   attachment_id=attachment._id)
+                                   restype=restype, attachment_id=attachment._id)
             return (None,  # TODO: return body with metadata?
                     201,  # Created
                     {'Location': new_location})
 
-        elif restype=="imagefiles":
+        elif restype == "imagefiles":
             # Need to create a location in sessions with current image store as the default image store
             # add to session
             ref_id = bson.ObjectId()
@@ -127,7 +139,8 @@ class SessionAttachmentListAPI(ListAPIResource):
 
         else:
             # Should never reach here
-            return  {"Error" : "Unknown restype: " + restype404}, 404
+            return {"Error": "Unknown restype: " + restype}, 404
+
 
 ################################################################################
 class SessionAttachmentItemAPI(ItemAPIResource):
@@ -145,7 +158,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # print "reflist refid", ref_id
         # print "reflist attachments", session.attachments
 
-        for attachment_ref in session.attachments + session.imagefiles:
+        for attachment_ref in (session.attachments + session.imagefiles):
             if attachment_ref.ref == ref_id:
                 break
         else:
@@ -177,7 +190,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
     @security.ViewSessionRequirement.protected
     def get(self, session, restype, attachment_id):
-        attachment = self._fetch_attachment(session, attachment_id)[2]
+        attachment = self._fetch_attachment(session, restype, attachment_id)[2]
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -215,7 +228,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
     @security.AdminSessionRequirement.protected
     def put(self, session, restype, attachment_id):
-        image_store, _, attachment = self._fetch_attachment(session, attachment_id)
+        image_store, _, attachment = self._fetch_attachment(session, restype, attachment_id)
 
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
@@ -278,7 +291,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
         """
         if not restype in ["imagefiles"]:
-            abort(400, details='Only posting image files chunk is supported right now ')
+            abort(400, details='Only chunks of image files can be posted here')
 
         result = {}
         result["id"] = flask.request.form["flowIdentifier"]
@@ -397,7 +410,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
     @security.AdminSessionRequirement.protected
     def delete(self, session, restype, attachment_id):
         # this also ensures that the attachment actually exists
-        attachments_fs = self._fetch_attachment(session, attachment_id)[1]
+        attachments_fs = self._fetch_attachment(session, restype, attachment_id)[1]
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):

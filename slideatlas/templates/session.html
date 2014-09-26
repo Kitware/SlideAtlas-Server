@@ -266,7 +266,7 @@
             <ul class="list-group">
                 {% for attachment_son in session_son.attachments %}
                 <li class="list-group-item">
-                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id) }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
                     {% if is_session_admin %}
                     <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
                     {% endif %}
