@@ -335,7 +335,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             last = True
             result["last"] = 1
 
-        return result, 201  # No Content
+        return result, 200  # No Content
 
     @security.AdminSessionRequirement.protected
     def delete(self, session, restype, attachment_id):

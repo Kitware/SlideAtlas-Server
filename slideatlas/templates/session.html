@@ -115,18 +115,18 @@
             $('.flow-progress, .flow-list').show();
             // Add the file to the list
             $('.flow-list').append(
-              '<li class="flow-file flow-file-'+file.uniqueIdentifier+'">' +
+              '<li class="flow-file flow-file-'+file.uniqueIdentifier+' list-group-item">' +
               'Uploading <span class="flow-file-name"></span> ' +
               '<span class="flow-file-size"></span> ' +
               '<span class="flow-file-progress"></span>' +
               '<span class="flow-file-pause">' +
-              ' <img src="/oneshot/static/pause.png" title="Pause upload" />' +
+              ' <img src="/static/img/pause.png" title="Pause upload" />' +
               '</span>' +
               '<span class="flow-file-resume">' +
-              ' <img src="/oneshot/static/resume.png" title="Resume upload" />' +
+              ' <img src="/static/img//resume.png" title="Resume upload" />' +
               '</span>' +
               '<span class="flow-file-cancel">' +
-              ' <img src="/oneshot/static/cancel.png" title="Cancel upload" />' +
+              ' <img src="/static/img/cancel.png" title="Cancel upload" />' +
               '</span>'
             );
             var $self = $('.flow-file-'+file.uniqueIdentifier);
@@ -153,32 +153,34 @@
         });
 
         r.on('complete', function(){
-        // Hide pause/resume when the upload has completed
-        $('.flow-progress .progress-resume-link, .flow-progress .progress-pause-link').hide();
-        });
-        r.on('fileSuccess', function(file,message){
+            // Hide pause/resume when the upload has completed
+            $('.flow-progress .progress-resume-link, .flow-progress .progress-pause-link').hide();
+            });
 
-        // Reflect that the file upload has completed
-        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
-          .text('(completed)');
-        $('.flow-file-'+file.uniqueIdentifier+'')
-          .find('.flow-file-pause, .flow-file-resume')
-          .remove();
-            console.log("Completed: " + file.uniqueIdentifier);
-            // results.AddVideo(file.uniqueIdentifier);
+        r.on('fileSuccess', function(file,message){
+            // Reflect that the file upload has completed
+            $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
+              .text('(completed)');
+            $('.flow-file-'+file.uniqueIdentifier+'')
+              .find('.flow-file-pause, .flow-file-resume')
+              .remove();
+                console.log("Completed: " + file.uniqueIdentifier);
+                // results.AddVideo(file.uniqueIdentifier);
         });
 
         r.on('fileError', function(file, message){
-        // Reflect that the file upload has resulted in error
-        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress').html('(file could not be uploaded: '+message+')');
+            // Reflect that the file upload has resulted in error
+            $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress').html('(file could not be uploaded: '+message+')');
         });
+
         r.on('fileProgress', function(file){
-        // Handle progress for both the file and the overall upload
-        $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
-          .html(Math.floor(file.progress()*100) + '% '
-            + readablizeBytes(file.averageSpeed) + '/s '
-            + secondsToStr(file.timeRemaining()) + ' remaining') ;
-        $('.progress-bar').css({width:Math.floor(r.progress()*100) + '%'});
+            // Handle progress for both the file and the overall upload
+            $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
+              .html(Math.floor(file.progress()*100) + '% '
+                + readablizeBytes(file.averageSpeed) + '/s '
+                + secondsToStr(file.timeRemaining()) + ' remaining');
+
+            $('.progress-bar').css({width:Math.floor(r.progress()*100) + '%'});
         });
 
         r.on('uploadStart', function(){
@@ -285,6 +287,7 @@
             Drop images here or <a class="flow-browse-folder"><u>select a folder</u></a> or <a class="flow-browse"><u>select individual images</u> </a> to upload
             </div>
 
+            <ul class="flow-list list-group"></ul>
             <div class="flow-progress">
             <table>
               <tr>
