@@ -133,6 +133,18 @@ def session_edit_view(session):
 
 
 ################################################################################
+@mod.route('/sessions/<Session:session>/newstack')
+@security.EditSessionRequirement.protected
+def session_new_stack(session):
+    session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
+
+    return render_template('sessionNewStack.html',
+                           collection=session.collection,
+                           session=session,
+                           session_son=session_son)
+
+
+################################################################################
 def deepcopyview(view_id):
     if view_id is None:
         return None

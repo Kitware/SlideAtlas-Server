@@ -3,6 +3,8 @@
 // to both the cache and the tile which we are waiting for
 // the image to load.  The callback only gives a single reference.
 
+
+
 function LoadTileCallback(tile,cache) {
     this.Tile = tile;
     this.Cache = cache;
@@ -65,6 +67,7 @@ function Tile(x, y, z, level, name, cache) {
   this.Cache = cache;
   this.X = x;
   this.Y = y;
+  this.Z = z;
   this.Level = level;
   this.Children = [];
   this.Parent = null;
@@ -123,6 +126,47 @@ Tile.prototype.destructor=function()
     }
   }
 }
+
+
+
+// Add the first unloaded ancestor to the load queue.
+Tile.prototype.LoadQueueAdd = function() {
+  // Record that the tile is used (for prioritizing loading and pruning).
+  // Mark all lower res tiles so they will be loaded inthe correct order.
+  var tmp = this;
+  while (tmp && tmp.TimeStamp != TIME_STAMP) {
+    tmp.TimeStamp = TIME_STAMP;
+    tmp = tmp.Parent;
+  }
+
+  if (this.LoadState != 0) { // == 2
+    // This tiles is already in the load queue or loaded.
+    return;
+  }
+
+  // Now I want progressive loading so I will not add tiles to the queue if their parents are not completely loaded.
+  // I could add all parent and children to the que at the same time, but I have seen children rendered before parents
+  // (levels are skipped in progresive updata).  So, lets try this.
+  // Now that I am prioritizing the queue on the tiles time stamp and level,  the previous issues should be resolved.
+  if (this.Parent) {
+    if (this.Parent.LoadState == 0) {
+      // Not loaded and not in the queue.
+      return this.Parent.LoadQueueAdd();
+    } else if (this.Parent.LoadState == 1) {
+      // Not loaded but in the queue
+      return;
+    }
+  }
+
+  // The tile's parent is loaded.  Add the tile to the load queue.
+  LoadQueueAddTile(this);
+}
+
+
+
+
+
+
 
 // This is for connectome stitching.  It uses texture mapping
 // to dynamically warp images.  It only works with webGL.

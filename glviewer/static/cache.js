@@ -36,7 +36,7 @@ function Cache(image) {
     var qTile;
     for (var slice = 1; slice <= this.NumberOfSections; ++slice) {
       qTile = this.GetTile(slice, 0, 0);
-      LoadQueueAdd(qTile);
+      qTile.LoadQueueAdd();;
     }
   } else {
     this.TileDimensions = [image.TileSize, image.TileSize];
@@ -100,7 +100,7 @@ Cache.prototype.LoadRoots = function () {
     }
     for (var slice = 1; slice <= this.Image.dimensions[2]; ++slice) {
         qTile = this.GetTile(slice, 0, 0);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
     }
     return;
 
@@ -108,26 +108,26 @@ Cache.prototype.LoadRoots = function () {
     for (var slice = 201; slice < 251; ++slice) {
         for (var j = 0; j < 4; ++j) {
             qTile = this.GetTile(slice, 1, j);
-            LoadQueueAdd(qTile);
+            qTile.LoadQueueAdd();;
         }
     }
     for (var slice = 0; slice < 50; ++slice) {
         for (var j = 0; j < 4; ++j) {
             qTile = this.GetTile(slice, 1, j);
-            LoadQueueAdd(qTile);
+            qTile.LoadQueueAdd();;
         }
         qTile = this.GetTile(slice, 5, 493);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
         qTile = this.GetTile(slice, 5, 494);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
         qTile = this.GetTile(slice, 5, 495);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
         qTile = this.GetTile(slice, 5, 525);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
         qTile = this.GetTile(slice, 5, 526);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
         qTile = this.GetTile(slice, 5, 527);
-        LoadQueueAdd(qTile);
+        qTile.LoadQueueAdd();;
     }
 }
 
@@ -137,7 +137,7 @@ Cache.prototype.LoadRoots = function () {
 // Eventually I want a quick coverage test to exit early.
 // iPad flag includes low resolution ancestors to get rid of white lines between tiles.
 // Tiles is actually the return value.  It is not used for anything else.
-Cache.prototype.ChooseTiles = function(view, slice, tiles) {
+Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
   // I am prioritizing tiles in the queue by time stamp.
   // Loader sets the the tiles time stamp.
   // Time stamp only progresses after a whole render.
@@ -150,8 +150,8 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   // Pick a level to display.
   //var fast = document.getElementById("fast").checked;
   // Todo: fix this hack. (now a global variable gl).
-  var canvasHeight = view.Viewport[3];
-  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / view.Camera.Height;
+  var canvasHeight = camera.ViewportHeight;
+  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / camera.Height;
   //if (fast) {
   //  tmp = tmp * 0.5;
   //}
@@ -165,9 +165,9 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   // Compute the world bounds of camera view.
   var xMax = 0.0;
   var yMax = 0.0;
-  var hw = view.Camera.GetWidth()*0.5;
-  var hh = view.Camera.GetHeight()*0.5;
-  var roll = view.Camera.Roll;
+  var hw = camera.GetWidth()*0.5;
+  var hh = camera.GetHeight()*0.5;
+  var roll = camera.Roll;
   var s = Math.sin(roll);
   var c = Math.cos(roll);
   var rx, ry;
@@ -189,10 +189,10 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
   if (yMax < -ry) { yMax = -ry;}
 
   var bounds = [];
-  bounds[0] = view.Camera.FocalPoint[0]-xMax;
-  bounds[1] = view.Camera.FocalPoint[0]+xMax;
-  bounds[2] = view.Camera.FocalPoint[1]-yMax;
-  bounds[3] = view.Camera.FocalPoint[1]+yMax;
+  bounds[0] = camera.FocalPoint[0]-xMax;
+  bounds[1] = camera.FocalPoint[0]+xMax;
+  bounds[2] = camera.FocalPoint[1]-yMax;
+  bounds[3] = camera.FocalPoint[1]+yMax;
 
   // Adjust bounds to compensate for warping.
   if (this.Warp) {
@@ -238,21 +238,10 @@ Cache.prototype.ChooseTiles = function(view, slice, tiles) {
       tile = this.GetTile(slice, i, tileIds[j]);
       // If the tile is loaded or loading,
       // this does nothing.
-      LoadQueueAdd(tile);
+      tile.LoadQueueAdd();
       tiles.push(tile);
     }
   }
-
-  // Preload the next slice.
-  //bounds[0] = bounds[1] = camera.FocalPoint[0];
-  //bounds[2] = bounds[3] = camera.FocalPoint[1];
-  //tileIds = this.GetVisibleTileIds(level, bounds);
-  // There will be only one tile because the bounds
-  // contains only the center point.
-  //for (var i = 0; i < tileIds.length; ++i) {
-  //    tile = this.GetTile(slice+1, level, tileIds[i]);
-  //    LoadQueueAdd(tile);
-  //}
 
   return tiles;
 }

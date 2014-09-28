@@ -1,0 +1,260 @@
+{% extends 'frontend_base.html' %}
+
+
+{% block title %}{{ super() }} - Session Editor{% endblock title %}
+
+
+{% block styles %}
+{# TODO: base style assumes navbar will be present #}
+{#{{ super() }}#}
+    <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+    <style>
+        #stack-div {
+            float: left;
+            height: 100%;
+            border: 1px solid #999;
+        }
+
+
+        #gallery {
+            position: relative;
+            padding: 0;
+            border: 1px solid #CCC;
+            height: 100%;
+            list-style: none;
+            overflow-y: auto;
+        }
+        #gallery li {
+            float: left;
+            padding: 2px;
+            margin: 2px;
+            border: 2px solid #CCC;
+        }
+        #gallery li img {
+        }
+        #gallery li div {
+            color: #333;
+            font-size: 11px;
+        }
+
+
+
+        body {
+            margin: 0;
+        }
+        #wrapper {
+            width: auto;
+            overflow: hidden;
+        }
+        #session div {
+            padding-bottom: 10px;
+        }
+        #slideScroll {
+            border: 1px solid #999;
+            overflow-y: scroll;
+        }
+        #slideList {
+            padding-top: 3px;
+        }
+        h2 {
+            text-align: center;
+            margin: 0;
+        }
+        #imagePanel {
+            height: 100%;
+            width: auto;
+        }
+    </style>
+{% endblock styles %}
+
+
+{% block scripts %}
+{{ super() }}
+    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
+    <script>
+var SESSION_ID = "{{ session.id }}";
+
+$(window).resize(function() { handleResize(); })
+         .trigger('resize');
+
+$.get("/sessions?json=true",
+      function(data,status){
+          if (status == "success") {
+              loadCollectionList(data);
+          } else {
+              alert("ajax failed.");
+          }
+      });
+
+
+
+function handleResize() {
+    // We need a dynamic resize
+    var height = window.innerHeight - 2;
+    $('#wrapper').css({"height": height});
+    // I am having trouble getting the scroll bar to appear.
+    var top = $('#slideScroll').position().top + 10;
+    $('#slideScroll').css({"height":(height-top)});
+    if ($('#slideList').outerHeight() < height-top) {
+        $('#slideScroll').css({'overflow-y':'hidden'});
+    }
+
+    top = $('#gallery').position().top + 15;
+    $('#gallery').css({"height":(height-top)});
+}
+
+$(document).ready(function() { main(); });
+
+function main() {
+    loadSessionFromId(SESSION_ID);
+}
+
+// Called once to populate the collection menu.
+function loadCollectionList(data) {
+    // The first "sessions" list is actually collections.
+    COLLECTIONS = data.sessions;
+    // Populate the collection menu.
+    for (var i = 0; i < COLLECTIONS.length; ++i) {
+        var option = $('<option>').appendTo($('#collectionList'))
+                .attr('value', i)
+                .text(data.sessions[i].rule);
+    }
+    // Select the first as default.
+    if (COLLECTIONS.length > 0) {
+        SelectCollection(0);
+    }
+    // Set the default collection.
+
+
+}
+
+
+
+
+
+function loadSessionFromId(sessionId) {
+    $.get("/sessions?json=1&sessid="+sessionId,
+          function(data,status){
+              if (status == "success") {
+                  loadSessionData(data);
+              } else {
+                  alert("ajax failed."); }
+          });
+
+}
+
+
+// Create a div with a cropped scaled thumb from the root tile.
+function Thumb(image, height) {
+    var width = height * (image.bounds[1]-image.bounds[0]) / (image.bounds[3]-image.bounds[2]);
+    var div = $('<div>')
+        .css({'width' : width + 'px',
+              'height': height + 'px',
+              'overflow': 'hidden'});
+    
+    // how big is the root tile?
+    var tileSize = 256;
+    if (image.TileSize) {
+        tileSize = image.TileSize;
+    }
+    rootSize = tileSize << image.levels;
+    var imgSize = height * rootSize / (image.bounds[3]- image.bounds[2]);
+
+
+    var img = $('<img>')
+        .appendTo(div)
+        .attr("src", "/tile?img="+image._id+"&db="+image.database+"&name=t.jpg")
+        .attr("alt", image.label)
+        .css({
+            'width' : imgSize+'px',
+            'height': imgSize+'px'});
+
+    return div;
+}
+
+
+
+// Put all the session views into the gallery.
+function loadSessionData(data) {
+    $('#gallery').empty();
+
+    for (var i = 0; i < data.session.views.length; ++i) {
+        // Create a div that has both an image and a label.
+        var listItem = $('<li>').appendTo($('#gallery'));
+        { // for closure scoping
+            var viewIdx = i;
+
+            var image = 
+                Thumb(data.images[i], 150) 
+                    .appendTo(listItem)
+                    .mousedown(function(event) {
+                        // We need to get x, y location too
+                        addViewToStack($( this ), event);
+                    });
+        };
+        var labelDiv = $('<div>')
+            .appendTo(listItem)
+            .text(data.session.views[i].label); // Should really have the image label.
+        }
+}
+
+function addViewToStack(item, event) {
+  console.log("add: " + event.offsetX + ", " + event.offsetY);
+}
+
+function modified () {
+    $('#saveButton').css({"color":"#E00"});
+}
+
+
+
+
+
+    </script>
+{% endblock scripts %}
+
+
+{# TODO: with navbar at the top, the session editor isn't the correct vertical height #}
+{% block navbar %}{% endblock navbar %}
+
+
+{% block content %}
+{{ super() }}
+    <div id="wrapper">
+        <div id="stack-div">
+            <h3>{{ collection.label }} : {{ session_son.label }}</h3>
+            <div>
+                <label>Label</label>
+                <input type="text" id="title" onkeyup="updateOptions()"
+                       name="views" style="width: 340px;" value="New Stack"/>
+            </div>
+            <div>
+                <button id="saveButton" onclick="save(false)" >Save</button>
+                <button onclick="cancel()" >Cancel</button>
+            </div>
+
+            <div id="slideScroll">
+                <div id="slideList">
+                    <ul id="sortable">
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="imagePanel">
+            <label>Collection</label>
+            <select id="collectionList" onchange="CollectionCallback(this.value)">
+            </select>
+
+            <label>Session</label>
+            <select id="sessionList" onchange="SessionCallback(this.value)">
+            </select>
+            <br>
+            <div>
+                Search: <input type="text" id="imagesearch">
+                <button onclick="SearchCallback()">Submit</button>
+            </div>
+            <ul id="gallery">
+            </ul>
+        </div>
+    </div>
+{% endblock content %}

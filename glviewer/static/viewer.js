@@ -409,27 +409,33 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
   eventuallyRender();
 }
 
+// This sets the overview camera from the main view camera.
+// The user can change the mainview camera and then call this method.
+Viewer.prototype.UpdateCamera = function() {
+    var cam = this.MainView.Camera;
+    this.ZoomTarget = cam.Height;
+    
+    this.TranslateTarget[0] = cam.FocalPoint[0];
+    this.TranslateTarget[1] = cam.FocalPoint[1];
+    this.RollTarget = cam.Roll;
+    if (this.OverView) {
+        this.OverView.Camera.Roll = cam.Roll;
+        this.OverView.Camera.ComputeMatrix();
+    }
+    
+    this.MainView.Camera.ComputeMatrix();
+    this.UpdateZoomGui();
+}
+
 // This is used to set the default camera so the complexities
 // of the target and overview are hidden.
 Viewer.prototype.SetCamera = function(center, rotation, height) {
-  this.MainView.Camera.SetHeight(height);
-  this.ZoomTarget = height;
-
-  this.MainView.Camera.SetFocalPoint(center[0], center[1]);
-  this.TranslateTarget[0] = center[0];
-  this.TranslateTarget[1] = center[1];
-
-  rotation = rotation * 3.14159265359 / 180.0;
-  this.MainView.Camera.Roll = rotation;
-  this.RollTarget = rotation;
-  if (this.OverView) {
-    this.OverView.Camera.Roll = rotation;
-    this.OverView.Camera.ComputeMatrix();
-  }
-
-  this.MainView.Camera.ComputeMatrix();
-  this.UpdateZoomGui();
-  eventuallyRender();
+    this.MainView.Camera.SetHeight(height);
+    this.MainView.Camera.SetFocalPoint(center[0], center[1]);
+    this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
+    
+    this.UpdateCamera();
+    eventuallyRender();
 }
 
 Viewer.prototype.GetCamera = function() {
@@ -1304,6 +1310,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
 
 
   // Handle stack (page up  / down)
+  /* This might be used for connectome, however, reworking path stacks.
   var cache = this.GetCache();
   if (cache && cache.Image.type && cache.Image.type == "stack") {
     if (keyCode == 33) {
@@ -1318,25 +1325,7 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
       eventuallyRender();
     }
   }
-
-  // Handle connectome volume stuff.
-  // TODO: integrate this with the 3d renal stack stuff.
-  // connectome
-  /*if (keyCode == 37) {
-    // Left cursor key
-    var idx = SECTIONS.indexOf(this.MainView.Section);
-    if(idx > 0) {
-      this.SetSection(idx-1);
-    }
-    eventuallyRender();
-  } else if (keyCode == 39) {
-    var idx = SECTIONS.indexOf(this.MainView.Section);
-    if(idx >= 0 && idx < SECTIONS.length-1) {
-      this.SetSection(idx+1);
-    }
-    eventuallyRender();
-  }*/
-
+  */
 
   //----------------------
   if (this.ActiveWidget != null) {
