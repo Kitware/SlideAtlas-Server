@@ -107,6 +107,9 @@ class Image(MultipleDatabaseModelDocument):
     filename = StringField(required=False, #TODO: filename with respect to root_path
         verbose_name='Filename', help_text='The filename of uploaded image excluding path')
 
+    sha512 = StringField(required=False,
+        verbose_name='SHA512 Hash', help_text='The SHA512 hash of the PTIFF image file\'s content.')
+
     label = StringField(required=False, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label for the image')
 
