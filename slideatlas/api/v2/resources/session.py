@@ -96,8 +96,6 @@ class SessionItemAPI(ItemAPIResource):
                 image_id = ObjectId(view['img'])
 
             # These are legacy and will go away soon.
-            if 'imgdb' in view:
-                image_image_store_id = ObjectId(view['imgdb'])
             if 'db' in view:
                 image_image_store_id = ObjectId(view['db'])
 

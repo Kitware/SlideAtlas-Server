@@ -83,10 +83,6 @@ class View(ModelDocument):
         verbose_name='', help_text='')
 
     # TODO: this should be removed entirely
-    imgdb = StringField(required=False,
-        verbose_name='', help_text='Optional: For when the image is not in the same database as the view')
-
-    # TODO: this should be removed entirely
     db = ObjectIdField(required=False,
         verbose_name='', help_text='')
 

@@ -14,7 +14,7 @@ def jsonifyView(db,viewid,viewobj):
         imgdb = viewobj["ViewerRecords"][0]["Database"]
         imgid = viewobj["ViewerRecords"][0]["Image"]
     if imgid == 0 :
-        imgdb = viewobj["imgdb"]
+        imgdb = viewobj["db"]
         imgid = viewobj["img"]
 
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
@@ -260,8 +260,6 @@ def glstacksession():
         imgdb = sessobj["image_store"]
         if viewobj.has_key("db") :
             imgdb = viewobj["db"]
-        if "imgdb" in viewobj :
-            imgdb = viewobj["imgdb"]
         if "img" in viewobj :
             imgid = viewobj["img"]
         else :
@@ -721,13 +719,7 @@ def getview():
 
     # This is clearly the wrong default now that db is admin.
     imgdb = db
-    if "imgdb" in viewObj :
-        # support for images in database different than view
-        imgdb = viewObj["imgdb"]
-        database2 = models.ImageStore.objects.get_or_404(id=imgdb)
-        db2 = database2.to_pymongo()
-        imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
-    elif "db" in viewObj :
+    if "db" in viewObj :
         # support for images in database different than view
         imgdb = viewObj["db"]
         database2 = models.ImageStore.objects.get_or_404(id=imgdb)
