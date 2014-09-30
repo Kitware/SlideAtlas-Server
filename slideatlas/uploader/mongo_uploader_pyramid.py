@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger("UploaderPyramid")
 logger.setLevel(logging.ERROR)
 
-from multiprocessing import Process
+from billiard import Process
 
 
 class TileProcessor(Process):
@@ -178,7 +178,7 @@ class TileProcessor(Process):
         self.col.insert(res_obj)
 
 
-class MongoUploaderPyramid(MongoUploader, Process):
+class MongoUploaderPyramid(MongoUploader):
     """
     Uploader class to create image pyramid using python multi-threads
     """
