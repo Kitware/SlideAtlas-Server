@@ -161,7 +161,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             if attachment_ref.ref == ref_id:
                 break
         else:
-            raise Exception("The requested " + restype + "was not found in the requested session.")
+            raise Exception("The requested " + restype + " was not found in the requested session.")
 
         image_store = models.ImageStore.objects.get(id=attachment_ref.db)
         return image_store.to_pymongo(raw_object=True)
@@ -178,7 +178,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # # use 'get' instead of 'with_id', so an exception will be thrown if not found
         # image_store = models.ImageStore.objects.get(id=attachment_ref.db)
         res_image_store = SessionAttachmentItemAPI._get_datadb(session, restype, attachment_id)
-        attachments_fs = gridfs.GridFS( res_image_store, restype)
+        attachments_fs = gridfs.GridFS(res_image_store, restype)
         try:
             attachment = attachments_fs.get(attachment_id)
         except gridfs.NoFile:

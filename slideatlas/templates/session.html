@@ -264,17 +264,17 @@
         <div class="row">
             <h1>{{ session_son.label }}</h1>
             {%if session_son.attachments or is_session_admin %}
-            <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
-            <ul class="list-group">
-                {% for attachment_son in session_son.attachments %}
-                <li class="list-group-item">
-                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
-                    {% if is_session_admin %}
-                    <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
-                    {% endif %}
-                </li>
-                 {% endfor %}
-            </ul>
+                <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+                <ul class="list-group">
+                    {% for attachment_son in session_son.attachments %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                        {% if is_session_admin %}
+                        <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                        {% endif %}
+                    </li>
+                     {% endfor %}
+                </ul>
             {% endif %}
             <br>
             <h2>{{ session_son.views|length }} Images
@@ -305,18 +305,12 @@
 
             <table class="table table-bordered table-hover" >
                 <!--Render the imagefiles in process -->
-                {% for view_son in session_son.imagefiles %}
-                    {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
-                    {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
-                    {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
+                {% for imagefile_son in session_son.imagefiles %}
                     <tr>
                         <td>
-<!--                             <a href="status_url">
-                                <img src="{{ url_for('tile.thumb_query', db=view_son.image_image_store_id, img=view_son.image_id) }}" width=100px>
-                            </a>
- -->                        </td>
+                        </td>
                         <td>
-                            <a href="{{ status_url }}" class="lead sa-view-get">{{ view_son.name }}</a>
+                            <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
                         </td>
                     </tr>
                 {% endfor %}
