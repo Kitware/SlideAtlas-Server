@@ -318,7 +318,6 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             afile.write(f.read())
             afile.close()
 
-
         if not first:
             datadb = self._get_datadb(session, restype, attachment_id)
             obj = {}
@@ -327,13 +326,17 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             obj["data"] = bson.Binary(f.read())
 
             datadb[restype + ".chunks"].insert(obj)
-            fileobj = datadb[restype + ".files"].find_one({"_id" : obj["files_id"]})
-            datadb[restype + ".files"].update({"_id" : obj["files_id"]}, {"$set" : {"length" : fileobj["length"] + len(obj["data"])}})
-
+            fileobj = datadb[restype + ".files"].find_one({"_id": obj["files_id"]})
+            datadb[restype + ".files"].update({"_id": obj["files_id"]}, {"$set": {"length": fileobj["length"] + len(obj["data"])}})
 
         if result["current_chunk"] == result["total_chunks"]:
             last = True
-            result["last"] = 1
+            result["last"] = last
+
+            # dummy objectid
+            #TODO: Get from submitting the task
+            task_id = bson.ObjectId()
+            datadb[restype + ".files"].update({"_id": bson.ObjectId(result["id"])}, {"$set": {"metadata": {"task": task_id}}})
 
         return result, 200  # No Content
 
