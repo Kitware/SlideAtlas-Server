@@ -46,9 +46,9 @@ class MongoUploader(object):
 
         # Locate the destination
         try:
-            if self.args.mongo_collection:
+            if self.args["mongo_collection"]:
                 # Remove any image object and collection of that name
-                self.imageid = ObjectId(self.args.mongo_collection)
+                self.imageid = ObjectId(self.args["mongo_collection"])
                 logger.info("Using specified ImageID: %s" % self.imageid)
             else:
                 self.imageid = ObjectId()
@@ -56,20 +56,20 @@ class MongoUploader(object):
 
         except InvalidId:
             logger.error("Invalid ObjectID for mongo collection: \
-                             %s" % self.args.mongo_collection)
+                             %s" % self.args["mongo_collection"])
 
         # Load image store
         self.setup_destination()
 
         # Check whether image exists already
-        image_name = os.path.split(self.args.input)[1]
+        image_name = os.path.split(self.args["input"])[1]
         image_doc = self.db["images"].find_one({"filename": image_name})
 
         if image_doc is not None:
             logger.info("Image exists already")
 
             # Should we cleanup the image_store ?
-            if not self.args.overwrite:
+            if not self.args["overwrite"]:
                 logger.info("Image will be skipped")
                 return
             else:
@@ -99,7 +99,7 @@ class MongoUploader(object):
         expects imagestore and db to be setup
         """
 
-        if self.args.dry_run:
+        if self.args["dry_run"]:
             logger.info("Dry run .. not updating collection record")
             return
 
@@ -119,7 +119,7 @@ class MongoUploader(object):
         """
         #todo: choose the reader here
 
-        ext = os.path.splitext(self.args.input)[1][1:]
+        ext = os.path.splitext(self.args["input"])[1][1:]
         logger.info("Got extension: " + ext)
         if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
             from slideatlas.ptiffstore.openslide_reader import OpenslideReader
@@ -130,7 +130,7 @@ class MongoUploader(object):
             logger.error("Unknown extension: " + ext)
             sys.exit(-1)
 
-        reader.set_input_params({'fname': self.args.input})
+        reader.set_input_params({'fname': self.args["input"]})
         return reader
 
     def upload_base(self):
@@ -147,13 +147,13 @@ class MongoUploader(object):
         with self.flaskapp.app_context():
             # Locate the session
 
-            self.coll = Collection.objects.get(id=ObjectId(self.args.collection))
+            self.coll = Collection.objects.get(id=ObjectId(self.args["collection"]))
             logger.info("collection: %s" % (self.coll.to_son()))
 
             self.imagestore = self.coll.image_store
             logger.info("imagestore: %s" % (self.imagestore.to_son()))
 
-            self.session = Session.objects.get(id=ObjectId(self.args.session))
+            self.session = Session.objects.get(id=ObjectId(self.args["session"]))
             logger.info("session: %s" % (self.session.to_son()))
 
         # Create the pymongo connection, used for image
@@ -198,7 +198,7 @@ class MongoUploader(object):
                 image_doc["metadataready"] = True
                 image_doc["_id"] = self.imageid
 
-                if self.args.dry_run:
+                if self.args["dry_run"]:
                     logger.info("Dry run .. not creating image record: %s" % (image_doc))
                 else:
                     self.db["images"].insert(image_doc)

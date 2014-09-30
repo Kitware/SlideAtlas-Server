@@ -28,14 +28,13 @@ class MongoUploaderWrapper(MongoUploader):
         """
         Creates a ptif reader
         """
-        reader = WrapperReader({"fname": self.args.input, 'bindir': self.args.bindir})
 
         try:
-            reader = WrapperReader({"fname": self.args.input, 'bindir': self.args.bindir})
+            reader = WrapperReader({"fname": self.args["input"], 'bindir': self.args["bindir"]})
             # Introspect
             logger.info("Dimensions: (%d, %d)" % (reader.width, reader.height))
         except:
-            logger.error("Fatal Error: Unable to read input file %s" % (self.args.input))
+            logger.error("Fatal Error: Unable to read input file %s" % (self.args["input"]))
             sys.exit(0)
 
         return reader
@@ -46,18 +45,18 @@ class MongoUploaderWrapper(MongoUploader):
         Expects the reader and the imagestore to be setup before
         """
 
-        if self.args.dry_run:
+        if self.args["dry_run"]:
             logger.info("Dry run .. not uploading base")
             return
 
         istore = self.imagestore
 
         if os.name == 'nt':
-            args = [self.args.bindir + "image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            args = [self.args["bindir"] + "image_uploader.exe", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args["input"]]
             if len(istore.username) > 0:
                 args = args + ["-u", istore.username, "-p", istore.password]
         else:
-            args = [self.args.bindir + "/image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args.input]
+            args = [self.args["bindir"] + "/image_uploader", "-m", istore.host.split(",")[0], "-d", istore.dbname, "-c", str(self.imageid), self.args["input"]]
             if len(istore.username) > 0:
                 args = args + ["-u", istore.username, "-p", istore.password]
 
@@ -66,7 +65,7 @@ class MongoUploaderWrapper(MongoUploader):
         logger.info("Params: " + str(args))
         # Get the information in json
 
-        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args.bindir, shell=False)
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args["bindir"], shell=False)
 
         while True:
             time.sleep(0)

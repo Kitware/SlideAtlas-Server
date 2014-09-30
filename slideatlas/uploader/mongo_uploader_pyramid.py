@@ -29,6 +29,9 @@ from multiprocessing import Process
 
 class TileProcessor(Process):
     def __init__(self, args):
+        if not isinstance(args, dict):
+            args = vars(args)
+
         super(TileProcessor, self).__init__()
 
         #Initial parameters
@@ -187,7 +190,7 @@ class MongoUploaderPyramid(MongoUploader, Process):
 
         # Parameters for the TileProcessor
         args = {
-            "input": self.args.input,
+            "input": self.args["input"],
             "imagestore": self.imagestore,
             "imageid": self.imageid,
             "tilesize": 256,
