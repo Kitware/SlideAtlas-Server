@@ -300,7 +300,7 @@ def session_save_stack():
                                                       'point1': [item1['x'], item1['y']] } ]}
 
     # Now make the view
-    user = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
+    user = security.current_user.id if security.current_user.is_authenticated() else 'Guest'
     view = {
         'CoordinateSystem': 'Pixel',
         'User': user,
