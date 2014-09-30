@@ -696,9 +696,15 @@ def getview():
     # Right now, only notes use "Type"
     if "Type" in viewObj :
         if hideAnnotations :
+            # The viewer has to hide image labels.
+            viewObj["HideAnnotations"] = True
             # use a cryptic label
             viewObj["Title"] = viewObj["HiddenTitle"]
-            viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
+            if viewObj["Type"] == "Stack":
+                for vr in viewObj["ViewerRecords"]:
+                    vr["Annotations"] = []
+            else:
+                viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
             viewObj["Children"] = []
 
         convertViewToPixelCoordinateSystem(viewObj)

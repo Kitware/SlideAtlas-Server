@@ -250,7 +250,6 @@
             $(".hiddenLabel").on("input", modified);
         });
 
-        var COLLECTIONS;
         function LoadSessions(data) {
             // The first "sessions" list is actually collections.
             COLLECTIONS = data.sessions;
@@ -267,7 +266,6 @@
             handleResize();
         }
 
-        var SELECTED_COLLECTION;
         function SelectCollection(idx) {
             SELECTED_COLLECTION = COLLECTIONS[idx];
             // Populate the sessions menu.

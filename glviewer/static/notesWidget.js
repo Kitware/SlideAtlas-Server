@@ -635,9 +635,13 @@ Note.prototype.UpdateChildrenGUI = function() {
         for (var i = 0; i < this.ViewerRecords.length; ++i) {
             var sectionDiv = $('<div>')
                 .attr({'class':'note'})
-                .text(this.ViewerRecords[i].Image.label)
                 .css({'position':'relative'})
                 .appendTo(this.ChildrenDiv);
+            if (this.HideAnnotations) {
+                sectionDiv.text(i.toString())
+            } else {
+                sectionDiv.text(this.ViewerRecords[i].Image.label)
+            }
             this.StackDivs.push(sectionDiv);
             if (i == this.StartIndex) {
                 sectionDiv.css({'background-color':'#BBB'});
