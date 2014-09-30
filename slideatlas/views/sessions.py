@@ -110,6 +110,7 @@ def view_a_session(session):
                 for view_son in session_son['views']
             ],
             'attachments': session_son['attachments'],
+            'imagefiles': session_son["imagefiles"],
             'db': session.image_store.id,  # TODO: deprecate and remove
             'sessid': session.id,
             'next': url_for('.sessions_view', sessid=str(session.id), ajax=1, next=next_arg + NUMBER_ON_PAGE)
