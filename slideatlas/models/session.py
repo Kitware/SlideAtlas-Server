@@ -12,6 +12,8 @@ from .common.model_document import ModelQuerySet
 from .image_store import ImageStore
 from .collection import Collection
 
+import gridfs
+
 ################################################################################
 __all__ = ('Session', 'RefItem')
 
@@ -244,3 +246,40 @@ class Session(ModelDocument):
     # TODO: this should be a 'ListField(EmbeddedDocumentField(Transformation), ..'
     transformations = ListField(DictField(), required=False,
         verbose_name='', help_text='')
+
+    def _get_datadb(self, restype, ref_id):
+        # find the requested attachment in the session
+
+        if not restype in ["attachments", "imagefiles"]:
+            # Unknown restype
+            raise NotImplemented()
+
+        # Verify that the reference indeed exists in the session
+        for attachment_ref in (self.attachments + self.imagefiles):
+            if attachment_ref.ref == ref_id:
+                break
+        else:
+            raise Exception("The requested " + restype + " was not found in the requested session.")
+
+        image_store = ImageStore.objects.get(id=attachment_ref.db)
+        return image_store.to_pymongo(raw_object=True)
+
+    @staticmethod
+    def _fetch_attachment(self, restype, attachment_id):
+        # find the requested attachment in the session
+        # for attachment_ref in session.attachments:
+        #     if attachment_ref.ref == attachment_id:
+        #         break
+        # else:
+        #     raise Exception('The requested attachment was not found in the requested session.')
+
+        # # use 'get' instead of 'with_id', so an exception will be thrown if not found
+        # image_store = models.ImageStore.objects.get(id=attachment_ref.db)
+        res_image_store = self._get_datadb(restype, attachment_id)
+        attachments_fs = gridfs.GridFS(res_image_store, restype)
+        try:
+            attachment = attachments_fs.get(attachment_id)
+        except gridfs.NoFile:
+            raise Exception('The requested attachment was not found in the requested session\'s image store.')
+
+        return res_image_store, attachments_fs, attachment

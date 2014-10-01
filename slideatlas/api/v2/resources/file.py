@@ -146,49 +146,6 @@ class SessionAttachmentListAPI(ListAPIResource):
 ################################################################################
 class SessionAttachmentItemAPI(ItemAPIResource):
 
-    @staticmethod
-    def _get_datadb(session, restype, ref_id):
-        # find the requested attachment in the session
-
-        if not restype in ["attachments", "imagefiles"]:
-            # Dont know any other restype
-            raise NotImplemented()
-
-        # Verify that the reference indeed exists in the session
-        # print "reflist imagefiles",[i.ref for i in session.imagefiles + session.attachments]
-        # print "reflist refid", ref_id
-        # print "reflist attachments", session.attachments
-
-        for attachment_ref in (session.attachments + session.imagefiles):
-            if attachment_ref.ref == ref_id:
-                break
-        else:
-            raise Exception("The requested " + restype + " was not found in the requested session.")
-
-        image_store = models.ImageStore.objects.get(id=attachment_ref.db)
-        return image_store.to_pymongo(raw_object=True)
-
-    @staticmethod
-    def _fetch_attachment(session, restype, attachment_id):
-        # find the requested attachment in the session
-        # for attachment_ref in session.attachments:
-        #     if attachment_ref.ref == attachment_id:
-        #         break
-        # else:
-        #     raise Exception('The requested attachment was not found in the requested session.')
-
-        # # use 'get' instead of 'with_id', so an exception will be thrown if not found
-        # image_store = models.ImageStore.objects.get(id=attachment_ref.db)
-        res_image_store = SessionAttachmentItemAPI._get_datadb(session, restype, attachment_id)
-        attachments_fs = gridfs.GridFS(res_image_store, restype)
-        try:
-            attachment = attachments_fs.get(attachment_id)
-        except gridfs.NoFile:
-            raise Exception('The requested attachment was not found in the requested session\'s image store.')
-
-        return res_image_store, attachments_fs, attachment
-
-
     @security.ViewSessionRequirement.protected
     def get(self, session, restype, attachment_id):
         attachment = self._fetch_attachment(session, restype, attachment_id)[2]
@@ -304,7 +261,6 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
         first = False
 
-
         if result["current_chunk"] == 1:
             first = True
             result["first"] = 1
@@ -313,7 +269,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             session.imagefiles.append(attachments_ref)
             session.save()
 
-            datadb = self._get_datadb(session, restype, attachment_id)
+            datadb = session._get_datadb(restype, attachment_id)
 
             gf = gridfs.GridFS(datadb, restype)
             afile = gf.new_file(chunk_size=1024*1024, filename=result["filename"], _id=bson.ObjectId(result["id"]))
@@ -321,7 +277,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             afile.close()
 
         if not first:
-            datadb = self._get_datadb(session, restype, attachment_id)
+            datadb = session._get_datadb(restype, attachment_id)
             obj = {}
             obj["n"] = result["current_chunk"] - 1
             obj["files_id"] = bson.ObjectId(result["id"])
@@ -361,7 +317,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
     @security.AdminSessionRequirement.protected
     def delete(self, session, restype, attachment_id):
         # this also ensures that the attachment actually exists
-        attachments_fs = self._fetch_attachment(session, restype, attachment_id)[1]
+        attachments_fs = session._fetch_attachment(restype, attachment_id)[1]
 
         # delete from session
         for (pos, attachment_ref) in enumerate(session.attachments):
