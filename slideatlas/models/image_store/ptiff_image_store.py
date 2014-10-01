@@ -240,8 +240,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             # reverse to start with the oldest views at the end of the list, and
             #   more importantly, to permit deletion from the list while iterating
             for view_ref_pos, view_ref in reversed_enumerate(default_session.views):
-                view = View.objects.only('image').with_id(view_ref.ref)
-                image = Image.objects.only('label', 'filename').with_id(view.image)
+                view = View.objects.only('ViewerRecords').with_id(view_ref.ref)
+                image = Image.objects.only('label', 'filename').with_id(view.ViewerRecords[0]['Image'])
 
                 # get creator_code
                 # TODO: move the creator_code to a property of Image objects

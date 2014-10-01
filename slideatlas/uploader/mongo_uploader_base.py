@@ -106,7 +106,7 @@ class MongoUploader(object):
         # Update the session
         with self.flaskapp.app_context():
             # Create and insert view
-            aview = View(image=ObjectId(self.imageid), db=self.imagestore.id)
+            aview = View(ViewerRecords=[{'Image': ObjectId(self.imageid), 'Database': self.imagestore.id}])
             aview.save()
 
             item = RefItem(ref=aview.id)

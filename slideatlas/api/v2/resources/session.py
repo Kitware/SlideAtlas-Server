@@ -86,18 +86,8 @@ class SessionItemAPI(ItemAPIResource):
             if not view:
                 continue
 
-            # get 'image_id' and 'image_image_store_id'
-            image_image_store_id = None
-            if view.get('ViewerRecords') :
-                record = view['ViewerRecords'][0]
-                image_id = record["Image"]
-                image_image_store_id = record['Database']
-            else:
-                image_id = ObjectId(view['img'])
-
-            # These are legacy and will go away soon.
-            if 'db' in view:
-                image_image_store_id = ObjectId(view['db'])
+            image_id = view['ViewerRecords'][0]['Image']
+            image_store_id = view['ViewerRecords'][0]['Database']
 
             # get 'image'
             if image_image_store_id not in image_stores_by_id:

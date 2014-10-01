@@ -69,22 +69,11 @@ class View(ModelDocument):
         'collection': 'views',
         #'allow_inheritance': True,
         'indexes': [
-            {
-                'fields': ('image',),
-                'cls': False,
-                'unique': False,
-                'sparse': True,  # TODO: this should not be sparse, but the database needs to be fixed
-            },
         ]
     }
 
-    # TODO: this is a string in some places
-    image = ObjectIdField(required=True, db_field='img',
-        verbose_name='', help_text='')
-
-    # TODO: this should be removed entirely
-    db = ObjectIdField(required=False,
-        verbose_name='', help_text='')
+    ViewerRecords = ListField(DictField(), required=False, db_field='ViewerRecords',
+        verbose_name='', help_text='An array of objects defining views.  The client currently supports an array of up to two views for the dual viewer.')
 
     label = StringField(required=False,
         verbose_name='', help_text='')
@@ -122,9 +111,6 @@ class View(ModelDocument):
 
     text = StringField(required=False, db_field='Text',
         verbose_name='', help_text='More descriptive and longer text.')
-
-    viewer_records = ListField(DictField(), required=False, db_field='ViewerRecords',
-        verbose_name='', help_text='An array of objects defining views.  The client currently supports an array of up to two views for the dual viewer.')
 
     children = ListField(DictField(), required=False, db_field='Children',
         verbose_name='', help_text='An array of notes objects that replaces bookmarks.')
