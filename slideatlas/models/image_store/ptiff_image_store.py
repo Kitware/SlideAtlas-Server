@@ -217,12 +217,12 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # Create views only if the file is newly added to the folder
                 if new_image_record:
-                    view = View(image=image.id, db=self.id)
+                    view = View(ViewerRecords=[{'Image': image.id, 'Database': self.id}])
                     view.save()
 
                     # newest images should be at the top of the session's view list
                     logging.error('Adding view %s to session %s/%s' % (view.id, session.collection, session))
-                    session.views.insert(0, RefItem(ref=view.id, db=self.id))
+                    session.views.insert(0, RefItem(ref=view.id))
                     session.save()
 
                 new_images.append(image.to_json())
@@ -240,8 +240,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             # reverse to start with the oldest views at the end of the list, and
             #   more importantly, to permit deletion from the list while iterating
             for view_ref_pos, view_ref in reversed_enumerate(default_session.views):
-                view = View.objects.only('image').with_id(view_ref.ref)
-                image = Image.objects.only('label', 'filename').with_id(view.image)
+                view = View.objects.only('ViewerRecords').with_id(view_ref.ref)
+                image = Image.objects.only('label', 'filename').with_id(view.ViewerRecords[0]['Image'])
 
                 # get creator_code
                 # TODO: move the creator_code to a property of Image objects

@@ -1,21 +1,13 @@
-import math
 from bson import ObjectId
-from flask import Blueprint, request, render_template, session, make_response
+from flask import Blueprint, request, render_template, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
-from copy import copy, deepcopy
 
 
 def jsonifyView(db,viewid,viewobj):
-    imgid = 0
-    imgdb = 0
-    if viewobj.has_key("ViewerRecords") :
-        imgdb = viewobj["ViewerRecords"][0]["Database"]
-        imgid = viewobj["ViewerRecords"][0]["Image"]
-    if imgid == 0 :
-        imgdb = viewobj["db"]
-        imgid = viewobj["img"]
+    imgdb = viewobj['ViewerRecords'][0]['Database']
+    imgid = viewobj['ViewerRecords'][0]['Image']
 
     imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
 
@@ -228,7 +220,6 @@ def glstacksession():
         sessid = "51256ae6894f5931098069d5"
 
     admindb = models.ImageStore._get_db()
-    db = admindb
 
     sessobj = models.Session.objects.get_or_404(id=sessid)
 
@@ -246,7 +237,7 @@ def glstacksession():
     views = []
     viewIdx = 0
     for view in sessobj.views:
-        viewobj = readViewTree(db, view.ref)
+        viewobj = readViewTree(admindb, view.ref)
 
         # convert annotation to stack format.
         sectionAnnotations = []
@@ -256,32 +247,23 @@ def glstacksession():
                 sectionAnnotations = record["Annotations"]
         annotations.append(sectionAnnotations)
 
-        # other just that needs to be simplified
-        imgdb = sessobj["image_store"]
-        if viewobj.has_key("db") :
-            imgdb = viewobj["db"]
-        if "img" in viewobj :
-            imgid = viewobj["img"]
-        else :
-            # an assumption that view is of type note.
-            viewerRecord = viewobj["ViewerRecords"][0]
-            if isinstance(viewerRecord["Image"], dict) :
-                imgid = viewerRecord["Image"]["_id"]
-                imgdb = viewerRecord["Image"]["database"]
-            else :
-                imgid = viewerRecord["Image"]
-            if viewerRecord.has_key("Database") :
-                imgdb = viewerRecord["Database"]
+        viewerRecord = viewobj["ViewerRecords"][0]
+        if isinstance(viewerRecord["Image"], dict):
+            # viewerRecord has probably already been expanded inline by readViewTree
+            imgid = viewerRecord['Image']['_id']
+            imgdb = viewerRecord['Image']['database']
+        else:
+            imgid = viewerRecord['Image']
+            imgdb = viewerRecord['Database']
 
-        # support for images from different database than the session.
-        if imgdb == sessobj["image_store"] :
-            imgobj = db["images"].find_one({'_id' : ObjectId(imgid)})
-        else :
-            dbobj2 = models.ImageStore.objects.with_id(imgdb)
-            db2 = dbobj2.to_pymongo()
-            imgobj = db2["images"].find_one({'_id' : ObjectId(imgid)})
+        # loading the image again here is probably superfluous,
+        #   as the image has already been loaded by readViewTree
+        # readViewTree has the unfortunate side effect of converting ObjectIds
+        #   to strings
+        image_store = models.ImageStore.objects.with_id(ObjectId(imgdb))
+        imgobj = image_store.to_pymongo()['images'].find_one({'_id': ObjectId(imgid)})
+
         convertImageToPixelCoordinateSystem(imgobj)
-        viewobj["img"] = imgobj
 
         center = [0.0,0.0]
         height = 10000.0
@@ -299,10 +281,10 @@ def glstacksession():
                   "center": center,
                   "height": height,
                   "rotation": 0,
-                  "db": imgdb}
-        myimg = viewobj["img"]
+                  "db": imgdb,
+                  'img': imgobj,
+                  }
 
-        myview["img"] = myimg
         views.append(myview)
         viewIdx += 1
 
@@ -422,6 +404,16 @@ def saveusernote():
         note["ParentId"] = ObjectId(note["ParentId"])
     note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = typeStr
+
+    for viewer_record in note.get('ViewerRecords', list()):
+        # this function is used for at least both tracking and favorites, so
+        #   Image and Database fields may or may not be present
+        if 'Image' in viewer_record:
+            viewer_record['Image'] = ObjectId(viewer_record['Image'])
+        if 'Database' in viewer_record:
+            viewer_record['Database'] = ObjectId(viewer_record['Database'])
+    if 'SessionId' in viewer_record:
+        viewer_record['SessionId'] = ObjectId(viewer_record['SessionId'])
 
     if request.form.has_key('thumb') :
         thumbStr = request.form['thumb']
@@ -717,16 +709,9 @@ def getview():
     # a pain, but necessary to generalize next/previous slide.
     # An array of children and an array of ViewerRecords
 
-    # This is clearly the wrong default now that db is admin.
-    imgdb = db
-    if "db" in viewObj :
-        # support for images in database different than view
-        imgdb = viewObj["db"]
-        database2 = models.ImageStore.objects.get_or_404(id=imgdb)
-        db2 = database2.to_pymongo()
-        imgobj = db2["images"].find_one({'_id' : ObjectId(viewObj["img"])})
-    else :
-        imgobj = db["images"].find_one({'_id' : ObjectId(viewObj["img"])})
+    imgdb = viewObj['ViewerRecords'][0]['Database']
+    image_store = models.ImageStore.objects.get_or_404(id=imgdb)
+    imgobj = image_store.to_pymongo()['images'].find_one({'_id': viewObj['ViewerRecords'][0]['Image']})
 
     # mold image object to have the keys the viewer expects.
     imgobj["_id"] = str(imgobj["_id"])

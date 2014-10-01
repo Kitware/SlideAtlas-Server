@@ -110,7 +110,7 @@ class RefItem(EmbeddedDocument):
     ref = ObjectIdField(required=True)
     hide = BooleanField(required=False, default=False)
     label = StringField(required=False)
-    db = ObjectIdField(required=True)
+    db = ObjectIdField(required=False)
 
     def __eq__(self, other):
         if isinstance(other, ObjectId):

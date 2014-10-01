@@ -71,9 +71,10 @@ class SessionListAPI(ListAPIResource):
 class SessionItemAPI(ItemAPIResource):
     @staticmethod
     def _get(session, with_hidden_label=False):
-        unique_image_store_ids = set(ifilter(None, (view_ref.db for view_ref in session.views)))
-        image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
-        image_stores_by_id[session.image_store.id] = session.image_store
+        #unique_image_store_ids = set(ifilter(None, (view_ref.db for view_ref in session.views)))
+        #image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
+        #image_stores_by_id[session.image_store.id] = session.image_store
+        image_stores_by_id = dict()
 
         # iterate through the session objects
         views_son = list()
@@ -86,24 +87,14 @@ class SessionItemAPI(ItemAPIResource):
             if not view:
                 continue
 
-            # get 'image_id' and 'image_image_store_id'
-            image_image_store_id = None
-            if view.get('ViewerRecords') :
-                record = view['ViewerRecords'][0]
-                image_id = record["Image"]
-                image_image_store_id = record['Database']
-            else:
-                image_id = ObjectId(view['img'])
-
-            # These are legacy and will go away soon.
-            if 'db' in view:
-                image_image_store_id = ObjectId(view['db'])
+            image_id = view['ViewerRecords'][0]['Image']
+            image_store_id = view['ViewerRecords'][0]['Database']
 
             # get 'image'
-            if image_image_store_id not in image_stores_by_id:
-                image_stores_by_id[image_image_store_id] = models.ImageStore.objects.get(id=image_image_store_id)
-            image_image_store = image_stores_by_id[image_image_store_id].to_pymongo()
-            image = image_image_store['images'].find_one({'_id': image_id}, {'thumb': False})
+            if image_store_id not in image_stores_by_id:
+                image_stores_by_id[image_store_id] = models.ImageStore.objects.get(id=image_store_id)
+            image_store = image_stores_by_id[image_store_id].to_pymongo()
+            image = image_store['images'].find_one({'_id': image_id}, {'thumb': False})
 
             if not image:
                 continue
@@ -128,10 +119,9 @@ class SessionItemAPI(ItemAPIResource):
             # set 'ajax_view_item' and 'ajax_view_items' for output
             view_son = {
                 'id': view_id,
-                'image_store_id': image_image_store_id,
                 'label': view_label,
                 'image_id': image_id,
-                'image_image_store_id': image_image_store_id,
+                'image_store_id': image_store_id,
             }
             if with_hidden_label:
                 view_son['label'] = view_label

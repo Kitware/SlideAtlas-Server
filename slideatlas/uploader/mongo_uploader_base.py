@@ -2,7 +2,6 @@
 
 import sys
 import os
-import pdb
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_app
@@ -106,10 +105,10 @@ class MongoUploader(object):
         # Update the session
         with self.flaskapp.app_context():
             # Create and insert view
-            aview = View(image=ObjectId(self.imageid), db=self.imagestore.id)
+            aview = View(ViewerRecords=[{'Image': ObjectId(self.imageid), 'Database': self.imagestore.id}])
             aview.save()
 
-            item = RefItem(ref=aview.id, db=self.imagestore.id)
+            item = RefItem(ref=aview.id)
             self.session.views.append(item)
             self.session.save()
 

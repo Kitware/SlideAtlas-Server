@@ -101,11 +101,10 @@ def view_a_session(session):
             'session': session_son,
             'images': [
                 {
-                    'db': view_son['image_image_store_id'],
+                    'db': view_son['image_store_id'],
                     'img': view_son['image_id'],
                     'label': view_son['label'],
                     'view': view_son['id'],
-                    'view_db': view_son['image_store_id'],
                 }
                 for view_son in session_son['views']
             ],
@@ -213,25 +212,7 @@ def session_save_view():
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
 
-        # The view list in the session.  The session needs the imgdb to display the thumb.
-        # At the moment, the database has many different places to find the db.
-        # We will simplify this in the future.
-        imgdb = None
-        if 'db' in view:
-            # the original legacy open layers format
-            imgdb = ObjectId(view['db'])
-        else:
-            record = view["ViewerRecords"][0]
-            if 'Database' in record:
-                # this is the correct location for the image database.
-                # convert references to string to pass to the client
-                imgdb = ObjectId(record['Database'])
-            elif 'Image' in record:
-                # A bug caused some image objects to be embedded in views in te database.
-                imgdb = ObjectId(record["Image"].database)
-
-        new_views.append(models.RefItem(ref=ObjectId(view['_id']),
-                                        db=imgdb))
+        new_views.append(models.RefItem(ref=ObjectId(view['_id'])))
 
     # delete the views that are left over, as views are owned by the session.
     if not create_new_session:
