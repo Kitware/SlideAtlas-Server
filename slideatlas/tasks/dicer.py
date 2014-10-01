@@ -73,5 +73,6 @@ def process_file(args):
         else:
             raise Exception("Unsupported file: " + ext)
 
+    # TODO: Remove the file from gridfs or make it invisible in the queue
     logger.info(str(resp))
     return resp
