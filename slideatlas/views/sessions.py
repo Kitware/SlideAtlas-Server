@@ -101,11 +101,10 @@ def view_a_session(session):
             'session': session_son,
             'images': [
                 {
-                    'db': view_son['image_image_store_id'],
+                    'db': view_son['image_store_id'],
                     'img': view_son['image_id'],
                     'label': view_son['label'],
                     'view': view_son['id'],
-                    'view_db': view_son['image_store_id'],
                 }
                 for view_son in session_son['views']
             ],

@@ -530,7 +530,7 @@
                         <li class="ui-state-default" id="{{ view_son.id }}"
                             view="{{ view_son.id }}" imgdb="{{ view_son.image_store_id }}">
                             <span class="ui-icon ui-icon-circle-close red" onclick="deleteView('{{ view_son.id }}')"></span>
-                            <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_image_store_id }}&img={{ view_son.image_id }}">
+                            <img src="{{url_for('tile.thumb_query')}}?db={{ view_son.image_store_id }}&img={{ view_son.image_id }}">
                             <!-- switch between annotation and hidden labels -->
                             <input type="text" value="{{ view_son.label }}" class="descriptiveLabel">
                             <input type="text" value="{{ view_son.hidden_label }}" class="hiddenLabel" hidden>
