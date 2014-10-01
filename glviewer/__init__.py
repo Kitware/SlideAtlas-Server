@@ -1,10 +1,8 @@
-import math
 from bson import ObjectId
-from flask import Blueprint, request, render_template, session, make_response
+from flask import Blueprint, request, render_template, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
-from copy import copy, deepcopy
 
 
 def jsonifyView(db,viewid,viewobj):
