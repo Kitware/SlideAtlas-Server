@@ -217,12 +217,12 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                 # Create views only if the file is newly added to the folder
                 if new_image_record:
-                    view = View(image=image.id, db=self.id)
+                    view = View(ViewerRecords=[{'Image': image.id, 'Database': self.id}])
                     view.save()
 
                     # newest images should be at the top of the session's view list
                     logging.error('Adding view %s to session %s/%s' % (view.id, session.collection, session))
-                    session.views.insert(0, RefItem(ref=view.id, db=self.id))
+                    session.views.insert(0, RefItem(ref=view.id))
                     session.save()
 
                 new_images.append(image.to_json())

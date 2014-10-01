@@ -230,8 +230,7 @@ def session_save_view():
                 # A bug caused some image objects to be embedded in views in te database.
                 imgdb = ObjectId(record["Image"].database)
 
-        new_views.append(models.RefItem(ref=ObjectId(view['_id']),
-                                        db=imgdb))
+        new_views.append(models.RefItem(ref=ObjectId(view['_id'])))
 
     # delete the views that are left over, as views are owned by the session.
     if not create_new_session:

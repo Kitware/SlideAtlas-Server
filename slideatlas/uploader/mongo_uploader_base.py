@@ -109,7 +109,7 @@ class MongoUploader(object):
             aview = View(image=ObjectId(self.imageid), db=self.imagestore.id)
             aview.save()
 
-            item = RefItem(ref=aview.id, db=self.imagestore.id)
+            item = RefItem(ref=aview.id)
             self.session.views.append(item)
             self.session.save()
 
