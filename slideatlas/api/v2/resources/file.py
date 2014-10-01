@@ -19,6 +19,8 @@ from ..common import abort
 
 import bson
 
+from slideatlas.tasks import dicer
+
 ################################################################################
 __all__ = ('SessionAttachmentListAPI', 'SessionAttachmentItemAPI')
 
@@ -333,9 +335,25 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             last = True
             result["last"] = last
 
-            # dummy objectid
-            #TODO: Get from submitting the task
-            task_id = bson.ObjectId()
+            # Prepare arguments
+            args = {}
+            args["input"] = result["id"]
+            args["session"] = str(session.id)
+            args["collection"] = str(session.collection.id)
+
+            # Defaults
+            args["mongo_collection"] = None
+            args["verbose"] = None
+            args["dry_run"] = False
+            args["tilesize"] = 256
+            args["base_only"] = False
+            args["overwrite"] = False
+
+            # Submit the job
+            job = dicer.process_file.delay(args)
+
+            # Update the file metadata
+            task_id = job.task_id
             datadb[restype + ".files"].update({"_id": bson.ObjectId(result["id"])}, {"$set": {"metadata": {"task": task_id}}})
 
         return result, 200  # No Content
