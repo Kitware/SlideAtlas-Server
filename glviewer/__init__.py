@@ -407,6 +407,16 @@ def saveusernote():
     note["User"] = getattr(security.current_user, 'id', '')
     note["Type"] = typeStr
 
+    for viewer_record in note.get('ViewerRecords', list()):
+        # this function is used for at least both tracking and favorites, so
+        #   Image and Database fields may or may not be present
+        if 'Image' in viewer_record:
+            viewer_record['Image'] = ObjectId(viewer_record['Image'])
+        if 'Database' in viewer_record:
+            viewer_record['Database'] = ObjectId(viewer_record['Database'])
+    if 'SessionId' in viewer_record:
+        viewer_record['SessionId'] = ObjectId(viewer_record['SessionId'])
+
     if request.form.has_key('thumb') :
         thumbStr = request.form['thumb']
         note["Thumb"] = thumbStr
