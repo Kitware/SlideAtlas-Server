@@ -247,21 +247,18 @@ def glstacksession():
                 sectionAnnotations = record["Annotations"]
         annotations.append(sectionAnnotations)
 
-        viewerRecord = viewobj["ViewerRecords"][0]
-        if isinstance(viewerRecord["Image"], dict):
+        imgdb = viewobj['ViewerRecords'][0]['Database']
+        imgid = viewobj['ViewerRecords'][0]['Image']
+        if isinstance(imgid, dict):
             # viewerRecord has probably already been expanded inline by readViewTree
-            imgid = viewerRecord['Image']['_id']
-            imgdb = viewerRecord['Image']['database']
-        else:
-            imgid = viewerRecord['Image']
-            imgdb = viewerRecord['Database']
+            imgid = ObjectId(imgid['_id'])
 
         # loading the image again here is probably superfluous,
         #   as the image has already been loaded by readViewTree
         # readViewTree has the unfortunate side effect of converting ObjectIds
         #   to strings
         image_store = models.ImageStore.objects.with_id(ObjectId(imgdb))
-        imgobj = image_store.to_pymongo()['images'].find_one({'_id': ObjectId(imgid)})
+        imgobj = image_store.to_pymongo()['images'].find_one({'_id': imgid})
 
         convertImageToPixelCoordinateSystem(imgobj)
 
@@ -710,8 +707,13 @@ def getview():
     # An array of children and an array of ViewerRecords
 
     imgdb = viewObj['ViewerRecords'][0]['Database']
-    image_store = models.ImageStore.objects.get_or_404(id=imgdb)
-    imgobj = image_store.to_pymongo()['images'].find_one({'_id': viewObj['ViewerRecords'][0]['Image']})
+    image_store = models.ImageStore.objects.get_or_404(id=ObjectId(imgdb))
+    image_id = viewObj['ViewerRecords'][0]['Image']
+    if isinstance(image_id, dict):
+        # viewerRecord has probably already been expanded inline by readViewTree
+        image_id = ObjectId(image_id['_id'])
+
+    imgobj = image_store.to_pymongo()['images'].find_one({'_id': image_id})
 
     # mold image object to have the keys the viewer expects.
     imgobj["_id"] = str(imgobj["_id"])
