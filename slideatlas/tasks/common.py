@@ -3,14 +3,11 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
-from slideatlas import create_celery_app
-from slideatlas import create_app
+from slideatlas.core import create_celery_app
 
 import time
 
-# Create the application objects
-flaskapp = create_app()
-celeryapp = create_celery_app(flaskapp)
+celeryapp = create_celery_app(None)
 
 
 def get_celery_worker_status():

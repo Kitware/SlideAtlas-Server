@@ -19,7 +19,6 @@ from ..common import abort
 
 import bson
 
-from slideatlas.tasks import dicer
 
 ################################################################################
 __all__ = ('SessionAttachmentListAPI', 'SessionAttachmentItemAPI')
@@ -306,6 +305,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             args["overwrite"] = False
 
             # Submit the job
+            import slideatlas.tasks.dicer as dicer
             job = dicer.process_file.delay(args)
 
             # Update the file metadata
