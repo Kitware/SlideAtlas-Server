@@ -15,7 +15,7 @@ function MOVE_TO(x,y) {
 
 var ROOT_DIV;
 
-var SLICE = 1;
+var SLICE = 0;
 
 // globals (for now)
 var imageProgram;

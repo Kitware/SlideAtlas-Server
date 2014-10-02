@@ -635,9 +635,13 @@ Note.prototype.UpdateChildrenGUI = function() {
         for (var i = 0; i < this.ViewerRecords.length; ++i) {
             var sectionDiv = $('<div>')
                 .attr({'class':'note'})
-                .text(this.ViewerRecords[i].Image.label)
                 .css({'position':'relative'})
                 .appendTo(this.ChildrenDiv);
+            if (this.HideAnnotations) {
+                sectionDiv.text(i.toString())
+            } else {
+                sectionDiv.text(this.ViewerRecords[i].Image.label)
+            }
             this.StackDivs.push(sectionDiv);
             if (i == this.StartIndex) {
                 sectionDiv.css({'background-color':'#BBB'});
@@ -752,7 +756,6 @@ Note.prototype.Select = function() {
       // First view is set by viewer record camera.
       // Second is set relative to the first.
       this.SynchronizeViews(0);
-      this.PreloadStackSection(2);
       // We do not support inserting sections in a stack right now.
       NOTES_WIDGET.NewButton.hide();
   } else {
@@ -762,8 +765,6 @@ Note.prototype.Select = function() {
       this.DisplayView();
   }
 }
-
-
 
 Note.prototype.RecordAnnotations = function() {
     this.ViewerRecords[this.StartIndex].CopyAnnotations(VIEWER1);
@@ -979,30 +980,33 @@ Note.prototype.DisplayStack = function() {
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function() {
-  // Remove Annotations from the previous note.
-  VIEWER1.Reset();
-  // Two views should always exist.  Check anyway (for now).
-  if (typeof VIEWER2 === 'undefined') {
-    this.ViewerRecords[0].Apply(VIEWER1);
-  }
+    // Remove Annotations from the previous note.
+    VIEWER1.Reset();
+    
 
-  VIEWER2.Reset();
-  if (this.Type != "Stack") {
-      SetNumberOfViews(this.ViewerRecords.length);
-      this.ViewerRecords[0].Apply(VIEWER1);
-      this.ViewerRecords[1].Apply(VIEWER2);
-      return;
-  }
+    if (this.Type == "Stack") {
+        var idx0 = this.StartIndex;
+        var idx1 = idx0 + 1;
+        
+        if (this.ViewerRecords.length > idx0) {
+            this.ViewerRecords[idx0].Apply(VIEWER1);
+        }
+        if (this.ViewerRecords.length > idx1) {
+            this.ViewerRecords[idx1].Apply(VIEWER2);
+        }
+        return;
+    }
 
-  var idx0 = this.StartIndex;
-  var idx1 = idx0 + 1;
 
-  if (this.ViewerRecords.length > idx0) {
-      this.ViewerRecords[idx0].Apply(VIEWER1);
-  }
-  if (this.ViewerRecords.length > idx1) {
-      this.ViewerRecords[idx1].Apply(VIEWER2);
-  }
+    // Two views should always exist.  Check anyway (for now).
+    SetNumberOfViews(this.ViewerRecords.length);
+    if (typeof VIEWER1 !== 'undefined' && this.ViewerRecords.length > 0) {
+        this.ViewerRecords[0].Apply(VIEWER1);
+    }
+    if (typeof VIEWER2 !== 'undefined' && this.ViewerRecords.length > 1) {
+        VIEWER2.Reset();
+        this.ViewerRecords[1].Apply(VIEWER2);
+    }
 }
 
 
@@ -1021,24 +1025,13 @@ Note.prototype.InitializeStackTransforms = function () {
 }
 
 
-// For preloading a section of the stack.
-// This skips out of bounds indexes.
-Note.prototype.PreloadStackSection = function(idx) { 
-    if (idx < 0 || idx >= this.ViewerRecords.length) {
-        return;
-    }
-    // This works because the constructor returns an existing cache if possible.
-    var cache = new Cache(this.ViewerRecords[idx].Image);
-    // The view is only needed for the camera and viewport.
-    cache.ChooseTiles(VIEWER1.MainView, 0, []);
-}
+// refViewerIdx is the viewer that changed and other viewers need 
+// to be updated to match that reference viewer.
+Note.prototype.SynchronizeViews = function (refViewerIdx) {
 
-
-
-// viewerIdx is the viewer that changed.
-// all other viewers need to be updated to match that viewer.
-Note.prototype.SynchronizeViews = function (viewerIdx) {
-    if (EDIT && EVENT_MANAGER.ShiftKeyPressed) {
+    // Special case for when the shift key is pressed.
+    // Translate only one camera and modify the tranform to match.
+    if (EDIT && EVENT_MANAGER.CursorFlag) {
         if ( ! this.ActiveCorrelation) {
             // Find a close correlation or make a new one.
             // With only two viewers this is easy.
@@ -1047,15 +1040,16 @@ Note.prototype.SynchronizeViews = function (viewerIdx) {
                 alert("Missing transform");
                 return;
             }
-            // Closest
+            // Find the closest correlation to modify
             var cam = VIEWER1.GetCamera();
             var fp = cam.GetFocalPoint();
-            var minDist = cam.Height / 3;
+            // If no correlation is this close, then create a enw correlation.
+            var minDist = cam.Height / 4;
             for (var i = 0; i < trans.Correlations.length; ++i) {
                 var cor = trans.Correlations[i];
-                var dx = fp[0] - cor.point0[0];
-                var dy = fp[1] - cor.point0[1];
-                var dist = Math.sqrt(dx*dx + dy*dy);
+                var dx = Math.abs(fp[0] - cor.point0[0]);
+                var dy = Math.abs(fp[1] - cor.point0[1]);
+                var dist = Math.max(dx, dy);
                 if (dist < minDist) {
                     minDist = dist;
                     this.ActiveCorrelation = cor;
@@ -1076,29 +1070,64 @@ Note.prototype.SynchronizeViews = function (viewerIdx) {
         this.ActiveCorrelation = undefined;
     }
 
+    // No shift modifier:
+    // Synchronize all the cameras.
     // Hard coded for two viewers (recored 0 and 1 too).
-    var idx = this.StartIndex + 1;
-    if (idx >= this.ViewerRecords.length || ! this.ViewerRecords[idx].Transform) {
-        return;
+    // First place all the cameras into an array for code simplicity.
+    // Cameras used for preloading.
+    if (! this.PreCamera) { this.PreCamera = new Camera();}
+    if (! this.PostCamera) { this.PostCamera = new Camera();}
+    var cameras = [this.PreCamera, VIEWER1.GetCamera(), VIEWER2.GetCamera(), this.PostCamera];
+    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
+    // Start with the reference section and move forward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx+1; i < cameras.length; ++i) {
+        var transIdx = i - 1 + this.StartIndex;
+        if (transIdx < this.ViewerRecords.length) {
+            this.ViewerRecords[transIdx].Transform
+                .ForwardTransformCamera(cameras[i-1],cameras[i]);
+        } else {
+            cameras[i] = undefined;
+        }
     }
-    var trans = this.ViewerRecords[idx].Transform;
-    if (viewerIdx == 0) {
-        var cam = VIEWER1.GetCamera();
-        var fp = trans.ForwardTransform(cam.FocalPoint);
-        var rotation = cam.GetRotation() + trans.DeltaRotation;
-        VIEWER2.SetCamera(fp,rotation, cam.Height)
+
+    // Start with the reference section and move backward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx; i > 0; --i) {
+        var transIdx = i + this.StartIndex-1;
+        if (transIdx > 0) { // First section does not have a transform
+            this.ViewerRecords[transIdx].Transform
+                .ReverseTransformCamera(cameras[i],cameras[i-1]);
+        } else {
+            cameras[i-1] = undefined;
+        }
     }
-    if (viewerIdx == 1) {
-        var cam = VIEWER2.GetCamera();
-        var fp = trans.ReverseTransform(cam.FocalPoint);
-        var rotation = cam.GetRotation() + trans.DeltaRotation;
-        VIEWER1.SetCamera(fp,rotation, cam.Height)
+
+    // Preload the adjacent sections.
+    if (cameras[0]) {
+        var cache = new Cache(this.ViewerRecords[this.StartIndex-1].Image);
+        cameras[0].SetViewport(VIEWER1.GetViewport());
+        var tiles = cache.ChooseTiles(cameras[0], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            LoadQueueAddTile(tiles[i]);
+        }
+    }
+    if (cameras[3]) {
+        var cache = new Cache(this.ViewerRecords[this.StartIndex+2].Image);
+        cameras[3].SetViewport(VIEWER1.GetViewport());
+        var tiles = cache.ChooseTiles(cameras[3], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            LoadQueueAddTile(tiles[i]);
+        }
+    }
+
+    // Overview cameras need to be updated.
+    if (refViewerIdx == 0) {
+        VIEWER2.UpdateCamera();
+    } else {
+        VIEWER1.UpdateCamera();
     }
 }
-
-
-
-
 
 
 

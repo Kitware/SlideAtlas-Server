@@ -84,8 +84,18 @@
             </ul>
             {% endif %}
             <br>
-            {%if session_son.views %}
-            <h2>{{ session_son.views|length }} Images</h2>
+            {% if session_son.views %}
+            <h2>{{ session_son.views|length }} Images
+                {% if security.EditSessionRequirement(session).can() %}
+                <a href="{{ url_for('.session_new_stack', session=session) }}" class="lead">
+                    <button class="btn btn-primary pull-right">
+                        <span class="glyphicon glyphicon-plus"></span>
+                        Stack
+                    </button>
+                </a>
+                {% endif %}
+            </h2>
+
             <table class="table table-bordered table-hover" >
                 {% for view_son in session_son.views %}
                 {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
