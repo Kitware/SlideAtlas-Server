@@ -9,7 +9,7 @@ from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
 from ..blueprint import api
 from ..common import abort
-from .attachment import SessionAttachmentListAPI, SessionAttachmentItemAPI
+from .file import SessionAttachmentListAPI, SessionAttachmentItemAPI
 from .view import SessionViewItemAPI
 
 ################################################################################
