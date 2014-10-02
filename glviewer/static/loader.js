@@ -159,7 +159,7 @@ function LoadQueueUpdate() {
     var tile = LOAD_QUEUE.pop();
     // For debugging
     //this.PendingTiles.push(tile);
-    if (tile != null) {
+    if (tile != null && tile.LoadState == 1) {
       tile.StartLoad(tile.Cache);
       tile.LoadState = 2; // Loading.
       ++LOADING_COUNT;

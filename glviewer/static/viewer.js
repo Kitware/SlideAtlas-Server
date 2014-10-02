@@ -450,6 +450,8 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
+  EVENT_MANAGER.CursorFlag = false;
+
   this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
   if (this.ZoomTarget < 0.9 / (1 << 5)) {
     this.ZoomTarget = 0.9 / (1 << 5);
@@ -619,7 +621,7 @@ Viewer.prototype.Draw = function() {
   }
   // I am using shift for stack interaction.
   // Turn on the focal point when shift is pressed.
-  if (EVENT_MANAGER.ShiftKeyPressed && EDIT) {
+  if (EVENT_MANAGER.CursorFlag && EDIT) {
       this.MainView.DrawFocalPoint();
       if (this.StackCorrelations) {
           this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);

@@ -37,6 +37,8 @@ function EventManager (canvas) {
   this.SelectedSweepListener = undefined;
   this.StartTouchTime = 0;
 
+  this.CursorFlag = false;
+
   if (MOBILE_DEVICE == 'Andriod') {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
@@ -216,8 +218,6 @@ EventManager.prototype.HandleKeyDown = function(event) {
   if (event.keyCode == 16) {
       // Shift key modifier.
       this.ShiftKeyPressed = true;
-      // I am using the shift key to display to focal point cursor
-      eventuallyRender();
       // Do not forward modifier keys events to objects that consume keypresses.
       return;
   }
@@ -255,12 +255,20 @@ EventManager.prototype.HandleKeyDown = function(event) {
 
 EventManager.prototype.HandleKeyUp = function(event) {
     if ( ! this.HasFocus) {return;} 
-    
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.  The mouse does not move with a key press.
+    // Make the cross toggle.
+    if (event.keyCode == 67) { // c
+        // I am using the 'c' key to display to focal point cursor
+        this.CursorFlag = ! this.CursorFlag;
+        eventuallyRender();
+    }
+
     if (event.keyCode == 16) {
         // Shift key modifier.
         this.ShiftKeyPressed = false;
-        // I am using the shift key to display to focal point cursor
-        eventuallyRender();
+
     } else if (event.keyCode == 17) {
         // Control key modifier.
         this.ControlKeyPressed = false;
