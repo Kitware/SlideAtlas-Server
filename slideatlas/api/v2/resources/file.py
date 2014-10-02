@@ -147,7 +147,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
     @security.ViewSessionRequirement.protected
     def get(self, session, restype, attachment_id):
-        attachment = self._fetch_attachment(session, restype, attachment_id)[2]
+        attachment = session._fetch_attachment(restype, attachment_id)[2]
 
         # Note: Returning the attachment with 'flask.send_file' would typically
         #   be adequate. However, 'attachment' is an instance of 'GridOut',
@@ -182,10 +182,9 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # TODO: call '.make_conditional(request)' as a post-request processor
         return response.make_conditional(request)
 
-
     @security.AdminSessionRequirement.protected
     def put(self, session, restype, attachment_id):
-        image_store, _, attachment = self._fetch_attachment(session, restype, attachment_id)
+        image_store_pymongo, _, attachment = session._fetch_attachment(restype, attachment_id)
 
         # only accept a single file from a form
         if len(request.files.items(multi=True)) != 1:
@@ -214,8 +213,6 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             # only the end chunk can be shorter
             abort(400, details='Upload content chunk size does not match existing GridFS chunk size.')
 
-        image_store_pymongo = image_store.to_pymongo()
-
         chunk_num = (content_range.start / attachment.chunkSize)
         image_store_pymongo['attachments.chunks'].insert({
             'files_id': attachment._id,
@@ -240,6 +237,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             )
 
         return None, 204  # No Content
+
     @security.AdminSessionRequirement.protected
     def post(self, session, restype, attachment_id):
         """
