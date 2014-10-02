@@ -126,7 +126,6 @@ View.prototype.DrawTiles = function () {
     // Clear the canvas to start drawing.
     this.Context2d.fillStyle="#ffffff";
     this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
-    this.Context2d.stroke();
 
     // Start with a transform that flips the y axis.
     // This is an issue later because the images will be upside down.
@@ -226,7 +225,25 @@ View.prototype.DrawFocalPoint = function () {
         ctx.rect(x-30,y-1,60,3);
         ctx.fillRect(x-1,y-30,3,60);
         ctx.rect(x-1,y-30,3,60);
-        
+
+        var r = y / 2;
+        ctx.beginPath();
+        ctx.moveTo(x-r,y-r+30);
+        ctx.lineTo(x-r,y-r);
+        ctx.lineTo(x-r+30,y-r);
+
+        ctx.moveTo(x+r,y-r+30);
+        ctx.lineTo(x+r,y-r);
+        ctx.lineTo(x+r-30,y-r);
+
+        ctx.moveTo(x+r,y+r-30);
+        ctx.lineTo(x+r,y+r);
+        ctx.lineTo(x+r-30,y+r);
+
+        ctx.moveTo(x-r,y+r-30);
+        ctx.lineTo(x-r,y+r);
+        ctx.lineTo(x-r+30,y+r);
+
         ctx.stroke();
         ctx.restore();
     }

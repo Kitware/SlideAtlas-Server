@@ -14,7 +14,6 @@
             background: green;
         }
     </style>
-    <link rel="stylesheet" href="/static/css/uploads.css">
     {% endif %}
 {% endblock styles %}
 
@@ -30,12 +29,6 @@
 
     <script src="/static/js/attachments.js"></script>
 
-
-    <!--script src="/static/thirdparty/jquery-fileupload/9.5.7/js/vendor/jquery.ui.widget.js"></script>
-    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.iframe-transport.js"></script>
-    <script src="/static/thirdparty/jquery-fileupload/9.5.7/js/jquery.fileupload.js"></script-->
-    <script src="/static/thirdparty/flow/flow.min.js"></script>
-
     {% if is_session_admin %}
     <script>
         $( function () {
@@ -49,7 +42,7 @@
                 });
             });
             $(".sa-attachment-post").click(function() {
-                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session, restype='attachments' )}}";
+                var attachmentPostUrl = "{{ url_for('apiv2.session_attachment_list', session=session )}}";
                 attachmentUpload(attachmentPostUrl);
             });
             $(".sa-view-permalink").click(function() {
@@ -192,59 +185,6 @@
         r.on('catchAll', function() {
             console.log.apply(console, arguments);
         });
-
-        window.r = {
-            pause: function () {
-                r.pause();
-                // Show resume, hide pause
-                $('.flow-file-resume').show();
-                $('.flow-file-pause').hide();
-                $('.flow-progress .progress-resume-link').show();
-                $('.flow-progress .progress-pause-link').hide();
-            },
-            cancel: function() {
-                r.cancel();
-                $('.flow-file').remove();
-            },
-            upload: function() {
-                $('.flow-file-pause').show();
-                $('.flow-file-resume').hide();
-                r.resume();
-            },
-            flow: r
-        };
-
-        function readablizeBytes(bytes) {
-          var s = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'];
-          var e = Math.floor(Math.log(bytes) / Math.log(1024));
-          return (bytes / Math.pow(1024, e)).toFixed(2) + " " + s[e];
-        }
-
-        function secondsToStr (temp) {
-          function numberEnding (number) {
-            return (number > 1) ? 's' : '';
-          }
-          var years = Math.floor(temp / 31536000);
-          if (years) {
-            return years + ' year' + numberEnding(years);
-          }
-          var days = Math.floor((temp %= 31536000) / 86400);
-          if (days) {
-            return days + ' day' + numberEnding(days);
-          }
-          var hours = Math.floor((temp %= 86400) / 3600);
-          if (hours) {
-            return hours + ' hour' + numberEnding(hours);
-          }
-          var minutes = Math.floor((temp %= 3600) / 60);
-          if (minutes) {
-            return minutes + ' minute' + numberEnding(minutes);
-          }
-          var seconds = temp % 60;
-          return seconds + ' second' + numberEnding(seconds);
-        }
-    });
-
     </script>
     {% endif %}
     <script>
@@ -264,24 +204,32 @@
         <div class="row">
             <h1>{{ session_son.label }}</h1>
             {%if session_son.attachments or is_session_admin %}
-                <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
-                <ul class="list-group">
-                    {% for attachment_son in session_son.attachments %}
-                    <li class="list-group-item">
-                        <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
-                        {% if is_session_admin %}
-                        <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
-                        {% endif %}
-                    </li>
-                     {% endfor %}
-                </ul>
+
+            <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+            <ul class="list-group">
+                {% for attachment_son in session_son.attachments %}
+                <li class="list-group-item">
+                    <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id) }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
+                    {% if is_session_admin %}
+                    <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                    {% endif %}
+                </li>
+                 {% endfor %}
+            </ul>
             {% endif %}
             <br>
+            {% if session_son.views %}
             <h2>{{ session_son.views|length }} Images
-                {% if is_session_admin %}
-                    <button type="button" class="btn btn-primary sa-upload-images pull-right"><span class="glyphicon glyphicon-upload"></span> Upload</button>
-                {% endif  %}
+                {% if security.EditSessionRequirement(session).can() %}
+                <a href="{{ url_for('.session_new_stack', session=session) }}" class="lead">
+                    <button class="btn btn-primary pull-right">
+                        <span class="glyphicon glyphicon-plus"></span>
+                        Stack
+                    </button>
+                </a>
+                {% endif %}
             </h2>
+
             {% if is_session_admin %}
             <div class="flow-drop" ondragenter="jQuery(this).addClass('flow-dragover');" ondragend="jQuery(this).removeClass('flow-dragover');" ondrop="jQuery(this).removeClass('flow-dragover');">
             Drop images here or <a class="flow-browse-folder"><u>select a folder</u></a> or <a class="flow-browse"><u>select individual images</u> </a> to upload
@@ -327,6 +275,10 @@
                     <tr>
                     <td>
                         <div class="label label-{{label}}"> {{status}} </div>
+                        <a href="{{ viewer_url }}">
+                            <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}" width=100px>
+                        </a>
+                    </td>
                     <td>
                         <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
                     </td>
@@ -360,6 +312,7 @@
                     </tr>
                 {% endfor %}
             </table>
+            {% endif %}
         </div>
     </div>
 {% endblock content %}

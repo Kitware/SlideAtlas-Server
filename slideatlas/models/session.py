@@ -112,7 +112,7 @@ class RefItem(EmbeddedDocument):
     ref = ObjectIdField(required=True)
     hide = BooleanField(required=False, default=False)
     label = StringField(required=False)
-    db = ObjectIdField(required=True)
+    db = ObjectIdField(required=False)
 
     def __eq__(self, other):
         if isinstance(other, ObjectId):
@@ -214,10 +214,6 @@ class Session(ModelDocument):
 
     attachments = RefListField(required=False,
         verbose_name='Attachments', help_text='')
-
-    # not to confuse with images list some legacy records have
-    imagefiles = RefListField(required=False,
-                              verbose_name='Image Files', help_text='')
 
     annotations = ListField(DictField(), required=False,
         verbose_name='', help_text='')

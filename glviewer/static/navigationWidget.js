@@ -177,6 +177,8 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
+    EVENT_MANAGER.CursorFlag = false;
+
     var iterator = NOTES_WIDGET.Iterator;
     var current = iterator.GetNote();
     if (current.Type == "Stack") {
@@ -189,8 +191,6 @@ NavigationWidget.prototype.PreviousNote = function() {
         --current.StartIndex;
         current.DisplayStack();
         current.SynchronizeViews(1);
-        // Fetch/preload the next section
-        current.PreloadStackSection(current.StartIndex - 1);
         // activate or deactivate buttons.
         this.Update();
         return;
@@ -208,6 +208,8 @@ NavigationWidget.prototype.PreviousNote = function() {
 }
 
 NavigationWidget.prototype.NextNote = function() {
+    EVENT_MANAGER.CursorFlag = false;
+
     var iterator = NOTES_WIDGET.Iterator;
     var current = iterator.GetNote();
     if (current.Type == "Stack") {
@@ -222,8 +224,6 @@ NavigationWidget.prototype.NextNote = function() {
         ++current.StartIndex;
         current.DisplayStack();
         current.SynchronizeViews(0);
-        // Fetch/preload the next section
-        current.PreloadStackSection(current.StartIndex + 1);
         // activate or deactivate buttons.
         this.Update();
         return;
@@ -242,6 +242,7 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
+  EVENT_MANAGER.CursorFlag = false;
   if (this.SlideIndex <= 0) { return; }
   var check = true;
   if (EDIT) {
@@ -254,6 +255,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
+  EVENT_MANAGER.CursorFlag = false;
   if (this.SlideIndex >= this.Session.length - 1) { return; }
   var check = true;
   if (EDIT) {

@@ -98,7 +98,7 @@ Section.prototype.Draw = function (view, context) {
   for (var i = 0; i < this.Caches.length; ++i) {
     var cache = this.Caches[i];
     // Select the tiles to render first.
-    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);
+    this.Tiles = cache.ChooseTiles(view.Camera, SLICE, view.Tiles);
 
     // For the 2d viewer, the order the tiles are drawn is very important.
     // Low-resolution tiles have to be drawn first.  Make a new sorted array.
@@ -129,14 +129,13 @@ Section.prototype.Draw = function (view, context) {
   }
 }
 
-
 Section.prototype.LoadTilesInView = function (view) {
-  for (var i = 0; i < this.Caches.length; ++i) {
-    var cache = this.Caches[i];
-    // Select the tiles to render first.
-    // This also adds the tiles returned to the loading queue.
-    this.Tiles = cache.ChooseTiles(view, SLICE, view.Tiles);
-  }
+    for (var i = 0; i < this.Caches.length; ++i) {
+        var cache = this.Caches[i];
+        // Select the tiles to render first.
+        // This also adds the tiles returned to the loading queue.
+        this.Tiles = cache.ChooseTiles(view.Camera, SLICE, view.Tiles);
+    }
 }
 
 // The above will load the first ancestor not loaded and will stop.
@@ -145,7 +144,7 @@ Section.prototype.LoadTilesInView2 = function (view) {
   for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
     var cache = this.Caches[cIdx];
     // Select the tiles to load (loading is a byproduct).
-    var tiles = cache.ChooseTiles(view, SLICE);
+    var tiles = cache.ChooseTiles(view.Camera, SLICE);
     for (var i = 0; i < tiles.length; ++i) {
       tiles[i].LoadState = 1;
       // Add the tile at the front of the queue.
@@ -155,16 +154,13 @@ Section.prototype.LoadTilesInView2 = function (view) {
   LoadQueueUpdate();
 }
 
-
-
-
 // This load tiles in the view like draw but does not render them.
 // I want to preload tiles in the next section.
 Section.prototype.LoadTilesInView = function (view) {
   for (var cIdx = 0; cIdx < this.Caches.length; ++cIdx) {
     var cache = this.Caches[cIdx];
     // Select the tiles to load (loading is a byproduct).
-    var tiles = cache.ChooseTiles(view, SLICE);
+    var tiles = cache.ChooseTiles(view.Camera, SLICE);
   }
 }
 

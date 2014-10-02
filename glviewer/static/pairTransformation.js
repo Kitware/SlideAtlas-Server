@@ -135,8 +135,9 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
         x = pt0[0] - fpIn[0];
         y = pt0[1] - fpIn[1];
         var dist2 = x*x + y*y;
-        // Compute the gaussian
-        var gauss = Math.exp(-dist2/sigma2);
+        // Compute the gaussian (minimum for numerical stability)
+        var gauss = Math.max(Math.exp(-dist2/sigma2), 0.0000001);
+
         sumGauss += gauss;
         sum0[0] += gauss * pt0[0];
         sum0[1] += gauss * pt0[1];
@@ -149,7 +150,7 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
     sum1[1] = sum1[1] / sumGauss;
 
     // Now compute orientation.
-    this.DeltaRotation = 0;
+    this.DeltaRoll = 0;
     if (this.Correlations.length <= 1) {
         // simple translation
         fpOut[0] += sum1[0] - sum0[0]; 
@@ -169,7 +170,7 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
         x = pt0[0] - fpIn[0];
         y = pt0[1] - fpIn[1];
         var dist = x*x + y*y;
-        var gauss = Math.exp(-dist/sigma2);
+        var gauss = Math.max(Math.exp(-dist/sigma2), 0.0000001);
         // Compute the two angles using the average centers.
         // angle 0:
         x = pt0[0] - sum0[0];
@@ -202,7 +203,7 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
     }
     // Silly converting this to degrees, but set camera takes degrees.
     // This is the second return value.
-    this.DeltaRotation = (sumTheta / sumGauss) * (180.0 / 3.14159);
+    this.DeltaRoll = (sumTheta / sumGauss);
 
     // Since focal points are not at center of rotation (sum0 and sum1).
     // We need to translate center to origin, rotate, then translate back.
@@ -223,7 +224,7 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
 
 // Nearest neighbor.
 PairTransformation.prototype.ForwardTransform = function(pt0, sigma) {
-    this.DeltaRotation = 0;
+    this.DeltaRoll = 0;
     if (this.Correlations.length == 0) {
         return pt0;
     }
@@ -233,7 +234,7 @@ PairTransformation.prototype.ForwardTransform = function(pt0, sigma) {
 
 // Nearest neighbor.
 PairTransformation.prototype.ReverseTransform = function(pt1, sigma) {
-    this.DeltaRotation = 0;
+    this.DeltaRoll = 0;
     if (this.Correlations.length == 0) {
         return pt1;
     }
@@ -241,3 +242,15 @@ PairTransformation.prototype.ReverseTransform = function(pt1, sigma) {
     return this.WeightedTransform(1, 0, pt1, sigma);
 }
 
+
+PairTransformation.prototype.ForwardTransformCamera = function(camIn, camOut) {
+    camOut.FocalPoint = this.ForwardTransform(camIn.FocalPoint, camIn.Height / 2);
+    camOut.Roll = camIn.Roll + this.DeltaRoll;
+    camOut.Height = camIn.Height;
+}
+
+PairTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
+    camOut.FocalPoint = this.ReverseTransform(camIn.FocalPoint, camIn.Height / 2);
+    camOut.Roll = camIn.Roll + this.DeltaRoll;
+    camOut.Height = camIn.Height;
+}

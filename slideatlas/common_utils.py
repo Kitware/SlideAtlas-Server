@@ -8,6 +8,8 @@ except ImportError:
 import datetime
 from bson.objectid import ObjectId
 import itertools
+import hashlib
+import functools
 from flask import Response
 
 
@@ -149,3 +151,17 @@ def reversed_enumerate(sequence):
         reversed(xrange(len(sequence))),
         reversed(sequence),
     )
+
+
+def file_sha512(file_path, buffer_size=65536):
+    """
+    Calculate the SHA512 checksum of a given file, returning the result as a
+    hex-encoded string.
+    """
+    # empirically, a buffer size of 65536 provides optimal throughput
+    sha512 = hashlib.sha512()
+    with open(file_path, 'rb') as file_obj:
+        read_func = functools.partial(file_obj.read, buffer_size)
+        for chunk in iter(read_func, b''):
+            sha512.update(chunk)
+    return sha512.hexdigest()

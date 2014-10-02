@@ -496,10 +496,10 @@ function updateSection(inc) {
     var sigma = cam.Height / 2;
     if (inc < 0) {
         center = TRANSFORMATIONS[newIdx].ReverseTransform(center, sigma);
-        rotation += TRANSFORMATIONS[newIdx].DeltaRotation;
+        rotation += TRANSFORMATIONS[newIdx].DeltaRoll * 180 / Math.PI;
     } else {
         center = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(center, sigma);
-        rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRotation;
+        rotation += TRANSFORMATIONS[SECTION_INDEX].DeltaRoll * 180 / Math.PI;
         // We need to transform the event world point to avoid bug with chain when
         // Mouse is not moved.
         var tmp = TRANSFORMATIONS[SECTION_INDEX].ForwardTransform(

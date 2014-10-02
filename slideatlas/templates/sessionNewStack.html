@@ -1,0 +1,405 @@
+{% extends 'frontend_base.html' %}
+
+
+{% block title %}{{ super() }} - Stack Editor{% endblock title %}
+
+
+{% block styles %}
+{# TODO: base style assumes navbar will be present #}
+{#{{ super() }}#}
+    <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+    <style>
+
+      .clear {
+            clear:both;
+      }
+      .bar {
+            width: 100%;
+            border: 1px solid #CCC;
+      }
+      .barItem {
+            float: left;
+            pad: 4px;
+            margin-left: 1em;
+            margin-right: 3em;
+      }
+
+
+      body {
+            margin: 0;
+            overflow: hidden;
+      }
+      #wrapper {
+            width: auto;
+            overflow: hidden;
+      }
+
+      #collectionLabel {
+            font-size: 1.2em;
+            font-weight: bold;
+      }
+
+
+
+      #stackDiv {
+            height: 135px;
+            width: 100%;
+            border: 1px solid #CCC;
+            overflow-x: auto;
+      }
+      #stack {
+            position: relative;
+            list-style: none;
+      }
+      .stackItem {
+            position: absolute;
+            padding: 2px;
+            margin: 2px;
+            border: 2px solid #CCC;
+      }
+
+
+
+      #gallery {
+            position: relative;
+            padding: 0;
+            border: 1px solid #CCC;
+            height: 100%;
+            list-style: none;
+            overflow-y: auto;
+      }
+      #gallery li {
+            float: left;
+            padding: 2px;
+            margin: 2px;
+            border: 2px solid #CCC;
+      }
+      #gallery li div {
+            color: #333;
+            font-size: 11px;
+      }
+
+    </style>
+{% endblock styles %}
+
+
+{% block scripts %}
+{{ super() }}
+    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
+    <script>
+
+var SESSION_ID = "{{ session.id }}";
+var COLLECTIONS;
+var SELECTED_COLLECTION;
+var SELECTED_SESSION;
+
+
+
+function handleResize() {
+    var height = window.innerHeight - 2;
+    var y = $('#galleryDiv').position().top + 5;
+    var h2 = height - y;
+    $('#galleryDiv').css({"height": h2.toString() + "px"});
+}
+
+
+$(document).ready(function() { main(); });
+
+
+function main() {
+
+    $('#saveButton').prop('disabled',true);
+
+    //loadSessionFromId(SESSION_ID);
+    // This loads the session eventually
+    $.get("/sessions?json=true",
+      function(data,status){
+          if (status == "success") {
+              loadCollectionList(data);
+          } else {
+              alert("ajax failed.");
+          }
+      });
+
+    $(window).resize(function() { handleResize(); })
+             .trigger('resize');
+}
+
+
+// Called once to populate the collection menu.
+function loadCollectionList(data) {
+    // The first "sessions" list is actually collections.
+    COLLECTIONS = data.sessions;
+    // Populate the collection menu.
+    var defaultCollectionIndex = 0;
+    for (var i = 0; i < COLLECTIONS.length; ++i) {
+        var option = $('<option>').appendTo($('#collectionList'))
+                .attr('value', i)
+                .text(data.sessions[i].rule);
+        // Set the default selected value.
+        if (data.sessions[i].rule == "{{collection.label}}") {
+            option.attr('selected', true);
+            defaultCollectionIndex = i;
+        }
+    }
+    if (COLLECTIONS.length > 0) {
+        selectCollection(defaultCollectionIndex, "{{ session_son.label }}");
+    }
+    handleResize();
+
+}
+
+
+function loadSessionFromId(sessionId) {
+    $.get("/sessions?json=1&sessid="+sessionId,
+          function(data,status){
+              if (status == "success") {
+                  loadSessionData(data);
+              } else {
+                  alert("ajax failed."); }
+          });
+
+}
+
+
+// Create a div with a cropped scaled thumb from the root tile.
+// if bounds is not defined, display the whole image bounds.
+function thumb(image, height, bounds) {
+    if ( ! bounds) {
+        bounds = image.bounds;
+    }
+
+    var width = height * (bounds[1]-bounds[0]) / (bounds[3]-bounds[2]);
+    var div = $('<div>')
+        .css({'width' : width + 'px',
+              'height': height + 'px',
+              'overflow': 'hidden',
+              'position': 'relative'});
+
+    // how big is the root tile?
+    var tileSize = 256;
+    if (image.tile_size) {
+        tileSize = image.tile_size;
+    }
+    rootSize = tileSize << (image.levels-1);
+    var imgSize = height * rootSize / (bounds[3]- bounds[2]);
+
+    // Add the pixel spacing so we can transform
+    // mouse clicks to slide coordinates.
+    var spacing = (bounds[3]-bounds[2]) / height;
+    div.data("spacing", spacing);
+
+    var left = -(bounds[0]) / spacing;
+    var top = -(bounds[2]) / spacing;
+
+    var img = $('<img>')
+        .appendTo(div)
+        .attr("width", imgSize)
+        .attr("height", imgSize)
+        .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t.jpg")
+        .attr("alt", image.label)
+        .css({"left": left.toString()+"px",
+              "top":  top.toString()+"px",
+              "position" : "absolute"});
+
+    return div;
+}
+
+
+// Put all the session views into the gallery.
+function loadSessionData(data) {
+    var searchStrings = [];
+    $('#imagesearch').val("");
+    $('#gallery').empty();
+
+    for (var i = 0; i < data.session.views.length; ++i) {
+        searchStrings.push(data.session.views[i].label);
+        // Create a div that has both an image and a label.
+        var listItem = $('<li>').appendTo($('#gallery'))
+                        .attr('search',data.session.views[i].label);
+
+        (function(){ // for closure scoping
+            var imageData = data.images[i];
+            var image =
+                thumb(imageData, 128)
+                    .appendTo(listItem)
+                    .mousedown(function(event) {
+                        addViewToStack($(this), imageData, event);
+                    });
+        })();
+        var labelDiv = $('<div>')
+            .appendTo(listItem)
+            .text(data.session.views[i].label); // Should really have the image label.
+        }
+    $('#imagesearch').autocomplete({source: searchStrings});
+}
+
+var STACK_ITEMS = [];
+function addViewToStack(self, imageData, event) {
+
+    $('#saveButton').prop('disabled',false);
+
+    var x = (STACK_ITEMS.length * 110) + 2;
+    var item = $('<div>')
+        .attr("class","stackItem")
+        .appendTo($('#stack'))
+        .css({"top": '2px',
+              "left": x.toString()+"px"});
+
+    $('#stackDiv').animate({scrollLeft: x});
+
+    var spacing = self.data("spacing");
+    var xMid = imageData.bounds[0] + (event.offsetX * spacing);
+    var yMid = imageData.bounds[2] + (event.offsetY * spacing);
+    var radius = (imageData.bounds[3]-imageData.bounds[2])*0.4;
+    var bds = [xMid-radius, xMid+radius, yMid-radius, yMid+radius];
+
+    // Height is only for the first items default view.
+    STACK_ITEMS.push({img:    imageData.img,
+                      db:     imageData.db,
+                      x:      xMid, 
+                      y:      yMid,
+                      height: bds[3]-bds[2]});
+
+    var section =
+        thumb(imageData, 100, bds)
+            .appendTo(item);
+}
+
+function collectionCallback(idx) {
+    $('#gallery').empty();
+    selectCollection(parseInt(idx));
+}
+
+
+function sessionCallback(idx) {
+    $('#gallery').empty();
+    selectSession(parseInt(idx));
+}
+
+
+function selectCollection(idx, defaultSessionLabel) {
+    SELECTED_COLLECTION = COLLECTIONS[idx];
+    // Populate the sessions menu.
+    $("#sessionList").empty();
+    var defaultSessionIndex = 0;
+    var sessions = SELECTED_COLLECTION.sessions;
+    for (var i = 0; i < sessions.length; ++i) {
+        var option = $('<option>').appendTo($('#sessionList'))
+            .attr('value', i)
+            .text(sessions[i].label);
+        if (defaultSessionLabel && defaultSessionLabel == sessions[i].label) {
+            defaultSessionIndex = i;
+            option.attr('selected', true);
+        }
+    }
+    if (sessions.length > 0) {
+        selectSession(defaultSessionIndex);
+    }
+    handleResize();
+}
+
+
+function selectSession(idx) {
+    SELECTED_SESSION = SELECTED_COLLECTION.sessions[idx];
+    $.get("/sessions?json=1&sessid="+SELECTED_SESSION.sessid,
+          function(data,status){
+              if (status == "success") {
+                  loadSessionData(data);
+              } else {
+                  alert("ajax failed."); 
+              }
+          });
+}
+
+
+function searchCallback() {
+    var str = $('#imagesearch').val();
+    keys = str.split(" ");
+    slides = $('#gallery li');
+    for (var i = 0; i < slides.length; ++i) {
+        var slide = $(slides[i]);
+        var label = slide.attr('search');
+        var found = true;
+        for (var j = 0; j < keys.length && found; ++j) {
+            if (label.indexOf(keys[j]) == -1) { found = false; }
+        }
+        if (found) {
+            slide.show();
+        } else {
+            slide.hide();
+        }
+    }
+}
+
+
+function save() {
+  var args = {sessId: SESSION_ID,
+              label: $('#stackLabel').val(),
+              items: STACK_ITEMS};
+
+  $.ajax({type: "post",
+          url: "{{ url_for('.session_save_stack') }}",
+          data: {"input" :  JSON.stringify( args )},
+          success:
+              function save_success (data, status) {
+                  // Redirect to stack: problem, getting back to session.
+                  //window.location.href = "/webgl-viewer?edit=true&view="+data._id;
+                  var d = new Date();
+                  window.location.href = "/sessions?sessid="+SESSION_ID+"&reload="+d.getTime();
+                  },
+                error: function() { alert( "AJAX - error: sessios_save_stack" ); }
+            });
+}
+
+
+    </script>
+{% endblock scripts %}
+
+
+{# TODO: with navbar at the top, the session editor isn't the correct vertical height #}
+{% block navbar %}{% endblock navbar %}
+
+
+{% block content %}
+{{ super() }}
+    <div id="wrapper">
+        <div class="bar">
+            <label class="barItem" id="collectionLabel">{{ collection.label }} : {{ session_son.label }}</label>
+            <div class="barItem">
+                <label>Label</label>
+                <input type="text" id="stackLabel"
+                       name="views" style="width: 340px;" value="Stack"/>
+            </div>
+            <button class="barItem" id="saveButton" onclick="save()" >Save</button>
+            <div class="clear"></div>
+        </div>
+
+        <div id="stackDiv">
+            <div id="stack">
+            </div>
+        </div>
+
+        <div class="bar">
+            <div class="barItem">
+                <label>Collection</label>
+                <select id="collectionList" onchange="collectionCallback(this.value)"> </select> 
+            </div>
+            <div class="barItem">
+                <label>Session</label>
+                <select id="sessionList" onchange="sessionCallback(this.value)"> </select> 
+            </div>
+            <div class="barItem">
+                Search: <input type="text" id="imagesearch">
+                <button onclick="searchCallback()">Submit</button>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+
+        <div id="galleryDiv">
+            <ul id="gallery">
+            </ul>
+        </div>
+    </div>
+{% endblock content %}

@@ -96,19 +96,25 @@ def view_a_session(session):
     session_son = apiv2.SessionItemAPI._get(session)
 
     if request.args.get('json'):
-        ajax_data = {
-            'success': 1,
-            'session': session_son,
-            'images': [
-                {
-                    'db': view_son['image_image_store_id'],
+        images = []
+        for view_son in session_son['views']:
+            database = models.ImageStore.objects.get_or_404(id=view_son['image_store_id'])
+            imgdb = database.to_pymongo()
+            imgObj = imgdb["images"].find_one({ "_id" : view_son['image_id']})
+            images.append({
+                    'db': view_son['image_store_id'],
                     'img': view_son['image_id'],
                     'label': view_son['label'],
                     'view': view_son['id'],
-                    'view_db': view_son['image_store_id'],
-                }
-                for view_son in session_son['views']
-            ],
+                    'bounds': imgObj['bounds'],
+                    'tile_size': imgObj['TileSize'],
+                    'levels': imgObj['levels']
+                })
+
+        ajax_data = {
+            'success': 1,
+            'session': session_son,
+            'images': images,
             'attachments': session_son['attachments'],
             'imagefiles': session_son["imagefiles"],
             'db': session.image_store.id,  # TODO: deprecate and remove
@@ -129,6 +135,18 @@ def session_edit_view(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
 
     return render_template('sessionedit.html',
+                           collection=session.collection,
+                           session=session,
+                           session_son=session_son)
+
+
+################################################################################
+@mod.route('/sessions/<Session:session>/newstack')
+@security.EditSessionRequirement.protected
+def session_new_stack(session):
+    session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
+
+    return render_template('sessionNewStack.html',
                            collection=session.collection,
                            session=session,
                            session_son=session_son)
@@ -214,25 +232,7 @@ def session_save_view():
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
 
-        # The view list in the session.  The session needs the imgdb to display the thumb.
-        # At the moment, the database has many different places to find the db.
-        # We will simplify this in the future.
-        imgdb = None
-        if 'db' in view:
-            # the original legacy open layers format
-            imgdb = ObjectId(view['db'])
-        else:
-            record = view["ViewerRecords"][0]
-            if 'Database' in record:
-                # this is the correct location for the image database.
-                # convert references to string to pass to the client
-                imgdb = ObjectId(record['Database'])
-            elif 'Image' in record:
-                # A bug caused some image objects to be embedded in views in te database.
-                imgdb = ObjectId(record["Image"].database)
-
-        new_views.append(models.RefItem(ref=ObjectId(view['_id']),
-                                        db=imgdb))
+        new_views.append(models.RefItem(ref=ObjectId(view['_id'])))
 
     # delete the views that are left over, as views are owned by the session.
     if not create_new_session:
@@ -262,6 +262,62 @@ def session_save_view():
     else:
         session.save()
     return jsonify(session.to_mongo())
+
+
+
+
+################################################################################
+@mod.route('/session-save-stack', methods=['GET', 'POST'])
+def session_save_stack():
+
+    input_str = request.form['input']  # for post
+    input_obj = json.loads(input_str)
+    session_id = ObjectId(input_obj['sessId'])
+    label = input_obj['label']
+    stack_items = input_obj['items']
+
+
+    admindb = models.ImageStore._get_db()
+    session = models.Session.objects.with_id(session_id)
+    security.EditSessionRequirement(session).test()
+
+    records = list()
+
+    for item in stack_items:
+        camera = {'FocalPoint': [item['x'], item['y'], 0],
+                  'Height':     item['height'],
+                  'Roll':       0}
+        viewer_record = {
+            'Image': ObjectId(item['img']),
+            'Database': ObjectId(item['db']),
+            'Camera' : camera}
+        records.append(viewer_record)
+
+
+    for idx in range(1,len(stack_items)) :
+        item0 = stack_items[idx-1]
+        item1 = stack_items[idx]
+        records[idx]['Transform'] = {'Correlations':[{'point0': [item0['x'], item0['y']],
+                                                      'point1': [item1['x'], item1['y']] } ]}
+
+    # Now make the view
+    user = security.current_user.id if security.current_user.is_authenticated() else 'Guest'
+    view = {
+        'CoordinateSystem': 'Pixel',
+        'User': user,
+        'Type': 'Stack',
+        'ViewerRecords': records,
+        'Title': label,
+        'HiddenTitle': label
+    }
+    # TODO: don't save until the end, to make failure transactional
+    admindb['views'].save(view, manipulate=True)
+
+
+    # update the session
+    session.views.insert(0, models.RefItem(ref=view['_id']))
+    session.save()
+    return jsonify(view)
 
 
 
