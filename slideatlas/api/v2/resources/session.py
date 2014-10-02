@@ -9,7 +9,7 @@ from slideatlas import models, security
 from ..base import APIResource, ListAPIResource, ItemAPIResource
 from ..blueprint import api
 from ..common import abort
-from .attachment import SessionAttachmentListAPI, SessionAttachmentItemAPI
+from .file import SessionAttachmentListAPI, SessionAttachmentItemAPI
 from .view import SessionViewItemAPI
 
 ################################################################################
@@ -132,7 +132,9 @@ class SessionItemAPI(ItemAPIResource):
 
         session_son = session.to_son(exclude_fields=('views', 'attachments'))
         session_son['views'] = views_son
-        session_son['attachments'] = SessionAttachmentListAPI._get(session)
+
+        session_son['attachments'] = SessionAttachmentListAPI._get(session, 'attachments')
+        session_son['imagefiles'] = session.get_imagefiles()
 
         return session_son
 

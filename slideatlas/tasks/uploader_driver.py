@@ -30,20 +30,13 @@ logger = logging.getLogger("uploader_driver")
 logger.setLevel(logging.INFO)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
-# from slideatlas import create_celery_app
+
 from slideatlas import create_app
 from slideatlas.models import Collection, Session
 
-# from slideatlas.ptiffstore.tiff_reader import TileReader
-# from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_name_slideatlas
-
-from slideatlas.uploader import MongoUploaderWrapper, MongoUploaderPtiff, MongoUploaderPyramid
+from slideatlas.tasks.dicer import process_file
 
 from bson import ObjectId
-# import pymongo
-
-# Create the application objects
-# celeryapp = create_celery_app(flaskapp)
 
 
 def process_zip(args):
@@ -95,10 +88,11 @@ def process_zip(args):
     for afile in glob.glob(str(temp) + "/*"):
         logger.info("Processing inside of: " + afile)
         args.input = os.path.abspath(afile)
-        MongoUploaderWrapper(args)
+        process_file(args)
+
     # Remove the folder
-    # import shutil
-    # shutil.rmtree(str(temp))
+    import shutil
+    shutil.rmtree(str(temp))
 
 
 def process_dir(args):
@@ -150,31 +144,7 @@ def process_dir(args):
     for afile in glob.glob(str(dir_name) + "/*"):
         logger.info("Processing inside of: " + afile)
         args.input = os.path.abspath(afile)
-        process_file(args)
-
-
-def process_file(args):
-    """
-    Deliver the file to appropriate
-    """
-    ext = os.path.splitext(args.input)[1][1:]
-    logger.warning("Extension: " + ext)
-
-    if ext in ["ptif", ]:
-        logger.info("Got a PTIF")
-        MongoUploaderPtiff(args)
-
-    elif ext in ["jp2", ]:
-        logger.info("Got a " + args.input)
-        MongoUploaderWrapper(args)
-
-    elif ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif"]:
-        logger.info("Got a " + args.input)
-        MongoUploaderPyramid(args)
-
-    else:
-        # Check if the input is a dir
-        logger.error("Unsupported file: " + args.input[-4:])
+        process_file.delay(args)
 
 
 def make_argument_parser():
@@ -249,7 +219,9 @@ if __name__ == '__main__':
         process_dir(args)
     else:
         if args.session is None:
-            logger.error("Fatal: Session required for non-zip input")
+            logger.error("Fatal: Session required for single file input")
             sys.exit(-1)
 
-        process_file(args)
+        logger.info("Submitting job")
+        # Submits the task
+        process_file.delay(vars(args))

@@ -2,6 +2,7 @@
 
 import collections
 
+import os
 from bson import ObjectId
 from bson import json_util as bson_json_util
 from flask import Flask
@@ -172,21 +173,29 @@ def setup_models(app):
         auth_db=app.config['SLIDEATLAS_ADMIN_DATABASE_AUTH_DB']
     )
 
+
 ################################################################################
-def create_celery_app(app):
+def create_celery_app(app=None):
     """
     Setup celery for processing background tasks
     """
-    # Use configuration from app
-    from datetime import timedelta
+    # Make sure we have a flask app
+    app = app or create_app()
 
-    # For testing
-    # mongo_url = "mongodb://localhost:27001/celery"
-    # print app.config["CELERY_MONGODB_BACKEND_SETTINGS"]
-    celery = Celery(app.import_name, broker=app.config["CELERY_MONGO_URL"])
-
-    # Update configuration from config loaded by flask
-    # print app.config
+    # Create celery app
+    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
     celery.conf.update(app.config)
+
+    # apply app context automatically to celery tasks
+    TaskBase = celery.Task
+
+    class ContextTask(TaskBase):
+        abstract = True
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+
+    celery.Task = ContextTask
 
     return celery

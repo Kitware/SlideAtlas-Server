@@ -6,5 +6,5 @@ from .image_store import *
 from .collection import *
 from .session import *
 from .view import *
-from .attachment import *
+from .file import *
 from .permalink import *

@@ -1,1 +1,2 @@
-from .autosync import *
+from dicer import *
+from autosync import *

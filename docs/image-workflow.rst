@@ -2,26 +2,26 @@
 Image upload workflow
 =====================
 
-- User uploads the image
-- A function scans the file extension and determines the queue type
-- if yes submits the job, the task id obtained is stored in users object as the
-- The ongoing task is stored in the attachments entry, and also in another tasks collection
-- Following tasks are executed in sequence
-    - Copy file from gridfs
-    - Dicing
-    - Pyramid building
-    - Creating thumbnail
-    - Marking the image as ready
-    - Remove the record from tasks collection
-    - Bookkeeping tasks collection based on date
+- User uploads the image using web interface
+- The upload progress is shown on the client side as the chunks of the image are uploaded into gridfs
+- After the last chunk is processed
 
-User notification
-=================
+    - A celery task is submitted to deal with newly uploaded imagefile
+    - Update the "status" in the metadata of the imagefile in gridfs to "pending"
 
-- Sees ongoing task progress that are started in the admin access of site / databases / sessions in the same hierarchy
-- When the task is complete, see the session with available images
+- When celery worker picks up this task, following sub-tasks are executed in sequence
 
-Other concerns
-==============
+    - Copy file from gridfs into a temporary location
+    - Update the "status" in the metadata of the imagefile in gridfs to "processing"
+    - Choose the uploader based on file extention
+    - Update the image metadata in imagestore
+    - Dice the image to a multiresolution pyramid
+    - Create a view in corresponding session
+    - Update the "status" in the metadata of the imagefile in gridfs to "ready"
+    - Cleanup the temporary download location
 
-- What happens to the workers working on a job when the client which started the job is restarted
+- If something goes wrong, the status of imagefile is updated to "failed" with some reason.
+
+- Now when the user sees imagefile item, the user sees either "finish", or "retry" buttons. At this time a view is also visible in the session.
+
+- Finish button will hide the imagefile entry (or delete ?). The imagefile will now be only accessible through imagestore interface (Not ready)

@@ -33,14 +33,14 @@ class MongoUploaderPtiff(MongoUploader):
         """
         try:
             reader = TileReader()
-            reader.set_input_params({"fname": self.args.input})
+            reader.set_input_params({"fname": self.args["input"]})
 
             # Introspect
             logger.info("Dimensions: (%d, %d)" % (reader.width, reader.height))
             reader.parse_image_description()
             logger.info("Tilesize: %d, NoTiles: %d" % (reader.tile_width, reader.num_tiles))
         except:
-            logger.error("Fatal Error: Unable to read input file %s" % (self.args.input))
+            logger.error("Fatal Error: Unable to read input file %s" % (self.args["input"]))
             return -1
 
         return reader
