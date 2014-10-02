@@ -31,14 +31,6 @@
             padding-top: 60px;
             margin-top: -60px;
         }
-
-        .sa-session-delete {
-            color: #e55;
-            margin-left: 5px;
-        }
-        .sa-session-delete:hover {
-            color: #C00;
-        }
     </style>
 {% endblock styles %}
 
@@ -52,7 +44,7 @@
 
         <script src="/static/js/sessions.js"></script>
         <script>
-                $(".sa-create-session").click(function() {
+                $(".sa-session-create").click(function() {
                     var collection_id = $(this).parent().data("collection-id");
                     createNewSession(collection_id, function() {
                         // Todo think of another mechanism to load the page
@@ -95,7 +87,13 @@
                 </a>
             </h2>
             {% if is_site_admin %}
-            <button type="button" class="btn btn-primary pull-right sa-create-session">Add new session</button>
+            <div class="pull-right">
+                <button type="button"
+                        class="btn btn-primary badge sa-session-create">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    <span> Session</span>
+                </button>
+            </div>
             {% endif %}
         </div>
         <table class="table table-bordered table-hover" >
@@ -110,11 +108,18 @@
                 </td>
                 {% if can_admin %}
                 <td>
-                    <span class="glyphicon glyphicon-remove-sign sa-session-delete pull-right"
-                          data-session-id={{ session.id }}
-                          data-collection-id={{ collection.id }}></span>
-                    <a href="{{ url_for('.session_edit_view', session=session) }}" class="lead">
-                        <button type="button" class="btn btn-danger">Edit</button>
+                    <button type="button"
+                            class="btn btn-danger badge sa-session-delete"
+                            data-session-id={{ session.id }}
+                            data-collection-id={{ collection.id }}>
+                        <i class="glyphicon glyphicon-remove"></i>
+                    </button>
+                    <a href="{{ url_for('.session_edit_view', session=session) }}">
+                        <button type="button"
+                                class="btn btn-warning badge">
+                            <i class="glyphicon glyphicon-edit"></i>
+                            <span> Edit</span>
+                        </button>
                     </a>
                 </td>
                 {% endif %}
