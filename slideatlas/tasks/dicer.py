@@ -13,9 +13,11 @@ logger = logging.getLogger("tasks.dicer")
 from bson import ObjectId
 from bson.objectid import InvalidId
 
-__all__ = ('process_file', )
+import shutil
 
 from .common import celeryapp
+
+__all__ = ('process_file', )
 
 
 @celeryapp.task()
@@ -61,8 +63,7 @@ def process_file(args):
 
         if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif"]:
             logger.info("Got a " + args["input"])
-            uploader.MongoUploaderPyramid(args)
-
+            uploader_obj = uploader.MongoUploaderPyramid(args)
         #TODO: Test and enable other files too
         # elif ext in ["ptif", ]:
         #     logger.info("Got a PTIF")
@@ -75,5 +76,16 @@ def process_file(args):
             raise Exception("Unsupported file: " + ext)
 
     # TODO: Remove the file from gridfs or make it invisible in the queue
+    if file_is_from_gridfs:
+        # clean up the temporary file
+        shutil.rmtree(newpath)
+
+        # Update the metadata of the image file
+        logger.info("New view created: " + str(uploader_obj.new_view.id))
+        datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
+
+        #TODO: Remove file from gridfs after user accepts the dicing
+        # session.remove_imagefile(file_id)
+
     logger.info(str(resp))
     return resp
