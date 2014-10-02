@@ -57,13 +57,17 @@ def process_file(args):
 
         args["input"] = newinput
 
-        # Choose the reader based on file extension
-        ext = os.path.splitext(args["input"])[1][1:]
-        logger.warning("Extension: " + ext)
+    # Choose the reader based on file extension
+    ext = os.path.splitext(args["input"])[1][1:].lower()
+    logger.warning("Extension: " + ext)
 
+    datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "processing"}})
+
+    try:
         if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif"]:
             logger.info("Got a " + args["input"])
             uploader_obj = uploader.MongoUploaderPyramid(args)
+            success = True
         #TODO: Test and enable other files too
         # elif ext in ["ptif", ]:
         #     logger.info("Got a PTIF")
@@ -75,17 +79,22 @@ def process_file(args):
         else:
             raise Exception("Unsupported file: " + ext)
 
-    # TODO: Remove the file from gridfs or make it invisible in the queue
-    if file_is_from_gridfs:
-        # clean up the temporary file
-        shutil.rmtree(newpath)
+        # TODO: Remove the file from gridfs or make it invisible in the queue
+        if file_is_from_gridfs:
+            # clean up the temporary file
+            shutil.rmtree(newpath)
 
-        # Update the metadata of the image file
-        logger.info("New view created: " + str(uploader_obj.new_view.id))
-        datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
+            if success:
+                # Update the metadata of the image file
+                logger.info("New view created: " + str(uploader_obj.new_view.id))
+                datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
 
-        #TODO: Remove file from gridfs after user accepts the dicing
-        # session.remove_imagefile(file_id)
+                #TODO: Remove file from gridfs after user accepts the dicing
+                # session.remove_imagefile(file_id)
+
+    except Exception as e:
+        logger.error("Exception occured in uploader process: " + e.message)
+        datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "failed", "metadata.error": e.message}})
 
     logger.info(str(resp))
     return resp

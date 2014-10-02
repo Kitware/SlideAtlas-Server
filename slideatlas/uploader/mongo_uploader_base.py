@@ -118,7 +118,7 @@ class MongoUploader(object):
         """
         #todo: choose the reader here
 
-        ext = os.path.splitext(self.args["input"])[1][1:]
+        ext = os.path.splitext(self.args["input"])[1][1:].lower()
         logger.info("Got extension: " + ext)
         if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
             from slideatlas.ptiffstore.openslide_reader import OpenslideReader

@@ -306,16 +306,35 @@
             <table class="table table-bordered table-hover" >
                 <!--Render the imagefiles in process -->
                 {% for imagefile_son in session_son.imagefiles %}
+                    <!-- {{ imagefile_son | tojson}} -->
+                    {% set label = "unknown" %}
+                    {% set status = imagefile_son.metadata.status %}
+                    {% if "metadata" in imagefile_son.keys() %}
+                        {% if imagefile_son.metadata.status == "processing" %}
+                            {% set label = "warning" %}
+                        {% elif imagefile_son.metadata.status == "complete" %}
+                            {% set label = "success" %}
+                        {% elif imagefile_son.metadata.status == "failed" %}
+                            {% set label = "danger" %}
+                        {% else %}
+                            {% set label = "info" %}
+                            {% set status = "pending" %}
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- {{ label|tojson|safe}}, {{status|tojson|safe}} -->
+                    {% if not label in ["success", "unknown"] %}
                     <tr>
-                        <td>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
-                        </td>
+                    <td>
+                        <div class="label label-{{label}}"> {{status}} </div>
+                    <td>
+                        <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
+                    </td>
+                    <td>
+                    </td>
                     </tr>
+                    {% endif %}
                 {% endfor %}
-
-
                 {% for view_son in session_son.views %}
                     {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
                     {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
