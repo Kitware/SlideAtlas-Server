@@ -264,7 +264,6 @@ class Session(ModelDocument):
         image_store = ImageStore.objects.get(id=attachment_ref.db)
         return image_store.to_pymongo(raw_object=True)
 
-    @staticmethod
     def _fetch_attachment(self, restype, attachment_id):
         # find the requested attachment in the session
         # for attachment_ref in session.attachments:
@@ -283,3 +282,12 @@ class Session(ModelDocument):
             raise Exception('The requested attachment was not found in the requested session\'s image store.')
 
         return res_image_store, attachments_fs, attachment
+
+    def get_imagefiles(self):
+            results = []
+            for animagefile in self.imagefiles:
+                data_db = self._get_datadb("imagefiles", animagefile.ref)
+                file_gridfs_obj = data_db["imagefiles.files"].find_one({"_id": animagefile.ref})
+                results.append({"ref": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
+
+            return results

@@ -41,7 +41,7 @@ def process_file(args):
         # Locate the session
         session = models.Session.objects.get(id=ObjectId(args["session"]))
         logger.info("session: %s" % (session.to_son()))
-        datadb, filefs, afile = session._fetch_attachment(session, "imagefiles", file_id)
+        datadb, filefs, afile = session._fetch_attachment("imagefiles", file_id)
 
         # Create a temporary location
         temp_folder_name = str(ObjectId())
