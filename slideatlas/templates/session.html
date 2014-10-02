@@ -386,7 +386,9 @@
                     <tr>
                         <td>
                             <a href="{{ viewer_url }}">
-                                <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}" width=100px>
+                                <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
+                                     class="{% if view_son.Type == 'Stack' %}sa-view-stack{% endif %}"
+                                     width=100px>
                             </a>
                         </td>
                         <td>

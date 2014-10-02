@@ -20,3 +20,8 @@ li.login-link {
 a.login-link {
     font-weight:bold;
 }
+
+img.sa-view-stack {
+    border-left: 8px double #cccccc;
+    border-bottom: 8px double #cccccc;
+}
