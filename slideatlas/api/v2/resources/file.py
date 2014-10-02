@@ -302,7 +302,7 @@ class SessionAttachmentItemAPI(ItemAPIResource):
             args["dry_run"] = False
             args["tilesize"] = 256
             args["base_only"] = False
-            args["overwrite"] = False
+            args["overwrite"] = True
 
             # Submit the job
             import slideatlas.tasks.dicer as dicer
