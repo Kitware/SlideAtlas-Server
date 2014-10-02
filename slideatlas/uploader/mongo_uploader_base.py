@@ -195,6 +195,11 @@ class MongoUploader(object):
                 image_doc["dimensions"] = [self.reader.width, self.reader.height]
                 image_doc["levels"] = self.reader.num_levels
                 image_doc["components"] = self.reader.components
+                image_doc["TileSize"] = self.args["tilesize"]
+
+                paddedHeight = 256 << (image_doc["levels"]-1)
+                image_doc["bounds"] = [0, image_doc["dimensions"][0], paddedHeight-image_doc["dimensions"][1], paddedHeight]
+
                 image_doc["metadataready"] = True
                 image_doc["_id"] = self.imageid
 
