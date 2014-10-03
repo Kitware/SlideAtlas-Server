@@ -153,12 +153,22 @@ class SessionItemAPI(ItemAPIResource):
         for view_ref in session.views:
             view_id = view_ref.ref
             SessionViewItemAPI._delete(view_id)
+
+        # TODO: A helper method can avoid duplication
         for attachment_ref in session.attachments:
             attachment_id = attachment_ref.ref
             # TODO: this is slow, as the session is re-saved as each attachment
             #   is deleted; this should be refactored to delete all attachments
             #   at once, without updating the session
-            SessionAttachmentItemAPI().delete(session, attachment_id)
+            SessionAttachmentItemAPI().delete(session, "attachments", attachment_id)
+
+        for imagefile_ref in session.imagefiles:
+            imagefile_id = imagefile_ref.ref
+            # TODO: this is slow, as the session is re-saved as each attachment
+            #   is deleted; this should be refactored to delete all attachments
+            #   at once, without updating the session
+            SessionAttachmentItemAPI().delete(session, "imagefiles", imagefile_id)
+
         models.User.objects(permissions__resource_id=session.id)\
             .update(pull__permissions__resource_id=session.id)
         models.Group.objects(permissions__resource_id=session.id)\

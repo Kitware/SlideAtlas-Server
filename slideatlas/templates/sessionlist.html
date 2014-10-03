@@ -56,7 +56,7 @@
                     var collection_id = $(this).parent().data("collection-id");
                     createNewSession(collection_id, function() {
                         // Todo think of another mechanism to load the page
-                        window.location = "?reload=" + Date() + "#" + collection_id;
+                        window.location = "?reload=" + Date.now() + "#" + collection_id;
                     });
                 });
                 $(".sa-session-delete")
@@ -86,7 +86,7 @@
     <div class="container">
         {% for (collection, sessions) in all_sessions %}
         <div class="row" data-collection-id="{{ collection.id }}">
-            <h2 class="anchor pull-left">
+            <h2 class="anchor pull-left" id="{{ collection.id }}">
                 <span>{{ collection.label }}</span>
                 <a class="header-link" href="#{{ collection.id }}">
                     <span style="font-size: 20px;">

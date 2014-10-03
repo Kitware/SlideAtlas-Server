@@ -110,7 +110,8 @@ class MongoUploader(object):
 
             item = RefItem(ref=self.new_view.id)
 
-            self.session.views.append(item)
+            # Insert the view at the top of current views
+            self.session.views.insert(0, item)
             self.session.save()
 
     def make_reader(self):
