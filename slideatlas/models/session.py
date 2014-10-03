@@ -287,6 +287,7 @@ class Session(ModelDocument):
             for animagefile in self.imagefiles:
                 data_db = self._get_datadb("imagefiles", animagefile.ref)
                 file_gridfs_obj = data_db["imagefiles.files"].find_one({"_id": animagefile.ref})
-                results.append({"id": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
+                if "metadata" in file_gridfs_obj:
+                    results.append({"id": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
 
             return results
