@@ -67,6 +67,10 @@
         // var results = new VideoProgress({container : $("#videos")});
         // results.AddVideo("123456789012345678901234567890");
         //
+
+        // Hide progress bar
+        $('.flow-progress').hide();
+
         var r = new Flow({
             target: function(file) {
                 var post_target = "{{ url_for('apiv2.session_attachment_list', session=session, restype='imagefiles' )}}";
@@ -107,25 +111,36 @@
             console.log("File Added: ");
             console.log(file);
 
-            // Show progress bar
-            $('.flow-progress, .flow-list').show();
+            $('.flow-list').show();
+
             // Add the file to the list
             $('.flow-list').append(
-              '<li class="flow-file flow-file-'+file.uniqueIdentifier+' list-group-item">' +
-              'Uploading <span class="flow-file-name"></span> ' +
-              '<span class="flow-file-size"></span> ' +
-              '<span class="flow-file-progress"></span>' +
-              '<span class="flow-file-pause">' +
-              ' <img src="/static/img/pause.png" title="Pause upload" />' +
-              '</span>' +
-              '<span class="flow-file-resume">' +
-              ' <img src="/static/img//resume.png" title="Resume upload" />' +
-              '</span>' +
-              '<span class="flow-file-cancel">' +
-              ' <img src="/static/img/cancel.png" title="Cancel upload" />' +
-              '</span>'
+                    '<tr class="flow-file-'+file.uniqueIdentifier + '">' +
+                    '<td><span class="flow-file-status"></span><br/>' +
+                    '</td>' +
+                    '<td>' +
+                      '<span class="flow-file-name"></span> ' +
+                      '<span class="flow-file-size"></span> ' +
+                      '<span class="flow-file-progress"></span>' +
+                    '</td> <td>' +
+                    '<div class="progress"> <div class="progress-bar progress-bar-info progress-bar-striped file-progress-bar" aria-valuenow="2" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">' +
+                    '<span class="file-progress-label">%' +
+                    '</div> </div>' +
+                     // TODO: test and enable resume
+                      // '<span class="flow-file-pause">' +
+                      // ' <img src="/static/img/pause.png" title="Pause upload" />' +
+                      // '</span>' +
+                      // '<span class="flow-file-resume">' +
+                      // ' <img src="/static/img//resume.png" title="Resume upload" />' +
+                      // '</span>' +
+                      // '<span class="flow-file-cancel">' +
+                      // ' <img src="/static/img/cancel.png" title="Cancel upload" />' +
+                      // '</span>' +
+
+                    '</td> </tr>'
             );
             var $self = $('.flow-file-'+file.uniqueIdentifier);
+            $self.find('.flow-file-status').html('<div class="label label-primary">uploading</div>');
             $self.find('.flow-file-name').text(file.name);
             $self.find('.flow-file-size').text(readablizeBytes(file.size));
             $self.find('.flow-file-pause').on('click', function () {
@@ -156,12 +171,18 @@
 
         r.on('fileSuccess', function(file,message){
             // Reflect that the file upload has completed
-            $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
-              .text('(completed)');
-            $('.flow-file-'+file.uniqueIdentifier+'')
-              .find('.flow-file-pause, .flow-file-resume')
+            var $self = $('.flow-file-'+file.uniqueIdentifier);
+
+            $self.find('.flow-file-progress').text('(completed)');
+
+            $self.find('.flow-file-status').html('<div class="label label-info">pending</div>');
+
+            $self.find('.flow-file-pause, .flow-file-resume .flow-file-cancel')
               .remove();
-                console.log("Completed: " + file.uniqueIdentifier);
+
+            $self.find(".progress").remove();
+
+            console.log("Completed: " + file.uniqueIdentifier);
                 // results.AddVideo(file.uniqueIdentifier);
         });
 
@@ -172,18 +193,20 @@
 
         r.on('fileProgress', function(file){
             // Handle progress for both the file and the overall upload
-            $('.flow-file-'+file.uniqueIdentifier+' .flow-file-progress')
-              .html(Math.floor(file.progress()*100) + '% '
-                + readablizeBytes(file.averageSpeed) + '/s '
-                + secondsToStr(file.timeRemaining()) + ' remaining');
+            var $self = $('.flow-file-'+file.uniqueIdentifier);
+            $self.find('.file-progress-label')
+              .text(Math.floor(file.progress()*100) + '% ');
 
-            $('.progress-bar').css({width:Math.floor(r.progress()*100) + '%'});
+            $self.find('.file-progress-bar').css({width:Math.floor(r.progress()*100) + '%'});
+
+            $self.find('.fow-file-progress').text(secondsToStr(file.timeRemaining()) + ' remaining');
         });
 
         r.on('uploadStart', function(){
             // Show pause, hide resume
             $('.flow-progress .progress-resume-link').hide();
             $('.flow-progress .progress-pause-link').show();
+
             function confirmExit() {
                 return "A file is being uploaded .. do you really want to exit ?";
             }
@@ -292,24 +315,14 @@
             <div class="flow-drop" ondragenter="jQuery(this).addClass('flow-dragover');" ondragend="jQuery(this).removeClass('flow-dragover');" ondrop="jQuery(this).removeClass('flow-dragover');">
             Drop images here or <a class="flow-browse-folder"><u>select a folder</u></a> or <a class="flow-browse"><u>select individual images</u> </a> to upload
             </div>
-            <div class="flow-progress">
-                <ul class="flow-list list-group"></ul>
-                <table>
-                  <tr>
-                    <td width="100%"><div class="progress-container"><div class="progress-bar"></div></div></td>
-                    <td class="progress-text" nowrap="nowrap"></td>
-                    <td class="progress-pause" nowrap="nowrap">
-                      <a href="#" onclick="r.upload(); return(false);" class="progress-resume-link"><img src="/static/img/resume.png" title="Resume upload" /></a>
-                      <a href="#" onclick="r.pause(); return(false);" class="progress-pause-link"><img src="/static/img/pause.png" title="Pause upload" /></a>
-                      <a href="#" onclick="r.cancel(); return(false);" class="progress-cancel-link"><img src="/static/img/cancel.png" title="Cancel upload" /></a>
-                    </td>
-                  </tr>
-                </table>
-            </div>
+
+            <div class="flow-progress" display="none"> </div>
+            <br/>
             {% endif  %}
 
 
             <table class="table table-bordered table-hover" >
+            <tbody>
                 <!--Render the imagefiles in process -->
                 {% for imagefile_son in session_son.imagefiles %}
                     <!-- {{ imagefile_son | tojson}} -->
@@ -327,7 +340,6 @@
                             {% set status = "pending" %}
                         {% endif %}
                     {% endif %}
-
                     <!-- {{ label|tojson|safe}}, {{status|tojson|safe}} -->
                     {% if not label in ["success", "unknown"] %}
                     <tr>
@@ -338,10 +350,18 @@
                         <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
                     </td>
                     <td>
+                    {% if is_session_admin %}
+                    <button type="button" class="btn btn-danger badge sa-attachment-delete pull-right"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                    {% endif %}
                     </td>
                     </tr>
                     {% endif %}
                 {% endfor %}
+            </tbody>
+            <!-- Insert the rows for incoming  for -->
+            <tbody class="flow-list">
+            </tbody>
+            <tbody>
                 {% for view_son in session_son.views %}
                     {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
                     {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
@@ -366,6 +386,7 @@
                         {% endif %}
                     </tr>
                 {% endfor %}
+            </tbody>
             </table>
             {% endif %}
         </div>
