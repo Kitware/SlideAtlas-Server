@@ -151,6 +151,7 @@
         r.on('complete', function(){
             // Hide pause/resume when the upload has completed
             $('.flow-progress .progress-resume-link, .flow-progress .progress-pause-link').hide();
+            window.onbeforeunload = null;
         });
 
         r.on('fileSuccess', function(file,message){
@@ -183,6 +184,10 @@
             // Show pause, hide resume
             $('.flow-progress .progress-resume-link').hide();
             $('.flow-progress .progress-pause-link').show();
+            function confirmExit() {
+                return "A file is being uploaded .. do you really want to exit ?";
+            }
+            window.onbeforeunload = confirmExit;
         });
 
         r.on('catchAll', function() {
