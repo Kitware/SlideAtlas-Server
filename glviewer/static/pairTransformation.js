@@ -12,13 +12,17 @@
 function PairCorrelation () {
     this.point0 = [0,0];
     this.point1 = [0,0];
+    this.Roll = 0;
+    this.Height = 0;
 }
 
 
 
 PairCorrelation.prototype.Serialize = function() {
     return {"point0": [this.point0[0],this.point0[1]],
-            "point1": [this.point1[0],this.point1[1]]};
+            "point1": [this.point1[0],this.point1[1]],
+            "roll":   this.Roll,
+            "height": this.Height};
 }
 
 
@@ -27,7 +31,23 @@ PairCorrelation.prototype.Load = function(obj) {
     this.point0[1] = obj.point0[1];
     this.point1[0] = obj.point1[0];
     this.point1[1] = obj.point1[1];
+    if (obj.roll) {
+        this.Roll = obj.roll;
+    }
+    if (obj.height) {
+        this.Height = obj.height;
+    }
 }
+
+// Idx changes the ordedr of the points and sign of delta roll.
+PairCorrelation.prototype.GetRoll = function(idx) {
+    if (idx !== undefined && idx == 0) {
+        return -this.Roll;
+    } else {
+        return this.Roll;
+    } 
+}
+
 
 
 PairCorrelation.prototype.GetPoint = function(idx) {
@@ -58,6 +78,14 @@ PairCorrelation.prototype.GetPoint1 = function() {
 PairCorrelation.prototype.SetPoint1 = function(pt) {
     this.point1[0] = pt[0];
     this.point1[1] = pt[1];
+}
+
+PairCorrelation.prototype.SetRoll = function(roll) {
+    this.Roll = roll;
+}
+
+PairCorrelation.prototype.SetHeight = function(height) {
+    this.Height = height;
 }
 
 
@@ -121,6 +149,28 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
         sigma = 20000;
     }
 
+    if (this.Correlations.length == 0) {
+        fpOut[0] = fpIn[0]; 
+        fpOut[1] = fpIn[1];
+        this.DeltaRoll = 0;
+        return fpOut;
+    }
+
+    if (this.Correlations.length <= 1) {
+        var correlation = this.Correlations[0];
+        this.DeltaRoll = correlation.GetRoll(idx1);
+        pt0 = correlation.GetPoint(idx0);
+        var dx = fpIn[0] - pt0[0];
+        var dy = fpIn[1] - pt0[1];
+        var c = Math.cos(this.DeltaRoll);
+        var s = Math.sin(this.DeltaRoll);
+        pt1 = correlation.GetPoint(idx1);
+        fpOut[0] = c*dx + s*dy + pt1[0];
+        fpOut[1] = c*dy - s*dx + pt1[1];
+        return fpOut;
+    }
+
+    // Compute the average weighted correlation point for each image.
     var pt0,pt1;
     var x,y;
     var sigma2 = sigma*sigma;
@@ -151,12 +201,9 @@ PairTransformation.prototype.WeightedTransform = function(idx0, idx1, fpIn, sigm
 
     // Now compute orientation.
     this.DeltaRoll = 0;
-    if (this.Correlations.length <= 1) {
-        // simple translation
-        fpOut[0] += sum1[0] - sum0[0]; 
-        fpOut[1] += sum1[1] - sum0[1];
-        return fpOut;
-    }
+
+    // For now lets ignore the roll in the correlation
+    // and compute roll from multiple points.
 
     // Compute rotation
     var roll = 0;

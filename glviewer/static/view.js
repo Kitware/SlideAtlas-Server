@@ -231,19 +231,32 @@ View.prototype.DrawFocalPoint = function () {
         ctx.moveTo(x-r,y-r+30);
         ctx.lineTo(x-r,y-r);
         ctx.lineTo(x-r+30,y-r);
-
         ctx.moveTo(x+r,y-r+30);
         ctx.lineTo(x+r,y-r);
         ctx.lineTo(x+r-30,y-r);
-
         ctx.moveTo(x+r,y+r-30);
         ctx.lineTo(x+r,y+r);
         ctx.lineTo(x+r-30,y+r);
-
         ctx.moveTo(x-r,y+r-30);
         ctx.lineTo(x-r,y+r);
         ctx.lineTo(x-r+30,y+r);
+        ctx.stroke();
 
+        ++r;
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(0,0,50,100)"; 
+        ctx.moveTo(x-r,y-r+30);
+        ctx.lineTo(x-r,y-r);
+        ctx.lineTo(x-r+30,y-r);
+        ctx.moveTo(x+r,y-r+30);
+        ctx.lineTo(x+r,y-r);
+        ctx.lineTo(x+r-30,y-r);
+        ctx.moveTo(x+r,y+r-30);
+        ctx.lineTo(x+r,y+r);
+        ctx.lineTo(x+r-30,y+r);
+        ctx.moveTo(x-r,y+r-30);
+        ctx.lineTo(x-r,y+r);
+        ctx.lineTo(x-r+30,y+r);
         ctx.stroke();
         ctx.restore();
     }
