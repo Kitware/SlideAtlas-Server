@@ -161,42 +161,83 @@ function loadSessionFromId(sessionId) {
 
 }
 
-
+// In the future we could include multiple tiles to make the best thumb.
 // Create a div with a cropped scaled thumb from the root tile.
-// if bounds is not defined, display the whole image bounds.
-function thumb(image, height, bounds) {
-    if ( ! bounds) {
-        bounds = image.bounds;
+// image = database image object.
+// height = height in screen pixels of the returned div image.
+// request = (optional) bounds of cropped image in slide pixel units.
+//           if request is not defined, it defaults to the whole image bounds.
+function thumb(image, height, request) {
+    if ( ! request) {
+        request = image.bounds;
     }
 
-    var width = height * (bounds[1]-bounds[0]) / (bounds[3]-bounds[2]);
+    var width = height * (request[1]-request[0]) / (request[3]-request[2]);
     var div = $('<div>')
         .css({'width' : width + 'px',
               'height': height + 'px',
               'overflow': 'hidden',
               'position': 'relative'});
+    // Use the cropped request bounds because we are displaying only a
+    // single tile and we do not want to count virtual tiles outside image.
+    var croppedReq = [Math.max(request[0],image.bounds[0]),
+                      Math.min(request[1],image.bounds[1]),
+                      Math.max(request[2],image.bounds[2]),
+                      Math.min(request[3],image.bounds[3])];
 
-    // how big is the root tile?
-    var tileSize = 256;
+    // size in tile-pixel units (the same for all tiles).
+    var tileDim = 256;
     if (image.tile_size) {
-        tileSize = image.tile_size;
+        tileDim = image.tile_size;
     }
-    rootSize = tileSize << (image.levels-1);
-    var imgSize = height * rootSize / (bounds[3]- bounds[2]);
 
-    // Add the pixel spacing so we can transform
+    // Start with the root tile.
+    var tileSpacing = 1 << (image.levels-1);
+    // Index of the tile in the level grid.
+    var tileIndex = [0,0];
+    tileName = "t";
+    // Lets see if we can use a higher resolution tile.
+    // The requested bounds as level grid index.  
+    var tileSize = tileDim * tileSpacing;
+    var gridReq = [croppedReq[0]/tileSize, 
+                   croppedReq[1]/tileSize,
+                   croppedReq[1]/tileSize,
+                   croppedReq[1]/tileSize];
+    // Todo: Make this recursive.
+    // Convert the request to the next level.
+    var gridReq2 = [gridReq[0]*2, gridReq[1]*2, gridReq[2]*2, gridReq[3]*2];
+    var xIdx = Math.floor(gridReq2[0]);
+    var yIdx = Math.floor(gridReq2[2]);
+    if (xIdx == Math.floor(gridReq2[1]) &&
+        yIdx == Math.floor(gridReq2[3])) {
+        // The whole request is in one tile in the next level.
+        if (xIdx == 0 && yIdx == 0) {tileName = tileName + "q";}
+        if (xIdx == 1 && yIdx == 0) {tileName = tileName + "r";}
+        if (xIdx == 0 && yIdx == 1) {tileName = tileName + "t";}
+        if (xIdx == 1 && yIdx == 1) {tileName = tileName + "s";}
+        tileSize = tileSize / 2;
+        tileIndex[0] = tileIndex[0]*2 + xIdx;
+        tileIndex[1] = tileIndex[1]*2 + yIdx;
+    }
+
+    // Add the pixel origin and spacing so we can transform
     // mouse clicks to slide coordinates.
-    var spacing = (bounds[3]-bounds[2]) / height;
-    div.data("spacing", spacing);
+    var screenPixelSpacing = (request[3]-request[2]) / height;
+    var screenPixelOrigin = [request[0], request[2]];
+    div.data("spacing", screenPixelSpacing);
+    div.data("origin", screenPixelOrigin);
 
-    var left = -(bounds[0]) / spacing;
-    var top = -(bounds[2]) / spacing;
+
+    var left = ((tileIndex[0]*tileSize)-request[0])/screenPixelSpacing;
+    var top = ((tileIndex[1]*tileSize)-request[2])/screenPixelSpacing;
+
+    var imgSize = tileSize / screenPixelSpacing;
 
     var img = $('<img>')
         .appendTo(div)
         .attr("width", imgSize)
         .attr("height", imgSize)
-        .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t.jpg")
+        .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name="+tileName+".jpg")
         .attr("alt", image.label)
         .css({"left": left.toString()+"px",
               "top":  top.toString()+"px",

@@ -569,9 +569,10 @@ function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}
 function handleKeyDown(event) {
     // control: 17, z: 90, y: 89
     if (event.keyCode == 34) { SessionAdvance();}
-    EVENT_MANAGER.HandleKeyDown(event);}
-    function handleKeyUp(event) {
-    EVENT_MANAGER.HandleKeyUp(event);
+    return EVENT_MANAGER.HandleKeyDown(event);
+}
+function handleKeyUp(event) {
+    return EVENT_MANAGER.HandleKeyUp(event);
 }
 
 function cancelContextMenu(e) {

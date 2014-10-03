@@ -982,7 +982,7 @@ Note.prototype.DisplayStack = function() {
 Note.prototype.DisplayView = function() {
     // Remove Annotations from the previous note.
     VIEWER1.Reset();
-    
+    if (VIEWER2) {VIEWER2.Reset();}
 
     if (this.Type == "Stack") {
         var idx0 = this.StartIndex;
@@ -1016,9 +1016,13 @@ Note.prototype.DisplayView = function() {
 Note.prototype.InitializeStackTransforms = function () {
     for (var i = 1; i < this.ViewerRecords.length; ++i) {
         if ( ! this.ViewerRecords[i].Transform) {
+            var cam0 = this.ViewerRecords[i-1].Camera;
+            var cam1 = this.ViewerRecords[i].Camera;
+            var dRoll = cam1.Roll - cam0.Roll;
+            if (dRoll < 0.0) { dRoll += 2*Math.PI; }
             var trans = new PairTransformation();
-            trans.AddCorrelation(this.ViewerRecords[i-1].Camera.FocalPoint,
-                                 this.ViewerRecords[i].Camera.FocalPoint);
+            trans.AddCorrelation(cam0.FocalPoint, cam1.FocalPoint, dRoll, 
+                                 0.5*(cam0.Height+cam1.Height));
             this.ViewerRecords[i].Transform = trans;
         }
     }
@@ -1028,14 +1032,17 @@ Note.prototype.InitializeStackTransforms = function () {
 // refViewerIdx is the viewer that changed and other viewers need 
 // to be updated to match that reference viewer.
 Note.prototype.SynchronizeViews = function (refViewerIdx) {
+    if (refViewerIdx + this.StartIdx >= this.ViewerRecords.length) {
+        return;
+    }
 
     // Special case for when the shift key is pressed.
     // Translate only one camera and modify the tranform to match.
     if (EDIT && EVENT_MANAGER.CursorFlag) {
+        var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
         if ( ! this.ActiveCorrelation) {
             // Find a close correlation or make a new one.
             // With only two viewers this is easy.
-            var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
             if ( ! trans) {
                 alert("Missing transform");
                 return;
@@ -1060,8 +1067,19 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
                 trans.Correlations.push(this.ActiveCorrelation);
             }
         }
-        this.ActiveCorrelation.SetPoint0(VIEWER1.GetCamera().GetFocalPoint());
-        this.ActiveCorrelation.SetPoint1(VIEWER2.GetCamera().GetFocalPoint());
+        var cam0 = VIEWER1.GetCamera();
+        var cam1 = VIEWER2.GetCamera();
+        this.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
+        this.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
+        // I really do not want to set the roll unless the user specifically changed it.
+        // It would be hard to correct if the wrong value got set early in the aligment.
+        var deltaRoll = cam1.Roll - cam0.Roll;
+        if (trans.Correlations.length > 1) {
+            deltaRoll = 0;
+            // Let roll be set by multiple correlation points.
+        }
+        this.ActiveCorrelation.SetRoll(deltaRoll);
+        this.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
         return;
     } else {
         // A round about way to set and unset the active correlation.

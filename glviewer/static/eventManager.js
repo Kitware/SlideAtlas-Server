@@ -213,66 +213,85 @@ EventManager.prototype.FocusOut = function() {
 }
 
 EventManager.prototype.HandleKeyDown = function(event) {
-  if ( ! this.HasFocus) {return;} 
+  if ( ! this.HasFocus) {return true;}
+
+  // It is sort of a hack to check for the cursor mode here, but it
+  // affects both viewers.
+  if (false && event.keyCode == 88) { // x = 88
+      // I am using the 'c' key to display to focal point cursor
+      //this.CursorFlag = true;
+      // what a pain.  Holding x down sometimes blocks mouse events.
+      // Have to change to toggle.
+      //this.CursorFlag = true;
+      this.CursorFlag =  ! this.CursorFlag;
+      event.returnValue = false;
+      eventuallyRender();
+      return false;
+  }
 
   if (event.keyCode == 16) {
       // Shift key modifier.
       this.ShiftKeyPressed = true;
       // Do not forward modifier keys events to objects that consume keypresses.
-      return;
+      return true;
   }
   if (event.keyCode == 17) {
     // Control key modifier.
     this.ControlKeyPressed = true;
-    return;
+    return true;
   }
 
   // Handle undo and redo (cntrl-z, cntrl-y)
   if (this.ControlKeyPressed && event.keyCode == 90) {
     // Function in recordWidget.
     UndoState();
-    return;
+    return true;
   } else if (this.ControlKeyPressed && event.keyCode == 89) {
     // Function in recordWidget.
     RedoState();
-    return;
+    return true;
   }
 
   this.ChooseViewer();
   if (this.CurrentViewer) {
     // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
     if (this.CurrentViewer.HandleKeyPress(event.keyCode, this)) {
-      return;
+      return true;
     }
   }
 
   if (typeof(NAVIGATION_WIDGET) != "undefined") {
       if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
-      return;
+      return true;
     }
   }
+
+  return true;
 }
 
 EventManager.prototype.HandleKeyUp = function(event) {
-    if ( ! this.HasFocus) {return;} 
-
-    // It is sort of a hack to check for the cursor mode here, but it
-    // affects both viewers.  The mouse does not move with a key press.
-    // Make the cross toggle.
-    if (event.keyCode == 67) { // c
+    if ( ! this.HasFocus) {return true;} 
+    
+    if (event.keyCode == 88) { // x = 88
         // I am using the 'c' key to display to focal point cursor
-        this.CursorFlag = ! this.CursorFlag;
+        //this.CursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.CursorFlag =  ! this.CursorFlag;
         eventuallyRender();
+        return false;
     }
-
+    
     if (event.keyCode == 16) {
         // Shift key modifier.
         this.ShiftKeyPressed = false;
-
+        //this.CursorFlag = false;
     } else if (event.keyCode == 17) {
         // Control key modifier.
         this.ControlKeyPressed = false;
     }
+
+    return true;
 }
 
 

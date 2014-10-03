@@ -114,6 +114,7 @@ Dialog.prototype.Show = function(modal) {
   this.Dialog.fadeIn(300);
 
   if (modal) {
+    EVENT_MANAGER.HasFocus = false;
     this.Overlay.unbind("click");
   } else {
     this.Overlay.click(function (e) { self.Hide(); });
@@ -121,6 +122,7 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
+  EVENT_MANAGER.HasFocus = true;
   this.Overlay.hide();
   this.Dialog.fadeOut(300);
 } 

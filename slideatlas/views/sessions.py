@@ -296,8 +296,11 @@ def session_save_stack():
     for idx in range(1,len(stack_items)) :
         item0 = stack_items[idx-1]
         item1 = stack_items[idx]
+        correlationHeight = (item0['height']+item1['height'])*0.5;
         records[idx]['Transform'] = {'Correlations':[{'point0': [item0['x'], item0['y']],
-                                                      'point1': [item1['x'], item1['y']] } ]}
+                                                      'point1': [item1['x'], item1['y']],
+                                                      'roll': 0,
+                                                      'height': correlationHeight } ]}
 
     # Now make the view
     user = security.current_user.id if security.current_user.is_authenticated() else 'Guest'
