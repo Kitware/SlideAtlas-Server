@@ -665,6 +665,7 @@ def getimagenames():
     for img in imgItr:
         img["_id"] = str(img["_id"])
         imgArray.append(img)
+    data = {}
     data["Database"] = dbid
     data["Images"] = imgArray
     return jsonify(data)
