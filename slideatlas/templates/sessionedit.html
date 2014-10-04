@@ -27,7 +27,6 @@
         #sortable li img {
             margin: 0;
             padding: 0;
-            width: 38px;
             float: left;
             height: 38px;
         }
@@ -135,7 +134,7 @@
             args.session = SESSION_ID;
             args.label = $("#title").val();
             args.hideAnnotation = $('#hideCheck').is(':checked');
-            args.stack = $('#stackCheck').is(':checked');
+            args.stack = false;
 
             $.ajax({
                 type: "post",
@@ -239,7 +238,7 @@
             $.get("/sessions?json=true",
                 function(data,status){
                     if (status == "success") {
-                        LoadSessions(data);
+                        LoadCollectionList(data);
                     } else {
                         alert("ajax failed.");
                     }
@@ -250,37 +249,48 @@
             $(".hiddenLabel").on("input", modified);
         });
 
-        function LoadSessions(data) {
+        function LoadCollectionList(data) {
             // The first "sessions" list is actually collections.
             COLLECTIONS = data.sessions;
             // Populate the collection menu.
+            var defaultCollectionIndex = 0;
             for (var i = 0; i < COLLECTIONS.length; ++i) {
                 var option = $('<option>').appendTo($('#collectionList'))
                         .attr('value', i)
                         .text(data.sessions[i].rule);
+                // Set the default selected value.
+                if (data.sessions[i].rule == "{{collection.label}}") {
+                    option.attr('selected', true);
+                    defaultCollectionIndex = i;
+                }
             }
-            // Select the first as default.
             if (COLLECTIONS.length > 0) {
-                SelectCollection(0);
+                SelectCollection(defaultCollectionIndex, "{{ session_son.label }}");
             }
             handleResize();
         }
 
-        function SelectCollection(idx) {
+        function SelectCollection(idx, defaultSessionLabel) {
             SELECTED_COLLECTION = COLLECTIONS[idx];
             // Populate the sessions menu.
             $("#sessionList").empty();
+            var defaultSessionIndex = 0;
             var sessions = SELECTED_COLLECTION.sessions;
-            if (sessions.length > 0) {
-                for (var i = 0; i < sessions.length; ++i) {
-                    $('<option>').appendTo($('#sessionList'))
-                            .attr('value', i)
-                            .text(sessions[i].label);
+            for (var i = 0; i < sessions.length; ++i) {
+                var option = $('<option>')
+                    .appendTo($('#sessionList'))
+                    .attr('value', i)
+                    .text(sessions[i].label);
+                if (defaultSessionLabel && defaultSessionLabel == sessions[i].label) {
+                    defaultSessionIndex = i;
+                    option.attr('selected', true);
                 }
-                $('<option>').appendTo($('#sessionList'))
-                        .attr('value', sessions.length)
-                        .text("All Images");
-                SelectSession(0);
+            }
+            $('<option>').appendTo($('#sessionList'))
+                    .attr('value', sessions.length)
+                    .text("All Images");
+            if (sessions.length > 0) {
+                SelectSession(defaultSessionIndex);
             }
             handleResize();
         }
@@ -343,8 +353,8 @@
             // Take some away for borders and padding.
             size = size - 14; // more vertical padding than horizontal ?
             // Not smaller than 72 or bigger than 256.
-            if (size < 72) { size = 72;}
-            if (size > 256) { size = 256;}
+            if (size < 64) { size = 64;}
+            if (size > 128) { size = 128;}
             return size;
         }
 
@@ -360,7 +370,6 @@
                         .attr("imgdb", imgdb)
                         .attr("img", data.Images[i]._id)
                         .attr("height", size+"px")
-                        .attr("width", size+"px")
                         .attr("src", "/thumb?db="+imgdb+"&img="+data.Images[i]._id)
                         .attr("alt", data.Images[i].label)
                         .hover(function(){
@@ -398,7 +407,6 @@
                         .attr("img", data.images[i].img)
                         .attr("view", data.session.views[i].id)
                         .attr("height", size+"px")
-                        .attr("width", size+"px")
                         .attr("src", "/thumb?db="+data.images[i].db+"&img="+data.images[i].img)
                         .attr("alt", data.images[i].label)
                         .hover(function(){
@@ -510,13 +518,6 @@
                     Hide Markup
                     <div id="hideCheckTip" hidden>
                         Hide annotation and notes from student.  Use alternative slide labels.
-                    </div>
-                </div>
-                <div style="float: right;">
-                    <input type="checkbox" id="stackCheck">
-                    Stack
-                    <div id="stackCheckTip" hidden>
-                        3D stack of sections
                     </div>
                 </div>
             </div>
