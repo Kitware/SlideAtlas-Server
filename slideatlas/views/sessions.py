@@ -101,12 +101,15 @@ def view_a_session(session):
             database = models.ImageStore.objects.get_or_404(id=view_son['image_store_id'])
             imgdb = database.to_pymongo()
             imgObj = imgdb["images"].find_one({ "_id" : view_son['image_id']})
+            bounds = [0,imgObj['dimensions'][0], 0, imgObj['dimensions'][1]]
+            if 'bounds' in imgObj:
+                bounds = imgObj['bounds']
             images.append({
                     'db': view_son['image_store_id'],
                     'img': view_son['image_id'],
                     'label': view_son['label'],
                     'view': view_son['id'],
-                    'bounds': imgObj['bounds'],
+                    'bounds': bounds,
                     'tile_size': imgObj['TileSize'],
                     'levels': imgObj['levels']
                 })
