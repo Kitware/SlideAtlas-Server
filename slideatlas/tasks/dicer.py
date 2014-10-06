@@ -20,7 +20,7 @@ from .common import celeryapp
 __all__ = ('process_file', )
 
 
-@celeryapp.task()
+@celeryapp.task(queue="uploads")
 def process_file(args):
     """
     Deliver the file to appropriate
