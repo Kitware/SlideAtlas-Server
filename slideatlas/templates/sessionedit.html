@@ -62,36 +62,18 @@
             text-align: center;
             margin: 0;
         }
-        #imagePanel {
-            height: 100%;
-            width: auto;
-        }
-        #gallery {
-            position: relative;
-            padding: 0;
-            border: 1px solid #CCC;
-            height: 100%;
-            list-style: none;
-            overflow-y: auto;
-        }
-        #gallery li {
-            float: left;
-            padding: 2px;
-        }
-        #gallery li img {
-            border: 2px solid #CCC;
-            padding: 2px;
-        }
-        #gallery li img:hover {
-            border-color: #333;
-        }
     </style>
 {% endblock styles %}
 
 
 {% block scripts %}
 {{ super() }}
+
+
+
+
     <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='gallery.js') }}"></script>
     <script>
         var SESSION_ID = "{{ session.id }}";
 
@@ -116,13 +98,16 @@
                 // Better would be initializing with ajax call in the first place...
                 guiViews.push($(this));
                 var view = {
-                    'view': $(this).attr('view'),
                     'copy': $(this).attr('copy'),
                     'label' : $('.descriptiveLabel',this).val(),
                     'hiddenLabel' : $('.hiddenLabel',this).val(),
                     'imgdb' : $(this).attr('imgdb'),
                     'img': $(this).attr('img')
                 };
+                var viewId = $(this).attr('view');
+                if (viewId && viewId != "") {
+                    view.view = viewId;
+                }
                 views.push(view);
             });
 
@@ -178,9 +163,7 @@
             if ($('#slideList').outerHeight() < height-top) {
                 $('#slideScroll').css({'overflow-y':'hidden'});
             }
-
-            top = $('#gallery').position().top + 15;
-            $('#gallery').css({"height":(height-top)});
+            GALLERY.HandleResize();
         }
 
         function modified () {
@@ -200,6 +183,12 @@
 
         var IMAGE_HOVER_LABEL;
         $(document).ready(function() {
+            GALLERY = new Gallery();
+            GALLERY.AppendTo($('#wrapper'));
+            GALLERY.DefaultCollectionLabel = "{{collection.label}}";
+            GALLERY.DefaultSessionLabel = "{{session_son.label}}";
+            GALLERY.OnSelect(AddViewToSession);
+
             {% if session_son.hide_annotations %}
             $('#hideCheck').attr('checked','checked');
             hideAnnotation(true);
@@ -235,226 +224,20 @@
                 handleResize();
             }).trigger('resize');
 
-            $.get("/sessions?json=true",
-                function(data,status){
-                    if (status == "success") {
-                        LoadCollectionList(data);
-                    } else {
-                        alert("ajax failed.");
-                    }
-                });
+            GALLERY.Initialize();
+            //$.get("/sessions?json=true",
+            //    function(data,status){
+            //        if (status == "success") {
+            //            GALLERY.LoadCollectionList(data);
+            //        } else {
+           //             alert("ajax failed.");
+           //         }
+           //     });
             $('#saveButton').css({"color":"#000"});
             $("#title").on("input", modified);
             $(".descriptiveLabel").on("input", modified);
             $(".hiddenLabel").on("input", modified);
         });
-
-        function LoadCollectionList(data) {
-            // The first "sessions" list is actually collections.
-            COLLECTIONS = data.sessions;
-            // Populate the collection menu.
-            var defaultCollectionIndex = 0;
-            for (var i = 0; i < COLLECTIONS.length; ++i) {
-                var option = $('<option>').appendTo($('#collectionList'))
-                        .attr('value', i)
-                        .text(data.sessions[i].rule);
-                // Set the default selected value.
-                if (data.sessions[i].rule == "{{collection.label}}") {
-                    option.attr('selected', true);
-                    defaultCollectionIndex = i;
-                }
-            }
-            if (COLLECTIONS.length > 0) {
-                SelectCollection(defaultCollectionIndex, "{{ session_son.label }}");
-            }
-            handleResize();
-        }
-
-        function SelectCollection(idx, defaultSessionLabel) {
-            SELECTED_COLLECTION = COLLECTIONS[idx];
-            // Populate the sessions menu.
-            $("#sessionList").empty();
-            var defaultSessionIndex = 0;
-            var sessions = SELECTED_COLLECTION.sessions;
-            for (var i = 0; i < sessions.length; ++i) {
-                var option = $('<option>')
-                    .appendTo($('#sessionList'))
-                    .attr('value', i)
-                    .text(sessions[i].label);
-                if (defaultSessionLabel && defaultSessionLabel == sessions[i].label) {
-                    defaultSessionIndex = i;
-                    option.attr('selected', true);
-                }
-            }
-            $('<option>').appendTo($('#sessionList'))
-                    .attr('value', sessions.length)
-                    .text("All Images");
-            if (sessions.length > 0) {
-                SelectSession(defaultSessionIndex);
-            }
-            handleResize();
-        }
-
-        var SELECTED_SESSION;
-        function SelectSession(idx) {
-            if (idx == SELECTED_COLLECTION.sessions.length) {
-                // Load all the images for a database.
-                SELECTED_SESSION = undefined; // delete SELECETED_SESSION
-                // Retrieve the database id from one of the sessions.
-                image_store_id = SELECTED_COLLECTION.sessions[0].sessdb;
-                $.get("/webgl-viewer/getimagenames?db="+image_store_id,
-                    function(data,status){
-                        if (status == "success") {
-                            LoadImages(data, image_store_id);
-                        } else {
-                            alert("ajax failed.");
-                        }
-                    }
-                );
-            } else {
-                SELECTED_SESSION = SELECTED_COLLECTION.sessions[idx];
-                $.get("/sessions?json=1&sessid="+SELECTED_SESSION.sessid,
-                    function(data,status){
-                        if (status == "success") {
-                            LoadSession(data);
-                        } else {
-                            alert("ajax failed."); }
-                    }
-                );
-            }
-        }
-
-        function ComputeGalleryImageSize(number) {
-            // Create a image label show appears on hover.
-            // A hack to create it here. Empty gets rid of it....
-            IMAGE_HOVER_LABEL = $('<p>').appendTo('#gallery')
-                    .hide()
-                    .css({
-                        'position':'absolute',
-                        'z-index':'2',
-                        'background-color':'#EEF',
-                        'border':'1px solid #555',
-                        'border-radius':'20px',
-                        'padding':'3px 10px',
-                        'font-size':'larger'
-                    });
-
-            // Lets compute an optimal size for images.
-            var w = $('#gallery').innerWidth();
-            var h = $('#gallery').innerHeight();
-            var size = Math.sqrt(w*h / number);
-            // This would be good images would 'wrap' ...
-            var nx = Math.ceil(w / size);
-            var ny = Math.ceil(h / size);
-            var xSize = w/nx;
-            var ySize = h/ny;
-            size = xSize;
-            if (size > ySize) { size = ySize; }
-            // Take some away for borders and padding.
-            size = size - 14; // more vertical padding than horizontal ?
-            // Not smaller than 72 or bigger than 256.
-            if (size < 64) { size = 64;}
-            if (size > 128) { size = 128;}
-            return size;
-        }
-
-        function LoadImages(data, imgdb) {
-            var labelStrings = [];
-            $('#gallery').empty();
-            // Lets compute an optimal size for images.
-            var size = ComputeGalleryImageSize(data.Images.length);
-            for (var i = 0; i < data.Images.length; ++i) {
-                labelStrings.push(data.Images[i].label);
-                var listItem = $('<li>').appendTo($('#gallery'));
-                var image = $('<img>').appendTo(listItem)
-                        .attr("imgdb", imgdb)
-                        .attr("img", data.Images[i]._id)
-                        .attr("height", size+"px")
-                        .attr("src", "/thumb?db="+imgdb+"&img="+data.Images[i]._id)
-                        .attr("alt", data.Images[i].label)
-                        .hover(function(){
-                            var p = $(this).position();
-                            var y = p.top-10+$('#gallery').scrollTop();
-                            var label = $(this).attr('alt');
-                            IMAGE_HOVER_LABEL.show()
-                                    .css({'left':p.left+10, 'top':y+50})
-                                    .text(label);
-                            },
-                            function(){IMAGE_HOVER_LABEL.hide();})
-                        .mousedown(function(event) {
-                            AddViewToSession($(this).attr('imgdb'),
-                                             $(this).attr('img'),
-                                             $(this).attr('alt'),
-                                             "");
-                        });
-            }
-            $('#imagesearch').autocomplete({source: labelStrings});
-        }
-
-        function LoadSession(data) {
-            var labelStrings = [];
-            $('#gallery').empty();
-            var size = ComputeGalleryImageSize(data.images.length);
-            // It is odd that sessions have separate image and view arrays.
-            // (The one I inspected had different number of elements).
-            for (var i = 0; i < data.session.views.length; ++i) {
-                labelStrings.push(data.session.views[i].label);
-                var listItem = $('<li>').appendTo($('#gallery'));
-                var image = $('<img>')
-                        .appendTo(listItem)
-                        .attr("copy",  1)
-                        .attr("imgdb", data.images[i].db)
-                        .attr("img", data.images[i].img)
-                        .attr("view", data.session.views[i].id)
-                        .attr("height", size+"px")
-                        .attr("src", "/thumb?db="+data.images[i].db+"&img="+data.images[i].img)
-                        .attr("alt", data.images[i].label)
-                        .hover(function(){
-                            var p = $(this).position();
-                            var y = p.top-10+$('#gallery').scrollTop();
-                            var label = $(this).attr('alt');
-                            IMAGE_HOVER_LABEL.show().css({'left':p.left+10, 'top':y})
-                                    .text(label);
-                            },
-                            function(){IMAGE_HOVER_LABEL.hide();})
-                        .mousedown(function() {
-                            AddViewToSession($(this).attr('imgdb'),
-                                             $(this).attr('img'),
-                                             $(this).attr('alt'),
-                                             $(this).attr('view'));
-                        });
-            }
-            $('#imagesearch').autocomplete({source: labelStrings});
-        }
-
-        function SearchCallback() {
-            var str = $('#imagesearch').val();
-            keys = str.split(" ");
-            images = $('#gallery li img');
-            for (var i = 0; i < images.length; ++i) {
-                var image = images[i];
-                var label = image.alt;
-                var found = true;
-                for (var j = 0; j < keys.length && found; ++j) {
-                    if (label.indexOf(keys[j]) == -1) { found = false; }
-                }
-                if (found) {
-                    $(image).show();
-                } else {
-                    $(image).hide();
-                }
-            }
-        }
-
-        function CollectionCallback(idx) {
-            $('#gallery').empty();
-            SelectCollection(parseInt(idx));
-        }
-
-        function SessionCallback(idx) {
-            $('#gallery').empty();
-            SelectSession(parseInt(idx));
-        }
 
         function AddViewToSession(imgdb, img, label, view) {
             // Indicate the session needs saving
@@ -539,21 +322,7 @@
                 </div>
             </div>
         </div>
-        <div id="imagePanel">
-            <label>Collection</label>
-            <select id="collectionList" onchange="CollectionCallback(this.value)">
-            </select>
 
-            <label>Session</label>
-            <select id="sessionList" onchange="SessionCallback(this.value)">
-            </select>
-            <br>
-            <div>
-                Search: <input type="text" id="imagesearch">
-                <button onclick="SearchCallback()">Submit</button>
-            </div>
-            <ul id="gallery">
-            </ul>
-        </div>
+
     </div>
 {% endblock content %}
