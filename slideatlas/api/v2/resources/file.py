@@ -45,19 +45,14 @@ class SessionAttachmentListAPI(ListAPIResource):
             try:
                 attachments_fs = gridfs.GridFS(image_store.to_pymongo(raw_object=True), restype)
                 attachment_obj = attachments_fs.get(attachment_ref.ref)
-            except Exception as e:
                 result.append({
-                    'id': attachment_ref.ref,
-                    'name': e.message,
-                    'length': 0
+                    'id': attachment_obj._id,
+                    'name': attachment_obj.name,
+                    'length': attachment_obj.length
                 })
-                continue
-
-            result.append({
-                'id': attachment_obj._id,
-                'name': attachment_obj.name,
-                'length': attachment_obj.length
-            })
+            except Exception as e:
+                # Exclude any attachment refs that err
+                pass
 
         return result
 
