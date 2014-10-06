@@ -309,6 +309,7 @@
                         Stack
                     </button>
                 </a>
+                {% endif %}
             </h2>
 
             {% if is_session_admin %}
@@ -318,7 +319,7 @@
 
             <div class="flow-progress" display="none"> </div>
             <br/>
-            {% endif  %}
+            {% endif %}
 
 
             <table class="table table-bordered table-hover" >
@@ -388,7 +389,6 @@
                 {% endfor %}
             </tbody>
             </table>
-            {% endif %}
         </div>
     </div>
 {% endblock content %}
