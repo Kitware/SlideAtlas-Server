@@ -104,13 +104,16 @@ def view_a_session(session):
             bounds = [0,imgObj['dimensions'][0], 0, imgObj['dimensions'][1]]
             if 'bounds' in imgObj:
                 bounds = imgObj['bounds']
+            tileSize = 256
+            if 'tile_size' in imgObj: 
+                tileSize = imgObj['TileSize']
             images.append({
                     'db': view_son['image_store_id'],
                     'img': view_son['image_id'],
                     'label': view_son['label'],
                     'view': view_son['id'],
                     'bounds': bounds,
-                    'tile_size': imgObj['TileSize'],
+                    'tile_size': tileSize,
                     'levels': imgObj['levels']
                 })
 
