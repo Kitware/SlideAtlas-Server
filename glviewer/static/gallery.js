@@ -44,6 +44,8 @@ function Gallery() {
     this.DefaultCollectionLabel = "";
     this.DefaultSessionLabel = "";
     this.SelectedSession = undefined;
+
+    this.Initialize();
 }
 
 
@@ -266,6 +268,7 @@ Gallery.prototype.LoadSession = function(data) {
             .css({'color': '#333',
                   'font-size': '11px'});
     }
+
     this.SearchInput.autocomplete({source: labelStrings});
 }
 

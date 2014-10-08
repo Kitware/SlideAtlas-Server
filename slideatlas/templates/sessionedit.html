@@ -74,6 +74,7 @@
 
     <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='gallery.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='collectionBrowser.js') }}"></script>
     <script>
         var SESSION_ID = "{{ session.id }}";
 
@@ -184,6 +185,7 @@
         var IMAGE_HOVER_LABEL;
         $(document).ready(function() {
             GALLERY = new Gallery();
+            //GALLERY = new CollectionBrowser();
             GALLERY.AppendTo($('#wrapper'));
             GALLERY.DefaultCollectionLabel = "{{collection.label}}";
             GALLERY.DefaultSessionLabel = "{{session_son.label}}";
@@ -224,15 +226,6 @@
                 handleResize();
             }).trigger('resize');
 
-            GALLERY.Initialize();
-            //$.get("/sessions?json=true",
-            //    function(data,status){
-            //        if (status == "success") {
-            //            GALLERY.LoadCollectionList(data);
-            //        } else {
-           //             alert("ajax failed.");
-           //         }
-           //     });
             $('#saveButton').css({"color":"#000"});
             $("#title").on("input", modified);
             $(".descriptiveLabel").on("input", modified);
