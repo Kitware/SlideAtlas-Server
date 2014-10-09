@@ -70,16 +70,15 @@ def convertImageToPixelCoordinateSystem(imageObj) :
     if not imageObj.has_key("bounds") :
         imageObj["bounds"] = [0, imageObj["dimensions"][0], 0, imageObj["dimensions"][1]]
 
-    if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Pixel" :
-        return
-    # the only other option is "Photo", lower left origin.
-    if imageObj.has_key("bounds") :
-        # tile dimension should be stored in image schema
-        paddedHeight = 256 << (imageObj["levels"] - 1)
-        tmp = imageObj["bounds"][2]
-        imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
-        imageObj["bounds"][3] = paddedHeight-tmp
-        imageObj["CoordinateSystem"] = "Pixel"
+    # Coordinate system defaults to "Pixel" (upper left origin)
+    if imageObj.has_key("CoordinateSystem") and imageObj["CoordinateSystem"] == "Photo" :
+        if imageObj.has_key("bounds") :
+            # tile dimension should be stored in image schema
+            paddedHeight = 256 << (imageObj["levels"] - 1)
+            tmp = imageObj["bounds"][2]
+            imageObj["bounds"][2] = paddedHeight-imageObj["bounds"][3]
+            imageObj["bounds"][3] = paddedHeight-tmp
+            imageObj["CoordinateSystem"] = "Pixel"
 
 def convertViewToPixelCoordinateSystem(viewObj) :
     if viewObj.has_key("Children") :
