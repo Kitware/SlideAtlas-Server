@@ -4,7 +4,6 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 
-
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -86,10 +85,9 @@ def convertViewToPixelCoordinateSystem(viewObj) :
     if viewObj.has_key("Children") :
         for child in viewObj["Children"] :
             convertViewToPixelCoordinateSystem(child)
-    if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Pixel" :
-        return
-    for record in viewObj["ViewerRecords"] :
-        flipViewerRecord(record)
+    if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Photo" :
+        for record in viewObj["ViewerRecords"] :
+            flipViewerRecord(record)
     viewObj["CoordinateSystem"] = "Pixel"
 
 
@@ -697,7 +695,10 @@ def getview():
             # The viewer has to hide image labels.
             viewObj["HideAnnotations"] = True
             # use a cryptic label
-            viewObj["Title"] = viewObj["HiddenTitle"]
+            if 'HiddenTitle' in viewObj:
+                viewObj['Title'] = viewObj['HiddenTitle']
+            else :
+                viewObj['Title'] = 'view'
             if viewObj["Type"] == "Stack":
                 for vr in viewObj["ViewerRecords"]:
                     vr["Annotations"] = []
