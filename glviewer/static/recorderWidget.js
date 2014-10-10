@@ -40,11 +40,11 @@ ViewerRecord.prototype.Load = function(obj) {
   }
 
   for (ivar in obj) {
-    this[ivar] = obj[ivar];
+      this[ivar] = obj[ivar];
   }
 
-  if (this.OverviewBounds) {
-     this.Image.bounds = this.OverviewBounds;
+  if (! this.OverviewBounds) {
+      this.OverviewBounds = this.Image.bounds;
   }
 
   if (this.Annotations) {
@@ -72,6 +72,9 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
     this.Annotations = [];
     return;
   }
+
+
+  this.OverviewBounds = viewer.GetOverViewBounds();
 
   this.Image = cache.Image;
   this.Camera = viewer.GetCamera().Serialize();
@@ -133,6 +136,8 @@ ViewerRecord.prototype.Apply = function (viewer) {
     var newCache = new Cache(this.Image);
     viewer.SetCache(newCache);
   }
+
+  viewer.SetOverViewBounds(this.OverviewBounds);
 
   if (this.Camera !== undefined && this.Transform === undefined) {
     var cameraRecord = this.Camera;
