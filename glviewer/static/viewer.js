@@ -65,6 +65,7 @@ function Viewer (viewport, cache) {
 }
 
 
+
 // A way to have a method called every time the camera changes.
 // Will be used for synchronizing viewers for stacks.
 Viewer.prototype.OnInteraction = function(callback) {
@@ -228,20 +229,41 @@ Viewer.prototype.SetSectionIndex = function(idx) {
   this.SetSection(section);
 }
 
+
+
+
+Viewer.prototype.SetOverViewBounds = function(bounds) {
+    this.OverViewBounds = bounds;
+    if (this.OverView) {
+        this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+        this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
+                                           0.5*(bounds[2]+bounds[3]));
+        this.OverView.Camera.ComputeMatrix();
+    }
+}
+
+Viewer.prototype.GetOverViewBounds = function() {
+    if (this.OverViewBounds) {
+        return this.OverViewBounds;
+    }
+    var cam = this.OverView.Camera;
+    var halfHeight = cam.GetHeight() / 2;
+    var halfWidth = cam.GetWidth() / 2;
+    this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                           cam.FocalPoint[0] + halfWidth,
+                           cam.FocalPoint[1] - halfHeight,
+                           cam.FocalPoint[1] + halfHeight];
+    return this.OverViewBounds;
+}
+
+
 Viewer.prototype.SetSection = function(section) {
   if (section == null) {
     return;
   }
   this.MainView.Section = section;
   if (this.OverView) {
-    this.OverView.Section = section;
-    //this.ShapeList = section.Markers;
-    //this.ShapeList = section.Markers;
-    var bounds = section.GetBounds();
-    this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
-    this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
-                                       0.5*(bounds[2]+bounds[3]));
-    this.OverView.Camera.ComputeMatrix();
+      this.OverView.Section = section;
   }
   eventuallyRender();
 }
@@ -1021,7 +1043,7 @@ Viewer.prototype.HandleMomentum = function(event) {
 
 
 Viewer.prototype.ConstrainCamera = function () {
-  var bounds = this.MainView.GetBounds();
+  var bounds = this.GetOverViewBounds();
   if ( ! bounds) {
     // Cache has not been set.
     return;
