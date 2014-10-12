@@ -1,9 +1,24 @@
+// TODO: 
+// Dragging is leaving dark lines.
+// Gray out item being dragged.
+// Implement drop.
+//     Indicate drop point before or after items.
+//     Drop in closed session ???
+//     Selection not turning off when dragging stops.
+//     Undo drop
+//     Window should scroll when dragged item gets to the top or bottom of the window.
+// View names should be editable.
+// Select items
+// Select multiple items
+// Drag and drop multiple items.
+
+
 // I am not so sure I like this pattern.
 // I am trying to hide helper object, but
-// it is probably easier to declare them inside the contructor.
+// I could just declare them inside the contructor.
 // This pattern does not make any of the methods
-// private.  I do not this it makes any instance
-// variables provate either.
+// private.  I do not think it makes any instance
+// variables private either.
 
 
 // Closure namespace 
@@ -237,27 +252,8 @@ CollectionBrowser = (function (){
                     function(event){
                         // Start dragging.
                         HideImagePopup();
-                        var item = $(this)
-                            .clone(false)
-                            .appendTo(self.Body)
-                            .css({'position':'fixed',
-                                  'left': event.clientX-20,
-                                  'top' : event.clientY-20})
-                            .mousemove(
-                                function(event) {
-                                    $(this).css({
-                                        'left': event.clientX-20,
-                                        'top' : event.clientY-20});
-                                    return false;
-                                })
-                            .mouseup(
-                                function() {
-                                    $(this).remove();
-                                    return false;
-                                });
-                        return false;
+                        StartViewDrag($(this), self.Body, event.clientX-20, event.clientY-20);
                     });
-
 
             this.Data.push({item:listItem, 
                             label: data.images[i].label,
@@ -290,16 +286,16 @@ CollectionBrowser = (function (){
                 .css({'height':'32px'})
                 .attr("src", this.Data[i].src)
                 .attr("alt", this.Data[i].label)
-                .hover(
+                .mouseenter(
                     function () {
-                        // Show larger image after 2 seconds.
-                        //ScheduleImagePopup($(this));
-                    },
+                        // Show larger image after about 1 second.
+                        ScheduleImagePopup($(this));
+                    })
+                .mouseleave(
                     function () {
-                        //if (POPUP_IMAGE === undefined) {
-                        //    HideImagePopup();
-                        //}
-                    });
+                        // Cancel if the popup has not displayed yet.
+                        ClearPendingImagePopup();
+                    });            
 
         }
     }
@@ -309,7 +305,8 @@ CollectionBrowser = (function (){
         if (this.ViewList.Open) {
             this.ViewList.Open = false;
             this.ViewList.slideUp();
-            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/plus.png")
+            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/plus.png");
+            RemoveDropTarget(this);
         } else {
             // It is not necessary to request meta data because opening the
             // collection already requests session metadata.  However,
@@ -321,28 +318,126 @@ CollectionBrowser = (function (){
             this.ViewList.Open = true;
             this.ViewList.slideDown();
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/minus.png")
+            AddDropTarget(this);
         }
     }
-    
-    
 
 
+    Session.prototype.UpdateDropTarget = function(x, y) {
+        // Check to see if the mous is in the body
+        var pos = this.Body.offset();
+        var width = this.Body.innerWidth();
+        var height = this.Body.innerHeight();
+        var rx = x - pos.left;
+        var ry = y - pos.top;
+        if (rx < 0 || ry < 0 || rx > width || ry > height) {
+            if ( this.DropTargetItem) {
+                this.DropTargetItem.css({'border-color':'#CCC',
+                                         'border-width':'2'});
+                this.DropTargetItem = undefined;
+            }
+            return;
+        }
+        // Find the closest item.
+        var bestDist = 1000000;
+        var bestItem;
+        var bestBefore = true;
+        this.ViewList.children('li').each(
+            function (index, item) {
+                var pos = $(item).offset();
+                var dist = 0;
+                if (x < pos.left) { dist += pos.left - x; }
+                if (y < pos.top) { dist += pos.top - y; }
+                var right = pos.left + $(item).innerWidth();
+                var bottom = pos.top + $(item).innerHeight();
+                if (x > right) { dist += x - right; }
+                if (y > bottom) { dist += y - bottom; }
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestItem = $(item);
+                    bestBefore = x < (pos.left+right)*0.5;
+                }
+            });
+        if ( this.DropTargetItem) {
+            this.DropTargetItem.css({'border-color':'#CCC',
+                                     'border-width':'2'});
+            this.DropTargetItem = undefined;
+        }
+        this.DropTargetBefore = bestBefore;
+        this.DropTargetItem = bestItem;
+        if (this.DropTargetBefore) {
+            bestItem.css({'border-left-color':'#333',
+                          'border-left-width':'4px'});
+        } else {
+            bestItem.css({'border-right-color':'#333',
+                          'border-right-width':'4px'});
+        }
+    }
+
+    
+    
+//==============================================================================
+    var DROP_TARGETS = [];
+    function StartViewDrag(div, parent, x, y) {
+        var item = div
+            .clone(false)
+            .appendTo(parent)
+            .css({'position':'fixed',
+                  'left': x,
+                  'top' : y,
+                  'margin': 0});
+        $('body')
+            .mousemove(
+                function(event) {
+                    item.css({
+                        'left': event.clientX-20,
+                        'top' : event.clientY-20});
+                    UpdateDropTargets(event.pageX, event.pageY);
+                    return false;
+                })
+            .mouseup(
+                function() {
+                    $(this).unbind('mousemove');
+                    item.remove();
+                    return false;
+                });
+        
+        return false;
+    }
+
+    function UpdateDropTargets(x, y) {
+        for (var i = 0; i < DROP_TARGETS.length; ++i) {
+            DROP_TARGETS[i].UpdateDropTarget(x, y);
+        }
+    }
+
+    function AddDropTarget(dropTarget) {
+        DROP_TARGETS.push(dropTarget);
+    }
+
+    function RemoveDropTarget(dropTarget) {
+        var idx = DROP_TARGET.find(dropTarget);
+        DROP_TARGETS.slide(idx,1);
+    }
 
 
 //==============================================================================
-/*    var POPUP_TIMER_ID = 0;
+    var POPUP_TIMER_ID = 0;
     var POPUP_IMAGE = undefined;
     var POPUP_SOURCE_IMAGE;
     function ScheduleImagePopup(img) {
         // Clear any previous timer
         HideImagePopup();
-        POPUP_TIMER_ID = window.setTimeout(function(){ShowImagePopup(img);}, 2000);
+        POPUP_TIMER_ID = window.setTimeout(function(){ShowImagePopup(img);}, 1200);
     }
-    function HideImagePopup () {
+    function ClearPendingImagePopup() {
         if (POPUP_TIMER_ID) {
             window.clearTimeout(POPUP_TIMER_ID);
             POPUP_TIMER_ID = 0;
         }
+    }
+    function HideImagePopup () {
+        ClearPendingImagePopup();
         if (POPUP_IMAGE) {
             //POPUP_IMAGE.css({'height':'32px'});
             POPUP_IMAGE.remove();
@@ -351,19 +446,23 @@ CollectionBrowser = (function (){
     }
     function ShowImagePopup (img) {
         POPUP_SOURCE_IMAGE = img;
-        var pos = img.position();
+        var pos = img.offset();
         POPUP_IMAGE = img.clone(false);
         POPUP_IMAGE
             .appendTo(img.parent())
             .hide()
             .css({
-                'position':'absolute',
+                'position':'fixed',
                 'height': img[0].naturalHeight,
                 'left' : pos.left,
                 'top' : pos.top,
                 'border': '2px solid #CCC'});
         POPUP_IMAGE
             .slideDown()
+            .mouseleave(
+                function () {
+                    HideImagePopup();
+                })
             .mousemove(
                 function (event) {
                     var height = POPUP_SOURCE_IMAGE.height();
@@ -376,7 +475,6 @@ CollectionBrowser = (function (){
                 });
 
     }
-*/
 
 
 

@@ -184,7 +184,11 @@
 
         var IMAGE_HOVER_LABEL;
         $(document).ready(function() {
-            GALLERY = new Gallery();
+            if ( {{ gallery }} ) {
+                GALLERY = new Gallery();
+            } else {
+                GALLERY = new CollectionBrowser();
+            }
             //GALLERY = new CollectionBrowser();
             GALLERY.AppendTo($('#wrapper'));
             GALLERY.DefaultCollectionLabel = "{{collection.label}}";
