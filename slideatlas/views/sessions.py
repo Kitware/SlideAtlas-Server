@@ -141,6 +141,20 @@ def session_edit_view(session):
     session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
 
     return render_template('sessionedit.html',
+                           gallery=1,
+                           collection=session.collection,
+                           session=session,
+                           session_son=session_son)
+
+
+################################################################################
+@mod.route('/sessions/<Session:session>/edit2')
+@security.EditSessionRequirement.protected
+def session_edit2_view(session):
+    session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
+
+    return render_template('sessionedit.html',
+                           gallery=0,
                            collection=session.collection,
                            session=session,
                            session_son=session_son)
