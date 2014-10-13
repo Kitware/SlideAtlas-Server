@@ -1,3 +1,11 @@
+button.badge {
+    color: #428BCA;
+    background-color: #e4e4e4;
+    border-color: #ffffff;
+    margin-left: 1px;
+    margin-right: 1px;
+}
+
 img.login-logo {
     width:16px;
     height:auto;
@@ -11,4 +19,9 @@ li.login-link {
 
 a.login-link {
     font-weight:bold;
+}
+
+img.sa-view-stack {
+    border-left: 8px double #cccccc;
+    border-bottom: 8px double #cccccc;
 }

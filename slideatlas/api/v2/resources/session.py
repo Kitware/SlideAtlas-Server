@@ -118,6 +118,7 @@ class SessionItemAPI(ItemAPIResource):
 
             # set 'ajax_view_item' and 'ajax_view_items' for output
             view_son = {
+                'Type': view.get('Type'),
                 'id': view_id,
                 'label': view_label,
                 'image_id': image_id,

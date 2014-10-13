@@ -287,29 +287,45 @@
         <div class="row">
             <h1>{{ session_son.label }}</h1>
             {%if session_son.attachments or is_session_admin %}
-
-            <h2>Attachments{% if is_session_admin %}<button class="btn btn-primary pull-right sa-attachment-post"><span class="glyphicon glyphicon-upload"></span> Upload</button>{% endif %}</h2>
+            <h2>
+                <span>Attachments</span>
+                <div class="pull-right">
+                {% if is_session_admin %}
+                <button type="button"
+                        class="btn btn-primary badge sa-attachment-post">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    <span> Upload</span>
+                </button>
+                {% endif %}
+                </div>
+            </h2>
             <ul class="list-group">
                 {% for attachment_son in session_son.attachments %}
                 <li class="list-group-item">
                     <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=attachment_son.id, restype='attachments') }}" class="lead sa-attachment-get">{{ attachment_son.name }}</a>
                     {% if is_session_admin %}
-                    <button type="button" class="btn btn-danger badge sa-attachment-delete"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                    <button type="button"
+                            class="btn btn-danger badge sa-attachment-delete">
+                        <i class="glyphicon glyphicon-remove"></i>
+                    </button>
                     {% endif %}
                 </li>
                  {% endfor %}
             </ul>
             {% endif %}
             <br>
-            <h2>{{ session_son.views|length }} Images
-                {% if security.EditSessionRequirement(session).can() %}
-                <a href="{{ url_for('.session_new_stack', session=session) }}" class="lead">
-                    <button class="btn btn-primary pull-right">
-                        <span class="glyphicon glyphicon-plus"></span>
-                        Stack
-                    </button>
-                </a>
-                {% endif %}
+            <h2>
+                <span>{{ session_son.views|length }} Images</span>
+                <div class="pull-right">
+                    {% if security.EditSessionRequirement(session).can() %}
+                    <a href="{{ url_for('.session_new_stack', session=session) }}">
+                        <button class="btn btn-primary badge">
+                            <i class="glyphicon glyphicon-plus"></i>
+                            <span> Stack</span>
+                        </button>
+                    </a>
+                    {% endif %}
+                </div>
             </h2>
 
             {% if is_session_admin %}
@@ -370,7 +386,9 @@
                     <tr>
                         <td>
                             <a href="{{ viewer_url }}">
-                                <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}" width=100px>
+                                <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
+                                     class="{% if view_son.Type == 'Stack' %}sa-view-stack{% endif %}"
+                                     width=100px>
                             </a>
                         </td>
                         <td>
@@ -379,9 +397,12 @@
                         {% if security.EditSessionRequirement(session).can() %}
                         <td align="right">
                             {# TODO: permalink should redirect to viewer_edit_url if another admin follows it #}
-                            <button type="button" class="btn btn-info badge sa-view-permalink" data-url="{{ viewer_view_url }}" data-viewid="{{ view_son.id }}">
-                                <span class="glyphicon glyphicon-link"></span>
-                                Permalink
+                            <button type="button"
+                                    class="btn btn-info badge sa-view-permalink"
+                                    data-url="{{ viewer_view_url }}"
+                                    data-viewid="{{ view_son.id }}">
+                                <i class="glyphicon glyphicon-link"></i>
+                                <span> Permalink</span>
                             </button>
                         </td>
                         {% endif %}
