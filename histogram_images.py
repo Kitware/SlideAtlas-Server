@@ -6,8 +6,15 @@ matplotlib.rcParams['backend'] = "GTKAgg"
 
 # import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+import cStringIO as StringIO
+import pdb
 
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+
+    return v / norm
 
 
 def get_hsv_histograms(hsv_image):
@@ -20,28 +27,57 @@ def get_hsv_histograms(hsv_image):
 
 def get_hsv_histograms_2(hsv_image):
         # Input image is three channels
+        bufs = [StringIO.StringIO() for i in range(3)]
+
         h = hsv_image[..., 0].flatten()
-        h = h * (255.0 / 179)
-        # print max(h)
-        # print len(h)
-
-        n_bins = 256
-
+        n_bins = 180
         hist, edges = np.histogram(h, n_bins)
         fig = plt.figure()
-        ax = plt.subplot(111)
-        hist = hist.flatten()
+        ax = fig.add_subplot(111)
+        hist = normalize(hist.flatten())
         edges = edges.flatten()
         colors = [matplotlib.colors.hsv_to_rgb([i / float(n_bins), 1., 1.]) for i in range(n_bins-1)]
-        ax.bar(edges[range(len(hist))], hist, color=colors)
-        # plt.hist(h, n_bins, range=(0, 360), color=colors)
+        bincenters = 0.5*(edges[1:] + edges[:-1])
+        ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
+        ax.plot(bincenters, hist, lw=1., color='black')
+        fig.savefig(bufs[0], format="svg")
 
+        # s = hsv_image[..., 1].flatten()
+        # n_bins = 256
+        # hist, edges = np.histogram(s, n_bins)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111)
+        # hist = normalize(hist.flatten())
+        # edges = edges.flatten()
+        # colors = [matplotlib.colors.hsv_to_rgb([1., i / float(n_bins), 1.]) for i in range(n_bins-1)]
+        # ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
+        # ax.plot(edges[range(len(hist))], hist, lw=0.5, color='black')
+        # fig.savefig(bufs[1], format="svg")
 
-        # fig.add_subplot(312)
-        # plt.hist(hsv_image[..., 1].flatten(), 256, range=(0, 255), fc='g')
-        # fig.add_subplot(313)
-        # plt.hist(hsv_image[..., 2].flatten(), 256, range=(0, 255), fc='r')
-        plt.show()
+        # v = hsv_image[..., 2].flatten()
+        # n_bins = 256
+        # hist, edges = np.histogram(v, n_bins)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111)
+        # hist = normalize(hist.flatten())
+        # edges = edges.flatten()
+        # colors = [matplotlib.colors.hsv_to_rgb([1., 0., i / float(n_bins)]) for i in range(n_bins-1)]
+        # ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
+        # ax.plot(edges[range(len(hist))], hist, lw=0.5, color='black')
+        # fig.savefig(bufs[2], format="svg")
+
+        # fig = plt.figure()
+        # ax = plt.subplot(111)
+        # ax.hist(hsv_image[..., 1].flatten(), 256, range=(0, 255), fc='g', edgecolor="none")
+        # fig.savefig(bufs[1], format="svg")
+
+        # fig = plt.figure()
+        # ax = plt.subplot(111)
+        # ax.hist(hsv_image[..., 2].flatten(), 256, range=(0, 255), fc='g', edgecolor="none")
+        # fig.savefig(bufs[2], format="svg")
+
+        # plt.show()
+        return bufs
 
 inp = cv2.imread("/home/dhan/Downloads/download.png")
 # inp = cv2.imread("/home/dhan/Downloads/red_leaf.jpg")
@@ -50,6 +86,12 @@ inp = cv2.imread("/home/dhan/Downloads/download.png")
 # cv2.imwrite('three.png', inp[..., 2])
 hsv = cv2.cvtColor(inp, cv2.COLOR_BGR2HSV)
 hist_images = get_hsv_histograms_2(hsv)
+
+for buf, filename in zip(hist_images, ["hue", "saturation", "value"]):
+    fout = open(filename + ".svg", "w")
+    fout.write(buf.getvalue())
+    fout.close()
+    buf.close()
 
 # cv2.imshow("Input", input)
 # cv2.waitKey(0)
