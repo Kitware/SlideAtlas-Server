@@ -32,39 +32,46 @@ def get_hsv_histograms_2(hsv_image):
         h = hsv_image[..., 0].flatten()
         n_bins = 180
         hist, edges = np.histogram(h, n_bins)
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 2.5))
         ax = fig.add_subplot(111)
         hist = normalize(hist.flatten())
         edges = edges.flatten()
         colors = [matplotlib.colors.hsv_to_rgb([i / float(n_bins), 1., 1.]) for i in range(n_bins-1)]
-        bincenters = 0.5*(edges[1:] + edges[:-1])
         ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
+
+        bincenters = 0.5*(edges[1:] + edges[:-1])
         ax.plot(bincenters, hist, lw=1., color='black')
         fig.savefig(bufs[0], format="svg")
 
-        # s = hsv_image[..., 1].flatten()
-        # n_bins = 256
-        # hist, edges = np.histogram(s, n_bins)
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111)
-        # hist = normalize(hist.flatten())
-        # edges = edges.flatten()
-        # colors = [matplotlib.colors.hsv_to_rgb([1., i / float(n_bins), 1.]) for i in range(n_bins-1)]
-        # ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
-        # ax.plot(edges[range(len(hist))], hist, lw=0.5, color='black')
-        # fig.savefig(bufs[1], format="svg")
+        s = hsv_image[..., 1].flatten()
+        n_bins = 256
+        hist, edges = np.histogram(s, n_bins)
+        fig = plt.figure(figsize=(8, 2.5))
+        ax = fig.add_subplot(111)
+        hist = normalize(hist.flatten())
+        edges = edges.flatten()
+        colors = [matplotlib.colors.hsv_to_rgb([1., i / float(n_bins), 1.]) for i in range(n_bins-1)]
+        ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
 
-        # v = hsv_image[..., 2].flatten()
-        # n_bins = 256
-        # hist, edges = np.histogram(v, n_bins)
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111)
-        # hist = normalize(hist.flatten())
-        # edges = edges.flatten()
-        # colors = [matplotlib.colors.hsv_to_rgb([1., 0., i / float(n_bins)]) for i in range(n_bins-1)]
-        # ax.bar(edges[range(len(hist))], hist, width=1.0, color=colors, edgecolor="none", linewidth=0)
-        # ax.plot(edges[range(len(hist))], hist, lw=0.5, color='black')
-        # fig.savefig(bufs[2], format="svg")
+        bincenters = 0.5*(edges[1:] + edges[:-1])
+        ax.plot(bincenters, hist, lw=1., color='black')
+        fig.savefig(bufs[1], format="svg")
+
+        v = hsv_image[..., 2].flatten()
+        n_bins = 256
+        hist, edges = np.histogram(v, n_bins)
+        fig = plt.figure(figsize=(8, 2.5))
+        ax = fig.add_subplot(111)
+        hist = normalize(hist.flatten())
+        edges = edges.flatten()
+        colors = [matplotlib.colors.hsv_to_rgb([1., 0., i / float(n_bins)]) for i in range(n_bins-1)]
+        ax.bar(edges[range(len(hist))], hist, width=1.5, color=colors, edgecolor="none", linewidth=0)
+
+        bincenters = 0.5*(edges[1:] + edges[:-1])
+        bincenters_filtered = bincenters[hist > 0.]
+        hist_filtered = hist[hist > 0.]
+        ax.plot(bincenters_filtered, hist_filtered, lw=1., color='black')
+        fig.savefig(bufs[2], format="svg")
 
         # fig = plt.figure()
         # ax = plt.subplot(111)
