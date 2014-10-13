@@ -25,7 +25,7 @@ def get_hsv_histograms(hsv_image):
     plt.show()
 
 
-def get_hsv_histograms_2(hsv_image):
+def get_hsv_histograms_2(hsv_image, output_format="svg"):
         # Input image is three channels
         bufs = [StringIO.StringIO() for i in range(3)]
 
@@ -41,7 +41,7 @@ def get_hsv_histograms_2(hsv_image):
 
         bincenters = 0.5*(edges[1:] + edges[:-1])
         ax.plot(bincenters, hist, lw=1., color='black')
-        fig.savefig(bufs[0], format="svg")
+        fig.savefig(bufs[0], format=output_format)
 
         s = hsv_image[..., 1].flatten()
         n_bins = 256
@@ -55,7 +55,7 @@ def get_hsv_histograms_2(hsv_image):
 
         bincenters = 0.5*(edges[1:] + edges[:-1])
         ax.plot(bincenters, hist, lw=1., color='black')
-        fig.savefig(bufs[1], format="svg")
+        fig.savefig(bufs[1], format=output_format)
 
         v = hsv_image[..., 2].flatten()
         n_bins = 256
@@ -71,7 +71,7 @@ def get_hsv_histograms_2(hsv_image):
         bincenters_filtered = bincenters[hist > 0.]
         hist_filtered = hist[hist > 0.]
         ax.plot(bincenters_filtered, hist_filtered, lw=1., color='black')
-        fig.savefig(bufs[2], format="svg")
+        fig.savefig(bufs[2], format=output_format)
 
         # fig = plt.figure()
         # ax = plt.subplot(111)
@@ -91,11 +91,12 @@ inp = cv2.imread("/home/dhan/Downloads/download.png")
 # cv2.imwrite('one.png', inp[..., 0])
 # cv2.imwrite('two.png', inp[..., 1])
 # cv2.imwrite('three.png', inp[..., 2])
+output_format = "png"
 hsv = cv2.cvtColor(inp, cv2.COLOR_BGR2HSV)
-hist_images = get_hsv_histograms_2(hsv)
+hist_images = get_hsv_histograms_2(hsv, output_format=output_format)
 
 for buf, filename in zip(hist_images, ["hue", "saturation", "value"]):
-    fout = open(filename + ".svg", "w")
+    fout = open(filename + "." + output_format, "w")
     fout.write(buf.getvalue())
     fout.close()
     buf.close()
