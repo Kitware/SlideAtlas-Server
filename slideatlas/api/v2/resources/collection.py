@@ -20,7 +20,7 @@ class CollectionListAPI(ListAPIResource):
         def _to_collection_son(item):
             collection, operation = item
             collection_son = collection.to_son(only_fields=('label',))
-            collection_son['access'] = str(operation)
+            collection_son['_access'] = str(operation)
             return collection_son
         collections_son = map(_to_collection_son, collections_with_accesses)
 

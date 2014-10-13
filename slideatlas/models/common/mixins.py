@@ -31,10 +31,14 @@ class ToSonDocumentMixin(object):
 
         # SON is ordered, so we must build a new one to change keys
         reverse_db_field_map = dict(self._reverse_db_field_map)
-        reverse_db_field_map['_cls'] = 'type'
+        reverse_db_field_map['_id'] = '_id'
+        reverse_db_field_map['_cls'] = '_type'
         son = SON( (reverse_db_field_map[mongo_field], value)
                    for (mongo_field, value)
                    in self.to_mongo().iteritems() )
+
+        # TODO: remove compatibility field
+        son['id'] = son['_id']
 
         if include_empty:
             # 'to_mongo' omits empty fields
@@ -43,12 +47,15 @@ class ToSonDocumentMixin(object):
 
         if exclude_fields is not None:
             for field in exclude_fields:
-                if field != 'id':
+                if field not in ['_id', '_type', 'id']:   # TODO: remove compatibility field
                     # use 'pop', in case 'include_empty' is False and the field doesn't exist
                     son.pop(field, None)
         elif only_fields is not None:
             only_fields = set(only_fields)
-            only_fields.add('id')  # always include 'id'
+            # always include '_id' and (optionally) '_type'
+            only_fields.add('_id')
+            only_fields.add('_type')  # always include 'id'
+            only_fields.add('id')  # TODO: remove compatibility field
             for field in son.iterkeys():
                 if field not in only_fields:
                     del son[field]

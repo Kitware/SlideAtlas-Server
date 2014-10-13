@@ -91,9 +91,9 @@ class AccessAPIResource(APIResource):
                 except (KeyError, TypeError, AttributeError):
                     abort(400, details='The request\'s "%s" fields\' "level" fields must be valid access level / operation types.' % entity_type)
                 try:
-                    entity = ObjectId(entity_access_item['id'])
+                    entity = ObjectId(entity_access_item['_id'])
                 except (KeyError, InvalidId):
-                    abort(400, details='The request\'s "%s" fields\' "id" fields must be valid ObjectIds.' % entity_type)
+                    abort(400, details='The request\'s "%s" fields\' "_id" fields must be valid ObjectIds.' % entity_type)
                 entities_by_operation[operation].append(entity)
 
             entity_model.objects(permissions__resource_id=resource.id)\
