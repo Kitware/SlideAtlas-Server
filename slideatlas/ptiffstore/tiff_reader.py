@@ -192,11 +192,6 @@ class TileReader():
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
 
-            # Write the meta file
-            fout = open(self.params["fname"] + ".meta.xml", "w")
-            fout.write(self.meta)
-            fout.close()
-
         except Exception as E:
             logging.log(
                 logging.WARNING, "Image Description failed for valid Philips XML because %s" % (E.message))
