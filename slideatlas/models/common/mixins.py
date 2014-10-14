@@ -24,7 +24,7 @@ class ToSonDocumentMixin(object):
         may be specified, containing an iterable of field names to explicitly
         include or exclude from the result. The 'id' field is always included.
         """
-        if exclude_fields and only_fields:
+        if (exclude_fields is not None) and (only_fields is not None):
             raise Exception()
 
         # TODO: convert reference fields as {'id':.., 'label':..}
@@ -41,12 +41,12 @@ class ToSonDocumentMixin(object):
             for field_name in self:
                 son.setdefault(field_name, None)
 
-        if exclude_fields:
+        if exclude_fields is not None:
             for field in exclude_fields:
                 if field != 'id':
                     # use 'pop', in case 'include_empty' is False and the field doesn't exist
                     son.pop(field, None)
-        elif only_fields:
+        elif only_fields is not None:
             only_fields = set(only_fields)
             only_fields.add('id')  # always include 'id'
             for field in son.iterkeys():

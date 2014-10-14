@@ -1,7 +1,9 @@
 # coding=utf-8
 
+from flask import g
+
 from slideatlas import models, security
-from ..base import APIResource, ListAPIResource, ItemAPIResource
+from ..base import ListAPIResource, ItemAPIResource, AccessAPIResource
 from ..blueprint import api
 from ..common import abort
 
@@ -13,8 +15,17 @@ __all__ = ('CollectionListAPI', 'CollectionItemAPI', 'CollectionAccessAPI')
 class CollectionListAPI(ListAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self):
-        collections = models.Collection.objects.order_by('label')
-        return dict(collections=collections.to_son(only_fields=('label',)))
+        collections_with_accesses = models.Collection.objects.\
+            only('label').order_by('label').with_accesses(g.identity.provides)
+        def _to_collection_son(item):
+            collection, operation = item
+            collection_son = collection.to_son(only_fields=('label',))
+            collection_son['access'] = str(operation)
+            return collection_son
+        collections_son = map(_to_collection_son, collections_with_accesses)
+
+        return dict(collections=collections_son)
+
 
     def post(self):
         abort(501)  # Not Implemented
@@ -40,18 +51,14 @@ class CollectionItemAPI(ItemAPIResource):
 
 
 ################################################################################
-class CollectionAccessAPI(APIResource):
+class CollectionAccessAPI(AccessAPIResource):
     @security.AdminCollectionRequirement.protected
     def get(self, collection):
-        groups = models.Group.objects(permissions__resource_type='collection',
-                                      permissions__resource_id=collection.id
-                                     ).order_by('label')
-
-        return dict(users=[], groups=groups.to_son(only_fields=('label',)))
+        return super(CollectionAccessAPI, self).get(collection)
 
     @security.AdminCollectionRequirement.protected
-    def post(self, collection):
-        abort(501)  # Not Implemented
+    def put(self, collection):
+        return super(CollectionAccessAPI, self).put(collection)
 
 
 ################################################################################
@@ -68,4 +75,4 @@ api.add_resource(CollectionItemAPI,
 api.add_resource(CollectionAccessAPI,
                  '/collections/<Collection:collection>/access',
                  endpoint='collection_access',
-                 methods=('GET', 'POST'))
+                 methods=('GET', 'PUT'))

@@ -44,8 +44,8 @@ def view_all_sessions():
     # disable dereferencing of of sessions, to prevent running a seperate
     #   query for every single session's collection
 
-    editable_sessions_query = all_sessions_query.can_edit(g.identity.provides)
-    viewable_sessions_query = all_sessions_query.can_view_only(g.identity.provides)
+    editable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.edit)
+    viewable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.view, strict_operation=True)
 
     # fetch the relevant collections in bulk
     collections_by_id = {collection.id: collection for collection in

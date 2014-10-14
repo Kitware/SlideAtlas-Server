@@ -6,7 +6,7 @@ from bson import ObjectId
 from flask import request, url_for
 
 from slideatlas import models, security
-from ..base import APIResource, ListAPIResource, ItemAPIResource
+from ..base import ListAPIResource, ItemAPIResource, AccessAPIResource
 from ..blueprint import api
 from ..common import abort
 from .file import SessionAttachmentListAPI, SessionAttachmentItemAPI
@@ -180,18 +180,14 @@ class SessionItemAPI(ItemAPIResource):
 
 
 ################################################################################
-class SessionAccessAPI(APIResource):
-    @security.EditSessionRequirement.protected
+class SessionAccessAPI(AccessAPIResource):
+    @security.AdminSessionRequirement.protected
     def get(self, session):
-        groups = models.Group.objects(permissions__resource_type='session',
-                                      permissions__resource_id=session.id
-                                     ).order_by('label')
+        return super(SessionAccessAPI, self).get(session)
 
-        return dict(users=[], groups=groups.to_son(only_fields=('label',)))
-
-    @security.EditCollectionRequirement.protected
-    def post(self, collection):
-        abort(501)  # Not Implemented
+    @security.AdminSessionRequirement.protected
+    def put(self, session):
+        return super(SessionAccessAPI, self).put(session)
 
 
 ################################################################################
@@ -208,4 +204,4 @@ api.add_resource(SessionItemAPI,
 api.add_resource(SessionAccessAPI,
                  '/sessions/<Session:session>/access',
                  endpoint='session_access',
-                 methods=('GET', 'POST'))
+                 methods=('GET', 'PUT'))

@@ -7,7 +7,7 @@ from mongoengine import Q, EmbeddedDocument, BooleanField, DictField, \
     ListField, ObjectIdField, ReferenceField, StringField
 from mongoengine.errors import NotRegistered
 
-from .common import ModelDocument, AdminSitePermission
+from .common import ModelDocument, Operation, ResourceType, AdminSitePermission
 from .common.model_document import ModelQuerySet
 from .image_store import ImageStore
 from .collection import Collection
@@ -148,39 +148,37 @@ class RefListField(ListField):
 
 ################################################################################
 class SessionQuerySet(ModelQuerySet):
-    def _can_access(self, permissions, access_operations):
-        if not isinstance(permissions, set):
-            raise ValueError('permissions must be a set of Permissions')
+    def can_access(self, permissions_set, required_operation=Operation.view, strict_operation=False):
+        """
+        :param permissions_set: A set of Permission objects to filter the session query by.
+        :type permissions_set: set of [common.Permission]
+
+        :param required_operation: The minimum operation allowed on the sessions.
+        :type required_operation: common.Operation
+
+        :param strict_operation: Make 'required_operation' strictly refer to an operation type, instead of a minimum.
+        :type strict_operation: bool
+
+        :rtype: SessionQuerySet
+        """
+        if not isinstance(permissions_set, set):
+            raise ValueError('permissions_set must be a set of Permissions')
         queryset = self.clone()
-        if AdminSitePermission() in permissions:
+        if AdminSitePermission() in permissions_set and \
+           ((not strict_operation) or (required_operation == Operation.admin)):
             return queryset.all()
         else:
             query_collections = set()
             query_sessions = set()
-            for permission in permissions:
-                if permission.operation in access_operations:
-                    if permission.resource_type == 'collection':
+            for permission in permissions_set:
+                if permission.operation >= required_operation:
+                    if permission.resource_type == ResourceType.collection:
                         query_collections.add(permission.resource_id)
-                    elif permission.resource_type == 'session':
+                    elif permission.resource_type == ResourceType.session:
                         query_sessions.add(permission.resource_id)
             query = Q(collection__in=list(query_collections)) | \
                     Q(id__in=list(query_sessions))
             return queryset.filter(query)
-
-    def can_view(self, permissions):
-        return self._can_access(permissions, {'admin', 'edit', 'view'})
-
-    def can_view_only(self, permissions):
-        if AdminSitePermission() in permissions:
-            # need to counter the optimization in '_can_access'
-            return self.none()
-        return self._can_access(permissions, {'view'})
-
-    def can_edit(self, permissions):
-        return self._can_access(permissions, {'admin', 'edit'})
-
-    def can_admin(self, permissions):
-        return self._can_access(permissions, {'admin'})
 
 
 ################################################################################
