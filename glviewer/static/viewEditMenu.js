@@ -175,7 +175,7 @@ function InitViewEditMenus() {
 
     $('<li>').appendTo(viewEditSelector)
       .text('Color thresholding')
-      .click(function() {pluginScarRatio();});
+      .click(function() {pluginScarRatio.Start();});
 
     // I need some indication that the behavior id different in edit mode.
     // If the user is authorized, the new bounds are automatically saved.
