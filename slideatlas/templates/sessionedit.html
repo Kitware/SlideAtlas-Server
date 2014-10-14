@@ -91,7 +91,7 @@
         }
 
 
-        function save(saveNew) {
+        function save() {
             var views = [];
             var guiViews = [];
             $('li', '#sortable').each(function () {
@@ -115,7 +115,6 @@
             // Save the new order in the database.
             // Python will have to detect if any view objects have to be deleted.
             var args = {};
-            args.new = saveNew;
             args.views = views;
             args.session = SESSION_ID;
             args.label = $("#title").val();
@@ -291,8 +290,7 @@
                 <input type="text" id="title" onkeyup="updateOptions()" name="views" style="width: 340px;" value="{{ session_son.label }}"/>
             </div>
             <div>
-                <button id="saveButton" onclick="save(false)" >Save</button>
-                <button onclick="save(true)" >Save New</button>
+                <button id="saveButton" onclick="save()" >Save</button>
                 <button onclick="cancel()" >Cancel</button>
                 <div style="float: right;"> <input type="checkbox" id="hideCheck">
                     Hide Markup
