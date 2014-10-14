@@ -3,6 +3,7 @@ from flask import Blueprint, request, render_template, make_response
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+import re
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -791,5 +792,20 @@ def fixjustification():
     return "success"
 
 
+import flask
+import base64
+dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
 
 
+@mod.route('/get_image_histograms', methods=['GET', 'POST'])
+def get_image_histograms():
+    img = flask.request.get('img')
+    imgb64 = dataUrlPattern.match(img).group(2)
+    if imgb64 is not None and len(imgb64) > 0:
+        imgbin = base64.b64decode(imgb64)
+        response = make_response(imgbin)
+        response.headers['Content-Type'] = 'image/jpeg'
+        response.headers['Content-Disposition'] = 'attachment; filename=img.jpg'
+        return response
+    else:
+        return flask.Response("Error")
