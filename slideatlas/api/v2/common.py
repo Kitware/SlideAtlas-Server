@@ -11,7 +11,7 @@ __all__ = ()
 
 ################################################################################
 def output_json(data, code, headers):
-    if isinstance(data, dict):
+    if isinstance(data, (dict, list)):
         indent = None
         if current_app.config['JSONIFY_PRETTYPRINT_REGULAR'] and not request.is_xhr:
             indent = 2
@@ -25,7 +25,7 @@ def output_json(data, code, headers):
             #   JSON response body for non-204 codes
             data = '{}'
     else:
-        raise ValueError('data is expected to be a dict or None')
+        raise ValueError('data is expected to be a dict, list, or None')
 
     return make_response(data, code, headers)
 
