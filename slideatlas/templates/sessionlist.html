@@ -73,9 +73,10 @@
     {% endif %}
 {% endblock scripts %}
 
+
 {% block content %}
 {{ super() }}
-    <div class="container">
+    <div class="container" ng-app="SlideAtlas">
         {% for (collection, sessions) in all_sessions %}
         <div class="row" data-collection-id="{{ collection.id }}">
             <h2 class="anchor pull-left" id="{{ collection.id }}">
@@ -92,6 +93,13 @@
                         class="btn btn-primary badge sa-session-create">
                     <i class="glyphicon glyphicon-plus"></i>
                     <span> Session</span>
+                </button>
+                <button type="button"
+                        class="btn btn-info badge sa-collection-access"
+                        ng-controller="AccessModalCtrl"
+                        ng-click="open('collections', '{{ collection.id }}')">
+                    <i class="glyphicon glyphicon-share"></i>
+                    <span> Share</span>
                 </button>
             </div>
             {% endif %}
@@ -121,6 +129,13 @@
                             <span> Edit</span>
                         </button>
                     </a>
+                    <button type="button"
+                            class="btn btn-info badge sa-session-access"
+                            ng-controller="AccessModalCtrl"
+                            ng-click="open('sessions', '{{ session.id }}')">
+                        <i class="glyphicon glyphicon-share"></i>
+                        <span> Share</span>
+                    </button>
                 </td>
                 {% endif %}
             </tr>

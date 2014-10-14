@@ -1,0 +1,50 @@
+<div class="modal-header">
+    <h1 class="modal-title">Share for <span ng-bind="resource.label"></span></h1>
+</div>
+
+<div class="modal-body">
+    <h3>Groups / Users</h3>
+    <ul class="list-group container-fluid" style="overflow:auto; height:200px !important;">
+        <!-- TODO: 'track by' in ng-repeat? -->
+        <div ng-repeat="(entityType, entityList) in accessEntities">
+            <li class="list-group-item row" ng-repeat="entity in entityList">
+                <div class="col-sm-6">
+                    <i class="glyphicon"
+                          ng-class="entityType == 'users' ? 'glyphicon-user' : 'glyphicon-th-large';"></i>
+                    <span>{{ entity.label }}</span>
+                </div>
+                <div class="col-sm-3">
+                    <select ng-model="entity.level" ng-options="level.value as level.name for level in levels"></select>
+                </div>
+                <div class="pull-right">
+                    <button type="button" class="btn btn-danger badge"
+                            ng-click="remove(entityType, $index)">
+                        <i class="glyphicon glyphicon-remove"></i>
+                    </button>
+                </div>
+            </li>
+        </div>
+    </ul>
+    <h4>Add</h4>
+    <label for="availableQuery">Filter by:</label>
+    <input type="text" id="availableQuery" ng-model="availableQuery">
+    <ul class="list-group" style="overflow:auto; height:200px !important;">
+        <section ng-repeat="(entityType, entityList) in availableEntities">
+            <li class="list-group-item"
+                ng-repeat="entity in entityList | unusedEntityFilter:accessEntities[entityType] | filter:{label: availableQuery} track by entity._id">
+                <i class="glyphicon"
+                          ng-class="entityType == 'users' ? 'glyphicon-user' : 'glyphicon-th-large';"></i>
+                <span>{{ entity.label }}</span>
+                <button type="button" class="btn btn-info badge"
+                        ng-click="add(entityType, entity)">
+                    <i class="glyphicon glyphicon-plus"></i>
+                </button>
+            </li>
+        </section>
+    </ul>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-primary" ng-click="save()">Save changes</button>
+    <button type="button" class="btn" ng-click="cancel()">Cancel</button>
+</div>
