@@ -88,7 +88,7 @@ class AdminRequirement(Requirement, ModelProtectionMixin):
 
     def allows(self, identity):
         for permission in identity.provides:
-            if permission.operation == 'admin':
+            if permission.operation >= models.Operation.admin:
                 return True
         return False
 
@@ -168,7 +168,7 @@ def on_identity_loaded(app, identity):
     if isinstance(current_user._get_current_object(), models.User):
         identity.provides.add(UserPermission(current_user.id))
         identity.provides.update(current_user.effective_permissions)
-    else: # Anonymous
+    else:  # Anonymous
         identity.provides.update(permission_document.to_permission()
                                  for permission_document
                                  in models.PublicGroup.get.permissions)
