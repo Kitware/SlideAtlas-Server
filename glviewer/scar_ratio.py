@@ -7,7 +7,6 @@ import matplotlib
 # import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import cStringIO as StringIO
-import pdb
 
 """
 This plugin also expects a javascript object pluginScarRatio.js to be loaded on the client side.
@@ -83,3 +82,13 @@ def get_hsv_histograms_2(hsv_image, output_format="svg"):
         return bufs
 
 
+def hsv_threshold_image(hsv_image, hmin=0, hmax=360, smin=0, smax=256, vmin=0, vmax=256):
+    return cv2.inRange(hsv_image, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
+
+if __name__ == '__main__':
+
+    inp = cv2.imread("/home/dhan/Downloads/pycharm.png")
+    out = hsv_threshold_image(inp, hmin=35)
+    status, image = cv2.imencode(".png", out)
+    fout = open("mask.png", "wb")
+    fout.write(image.tostring())
