@@ -14,11 +14,10 @@ function FilterColorThreshold() {
     Filter.call(this);
 
     // Define the selectors
-
     this.selectors = {};
     this.selectors['hue'] = {range : [0, 360]};
-    this.selectors['hue'] ={range: [0, 256]};
-    this.selectors['saturation'] = {range: [0, 256]};
+    this.selectors['saturation'] ={range: [0, 256]};
+    this.selectors['value'] = {range: [0, 256]};
 
     // Current range is the default range
     for(var key in this.selectors) {
@@ -91,26 +90,29 @@ FilterColorThreshold.prototype.Start = function() {
 
     $('<button>').appendTo(dialogDiv)
         .text('Update')
-        .attr('id', 'updateButton')
         .click(function () {
             alert('About to update');
             $.ajax({url: '/webgl-viewer/get_mask',
                 data: {
-                    img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg')
+                    img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg'),
+
+                    hmin: that.selectors["hue"].current[0],
+                    hmax: that.selectors["hue"].current[1],
+
+                    smin: that.selectors["saturation"].current[0],
+                    smax: that.selectors["saturation"].current[1],
+
+                    vmin: that.selectors["value"].current[0],
+                    vmax: that.selectors["value"].current[1],
                 }
             })
             .done(function(data) {
-                that.histograms = data;
-                that.Start()
+                // show the image popup
+                alert("Got the image !");
             });
         })
 
     $('<br>').appendTo(dialogDiv);
 
     var dialog = dialogDiv.dialog({width: 500, height: 'auto'});
-
-    $('#updateButton').click(function() {
-        alert("Ready to update !!");
-    });
-
 }

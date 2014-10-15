@@ -826,3 +826,37 @@ def get_image_histograms():
         return jsonify(result)
     else:
         return flask.Response("Error")
+
+import cStringIO as StringIO
+
+
+@mod.route('/hsv_threshold', methods=['GET', 'POST'])
+@mod.route('/get_mask', methods=['GET', 'POST'])
+def hsv_threshold():
+    img = flask.request.args.get('img')
+
+    hmin = int(flask.request.args.get('hmin', '0'))
+    smin = int(flask.request.args.get('smin', '0'))
+    vmin = int(flask.request.args.get('vmin', '0'))
+
+    hmax = int(flask.request.args.get('hmax', '360'))
+    smax = int(flask.request.args.get('smax', '256'))
+    vmax = int(flask.request.args.get('vmax', '256'))
+
+    imgb64 = dataUrlPattern.match(img).group(2)
+    if imgb64 is not None and len(imgb64) > 0:
+        # Get input image
+        imgbin = base64.b64decode(imgb64)
+        img_array = np.asarray(bytearray(imgbin), dtype=np.uint8)
+        inp = cv2.imdecode(img_array, 1)
+
+        # Perform thresholding
+        out = cv2.inRange(inp, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
+
+        # Encode the results to png
+        status, image = cv2.imencode(".png", out)
+        response = flask.Response(content_type='image/png')
+        response.set_data(image.tostring())
+        return response
+    else:
+        return flask.Response("Error")
