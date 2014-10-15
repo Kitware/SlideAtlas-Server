@@ -1,10 +1,17 @@
+/*
+
+
+
+
+*/
+
+
 function Filter() {
 
 };
 
 function FilterColorThreshold() {
   Filter.call(this);
-  this.Init()
 };
 
 FilterColorThreshold.prototype = new Filter;
@@ -17,15 +24,23 @@ FilterColorThreshold.prototype.destructor=function() {
 
 FilterColorThreshold.prototype.Init = function() {
   // Gets the graphs and constructs the dialog
-  $.post('/webgl-viewer/get_image_histograms', {
-            img : canvas.toDataURL('image/jpeg')
-        },
-        function(data) {
-            this.Start()
-        });
+    var that=this;
+
+    $.ajax({url: '/webgl-viewer/get_image_histograms',
+        data: {
+            img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg')
+        }
+    })
+    .done(function(data) {
+        that.Start()
+    });
 }
 
 FilterColorThreshold.prototype.Start = function() {
+
+
+
+
     // Create a div
     var dialogDiv = $('<div>')
         .attr('id', 'scar_ratio_dialog')

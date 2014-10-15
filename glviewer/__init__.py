@@ -795,17 +795,22 @@ def fixjustification():
 import flask
 import base64
 dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
+from scar_ratio import get_hsv_histograms_2
 
 
 @mod.route('/get_image_histograms', methods=['GET', 'POST'])
 def get_image_histograms():
-    img = flask.request.get('img')
+    img = flask.request.args.get('img')
     imgb64 = dataUrlPattern.match(img).group(2)
     if imgb64 is not None and len(imgb64) > 0:
         imgbin = base64.b64decode(imgb64)
-        response = make_response(imgbin)
-        response.headers['Content-Type'] = 'image/jpeg'
-        response.headers['Content-Disposition'] = 'attachment; filename=img.jpg'
+        # # For debugging
+        # fout = open("try.jpg", "wb")
+        # fout.write(imgbin)
+        # fout.close()
+
+        response = flask.Response(content_type='image/jpeg')
+        response.set_data(imgbin)
         return response
     else:
         return flask.Response("Error")

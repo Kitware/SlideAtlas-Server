@@ -2,12 +2,17 @@ import numpy as np
 import cv2
 
 import matplotlib
-matplotlib.rcParams['backend'] = "GTKAgg"
+# matplotlib.rcParams['backend'] = "GTKAgg"
 
 # import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import cStringIO as StringIO
 import pdb
+
+"""
+This plugin also expects a javascript object pluginScarRatio.js to be loaded on the client side.
+"""
+
 
 def normalize(v):
     norm = np.linalg.norm(v)
