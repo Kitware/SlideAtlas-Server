@@ -5,7 +5,7 @@
 // Views can share a cache for tiles.
 
 // Cache is the source for the image tiles.
-function View (viewport, layer) { // connectome: remove cache arg to constructor
+function View (viewport, layer, hide) { // connectome: remove cache arg to constructor
   for (var i = 0; i < 4; ++i) {
     viewport[i] = Math.round(viewport[i]);
   }
@@ -13,7 +13,7 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
   viewport[2] -=2;
   viewport[3] -=2;
 
-  // connectome : default section so we cen set cache.
+  // connectome : default section so we cen set cache
   this.Section = new Section;
 
   // connectome: remove Cache ivar.
@@ -26,19 +26,23 @@ function View (viewport, layer) { // connectome: remove cache arg to constructor
 
   // 2d canvas
   if ( ! GL) {
-    // Add a new canvas.
-    this.Canvas = $('<canvas>').appendTo(CANVAS).css({
-        'position': 'absolute',
-        'left' : viewport[0]+"px",
-        'width': viewport[2]+"px",
-        'bottom' : viewport[1]+"px",
-        'height': viewport[3]+"px",
-        'z-index': layer.toString(),
-        'border-style': 'solid',
-        'border-width': '1px'
-    });
+      // Add a new canvas.
+      this.Canvas = $('<canvas>')
+          .css({
+              'position': 'absolute',
+              'left' : viewport[0]+"px",
+              'width': viewport[2]+"px",
+              'bottom' : viewport[1]+"px",
+              'height': viewport[3]+"px",
+              'z-index': layer.toString(),
+              'border-style': 'solid',
+              'border-width': '1px'
+          });
+      if ( ! hide) {
+          this.Canvas.appendTo(CANVAS)
+      }
 
-    this.Context2d = this.Canvas[0].getContext("2d");
+      this.Context2d = this.Canvas[0].getContext("2d");
   }
 }
 

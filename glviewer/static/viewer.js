@@ -167,9 +167,59 @@ Viewer.prototype.UpdateZoomGui = function() {
   this.ZoomDisplay.html( 'x' + zoomValue);
 }
 
+
 Viewer.prototype.SaveImage = function(fileName) {
   this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
 }
+
+
+
+
+// Create a virtual viewer to save a very large image.
+Viewer.prototype.SaveLargeImage = function(fileName, width, height) {
+    var self = this;
+    var cache = this.GetCache();
+    var viewport = [0,0, width, height];
+    var cam = this.GetCamera();
+
+    // Clone the main view.
+    var view = new View(viewport, 1, true);
+    view.SetCache(cache);
+    view.Canvas.attr("width", width);
+    view.Canvas.attr("height", height);
+    var newCam = view.Camera;
+    newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
+    newCam.Roll = cam.Roll;
+    newCam.Height = cam.Height;
+    newCam.ComputeMatrix();
+
+    // Load only the tiles we need.
+    var tiles = cache.ChooseTiles(newCam, 0, []);
+    for (var i = 0; i < tiles.length; ++i) {
+        LoadQueueAddTile(tiles[i]);
+    }
+
+    SetFinishedLoadingCallback(
+        function () {
+            view.DrawTiles();
+            if (self.AnnotationVisibility) {
+                for(i=0; i<self.ShapeList.length; i++){
+                    self.ShapeList[i].Draw(view);
+                }
+                for(i in self.WidgetList){
+                    self.WidgetList[i].Draw(view, self.AnnotationVisibility);
+                }
+            }
+            
+            view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+        }
+    );
+    // Needed to trigger loading.
+    eventuallyRender();
+}
+
+
+
 
 // This method waits until all tiles are loaded before saving.
 var SAVE_FINISH_CALLBACK;
