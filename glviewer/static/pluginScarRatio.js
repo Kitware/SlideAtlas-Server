@@ -32,6 +32,7 @@ FilterColorThreshold.prototype.Init = function() {
         }
     })
     .done(function(data) {
+        that.histograms = data;
         that.Start()
     });
 }
@@ -53,7 +54,7 @@ FilterColorThreshold.prototype.Start = function() {
         $('<h3>' + selectors[i].name  + ' </h3>').appendTo(dialogDiv);
 
         $('<img>')
-            .attr('src', '/webgl-viewer/static/temp/' + selectors[i].name + ".png")
+            .attr('src', 'data:image/png;base64,' + this.histograms[selectors[i].name])
             .attr('width','100%')
             .appendTo(dialogDiv);
 

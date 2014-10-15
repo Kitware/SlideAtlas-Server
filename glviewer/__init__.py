@@ -791,11 +791,12 @@ def fixjustification():
     db["images"].save(imgObj)
     return "success"
 
-
 import flask
 import base64
 dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
 from scar_ratio import get_hsv_histograms_2
+import cv2
+import numpy as np
 
 
 @mod.route('/get_image_histograms', methods=['GET', 'POST'])
@@ -808,9 +809,20 @@ def get_image_histograms():
         # fout = open("try.jpg", "wb")
         # fout.write(imgbin)
         # fout.close()
+        img_array = np.asarray(bytearray(imgbin), dtype=np.uint8)
+        inp = cv2.imdecode(img_array, 1)
 
-        response = flask.Response(content_type='image/jpeg')
-        response.set_data(imgbin)
-        return response
+        cv2.imwrite("test.png", inp)
+        output_format = "png"
+        hsv = cv2.cvtColor(inp, cv2.COLOR_BGR2HSV)
+        hist_images = get_hsv_histograms_2(hsv, output_format=output_format)
+
+        result = {}
+
+        for buf, filename in zip(hist_images, ["hue", "saturation", "value"]):
+            result[filename] = base64.b64encode(buf.getvalue())
+            buf.close()
+
+        return jsonify(result)
     else:
         return flask.Response("Error")
