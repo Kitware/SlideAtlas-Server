@@ -839,7 +839,7 @@ def hsv_threshold():
     smin = int(flask.request.args.get('smin', '0'))
     vmin = int(flask.request.args.get('vmin', '0'))
 
-    hmax = int(flask.request.args.get('hmax', '360'))
+    hmax = int(flask.request.args.get('hmax', '360')) / 2
     smax = int(flask.request.args.get('smax', '256'))
     vmax = int(flask.request.args.get('vmax', '256'))
 
