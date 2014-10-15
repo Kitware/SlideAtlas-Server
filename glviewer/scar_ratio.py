@@ -82,13 +82,32 @@ def get_hsv_histograms_2(hsv_image, output_format="svg"):
         return bufs
 
 
-def hsv_threshold_image(hsv_image, hmin=0, hmax=360, smin=0, smax=256, vmin=0, vmax=256):
-    return cv2.inRange(hsv_image, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
-
-if __name__ == '__main__':
-
+def test_buffer_write():
     inp = cv2.imread("/home/dhan/Downloads/pycharm.png")
     out = hsv_threshold_image(inp, hmin=35)
     status, image = cv2.imencode(".png", out)
     fout = open("mask.png", "wb")
     fout.write(image.tostring())
+
+
+def test_transparency():
+
+    inp = cv2.imread("./temp/in.png")
+
+    hmax = 360 / 2
+    hmin = 54 / 2
+    smax = 256
+    smin = 0
+    vmax = 256
+    vmin = 0
+
+    # Perform thresholding
+    out = cv2.inRange(inp, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
+    cv2.imwrite("result.png", out)
+
+
+def hsv_threshold_image(hsv_image, hmin=0, hmax=360, smin=0, smax=256, vmin=0, vmax=256):
+    return cv2.inRange(hsv_image, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
+
+if __name__ == '__main__':
+    test_transparency()

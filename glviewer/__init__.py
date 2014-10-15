@@ -827,15 +827,13 @@ def get_image_histograms():
     else:
         return flask.Response("Error")
 
-import cStringIO as StringIO
-
 
 @mod.route('/hsv_threshold', methods=['GET', 'POST'])
 @mod.route('/get_mask', methods=['GET', 'POST'])
 def hsv_threshold():
     img = flask.request.args.get('img')
 
-    hmin = int(flask.request.args.get('hmin', '0'))
+    hmin = int(flask.request.args.get('hmin', '0')) / 2
     smin = int(flask.request.args.get('smin', '0'))
     vmin = int(flask.request.args.get('vmin', '0'))
 
