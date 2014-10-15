@@ -201,8 +201,8 @@ function thumb(image, height, request) {
     var tileSize = tileDim * tileSpacing;
     var gridReq = [croppedReq[0]/tileSize, 
                    croppedReq[1]/tileSize,
-                   croppedReq[1]/tileSize,
-                   croppedReq[1]/tileSize];
+                   croppedReq[2]/tileSize,
+                   croppedReq[3]/tileSize];
     // Todo: Make this recursive.
     // Convert the request to the next level.
     var gridReq2 = [gridReq[0]*2, gridReq[1]*2, gridReq[2]*2, gridReq[3]*2];

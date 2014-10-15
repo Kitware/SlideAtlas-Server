@@ -111,9 +111,9 @@ CollectionBrowser = (function (){
 
 
 //==============================================================================
-    function Collection(data, list) {
+    function Collection(data, scrollWindow) {
         this.ListItem = $('<li>')
-            .appendTo(list)
+            .appendTo(scrollWindow)
             .css({'left':'o'});
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.ListItem)
@@ -189,6 +189,7 @@ CollectionBrowser = (function (){
                   'width':'auto',
                   'margin-top': '0',
                   'padding': '0',
+                  'outline': '1px solid transparent',
                   'margin-left': '2em'})
             .hide();
 
@@ -252,7 +253,7 @@ CollectionBrowser = (function (){
                     function(event){
                         // Start dragging.
                         HideImagePopup();
-                        StartViewDrag($(this), self.Body, event.clientX-20, event.clientY-20);
+                        StartViewDrag($(this), self.Body, event);
                     });
 
             this.Data.push({item:listItem, 
@@ -378,7 +379,9 @@ CollectionBrowser = (function (){
     
 //==============================================================================
     var DROP_TARGETS = [];
-    function StartViewDrag(div, parent, x, y) {
+    function StartViewDrag(div, parent, event) {
+        var x = event.clientX;
+        var y = event.clientY;
         var item = div
             .clone(false)
             .appendTo(parent)
@@ -389,10 +392,7 @@ CollectionBrowser = (function (){
         $('body')
             .mousemove(
                 function(event) {
-                    item.css({
-                        'left': event.clientX-20,
-                        'top' : event.clientY-20});
-                    UpdateDropTargets(event.pageX, event.pageY);
+                    ViewDrag(item, event);
                     return false;
                 })
             .mouseup(
@@ -404,6 +404,15 @@ CollectionBrowser = (function (){
         
         return false;
     }
+
+
+    function ViewDrag(item, event) {
+        item.css({
+            'left': event.clientX-20,
+            'top' : event.clientY-20});
+        UpdateDropTargets(event.pageX, event.pageY);
+    }
+
 
     function UpdateDropTargets(x, y) {
         for (var i = 0; i < DROP_TARGETS.length; ++i) {

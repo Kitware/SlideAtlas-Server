@@ -13,6 +13,7 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -25,6 +26,7 @@ def sessions_view():
     - /sessions  With no argument displays list of sessions accessible to current user
     - /sessions?sessid=10239094124  searches for the session id
     """
+
     # Support legacy requests for a single session, which use query string args
     session_id = request.args.get('sessid')
 
@@ -106,6 +108,10 @@ def view_a_session(session):
                 bounds = imgObj['bounds']
             tileSize = 256
             if 'tile_size' in imgObj: 
+                tileSize = imgObj['tile_size']
+            if 'tileSize' in imgObj: 
+                tileSize = imgObj['tileSize']
+            if 'TileSize' in imgObj: 
                 tileSize = imgObj['TileSize']
             images.append({
                     'db': view_son['image_store_id'],
