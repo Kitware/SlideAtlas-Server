@@ -165,6 +165,11 @@ Viewer.prototype.UpdateZoomGui = function() {
     zoomValue = Math.round(zoomValue);
   }
   this.ZoomDisplay.html( 'x' + zoomValue);
+
+  // I am looking for the best place to update this value.
+  // Trying to fix a bug: Large scroll when wheel event occurs
+  // first.
+  this.ZoomTarget = camHeight;
 }
 
 
@@ -1333,14 +1338,20 @@ Viewer.prototype.HandleMouseWheel = function(event) {
 
 
   // We want to accumulate the target, but not the duration.
-  var tmp = event.SystemEvent.wheelDelta;
-  while (tmp > 0) {
-    this.ZoomTarget *= 1.1;
-    tmp -= 120;
+  var tmp = 0;
+  if (event.SystemEvent.deltaY) {
+      tmp = event.SystemEvent.deltaY;
+  } else if (event.SystemEvent.wheelDelta) {
+      tmp = event.SystemEvent.wheelDelta;
   }
-  while (tmp < 0) {
+  // Wheel event seems to be in increments of 3.
+  // depreciated mousewheel had increments of 120....
+  // Initial delta cause another bug.
+  // Lets restrict to one zoom step per event.
+  if (tmp > 0) {
+    this.ZoomTarget *= 1.1;
+  } else if (tmp < 0) {
     this.ZoomTarget /= 1.1;
-    tmp += 120;
   }
 
   // Compute translate target to keep position in the same place.
