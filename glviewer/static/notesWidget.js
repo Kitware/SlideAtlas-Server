@@ -1003,9 +1003,14 @@ Note.prototype.DisplayView = function() {
     if (typeof VIEWER1 !== 'undefined' && this.ViewerRecords.length > 0) {
         this.ViewerRecords[0].Apply(VIEWER1);
     }
-    if (typeof VIEWER2 !== 'undefined' && this.ViewerRecords.length > 1) {
+    if (typeof VIEWER2 !== 'undefined') {
         VIEWER2.Reset();
-        this.ViewerRecords[1].Apply(VIEWER2);
+        if ( this.ViewerRecords.length > 1) {
+            this.ViewerRecords[1].Apply(VIEWER2);
+        } else if ( this.ViewerRecords.length > 0) {
+            // Default the second viewer (closed) to be the same as the first.
+            this.ViewerRecords[0].Apply(VIEWER2);
+        }
     }
 }
 
