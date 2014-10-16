@@ -69,8 +69,9 @@ function Dialog(widget) {
         'color': 'White',
         'text-align': 'right',
         'text-decoration': 'none'})
-      .text("Close")
-      .click(function (e) {widget.Dialog.Hide(); e.preventDefault();});
+        .text("Close");
+
+  this.CloseButton.click(function (e) {widget.Dialog.Hide(); e.preventDefault();});
 
   this.Row2 = $('<tr>').appendTo(this.Table);
   this.Space2a = $('<td>').appendTo(this.Row2).html("&nbsp");

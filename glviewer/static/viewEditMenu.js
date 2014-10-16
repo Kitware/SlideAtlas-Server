@@ -162,6 +162,11 @@ function InitViewEditMenus() {
                .text("Save View")
                .click(function(){SaveView();});
     }
+    if (EDIT) {
+      $('<li>').appendTo(viewEditSelector)
+               .text("Download Image")
+               .click(function(){DownloadImage();});
+    }
     $('<li>').appendTo(viewEditSelector)
              .text("Slide Info")
              .click(function(){ShowSlideInformation();});
@@ -184,11 +189,11 @@ function InitViewEditMenus() {
     // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
       $('<li>').appendTo(viewEditSelector)
-               .text("Save View Bounds")
+               .text("Save Overview Bounds")
                .click(function(){SetViewBounds();});
     } else {
       $('<li>').appendTo(viewEditSelector)
-               .text("Set View Bounds")
+               .text("Set Overview Bounds")
                .click(function(){SetViewBounds();});
     }
     // Create a selection list of sessions.
@@ -323,7 +328,81 @@ function SessionAdvanceAjax() {
 }
 
 
+var DOWNLOAD_WIDGET = {};
+DOWNLOAD_WIDGET.DialogApplyCallback = function () {
+    DOWNLOAD_WIDGET.Dialog.WaitingImage.show();
+    DOWNLOAD_WIDGET.Dialog.WidthDiv.hide();
+    DOWNLOAD_WIDGET.Dialog.HeightDiv.hide();
+
+    alert("Download apply");
+}
 
 
 
+
+function DownloadImage() {
+    if ( ! DOWNLOAD_WIDGET.Dialog) {
+        var d = new Dialog(DOWNLOAD_WIDGET);
+        DOWNLOAD_WIDGET.Dialog = d;
+        d.Title.text('Download Image');
+        
+        d.WidthDiv =
+            $('<div>')
+            .appendTo(d.Body)
+            .css({'display':'table-row'});
+        d.WidthLabel = 
+            $('<div>')
+            .appendTo(this.Dialog.WidthDiv)
+            .text("Font (px):")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        d.WidthInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.WidthDiv)
+            .val('1900')
+            .css({'display':'table-cell'});
+
+
+        d.HeightDiv =
+            $('<div>')
+            .appendTo(d.Body)
+            .css({'display':'table-row'});
+        d.HeightLabel = 
+            $('<div>')
+            .appendTo(this.Dialog.HeightDiv)
+            .text("Font (px):")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        d.HeightInput =
+            $('<input type="number">')
+            .appendTo(this.Dialog.HeightDiv)
+            .val('1080')
+            .css({'display':'table-cell'});
+
+        d.WidthDiv =
+            $('<div>')
+            .appendTo(d.Body)
+            .css({'display':'table-row'});
+        d.WidthLabel = 
+            $('<div>')
+            .appendTo(this.Dialog.WidthDiv)
+            .text("Font (px):")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+
+        d.WaitingImage = $('<img>')
+            .appendTo(d.Body)
+            .attr("src", "/webgl-viewer/static/circular.gif")
+            .attr("alt", "waiting...")
+            .css({'width':'40px'})
+            .hide();
+        
+    }
+
+    DOWNLOAD_WIDGET.Dialog.WaitingImage.hide();
+    DOWNLOAD_WIDGET.Dialog.WidthDiv.show();
+    DOWNLOAD_WIDGET.Dialog.HeightDiv.show();
+
+    DOWNLOAD_WIDGET.Dialog.Show(1);
+}
 
