@@ -111,24 +111,10 @@ function SetImageBounds() {
 // Create and manage the menu to edit dual views.
 
 
-function ShowViewEditMenu(x, y) {
-    // Viewers have independent annotation visibility (which could be annoying.
-    var viewer = EVENT_MANAGER.CurrentViewer;
-    if ( ! viewer) { return; }
-
-    var color = "#A0A0A0";
-    if (viewer.WidgetList.length > 0) {
-      color = "#000000";
-    }
-
-    $('#viewEditMenu').css({'top': y-15, 'left':x-15}).show();
-}
-
-
 function ShowViewerEditMenu(viewer) {
     EVENT_MANAGER.CurrentViewer = viewer;
     var viewport = viewer.GetViewport();
-    $('#viewEditMenu').css({'top': viewport[1]+viewport[3]-180,
+    $('#viewEditMenu').css({'bottom': 10,
                             'left': viewport[0]+viewport[2]-230})
                       .show();
 }
@@ -142,8 +128,9 @@ function InitViewEditMenus() {
         'border-width': '1px',
         'border-radius': '5px',
         'position': 'absolute',
-        'top' : '35px',
+        'bottom' : '10px',
         'left' : '35px',
+        'padding-right' : '30px',
         'z-index': '2',
         'color': '#303030',
         'font-size': '20px'

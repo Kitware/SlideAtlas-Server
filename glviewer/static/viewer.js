@@ -328,12 +328,16 @@ Viewer.prototype.SetSection = function(section) {
 Viewer.prototype.SetCache = function(cache) {
 
   if (cache && cache.Image) {
-    if (cache.Image.copyright == undefined) {
-      cache.Image.copyright = "Copyright 2014";
-    }
-    /*this.CopyrightWrapper
-      .html(cache.Image.copyright)
-      .show();*/
+      if (cache.Image.bounds) {
+          this.SetOverViewBounds(cache.Image.bounds);
+      }
+
+      if (cache.Image.copyright == undefined) {
+          cache.Image.copyright = "Copyright 2014";
+      }
+      /*this.CopyrightWrapper
+        .html(cache.Image.copyright)
+        .show();*/
   }
 
   this.MainView.SetCache(cache);
