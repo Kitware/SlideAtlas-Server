@@ -642,7 +642,7 @@ function StartView() {
     can.addEventListener("touchstart", handleTouchStart, false);
     can.addEventListener("touchmove", handleTouchMove, true);
     can.addEventListener("touchend", handleTouchEnd, false);
-    can.addEventListener("mousewheel", handleMouseWheel, false);
+    can.addEventListener("wheel", handleMouseWheel, false);
 
     document.body.addEventListener("mouseup", handleMouseUp, false);
     document.body.addEventListener("touchcancel", handleTouchCancel, false);
