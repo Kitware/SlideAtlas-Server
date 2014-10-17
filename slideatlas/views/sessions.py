@@ -211,13 +211,11 @@ def session_save_view():
     input_str = request.form['input']  # for post
 
     input_obj = json.loads(input_str)
-    create_new_session = input_obj['new']
     session_id = ObjectId(input_obj['session'])
     # I assume the session uses this to get the thumbnail
     label = input_obj['label']
     view_items = input_obj['views']
     hide_annotations = input_obj['hideAnnotation']
-    stack = input_obj['stack']
 
     admindb = models.ImageStore._get_db()
 
@@ -232,7 +230,7 @@ def session_save_view():
         if 'view' in view_item:
             # deep or shallow copy of an existing view.
             # A bit confusing because no viewdb implies no copy unless 'create_new_session'
-            if 'copy' in view_item or create_new_session:
+            if 'copy' in view_item:
                 view_item['view'] = deepcopyview(ObjectId(view_item['view']))
             # get the view
             view = admindb['views'].find_one({'_id': ObjectId(view_item['view'])})
@@ -261,32 +259,20 @@ def session_save_view():
         new_views.append(models.RefItem(ref=ObjectId(view['_id'])))
 
     # delete the views that are left over, as views are owned by the session.
-    if not create_new_session:
-        old_view_ids = set(view_ref.ref for view_ref in session.views)
-        new_view_ids = set(view_ref.ref for view_ref in new_views)
+    old_view_ids = set(view_ref.ref for view_ref in session.views)
+    new_view_ids = set(view_ref.ref for view_ref in new_views)
 
-        removed_view_ids = old_view_ids - new_view_ids
-        for view_id in removed_view_ids:
-            apiv2.SessionViewItemAPI._delete(view_id)
+    removed_view_ids = old_view_ids - new_view_ids
+    for view_id in removed_view_ids:
+        apiv2.SessionViewItemAPI._delete(view_id)
 
     # update the session
     session.label = label  # I am using the label for the annotated title, and name for the hidden title.
     session.views = new_views
     session.hide_annotations = bool(hide_annotations)
-    # session stacks are going away
-    if stack:
-        session.type = 'stack'
-    else:
-        session.type = 'session'
+    session.type = 'session'
 
-    if create_new_session:
-        session.user = security.current_user.email
-        # TODO: it might be helpful to add a '.clone()' method to 'ModelDocument',
-        #  for convenience and to properly set '_created', etc.`
-        session.id = ObjectId()
-        session.save(force_insert=True)
-    else:
-        session.save()
+    session.save()
     return jsonify(session.to_mongo())
 
 
