@@ -140,11 +140,13 @@ ViewerRecord.prototype.Apply = function (viewer) {
   viewer.SetOverViewBounds(this.OverviewBounds);
 
   if (this.Camera !== undefined && this.Transform === undefined) {
-    var cameraRecord = this.Camera;
-    viewer.GetCamera().Load(cameraRecord);
-    viewer.OverView.Camera.Roll = cameraRecord.Roll;
-    viewer.OverView.Camera.ComputeMatrix();
-    viewer.UpdateZoomGui();
+      var cameraRecord = this.Camera;
+      viewer.GetCamera().Load(cameraRecord);
+      if (this.OverView) {
+          viewer.OverView.Camera.Roll = cameraRecord.Roll;
+          viewer.OverView.Camera.ComputeMatrix();
+      }
+      viewer.UpdateZoomGui();
   }
 
   if (this.AnnotationVisibility != undefined) {

@@ -301,14 +301,18 @@ Viewer.prototype.GetOverViewBounds = function() {
     if (this.OverViewBounds) {
         return this.OverViewBounds;
     }
-    var cam = this.OverView.Camera;
-    var halfHeight = cam.GetHeight() / 2;
-    var halfWidth = cam.GetWidth() / 2;
-    this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
-                           cam.FocalPoint[0] + halfWidth,
-                           cam.FocalPoint[1] - halfHeight,
-                           cam.FocalPoint[1] + halfHeight];
-    return this.OverViewBounds;
+    if (this.OverView) {
+        var cam = this.OverView.Camera;
+        var halfHeight = cam.GetHeight() / 2;
+        var halfWidth = cam.GetWidth() / 2;
+        this.OverViewBounds = [cam.FocalPoint[0] - halfWidth,
+                               cam.FocalPoint[0] + halfWidth,
+                               cam.FocalPoint[1] - halfHeight,
+                               cam.FocalPoint[1] + halfHeight];
+        return this.OverViewBounds;
+    }
+    // This method is called once too soon.  There is no image, and mobile devices have no overview.
+    return [0,10000,0,10000];
 }
 
 
