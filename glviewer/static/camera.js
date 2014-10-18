@@ -61,7 +61,7 @@ Camera.prototype.GetFocalPoint = function () {
 
 Camera.prototype.SetFocalPoint = function (x, y) {
   if (isNaN(x) || isNaN(y)) {
-    console.log("iPad bug: Camera went crazy.");
+    console.log("Camera 1");
     return;
   }
   this.FocalPoint[0] = x;
@@ -121,7 +121,7 @@ Camera.prototype.HandleRoll = function (x,y, dx, dy) {
 
 Camera.prototype.Translate = function (dx,dy,dz) {
   if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
-    console.log("iPad bug: Camera went crazy.");
+    console.log("Camera 2");
     return;
   }
   this.FocalPoint[0] += dx;
@@ -138,7 +138,7 @@ Camera.prototype.GetHeight = function () {
 
 Camera.prototype.SetHeight = function (height) {
   if (isNaN(height)) {
-    console.log("iPad bug: Camera went crazy.");
+    console.log("Camera 3");
     return;
   }
   this.Height = height;
