@@ -142,7 +142,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
   if (this.Camera !== undefined && this.Transform === undefined) {
       var cameraRecord = this.Camera;
       viewer.GetCamera().Load(cameraRecord);
-      if (this.OverView) {
+      if (viewer.OverView) {
           viewer.OverView.Camera.Roll = cameraRecord.Roll;
           viewer.OverView.Camera.ComputeMatrix();
       }
