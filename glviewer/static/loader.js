@@ -84,6 +84,16 @@ function Prune() {
   }
 }
 
+function ClearQueue() {
+    for (var i = 0; i < LOAD_QUEUE.length; ++i) {
+        var tile = LOAD_QUEUE[i];
+        if (tile) {
+            tile.LoadState = 0;
+        }
+    }
+    LOAD_QUEUE = [];
+    LoadQueueUpdate();
+}
 
 // We could chop off the lowest priority tiles if the queue gets too long.
 // Simply add the tile to the queue.
@@ -198,7 +208,7 @@ function LoadQueueUpdate() {
 }
 
 function SetFinishedLoadingCallback(callback) {
-    if (FINISHED_LOADING_CALLBACK) {
+    if (callback && FINISHED_LOADING_CALLBACK) {
         alert("Finished loading callback already set.");
         return false;
     }
