@@ -45,7 +45,7 @@
         <script src="/static/js/sessions.js"></script>
         <script>
                 $(".sa-session-create").click(function() {
-                    var collection_id = $(this).parent().data("collection-id");
+                    var collection_id = $(this).parent().parent().data("collection-id");
                     createNewSession(collection_id, function() {
                         // Todo think of another mechanism to load the page
                         window.location = "?reload=" + Date.now() + "#" + collection_id;
