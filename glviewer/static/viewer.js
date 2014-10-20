@@ -178,10 +178,19 @@ Viewer.prototype.SaveImage = function(fileName) {
 }
 
 
-
+// Cancel the large image request before it finishes.
+Viewer.prototype.CancelLargeImage = function() {
+    // This will abort the save blob that occurs after rendering.
+    SetFinishedLoadingCallback(undefined);
+    // We also need to stop the request for pending tiles.
+    ClearQueue();
+    // Incase some of the queued tiles were for normal rendering.
+    eventuallyRender();
+}
 
 // Create a virtual viewer to save a very large image.
-Viewer.prototype.SaveLargeImage = function(fileName, width, height) {
+Viewer.prototype.SaveLargeImage = function(fileName, width, height,
+                                           finishedCallback) {
     var self = this;
     var cache = this.GetCache();
     var viewport = [0,0, width, height];
@@ -204,6 +213,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height) {
         LoadQueueAddTile(tiles[i]);
     }
 
+    //this.CancelLargeImage = false;
     SetFinishedLoadingCallback(
         function () {
             view.DrawTiles();
@@ -215,7 +225,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height) {
                     self.WidgetList[i].Draw(view, self.AnnotationVisibility);
                 }
             }
-            
+            finishedCallback();
             view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
         }
     );

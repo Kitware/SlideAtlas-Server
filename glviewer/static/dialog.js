@@ -1,7 +1,6 @@
 
 
 function Dialog(widget) {
-  self = this;
   this.Overlay = 
     $('<div>')
       .appendTo('body')
@@ -69,8 +68,13 @@ function Dialog(widget) {
         'color': 'White',
         'text-align': 'right',
         'text-decoration': 'none'})
-      .text("Close")
-      .click(function (e) {widget.Dialog.Hide(); e.preventDefault();});
+        .text("Close");
+
+    // Closure to pass a stupid parameter to the callback
+    var self = this;
+    (function () {
+        self.CloseButton.click(function (e) {self.Hide(); e.preventDefault();});
+    })();
 
   this.Row2 = $('<tr>').appendTo(this.Table);
   this.Space2a = $('<td>').appendTo(this.Row2).html("&nbsp");
@@ -94,17 +98,21 @@ function Dialog(widget) {
       .css({'text-align': 'center'});
   this.ApplyButton =
     $('<button>')
-      .appendTo(this.ApplyDiv)
-      .text("Apply")
-      .css({'margin-bottom': '6px'})
-      .click(function (e) {
-               widget.DialogApplyCallback();
-               // This "self" trick does not work :( with multiple dialogs.
-               // however "widget" does work.  Let widget handle hiding the dialog.
-               //self.Hide();
-               widget.Dialog.Hide();
-               e.preventDefault(); });
+        .appendTo(this.ApplyDiv)
+        .text("Apply")
+        .css({'margin-bottom': '6px'});
 
+    // Closure to pass a stupid parameter to the callback
+    var self = this;
+    (function () {
+        self.ApplyButton.click(function (e) {
+            widget.DialogApplyCallback();
+            // This "self" trick does not work :( with multiple dialogs.
+            // however "widget" does work.  Let widget handle hiding the dialog.
+            //self.Hide();
+            self.Hide();
+            e.preventDefault(); });
+    })();
 }
 
 

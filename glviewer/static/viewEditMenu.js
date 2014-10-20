@@ -149,6 +149,11 @@ function InitViewEditMenus() {
                .text("Save View")
                .click(function(){SaveView();});
     }
+    if (EDIT) {
+      $('<li>').appendTo(viewEditSelector)
+               .text("Download Image")
+               .click(function(){DownloadImage();});
+    }
     $('<li>').appendTo(viewEditSelector)
              .text("Slide Info")
              .click(function(){ShowSlideInformation();});
@@ -171,11 +176,11 @@ function InitViewEditMenus() {
     // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
       $('<li>').appendTo(viewEditSelector)
-               .text("Save View Bounds")
+               .text("Save Overview Bounds")
                .click(function(){SetViewBounds();});
     } else {
       $('<li>').appendTo(viewEditSelector)
-               .text("Set View Bounds")
+               .text("Set Overview Bounds")
                .click(function(){SetViewBounds();});
     }
     // Create a selection list of sessions.
@@ -310,7 +315,342 @@ function SessionAdvanceAjax() {
 }
 
 
+// Make the download dialog / function a module.
+var DownloadImage = (function () {
+
+    // Dialogs require an object when accept is pressed.
+    var DOWNLOAD_WIDGET = undefined;
+
+    function DownloadImage() {
+        if ( ! DOWNLOAD_WIDGET) {
+            InitializeDialogs();
+        }
+
+        // Setup default dimensions.
+        var viewport = EVENT_MANAGER.CurrentViewer.GetViewport();
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        d.PxWidthInput.val(viewport[2]);
+        d.PxHeightInput.val(viewport[3]);
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        d.SizeWidthInput.val((viewport[2]/pixelsPerInch).toFixed(2));
+        d.SizeHeightInput.val((viewport[3]/pixelsPerInch).toFixed(2));
+        d.AspectRatio = viewport[2] / viewport[3];
+
+        DOWNLOAD_WIDGET.DimensionDialog.Show(1);
+    }
+
+
+    function InitializeDialogs() {
+
+        DOWNLOAD_WIDGET = {};
+
+        // Two dialogs.
+        // Dialog to choose dimensions and initiate download.
+        // A dialog to cancel the download while waiting for tiles.
+
+        
+        var d = new Dialog(DOWNLOAD_WIDGET);
+        DOWNLOAD_WIDGET.DimensionDialog = d;
+        d.Title.text('Download Image');
+        
+        // Pixel Dimensions
+        d.PxDiv = $('<div>')
+            .appendTo(d.Body)
+            .css({'border':'1px solid #555',
+                  'margin': '15px',
+                  'padding-left': '5px'});
+        d.PxLabel =
+            $('<div>')
+            .appendTo(d.PxDiv)
+            .text("Dimensions:")
+            .css({'position': 'relative',
+                  'top': '-9px',
+                  'display': 'inline-block',
+                  'background-color': 'white'});
+        
+        d.PxWidthDiv =
+            $('<div>')
+            .appendTo(d.PxDiv)
+            .css({'display':'table-row'});
+        
+        d.PxWidthLabel =
+            $('<div>')
+            .appendTo(d.PxWidthDiv)
+            .text("Width:")
+            .css({'display':'table-cell',
+                  'text-align': 'right',
+                  'width': '6em'});
+        d.PxWidthInput =
+            $('<input type="number">')
+            .appendTo(d.PxWidthDiv)
+            .val('1900')
+            .css({'display':'table-cell',
+                  'width': '100px',
+                  'margin': '5px'})
+            .change(function () {PxWidthChanged();});
+        d.PxWidthUnits =
+            $('<div>')
+            .appendTo(d.PxWidthDiv)
+            .text("Pixels")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        
+        d.PxHeightDiv =
+            $('<div>')
+            .appendTo(d.PxDiv)
+            .css({'display':'table-row',
+                  'margin': '5px'});
+        d.PxHeightLabel =
+            $('<div>')
+            .appendTo(d.PxHeightDiv)
+            .text("Height:")
+            .css({'display':'table-cell',
+                  'text-align': 'right'});
+        d.PxHeightInput =
+            $('<input type="number">')
+            .appendTo(d.PxHeightDiv)
+            .val('1080')
+            .css({'display':'table-cell',
+                  'width': '100px',
+                  'margin': '5px'})
+            .change(function () {PxHeightChanged();});
+        
+        d.PxHeightUnits =
+            $('<div>')
+            .appendTo(d.PxHeightDiv)
+            .text("Pixels")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        
+        
+        // Document Size
+        d.SizeDiv = $('<div>')
+            .appendTo(d.Body)
+            .css({'border':'1px solid #555',
+                  'margin': '15px',
+                  'padding-left': '5px'});
+        d.SizeLabel =
+            $('<div>')
+            .appendTo(d.SizeDiv)
+            .text("Document Size:")
+            .css({'position': 'relative',
+                  'top': '-9px',
+                  'display': 'inline-block',
+                  'background-color': 'white'});
+        
+        d.SizeWidthDiv =
+            $('<div>')
+            .appendTo(d.SizeDiv)
+            .css({'display':'table-row',
+                  'margin': '5px'});
+        d.SizeWidthLabel =
+            $('<div>')
+            .appendTo(d.SizeWidthDiv)
+            .text("Width:")
+            .css({'display':'table-cell',
+                  'text-align': 'right',
+                  'width': '6em'});
+        d.SizeWidthInput =
+            $('<input type="number">')
+            .appendTo(d.SizeWidthDiv)
+            .val('1900')
+            .css({'display':'table-cell',
+                  'width': '100px',
+                  'margin': '5px'})
+            .change(function () {SizeWidthChanged();});
+        
+        d.SizeWidthUnits =
+            $('<div>')
+            .appendTo(d.SizeWidthDiv)
+            .text("Inches")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        
+        d.SizeHeightDiv =
+            $('<div>')
+            .appendTo(d.SizeDiv)
+            .css({'display':'table-row',
+                  'margin': '5px'});
+        d.SizeHeightLabel =
+            $('<div>')
+            .appendTo(d.SizeHeightDiv)
+            .text("Height:")
+            .css({'display':'table-cell',
+                  'text-align': 'right'});
+        d.SizeHeightInput =
+            $('<input type="number">')
+            .appendTo(d.SizeHeightDiv)
+            .val('1900')
+            .css({'display':'table-cell',
+                  'width': '100px',
+                  'margin': '5px'})
+            .change(function () {SizeHeightChanged();});
+        
+        d.SizeHeightUnits =
+            $('<div>')
+            .appendTo(d.SizeHeightDiv)
+            .text("Inches")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        
+        d.SizeResDiv =
+            $('<div>')
+            .appendTo(d.SizeDiv)
+            .css({'display':'table-row',
+                  'margin': '5px'});
+        d.SizeResLabel =
+            $('<div>')
+            .appendTo(d.SizeResDiv)
+            .text("Resolution:")
+            .css({'display':'table-cell',
+                  'text-align': 'right'});
+        d.SizeResInput =
+            $('<input type="number">')
+            .appendTo(d.SizeResDiv)
+            .val('72')
+            .css({'display':'table-cell',
+                  'width': '100px',
+                  'margin': '5px'})
+            .change(function () {ResChanged();});
+        
+        d.SizeResUnits =
+            $('<div>')
+            .appendTo(d.SizeResDiv)
+            .text("Pixels/Inch")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        
+        
+        d.ProportionsDiv = 
+            $('<div>')
+            .appendTo(d.Body)
+            .css({'margin': '15px',
+                  'padding-left': '5px'});
+        d.ProportionsLabel =
+            $('<div>')
+            .appendTo(d.ProportionsDiv)
+            .text("Constrain Proportions:")
+            .css({'display':'inline'});
+        d.ProportionsCheckbox =
+            $('<input type="checkbox">')
+            .appendTo(d.ProportionsDiv)
+            .css({'display':'inline'})
+            .prop('checked', true);
+        
+
+        d.AspectRatio = 1.0;
+
+        // A dialog to cancel the download before we get all the tiles
+        // needed to render thie image.
+        d = new Dialog(DOWNLOAD_WIDGET);
+        DOWNLOAD_WIDGET.CancelDialog = d;
+        d.Title.text('Processing');
+        
+        d.WaitingImage = $('<img>')
+            .appendTo(d.Body)
+            .attr("src", "/webgl-viewer/static/circular.gif")
+            .attr("alt", "waiting...")
+            .css({'width':'40px'});
+
+        d.ApplyButton.text("Cancel");
+
+        DOWNLOAD_WIDGET.DialogApplyCallback = function () {
+            if ( DOWNLOAD_WIDGET.Viewer) {
+                // We are in the middle of rendering.
+                // This method was called by the cancel dialog.
+                DOWNLOAD_WIDGET.Viewer.CancelLargeImage();
+                DOWNLOAD_WIDGET.Viewer = undefined;
+                // The dialog hides itself.
+            } else {
+                // Trigger the process to start rendering the image.
+                var viewer = EVENT_MANAGER.CurrentViewer;
+                DOWNLOAD_WIDGET.Viewer = viewer;
+                var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
+                var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
+                // Show the dialog that empowers the user to cancel while rendering.
+                DOWNLOAD_WIDGET.CancelDialog.Show(1);
+                // We need a finished callback to hide the cancel dialog.
+                viewer.SaveLargeImage("slide-atlas.png", width, height,
+                                      function () {
+                                          // Rendering has finished.
+                                          // The user can no longer cancel.
+                                          DOWNLOAD_WIDGET.Viewer = undefined;
+                                          DOWNLOAD_WIDGET.CancelDialog.Hide();
+                                      });
+            }
+        }
+    }
+
+    function PxWidthChanged () {
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        var width = parseInt(d.PxWidthInput.val());
+        d.SizeWidthInput.val((width/pixelsPerInch).toFixed(2));
+        if (d.ProportionsCheckbox.prop('checked')) {
+            var height = width / d.AspectRatio;
+            d.PxHeightInput.val(height.toFixed());
+            d.SizeHeightInput.val((height/pixelsPerInch).toFixed(2));
+        } else {
+            var height = parseInt(d.PxHeightInput.val());
+            d.AspectRatio = width / height;
+        }
+    }
+
+    function PxHeightChanged () {
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        var height = parseInt(d.PxHeightInput.val());
+        d.SizeHeightInput.val((height/pixelsPerInch).toFixed(2));
+        if (d.ProportionsCheckbox.prop('checked')) {
+            var width = height * d.AspectRatio;
+            d.PxWidthInput.val(width.toFixed());
+            d.SizeWidthInput.val((width/pixelsPerInch).toFixed(2));
+        } else {
+            var width = parseInt(d.PxWidthInput.val());
+            d.AspectRatio = width / height;
+        }
+    }
+
+    function SizeWidthChanged () {
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        var width = parseInt(d.SizeWidthInput.val());
+        d.PxWidthInput.val((width*pixelsPerInch).toFixed());
+        if (d.ProportionsCheckbox.prop('checked')) {
+            var height = width / d.AspectRatio;
+            d.SizeHeightInput.val(height.toFixed(2));
+            d.PxHeightInput.val((height*pixelsPerInch).toFixed());
+        } else {
+            var height = parseInt(d.SizeHeightInput.val());
+            d.AspectRatio = width / height;
+        }
+    }
+
+    function SizeHeightChanged () {
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        var height = parseInt(d.SizeHeightInput.val());
+        d.PxHeightInput.val((height*pixelsPerInch).toFixed());
+        if (d.ProportionsCheckbox.prop('checked')) {
+            var width = height * d.AspectRatio;
+            d.SizeWidthInput.val(width.toFixed(2));
+            d.PxWidthInput.val((width*pixelsPerInch).toFixed());
+        } else {
+            var width = parseInt(d.SizeWidthInput.val());
+            d.AspectRatio = width / height;
+        }
+    }
+
+    function ResChanged () {
+        var d = DOWNLOAD_WIDGET.DimensionDialog;
+        var pixelsPerInch = parseInt(d.SizeResInput.val());
+        var height = parseInt(d.SizeHeightInput.val());
+        var width = parseInt(d.SizeWidthInput.val());
+        d.PxHeightInput.val((height*pixelsPerInch).toFixed());
+        d.PxWidthInput.val((width*pixelsPerInch).toFixed());
+    }
 
 
 
-
+    return DownloadImage;
+})();

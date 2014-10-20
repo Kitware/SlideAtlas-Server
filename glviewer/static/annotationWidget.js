@@ -151,17 +151,6 @@ AnnotationWidget.prototype.NewLasso = function() {
   this.Viewer.ActiveWidget = widget;
 }
 
-AnnotationWidget.prototype.NewDialogWidget = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof DialogWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new DialogWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
-}
-
 AnnotationWidget.prototype.NewPolyline = function() {
   var widget = this.Viewer.ActiveWidget;
   if ( widget ) {
