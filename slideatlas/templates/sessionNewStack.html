@@ -287,11 +287,14 @@ function addViewToStack(self, imageData, event) {
         .css({"top": '2px',
               "left": x.toString()+"px"});
 
-    $('#stackDiv').animate({scrollLeft: x});
-
     var spacing = self.data("spacing");
-    var xMid = imageData.bounds[0] + (event.offsetX * spacing);
-    var yMid = imageData.bounds[2] + (event.offsetY * spacing);
+    // Even though the event was triggered of the thumb div,
+    // offsetX and offsetY behave like they are relative to
+    // the image before cropping.
+    //var xMid = imageData.bounds[0] + (event.offsetX * spacing);
+    //var yMid = imageData.bounds[2] + (event.offsetY * spacing);
+    var xMid = (event.offsetX * spacing);
+    var yMid = (event.offsetY * spacing);
     var radius = (imageData.bounds[3]-imageData.bounds[2])*0.4;
     var bds = [xMid-radius, xMid+radius, yMid-radius, yMid+radius];
 
@@ -305,6 +308,8 @@ function addViewToStack(self, imageData, event) {
     var section =
         thumb(imageData, 100, bds)
             .appendTo(item);
+
+    $('#stackDiv').animate({scrollLeft: x});
 }
 
 function collectionCallback(idx) {
