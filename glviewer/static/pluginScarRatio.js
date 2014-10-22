@@ -91,7 +91,7 @@ FilterColorThreshold.prototype.Start = function() {
     $('<button>').appendTo(dialogDiv)
         .text('Update')
         .click(function () {
-            alert('About to update');
+            // alert('About to update');
             $.ajax({url: '/webgl-viewer/get_mask',
                 data: {
                     img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg'),
@@ -108,7 +108,12 @@ FilterColorThreshold.prototype.Start = function() {
             })
             .done(function(data) {
                 // show the image popup
-                alert("Got the image !");
+                that.mask = data["mask"]
+                // alert("Got the image !");
+                var img = new Image();
+                img.src = 'data:image/png;base64,' + that.mask;
+                VIEWER1.MainView.Context2d.drawImage(img, 0, 0);
+
             });
         })
 

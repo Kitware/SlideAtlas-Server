@@ -850,11 +850,11 @@ def hsv_threshold():
 
         # Perform thresholding
         out = cv2.inRange(inp, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
-
-        # Encode the results to png
         status, image = cv2.imencode(".png", out)
-        response = flask.Response(content_type='image/png')
-        response.set_data(image.tostring())
-        return response
+
+        # Send the results back
+        result = {}
+        result["mask"] = base64.b64encode(image.tostring())
+        return jsonify(result)
     else:
         return flask.Response("Error")
