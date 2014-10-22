@@ -1388,7 +1388,34 @@ Viewer.prototype.HandleMouseWheel = function(event) {
   return true;
 }
 
+var SAVING_IMAGE = undefined;
 Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
+  if (keyCode == 83 && modifiers.ControlKeyPressed) { // control -s to save.
+      if ( ! SAVING_IMAGE) {
+          SAVING_IMAGE = new Dialog();
+          SAVING_IMAGE.Title.text('Saving');
+          SAVING_IMAGE.WaitingImage = $('<img>')
+              .appendTo(SAVING_IMAGE.Body)
+              .attr("src", "/webgl-viewer/static/circular.gif")
+              .attr("alt", "waiting...")
+              .css({'width':'40px'});
+          SAVING_IMAGE.ApplyButton.hide();
+          SAVING_IMAGE.SavingFlag = false;
+          SAVING_IMAGE.Count = 0;
+      }
+      if ( ! SAVING_IMAGE.SavingFlag) {
+          SAVING_IMAGE.SavingFlag = true;
+          SAVING_IMAGE.Show(1);
+          this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3), 
+                                   function() {
+                                       SAVING_IMAGE.SavingFlag = false;
+                                       SAVING_IMAGE.Count += 1;
+                                       SAVING_IMAGE.Hide();
+                                   });
+      }
+      return true;
+  }
+
   // Handle paste
   if (keyCode == 86 && modifiers.ControlKeyPressed) {
     // control-v for paste
