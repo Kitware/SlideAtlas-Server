@@ -10,6 +10,13 @@ function MOVE_TO(x,y) {
 
 
 
+function ZERO_PAD(i, n) {
+    var s = "0000000000" + i.toFixed();
+    return s.slice(-n);
+}
+
+
+
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
 
