@@ -1,11 +1,18 @@
 # coding=utf-8
 
 import re
+import enum
 
+from bson import ObjectId
+from bson.errors import InvalidId
 from flask.ext.admin import Admin, AdminIndexView
 from flask.ext.admin.contrib.mongoengine import ModelView
+from flask.ext.admin.contrib.mongoengine.ajax import QueryAjaxModelLoader
 from flask.ext.admin.contrib.mongoengine.form import CustomModelConverter
+from flask.ext.admin.model.fields import AjaxSelectMultipleField
+from flask.ext.admin.helpers import get_form_data
 from flask.ext.mongoengine.wtf import orm
+from wtforms.fields import IntegerField
 
 from slideatlas import models
 from slideatlas import security
@@ -26,10 +33,6 @@ class SlideatlasIndexView(AdminIndexView):
 
 
 ################################################################################
-from bson import ObjectId
-from bson.errors import InvalidId
-from wtforms.fields import IntegerField
-
 class ObjectIdField(IntegerField):
     def process_formdata(self, valuelist):
         if valuelist:
@@ -40,6 +43,7 @@ class ObjectIdField(IntegerField):
                 except InvalidId:
                     raise ValueError(self.gettext('Not a valid ObjectId value'))
 
+
 class SlideatlasModelConverter(CustomModelConverter):
     @orm.converts('ObjectIdField')
     def conv_ObjectId(self, model, field, kwargs):
@@ -47,10 +51,27 @@ class SlideatlasModelConverter(CustomModelConverter):
             return None
         return ObjectIdField(**kwargs)
 
+    @orm.converts('EnumField')
+    def conv_Enum(self, value):
+        if isinstance(value, enum.EnumValue) or value is None:
+            return value
+        for enum_type in [models.Operation, models.ResourceType]:
+            try:
+                return getattr(enum_type, value)
+            except AttributeError:
+                pass
+        raise AttributeError()
+
+    def coerce(self, field_type):
+        if field_type == 'EnumField':
+            return self.conv_Enum
+        return super(SlideatlasModelConverter, self).coerce(field_type)
+
+
 
 class SlideatlasModelView(ModelView):
     model_class = None
-    name=None
+    name = None
     category = None
 
     model_form_converter = SlideatlasModelConverter
@@ -60,7 +81,7 @@ class SlideatlasModelView(ModelView):
             model=self.model_class,
             name=self.name,
             category=self.category,
-            )
+        )
 
     def is_accessible(self):
         return security.AdminSiteRequirement().can()
@@ -103,12 +124,13 @@ class BaseUserView(SlideatlasModelView):
 #         'groups': {'fields': RuleView.column_searchable_list},
 #     }
 
+
 class UserView(BaseUserView):
     model_class = models.User
     name = 'All Users'
 
-    can_create = False # Users must be a specific sub-type
-    can_edit = False # TODO: link edits to the form for the proper sub-type
+    can_create = False  # Users must be a specific sub-type
+    can_edit = False  # TODO: link edits to the form for the proper sub-type
 
     column_list = ('_cls',) + BaseUserView.column_list
     column_labels = dict(_cls='Type')
@@ -153,10 +175,6 @@ class BaseGroupView(SlideatlasModelView):
     category = 'Groups'
 
 
-from flask.ext.admin.contrib.mongoengine.ajax import QueryAjaxModelLoader
-from flask.ext.admin.model.fields import AjaxSelectMultipleField
-from flask.ext.admin.helpers import get_form_data
-
 class UserAjaxSelectMultipleField(AjaxSelectMultipleField):
     def populate_obj(self, obj, name):
         group = obj
@@ -169,8 +187,6 @@ class UserAjaxSelectMultipleField(AjaxSelectMultipleField):
         models.User.objects(id__in=updated_user_ids).update(add_to_set__groups=group)
 
 
-
-
 class GroupView(BaseGroupView):
     model_class = models.Group
     name = 'Groups'
@@ -179,7 +195,7 @@ class GroupView(BaseGroupView):
     column_default_sort = 'label'
     column_searchable_list = ('label',)
 
-    can_delete = False # TODO: set up reverse-deletion rules for users, so this can be removed
+    can_delete = False  # TODO: set up reverse-deletion rules for users, so this can be removed
 
     _user_loader = QueryAjaxModelLoader(
         'users',
@@ -217,6 +233,7 @@ class PublicGroupView(BaseGroupView):
     can_create = False
     can_delete = False
 
+
 class UnlistedGroupView(BaseGroupView):
     model_class = models.UnlistedGroup
     name = 'Unlisted Group'
@@ -234,15 +251,18 @@ class ImageStoreView(SlideatlasModelView):
     column_list = ('label', 'host', 'dbname')
     column_default_sort = 'label'
 
+
 class MongoImageStoreView(ImageStoreView):
     model_class = models.MongoImageStore
     name = 'MongoDB Image Stores'
+
 
 class PtiffImageStoreView(ImageStoreView):
     model_class = models.PtiffImageStore
     name = 'PTIFF Image Stores'
 
     column_list = ImageStoreView.column_list + ('root_path',)
+
 
 ################################################################################
 class CollectionView(SlideatlasModelView):
