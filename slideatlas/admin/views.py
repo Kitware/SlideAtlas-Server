@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import re
+import enum
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -49,6 +50,23 @@ class SlideatlasModelConverter(CustomModelConverter):
         if field.name == 'id':
             return None
         return ObjectIdField(**kwargs)
+
+    @orm.converts('EnumField')
+    def conv_Enum(self, value):
+        if isinstance(value, enum.EnumValue) or value is None:
+            return value
+        for enum_type in [models.Operation, models.ResourceType]:
+            try:
+                return getattr(enum_type, value)
+            except AttributeError:
+                pass
+        raise AttributeError()
+
+    def coerce(self, field_type):
+        if field_type == 'EnumField':
+            return self.conv_Enum
+        return super(SlideatlasModelConverter, self).coerce(field_type)
+
 
 
 class SlideatlasModelView(ModelView):
