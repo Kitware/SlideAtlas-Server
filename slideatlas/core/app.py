@@ -120,8 +120,14 @@ def create_blueprints(app):
     from slideatlas.views import tile
     app.register_blueprint(tile.mod)
 
-    import glviewer
-    app.register_blueprint(glviewer.mod)
+    from glviewer import mod as webgl_viewer
+
+    # Import glviewer plugins
+    if "ScarRatio" in app.config.get("SLIDEATLAS_ENABLED_PLUGINS"):
+        from slideatlas.plugins import scar_ratio
+        app.register_blueprint(scar_ratio.mod)
+
+    app.register_blueprint(webgl_viewer)
 
     from slideatlas.views import sessions
     app.register_blueprint(sessions.mod)

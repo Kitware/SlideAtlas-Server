@@ -39,7 +39,7 @@ FilterColorThreshold.prototype.Init = function() {
   // Gets the graphs and constructs the dialog
     var that=this;
 
-    $.ajax({url: '/webgl-viewer/get_image_histograms',
+    $.ajax({url: '/scar_ratio/get_image_histograms',
         data: {
             img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg')
         }
@@ -92,7 +92,7 @@ FilterColorThreshold.prototype.Start = function() {
         .text('Update')
         .click(function () {
             // alert('About to update');
-            $.ajax({url: '/webgl-viewer/get_mask',
+            $.ajax({url: '/scar_ratio/get_mask',
                 data: {
                     img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg'),
 

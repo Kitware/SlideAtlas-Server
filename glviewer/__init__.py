@@ -1,5 +1,5 @@
 from bson import ObjectId
-from flask import Blueprint, request, render_template, make_response
+from flask import Blueprint, request, render_template, make_response, current_app
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
@@ -790,71 +790,3 @@ def fixjustification():
 
     db["images"].save(imgObj)
     return "success"
-
-import flask
-import base64
-dataUrlPattern = re.compile('data:image/(png|jpeg);base64,(.*)$')
-from scar_ratio import get_hsv_histograms_2
-import cv2
-import numpy as np
-
-
-@mod.route('/get_image_histograms', methods=['GET', 'POST'])
-def get_image_histograms():
-    img = flask.request.args.get('img')
-    imgb64 = dataUrlPattern.match(img).group(2)
-    if imgb64 is not None and len(imgb64) > 0:
-        imgbin = base64.b64decode(imgb64)
-        # # For debugging
-        # fout = open("try.jpg", "wb")
-        # fout.write(imgbin)
-        # fout.close()
-        img_array = np.asarray(bytearray(imgbin), dtype=np.uint8)
-        inp = cv2.imdecode(img_array, 1)
-
-        cv2.imwrite("test.png", inp)
-        output_format = "png"
-        hsv = cv2.cvtColor(inp, cv2.COLOR_BGR2HSV)
-        hist_images = get_hsv_histograms_2(hsv, output_format=output_format)
-
-        result = {}
-
-        for buf, filename in zip(hist_images, ["hue", "saturation", "value"]):
-            result[filename] = base64.b64encode(buf.getvalue())
-            buf.close()
-
-        return jsonify(result)
-    else:
-        return flask.Response("Error")
-
-
-@mod.route('/hsv_threshold', methods=['GET', 'POST'])
-@mod.route('/get_mask', methods=['GET', 'POST'])
-def hsv_threshold():
-    img = flask.request.args.get('img')
-
-    hmin = int(flask.request.args.get('hmin', '0')) / 2
-    smin = int(flask.request.args.get('smin', '0'))
-    vmin = int(flask.request.args.get('vmin', '0'))
-
-    hmax = int(flask.request.args.get('hmax', '360')) / 2
-    smax = int(flask.request.args.get('smax', '256'))
-    vmax = int(flask.request.args.get('vmax', '256'))
-
-    imgb64 = dataUrlPattern.match(img).group(2)
-    if imgb64 is not None and len(imgb64) > 0:
-        # Get input image
-        imgbin = base64.b64decode(imgb64)
-        img_array = np.asarray(bytearray(imgbin), dtype=np.uint8)
-        inp = cv2.imdecode(img_array, 1)
-
-        # Perform thresholding
-        out = cv2.inRange(inp, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
-        status, image = cv2.imencode(".png", out)
-
-        # Send the results back
-        result = {}
-        result["mask"] = base64.b64encode(image.tostring())
-        return jsonify(result)
-    else:
-        return flask.Response("Error")
