@@ -119,6 +119,10 @@ shape has visibility and
 <script type="text/javascript" src="/static/thirdparty/bson/0.2.9/bson.js"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='websocket.js') }}"></script>
 <!---->
+
+<!-- For filters starting with filterColorThreshold -->
+<script type="text/javascript" src="{{ url_for('ScarRatio.static', filename='pluginScarRatio.js') }}"></script>
+
 <script id="shader-poly-fs" type="x-shader/x-fragment">
   precision mediump float;
   uniform vec3 uColor;
@@ -204,6 +208,7 @@ shape has visibility and
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
       StartView();
+      pluginScarRatio = new FilterColorThreshold()
   });
 
 </script>

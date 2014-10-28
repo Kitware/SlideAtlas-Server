@@ -1,8 +1,9 @@
 from bson import ObjectId
-from flask import Blueprint, request, render_template, make_response
+from flask import Blueprint, request, render_template, make_response, current_app
 from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
+import re
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -789,7 +790,3 @@ def fixjustification():
 
     db["images"].save(imgObj)
     return "success"
-
-
-
-
