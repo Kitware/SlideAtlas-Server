@@ -173,9 +173,11 @@ function InitViewEditMenus() {
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
 
-    $('<li>').appendTo(viewEditSelector)
-      .text('Color thresholding')
-      .click(function() {pluginScarRatio.Init();});
+    if(window.PLUGINS.indexOf("ScarRatio") >= 0) {
+      $('<li>').appendTo(viewEditSelector)
+        .text('Color thresholding')
+        .click(function() {pluginScarRatio.Init();});
+    }
 
     // I need some indication that the behavior id different in edit mode.
     // If the user is authorized, the new bounds are automatically saved.

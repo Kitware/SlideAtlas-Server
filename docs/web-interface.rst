@@ -9,10 +9,6 @@ Web Interface
   :members:
   :undoc-members:
 
-.. automodule:: slideatlas.views.attachments
-  :members:
-  :undoc-members:
-
 .. automodule:: slideatlas.views.sessions
   :members:
   :undoc-members:

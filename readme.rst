@@ -98,8 +98,9 @@ Openslide
   sudo make install
 
 
+.. note::
 
-
+  If any plugins are enabled, their dependencies should be installed accordingly. For more details see :ref:`plugins`
 
 
 Building documentation

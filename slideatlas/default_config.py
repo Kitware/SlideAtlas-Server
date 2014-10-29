@@ -22,6 +22,10 @@ SLIDEATLAS_ADMIN_DATABASE_PASSWORD = None
 SLIDEATLAS_ADMIN_DATABASE_AUTH_DB = None
 """ The database name to authenticate to the admin database with, if any. """
 
+SLIDEATLAS_ENABLED_PLUGINS = []
+""" The list of SlideAtlas plugins to be enabled, empty list by default. """
+
+
 
 ################################################################################
 ## Cryto Settings ##

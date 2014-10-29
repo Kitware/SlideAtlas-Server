@@ -40,6 +40,7 @@ FilterColorThreshold.prototype.Init = function() {
     var that=this;
 
     $.ajax({url: '/scar_ratio/get_image_histograms',
+        type:'POST',
         data: {
             img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg')
         }
@@ -53,7 +54,7 @@ FilterColorThreshold.prototype.Init = function() {
 FilterColorThreshold.prototype.Start = function() {
     var that = this;
     // Create a div
-    var dialogDiv = $('<div>')
+    that.dialogDiv = $('<div>')
         .attr('id', 'scar_ratio_dialog')
         .attr('title', 'Color thresholding filter');
 
@@ -63,15 +64,19 @@ FilterColorThreshold.prototype.Start = function() {
     for(var key in this.selectors) {
         if(this.selectors.hasOwnProperty(key)) {
             selector = this.selectors[key];
-            $('<h3>' + key  + ' <span id="value_' + key + '"> </span> </h3>').appendTo(dialogDiv);
+            $('<h3>' + key  + ' <span id="value_' + key + '"> </span> </h3>')
+                .appendTo(that.dialogDiv);
 
             $('<img>')
                 .attr('src', 'data:image/png;base64,' + this.histograms[key])
                 .attr('width','100%')
-                .appendTo(dialogDiv);
+                .appendTo(that.dialogDiv);
 
-            $('<br>').appendTo(dialogDiv);
-            selector.sliderDiv = $('<div>').appendTo(dialogDiv);
+            $('<br>').appendTo(that.dialogDiv);
+
+            selector.sliderDiv = $('<div>')
+                .appendTo(that.dialogDiv);
+
             $(selector.sliderDiv).data({key : key});
             selector.sliderDiv.slider({
                 range:true,
@@ -87,12 +92,14 @@ FilterColorThreshold.prototype.Start = function() {
             });
         }
     }
+    $('<br>').appendTo(that.dialogDiv);
 
-    $('<button>').appendTo(dialogDiv)
+    $('<button>').appendTo(that.dialogDiv)
         .text('Update')
         .click(function () {
             // alert('About to update');
             $.ajax({url: '/scar_ratio/get_mask',
+                type:'POST',
                 data: {
                     img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg'),
 
@@ -108,16 +115,25 @@ FilterColorThreshold.prototype.Start = function() {
             })
             .done(function(data) {
                 // show the image popup
-                that.mask = data["mask"]
+                that.mask = data["mask"];
+                that.numPixels = data["count"];
+                that.percent = data["percent"];
                 // alert("Got the image !");
                 var img = new Image();
                 img.src = 'data:image/png;base64,' + that.mask;
                 VIEWER1.MainView.Context2d.drawImage(img, 0, 0);
 
+                //Show the selected pixels somewhere
+                $(that.dialogDiv).find("#pixelcount").html("Selected: " + that.numPixels + " (" + that.percent + "%)");
+
             });
         })
 
-    $('<br>').appendTo(dialogDiv);
+    $('<br>').appendTo(that.dialogDiv);
 
-    var dialog = dialogDiv.dialog({width: 500, height: 'auto'});
+    $('<span>').appendTo(that.dialogDiv)
+        .html("Selected: None")
+        .attr("id", "pixelcount");
+
+    var dialog = that.dialogDiv.dialog({width: 500, height: 'auto'});
 }
