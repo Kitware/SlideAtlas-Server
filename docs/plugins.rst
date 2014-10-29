@@ -1,3 +1,5 @@
+.. _plugins:
+
 Plugins
 =======
 
@@ -12,6 +14,7 @@ During startup
     - Load the javascript for the plugins
     - Insert the menu which activates the plugin
     - Register that blue print, which loads corresponding app endpoints
+
 
 
 Measurement of scar ratio
