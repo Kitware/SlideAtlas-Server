@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import re
 import matplotlib
+# import pdb
 # matplotlib.rcParams['backend'] = "GTKAgg"
 
 # import matplotlib.mlab as mlab
@@ -176,7 +177,10 @@ def hsv_threshold():
             # Send the results back
             result = {}
             result["mask"] = base64.b64encode(image.tostring())
+            result["count"] = cv2.countNonZero(out)
+            result["percent"] = float(result["count"]) / (out.size)
             return flask.jsonify(result)
+
     except Exception as e:
         return flask.Response("Error: " + e.message)
 
