@@ -35,7 +35,7 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['numpy', 'Celery', 'celery.result', 'celery.task', 'celery.task.control', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes']
+MOCK_MODULES = ['numpy', 'Celery', 'celery.result', 'celery.task', 'celery.task.control', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes', "cv2", "numpy.ma", "matplotlib", "matplotlib.pyplot"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
