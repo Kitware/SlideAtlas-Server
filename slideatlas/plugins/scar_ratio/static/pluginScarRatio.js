@@ -92,6 +92,7 @@ FilterColorThreshold.prototype.Start = function() {
             });
         }
     }
+    $('<br>').appendTo(that.dialogDiv);
 
     $('<button>').appendTo(that.dialogDiv)
         .text('Update')
