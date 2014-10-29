@@ -32,3 +32,6 @@ pyzmq==14.2.0
 
 # Celery for background tasks
 celery==3.1.10
+
+# for scar_ratio plugin
+matplotlib

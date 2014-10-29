@@ -117,9 +117,10 @@ def test_transparency():
 def hsv_threshold_image(hsv_image, hmin=0, hmax=360, smin=0, smax=256, vmin=0, vmax=256):
     return cv2.inRange(hsv_image, np.array([hmin, smin, vmin]), np.array([hmax, smax, vmax]))
 
-@mod.route('/get_image_histograms', methods=['GET', 'POST'])
+
+@mod.route('/get_image_histograms', methods=['POST'])
 def get_image_histograms():
-    img = flask.request.args.get('img')
+    img = flask.request.form.get('img')
     imgb64 = dataUrlPattern.match(img).group(2)
     if imgb64 is not None and len(imgb64) > 0:
         imgbin = base64.b64decode(imgb64)
@@ -146,18 +147,18 @@ def get_image_histograms():
         return flask.Response("Error")
 
 
-@mod.route('/hsv_threshold', methods=['GET', 'POST'])
-@mod.route('/get_mask', methods=['GET', 'POST'])
+@mod.route('/hsv_threshold', methods=['POST'])
+@mod.route('/get_mask', methods=['POST'])
 def hsv_threshold():
-    img = flask.request.args.get('img', '')
+    img = flask.request.form.get('img', '')
 
-    hmin = int(flask.request.args.get('hmin', '0')) / 2
-    smin = int(flask.request.args.get('smin', '0'))
-    vmin = int(flask.request.args.get('vmin', '0'))
+    hmin = int(flask.request.form.get('hmin', '0')) / 2
+    smin = int(flask.request.form.get('smin', '0'))
+    vmin = int(flask.request.form.get('vmin', '0'))
 
-    hmax = int(flask.request.args.get('hmax', '360')) / 2
-    smax = int(flask.request.args.get('smax', '256'))
-    vmax = int(flask.request.args.get('vmax', '256'))
+    hmax = int(flask.request.form.get('hmax', '360')) / 2
+    smax = int(flask.request.form.get('smax', '256'))
+    vmax = int(flask.request.form.get('vmax', '256'))
 
     try:
         imgb64 = dataUrlPattern.match(img).group(2)

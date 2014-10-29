@@ -40,6 +40,7 @@ FilterColorThreshold.prototype.Init = function() {
     var that=this;
 
     $.ajax({url: '/scar_ratio/get_image_histograms',
+        type:'POST',
         data: {
             img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg')
         }
@@ -93,6 +94,7 @@ FilterColorThreshold.prototype.Start = function() {
         .click(function () {
             // alert('About to update');
             $.ajax({url: '/scar_ratio/get_mask',
+                type:'POST',
                 data: {
                     img : VIEWER1.MainView.Canvas[0].toDataURL('image/jpeg'),
 
