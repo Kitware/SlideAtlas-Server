@@ -11,6 +11,7 @@ Welcome to SlideAtlas's documentation!
 
     get-started
     deploy
+    plugins
     schema
     admin-rights
     user-workflow

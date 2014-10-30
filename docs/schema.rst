@@ -1,7 +1,49 @@
-Schema for the MongoDB
-======================
-version s0.3 corresponds to v2.0rc2
+Database Schema
+===============
 
+MongoEngine is used to define schema for records stored in mongodb
+
+Images and views
+----------------
+
+.. automodule:: slideatlas.models.image
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.view
+  :members:
+  :undoc-members:
+
+Models related to Access Control
+--------------------------------
+
+.. automodule:: slideatlas.models.user
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.group
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.session
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.collection
+  :members:
+  :undoc-members:
+
+
+Legacy Schema is as follows
+===========================
+
+.. note::
+   Schema defined in models always overrides, but for some objects, the schema is formalized, and therefore that specification is manually maintained
+
+.. warning::
+   Legacy schema is not maintained and should be revied and removed
+
+version s0.3 corresponds to v2.0rc2
 
 .. role:: optionalfield
 
