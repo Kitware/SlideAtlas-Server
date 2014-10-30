@@ -3,7 +3,7 @@ Database Schema
 
 MongoEngine is used to define schema for records stored in mongodb
 
-Images and views
+Images and Views
 ----------------
 
 .. automodule:: slideatlas.models.image
@@ -14,8 +14,25 @@ Images and views
   :members:
   :undoc-members:
 
-Models related to Access Control
---------------------------------
+
+Asset Stores
+------------
+
+.. automodule:: slideatlas.models.image_store.image_store
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.image_store.mongo_image_store
+  :members:
+  :undoc-members:
+
+.. automodule:: slideatlas.models.image_store.ptiff_image_store
+  :members:
+  :undoc-members:
+
+
+Organization and Access Control
+-------------------------------
 
 .. automodule:: slideatlas.models.user
   :members:
@@ -33,6 +50,9 @@ Models related to Access Control
   :members:
   :undoc-members:
 
+.. automodule:: slideatlas.models.permalink
+  :members:
+  :undoc-members:
 
 Legacy Schema is as follows
 ===========================
@@ -55,7 +75,7 @@ version s0.3 corresponds to v2.0rc2
    Complete the color coding
 
 Color codes
-~~~~~~~~~~~
+-----------
 
 - optional :optionalfield:`field`
 - indexed :indexedfield:`field`
