@@ -45,7 +45,7 @@ function Viewer (viewport, cache) {
   this.ZoomTarget = this.MainView.Camera.GetHeight();
   this.RollTarget = this.MainView.Camera.Roll;
 
-  this.AnnotationVisibility = ANNOTATION_OFF;
+  this.AnnotationVisibility = ANNOTATION_ON;
   this.ShapeList = [];
   this.WidgetList = [];
   this.ActiveWidget = null;
