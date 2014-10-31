@@ -256,6 +256,7 @@ PolylineWidget.prototype.Load = function(obj) {
   this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
   this.LineWidth = parseFloat(obj.linewidth);
   this.Shape.LineWidth = this.LineWidth;
+  this.Shape.Points = [];
   for(var n=0; n < obj.points.length; n++){
       this.Shape.Points[n] = [parseFloat(obj.points[n][0]),
                             parseFloat(obj.points[n][1])];
