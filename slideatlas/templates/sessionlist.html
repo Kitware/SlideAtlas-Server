@@ -94,6 +94,13 @@
                     <i class="glyphicon glyphicon-plus"></i>
                     <span> Session</span>
                 </button>
+                <a href="{{ url_for('.collection_edit_view', collection=collection) }}">
+                  <button type="button"
+                          class="btn btn-warning badge">
+                    <i class="glyphicon glyphicon-edit"></i>
+                    <span> Edit</span>
+                  </button>
+                </a>
                 <button type="button"
                         class="btn btn-info badge sa-collection-access"
                         ng-controller="AccessModalCtrl"

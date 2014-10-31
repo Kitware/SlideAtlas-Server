@@ -24,13 +24,16 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
-
-
     function CollectionBrowser () {
         var self = this;
         this.Div = $('<div>')
-            .css({'height': '100%',
-                  'width': 'auto'});
+            .css({'height': '100%'});
+        this.OptionBar = $('<div>')
+            .appendTo(this.Div)
+            .css({'height': '20px',
+                  'width':  '100%',
+                  'position': 'relative',
+                  'border': '1px solid #CCC'});
         
         this.CollectionList = $('<ul>')
             .appendTo(this.Div)
@@ -44,7 +47,6 @@ CollectionBrowser = (function (){
         
         this.Collections = [];
         this.DefaultCollectionLabel = "";
-        this.DefaultSessionLabel = "";
         this.SelectedSession = undefined;
         this.Initialize();        
     }
@@ -80,21 +82,29 @@ CollectionBrowser = (function (){
                       "width":(width-left)});
     }
     
-    
+   
     CollectionBrowser.prototype.LoadCollectionList = function(data) {
         var self = this;
         // The first "sessions" list is actually collections.
         this.Collections = data.sessions;
         // Populate the collection menu.
-        var defaultCollectionIndex = 0;
+        var defaultCollection = undefined;
         for (var i = 0; i < this.Collections.length; ++i) {
             // Note: data.sessions is actually a list of collections.
             var collection = new Collection(data.sessions[i],this.CollectionList);
+            if (data.sessions[i].rule == this.DefaultCollectionLabel) {
+                defaultCollection = collection;
+            }
         }
-        //if (this.Collections.length > 0) {
-        //    this.SelectCollection(defaultCollectionIndex, this.DefaultSessionLabel);
-        //}
-        //this.HandleResize();
+        if (defaultCollection) {
+            defaultCollection.ToggleSessionList();
+            // Now scroll to put the collection at the top.
+            var scrollDiv = this.CollectionList;
+            // Why won't it scroll if call directly?
+            setTimeout(function () {var offset = defaultCollection.ListItem.offset();
+                                    scrollDiv.scrollTop(offset.top);},
+                       100);
+        }
     }
     
 
@@ -180,7 +190,7 @@ CollectionBrowser = (function (){
             .appendTo(this.Body)
             .attr('src',"/webgl-viewer/static/plus.png")
             .css({'height': '15px'});
-        $('<span>')
+        this.SessionLabel = $('<span>')
             .appendTo(this.Body)
             .text(data.label);
         this.ViewList = $('<ul>')
@@ -226,15 +236,14 @@ CollectionBrowser = (function (){
                       self.LoadMetaData(data);
                   } else {
                       alert("ajax failed: sessions?json=1"); }
-              }
-             );
+              });
     }
 
     
     Session.prototype.LoadMetaData = function(data) {
         var self = this;
         this.LoadState = LOAD_METADATA_LOADED;
-        
+
         this.Data = [];
         // Get rid of the waiting icon.
         this.ViewList.empty();
@@ -242,7 +251,11 @@ CollectionBrowser = (function (){
             // Make a draggable list item
             var listItem = $('<li>')
                 .appendTo(this.ViewList)
+                .data('viewid', data.session.views[i].id)
+                .data('imgid', data.session.views[i].image_id)
+                .data('imgdb', data.session.views[i].image_store_id)
                 .css({'float': 'left',
+                      'list-style-type': 'none',
                       'margin': '2px',
                       'border': '2px solid #CCC',
                       'padding': '2px'})
@@ -251,11 +264,12 @@ CollectionBrowser = (function (){
                     function () {$(this).css({'border-color': '#CCC'});})
                 .mousedown(
                     function(event){
-                        // Start dragging.
+                        // Startdragging.
                         HideImagePopup();
-                        StartViewDrag($(this), self.Body, event);
+                        StartViewDrag($(this), self, event);
                     });
 
+            // This data array is only used to delay loading the images.
             this.Data.push({item:listItem, 
                             label: data.images[i].label,
                             src:"/thumb?db="+data.images[i].db+"&img="+data.images[i].img})
@@ -263,7 +277,8 @@ CollectionBrowser = (function (){
                 .appendTo(listItem)
                 .text(data.images[i].label)
                 .css({'color': '#333',
-                      'font-size': '11px'});
+                      'font-size': '11px',
+                      'display': 'block'});
         }
         $('<div>')
             .appendTo(this.ViewList)
@@ -288,9 +303,11 @@ CollectionBrowser = (function (){
                 .attr("src", this.Data[i].src)
                 .attr("alt", this.Data[i].label)
                 .mouseenter(
-                    function () {
-                        // Show larger image after about 1 second.
-                        ScheduleImagePopup($(this));
+                    function (event) {
+                        if (event.which == 0) {
+                            // Show larger image after about 1 second.
+                            ScheduleImagePopup($(this));
+                        }
                     })
                 .mouseleave(
                     function () {
@@ -324,8 +341,11 @@ CollectionBrowser = (function (){
     }
 
 
-    Session.prototype.UpdateDropTarget = function(x, y) {
-        // Check to see if the mous is in the body
+    // Sets DropTargetItem and DropTargetBefore.
+    // It also handles highlighting the drop target.
+    // Returns true if drop target was found.
+    Session.prototype.UpdateDropTarget = function(x,y,source) {
+        // Check to see if the mouse is in the body
         var pos = this.Body.offset();
         var width = this.Body.innerWidth();
         var height = this.Body.innerHeight();
@@ -337,7 +357,7 @@ CollectionBrowser = (function (){
                                          'border-width':'2'});
                 this.DropTargetItem = undefined;
             }
-            return;
+            return false;
         }
         // Find the closest item.
         var bestDist = 1000000;
@@ -353,7 +373,7 @@ CollectionBrowser = (function (){
                 var bottom = pos.top + $(item).innerHeight();
                 if (x > right) { dist += x - right; }
                 if (y > bottom) { dist += y - bottom; }
-                if (dist < bestDist) {
+                if (dist < bestDist && $(item) != source) {
                     bestDist = dist;
                     bestItem = $(item);
                     bestBefore = x < (pos.left+right)*0.5;
@@ -364,6 +384,11 @@ CollectionBrowser = (function (){
                                      'border-width':'2'});
             this.DropTargetItem = undefined;
         }
+        if ( bestItem == source) {
+            this.DropTargetItem = undefinedl
+            return false;
+        }
+
         this.DropTargetBefore = bestBefore;
         this.DropTargetItem = bestItem;
         if (this.DropTargetBefore) {
@@ -373,51 +398,161 @@ CollectionBrowser = (function (){
             bestItem.css({'border-right-color':'#333',
                           'border-right-width':'4px'});
         }
+        return true;
+    }
+
+
+    Session.prototype.Drop = function(x,y, source, clone) {
+        if (this.UpdateDropTarget(x,y, source)) {
+            if (this.DropTargetBefore) {
+                clone.insertBefore(this.DropTargetItem);
+            } else {
+                clone.insertAfter(this.DropTargetItem);
+            }
+            this.DropTargetItem.css({'border-color':'#CCC',
+                                     'border-width':'2'});
+            // The clone is put into the destination session.
+            // The original is removed from the source session.
+            clone
+                .css({'position':'static',
+                      'float': 'left',
+                      'list-style-type': 'none',
+                      'margin': '2px',
+                      'border': '2px solid #CCC',
+                      'padding': '2px'});
+
+            return true;
+        }
+        return false;
+    }
+
+
+    Session.prototype.Save = function() {
+        if (this.LoadState != LOAD_METADATA_LOADED &&
+            this.LoadState != LOAD_IMAGES ) {
+            alert("Error Save: Session not loaded.");
+            return;
+        }
+
+        var views = [];
+        this.ViewList.children('li').each(function () {
+            var view = {
+                'label' : $('div',this).text(),
+                'imgdb' : $(this).data('imgdb'),
+                'img'   : $(this).data('imgid'),
+                'view'  :$(this).data('viewid')
+            };
+
+            var viewId = $(this).attr('view');
+            if (viewId && viewId != "") {
+                view.view = viewId;
+            }
+            views.push(view);
+        });
+        
+        // Save the new order in the database.
+        // Python will have to detect if any view objects have to be deleted.
+        var args = {};
+        args.views = views;
+        args.session = this.Id;
+        args.label = this.SessionLabel.text();
+        
+        $.ajax({
+            type: "post",
+            url: "/session-save",
+            data: {"input" :  JSON.stringify( args )},
+            error: function() { alert( "AJAX - error: session-save (collectionBrowser)" ); }
+        });
+        
     }
 
     
     
 //==============================================================================
     var DROP_TARGETS = [];
-    function StartViewDrag(div, parent, event) {
+    var DRAG_SESSION = undefined;
+    var DRAG_ITEM = undefined;
+    var DRAG_CLONE = undefined;
+    function StartViewDrag(source, session, event) {
         var x = event.clientX;
         var y = event.clientY;
-        var item = div
-            .clone(false)
-            .appendTo(parent)
+
+        DRAG_ITEM = source;
+        DRAG_SESSION = session;
+
+        var clone = source
+            .clone(true)
+            .appendTo('body')
             .css({'position':'fixed',
                   'left': x,
                   'top' : y,
                   'margin': 0});
+        DRAG_CLONE = clone;
+
+        // Change the original div to a placeholder.
+        source.children().css({'opacity':'0.2'});
+
         $('body')
             .mousemove(
                 function(event) {
-                    ViewDrag(item, event);
+                    ViewDrag(event);
                     return false;
                 })
             .mouseup(
-                function() {
+                function(event) {
                     $(this).unbind('mousemove');
-                    item.remove();
+                    $(this).unbind('mouseup');
+                    ViewDrop(event);
                     return false;
                 });
         
+        ClearPendingImagePopup();
         return false;
     }
 
+    function ViewDrag(event) {
+        var x = event.clientX;
+        var y = event.clientY;
+        DRAG_CLONE
+            .css({'left': x-20,
+                  'top' : y-20});
 
-    function ViewDrag(item, event) {
-        item.css({
-            'left': event.clientX-20,
-            'top' : event.clientY-20});
-        UpdateDropTargets(event.pageX, event.pageY);
+        for (var i = 0; i < DROP_TARGETS.length; ++i) {
+            DROP_TARGETS[i].UpdateDropTarget(x, y, DRAG_ITEM);
+        }
     }
 
-
-    function UpdateDropTargets(x, y) {
+    function ViewDrop(event) {
+        var x = event.clientX;
+        var y = event.clientY;
+        DRAG_CLONE
+            .css({'left': event.clientX-20,
+                  'top' : event.clientY-20});
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
-            DROP_TARGETS[i].UpdateDropTarget(x, y);
+            var destinationSession = DROP_TARGETS[i];
+            if (destinationSession.Drop(x, y, DRAG_ITEM, DRAG_CLONE)) {
+                // change the original div to an undo button,
+                DRAG_ITEM
+                    .click(function () { UndoDrop($(this));});
+                DRAG_ITEM.unbind('mousedown');
+                // Actually, lets get this working without an undo for now.
+                DRAG_ITEM.remove();
+                destinationSession.Save();
+                if (DRAG_SESSION != destinationSession) {
+                    DRAG_SESSION.Save();
+                }
+
+                return true;
+            }
         }
+        // No drop destination, undo the drag / move.
+        DRAG_CLONE.remove();
+        DRAG_ITEM.children().css({'opacity':'1.0'});
+        return false;
+    }
+
+    function UndoDrop(source){
+        alert("Undo move");
     }
 
     function AddDropTarget(dropTarget) {
@@ -425,8 +560,10 @@ CollectionBrowser = (function (){
     }
 
     function RemoveDropTarget(dropTarget) {
-        var idx = DROP_TARGET.find(dropTarget);
-        DROP_TARGETS.slide(idx,1);
+        var idx = DROP_TARGETS.indexOf(dropTarget);
+        if (idx > -1) {
+            DROP_TARGETS.splice(idx,1);
+        }
     }
 
 
@@ -484,8 +621,6 @@ CollectionBrowser = (function (){
                 });
 
     }
-
-
 
 
 

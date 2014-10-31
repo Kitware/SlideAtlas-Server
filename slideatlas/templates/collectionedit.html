@@ -1,0 +1,250 @@
+{% extends 'frontend_base.html' %}
+
+{% set is_site_admin = security.AdminSiteRequirement().can() %}
+
+
+{% block title %}{{ super() }} - Collection Editor{% endblock title %}
+
+
+{% block styles %}
+{# {{ super() }} #}
+    <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+    <style>
+        #sortable {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        #sortable li {
+            margin: 0 3px 3px 3px;
+            padding: 3px 3px 3px 1.5em;
+            height: 37px;
+            position: relative;
+        }
+        #sortable li span {
+            position: absolute;
+            margin-left: -1.3em;
+        }
+        #sortable li img {
+            margin: 0;
+            padding: 0;
+            float: left;
+            height: 38px;
+        }
+        #sortable li input {
+            padding: 4px;
+            margin: 5px;
+            float: left;
+            width: 22em;
+        }
+        body {
+            margin: 0;
+        }
+        #slideList {
+            padding-top: 3px;
+        }
+        h2 {
+            text-align: center;
+            margin: 0;
+        }
+    </style>
+{% endblock styles %}
+
+
+{% block scripts %}
+    {{ super() }}
+
+
+
+
+    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='collectionBrowser.js') }}"></script>
+    <script>
+        var COLLECTION_ID = "{{ collection.id }}";
+
+        $(function() {
+            $( "#sortable" ).sortable({change:modified});
+            $( "#sortable" ).disableSelection();
+        });
+
+        function deleteView(arg) {
+            modified();
+            // A hack, but how should it be done right?
+            var tmp = "#"+arg;
+            $(tmp).remove();
+        }
+
+
+        function save() {
+            var views = [];
+            var guiViews = [];
+            $('li', '#sortable').each(function () {
+                // This is a pain keeping an extra array to update with new view ids.
+                // Better would be initializing with ajax call in the first place...
+                guiViews.push($(this));
+                var view = {
+                    'copy': $(this).attr('copy'),
+                    'label' : $('.descriptiveLabel',this).val(),
+                    'hiddenLabel' : $('.hiddenLabel',this).val(),
+                    'imgdb' : $(this).attr('imgdb'),
+                    'img': $(this).attr('img')
+                };
+                var viewId = $(this).attr('view');
+                if (viewId && viewId != "") {
+                    view.view = viewId;
+                }
+                views.push(view);
+            });
+
+            // Save the new order in the database.
+            // Python will have to detect if any view objects have to be deleted.
+            var args = {};
+            args.views = views;
+            args.collection = SESSION_ID;
+            args.label = $("#title").val();
+            args.hideAnnotation = $('#hideCheck').is(':checked');
+            args.stack = false;
+
+            $.ajax({
+                type: "post",
+                url: "{{ url_for('.session_save_view') }}",
+                data: {"input" :  JSON.stringify( args )},
+                success:
+                  function save_success (data, status) {
+                      $('#saveButton').css({"color":"#000"});
+                  },
+                error: function() { alert( "AJAX - error: collection-save" ); }
+            });
+
+        }
+
+        function cancel() {
+            alert("Cancel not implemented");
+        }
+
+        function updateOptions() {
+            var x=document.getElementById("title");
+            //x.value=x.value.toUpperCase();
+        }
+
+        function handleResize() {
+            var top = $('#wrapper').position().top;
+
+            // We need a dynamic resize
+            var height = window.innerHeight - 2 - top;
+            $('#wrapper').css({"height": height});
+
+            GALLERY1.HandleResize();
+            GALLERY2.HandleResize();
+        }
+
+        var GALLERY1;
+        var GALLERY2;
+        function showDualView() {
+            GALLERY1.Div
+                .animate({'width':'50%'},'slow',
+                         function(){
+                             GALLERY2.Div.show();
+                             GALLERY1.DualArrow.hide();
+                             GALLERY2.DualArrow.show();
+                         });
+        }
+        function hideDualView() {
+            GALLERY1.Div
+                .animate({'width':'100%'},'slow',
+                         function(){
+                             GALLERY1.DualArrow.show();
+                             GALLERY2.DualArrow.hide();
+                             GALLERY2.Div.hide();
+                         });
+        }
+
+        function modified () {
+            $('#saveButton').css({"color":"#E00"});
+        }
+
+        function hideAnnotation (flag) {
+            modified();
+            if (flag) {
+                $(".descriptiveLabel" ).hide();
+                $(".hiddenLabel" ).show();
+            } else {
+                $(".hiddenLabel" ).hide();
+                $(".descriptiveLabel" ).show();
+            }
+        }
+
+        $(document).ready(function() {
+            var placeHoder = $('<div>')
+                .appendTo('body')
+                .css({'width': '100%',
+                      'height': '30px',
+                      'background-color': 'black'});
+
+            var wrapper = $('<div>')
+                .appendTo('body')
+                .attr('id','wrapper')
+                .css({'width': '100%',
+                      'overflow': 'hidden'});
+
+            GALLERY1 = new CollectionBrowser();
+            GALLERY1.AppendTo(wrapper);
+            // Must make a better API for this
+            GALLERY1.DefaultCollectionLabel = "{{collection.label}}";
+            GALLERY1.Div
+                .css({'width': '100%',
+                      'display':'inline-block',
+                      'outline': '#888 solid 1px'});
+            GALLERY1.DualArrow = 
+                $('<img>').appendTo(GALLERY1.OptionBar)
+                    .css({'position': 'absolute',
+                          'height': '20px',
+                          'width': '20x',
+                          'top':    '0px',
+                          'right':  '0px'})
+                    .attr('src',"/webgl-viewer/static/dualArrowLeft2.png")
+                    .click(function(){showDualView();});
+
+
+            GALLERY2 = new CollectionBrowser();
+            GALLERY2.AppendTo(wrapper);
+            GALLERY2.DefaultCollectionLabel = "{{collection.label}}";
+            GALLERY2.DefaultSessionLabel = "";
+            GALLERY2.Div
+                .css({'width': '50%',
+                      'display':'inline-block',
+                      'outline': '#888 solid 1px'})
+                .hide();        
+            GALLERY2.DualArrow = 
+                $('<img>').appendTo(GALLERY2.OptionBar)
+                    .css({'position': 'absolute',
+                          'height': '20px',
+                          'width': '20x',
+                          'top':    '0px',
+                          'left':  '0px'})
+                    .attr('src',"/webgl-viewer/static/dualArrowRight2.png")
+                    .click(function(){hideDualView();});
+
+            $(window).resize(function() {
+                handleResize();
+            }).trigger('resize');
+
+            $('#saveButton').css({"color":"#000"});
+            $("#title").on("input", modified);
+            $(".descriptiveLabel").on("input", modified);
+            $(".hiddenLabel").on("input", modified);
+        });
+
+    </script>
+{% endblock scripts %}
+
+
+{# TODO: with navbar at the top, the session editor isn't the correct vertical height #}
+{% block navbar %}{% endblock navbar %}
+
+
+{% block content %}
+{{ super() }}
+
+
+{% endblock content %}

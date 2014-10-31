@@ -13,7 +13,6 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
-
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -154,16 +153,10 @@ def session_edit_view(session):
 
 
 ################################################################################
-@mod.route('/sessions/<Session:session>/edit2')
-@security.EditSessionRequirement.protected
-def session_edit2_view(session):
-    session_son = apiv2.SessionItemAPI._get(session, with_hidden_label=True)
-
-    return render_template('sessionedit.html',
-                           gallery=0,
-                           collection=session.collection,
-                           session=session,
-                           session_son=session_son)
+@mod.route('/collections/<Collection:collection>/edit')
+def collection_edit_view(collection):
+    return render_template('collectionedit.html',
+                           collection=collection)
 
 
 ################################################################################
@@ -215,7 +208,12 @@ def session_save_view():
     # I assume the session uses this to get the thumbnail
     label = input_obj['label']
     view_items = input_obj['views']
-    hide_annotations = input_obj['hideAnnotation']
+    # I am using this endpoint for the session editor and the collection editor.
+    # The collection editor can move views from one session to another.
+    # In this case, we do not want to delete orphaned views.
+    delete_views = False
+    if 'delete_views' in input_obj:
+        delete_views = input_obj["delete_views"]
 
     admindb = models.ImageStore._get_db()
 
@@ -224,13 +222,17 @@ def session_save_view():
 
     security.EditSessionRequirement(session).test()
 
+    if 'hideAnnotation' in input_obj:
+        session.hide_annotations = bool(input_obj['hideAnnotation'])
+
     new_views = list()
+
     for view_item in view_items:
         # View or Image
         if 'view' in view_item:
             # deep or shallow copy of an existing view.
             # A bit confusing because no viewdb implies no copy unless 'create_new_session'
-            if 'copy' in view_item:
+            if 'copy' in view_item and view_item['copy']:
                 view_item['view'] = deepcopyview(ObjectId(view_item['view']))
             # get the view
             view = admindb['views'].find_one({'_id': ObjectId(view_item['view'])})
@@ -247,11 +249,17 @@ def session_save_view():
                 'SessionId': session_id,
                 'ViewerRecords': viewer_records
             }
+        # Hidden labels are a pain. Treat labels as hidden
+        # because the client may not know they are hidden.
+        if 'hiddenLabel' in view_item:
+            view['HiddenTitle'] = view_item['hiddenLabel']
+            view['Title'] = view_item['label']
+        else:
+            if session.hide_annotations:
+                view['HiddenTitle'] = view_item['label']
+            else:
+                view['Title'] = view_item['label']
 
-        view.update({
-            'Title': view_item['label'],
-            'HiddenTitle': view_item['hiddenLabel'],
-        })
 
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
@@ -262,14 +270,15 @@ def session_save_view():
     old_view_ids = set(view_ref.ref for view_ref in session.views)
     new_view_ids = set(view_ref.ref for view_ref in new_views)
 
-    removed_view_ids = old_view_ids - new_view_ids
-    for view_id in removed_view_ids:
-        apiv2.SessionViewItemAPI._delete(view_id)
+    if delete_views:
+        removed_view_ids = old_view_ids - new_view_ids
+        for view_id in removed_view_ids:
+            apiv2.SessionViewItemAPI._delete(view_id)
 
     # update the session
     session.label = label  # I am using the label for the annotated title, and name for the hidden title.
     session.views = new_views
-    session.hide_annotations = bool(hide_annotations)
+
     session.type = 'session'
 
     session.save()
