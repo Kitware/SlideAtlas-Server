@@ -161,6 +161,10 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
       ++level;
       tmp = tmp * 0.5;
   }
+  if (level >= this.Image.levels) {
+      level = this.Image.levels - 1;
+  }
+
 
   // Compute the world bounds of camera view.
   var xMax = 0.0;
