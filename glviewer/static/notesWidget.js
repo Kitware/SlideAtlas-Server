@@ -1287,7 +1287,13 @@ NotesWidget.prototype.RandomCallback = function() {
 NotesWidget.prototype.SaveCallback = function() {
   // Copy the current view into the note.
   // This used to be "Snap Shot", which was too complex.
-  this.GetCurrentNote().RecordView();
+  var note = this.GetCurrentNote();
+  note.RecordView();
+  if (note.Type == "Stack") {
+      // Copy viewer annotation to the viewer record.
+      note.RecordAnnotations();
+  }
+
 
   // changing an annotation does not cause modified yet, so do not block the save.
   //if ( ! this.ModifiedFlag) { return;}
