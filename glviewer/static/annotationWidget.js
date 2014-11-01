@@ -36,11 +36,10 @@ function AnnotationWidget (viewer) {
         'opacity': '0.6',
         'border-radius': '5px'})
       .attr('type','image')
-      .attr('src',"/webgl-viewer/static/pencil3.png")
+      .attr('src',"/webgl-viewer/static/pencil3Up.png")
       .click(function(){self.ToggleVisibility();});
 
     this.ToolsTable = $('<td>').appendTo(row)
-      .hide()
       .css({
         'opacity': '0.6',
         'width': '182',

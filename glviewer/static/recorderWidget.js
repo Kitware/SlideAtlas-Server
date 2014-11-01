@@ -80,11 +80,9 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
   this.Camera = viewer.GetCamera().Serialize();
 
   this.AnnotationVisibility = viewer.GetAnnotationVisibility();
-  if (this.AnnotationVisibility) {
-    this.Annotations = [];
-    for (var i = 0; i < viewer.WidgetList.length; ++i) {
-      this.Annotations.push(viewer.WidgetList[i].Serialize());
-    }
+  this.Annotations = [];
+  for (var i = 0; i < viewer.WidgetList.length; ++i) {
+    this.Annotations.push(viewer.WidgetList[i].Serialize());
   }
 }
 

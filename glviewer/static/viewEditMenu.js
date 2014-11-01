@@ -173,7 +173,7 @@ function InitViewEditMenus() {
              .text("Flip Horizontal")
              .click(function(){FlipHorizontal();});
 
-    if(window.PLUGINS.indexOf("ScarRatio") >= 0) {
+    if(window.PLUGINS && window.PLUGINS.indexOf("ScarRatio") >= 0) {
       $('<li>').appendTo(viewEditSelector)
         .text('Color thresholding')
         .click(function() {pluginScarRatio.Init();});
