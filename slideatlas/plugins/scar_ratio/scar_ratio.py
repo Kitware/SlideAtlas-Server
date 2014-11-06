@@ -3,10 +3,6 @@ import numpy as np
 import cv2
 import re
 import matplotlib
-# import pdb
-# matplotlib.rcParams['backend'] = "GTKAgg"
-
-# import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import cStringIO as StringIO
 
@@ -131,8 +127,6 @@ def get_image_histograms():
         # fout.close()
         img_array = np.asarray(bytearray(imgbin), dtype=np.uint8)
         inp = cv2.imdecode(img_array, 1)
-
-        cv2.imwrite("test.png", inp)
         output_format = "png"
         hsv = cv2.cvtColor(inp, cv2.COLOR_BGR2HSV)
         hist_images = get_hsv_histograms_2(hsv, output_format=output_format)
