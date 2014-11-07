@@ -215,20 +215,6 @@ EventManager.prototype.FocusOut = function() {
 EventManager.prototype.HandleKeyDown = function(event) {
   if ( ! this.HasFocus) {return true;}
 
-  // It is sort of a hack to check for the cursor mode here, but it
-  // affects both viewers.
-  if (false && event.keyCode == 88) { // x = 88
-      // I am using the 'c' key to display to focal point cursor
-      //this.CursorFlag = true;
-      // what a pain.  Holding x down sometimes blocks mouse events.
-      // Have to change to toggle.
-      //this.CursorFlag = true;
-      this.CursorFlag =  ! this.CursorFlag;
-      event.returnValue = false;
-      eventuallyRender();
-      return false;
-  }
-
   if (event.keyCode == 16) {
       // Shift key modifier.
       this.ShiftKeyPressed = true;
@@ -273,13 +259,21 @@ EventManager.prototype.HandleKeyDown = function(event) {
 
 EventManager.prototype.HandleKeyUp = function(event) {
     if ( ! this.HasFocus) {return true;} 
-    
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
     if (event.keyCode == 88) { // x = 88
         // I am using the 'c' key to display to focal point cursor
         //this.CursorFlag = false;
         // what a pain.  Holding x down sometimes blocks mouse events.
         // Have to change to toggle.
         this.CursorFlag =  ! this.CursorFlag;
+        if (event.shiftKey && this.CursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.CursorFlag = false;}, 1000);
+        }
+
         eventuallyRender();
         return false;
     }
