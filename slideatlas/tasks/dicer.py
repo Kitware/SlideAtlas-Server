@@ -64,8 +64,8 @@ def process_file(args):
     datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "processing"}})
 
     try:
-        if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif"]:
-            logger.info("Got a " + args["input"])
+        if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif", 'jp2', 'j2k']:
+            logger.warning("In dicer task got" + args["input"])
             uploader_obj = uploader.MongoUploaderPyramid(args)
             success = True
         #TODO: Test and enable other files too

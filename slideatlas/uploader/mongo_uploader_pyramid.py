@@ -17,7 +17,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
 from slideatlas.ptiffstore import PilReader
 from slideatlas.ptiffstore.common_utils import get_tile_index, get_max_depth
-
+from slideatlas.ptiffstore.reader_factory import ReaderFactory
+factory = ReaderFactory()
 __all__ = ('MongoUploaderPyramid', )
 
 import logging
@@ -35,7 +36,7 @@ class TileProcessor(Process):
         super(TileProcessor, self).__init__()
 
         #Initial parameters
-        logger.info("ARGS: " + str(args))
+        # logger.info("ARGS: " + str(args))
         self.args = args
         self.name = self.args["name"]
         self.tilesize = self.args["tilesize"]
@@ -55,20 +56,7 @@ class TileProcessor(Process):
         self.col.ensure_index("name")
 
     def make_reader(self):
-        logger.info(str(self.args))
-        ext = os.path.splitext(self.args["input"])[1][1:]
-        if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
-            logger.info("%d) Using OpenslideReader for: %s" % (os.getpid(), ext))
-            from slideatlas.ptiffstore.openslide_reader import OpenslideReader
-            reader = OpenslideReader()
-        elif ext in ["jpg", "png"]:
-            logger.info("%d) Using PilReader for: %s" % (os.getpid(), ext))
-            reader = PilReader()
-        else:
-            logger.error("Unknown extension: ", ext)
-            sys.exit(-1)
-
-        reader.set_input_params({'fname': self.args["input"]})
+        reader = factory.open(self.args["input"])
         logger.info("ImageSize (%d,%d)" % (reader.width, reader.height))
         return reader
 

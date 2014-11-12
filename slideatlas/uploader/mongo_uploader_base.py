@@ -15,6 +15,12 @@ import pymongo
 from bson.objectid import ObjectId, InvalidId
 
 from slideatlas.ptiffstore import PilReader
+from slideatlas.ptiffstore.reader_factory import ReaderFactory
+
+# Construct image factory
+# Possibly belongs during worker creation and not here
+factory = ReaderFactory()
+
 
 # Create teh application objects
 __all__ = ('MongoUploader', )
@@ -119,19 +125,7 @@ class MongoUploader(object):
         Will not be implemented in the base uploader class
         """
         #todo: choose the reader here
-
-        ext = os.path.splitext(self.args["input"])[1][1:].lower()
-        logger.info("Got extension: " + ext)
-        if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
-            from slideatlas.ptiffstore.openslide_reader import OpenslideReader
-            reader = OpenslideReader()
-        elif ext in ["jpg", "png"]:
-            reader = PilReader()
-        else:
-            logger.error("Unknown extension: " + ext)
-            sys.exit(-1)
-
-        reader.set_input_params({'fname': self.args["input"]})
+        reader = factory.open(self.args["input"])
         return reader
 
     def upload_base(self):
