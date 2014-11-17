@@ -293,8 +293,16 @@ function addViewToStack(self, imageData, event) {
     // the image before cropping.
     //var xMid = imageData.bounds[0] + (event.offsetX * spacing);
     //var yMid = imageData.bounds[2] + (event.offsetY * spacing);
-    var xMid = (event.offsetX * spacing);
-    var yMid = (event.offsetY * spacing);
+
+    var xMid, yMid;
+    if (event.offsetX) {
+        xMid = (event.offsetX * spacing);
+        yMid = (event.offsetY * spacing);
+    } else {
+        // Triggered programatically
+        xMid = (imageData.bounds[0]+imageData.bounds[1])*0.5;
+        yMid = (imageData.bounds[2]+imageData.bounds[3])*0.5;
+    }
     var radius = (imageData.bounds[3]-imageData.bounds[2])*0.4;
     var bds = [xMid-radius, xMid+radius, yMid-radius, yMid+radius];
 
@@ -379,6 +387,23 @@ function searchCallback() {
 }
 
 
+function addAllCallback() {
+    slides = $('#gallery li');
+    for (var i = 0; i < slides.length; ++i) {
+        var slide = $(slides[i]);
+        if (slide.is(":visible")) {
+            // Can we simply trigger the mousedown event?
+            // This matches the label too.
+            slide.children("div").trigger('mousedown');
+        }
+    }
+
+    $('#saveButton').prop('disabled',false);
+    var x = (STACK_ITEMS.length * 110) + 2;
+    $('#stackDiv').animate({scrollLeft: x});
+}
+
+
 function save() {
   var args = {sessId: SESSION_ID,
               label: $('#stackLabel').val(),
@@ -438,6 +463,9 @@ function save() {
             <div class="barItem">
                 Search: <input type="text" id="imagesearch">
                 <button onclick="searchCallback()">Submit</button>
+            </div>
+            <div class="barItem">
+                <button onclick="addAllCallback()">Add All</button>
             </div>
             <div class="clear"></div>
         </div>
