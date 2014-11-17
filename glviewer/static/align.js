@@ -1,7 +1,298 @@
 // Histogram section alignment. 
 
 
+//=================================================
+// Histogram display.
 
+function HistogramPlot (left, top, width, height) {
+    this.Symetric = false;
+    this.Axis = 0;
+
+    this.Height = height;
+    this.Width = width;
+
+    this.Div = $('<div>')
+        .appendTo('body')
+        .css({'position': 'fixed',
+              'background-color': '#ffffff',
+              'border': '2px solid #336699',
+              'padding': '0px',
+              'z-index': '102'});
+
+    this.Canvas = $('<canvas>')
+        .appendTo(this.Div)
+        .css({'width' : '100%',
+              'height': '100%'});
+    this.Context = this.Canvas[0].getContext("2d");
+
+    this.SetSize(left,top, width, height);
+}
+
+
+
+HistogramPlot.prototype.SetSize = function (left,top,width,height) {
+    this.Height = height;
+    this.Width = width;
+
+    if (typeof(left) == "number") {
+        left = left.toString() + 'px';
+    }
+    if (typeof(top) == "number") {
+        top = top.toString() + 'px';
+    }
+
+
+    this.Div
+        .css({'width' : width.toString(),
+              'height': height.toString(),
+              'top'   : top,
+              'left'  : left});
+
+    this.Canvas[0].width = width;
+    this.Canvas[0].height = height;
+}
+
+
+
+
+HistogramPlot.prototype.Clear = function () {
+    this.Context.clearRect(0,0,this.Width,this.Height);
+}
+
+HistogramPlot.prototype.Draw = function (hist, color, iMin, iMax) {
+    if ( ! iMin) { iMin = 0; }
+    if ( ! iMax) { iMax = hist.length;}
+
+    // Find the max value.
+    var hMax = 0;
+    var hMin = 0;
+    for (var i = iMin; i < iMax; ++i) {
+        var v = hist[i];
+        if (v > hMax) { hMax = v;}
+        if (v < hMin) { hMin = v;}
+    }
+
+    var ctx = this.Context;
+
+    var hScale, iScale, hOrigin, iOrigin, ip, hp;
+    if (this.Axis) {
+        hScale = (this.Width-2)/(hMax-hMin);
+        hOrigin = -hMin*hScale + 1;
+        iScale = (this.Height-2)/(iMax-iMin);
+        iOrigin = -iMin*iScale + 1;
+    } else {
+        hScale = -(this.Height-2)/(hMax-hMin);
+        hOrigin = -hMax*hScale + 1;
+        iScale = (this.Width-2)/(iMax-iMin);
+        iOrigin = -iMin*iScale + 1;
+    }
+
+    // draw the axis
+    ctx.beginPath();
+    ctx.strokeStyle = '#EEE';
+    ip = (iMin*iScale) + iOrigin;
+    if (this.Axis) {
+        ctx.moveTo(hOrigin, ip);
+    } else {
+        ctx.moveTo(ip, hOrigin);
+    }
+    ip = (iMax*iScale) + iOrigin;
+    if (this.Axis) {
+        ctx.lineTo(hOrigin, ip);
+    } else {
+        ctx.lineTo(ip, hOrigin);
+    }
+    ctx.stroke();
+
+    // Draw the plot
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ip = Math.floor((iMin*iScale) + iOrigin);
+    hp = Math.floor((hist[0]*hScale) + hOrigin);
+    if (this.Axis) {
+        ctx.moveTo(hp, ip);
+    } else {
+        ctx.moveTo(ip, hp);
+    }
+    for (var i = iMin+1; i < iMax; ++i) {
+        ip = Math.floor((i*iScale) + iOrigin);
+        hp = Math.floor((hist[i]*hScale) + hOrigin);
+        if (this.Axis) {
+            ctx.lineTo(hp,ip);
+        } else {
+            ctx.lineTo(ip,hp);
+        }
+    }
+    ctx.stroke();
+}
+
+
+
+
+
+
+
+//=================================================
+// Distance map: city block distance
+
+
+function DistanceMap(bounds, spacing) {
+    this.Bounds = bounds; // Warning shallow copy.
+    this.Spacing = spacing;
+    this.Dimensions = [Math.ceil((bounds[1]-bounds[0])/spacing), 
+                       Math.ceil((bounds[3]-bounds[2])/spacing)];
+    var size = this.Dimensions[0]*this.Dimensions[1];
+    if (size > 1000000) {
+        alert("Warning: Distance map memory requirement is large.");
+    }
+    this.Map = new Array(size);
+    for (var i = 0; i < size; ++i) {
+        this.Map[i] = size; // a convenient large distance
+    }
+}
+
+// For debugging
+DistanceMap.prototype.Draw = function (viewer) {
+    var ctx = viewer.MainView.Context2d;
+    var data = ctx.createImageData(this.Dimensions[0], this.Dimensions[1]);
+    // find maximum
+    var max = 0;
+    var numPixels = this.Dimensions[0] * this.Dimensions[1];
+    for (var i = 0; i < numPixels; ++i) {
+        if (max < this.Map[i]) { max = this.Map[i];}
+    }
+    // Draw the pixels.
+    var ii = 0;
+    for (var i = 0; i < numPixels; ++i) {
+        data.data[ii] = data.data[ii+1] = data.data[ii+2] = Math.floor(255 * this.Map[i]/max);
+        data.data[ii+3] = 255;
+        ii += 4;
+    }
+
+    ctx.putImageData(data,10,10);
+}
+
+
+// Only rasterize contour points for now.  Assume they are close together.
+DistanceMap.prototype.AddContour = function (contour) {
+    for (var i = 0; i < contour.length; ++i) {
+        var x = Math.round((contour[i][0]-this.Bounds[0])/this.Spacing);
+        var y = Math.round((contour[i][1]-this.Bounds[2])/this.Spacing);
+        if (x >=0 && x < this.Dimensions[0] && 
+            y >=0 && y < this.Dimensions[1]) {
+            this.Map[x + (y*this.Dimensions[0])] = 0;
+        }
+    }
+}
+
+// Fill in all distance values from existing values.
+DistanceMap.prototype.Update = function () {
+    // I wonder if I can compute the number of passes that will be needed?
+    count = 0;
+    while (this.UpdatePass()) {++count;}
+    console.log("passes: " + count);
+}
+
+// Returns true if something changed.
+DistanceMap.prototype.UpdatePass = function () {
+    var changed = false;
+    var idx;
+    // Forward and backward pass over all the rows.
+    for (var y = 0; y < this.Dimensions[1]; ++y) {
+        idx = y*this.Dimensions[0];
+        var min = this.Map[idx];
+        for (var x = 1; x < this.Dimensions[0]; ++x) {
+            ++idx;
+            ++min;
+            if (min < this.Map[idx]) {
+                this.Map[idx] = min;
+                changed = true;
+            } else {
+                min = this.Map[idx];
+            }
+        }
+        for (var x = this.Dimensions[0]-2; x >= 0; --x) {
+            --idx;
+            ++min;
+            if (min < this.Map[idx]) {
+                this.Map[idx] = min;
+                changed = true;
+            } else {
+                min = this.Map[idx];
+            }
+        }
+    }
+
+    // Forward and backward pass over all the columns.
+    for (var x = 0; x < this.Dimensions[0]; ++x) {
+        idx = x;
+        var min = this.Map[idx];
+        for (var y = 1; y < this.Dimensions[1]; ++y) {
+            idx += this.Dimensions[0];
+            ++min;
+            if (min < this.Map[idx]) {
+                this.Map[idx] = min;
+                changed = true;
+            } else {
+                min = this.Map[idx];
+            }
+        }
+        for (var y = this.Dimensions[1]-2; y >= 0; --y) {
+            idx -= this.Dimensions[0];
+            ++min;
+            if (min < this.Map[idx]) {
+                this.Map[idx] = min;
+                changed = true;
+            } else {
+                min = this.Map[idx];
+            }
+        }
+    }
+    return changed;
+}
+
+
+DistanceMap.prototype.GetDistance = function (x, y) {
+    var ix = Math.round((x-this.Bounds[0])/this.Spacing);
+    var iy = Math.round((y-this.Bounds[2])/this.Spacing);
+    if (ix >=0 && ix < this.Dimensions[0] &&
+        iy >=0 && iy < this.Dimensions[1]) {
+        return this.Map[ix + (iy*this.Dimensions[0])];
+    } else {
+        return this.Dimensions[0] + this.Dimensions[1];
+    }
+}
+
+// Central difference.
+DistanceMap.prototype.GetGradient = function(x, y) {
+    var ix = Math.round((x-this.Bounds[0])/this.Spacing);
+    var iy = Math.round((y-this.Bounds[2])/this.Spacing);
+    var dx = 0, dy=0;
+    if (ix < 0 || ix >= this.Dimensions[0] ||
+        iy < 0 || iy >= this.Dimensions[1]) {
+        return [0,0];
+    }
+    var idx = ix + (iy*this.Dimensions[0]);
+    // x
+    if (ix == 0) {
+        dx = this.Map[idx+1] - this.Map[idx];
+    } else if (ix == this.Dimensions[0]-1) {
+        dx = this.Map[idx] - this.Map[idx-1];
+    } else {
+        dx = this.Map[idx+1] - this.Map[idx-1];
+    }
+    // y
+    var incy = this.Dimensions[0];
+    if (iy == 0) {
+        dy = this.Map[idx+incy] - this.Map[idx];
+    } else if (iy == this.Dimensions[1]-1) {
+        dy = this.Map[idx] - this.Map[idx-incy];
+    } else {
+        dy = this.Map[idx+incy] - this.Map[idx-incy];
+    }
+
+    return [dx, dy];
+}
 
 
 //=================================================
@@ -32,6 +323,76 @@ function GetImageData(ctx, x,y, width, height) {
     data.IncY = data.IncX * data.width;
     return data;
 }
+
+
+
+
+//=================================================
+// Stuff for contour
+
+
+// Should eventually share this with polyline.
+// The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
+// Pass in the spacing as a hint to get rid of aliasing.
+function DecimateContour(points, spacing) {
+    // Keep looping over the line removing points until the line does not change.
+    var modified = true;
+    while (modified) {
+        modified = false;
+        var newPoints = [];
+        newPoints.push(points[0]);
+        // Window of four points.
+        var i = 3;
+        while (i < points.length) {
+            var p0 = points[i];
+            var p1 = points[i-1];
+            var p2 = points[i-2];
+            var p3 = points[i-3];
+            // Compute the average of the center two.
+            var cx = (p1[0] + p2[0]) * 0.5;
+            var cy = (p1[1] + p2[1]) * 0.5;
+            // Find the perendicular normal.
+            var nx = (p0[1] - p3[1]);
+            var ny = -(p0[0] - p3[0]);
+            var mag = Math.sqrt(nx*nx + ny*ny);
+            nx = nx / mag;
+            ny = ny / mag;
+            mag = Math.abs(nx*(cx-points[i-3][0]) + ny*(cy-points[i-3][1]));
+            // Mag metric does not distinguish between line and a stroke that double backs on itself.
+            // Make sure the two point being merged are between the outer points 0 and 3.
+            var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
+            var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
+            if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
+                // Replace the two points with their average.
+                newPoints.push([cx, cy]);
+                modified = true;
+                // Skip the next point the window will have one old merged point,
+                // but that is ok because it is just used as reference and not altered.
+                i += 2;
+            } else {
+                //  No modification.  Just move the window one.
+                newPoints.push(points[i-2]);
+                ++i;
+            }
+        }
+        // Copy the remaing point / 2 points
+        i = i-2;
+        while (i < points.length) {
+            newPoints.push(points[i]);
+            ++i;
+        }
+        points = newPoints;
+    }
+    
+    return points;
+}
+
+
+
+
+
+
+
 
 
 // Take a list of image points and make a viewer annotation out of them.
@@ -556,8 +917,11 @@ function CorrelateHistograms(hist1, hist2){
     return bestOffset;
 }
 
+var YPLOT = undefined;
 //  Lets compute and correlate X and y histograms of curvature.
-function ComputeContourShift(contour1, contour2) {
+// CURVATURE is too noisey to use for a reliable feature.
+// FAILED (Worse than pixel mean).
+function ComputeContourShiftCurvatureHistagram(contour1, contour2) {
     // Get the bounds of both contours.
     var bds1 = ComputeContourBounds(contour1);
     var bds2 = ComputeContourBounds(contour2);
@@ -566,14 +930,83 @@ function ComputeContourShift(contour1, contour2) {
     bds1[2] = Math.min(bds1[2], bds2[2]);
     bds1[3] = Math.max(bds1[3], bds2[3]);
 
+
+    if ( ! YPLOT) {
+        YPLOT = new HistogramPlot(20, bds1[2], 100, bds1[3]-bds1[2]);
+        YPLOT.Axis = 1;
+        YPLOT.Symmetrc = true;
+    } else {
+        YPLOT.Clear();
+        YPLOT.SetSize(20, bds1[2], 100, bds1[3]-bds1[2]);
+    }
+
+    MakeContourPolyLine(contour1, VIEWER1);
+    MakeContourPolyLine(contour2, VIEWER2);
+
     var hist1 = ComputeContourSpatialCurvatureHistogram(contour1, bds1[0], bds1[1], 0); 
     var hist2 = ComputeContourSpatialCurvatureHistogram(contour2, bds1[0], bds1[1], 0); 
     var dx = CorrelateHistograms(hist1, hist2) * (bds1[1]-bds1[0]) / 256;
 
     hist1 = ComputeContourSpatialCurvatureHistogram(contour1, bds1[2], bds1[3], 1); 
     hist2 = ComputeContourSpatialCurvatureHistogram(contour2, bds1[2], bds1[3], 1); 
+
+    YPLOT.Draw(hist1, "green");
+    YPLOT.Draw(hist2, "red");
+
     var dy = CorrelateHistograms(hist1, hist2) * (bds1[3]-bds1[2]) / 256;
 
+    return [dx, dy];
+}
+
+
+
+
+// Minimize distance between contours.
+function ComputeContourShift(contour1, contour2) {
+    // Get the bounds of both contours.
+    var bds1 = ComputeContourBounds(contour1);
+    var bds2 = ComputeContourBounds(contour2);
+    // Combine them (union).
+    bds1[0] = Math.min(bds1[0], bds2[0]);
+    bds1[1] = Math.max(bds1[1], bds2[1]);
+    bds1[2] = Math.min(bds1[2], bds2[2]);
+    bds1[3] = Math.max(bds1[3], bds2[3]);
+    // Exapnd the contour by 10%
+    var xMid = (bds1[0] + bds1[1])*0.5;
+    var yMid = (bds1[2] + bds1[3])*0.5;
+    bds1[0] = xMid + 1.1*(bds1[0]-xMid);
+    bds1[1] = xMid + 1.1*(bds1[1]-xMid);
+    bds1[2] = yMid + 1.1*(bds1[2]-yMid);
+    bds1[3] = yMid + 1.1*(bds1[3]-yMid);
+
+    var distMap = new DistanceMap(bds1, 2);
+    distMap.AddContour(contour1);
+    distMap.Update();
+
+    // No rotation yet.
+    var dx = 0, dy = 0; 
+    for (var i = 0; i < 100; ++i) {
+        var sumx = 0, sumy = 0, sumd = 0;
+        for (var j = 0; j < contour2.length; ++j) {
+            var x = contour2[j][0] - dx;
+            var y = contour2[j][1] - dy;
+            var grad = distMap.GetGradient(x,y);
+            sumx += grad[0];
+            sumy += grad[1];
+            sumd += distMap.GetDistance(x,y);
+        }
+        sumd = sumd / contour2.length;
+        if (sumd < 1.0) { sumd = 1.0;}
+        var mag = Math.abs(sumx) + Math.abs(sumy);
+        if (mag > sumd) {
+            sumx = sumx * sumd / mag;
+            sumy = sumy * sumd / mag;
+        }
+        dx += sumx;
+        dy += sumy;
+    }
+
+    
     return [dx, dy];
 }
 
@@ -627,65 +1060,7 @@ function SupressOrientationArtifacts(hist) {
     hist[255] = hist[254];
 }
 
-var HISTOGRAM_CONTEXT = undefined;
-function DrawHistogram(hist, color, min, max) {
-    var height = 200;
-    var width = 400;
 
-    if ( ! min) { min = 0; }
-    if ( ! max) { max = hist.length;}
-
-
-    // Find the max value.
-    var maxValue = 0;
-    for (var i = min; i < max; ++i) {
-        if (hist[i] > maxValue) { maxValue = hist[i];}
-    }
-
-    
-    if ( ! HISTOGRAM_CONTEXT) {
-        var div = $('<div>')
-            .appendTo('body')
-            .attr('id', 'divHist')
-            .css({
-                'position': 'fixed',
-                'width': width.toString(),
-                'height': height.toString(),
-                'top': '50%',
-                'left': '50%',
-                'margin-left': '-200px',
-                'margin-top': '-100px',
-                'background-color': '#ffffff',
-                'border': '2px solid #336699',
-                'padding': '0px',
-                'z-index': '102'});
-        
-        var canvas = $('<canvas>')
-            .appendTo(div)
-            .attr('id', 'hist')
-            .css({'width' : '100%',
-                  'height': '100%'});
-        canvas[0].width = width;
-        canvas[0].height = height;
-        
-        HISTOGRAM_CONTEXT = canvas[0].getContext("2d");
-    }
-    
-    var ctx = HISTOGRAM_CONTEXT;
-
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    var x = min;
-    var y = Math.floor((height)*(1-(hist[0]/maxValue)));
-    ctx.moveTo(0, y);
-    for (var i = min; i < max; ++i) {
-        x = Math.floor((i-min)*width/(max-min));
-        y = Math.floor((height)*(1-(hist[i]/maxValue)) );
-        ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-    
-}
 
 
 
@@ -702,27 +1077,6 @@ function AlignViewers(viewer1, viewer2) {
 
     var histogram1 = ComputeIntensityHistogram(data1);
 
-}
-
-// Find peak of correlation. Wrapped for orientation.
-function CorrelateWrappedHistograms(hist1, hist2){
-    var length = hist1.length;
-    var best = 0;
-    var bestOffset = 0;
-    for (i = 0; i < length; ++i) {
-        var sum = 0;
-        for (j1 = 0; j1 < length; ++j1) {
-            var j2 = i + j1;
-            if (j2 >= length) { j2 -= length; }
-            sum += hist1[j1] * hist2[j2];
-        }
-        if (sum > best) {
-            best = sum;
-            bestOffset = i;
-        }
-    }
-
-    return bestOffset;
 }
 
 // Find peak of correlation. Wrapped for orientation.
@@ -838,34 +1192,41 @@ function DrawImageData(viewer, data) {
 }
 
 
+
+    
+    
+// Shared histogram, So we can execute tests multiple times.
+var PLOT = undefined;
+
+
+
 function orientationHistogram(viewer, color) {
+    if ( ! PLOT) {
+        PLOT= new HistogramPlot('50%','50%', 400, 200);
+    }
+    PLOT.Clear();
+
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     //var histogram1 = ComputeIntensityHistogram(data1);
     var histogram1 = ComputeOrientationHistogram(data1);
-    DrawHistogram(histogram1, color);
+    PLOT.Draw(histogram1, color);
 }
 
 function intensityHistogram(viewer, color, min, max) {
+    if ( ! PLOT) {
+        PLOT= new HistogramPlot('50%','50%', 400, 200);
+    }
+    PLOT.Clear();
+
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     var histogram1 = ComputeIntensityHistogram(data1);
-    DrawHistogram(histogram1, color, min, max);
-
-    var threshold = PickThreshold(histogram1);
-    var ctx = HISTOGRAM_CONTEXT;
-    ctx.beginPath();
-    ctx.strokeStyle = 'black';
-    threshold = Math.floor((threshold-min)*400/(max-min));
-    ctx.moveTo(threshold, 0);
-    ctx.lineTo(threshold, 200);
-    ctx.stroke();
-
+    PLOT.Draw(histogram1, color, min, max);
     var d = HistogramIntegral(histogram1);
-
-    DrawHistogram(d, "red", min, max);
+    PLOT.Draw(d, "red", min, max);
 }
 
 // Takes around a second for r = 3;
@@ -926,9 +1287,10 @@ function testContour(threshold) {
 // Even after smoothing and supressing artifacts, it locks
 // onto specific values.
 function testAlignRotation() {
-    if (HISTOGRAM_CONTEXT) {
-        HISTOGRAM_CONTEXT.clearRect(0,0,400,200);
+    if ( ! PLOT) {
+        PLOT= new HistogramPlot('50%','50%', 400, 200);
     }
+    PLOT.Clear();
 
     var ctx1 = VIEWER1.MainView.Context2d;
     var viewport1 = VIEWER1.GetViewport();
@@ -937,7 +1299,7 @@ function testAlignRotation() {
     var histogram1 = ComputeOrientationHistogram(data1);
     SupressOrientationArtifacts(histogram1);
     DrawImageData(VIEWER1, data1);
-    DrawHistogram(histogram1, "green");
+    PLOT.Draw(histogram1, "green");
 
     var ctx2 = VIEWER2.MainView.Context2d;
     var viewport2 = VIEWER2.GetViewport();
@@ -946,7 +1308,7 @@ function testAlignRotation() {
     var histogram2 = ComputeOrientationHistogram(data2);
     SupressOrientationArtifacts(histogram2);
     DrawImageData(VIEWER2, data2);
-    DrawHistogram(histogram2, "red");
+    PLOT.Draw(histogram2, "red");
 
     var dTheta = CorrelateWrappedHistograms(histogram1, histogram2);
 
@@ -954,9 +1316,10 @@ function testAlignRotation() {
 }
 
 function testAlignRotationContour() {
-    if (HISTOGRAM_CONTEXT) {
-        HISTOGRAM_CONTEXT.clearRect(0,0,400,200);
+    if ( ! PLOT) {
+        PLOT= new HistogramPlot('50%','50%', 400, 200);
     }
+    PLOT.Clear();
 
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
@@ -968,7 +1331,7 @@ function testAlignRotationContour() {
     var contour1 = LongestContour(data1, threshold1);
     var histogram1b = ComputeContourOrientationHistogram(contour1);
     SupressOrientationArtifacts(histogram1b);
-    DrawHistogram(histogram1b, "green");
+    PLOT.Draw(histogram1b, "green");
     MakeContourPolyLine(contour1, VIEWER1);
 
     var viewer2 = VIEWER2;
@@ -981,7 +1344,7 @@ function testAlignRotationContour() {
     var contour2 = LongestContour(data2, threshold2);
     var histogram2b = ComputeContourOrientationHistogram(contour2);
     SupressOrientationArtifacts(histogram2b);
-    DrawHistogram(histogram2b, "red");
+    PLOT.Draw(histogram2b, "red");
     MakeContourPolyLine(contour2, VIEWER2);
 
     var dTheta = CorrelateWrappedHistograms(histogram1b, histogram2b);
@@ -1030,27 +1393,34 @@ function testAlignTranslationPixelMean() {
     console.log("Translate = (" + dx + ", " + dy + ")" );
 }
 
+
+
+
+// Allign mean of thresholded pixels worked ok but not for zoomed in.
 // Try aligning the contour.
-// Means of the contour did not work.
-// Lets try Correlating X Y histograms of curvature.
+// Mean of the contour points did not work.
+// Histogram of contour curvature did not work.
+// Minimize distance between two contours. (Distance map to keep distance computation fast).
 function testAlignTranslation() {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
-    SmoothDataAlphaRGB(data1, 3);
+    SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    
+    //contour1 = DecimateContour(contour1,1);
+
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
-    SmoothDataAlphaRGB(data2, 3);
+    SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
+    //contour2 = DecimateContour(contour2,1);
 
     var delta = ComputeContourShift(contour1, contour2);
 
@@ -1067,5 +1437,24 @@ function testAlignTranslation() {
 
     console.log("Translate = (" + dx + ", " + dy + ")" );
 }
+
+function testDistanceMap() {
+    var viewer1 = VIEWER1;
+    var ctx1 = viewer1.MainView.Context2d;
+    var viewport1 = viewer1.GetViewport();
+    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    SmoothDataAlphaRGB(data1, 5);
+    var histogram1 = ComputeIntensityHistogram(data1);
+    var threshold1 = PickThreshold(histogram1);
+    var contour1 = LongestContour(data1, threshold1);
+    MakeContourPolyLine(contour1, VIEWER1);
+
+    var bds1 = ComputeContourBounds(contour1);
+    var distMap = new DistanceMap(bds1, 1);
+    distMap.AddContour(contour1);
+    distMap.Update();
+    distMap.Draw(VIEWER2);
+}
+
 
 
