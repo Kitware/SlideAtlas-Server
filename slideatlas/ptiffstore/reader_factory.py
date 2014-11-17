@@ -40,11 +40,11 @@ class ReaderFactory(object):
             # formats that need conversion using outside utilities
             from slideatlas.ptiffstore.preprocess_reader import PreprocessReaderJp2
             reader = PreprocessReaderJp2()
-            reader.set_input_params({'fname' : fname})
         else:
             logger.error("Unknown extension: " + ext)
             sys.exit(-1)
 
+        reader.set_input_params({'fname' : fname})
         return reader
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ sphinxcontrib-httpdomain==1.2.1
 # For tilereader
 numpy>=1.8.1
 openslide-python==1.0.1
+lockfile==0.10.2
 
 # For tilereader TODO potentially remove it
 
@@ -34,4 +35,4 @@ pyzmq==14.2.0
 celery==3.1.10
 
 # for scar_ratio plugin
-matplotlib
+matplotlib==1.4.1
