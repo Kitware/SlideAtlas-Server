@@ -56,7 +56,7 @@ class TileProcessor(Process):
         self.col.ensure_index("name")
 
     def make_reader(self):
-        reader = factory.open(self.args["input"])
+        reader = factory.open(self.args["input"], self.args["extra"])
         logger.info("ImageSize (%d,%d)" % (reader.width, reader.height))
         return reader
 
@@ -182,7 +182,8 @@ class MongoUploaderPyramid(MongoUploader):
             "imagestore": self.imagestore,
             "imageid": self.imageid,
             "tilesize": 256,
-            "verify": False
+            "verify": False,
+            "extra": self.args["extra"]
             }
 
         #Create the names for 3rd level from the top

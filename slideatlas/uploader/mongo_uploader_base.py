@@ -125,7 +125,7 @@ class MongoUploader(object):
         Will not be implemented in the base uploader class
         """
         #todo: choose the reader here
-        reader = factory.open(self.args["input"])
+        reader = factory.open(self.args["input"], self.args["extra"])
         return reader
 
     def upload_base(self):
@@ -143,13 +143,13 @@ class MongoUploader(object):
             # Locate the session
 
             self.coll = Collection.objects.get(id=ObjectId(self.args["collection"]))
-            logger.info("collection: %s" % (self.coll.to_son()))
+            # logger.info("collection: %s" % (self.coll.to_son()))
 
             self.imagestore = self.coll.image_store
-            logger.info("imagestore: %s" % (self.imagestore.to_son()))
+            # logger.info("imagestore: %s" % (self.imagestore.to_son()))
 
             self.session = Session.objects.get(id=ObjectId(self.args["session"]))
-            logger.info("session: %s" % (self.session.to_son()))
+            # logger.info("session: %s" % (self.session.to_son()))
 
         # Create the pymongo connection, used for image
         # For view use View
