@@ -25,7 +25,7 @@ class ReaderFactory(object):
 
         raise NotImplementedError()
 
-    def open(self, fname):
+    def open(self, fname, extra={}):
         ext = os.path.splitext(fname)[1][1:].lower()
         # logger.error("Why making reader in base ??")
         # This code also duplicated in TileProcessor belongs really to reader factory

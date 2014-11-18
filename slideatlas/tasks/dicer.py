@@ -63,6 +63,11 @@ def process_file(args):
 
     datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "processing"}})
 
+    # Add configuration from the celeryapp
+    args["extra"] = {}
+    if "UPLOADER_KAKADU_DIR" in celeryapp.conf:
+        args["extra"]["kakadu_dir"] = celeryapp.conf["UPLOADER_KAKADU_DIR"]
+
     try:
         if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif", 'jp2', 'j2k']:
             logger.warning("In dicer task got" + args["input"])
