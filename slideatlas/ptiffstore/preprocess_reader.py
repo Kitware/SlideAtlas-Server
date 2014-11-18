@@ -84,8 +84,15 @@ class PreprocessReaderJp2(PreprocessReader):
                 params = ["gdal_translate", params["fname"], output1]
                 subprocess.call(params)
             else:
-                params = [self.kakadu_dir, "-i", params["fname"], "-o", output1]
-                subprocess.call(params)
+                # Additional LD_LIBRARY_PATH
+                environ = os.environ.copy()
+
+                if not "LD_LIBRARY_PATH" in environ:
+                    environ["LD_LIBRARY_PATH"] = ""
+
+                environ["LD_LIBRARY_PATH"] = self.kakadu_dir + ":" + environ["LD_LIBRARY_PATH"]
+                params = [os.path.join(self.kakadu_dir, "kdu_expand"), "-i", params["fname"], "-o", output1]
+                subprocess.call(params, env=environ)
 
             logger.warning("# Convert to tiled tiff")
             params = ["gdal_translate", "-co", "TILED=YES", "-co", "COMPRESS=JPEG", output1, output2]

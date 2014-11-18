@@ -39,7 +39,8 @@ class ReaderFactory(object):
         elif ext in ["jp2", "j2k"]:
             # formats that need conversion using outside utilities
             from slideatlas.ptiffstore.preprocess_reader import PreprocessReaderJp2
-            reader = PreprocessReaderJp2()
+            kakadu_dir = extra["kakadu_dir"] if "kakadu_dir" in extra else None
+            reader = PreprocessReaderJp2(kakadu_dir=kakadu_dir)
         else:
             logger.error("Unknown extension: " + ext)
             sys.exit(-1)
