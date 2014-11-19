@@ -1056,6 +1056,8 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
             var cam = VIEWER1.GetCamera();
             var fp = cam.GetFocalPoint();
             // If no correlation is this close, then create a enw correlation.
+
+            // TODO: All existing correlations in the window should be merged into one.
             var minDist = cam.Height / 4;
             for (var i = 0; i < trans.Correlations.length; ++i) {
                 var cor = trans.Correlations[i];
