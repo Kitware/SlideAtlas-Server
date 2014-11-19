@@ -259,7 +259,25 @@ DistanceMap.prototype.GetDistance = function (x, y) {
         iy >=0 && iy < this.Dimensions[1]) {
         return this.Map[ix + (iy*this.Dimensions[0])];
     } else {
-        return this.Dimensions[0] + this.Dimensions[1];
+        // Ramp the distance map down outside the bounds.
+        var dist = 0;
+        if ( ix < 0) {
+            dist += -0.1*ix;
+            ix = 0;
+        }
+        if ( ix >= this.Dimensions[0]) {
+            dist += 0.1*(ix-this.Dimensions[0]+1);
+            ix = this.Dimensions[0]-1;;
+        }
+        if ( iy < 0) {
+            dist += -0.1*iy;
+            iy = 0;
+        }
+        if ( iy >= this.Dimensions[1]) {
+            dist += 0.1*(iy-this.Dimensions[1]+1);
+            iy = this.Dimensions[1]-1;;
+        }
+        return dist + this.Map[ix + (iy*this.Dimensions[0])];
     }
 }
 
@@ -270,7 +288,11 @@ DistanceMap.prototype.GetGradient = function(x, y) {
     var dx = 0, dy=0;
     if (ix < 0 || ix >= this.Dimensions[0] ||
         iy < 0 || iy >= this.Dimensions[1]) {
-        return [0,0];
+        // Slow gradient toward middle.
+        ix = ix - (this.Dimensions[0]*0.5);
+        iy = iy - (this.Dimensions[1]*0.5);
+        var dist = Math.sqrt(ix*ix + iy*iy);
+        return [ix/(10*dist), iy/(10*dist)]; 
     }
     var idx = ix + (iy*this.Dimensions[0]);
     // x
@@ -329,6 +351,48 @@ function GetImageData(ctx, x,y, width, height) {
 
 //=================================================
 // Stuff for contour
+
+
+function TransformContour(contour, shift, center, roll) {
+    for (var i = 0; i < contour.length; ++i) {
+        var x = contour[i][0];
+        var y = contour[i][1];
+        var vx = x-center[0];
+        var vy = y-center[1];
+        var s = Math.sin(roll); 
+        var c = Math.cos(roll); 
+        var rx =  c*vx + s*vy;
+        var ry = -s*vx + c*vy;
+        contour[i][0] = x + (rx-vx) + shift[0];
+        contour[i][1] = y + (ry-vy) + shift[1];
+    }
+}
+
+function TranslateContour(contour, shift) {
+    for (var i = 0; i < contour.length; ++i) {
+        contour[i][0] += shift[0];
+        contour[i][1] += shift[1];
+    }
+}
+
+
+// I could also impliment a resample to get uniform spacing.
+function ContourRemoveDulicatePoints(points, epsilon) {
+    if ( epsilon == undefined) {
+        epsilon = 0;
+    }
+    var idx = 1;
+    while (idx < points.length) {
+        var dx = points[idx][0] - points[idx-1][0];
+        var dy = points[idx][1] - points[idx-1][1];
+        if (Math.sqrt(dx*dx + dy*dy) <= epsilon) {
+            points.splice(idx,1);
+        } else {
+            ++idx;
+        }
+    }
+}
+
 
 
 // Should eventually share this with polyline.
@@ -396,7 +460,7 @@ function DecimateContour(points, spacing) {
 
 
 // Take a list of image points and make a viewer annotation out of them.
-function MakeContourPolyLine(points, viewer) {
+function MakeContourPolyline(points, viewer) {
     // Make an annotation out of the points.
     // Transform the loop points to slide coordinate system.
     var slidePoints = [];
@@ -940,8 +1004,8 @@ function ComputeContourShiftCurvatureHistagram(contour1, contour2) {
         YPLOT.SetSize(20, bds1[2], 100, bds1[3]-bds1[2]);
     }
 
-    MakeContourPolyLine(contour1, VIEWER1);
-    MakeContourPolyLine(contour2, VIEWER2);
+    MakeContourPolyline(contour1, VIEWER1);
+    MakeContourPolyline(contour2, VIEWER2);
 
     var hist1 = ComputeContourSpatialCurvatureHistogram(contour1, bds1[0], bds1[1], 0); 
     var hist2 = ComputeContourSpatialCurvatureHistogram(contour2, bds1[0], bds1[1], 0); 
@@ -960,9 +1024,9 @@ function ComputeContourShiftCurvatureHistagram(contour1, contour2) {
 
 
 
-
 // Minimize distance between contours.
-function ComputeContourShift(contour1, contour2) {
+// Returns shift and rotation.
+function AlignContours(contour1, contour2) {
     // Get the bounds of both contours.
     var bds1 = ComputeContourBounds(contour1);
     var bds2 = ComputeContourBounds(contour2);
@@ -1006,9 +1070,351 @@ function ComputeContourShift(contour1, contour2) {
         dy += sumy;
     }
 
-    
-    return [dx, dy];
+    var trans = {delta :[dx,dy]};
+    return trans;
 }
+
+
+function AlignRigidContours(contour1, contour2) {
+    // Get the bounds of both contours.
+    var bds1 = ComputeContourBounds(contour1);
+    var bds2 = ComputeContourBounds(contour2);
+    // Combine them (union).
+    bds1[0] = Math.min(bds1[0], bds2[0]);
+    bds1[1] = Math.max(bds1[1], bds2[1]);
+    bds1[2] = Math.min(bds1[2], bds2[2]);
+    bds1[3] = Math.max(bds1[3], bds2[3]);
+    // Exapnd the contour by 10%
+    var xMid = (bds1[0] + bds1[1])*0.5;
+    var yMid = (bds1[2] + bds1[3])*0.5;
+    bds1[0] = xMid + 1.1*(bds1[0]-xMid);
+    bds1[1] = xMid + 1.1*(bds1[1]-xMid);
+    bds1[2] = yMid + 1.1*(bds1[2]-yMid);
+    bds1[3] = yMid + 1.1*(bds1[3]-yMid);
+
+    // Keep bounds inside viewports
+    if (bds1[0] < 0) { bds1[0] = 0; }
+    if (bds1[2] < 0) { bds1[2] = 0; }
+    //if (bds1[1] > viewport[2]) { bds1[1] = viewport[2]; }
+    //if (bds1[3] > viewport[3]) { bds1[3] = viewport[3]; }
+
+
+    // TODO: Keep a copy of contour2 to map correlation points.
+
+    var distMap = new DistanceMap(bds1, 2);
+    distMap.AddContour(contour1);
+    distMap.Update();
+
+    ContourRemoveDulicatePoints(contour2, 0.1);
+    return ContourRigidAlign(contour2, distMap);
+}
+
+
+
+
+// RESULTS: This worked, but the angle constraint was unstable.
+// Minimize distance between contours.
+// Instead of returning a transform. Return a list of matching point
+// on the two contours.
+function AlignContours2(contour1, contour2) {
+    // Get the bounds of both contours.
+    var bds1 = ComputeContourBounds(contour1);
+    var bds2 = ComputeContourBounds(contour2);
+    // Combine them (union).
+    bds1[0] = Math.min(bds1[0], bds2[0]);
+    bds1[1] = Math.max(bds1[1], bds2[1]);
+    bds1[2] = Math.min(bds1[2], bds2[2]);
+    bds1[3] = Math.max(bds1[3], bds2[3]);
+    // Exapnd the contour by 10%
+    var xMid = (bds1[0] + bds1[1])*0.5;
+    var yMid = (bds1[2] + bds1[3])*0.5;
+    bds1[0] = xMid + 1.1*(bds1[0]-xMid);
+    bds1[1] = xMid + 1.1*(bds1[1]-xMid);
+    bds1[2] = yMid + 1.1*(bds1[2]-yMid);
+    bds1[3] = yMid + 1.1*(bds1[3]-yMid);
+
+    // Keep bounds inside viewports
+    if (bds1[0] < 0) { bds1[0] = 0; }
+    if (bds1[2] < 0) { bds1[2] = 0; }
+ 
+    // TODO: Consider: (some contours ended out of viewport.
+    // Important!  Bounds should not be outside viewports!
+    // This will solve problem with edge mismatch because
+    // distance map has no gradient outside bounds.
+    //if (bds1[1] > viewport[2]) { bds1[1] = viewport[2]; }
+    //if (bds1[3] > viewport[3]) { bds1[3] = viewport[3]; }
+
+    // TODO: Keep a copy of contour2 to map correlation points.
+
+    var distMap = new DistanceMap(bds1, 2);
+    distMap.AddContour(contour1);
+    distMap.Update();
+
+    ContourRemoveDulicatePoints(contour2, 0.1);
+    // Offset ?? Debug this later.
+    //contour2 = DecimateContour(contour2, 1);
+    return ContourRigidAlign(contour2, distMap);
+    //ContourDeformableAlign(contour2, distMap);
+}
+
+function ContourRigidAlign(contour, distMap) {
+    // Compute center of rotation
+    var xCenter = 0, yCenter = 0;
+    for (var i = 0; i < contour.length; ++i) {
+        xCenter += contour[i][0];
+        yCenter += contour[i][1];
+    }
+    xCenter /= contour.length;
+    yCenter /= contour.length;
+
+    var xSave = xCenter;
+    var ySave = yCenter;
+    var roll = 0;
+
+    for (var i = 0; i < 200; ++i) {
+        var sumx = 0, sumy = 0, totald = 0;
+        var sumr = 0, totalr = 0;
+        for (var j = 0; j < contour.length; ++j) {
+            var x = contour[j][0];
+            var y = contour[j][1];
+            var grad = distMap.GetGradient(x,y);
+            sumx += grad[0];
+            sumy += grad[1];
+            totald += distMap.GetDistance(x,y);
+            // For rotation
+            var dx = (x-xCenter);
+            var dy = (y-yCenter);
+            var cross = dx*grad[1]-dy*grad[0];
+            sumr += cross;
+            totalr += Math.sqrt(dx*dx + dy*dy);
+        }
+        totald = totald / contour.length;
+        if (totald < 1.0) { totald = 1.0;}
+        var mag = Math.abs(sumx) + Math.abs(sumy);
+        if (mag > totald) {
+            sumx = sumx * totald / mag;
+            sumy = sumy * totald / mag;
+        }
+        sumr /= (totalr * 100);
+        TransformContour(contour, [-sumx,-sumy], [xCenter,yCenter], sumr);
+        xCenter -= sumx;
+        yCenter -= sumy;
+        roll += sumr;
+    }
+
+
+    return {delta: [xCenter-xSave, yCenter-ySave], roll: roll, c0: [xSave,ySave], c1: [xCenter, yCenter]}; // Return rotation?
+}
+
+// !!!!!! No good !!!!!!
+// Angle constraint is unstable.  Maybe the small angle aproximation
+// is not valid.  Try distance from target metric.
+var angleFactor = 0.001;
+var lengthFactor = 0.1;
+var gradientFactor = 0.002;
+var iterations = 1000;
+
+// Constrain edges with target point (constrains both length and angle).
+// First and last contour points are the same.
+function ContourDeformableAlign(contour, distMap) {
+
+    // Make new arrays with angle of every vertex, and length of every edge.
+    var num = contour.length - 1;
+    var eLengths = new Array(num);
+    var eTargets = new Array(num);
+    // First and last points in contour are duplicated,
+    // But we need the second to last point for angle (looping around).
+    // Initialize variables so we can connect start and end with a simple loop.
+    var x0 = contour[num-1][0], y0 = contour[num-1][1];
+    var x1 = contour[0][0], y1 = contour[0][1];
+    var dx0 = x1-x0, dy0 = y1-y0;
+    var dist0 = Math.sqrt(dx0*dx0 + dy0*dy0);
+    var x2, y2, dx1, dy1, dist1;
+    for (var i = 0; i < num; ++i) {
+        x2 = contour[i+1][0];
+        y2 = contour[i+1][1];
+        // Compute length
+        dx1 = x2-x1;  dy1 = y2-y1;
+        dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+        eLengths[i] = dist1;
+        // Origin at p1: Rotate edge0 to x axis. Target is new position of point2.
+        var tx2 = (dx0*dx1 + dy0*dy1)/dist0;
+        var ty2 = (dx0*dy1 - dy0*dx1)/dist0;
+        eTargets[i] = [tx2, ty2];
+
+        // Move forward one vertex.
+        x0 = x1;   y0 = y1;
+        x1 = x2;   y1 = y2;
+        dx0=dx1;   dy0=dy1;
+        dist0 = dist1;
+    }
+
+    for (var i = 0; i < iterations; ++i) {
+        // First move points down gradient.
+        for (var j = 0; j < contour.length; ++j) {
+            var x = contour[j][0];
+            var y = contour[j][1];
+            var grad = distMap.GetGradient(x,y);
+            contour[j][0] -= grad[0] * gradientFactor;
+            contour[j][1] -= grad[1] * gradientFactor;
+        }
+        // Apply rigidity contraints.
+        var x0 = contour[num-1][0], y0 = contour[num-1][1];
+        var x1 = contour[0][0],   y1 = contour[0][1];
+        var dx0 = x1-x0, dy0 = y1-y0;
+        var dist0 = Math.sqrt(dx0*dx0 + dy0*dy0);
+        for (var j = 0; j < num; ++j) {
+            var x2 = contour[j+1][0];
+            var y2 = contour[j+1][1];
+            var dx1 = x2-x1;
+            var dy1 = y2-y1;
+            var dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+
+            // Rotate the target back. (xAxis to edge0).
+            var tx2 = eTargets[j][0],  ty2 = eTargets[j][1];
+            var vx2 = (tx2*dx0 - ty2*dy0) / dist0;
+            var vy2 = (tx2*dy0 + ty2*dx0) / dist0;
+            // Put the origin back to p1.
+            tx2 = vx2 + x1;
+            ty2 = vy2 + y1;
+            // t2 is now where x2 should be.
+            x2 = x2 + (tx2-x2)*angleFactor;
+            y2 = y2 + (ty2-y2)*angleFactor;
+            contour[j+1][0] = x2;
+            contour[j+1][1] = y2;
+
+            // Move forward one point.
+            x0 = x1;   y0 = y1;
+            x1 = x2;   y1 = y2;
+            dx0 = dx1; dy0 = dy1;
+            dist0 = dist1;
+
+            // Must keep first and last points duplicates.
+            // Only point 2 is modified.
+            if (j == num) {
+                contour[0][0] = contour[num][0];
+                contour[0][1] = contour[num][1];
+            }
+        }
+    }
+}
+
+// First and last point of contour must be the same.
+// Align two contours.  Allow warping by making one line point relative to the previous.
+function ContourDeformableAlignSmallAngle(contour, distMap) {
+
+    // Make new arrays with angle of every vertex, and length of every edge.
+    var num = contour.length - 1;
+    var vAngles = new Array(num);
+    var eLengths = new Array(num);
+    // First and last points in contour are duplicated,
+    // But we need the second to last point for angle (looping around).
+    // Initialize variables so we can connect start and end with a simple loop.
+    var x0 = contour[num-1][0], y0 = contour[num-1][1];
+    var x1 = contour[0][0], y1 = contour[0][1];
+    var dx0 = x1-x0, dy0 = y1-y0;
+    var dist0 = Math.sqrt(dx0*dx0 + dy0*dy0);
+    dx0 /= dist0;  dy0 /= dist0;
+    var x2, y2, dx1, dy1, dist1;
+    for (var i = 0; i < num; ++i) {
+        x2 = contour[i+1][0];
+        y2 = contour[i+1][1];
+        // Compute length
+        dx1 = x2-x1;  dy1 = y2-y1;
+        dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+        eLengths[i] = dist1;
+        // Compute the sin of the small angle.
+        dx1 /= dist1;  dy1 /= dist1;
+        var angle = (dy1*dx0 - dx1*dy0);
+        vAngles[i] = angle;
+
+        // Move forward one vertex.
+        x0 = x1;   y0 = y1;
+        x1 = x2;   y1 = y2;
+        dx0=dx1;   dy0=dy1;
+        dist0 = dist1;
+    }
+
+    // I was going to use vertex angles and edge lengths as the primary
+    // contour respresenation, but I am afraid of numerical instability
+    // while integrating the loop.
+    // Now I will just use the angles and length to constrain the vertexes.
+    // Sum direction of movement for each vertex.
+    //var deltas = new Array(contour.length);
+    //for (var i = 0; i < contour.length; ++i) {
+    //    deltas[i] = [0,0];
+    //}
+    for (var i = 0; i < iterations; ++i) {
+        // First move points down gradient.
+        for (var j = 0; j < contour.length; ++j) {
+            var x = contour[j][0];
+            var y = contour[j][1];
+            var grad = distMap.GetGradient(x,y);
+            contour[j][0] -= grad[0] * gradientFactor;
+            contour[j][1] -= grad[1] * gradientFactor;
+        }
+        // Apply rigidity contraints.
+        var x0 = contour[num-1][0], y0 = contour[num-1][1];
+        var x1 = contour[0][0],   y1 = contour[0][1];
+        var dx0 = x1-x0, dy0 = y1-y0;
+        var dist0 = Math.sqrt(dx0*dx0 + dy0*dy0);
+        dx0 /= dist0;  dy0 /= dist0;
+        for (var j = 1; j < contour.length; ++j) {
+            // edge length contraint
+            var x2 = contour[j][0];
+            var y2 = contour[j][1];
+            var dx1 = x2-x1;
+            var dy1 = y2-y1;
+            var dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+            dx1 /= dist1;  dy1 /= dist1;
+    
+            // Pull or push on points in neighborhood.
+            // Force decaying with distance.
+            // Just two endpoint for now.
+            // Apply to points immediately (no batch).
+            var k = lengthFactor * (dist1 - eLengths[j-1])/dist1;
+            var dex = dx1*k;
+            var dey = dy1*k;
+            contour[j-1][0] = x1 + dex;
+            contour[j-1][1] = y1 + dey;
+            contour[j][0] = x2 - dex;
+            contour[j][1] = y2 - dey;
+
+            // Angle constraints.
+            // We move only the middle point.
+            var angle = (dy1*dx0 - dx1*dy0) / (dist0*dist1);
+            var dAngle = angle - vAngles[j-1];
+            // The distance the middle point has to move 
+            // (I worked it out using the small angle approximation :)
+            // 0.1 distance for stability.
+            var d = angleFactor*dAngle * dist0 * dist1 / (dist0 + dist1);
+            if (d > 1) { d = 1;}
+            // Average the normal vectors.
+            var nx = (-dy0-dy1)*0.5;
+            var ny = ( dx0+dx1)*0.5;
+            contour[j-1][0] = x1 + nx*d;
+            contour[j-1][1] = y1 + ny*d;
+
+            // Move forward one point.
+            x0 = x1;   y0 = y1;
+            x1 = x2;   y1 = y2;
+            dx0 = dx1; dy0 = dy1;
+            dist0 = dist1;
+
+            // Must keep first and last points duplicates.
+            if (j == 1) {
+                contour[num][0] = contour[0][0];
+                contour[num][1] = contour[0][1];
+            } else if (j == num) {
+                contour[0][0] = contour[num][0];
+                contour[0][1] = contour[num][1];
+            }
+        }
+    }
+}
+
+
+
 
 
 
@@ -1275,7 +1681,7 @@ function testContour(threshold) {
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     var points = LongestContour(data1, threshold);
     if (points.length > 1) {
-        var plWidget = MakeContourPolyLine(points, VIEWER1);
+        var plWidget = MakeContourPolyline(points, VIEWER1);
     }    
 }
 
@@ -1332,7 +1738,7 @@ function testAlignRotationContour() {
     var histogram1b = ComputeContourOrientationHistogram(contour1);
     SupressOrientationArtifacts(histogram1b);
     PLOT.Draw(histogram1b, "green");
-    MakeContourPolyLine(contour1, VIEWER1);
+    MakeContourPolyline(contour1, VIEWER1);
 
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
@@ -1345,7 +1751,7 @@ function testAlignRotationContour() {
     var histogram2b = ComputeContourOrientationHistogram(contour2);
     SupressOrientationArtifacts(histogram2b);
     PLOT.Draw(histogram2b, "red");
-    MakeContourPolyLine(contour2, VIEWER2);
+    MakeContourPolyline(contour2, VIEWER2);
 
     var dTheta = CorrelateWrappedHistograms(histogram1b, histogram2b);
     dTheta = 360 * dTheta / 256;
@@ -1401,7 +1807,7 @@ function testAlignTranslationPixelMean() {
 // Mean of the contour points did not work.
 // Histogram of contour curvature did not work.
 // Minimize distance between two contours. (Distance map to keep distance computation fast).
-function testAlignTranslation() {
+function testAlignTranslation(debug) {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
@@ -1410,7 +1816,6 @@ function testAlignTranslation() {
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    //contour1 = DecimateContour(contour1,1);
 
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
@@ -1420,23 +1825,143 @@ function testAlignTranslation() {
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
-    //contour2 = DecimateContour(contour2,1);
 
-    var delta = ComputeContourShift(contour1, contour2);
+    var trans = AlignContours(contour1, contour2);
+
+    if (debug) {
+        contour1 = DecimateContour(contour1,1);
+        TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
+        contour2 = DecimateContour(contour2,1);
+        MakeContourPolyline(contour1, VIEWER1);
+        MakeContourPolyline(contour2, VIEWER1);
+    }
+
 
     // Convert from pixels to slide coordinates
     var cam = VIEWER1.GetCamera();
     var viewport = VIEWER1.GetViewport();
-    var dx = delta[0] * cam.Height / viewport[3];
-    var dy = delta[1] * cam.Height / viewport[3];
+    var dx = trans.delta[0] * cam.Height / viewport[3];
+    var dy = trans.delta[1] * cam.Height / viewport[3];
 
     VIEWER1.AnimateTranslate(-dx/2, -dy/2);
     VIEWER2.AnimateTranslate(dx/2, dy/2);
+
 
     // Ignore rotation for now.
 
     console.log("Translate = (" + dx + ", " + dy + ")" );
 }
+
+function testAlignTranslation2(debug) {
+    var viewer1 = VIEWER1;
+    var ctx1 = viewer1.MainView.Context2d;
+    var viewport1 = viewer1.GetViewport();
+    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    SmoothDataAlphaRGB(data1, 5);
+    var histogram1 = ComputeIntensityHistogram(data1);
+    var threshold1 = PickThreshold(histogram1);
+    var contour1 = LongestContour(data1, threshold1);
+
+    var viewer2 = VIEWER2;
+    var ctx2 = viewer2.MainView.Context2d;
+    var viewport2 = viewer2.GetViewport();
+    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    SmoothDataAlphaRGB(data2, 5);
+    var histogram2 = ComputeIntensityHistogram(data2);
+    var threshold2 = PickThreshold(histogram2);
+    var contour2 = LongestContour(data2, threshold2);
+
+    var trans = AlignContours(contour1, contour2);
+
+    if (debug) {
+        contour1 = DecimateContour(contour1,1);
+        TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
+        contour2 = DecimateContour(contour2,1);
+        MakeContourPolyline(contour1, VIEWER1);
+        MakeContourPolyline(contour2, VIEWER1);
+    }
+
+
+    // Convert from pixels to slide coordinates
+    var cam = VIEWER1.GetCamera();
+    var viewport = VIEWER1.GetViewport();
+    var dx = trans.delta[0] * cam.Height / viewport[3];
+    var dy = trans.delta[1] * cam.Height / viewport[3];
+
+    VIEWER1.AnimateTranslate(-dx/2, -dy/2);
+    VIEWER2.AnimateTranslate(dx/2, dy/2);
+
+
+    // Ignore rotation for now.
+
+    console.log("Translate = (" + dx + ", " + dy + ")" );
+}
+
+
+
+// Moving toward deformation of contour
+function testAlignTranslation() {
+    var viewer1 = VIEWER1;
+    var ctx1 = viewer1.MainView.Context2d;
+    var viewport1 = viewer1.GetViewport();
+    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    SmoothDataAlphaRGB(data1, 5);
+    var histogram1 = ComputeIntensityHistogram(data1);
+    var threshold1 = PickThreshold(histogram1);
+    var contour1 = LongestContour(data1, threshold1);
+
+    //MakeContourPolyline(contour1, VIEWER1);
+
+
+    var viewer2 = VIEWER2;
+    var ctx2 = viewer2.MainView.Context2d;
+    var viewport2 = viewer2.GetViewport();
+    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    SmoothDataAlphaRGB(data2, 5);
+    var histogram2 = ComputeIntensityHistogram(data2);
+    var threshold2 = PickThreshold(histogram2);
+    var contour2 = LongestContour(data2, threshold2);
+
+    //MakeContourPolyline(contour2, VIEWER2);
+
+    // Make a copy of contour2.
+    //var contour2copy = new Array(contour2.length);
+    //for (var i = 0; i < contour2copy; ++i) {
+    //    contour2copy[i] = [contour2[i][0], contour2[i][1]];
+    //}
+
+    var trans = AlignRigidContours(contour1, contour2);
+
+    // Move center to 0 (keep track of focal point
+    var dx = (viewport2[2]*0.5) - trans.c0[0];
+    var dy = (viewport2[3]*0.5) - trans.c0[1];
+    // Rotate
+    var c = Math.cos(trans.roll);
+    var s = Math.sin(trans.roll);
+
+    var tx = c*dx + s*dy;
+    var ty = -s*dx + c*dy;
+    // Move origin to c1
+    tx += trans.c1[0];
+    ty += trans.c1[1];
+
+    // Compute focal point delta.
+    tx = tx - (viewport2[2]*0.5);
+    ty = ty - (viewport2[3]*0.5);
+
+    // Convert from pixels to slide coordinates
+    var cam = VIEWER1.GetCamera();
+    var tx = tx * cam.Height / viewport2[3];
+    var ty = ty * cam.Height / viewport2[3];
+
+    VIEWER2.AnimateTransform(-tx, -ty, -trans.roll);
+}
+
+
+
+
+
+
 
 function testDistanceMap() {
     var viewer1 = VIEWER1;
@@ -1447,7 +1972,7 @@ function testDistanceMap() {
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    MakeContourPolyLine(contour1, VIEWER1);
+    MakeContourPolyline(contour1, VIEWER1);
 
     var bds1 = ComputeContourBounds(contour1);
     var distMap = new DistanceMap(bds1, 1);

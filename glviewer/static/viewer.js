@@ -600,6 +600,18 @@ Viewer.prototype.AnimateRoll = function(dRoll) {
   eventuallyRender();
 }
 
+Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
+  this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
+  this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
+
+  this.RollTarget = this.MainView.Camera.Roll + dRoll;
+
+  this.ZoomTarget = this.MainView.Camera.GetHeight();
+
+  this.AnimateLast = new Date().getTime();
+  this.AnimateDuration = 200.0; // hard code 200 milliseconds
+  eventuallyRender();
+}
 
 
 Viewer.prototype.RemoveWidget = function(widget) {
