@@ -1058,7 +1058,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
             // If no correlation is this close, then create a enw correlation.
 
             // TODO: All existing correlations in the window should be merged into one.
-            var minDist = cam.Height / 4;
+            var minDist = cam.Height / 2;
             for (var i = 0; i < trans.Correlations.length; ++i) {
                 var cor = trans.Correlations[i];
                 var dx = Math.abs(fp[0] - cor.point0[0]);
