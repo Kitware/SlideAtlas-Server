@@ -149,6 +149,19 @@ Camera.prototype.GetWidth = function () {
   return this.Height * this.ViewportWidth / this.ViewportHeight;
 }
 
+
+// Slide coordinates.
+Camera.prototype.GetBounds = function () {
+    var width = this.GetWidth();
+    var bds = new Array(4);
+    bds[0] = this.FocalPoint[0] - (width*0.5);
+    bds[1] = bds[0] + width;
+    bds[2] = this.FocalPoint[1] - (this.Height*0.5);
+    bds[3] = bds[2] + this.Height;
+    return bds;
+}
+
+
 // Camera matrix transforms points into camera coordinate system
 // X:(-1->1)
 // Y:(-1->1) (-1 is bottom)

@@ -1046,33 +1046,27 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
     if (EDIT && EVENT_MANAGER.CursorFlag) {
         var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
         if ( ! this.ActiveCorrelation) {
-            // Find a close correlation or make a new one.
-            // With only two viewers this is easy.
             if ( ! trans) {
                 alert("Missing transform");
                 return;
             }
-            // Find the closest correlation to modify
+            // Remove all correlations visible in the window.
             var cam = VIEWER1.GetCamera();
-            var fp = cam.GetFocalPoint();
-            // If no correlation is this close, then create a enw correlation.
-
-            // TODO: All existing correlations in the window should be merged into one.
-            var minDist = cam.Height / 2;
-            for (var i = 0; i < trans.Correlations.length; ++i) {
-                var cor = trans.Correlations[i];
-                var dx = Math.abs(fp[0] - cor.point0[0]);
-                var dy = Math.abs(fp[1] - cor.point0[1]);
-                var dist = Math.max(dx, dy);
-                if (dist < minDist) {
-                    minDist = dist;
-                    this.ActiveCorrelation = cor;
+            var bds = cam.GetBounds();
+            var idx = 0;
+            while (idx < trans.Correlations.length) {
+                var cor = trans.Correlations[idx];
+                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
+                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                    trans.Correlations.splice(idx,1);
+                } else {
+                    ++idx;
                 }
             }
-            if ( ! this.ActiveCorrelation) {
-                this.ActiveCorrelation = new PairCorrelation();
-                trans.Correlations.push(this.ActiveCorrelation);
-            }
+
+            // Now make a new replacement correlation.
+            this.ActiveCorrelation = new PairCorrelation();
+            trans.Correlations.push(this.ActiveCorrelation);
         }
         var cam0 = VIEWER1.GetCamera();
         var cam1 = VIEWER2.GetCamera();
