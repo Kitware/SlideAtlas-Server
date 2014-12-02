@@ -150,6 +150,23 @@ function TriangleMesh() {
 }
 
 
+
+// Just enough to render the points.
+TriangleMesh.prototype.DeepCopy = function (mesh) {
+    this.PointCoordiantes = new Array(mesh.PointCoordinates.length);
+    for (var i = 0; i < mesh.PointCoordinates.length; ++i) {
+        this.PointCoordinates[i] = mesh.PointCoordinates[i];
+    }
+
+    this.TrianglePointIds = new Array(mesh.TrianglePointIds.length);
+    for (var i = 0; i < mesh.TrianglePointIds.length; ++i) {
+        this.TrianglePointIds[i] = mesh.TrianglePointIds[i];
+    }
+}
+
+
+
+
 // I am doing this so much I decided to make a method out of it.
 TriangleMesh.prototype.GetPointCoordinates = function (ptIdx) {
     var idx = ptIdx << 1;
@@ -186,7 +203,7 @@ TriangleMesh.prototype.Draw = function (view) {
                       view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
                       view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
     context.strokeStyle = '#000';
-
+    context.lineWidth = 10;
 
     var x, y;
     var ptIdx;
@@ -258,7 +275,7 @@ TriangleMesh.prototype.ConditionEdgeRotate = function () {
     for (var edgeId = 0; edgeId < this.Edges.length; ++edgeId) {
         // find four edges/points of the quadrilateral containing the edge.
         var edge = this.Edges[edgeId];
-        if (edge.tri1 == undefined) {
+        if (edge === undefined || edge.tri1 == undefined) {
             // boundary edge
             continue;
         }
@@ -432,9 +449,8 @@ TriangleMesh.prototype.DrawInCanvas = function (ctx) {
 // Clears the mesh the adds the triangulation.
 // The triangulation may not be optimal.
 TriangleMesh.prototype.TriangulateContour = function(contour) {
-    // Leave off the last point because it is duplicated for loops
-    // (not for open contours however).
-    var num = contour.length - 1;
+    var s,c,a;
+    var num = contour.length;
     this.PointCoordinates = new Array(num*2);
     this.TrianglePointIds = new Array(num-2);
     // Make an array that marks unused points (and keeps their angles).
@@ -448,15 +464,19 @@ TriangleMesh.prototype.TriangulateContour = function(contour) {
     for (var i = 0; i < num; ++i) {
         this.PointCoordinates[i<<1] = x1;
         this.PointCoordinates[(i<<1) + 1] = y1;
-        x2 = contour[i+1][0];
-        y2 = contour[i+1][1];
+        x2 = contour[(i+1)%num][0];
+        y2 = contour[(i+1)%num][1];
         // Compute length
         dx1 = x2-x1;  dy1 = y2-y1;
         dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
 
-        var s = (dx1*dy0-dx0*dy1) / (dist0*dist1);
-        var c = (dx0*dx1+dy0*dy1) / (dist0*dist1);
-        var a = Math.atan2(s,c);
+        // Although this is correct, atan works without it,
+        // And we might have divide by zero.
+        //s = (dx1*dy0-dx0*dy1) / (dist0*dist1);
+        //c = (dx0*dx1+dy0*dy1) / (dist0*dist1);
+        s = (dx1*dy0-dx0*dy1);
+        c = (dx0*dx1+dy0*dy1);
+        a = Math.atan2(s,c);
         vAngles[i] = a;
 
         // Move forward one vertex.
@@ -526,8 +546,10 @@ TriangleMesh.prototype.TriangulateContour = function(contour) {
         var dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
         var dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
 
-        var s = (dx1*dy0-dx0*dy1) / (dist0*dist1);
-        var c = (dx0*dx1+dy0*dy1) / (dist0*dist1);
+        //var s = (dx1*dy0-dx0*dy1) / (dist0*dist1);
+        //var c = (dx0*dx1+dy0*dy1) / (dist0*dist1);
+        var s = (dx1*dy0-dx0*dy1);
+        var c = (dx0*dx1+dy0*dy1);
         vAngles[v1] = Math.atan2(s,c);
         s = (dx2*dy1-dx1*dy2) / (dist1*dist2);
         c = (dx1*dx2+dy1*dy2) / (dist1*dist2);
@@ -781,6 +803,34 @@ function GetImageData(ctx, x,y, width, height) {
 // Stuff for contour
 
 
+function GetContourArea(contour) {
+    // compute the center of mass.
+    var cx = 0;
+    var cy = 0;
+    for (var i = 0; i < contour.length; ++i) {
+        cx += contour[i][0];
+        cy += contour[i][1];
+    }
+    cx = cx / contour.length;
+    cy = cy / contour.length;
+
+    var area = 0;
+    var p0 = contour[contour.length-1];
+    var dx0 = p0[0] - cx;
+    var dy0 = p0[1] - cy;
+    for (var i = 0; i < contour.length; ++i) {
+        var p1 = contour[i];
+        var dx1 = p1[0] - cx;
+        var dy1 = p1[1] - cy;
+        area += dx0*dy1-dy0*dx1;
+        dx0 = dx1;
+        dy0 = dy1;
+    }
+
+    return Math.abs(area / 2);
+}
+
+
 function TransformContour(contour, shift, center, roll) {
     for (var i = 0; i < contour.length; ++i) {
         var x = contour[i][0];
@@ -805,23 +855,24 @@ function TranslateContour(contour, shift) {
 
 
 // I could also impliment a resample to get uniform spacing.
-function ContourRemoveDulicatePoints(points, epsilon) {
+function ContourRemoveDuplicatePoints(points, epsilon) {
     if ( epsilon == undefined) {
         epsilon = 0;
     }
-    var idx = 1;
+    var p0 = points[points.length-1];
+    var idx = 0;
     while (idx < points.length) {
-        var dx = points[idx][0] - points[idx-1][0];
-        var dy = points[idx][1] - points[idx-1][1];
+        var p1 = points[idx];
+        var dx = p1[0] - p0[0];
+        var dy = p1[1] - p0[1];
         if (Math.sqrt(dx*dx + dy*dy) <= epsilon) {
             points.splice(idx,1);
         } else {
             ++idx;
+            p0 = p1;
         }
     }
 }
-
-
 
 // Should eventually share this with polyline.
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
@@ -1088,6 +1139,31 @@ function LongestContour(data, threshold) {
 }
 
 
+// Returns all contours that circle areas greater than the areaFraction of the image.
+function GetLongContours(data, threshold, areaFraction) {
+    var areaThreshold = areaFraction * data.width * data.height;
+
+    // Loop over the cells.
+    var longContours = [];
+    for (var y = 1; y < data.height; ++y) {
+        for (var x = 1; x < data.width; ++x) {
+            // Look for contours crossing the xMax and yMax edges.
+            var xContour = TraceContour(data, x,y, x-1,y, threshold);
+            if (GetContourArea(xContour) > areaThreshold) {
+                longContours.push(xContour);
+            }
+
+            var yContour = TraceContour(data, x,y, x,y-1, threshold);
+            if (GetContourArea(yContour) > areaThreshold) {
+                longContours.push(yContour);
+            }
+        }
+    }
+
+    return longContours;
+}
+
+
 
 // Inplace (not considering tmp data).
 // Radius = 0 => single point / no smoothing,  1 => kernel dim 3 ...
@@ -1285,8 +1361,12 @@ function EncodePrincipleComponent(data) {
 
 
 
-function ComputeIntensityHistogram(data)
+function ComputeIntensityHistogram(data, ignoreWhite)
 {
+    if (ignoreWhite === undefined) {
+        ignoreWhite = false;
+    }
+
     var hist = new Array(256);
     for (var i = 0; i < 256; ++i) {
         hist[i] = 0;
@@ -1298,8 +1378,10 @@ function ComputeIntensityHistogram(data)
         // Compute intensity
         var intensity = Math.floor((data.data[i++] + data.data[i++] + data.data[i++]) / 3);
         // Skip alpha
+        if ( ! ignoreWhite || intensity < 254 ) {
+            ++hist[intensity];
+        }
         ++i;
-        ++hist[intensity];
     }
     return hist;
 }
@@ -1483,7 +1565,7 @@ function RigidAlignContours(contour1, contour2) {
     distMap.AddContour(contour1);
     distMap.Update();
 
-    ContourRemoveDulicatePoints(contour2, 0.1);
+    ContourRemoveDuplicatePoints(contour2, 0.1);
     return RigidAlignContourWithMap(contour2, distMap);
 }
 
@@ -1526,7 +1608,6 @@ function DeformableAlignContours(contour1, contour2) {
     distMap.AddContour(contour1);
     distMap.Update();
 
-    ContourRemoveDulicatePoints(contour2, 0.1);
     // Offset ?? Debug this later.
     //contour2 = DecimateContour(contour2, 1);
     RigidAlignContourWithMap(contour2, distMap);
@@ -1586,8 +1667,8 @@ function RigidAlignContourWithMap(contour, distMap) {
 }
 
 var ITERATIONS = 5000;
-var EDGE_FACTOR = 0.4;
-var GRADIENT_FACTOR = 0.012;
+var EDGE_FACTOR = 0.2;
+var GRADIENT_FACTOR = 0.06;
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Convert the contour into a mesh for internal use, but modify contour2
 // to match contour1.
@@ -1596,12 +1677,12 @@ function DeformableAlignContourWithMap(contour, distMap) {
     mesh.TriangulateContour(contour);
     mesh.CreateFullMesh();
     while (mesh.ConditionEdgeRotate()) {}
-    //mesh.Update();
-
-// Todo: Fix the fist and last point equal issue.
+    mesh.Update();
+    DEBUG_MESH2 = new TriangleMesh();
+    DEBUG_MESH2.DeepCopy(mesh);
 
     // Create an array to hold the sumation of forces on the points.
-    var numPoints = (mesh.PointCoordinates.length / 2) - 1;
+    var numPoints = (mesh.PointCoordinates.length / 2);
     var dPoints = new Array(numPoints);
 
     for (var i = 0; i < ITERATIONS; ++i) {
@@ -1611,19 +1692,22 @@ function DeformableAlignContourWithMap(contour, distMap) {
             var pt = mesh.GetPointCoordinates(j);
             var grad = distMap.GetGradient(pt[0], pt[1]);
 
+            // Better to apply the gradient and edge forces separately
+            //dPoints[idx++] = -grad[0] * GRADIENT_FACTOR;
+            //dPoints[idx++] = -grad[1] * GRADIENT_FACTOR;
             mesh.PointCoordinates[idx]   -= grad[0] * GRADIENT_FACTOR;
             mesh.PointCoordinates[idx+1] -= grad[1] * GRADIENT_FACTOR;
             dPoints[idx] = 0;
             dPoints[idx+1] = 0;
             idx += 2;
-
-            //dPoints[idx++] = -grad[0] * GRADIENT_FACTOR;
-            //dPoints[idx++] = -grad[1] * GRADIENT_FACTOR;
         }
 
         // Apply forces due to edge displacement.
         for (var j = 0; j < mesh.Edges.length; ++j) {
             var edge = mesh.Edges[j];
+            if ( edge === undefined) {
+                continue;
+            }
             var p0 = mesh.GetPointCoordinates(edge.vert0);
             var p1 = mesh.GetPointCoordinates(edge.vert1);
             var dx = p1[0]-p0[0], dy = p1[1]-p0[1];
@@ -1647,6 +1731,9 @@ function DeformableAlignContourWithMap(contour, distMap) {
     for (var ptIdx = 0; ptIdx < contour.length; ++ptIdx) {
         contour[ptIdx] = [mesh.PointCoordinates[idx++], mesh.PointCoordinates[idx++]];
     }
+
+    mesh.Update();
+    DEBUG_MESH1 = mesh;
 }
 
 
@@ -1660,70 +1747,137 @@ function DeformableAlignContourWithMap(contour, distMap) {
 //    We may want to use euclidian instead of cityblock.
 // Rigid align contour2 to contour1
 // Deformable align contour2 to contour1.
-function DeformableAlignViewers() {
-    var spacing = 3;
-    var skip = 5;
+var DEBUG_CONTOUR1;
+var DEBUG_CONTOUR2a;
+var DEBUG_CONTOUR2b;
+var DEBUG_MESH1;
+var DEBUG_MESH2;
+var DEBUG_TRANS;
+function testDebug() {
+    //MakeContourPolyline(DEBUG_CONTOUR1, VIEWER1);
+    //MakeContourPolyline(DEBUG_CONTOUR2a, VIEWER2);
+    //MakeContourPolyline(DEBUG_CONTOUR2b, VIEWER1);
 
-    var viewer = VIEWER1;
-    var ctx1 = viewer.MainView.Context2d;
-    var viewport1 = viewer.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
-    SmoothDataAlphaRGB(data1, 2);
-    var histogram1 = ComputeIntensityHistogram(data1);
-    var threshold1 = PickThreshold(histogram1);
-    var contour1 = LongestContour(data1, threshold1);
-    //MakeContourPolyline(contour1, VIEWER1);
+    DEBUG_MESH1.ConvertPointsToWorld(VIEWER1);
+    VIEWER1.AddShape(DEBUG_MESH1);
 
-    viewer = VIEWER2;
-    var ctx2 = viewer.MainView.Context2d;
-    var viewport2 = viewer.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
-    SmoothDataAlphaRGB(data2, 2);
-    var histogram2 = ComputeIntensityHistogram(data2);
-    var threshold2 = PickThreshold(histogram2);
-    var contour2 = LongestContour(data2, threshold2);
-    ContourRemoveDulicatePoints(contour2, spacing);
-
-    // Save a copy of the contour before it is transformed.
-    // We need before and after to make correlation points.
-    var originalContour2 = new Array(contour2.length);
-    for (var i = 0; i < contour2.length; ++i) {
-        originalContour2[i] = [contour2[i][0], contour2[i][1]];
-    }
-
-    DeformableAlignContours(contour1, contour2);
-    //MakeContourPolyline(contour2, VIEWER1);
-
-    // Now clear all correlation points in the stack sections.
-    var note = NOTES_WIDGET.GetCurrentNote();
-    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-    if ( ! trans) {
-        alert("Missing transform");
-        return;
-    }
-    // Remove all correlations.
-    trans.Correlations = [];
-
-    // Now make new correlations from the transformed contour.
-    // How about every 5 samples.
-    for (var i = 2; i < originalContour2.length; i += skip) {
-        var viewport = VIEWER1.GetViewport();
-        var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0] + viewport[0],
-                                                    contour2[i][1] + viewport[1]);
-        var viewport = VIEWER2.GetViewport();
-        var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2[i][0] + viewport[0],
-                                                    originalContour2[i][1] + viewport[1]);
-        var cor = new PairCorrelation();
-        cor.SetPoint0(pt1);
-        cor.SetPoint1(pt2);
-        trans.Correlations.push(cor);
-    }
-
-
-    eventuallyRender();
+    DEBUG_MESH2.ConvertPointsToWorld(VIEWER2);
+    VIEWER2.AddShape(DEBUG_MESH2);
 }
 
 
+var WAITING;
+
+function DeformableAlignViewers() {
+    var note = NOTES_WIDGET.GetCurrentNote();
+    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+    if ( ! trans) {
+        return;
+    }
+
+    var viewport = VIEWER2.GetViewport();
+    var left = viewport[0] + (viewport[2]/2) - 40;
+    var top = viewport[1] + (viewport[3]/2) - 40;
+    if (WAITING === undefined) {
+        WAITING = $('<img>')
+            .appendTo('body')
+            .attr("src", "/webgl-viewer/static/circular.gif")
+            .attr("alt", "waiting...")
+            .hide()
+            .css({'width':'80px',
+                  'position': 'fixed',
+                  'left': '100px',
+                  'top': '100px',
+                  'z-index':'4'});
+    }
+
+    WAITING
+        .show()
+        .css({'left': left+'px',
+              'top': top+'px'});
+
+    // Trying to get the waiting icon to appear....
+    window.setTimeout(
+        function () {
+            // Resample contour for a smaller mesh.
+            var spacing = 3;
+            
+            var viewer = VIEWER1;
+            var ctx1 = viewer.MainView.Context2d;
+            var viewport1 = viewer.GetViewport();
+            var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+            SmoothDataAlphaRGB(data1, 2);
+            var histogram1 = ComputeIntensityHistogram(data1, true);
+            var threshold1 = PickThreshold(histogram1);
+            var contour1 = LongestContour(data1, threshold1);
+            
+            viewer = VIEWER2;
+            var ctx2 = viewer.MainView.Context2d;
+            var viewport2 = viewer.GetViewport();
+            var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+            SmoothDataAlphaRGB(data2, 2);
+            var histogram2 = ComputeIntensityHistogram(data2, true);
+            var threshold2 = PickThreshold(histogram2);
+            var contour2 = LongestContour(data2, threshold2);
+            ContourRemoveDuplicatePoints(contour2, spacing);
+            
+            // Save a copy of the contour before it is transformed.
+            // We need before and after to make correlation points.
+            var originalContour2 = new Array(contour2.length);
+            for (var i = 0; i < contour2.length; ++i) {
+                originalContour2[i] = [contour2[i][0], contour2[i][1]];
+            }
+            
+            DeformableAlignContours(contour1, contour2);
+
+            DEBUG_CONTOUR1 = contour1;            
+            DEBUG_CONTOUR2a = originalContour2;
+            DEBUG_CONTOUR2b = contour2;            
+            
+            // Now clear all correlation points in the stack sections.
+            
+            // Remove all correlations.
+            //trans.Correlations = [];
+            // Remove all correlations visible in the window.
+            var cam = VIEWER1.GetCamera();
+            var bds = cam.GetBounds();
+            var idx = 0;
+            while (idx < trans.Correlations.length) {
+                var cor = trans.Correlations[idx];
+                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
+                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                    trans.Correlations.splice(idx,1);
+                } else {
+                    ++idx;
+                }
+            }
+            DEBUG_TRANS = trans;
+            
+            // Now make new correlations from the transformed contour.
+            var targetNumCorrelations = 40;
+            var skip = Math.ceil(contour2.length / targetNumCorrelations);
+            for (var i = 2; i < originalContour2.length; i += skip) {
+                var viewport = VIEWER1.GetViewport();
+                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0] + viewport[0],
+                                                            contour2[i][1] + viewport[1]);
+                var viewport = VIEWER2.GetViewport();
+                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2[i][0] + viewport[0],
+                                                            originalContour2[i][1] + viewport[1]);
+                var cor = new PairCorrelation();
+                cor.SetPoint0(pt1);
+                cor.SetPoint1(pt2);
+                trans.Correlations.push(cor);
+            }
+            
+            console.log("Finished alignment");
+            // Syncronize views
+            note.SynchronizeViews(0);
+            
+            WAITING.hide();
+            
+            eventuallyRender();
+        }, 10);    
+}
 
 
 
@@ -1947,7 +2101,7 @@ function testAlignTranslation(debug) {
     var viewport1 = viewer1.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
-    var histogram1 = ComputeIntensityHistogram(data1);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
@@ -1956,7 +2110,7 @@ function testAlignTranslation(debug) {
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
-    var histogram2 = ComputeIntensityHistogram(data2);
+    var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
 
@@ -1992,7 +2146,7 @@ function testAlignTranslation2(debug) {
     var viewport1 = viewer1.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
-    var histogram1 = ComputeIntensityHistogram(data1);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
@@ -2001,7 +2155,7 @@ function testAlignTranslation2(debug) {
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
-    var histogram2 = ComputeIntensityHistogram(data2);
+    var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
 
@@ -2040,7 +2194,7 @@ function testAlignTranslation() {
     var viewport1 = viewer1.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 5);
-    var histogram1 = ComputeIntensityHistogram(data1);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
@@ -2052,7 +2206,7 @@ function testAlignTranslation() {
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 5);
-    var histogram2 = ComputeIntensityHistogram(data2);
+    var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
 
@@ -2142,7 +2296,7 @@ function testContour(threshold) {
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
-    ContourRemoveDulicatePoints(points, 1);
+    ContourRemoveDuplicatePoints(points, 1);
     if (points.length > 1) {
         var plWidget = MakeContourPolyline(points, VIEWER1);
     }    
@@ -2155,20 +2309,18 @@ function testContour(threshold) {
 // The to implement deformable registration.
 function testContourMesh(deci) {
     if (deci == undefined) {
-        deci = 10;
+        deci = 3;
     }
-    var viewer = VIEWER1;
+    var viewer = VIEWER2;
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
-    var histogram1 = ComputeIntensityHistogram(data1);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var points = LongestContour(data1, threshold1);
-    ContourRemoveDulicatePoints(points, 5);
+    ContourRemoveDuplicatePoints(points, 3);
     //points = DecimateContour(points, deci); // just for testing.
-    // First and last point must be duplicated.
-    points.push(points[0]);
 
     CONTOUR = points;
 
@@ -2202,7 +2354,7 @@ function testDeformableAlign(spacing) {
     var viewport1 = viewer.GetViewport();
     var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
-    var histogram1 = ComputeIntensityHistogram(data1);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
     MakeContourPolyline(contour1, VIEWER1);
@@ -2212,10 +2364,10 @@ function testDeformableAlign(spacing) {
     var viewport2 = viewer.GetViewport();
     var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
-    var histogram2 = ComputeIntensityHistogram(data2);
+    var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
-    ContourRemoveDulicatePoints(contour2, spacing);
+    ContourRemoveDuplicatePoints(contour2, spacing);
 
     DeformableAlignContours(contour1, contour2);
     MakeContourPolyline(contour2, VIEWER1);
@@ -2227,6 +2379,13 @@ function testDeformableAlign(spacing) {
 
 
 // TODO: 
+// Duplicate point.
+// Camera crazy (cory saved)
+// Show working gif.
+
+
+
+
 // Get rid of copyright. Connectivity for threshold?
 // Make a deformable 2d mesh model of thresholded tissue.
 //   Triangulate a contour (greedy angle).

@@ -260,6 +260,15 @@ EventManager.prototype.HandleKeyDown = function(event) {
 EventManager.prototype.HandleKeyUp = function(event) {
     if ( ! this.HasFocus) {return true;} 
 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
     // It is sort of a hack to check for the cursor mode here, but it
     // affects both viewers.
     if (event.keyCode == 88) { // x = 88
