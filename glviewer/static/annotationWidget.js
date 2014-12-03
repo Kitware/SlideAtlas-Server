@@ -12,81 +12,105 @@
 // or maybe the delete key.
 
 function AnnotationWidget (viewer) {
-  var self = this; // trick to set methods in callbacks.
-  this.Viewer = viewer;
-  viewer.AnnotationWidget = this;
+    var self = this; // trick to set methods in callbacks.
+    this.Viewer = viewer;
+    viewer.AnnotationWidget = this;
+    
+    if ( ! MOBILE_DEVICE) {
+        // Maybe I should try to set parent to viewer.
+        this.Tab = $('<div>')
+            .appendTo('body')
+            .attr('id', 'debug')
+            .css({'z-index' : '3',
+                  'position': 'absolute'});
+        viewer.AddGuiObject(this.Tab, "Bottom", 0, "Right", 150);
 
-  if ( ! MOBILE_DEVICE) {
-    // We need unique names for the HTML elements.
-    this.Widget = $('<table>').appendTo('body')
-      .css({
-        'opacity': '0.6',
-        'position': 'absolute',
-        'height': '28px',
-        'bottom' : '5px',
-        'right' : '20px',
-        'z-index': '1'});;
+        // Button has to have the border (not the tab) to be covered by Div.
+        this.TabButton = $('<img>')
+            .appendTo(this.Tab)
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/pencil3Up.png");
+            .css({'z-index' : '3',
+                  'padding' : '2px 2px 0px 2px',
+                  'border-width': '1px',
+                  'border-style': 'solid',
+                  'border-radius': '5px',
+                  'border-color': '#BBB',
+                  'background-color': '#FFF'})
+            .click(function(){self.ToggleTools();});
 
-    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 312);
+        this.Div = $('<div>')
+            .appendTo(this.Tab)
+            .hide()
+            .css({
+                'background-color': 'white',
+                'border-style': 'solid',
+                'border-width': '1px',
+                'border-radius': '5px',
+                'border-color': '#BBB',
+                'position': 'absolute',
+                'bottom': '30px',
+                'left':  '-5px',
+                'z-index': '2',
+                'padding': '2px 2px 0px 2px'});
 
-    var row = $('<tr>').appendTo(this.Widget)
-    var cell = $('<td>').appendTo(row)
-    this.VisibilityButton = $('<img>').appendTo(cell)
-      .css({
-        'opacity': '0.6',
-        'border-radius': '5px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/pencil3Up.png")
-      .click(function(){self.ToggleVisibility();});
+        this.VisibilityDiv = $('<div>')
+            .appendTo(this.Div)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'overflow': 'hidden',
+                  'position': 'relative'})
+            .click(function(){self.ToggleVisibility();});
+        this.VisibilityImage = $('<img>')
+            .appendTo(this.VisibilityDiv)
+            .css({'height': '56px',
+                  'opacity': '0.6',
+                  'position': 'relative'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
-    this.ToolsTable = $('<td>').appendTo(row)
-      .css({
-        'opacity': '0.6',
-        'width': '182',
-        'border-radius': '5px'});
-
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Text.gif")
-      .click(function(){self.NewText();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Circle.gif")
-      .click(function(){self.NewCircle();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/FreeForm.gif")
-      .click(function(){self.NewPolyline();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
-      .click(function(){self.NewPencil();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/select_lasso.png")
-      .click(function(){self.NewLasso();});
-  }
+        $('<img>').appendTo(this.Div)
+            .css({'height': '28px',
+                  'opacity': '0.6'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Text.gif")
+            .click(function(){self.NewText();});
+        $('<img>').appendTo(this.Div)
+            .css({'height': '28px',
+                 'opacity': '0.6'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Circle.gif")
+            .click(function(){self.NewCircle();});
+        $('<img>').appendTo(this.Div)
+            .css({'height': '28px',
+                  'opacity': '0.6'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/FreeForm.gif")
+            .click(function(){self.NewPolyline();});
+        $('<img>').appendTo(this.Div)
+            .css({'height': '28px',
+                  'opacity': '0.6'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
+            .click(function(){self.NewPencil();});
+        $('<img>').appendTo(this.Div)
+            .css({'height': '28px',
+                  'opacity': '0.6'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/select_lasso.png")
+            .click(function(){self.NewLasso();});
+    }
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
   if (this.Viewer.GetAnnotationVisibility() == visibility) {
     return;
   }
-  if (this.VisibilityButton) {
+  if (this.VisibilityImage) {
     if (visibility == ANNOTATION_OFF) {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3.png")
-      this.ToolsTable.fadeOut();
-    } else if (visibility == ANNOTATION_NO_TEXT) {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Flip.png")
-      this.ToolsTable.fadeIn();
+        this.VisibilityImage.css({'top': '-30px'});
     } else {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Up.png")
-      this.ToolsTable.fadeIn();
+        this.VisibilityImage.css({'top': '1px'});
     }
   }
 
@@ -100,17 +124,36 @@ AnnotationWidget.prototype.GetVisibility = function() {
 }
 
 AnnotationWidget.prototype.ToggleVisibility = function() {
-  var vis = this.GetVisibility();
-  if (vis == ANNOTATION_OFF) {
-    vis = ANNOTATION_NO_TEXT;
-  } else if (vis == ANNOTATION_NO_TEXT) {
-    vis = ANNOTATION_ON;
-  } else {
-    vis = ANNOTATION_OFF;
-  }
-  this.SetVisibility( vis );
-  RecordState();
+    var vis = this.GetVisibility();
+    if (vis == ANNOTATION_OFF) {
+        vis = ANNOTATION_ON;
+    } else {
+        vis = ANNOTATION_OFF;
+    }
+    this.SetVisibility( vis );
+    RecordState();
 }
+
+
+
+AnnotationWidget.prototype.ToggleTools = function() {
+    this.Div.toggle();
+    if (this.Div.is(":visible")) {
+        this.TabButton.css({'border-color': '#FFF #BBB #BBB #BBB',
+                            'border-radius': '0px 0px 5px 5px',
+                            'opacity': '1'});
+    } else {
+        this.TabButton.css({'border-color': '#BBB',
+                            'border-radius': '5px',
+                            'opacity': '0.6'});
+    }
+}
+
+
+
+
+
+
 
 // I would like to change the behavior of this.
 // First slide the arrow, then pop up the dialog to set text.
