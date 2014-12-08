@@ -723,8 +723,8 @@ Viewer.prototype.Draw = function() {
 
   var cache = this.GetCache(); 
   if (cache != undefined) {
-    var copyright = cache.Image.copyright;
-    //this.MainView.DrawCopyright(copyright);
+      var copyright = cache.Image.copyright;
+      this.MainView.DrawCopyright(copyright);
   }
   // I am using shift for stack interaction.
   // Turn on the focal point when shift is pressed.

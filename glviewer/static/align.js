@@ -1,6 +1,210 @@
 // Histogram section alignment. 
 
 
+
+
+
+//=================================================
+// Stuff for segmentation.
+// Start with pixel classification by RGB
+
+// TODO: 
+// 1: Use image annotation so we can zoom in. (Done)
+//    This will require coordiante conversion.
+// 2: Create a GUI panel with options.
+//    Toggle mask option.
+// 3: A connectivity
+
+
+
+function Segmentation (viewer) {
+    var viewport = viewer.GetViewport();
+    var x = viewport[0];
+    var y = viewport[1];
+    var width = viewport[2];
+    var height = viewport[3];
+    var context  = viewer.MainView.Context2d;
+    this.Viewer = viewer;
+    this.Context = context;
+    this.Data = GetImageData(context, x,y, width,height);
+    // I am using a hidden canvas to convert imageData to an image.
+    // there must be a better way of doing this.
+    this.Canvas = document.createElement("canvas"); //create
+    this.CanvasContext = this.Canvas.getContext("2d");
+    this.Canvas.width = width;
+    this.Canvas.height = height;
+
+    this.Mask = this.CanvasContext.createImageData(width,height);
+    for (var i = 0; i < this.Mask.data.length; ++i) {
+        // transparent black RGBA
+        this.Mask.data[i] = this.Data.data[i];
+    }
+
+    this.ImageAnnotation = new ImageAnnotation();
+    this.ImageAnnotation.Image = document.createElement('img');
+    this.ImageAnnotation.Image.src = this.Canvas.toDataURL('image/png');
+    var cam = viewer.GetCamera();
+    var width = cam.GetWidth();
+    this.ImageAnnotation.Origin = [cam.FocalPoint[0]-width/2, cam.FocalPoint[1]-cam.Height/2];
+    this.ImageAnnotation.Height = cam.Height;
+    viewer.AddShape(this.ImageAnnotation);
+
+    this.Positive = [];
+    this.Negative = [];
+    this.Spheres = [];
+    // We need to save the parameters necessary to convert
+    // slide points to the mask coordinate systemse
+    this.MaskViewport = viewport.slice(0);
+    this.MaskMatrix = mat4.create(viewer.MainView.Camera.Matrix); 
+}
+
+// We need to save the parameters necessary to convert
+// slide points to the mask coordinate systemse
+Segmentation.prototype.WorldPointToMask = function (pt) {
+    var viewport = this.MaskViewport;
+    var m = this.MaskMatrix;
+
+    // Convert from world coordinate to view (-1->1);
+    var h = (pt[0]*m[3] + pt[1]*m[7] + m[15]);
+    var xNew = (pt[0]*m[0] + pt[1]*m[4] + m[12]) / h;
+    var yNew = (pt[0]*m[1] + pt[1]*m[5] + m[13]) / h;
+    // Convert from view to screen pixel coordinates.
+    xNew = (1.0+xNew)*0.5*viewport[2] + viewport[0];
+    yNew = (1.0-yNew)*0.5*viewport[3] + viewport[1];
+
+    return [xNew, yNew];
+}
+
+Segmentation.prototype.Draw = function () {
+    this.CanvasContext.putImageData(this.Mask, 0, 0);
+    this.ImageAnnotation.Image.src = this.Canvas.toDataURL('image/png');
+    eventuallyRender();
+}
+
+// TODO: Saves spheres instead of positive points.
+Segmentation.prototype.AddPositive = function (ptWorld) {
+    var ptMask = this.WorldPointToMask(ptWorld);
+    ptMask[0] = Math.round(ptMask[0]);
+    ptMask[1] = Math.round(ptMask[1]);
+
+    if (ptMask[0] >= 0 && ptMask[0] < this.Data.width &&
+        ptMask[1] >= 0 && ptMask[1] < this.Data.height) {
+        this.Positive.push(ptMask);
+    }
+}
+
+Segmentation.prototype.AddNegative = function (ptWorld) {
+    var ptMask = this.WorldPointToMask(ptWorld);
+    ptMask[0] = Math.round(ptMask[0]);
+    ptMask[1] = Math.round(ptMask[1]);
+    if (ptMask[0] >= 0 && ptMask[0] < this.Data.width &&
+        ptMask[1] >= 0 && ptMask[1] < this.Data.height) {
+        this.Negative.push(ptMask);
+    }
+}
+
+Segmentation.prototype.Evaluate = function (pixel) {
+    for (var i = 0; i < this.Spheres.length; ++i) {
+        var sphere = this.Spheres[i];
+        var d2 = 0;
+        for (var j = 0; j < pixel.length; ++j) {
+            var delta = pixel[j] - sphere.center[j];
+            d2 += delta*delta;
+        }
+        if (d2 < sphere.r2) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Segmentation.prototype.GetPixel = function (coords) {
+    idx = (coords[0]+(coords[1]*this.Data.width)) << 2;
+    return [this.Data.data[idx++], this.Data.data[idx++], this.Data.data[idx], coords[0], coords[1]];
+}
+
+Segmentation.prototype.Update = function () {
+    // First compile examples into a function.
+    // Start adding sphere around the positive examples.
+    var d, d2;
+    this.Spheres = [];
+    for (var i = 0; i < this.Positive.length; ++i) {
+        // Get the pixel vector.
+        var posPixel = this.GetPixel(this.Positive[i]);
+        if ( ! this.Evaluate(posPixel)) {
+            // Make a new sphere.
+            var sphere = {center:posPixel, r2:4000};
+            // Shrink the radius if it contains a negative.
+            for (var j = 0; j < this.Negative.length; ++j) {
+                var negPixel = this.GetPixel(this.Negative[j]);
+                d2 = 0;
+                for (var k = 0; k < posPixel.length; ++k) {
+                    d = negPixel[k]-posPixel[k];
+                    d2 += d*d;
+                }
+                // Shrink slightly.
+                d2 -= 1;
+                if (sphere.r2 > d2) { sphere.r2 = d2; }
+            }
+
+            if (sphere.r2 > 1) {
+                this.Spheres.push(sphere);
+            }
+        }
+    }
+
+    // Now apply the new function to the mask.
+    var idx = 0;
+    for (var y = 0; y < this.Data.height; ++y) {
+        for (var x = 0; x < this.Data.width; ++x) {
+            var pixel = this.GetPixel([x,y]);
+            if ( this.Evaluate(pixel) ) {
+                this.Mask.data[idx] = 255;
+                this.Mask.data[idx+1] = 0;
+                this.Mask.data[idx+2] = 0;
+                this.Mask.data[idx+3] = 255;
+            } else {
+                //this.Mask.data[idx] = this.Data.data[idx];
+                //this.Mask.data[idx+1] = this.Data.data[idx+1];
+                //this.Mask.data[idx+2] = this.Data.data[idx+2];
+                this.Mask.data[idx] = 0;
+                this.Mask.data[idx+1] = 255;
+                this.Mask.data[idx+2] = 0;
+                this.Mask.data[idx+3] = 0;
+            }
+            idx += 4;
+        }
+    }
+}
+
+var SEGMENT;
+function HandleMouseUp(event) {
+    if (event.which == 1) {
+        var ptWorld = SEGMENT.Viewer.ConvertPointViewerToWorld(event.clientX, event.clientY);
+        SEGMENT.AddPositive(ptWorld);
+        SEGMENT.Update();
+        SEGMENT.Draw();
+        console.log("Positive");
+    }
+    if (event.which == 3) {
+        var ptWorld = SEGMENT.Viewer.ConvertPointViewerToWorld(event.clientX, event.clientY);
+        SEGMENT.AddNegative(ptWorld);
+        SEGMENT.Update();
+        SEGMENT.Draw();
+        console.log("Negative");
+    }
+}
+
+function testSegment() {
+    if (SEGMENT === undefined) {
+        SEGMENT = new Segmentation(VIEWER1);
+    }
+    VIEWER1.MainView.Canvas.mouseup(function () {HandleMouseUp(event);});
+}
+
+
+
+
 //=================================================
 // Histogram display.
 
@@ -1668,7 +1872,7 @@ function RigidAlignContourWithMap(contour, distMap) {
 
 var ITERATIONS = 5000;
 var EDGE_FACTOR = 0.2;
-var GRADIENT_FACTOR = 0.06;
+var GRADIENT_FACTOR = 0.04;
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Convert the contour into a mesh for internal use, but modify contour2
 // to match contour1.

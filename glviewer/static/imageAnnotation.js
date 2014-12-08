@@ -1,5 +1,5 @@
 // Draw an image as an annotation object.  This simple drawing object
-// is like a shpe, but I am not subclassing shape because shape
+// is like a shape, but I am not subclassing shape because shape
 // is about drawing vector graphics.
 
 // We only support rendering in slide coordinate system for now.

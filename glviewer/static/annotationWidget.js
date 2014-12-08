@@ -17,45 +17,12 @@ function AnnotationWidget (viewer) {
     viewer.AnnotationWidget = this;
     
     if ( ! MOBILE_DEVICE) {
-        // Maybe I should try to set parent to viewer.
-        this.Tab = $('<div>')
-            .appendTo('body')
-            .attr('id', 'debug')
-            .css({'z-index' : '3',
-                  'position': 'absolute'});
-        viewer.AddGuiObject(this.Tab, "Bottom", 0, "Right", 150);
-
-        // Button has to have the border (not the tab) to be covered by Div.
-        this.TabButton = $('<img>')
-            .appendTo(this.Tab)
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/pencil3Up.png");
-            .css({'z-index' : '3',
-                  'padding' : '2px 2px 0px 2px',
-                  'border-width': '1px',
-                  'border-style': 'solid',
-                  'border-radius': '5px',
-                  'border-color': '#BBB',
-                  'background-color': '#FFF'})
-            .click(function(){self.ToggleTools();});
-
-        this.Div = $('<div>')
-            .appendTo(this.Tab)
-            .hide()
-            .css({
-                'background-color': 'white',
-                'border-style': 'solid',
-                'border-width': '1px',
-                'border-radius': '5px',
-                'border-color': '#BBB',
-                'position': 'absolute',
-                'bottom': '30px',
-                'left':  '-5px',
-                'z-index': '2',
-                'padding': '2px 2px 0px 2px'});
+        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
+        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 150);
+        new ToolTip(this.Tab.Div, "Annotation");
 
         this.VisibilityDiv = $('<div>')
-            .appendTo(this.Div)
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6',
                   'overflow': 'hidden',
@@ -69,31 +36,31 @@ function AnnotationWidget (viewer) {
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
-        $('<img>').appendTo(this.Div)
+        $('<img>').appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Text.gif")
             .click(function(){self.NewText();});
-        $('<img>').appendTo(this.Div)
+        $('<img>').appendTo(this.Tab.Panel)
             .css({'height': '28px',
                  'opacity': '0.6'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Circle.gif")
             .click(function(){self.NewCircle();});
-        $('<img>').appendTo(this.Div)
+        $('<img>').appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/FreeForm.gif")
             .click(function(){self.NewPolyline();});
-        $('<img>').appendTo(this.Div)
+        $('<img>').appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
             .click(function(){self.NewPencil();});
-        $('<img>').appendTo(this.Div)
+        $('<img>').appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6'})
             .attr('type','image')
@@ -136,9 +103,9 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
 
 
 
-AnnotationWidget.prototype.ToggleTools = function() {
-    this.Div.toggle();
-    if (this.Div.is(":visible")) {
+AnnotationWidget.prototype.TogglePanel = function() {
+    this.Panel.toggle();
+    if (this.Panel.is(":visible")) {
         this.TabButton.css({'border-color': '#FFF #BBB #BBB #BBB',
                             'border-radius': '0px 0px 5px 5px',
                             'opacity': '1'});
