@@ -31,7 +31,10 @@ class ReaderFactory(object):
         # This code also duplicated in TileProcessor belongs really to reader factory
         reader = None
         logger.info("uploader_base: Got extension: " + ext)
-        if ext in ["svs", "ndpi", "scn", "tif", "bif"]:
+        if ext in ["bif"]:
+            from slideatlas.ptiffstore.bif_reader import BifReader
+            reader = BifReader()
+        elif ext in ["svs", "ndpi", "scn", "tif"]:
             from slideatlas.ptiffstore.openslide_reader import OpenslideReader
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
@@ -43,7 +46,7 @@ class ReaderFactory(object):
             reader = PreprocessReaderJp2(kakadu_dir=kakadu_dir)
         else:
             logger.error("Unknown extension: " + ext)
-            sys.exit(-1)
+            return None
 
         reader.set_input_params({'fname' : fname})
         return reader
