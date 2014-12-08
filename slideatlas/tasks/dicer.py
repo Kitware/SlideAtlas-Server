@@ -84,22 +84,22 @@ def process_file(args):
         else:
             raise Exception("Unsupported file: " + ext)
 
-        # TODO: Remove the file from gridfs or make it invisible in the queue
-        if file_is_from_gridfs:
-            # clean up the temporary file
-            shutil.rmtree(newpath)
+        if success:
+            # Update the metadata of the image file
+            logger.info("New view created: " + str(uploader_obj.new_view.id))
+            datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
 
-            if success:
-                # Update the metadata of the image file
-                logger.info("New view created: " + str(uploader_obj.new_view.id))
-                datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
-
-                #TODO: Remove file from gridfs after user accepts the dicing
-                # session.remove_imagefile(file_id)
+            #TODO: Remove file from gridfs after user accepts the dicing
+            # session.remove_imagefile(file_id)
 
     except Exception as e:
         logger.error("Exception occured in uploader process: " + e.message)
         datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "failed", "metadata.error": e.message}})
+
+    # TODO: Remove the file from gridfs or make it invisible in the queue
+    if file_is_from_gridfs:
+        # clean up the temporary file
+        shutil.rmtree(newpath)
 
     logger.info(str(resp))
     return resp
