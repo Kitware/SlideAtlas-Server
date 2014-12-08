@@ -126,7 +126,10 @@ class MongoUploader(object):
         """
         #todo: choose the reader here
         reader = factory.open(self.args["input"], self.args["extra"])
-        return reader
+        if reader is not None:
+            return reader
+        else:
+            raise Exception("Unknown file format")
 
     def upload_base(self):
         """
