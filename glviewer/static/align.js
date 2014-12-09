@@ -96,8 +96,8 @@ Segmentation.prototype.WorldPointToMask = function (pt) {
     var xNew = (pt[0]*m[0] + pt[1]*m[4] + m[12]) / h;
     var yNew = (pt[0]*m[1] + pt[1]*m[5] + m[13]) / h;
     // Convert from view to screen pixel coordinates.
-    xNew = (1.0+xNew)*0.5*viewport[2] + viewport[0];
-    yNew = (1.0-yNew)*0.5*viewport[3] + viewport[1];
+    xNew = (1.0+xNew)*0.5*viewport[2];
+    yNew = (1.0-yNew)*0.5*viewport[3];
 
     return [xNew, yNew];
 }

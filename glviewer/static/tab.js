@@ -74,7 +74,7 @@ Tab = (function () {
         for (var i = 0; i < Tabs.length; ++i) {
             if (Tabs[i] !== this) {
                 var minX1 = Tabs[i].Panel.offset().left;
-                var maxX1 = minX0 + Tabs[i].Panel.outerWidth();
+                var maxX1 = minX1 + Tabs[i].Panel.outerWidth();
                 // Overlap
                 minX1 = Math.max(minX0,minX1);
                 maxX1 = Math.min(maxX0,maxX1);

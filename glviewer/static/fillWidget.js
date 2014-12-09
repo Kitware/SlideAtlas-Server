@@ -187,7 +187,6 @@ FillWidget.prototype.HandleMouseUp = function(event) {
 }
 
 FillWidget.prototype.HandleDoubleClick = function(event) {
-    this.Deactivate();
 }
 
 FillWidget.prototype.HandleMouseMove = function(event) {
