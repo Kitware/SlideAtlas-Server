@@ -24,8 +24,8 @@ function PencilWidget (viewer, newFlag) {
   }
 
   this.Dialog = new Dialog(this);
-  // Customize dialog for a lasso.
-  this.Dialog.Title.text('Lasso Annotation Editor');
+  // Customize dialog for a pencil.
+  this.Dialog.Title.text('Pencil Annotation Editor');
   // Color
   this.Dialog.ColorDiv =
     $('<div>')
@@ -147,14 +147,17 @@ PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 PencilWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer();
-  this.Cursor.hide();
-  this.Viewer.DeactivateWidget(this);
-  this.State = PENCIL_WIDGET_WAITING;
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    this.Shapes[i].Active = false;
-  }
-  eventuallyRender();
+    this.Popup.StartHideTimer();
+    this.Cursor.hide();
+    this.Viewer.DeactivateWidget(this);
+    this.State = PENCIL_WIDGET_WAITING;
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        this.Shapes[i].Active = false;
+    }
+    if (this.DeactivateCallback) {
+        this.DeactivateCallback();
+    }
+    eventuallyRender();
 }
 
 PencilWidget.prototype.HandleMouseDown = function(event) {

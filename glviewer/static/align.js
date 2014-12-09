@@ -9,11 +9,11 @@
 // Start with pixel classification by RGB
 
 // TODO: 
-// 1: Use image annotation so we can zoom in. (Done)
-//    This will require coordiante conversion.
-// 2: Create a GUI panel with options.
+// -: mouse drag
+// -: Create a GUI panel with options.
 //    Toggle mask option.
-// 3: A connectivity
+//    Widget events
+// -: Connectivity
 
 
 
@@ -27,6 +27,33 @@ function Segmentation (viewer) {
     this.Viewer = viewer;
     this.Context = context;
     this.Data = GetImageData(context, x,y, width,height);
+    // Lets add a center surround channel by over writing alpha.
+    var tmp = GetImageData(context, x,y, width,height);
+    // Smooth for the center.
+    SmoothDataAlphaRGB(tmp,1);
+    // Save the results.
+    var idx = 0;
+    while (idx < tmp.data.length) {
+        var intensity = (tmp.data[idx++] + tmp.data[idx++] + tmp.data[idx++]) / 3;
+        this.Data.data[idx++] = Math.round(intensity);
+    }
+    // Smooth for the larger surround.
+    SmoothDataAlphaRGB(tmp,4);
+    var idx = 0;
+    var min = 128, max = 128;
+    while (idx < tmp.data.length) {
+        var intensity = (tmp.data[idx++] + tmp.data[idx++] + tmp.data[idx++]) / 3;
+        intensity = 2*(this.Data.data[idx] - intensity)+128;
+        min = Math.min(min, intensity);
+        max = Math.max(max, intensity);
+        intensity = Math.min(intensity, 255);
+        intensity = Math.max(intensity, 0);
+        this.Data.data[idx++] = Math.round(intensity);
+    }
+    console.log("center surround range " + min + ", " + max);
+    // Now the alpha channel should contain center surround values
+    delete tmp;
+
     // I am using a hidden canvas to convert imageData to an image.
     // there must be a better way of doing this.
     this.Canvas = document.createElement("canvas"); //create
@@ -49,9 +76,9 @@ function Segmentation (viewer) {
     this.ImageAnnotation.Height = cam.Height;
     viewer.AddShape(this.ImageAnnotation);
 
-    this.Positive = [];
-    this.Negative = [];
-    this.Spheres = [];
+    this.PositiveSpheres = [];
+    // Negatives Not convinced we need negative sphers.
+    this.NegativePoints = [];
     // We need to save the parameters necessary to convert
     // slide points to the mask coordinate systemse
     this.MaskViewport = viewport.slice(0);
@@ -89,7 +116,34 @@ Segmentation.prototype.AddPositive = function (ptWorld) {
 
     if (ptMask[0] >= 0 && ptMask[0] < this.Data.width &&
         ptMask[1] >= 0 && ptMask[1] < this.Data.height) {
-        this.Positive.push(ptMask);
+        var posPixel = this.GetPixel(ptMask);
+        if (this.Evaluate(posPixel)) {
+            // Already in the map; do nothing.
+            return;
+        }
+        // Create a new sphere.
+        var sphere = {center:posPixel, r2:4000};
+        // Shrink the radius if it contains a negative.
+        for (var i = 0; i < this.NegativePoints; ++i) {
+            var negPixel = this.NegativePoints[i];
+            var d2 = 0, d;
+            for (var j = 0; j < posPixel.length; ++j) {
+                d = negPixel[j] - posPixel[j];
+                d2 += d*d;
+                // Make the efective radius of the negative samples 1
+                d2 = d2 - 2*Math.sqrt(d2) + 1;
+            }
+            if (d2 < sphere.r2) {
+                sphere.r2 = d2;
+            }
+        }
+        
+        if (sphere.r2 > 1) {
+            this.PositiveSpheres.push(sphere);
+            // Everytime?
+            //this.Update();
+            //this.Draw();
+        }
     }
 }
 
@@ -97,15 +151,37 @@ Segmentation.prototype.AddNegative = function (ptWorld) {
     var ptMask = this.WorldPointToMask(ptWorld);
     ptMask[0] = Math.round(ptMask[0]);
     ptMask[1] = Math.round(ptMask[1]);
+
+    var negPixel = this.GetPixel(ptMask);
+
     if (ptMask[0] >= 0 && ptMask[0] < this.Data.width &&
-        ptMask[1] >= 0 && ptMask[1] < this.Data.height) {
-        this.Negative.push(ptMask);
+        ptMask[1] >= 0 && ptMask[1] < this.Data.height &&
+        this.Evaluate(negPixel)) {
+        // Map is wrong.  Add a negative point and shrink positive spheres.
+        this.NegativePoints.push(negPixel);
+        for (var i = 0; i < this.PositiveSpheres.length; ++i) {
+            var posSphere = this.PositiveSpheres[i];
+            var d2 = 0, d;
+            for (var j = 0; j < negPixel.length; ++j) {
+                d = negPixel[j] - posSphere.center[j];
+                d2 += d*d;
+            }
+            // Make the efective radius of the negative samples 1
+            d2 = d2 - 2*Math.sqrt(d2) + 1;
+            if (d2 < posSphere.r2) {
+                // TODO get rid of sphere with negative radius.
+                posSphere.r2 = d2;
+            }
+        }
+        // Everytime?
+        //this.Update();
+        //this.Draw();
     }
 }
 
 Segmentation.prototype.Evaluate = function (pixel) {
-    for (var i = 0; i < this.Spheres.length; ++i) {
-        var sphere = this.Spheres[i];
+    for (var i = 0; i < this.PositiveSpheres.length; ++i) {
+        var sphere = this.PositiveSpheres[i];
         var d2 = 0;
         for (var j = 0; j < pixel.length; ++j) {
             var delta = pixel[j] - sphere.center[j];
@@ -120,39 +196,10 @@ Segmentation.prototype.Evaluate = function (pixel) {
 
 Segmentation.prototype.GetPixel = function (coords) {
     idx = (coords[0]+(coords[1]*this.Data.width)) << 2;
-    return [this.Data.data[idx++], this.Data.data[idx++], this.Data.data[idx], coords[0], coords[1]];
+    return [this.Data.data[idx++], this.Data.data[idx++], this.Data.data[idx++], this.Data.data[idx], coords[0], coords[1]];
 }
 
 Segmentation.prototype.Update = function () {
-    // First compile examples into a function.
-    // Start adding sphere around the positive examples.
-    var d, d2;
-    this.Spheres = [];
-    for (var i = 0; i < this.Positive.length; ++i) {
-        // Get the pixel vector.
-        var posPixel = this.GetPixel(this.Positive[i]);
-        if ( ! this.Evaluate(posPixel)) {
-            // Make a new sphere.
-            var sphere = {center:posPixel, r2:4000};
-            // Shrink the radius if it contains a negative.
-            for (var j = 0; j < this.Negative.length; ++j) {
-                var negPixel = this.GetPixel(this.Negative[j]);
-                d2 = 0;
-                for (var k = 0; k < posPixel.length; ++k) {
-                    d = negPixel[k]-posPixel[k];
-                    d2 += d*d;
-                }
-                // Shrink slightly.
-                d2 -= 1;
-                if (sphere.r2 > d2) { sphere.r2 = d2; }
-            }
-
-            if (sphere.r2 > 1) {
-                this.Spheres.push(sphere);
-            }
-        }
-    }
-
     // Now apply the new function to the mask.
     var idx = 0;
     for (var y = 0; y < this.Data.height; ++y) {

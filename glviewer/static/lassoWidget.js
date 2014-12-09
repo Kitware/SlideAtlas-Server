@@ -169,15 +169,18 @@ LassoWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 LassoWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer();
-  this.Cursor.hide();
-  this.Viewer.DeactivateWidget(this);
-  this.State = LASSO_WIDGET_WAITING;
-  this.Loop.Active = false;
-  if (this.Stroke) {
-    this.Stroke.Active = false;
-  }
-  eventuallyRender();
+    this.Popup.StartHideTimer();
+    this.Cursor.hide();
+    this.Viewer.DeactivateWidget(this);
+    this.State = LASSO_WIDGET_WAITING;
+    this.Loop.Active = false;
+    if (this.Stroke) {
+        this.Stroke.Active = false;
+    }
+    if (this.DeactivateCallback) {
+        this.DeactivateCallback();
+    }
+    eventuallyRender();
 }
 
 LassoWidget.prototype.HandleMouseDown = function(event) {

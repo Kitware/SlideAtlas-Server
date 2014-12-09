@@ -21,6 +21,9 @@ function AnnotationWidget (viewer) {
         viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 150);
         new ToolTip(this.Tab.Div, "Annotation");
 
+
+        this.Tab.Panel.css({'width': '108px',
+                            'left': '-28px'});
         this.VisibilityDiv = $('<div>')
             .appendTo(this.Tab.Panel)
             .css({'height': '28px',
@@ -36,36 +39,72 @@ function AnnotationWidget (viewer) {
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
-        $('<img>').appendTo(this.Tab.Panel)
+        this.TextButton = $('<img>')
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                  'opacity': '0.6'})
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Text.gif")
             .click(function(){self.NewText();});
-        $('<img>').appendTo(this.Tab.Panel)
+        this.CircleButton = $('<img>')
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                 'opacity': '0.6'})
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Circle.gif")
             .click(function(){self.NewCircle();});
-        $('<img>').appendTo(this.Tab.Panel)
+        this.PolylineButton = $('<img>')
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                  'opacity': '0.6'})
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/FreeForm.gif")
             .click(function(){self.NewPolyline();});
-        $('<img>').appendTo(this.Tab.Panel)
+        this.PencilButton = $('<img>')
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                  'opacity': '0.6'})
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
             .click(function(){self.NewPencil();});
-        $('<img>').appendTo(this.Tab.Panel)
+        this.LassoButton = $('<img>')
+            .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                  'opacity': '0.6'})
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/select_lasso.png")
             .click(function(){self.NewLasso();});
+        this.FillButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/fill1.jpg")
+            .click(function(){self.NewFill();});
     }
 }
 
@@ -110,6 +149,7 @@ AnnotationWidget.prototype.TogglePanel = function() {
                             'border-radius': '0px 0px 5px 5px',
                             'opacity': '1'});
     } else {
+        // Should we deactivate any active widget tool?
         this.TabButton.css({'border-color': '#BBB',
                             'border-radius': '5px',
                             'opacity': '0.6'});
@@ -125,63 +165,71 @@ AnnotationWidget.prototype.TogglePanel = function() {
 // I would like to change the behavior of this.
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new TextWidget(this.Viewer, "");
-  this.Viewer.ActiveWidget = widget;
-
-  // The dialog is used to set the initial text.
-  widget.ShowPropertiesDialog();
+    var button = this.TextButton;
+    var widget = this.ActivateButton(button, TextWidget);
+    // The dialog is used to set the initial text.
+    widget.ShowPropertiesDialog();
 }
 
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof PencilWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new PencilWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.PencilButton;
+    var widget = this.ActivateButton(button, PencilWidget);
 }
 
 AnnotationWidget.prototype.NewLasso = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof LassoWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new LassoWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.LassoButton;
+    var widget = this.ActivateButton(button, LassoWidget);
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new PolylineWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.PolylineButton;
+    var widget = this.ActivateButton(button, PolylineWidget);
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new CircleWidget(this.Viewer, true);
+    var button = this.CircleButton;
+    var widget = this.ActivateButton(button, CircleWidget);
+    // Use the mouse position to place the circle.
+    // Mouse in under button.  Should we put the cirlce in the middle?
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+                                                                EVENT_MANAGER.LastMouseY);
+}
 
-  // Use the mouse position to place the circle.
-  widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
-                                                              EVENT_MANAGER.LastMouseY);
 
-  this.Viewer.ActiveWidget = widget;
+AnnotationWidget.prototype.NewFill = function() {
+    var button = this.FillButton;
+    var widget = this.ActivateButton(button, FillWidget);
+    widget.Initialize();
+}
+
+
+// Boilerplate code that was in every "newWidget" method.
+AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
+    var widget = this.Viewer.ActiveWidget;
+    if ( widget ) {
+        if  (button.Pressed) {
+            // The user pressed the button again (while it was active).
+            widget.Deactivate();
+            return;
+        }
+        // This call sets pressed to false as a side action..
+        widget.Deactivate();
+    }
+    button.Pressed = true;
+    button.css({'border-style': 'inset'});
+
+    this.SetVisibility(ANNOTATION_ON);
+    widget = new WidgetType(this.Viewer, true);
+    this.Viewer.ActiveWidget = widget;
+
+    // Button remains "pressed" until the circle deactivates.
+    widget.DeactivateCallback = 
+        function () {
+            button.css({'border-style': 'outset'});
+            widget.DeactivateCallback = undefined;
+            button.Pressed = false;
+        }
+    return widget;
 }
 
