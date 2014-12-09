@@ -89,8 +89,6 @@ SLIDEATLAS_LINKEDIN_APP_SECRET = None
 authentication. """
 
 
-
-
 ################################################################################
 ## Shibboleth Login Settings ##
 
@@ -117,6 +115,17 @@ APPLICATION_ROOT = None
 If the application does not occupy a whole domain or subdomain this can be
 set to the path where the application is configured to live. This is for
 session cookie as path value. If domains are used, this should be None. """
+
+
+################################################################################
+## Logging Settings ##
+
+SLIDEATLAS_LOG_PATH = '/tmp/slideatlas'
+""" Path to a directory where log files will be written. """
+
+SLIDEATLAS_ADMIN_EMAIL = 'no-reply@localhost'
+""" The email address for SlideAtlas administrators, for sending application
+notifications. """
 
 
 ################################################################################
@@ -148,10 +157,6 @@ MAIL_MAX_EMAILS = None
 
 Some mail servers set a limit on the number of emails sent in a single
 connection. """
-
-SLIDEATLAS_ADMIN_EMAIL = 'no-reply@localhost'
-""" The email address for SlideAtlas administrators, for sending application
-notifications. """
 
 
 ################################################################################

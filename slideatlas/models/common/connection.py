@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from flask import current_app
 from mongoengine import register_connection
 from mongoengine.connection import get_connection, _connection_settings, \
     _connections
@@ -11,7 +12,9 @@ __all__ = ('register_database',)
 
 
 ################################################################################
-def register_database(alias, host, dbname, replica_set=None, username=None, password=None, auth_db=None):
+def register_database(alias, host, dbname, replica_set=None,
+                      username=None, password=None, auth_db=None,
+                      logger=None):
     if alias in _connection_settings:
         # already registered
         return
@@ -39,10 +42,11 @@ def register_database(alias, host, dbname, replica_set=None, username=None, pass
     #   connection on the first time that it's called
     connection = get_connection(alias)
 
-    # TODO: set up logger
     # automatically retry any queries that get disconnected. using exponential
     #   backoff for up to 60 seconds
-    connection = MongoProxy(connection, logger=None, wait_time=60)
+    if logger is None:
+        logger = current_app.logger
+    connection = MongoProxy(connection, logger=logger, wait_time=60)
 
     # subsequent calls to 'get_connection' will return from the cache, so update
     #   the cached connection
