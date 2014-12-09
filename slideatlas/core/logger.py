@@ -30,7 +30,7 @@ def setup_logger(app):
     # a handler to stderr is already setup by Flask if the app is in debug mode
     if not app.debug:
         setup_file_log_handler(app)
-        setup_email_log_handler(app)
+#        setup_email_log_handler(app)
 
 
 def setup_file_log_handler(app):
