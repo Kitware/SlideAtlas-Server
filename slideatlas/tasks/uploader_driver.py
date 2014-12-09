@@ -24,10 +24,7 @@ import argparse
 # import subprocess
 
 import logging
-logging.basicConfig()
-rootLogger = logging.getLogger()
-logger = logging.getLogger("uploader_driver")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('slideatlas')
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
@@ -48,7 +45,7 @@ def process_zip(args):
     zname = args.input
     assert zname.endswith("zip")
     session_name = os.path.splitext(os.path.basename(zname))[0]
-    logger.info("Session name wil be: " + session_name)
+    logger.info('Session name wil be: %s', session_name)
     # Creates the session
 
     # Create app context locally
@@ -58,13 +55,13 @@ def process_zip(args):
         # Locate the session
         try:
             coll = Collection.objects.get(id=ObjectId(args.collection))
-            logger.info("collection: %s" % coll.to_son())
+            logger.info('collection: %s', coll.to_son())
 
             session = Session(collection=coll, image_store=coll.image_store, label=session_name)
-            logger.info("Creating session: " + str(session.to_json()))
+            logger.info('Creating session: %s', str(session.to_json()))
             session.save()
         except Exception as e:
-            logger.error("Fatal Error while creating session: " + e.message)
+            logger.error('While creating session: %s', e.message)
 
             sys.exit(-1)
 
@@ -77,7 +74,7 @@ def process_zip(args):
     fh = open(zname,  'rb')
     z = zipfile.ZipFile(fh)
     for name in z.namelist():
-        logger.info("Extracting .." + name)
+        logger.info('Extracting ..%s', name)
         outpath = str(temp)
         z.extract(name, outpath)
 
@@ -86,7 +83,7 @@ def process_zip(args):
 
     import glob
     for afile in glob.glob(str(temp) + "/*"):
-        logger.info("Processing inside of: " + afile)
+        logger.info('Processing inside of: %s', afile)
         args.input = os.path.abspath(afile)
         process_file(args)
 
@@ -102,7 +99,7 @@ def process_dir(args):
     # Extracts zip
     dir_name = args.input
     session_name = os.path.split(dir_name)[1]
-    logger.info("Session name wil be: " + session_name)
+    logger.info('Session name wil be: %s', session_name)
     # Creates the session
 
     flaskapp = create_app()
@@ -111,10 +108,10 @@ def process_dir(args):
         # Locate the session
         try:
             coll = Collection.objects.get(id=ObjectId(args.collection))
-            logger.info("collection: %s" % coll.to_son())
+            logger.info('collection: %s', coll.to_son())
 
         except Exception as e:
-            logger.error("Fatal: Collection not found: " + e.message)
+            logger.error('Collection not found: %s', e.message)
             sys.exit(-1)
 
         try:
@@ -122,27 +119,27 @@ def process_dir(args):
             session = Session.objects.get(label=session_name)
 
         except Exception as e:
-            logger.info("No session:" + e.message)
+            logger.info('No session: %s', e.message)
             session = None
 
         if session is None:
-            logger.info("Session will be created")
+            logger.info('Session will be created')
             try:
-                logger.info("Creating session: " + session_name)
+                logger.info('Creating session: %s', session_name)
                 session = Session(collection=coll, image_store=coll.image_store, label=session_name)
                 session.save()
 
             except Exception as e:
-                logger.error("Fatal: Could not create session: " + e.message)
+                logger.error('Could not create session: %s', e.message)
                 sys.exit(-1)
         else:
-            logger.info("Session Exists")
+            logger.info('Session Exists')
 
     args.session = str(session.id)
 
     import glob
     for afile in glob.glob(str(dir_name) + "/*"):
-        logger.info("Processing inside of: " + afile)
+        logger.info('Processing inside of: ', afile)
         args.input = os.path.abspath(afile)
         process_file.delay(args)
 
@@ -207,21 +204,21 @@ if __name__ == '__main__':
         print "No input files ! (please use -i <inputfile>"
         sys.exit(-1)
     else:
-        logger.info("Processing: %s" % args.input)
+        logger.info('Processing: %s', args.input)
 
     # Find the extension of the file
     if args.input.endswith(".zip"):
-        logger.info("Got a " + args.input[-4:])
+        logger.info('Got a %s', args.input[-4:])
         process_zip(args)
     elif os.path.isdir(args.input):
-        logger.info("Got a DIR !!")
-        logger.info("Got: " + args.input)
+        logger.info('Got a DIR')
+        logger.info('Got: %s', args.input)
         process_dir(args)
     else:
         if args.session is None:
-            logger.error("Fatal: Session required for single file input")
+            logger.error('Session required for single file input')
             sys.exit(-1)
 
-        logger.info("Submitting job")
+        logger.info('Submitting job')
         # Submits the task
         process_file.delay(vars(args))

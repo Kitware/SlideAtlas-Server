@@ -4,9 +4,6 @@ from PIL import Image
 from base_reader import InvertedReader
 from common_utils import get_max_depth
 
-import logging
-logger = logging.getLogger("PilReader")
-logger.setLevel(logging.ERROR)
 
 __all__ = ("PilReader", )
 
@@ -40,5 +37,4 @@ if __name__ == "__main__":
     reader = PilReader()
     reader.set_input_params({"fname": "/home/dhan/Downloads/3d.jpg"})
     i = reader.get_tile(0, 0)
-    print reader.name
     i.save("tile.jpg")

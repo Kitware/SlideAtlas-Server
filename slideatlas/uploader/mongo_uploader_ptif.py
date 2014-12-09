@@ -8,8 +8,7 @@ from . import MongoUploader
 import logging
 logging.basicConfig()
 rootLogger = logging.getLogger()
-logger = logging.getLogger("wrapper_uploader")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('slideatlas')
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
@@ -36,11 +35,11 @@ class MongoUploaderPtiff(MongoUploader):
             reader.set_input_params({"fname": self.args["input"]})
 
             # Introspect
-            logger.info("Dimensions: (%d, %d)" % (reader.width, reader.height))
+            logger.info('Dimensions: (%d, %d)', reader.width, reader.height)
             reader.parse_image_description()
-            logger.info("Tilesize: %d, NoTiles: %d" % (reader.tile_width, reader.num_tiles))
+            logger.info('Tilesize: %d, NoTiles: %d', reader.tile_width, reader.num_tiles)
         except:
-            logger.error("Fatal Error: Unable to read input file %s" % (self.args["input"]))
+            logger.error('Unable to read input file %s', self.args["input"])
             return -1
 
         return reader
@@ -66,7 +65,7 @@ class MongoUploaderPtiff(MongoUploader):
         # Check the input
         # TODO: Whether the input is a url
         # input is a slideatlas endpoint if "https://slide-atlas.org/api/v2/sessions/53cd6a5c81652c3a70d89976/attachments/53ce8f8fdd98b56dcb926d01"
-        logger.error("Fatal error this implementation NEEDS A REVIEW, TODO: Use methods from base class ")
+        logger.error('this implementation NEEDS A REVIEW, TODO: Use methods from base class ')
         sys.exit(-1)
 
         # fname = os.path.split(self.args.input)[1]
@@ -75,13 +74,13 @@ class MongoUploaderPtiff(MongoUploader):
         # with self.flaskapp.app_context():
         #     # Locate the session
         #     coll = Collection.objects.get(id=ObjectId(self.args.collection))
-        #     print "collection: ", coll.to_son()
+        #     logger.debug('collection: %s', coll.to_son())
         #     imagestore = coll.image_store
-        #     print "imagestore: ", imagestore.to_son()
+        #     logger.debug('imagestore: %s', imagestore.to_son())
         #     session = Session.objects.get(id=ObjectId(self.args.session))
-        #     print "session: ", session
+        #     logger.debug('session: %s', session)
         # # except Exception as e:
-        # #     logger.error("Fatal Error: %s"%(e.message))
+        # #     logger.error('%s', e.message)
         # #     return -1
         # # Create image record
         # with self.flaskapp.app_context():
@@ -113,13 +112,13 @@ class MongoUploaderPtiff(MongoUploader):
         #         db = conn[imagestore.dbname]
         #         db.authenticate(imagestore.username, imagestore.password)
         # except:
-        #     logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
+        #     logger.error('Unable to connect to imagestore for inserting tiles')
         #     return -1
         # if self.args.mongo_collection:
         #     #Check whether the collection exists
         #     # Removing the collections
         #     if self.args.dry_run:
-        #         logger.info("Dry run .. not removing original image chunks")
+        #         logger.info('Dry run .. not removing original image chunks')
         #     else:
         #         db.drop_collection(self.args.mongo_collection)
         #
@@ -136,14 +135,14 @@ class MongoUploaderPtiff(MongoUploader):
         # # new_view_id = ObjectId("53d0a4da0a3ee1316edaa5aa")
         #
         # if self.args.dry_run:
-        #     logger.info("Exiting .. dry run .. so no view or session update")
+        #     logger.info('Exiting .. dry run .. so no view or session update')
         #     return
         #
         # # Create a view
         # colviews = db["views"]
         # new_view_id = ObjectId()
         # colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
-        # logger.warning("New view id: %s"%(new_view_id))
+        # logger.warning('New view id: %s', new_view_id)
         #
         # item = RefItem()
         # item.ref = new_view_id
@@ -160,7 +159,7 @@ class MongoUploaderPtiff(MongoUploader):
         # Insert tiles
         reader.select_dir(level)
 
-        logger.info("#### Uploading level %d" % (level))
+        logger.info('Uploading level %d', level)
         col = int(reader.width / reader.tile_width) + 1
         row = int(reader.height / reader.tile_height) + 1
 
@@ -181,7 +180,7 @@ class MongoUploaderPtiff(MongoUploader):
                 maxlevel = get_max_depth(reader.width, reader.height, reader.tile_width)
                 tilename = get_tile_name_slideatlas(tilex, tiley, maxlevel - 1)
 
-                print count, level, tilex, tiley, tilename, dry_run
+                logger.debug('%s %s %s %s %s %s', count, level, tilex, tiley, tilename, dry_run)
 
                 if dry_run:
                     pass
@@ -201,4 +200,4 @@ class MongoUploaderPtiff(MongoUploader):
                     del tile_buffer
                     db[str(imageid)].insert(imageobj)
 
-        logger.warning("Uploaded %d tiles" % (count))
+        logger.info('Uploaded %d tiles', count)

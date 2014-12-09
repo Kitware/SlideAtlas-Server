@@ -8,8 +8,7 @@ from slideatlas import create_app
 from slideatlas.models import Collection, Session, RefItem, View
 
 import logging
-logger = logging.getLogger("UploaderBase")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('slideatlas')
 
 import pymongo
 from bson.objectid import ObjectId, InvalidId
@@ -54,14 +53,14 @@ class MongoUploader(object):
             if self.args["mongo_collection"]:
                 # Remove any image object and collection of that name
                 self.imageid = ObjectId(self.args["mongo_collection"])
-                logger.info("Using specified ImageID: %s" % self.imageid)
+                logger.info('Using specified ImageID: %s', self.imageid)
             else:
                 self.imageid = ObjectId()
-                logger.info("Using new ImageID: %s" % self.imageid)
+                logger.info('Using new ImageID: %s', self.imageid)
 
         except InvalidId:
-            logger.error("Invalid ObjectID for mongo collection: \
-                             %s" % self.args["mongo_collection"])
+            logger.error('Invalid ObjectID for mongo collection: %s',
+                         self.args['mongo_collection'])
 
         # Load image store
         self.setup_destination()
@@ -71,17 +70,17 @@ class MongoUploader(object):
         image_doc = self.db["images"].find_one({"filename": image_name})
 
         if image_doc is not None:
-            logger.info("Image exists already")
+            logger.info('Image exists already')
 
             # Should we cleanup the image_store ?
             if not self.args["overwrite"]:
-                logger.info("Image will be skipped")
+                logger.info('Image will be skipped')
                 return
             else:
-                logger.info("Image will be removed")
+                logger.info('Image will be remove')
                 self.imagestore.remove_image(image_doc["_id"])
         else:
-            logger.info("Image will be uploaded")
+            logger.info('Image will be uploaded')
 
         # Load reader
         self.reader = self.make_reader()
@@ -105,7 +104,7 @@ class MongoUploader(object):
         """
 
         if self.args["dry_run"]:
-            logger.info("Dry run .. not updating collection record")
+            logger.info('Dry run .. not updating collection record')
             return
 
         # Update the session
@@ -135,7 +134,7 @@ class MongoUploader(object):
         """
         Will not be implemented in the base uploader class
         """
-        logger.error("upload_base is NOT implemented")
+        logger.error('upload_base is NOT implemented')
         sys.exit(-1)
 
     def setup_destination(self):
@@ -146,13 +145,13 @@ class MongoUploader(object):
             # Locate the session
 
             self.coll = Collection.objects.get(id=ObjectId(self.args["collection"]))
-            # logger.info("collection: %s" % (self.coll.to_son()))
+            # logger.info('collection: %s', self.coll.to_son())
 
             self.imagestore = self.coll.image_store
-            # logger.info("imagestore: %s" % (self.imagestore.to_son()))
+            # logger.info('imagestore: %s', self.imagestore.to_son())
 
             self.session = Session.objects.get(id=ObjectId(self.args["session"]))
-            # logger.info("session: %s" % (self.session.to_son()))
+            # logger.info('session: %s', self.session.to_son())
 
         # Create the pymongo connection, used for image
         # For view use View
@@ -166,8 +165,7 @@ class MongoUploader(object):
             self.db.authenticate(self.imagestore.username, self.imagestore.password)
             self.destination = self.db[str(self.imageid)]
         except Exception as e:
-            logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-            logger.error("Error: " + e.message)
+            logger.error('Unable to connect to imagestore for inserting tiles: %s', e.message)
             sys.exit(-1)
 
     def insert_metadata(self):
@@ -179,7 +177,7 @@ class MongoUploader(object):
         """
 
         if self.imagestore is None:
-            logger.error("Fatal Error: Imagestore not set")
+            logger.error('Imagestore not set')
             sys.exit(-1)
 
         with self.flaskapp.app_context():
@@ -202,6 +200,6 @@ class MongoUploader(object):
                 image_doc["_id"] = self.imageid
 
                 if self.args["dry_run"]:
-                    logger.info("Dry run .. not creating image record: %s" % (image_doc))
+                    logger.info('Dry run .. not creating image record: %s', image_doc)
                 else:
                     self.db["images"].insert(image_doc)

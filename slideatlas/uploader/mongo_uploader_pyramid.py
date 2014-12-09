@@ -22,8 +22,7 @@ factory = ReaderFactory()
 __all__ = ('MongoUploaderPyramid', )
 
 import logging
-logger = logging.getLogger("UploaderPyramid")
-logger.setLevel(logging.ERROR)
+logger = logging.getLogger('slideatlas')
 
 from billiard import Process
 
@@ -36,7 +35,7 @@ class TileProcessor(Process):
         super(TileProcessor, self).__init__()
 
         #Initial parameters
-        # logger.info("ARGS: " + str(args))
+        # logger.info('ARGS: %s', args)
         self.args = args
         self.name = self.args["name"]
         self.tilesize = self.args["tilesize"]
@@ -44,7 +43,7 @@ class TileProcessor(Process):
 
     def run(self):
         # This executes in another process
-        logger.info("Run function executing in: " + str(os.getpid()))
+        logger.info('Run function executing in: %s', str(os.getpid()))
 
         # Setup the input image
         self.reader = self.make_reader()
@@ -57,7 +56,7 @@ class TileProcessor(Process):
 
     def make_reader(self):
         reader = factory.open(self.args["input"], self.args["extra"])
-        logger.info("ImageSize (%d,%d)" % (reader.width, reader.height))
+        logger.info('ImageSize (%d,%d)', reader.width, reader.height)
         return reader
 
     def setup_destination(self):
@@ -71,8 +70,7 @@ class TileProcessor(Process):
             self.db.authenticate(self.args["imagestore"].username, self.args["imagestore"].password)
             self.col = self.db[str(self.args["imageid"])]
         except Exception as e:
-            logger.error("Fatal Error: Unable to connect to imagestore for inserting tiles")
-            logger.error("Error: " + e.message)
+            logger.error('Unable to connect to imagestore for inserting tiles: %s', e.message)
             sys.exit(-1)
 
     def process(self, name, toadd):
@@ -80,7 +78,7 @@ class TileProcessor(Process):
         The main recursive function to build the image pyramid
         """
         name = name + toadd
-        logger.info(str(os.getpid()) + "): getting " + name)
+        logger.info('%s): getting %s', str(os.getpid()), name)
 
         [x_index, y_index, _] = get_tile_index(name)
 
@@ -99,7 +97,7 @@ class TileProcessor(Process):
         # verify if within image
         if(startx >= endx or starty >= endy):
             # No need to dig deeper in the image
-            logger.info("Not in image : %d, %d, %d, %d" % (startx, starty, endx - startx, endy - starty))
+            logger.info('Not in image : %d, %d, %d, %d', startx, starty, endx - startx, endy - starty)
             return self.white_tile.copy()
 
         # verify whether the tile already exists in the image_store
@@ -115,7 +113,7 @@ class TileProcessor(Process):
             w = endx - startx
             h = endy - starty
 
-            logger.info("Reading from the image: %d, %d, %d, %d" % (startx, starty, w, h))
+            logger.info('Reading from the image: %d, %d, %d, %d', startx, starty, w, h)
             bi = self.reader.read_tile(x_index, y_index, self.tilesize)
 
             # Upload
@@ -210,5 +208,4 @@ class MongoUploaderPyramid(MongoUploader):
         t.start()
         t.join()
 
-        logger.error('Time: %f' % (time.time() - start))
-        print 'Done'
+        logger.info('Time: %f', time.time() - start)

@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import logging
+logger = logging.getLogger('slideatlas')
 
 from slideatlas.models import ImageStore, PtiffImageStore
 from slideatlas.models import ImageStore as TileStore
@@ -23,14 +24,14 @@ from slideatlas.models import ImageStore as TileStore
 
 def test_ptiff_tile_store():
     store = PtiffImageStore(root_path="/home/dhan/data/phillips")
-    logging.info("Last sync on initialization: %s"%(store.last_sync))
-    # print store.root_path
+    logger.info('Last sync on initialization: %s', store.last_sync)
+    # logger.debug('%s', store.root_path)
     store.sync()
-    logging.info("Last sync after sync: %s"%(store.last_sync))
+    logger.info('Last sync after sync: %s', store.last_sync)
 
 def test_modify_store():
     for obj in PtiffImageStore.objects:
-        logging.info("Synchronizing ptiff store: %s", obj.label)
+        logger.info('Synchronizing ptiff store: %s', obj.label)
         obj.resync()
 
 
@@ -39,7 +40,7 @@ def create_ptiff_store():
         label="Philips Scanner folder from wsiserver3",
         copyright="Copyright &copy; 2011-13, Charles Palmer, Beverly Faulkner-Jones and Su-jean Seo. All rights reserved.")
 
-    # print store.__dict__
+    # logger.debug('%s', store.__dict__)
     store.save()
 
 def test_getlist():
@@ -51,35 +52,33 @@ def test_getlist():
     """
 
 
-    print "getting list"
+    # logger.debug('getting list')
 
     # # Getting user list works perfectly
     # for obj in User.objects():
-    #     print obj
+    #     logger.debug('%s', obj)
 
     # Getting user list works perfectly
-    for obj in ImageStore.objects:
-        print "Gotit"
-        print obj
+    # for obj in ImageStore.objects:
+    #     logger.debug('Gotit')
+    #     logger.debug('%s', obj)
 
     # for obj in TileStore.objects():
-    #     print obj
+    #     logger.debug('%s', obj)
 
 def test_items_mongoengine():
+    pass
     # .with_id(ObjectId("53482d5a0a3ee1346135d805"))
-    print
-    print "TileStore"
-    for obj in TileStore.objects:
-        print obj._cls, obj.label
-    print
-    print "Database"
-    for obj in ImageStore.objects:
-        print obj._cls, obj.label
-
-    print
-    print "PtiffTileStore"
-    for obj in PtiffImageStore.objects:
-        print obj._cls, obj.label
+    # logger.debug('TileStore')
+    # for obj in TileStore.objects:
+    #     logger.debug('%s %s', obj._cls, obj.label)
+    # logger.debug('Database')
+    # for obj in ImageStore.objects:
+    #     logger.debug('%s %s', obj._cls, obj.label)
+    #
+    # logger.debug('PtiffTileStore')
+    # for obj in PtiffImageStore.objects:
+    #     logger.debug('%s %s', obj._cls, obj.label)
 
 
 
@@ -88,9 +87,6 @@ if __name__ == "__main__":
     Run few tests
     This class will be finally imported from tiff server
     """
-
-    logging.getLogger().setLevel(logging.INFO)
-
     # This is required so that model gets registered
     from slideatlas import create_app
     app = create_app()

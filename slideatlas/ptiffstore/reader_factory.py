@@ -7,10 +7,10 @@ from .pil_reader import PilReader
 from .openslide_reader import OpenslideReader
 from .preprocess_reader import PreprocessReader
 
+import sys
 import os
 import logging
-logger = logging.getLogger("ReaderFactory")
-logger.setLevel(logging.ERROR)
+logger = logging.getLogger('slideatlas')
 
 class ReaderFactory(object):
 
@@ -27,10 +27,10 @@ class ReaderFactory(object):
 
     def open(self, fname, extra={}):
         ext = os.path.splitext(fname)[1][1:].lower()
-        # logger.error("Why making reader in base ??")
+        # logger.error('Why making reader in base ??')
         # This code also duplicated in TileProcessor belongs really to reader factory
         reader = None
-        logger.info("uploader_base: Got extension: " + ext)
+        logger.info('Got extension: %s', ext)
         if ext in ["bif"]:
             from slideatlas.ptiffstore.bif_reader import BifReader
             reader = BifReader()
@@ -45,14 +45,14 @@ class ReaderFactory(object):
             kakadu_dir = extra["kakadu_dir"] if "kakadu_dir" in extra else None
             reader = PreprocessReaderJp2(kakadu_dir=kakadu_dir)
         else:
-            logger.error("Unknown extension: " + ext)
+            logger.error('Unknown extension: %s', ext)
             return None
 
         reader.set_input_params({'fname' : fname})
         return reader
 
 if __name__ == "__main__":
-    # ReaderFactory can be quickly tested by having to choose readers for a variety 
+    # ReaderFactory can be quickly tested by having to choose readers for a variety
     # of supported formats
     # unittest.main()
     pass

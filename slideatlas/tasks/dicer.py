@@ -8,7 +8,7 @@ import slideatlas.uploader as uploader
 from slideatlas import models
 
 import logging
-logger = logging.getLogger("tasks.dicer")
+logger = logging.getLogger('slideatlas')
 
 from bson import ObjectId
 from bson.objectid import InvalidId
@@ -27,7 +27,7 @@ def process_file(args):
     """
     resp = {}
     resp["args"] = args
-    logger.info("Got task: " + str(args))
+    logger.info('Got task: %s', str(args))
 
     # Try if the input file is a file
     if not os.path.isfile(args["input"]):
@@ -35,17 +35,17 @@ def process_file(args):
         try:
             file_id = ObjectId(args["input"])
         except InvalidId:
-            # logger.error("Raising exception !")
+            # logger.error('Raising exception')
             raise Exception("Input should be a file or an gridfs id in the collection's default imagestore")
 
         # Locate the session
         session = models.Session.objects.get(id=ObjectId(args["session"]))
-        logger.info("session: %s" % (session.to_son()))
+        logger.info('session: %s', session.to_son())
         datadb, filefs, afile = session._fetch_attachment("imagefiles", file_id)
 
         # Create a temporary location
         temp_folder_name = str(ObjectId())
-        logger.info("Using temporary location: " + temp_folder_name)
+        logger.info('Using temporary location: %s', temp_folder_name)
         newpath = os.path.join(".", temp_folder_name)
         os.makedirs(newpath)
 
@@ -59,9 +59,9 @@ def process_file(args):
 
     # Choose the reader based on file extension
     ext = os.path.splitext(args["input"])[1][1:].lower()
-    logger.warning("Extension: " + ext)
+    logger.warning('Extension: %s', ext)
 
-    datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "processing"}})
+    datadb["imagefiles.files"].update({"_id": file_id}, {"$set": {"metadata.status": "processing"}})
 
     # Add configuration from the celeryapp
     args["extra"] = {}
@@ -70,30 +70,30 @@ def process_file(args):
 
     try:
         if ext in ["scn", "ndpi", "svs", "tif", "jpg", "png", "bif", 'jp2', 'j2k']:
-            logger.warning("In dicer task got" + args["input"])
+            logger.info('In dicer task got' + args['input'])
             uploader_obj = uploader.MongoUploaderPyramid(args)
             success = True
         #TODO: Test and enable other files too
         # elif ext in ["ptif", ]:
-        #     logger.info("Got a PTIF")
+        #     logger.info('Got a PTIF')
         #     MongoUploaderPtiff(args)
 
         # elif ext in ["jp2", ]:
-        #     logger.info("Got a " + args.input)
+        #     logger.info('Got a %s', args.input)
         #     MongoUploaderWrapper(args)
         else:
             raise Exception("Unsupported file: " + ext)
 
         if success:
             # Update the metadata of the image file
-            logger.info("New view created: " + str(uploader_obj.new_view.id))
+            logger.info('New view created: %s', str(uploader_obj.new_view.id))
             datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "complete", "metadata.view": uploader_obj.new_view.id}})
 
             #TODO: Remove file from gridfs after user accepts the dicing
             # session.remove_imagefile(file_id)
 
     except Exception as e:
-        logger.error("Exception occured in uploader process: " + e.message)
+        logger.error('Exception occurred in uploader process: %s', e.message)
         datadb["imagefiles.files"].update({"_id": ObjectId(file_id)}, {"$set": {"metadata.status": "failed", "metadata.error": e.message}})
 
     # TODO: Remove the file from gridfs or make it invisible in the queue

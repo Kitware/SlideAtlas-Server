@@ -23,8 +23,6 @@ if os.name == 'nt':
 else:
     pylibtiffpath = os.path.join(
         tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-# print pylibtiffpath
-# print tplpath
 
 sys.path = [pylibtiffpath] + sys.path
 
@@ -35,16 +33,12 @@ class writer(object):
     def write(self, data):
         self.log.append(data)
 
-#logger = writer()
-#sys.stderr = logger
 from xml.etree import cElementTree as ET
 
 from PIL import Image
 # Code to debug library loading
 #libname = find_library("libtiff")
-# print libname
 #lib = ctypes.cdll.LoadLibrary(libname)
-# print lib
 
 from libtiff import TIFF
 
@@ -54,17 +48,15 @@ from libtiff.libtiff_ctypes import libtiff
 from libtiff.libtiff_ctypes import c_ttag_t
 
 #tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
-#    print atag
 
 #table = tif.GetField("JPEGTables", count=2)
 #table = tif.GetField("colormap")
-# print table
-# sys.exit(0)
 import ctypes
 
 from ctypes import create_string_buffer
+
 import logging
-logger = logging.getLogger("slideatlas.ptifreader")
+logger = logging.getLogger('slideatlas')
 
 
 class TileReader():
@@ -100,7 +92,7 @@ class TileReader():
             self.tif, 347, self.jpegtable_size, ctypes.byref(self.buf))
         assert(r == 1)
         self.jpegtables = ctypes.cast(self.buf, ctypes.POINTER(ctypes.c_ubyte))
-        #logging.log(logging.ERROR, "Size of jpegtables: %d"%(self.jpegtable_size.value))
+        #logger.debug('Size of jpegtables: %d', self.jpegtable_size.value)
         libtiff.TIFFGetField.argtypes = [TIFF, c_ttag_t, ctypes.c_void_p]
 
     def extract_all_tiles(self):
@@ -108,7 +100,7 @@ class TileReader():
         Assumes that tile metadata as been read for the current directory
         """
 
-        logger.info("Extracting all tiles .. in directory: %d" % self.dir)
+        logger.debug('Extracting all tiles .. in directory: %d', self.dir)
         cols = self.width / self.tile_width + 1
         rows = self.height / self.tile_height + 1
 
@@ -120,7 +112,7 @@ class TileReader():
                 self.dump_tile(tilex * self.tile_width,
                                tiley * self.tile_height, fout)
                 fout.close()
-                logger.info("Writing %s" % tilename)
+                logger.debug('Writing %s', tilename)
 
     def parse_image_description(self):
 
@@ -129,7 +121,7 @@ class TileReader():
         if self.meta == None:
             # Missing meta information (typical of zeiss files)
             # Verify that the levels exist
-            logging.info("No ImageDescription in file")
+            logger.warning('No ImageDescription in file')
             return
 
         try:
@@ -148,7 +140,7 @@ class TileReader():
             # self.barcode["physician_id"],  self.barcode["case_id"]= self.barcode["words"][0].split(" ")
             # self.barcode["stain_id"] = self.barcode["words"][4]
 
-            logging.log(logging.INFO, self.barcode)
+            logger.debug(self.barcode)
 
             # Parse the attribute named "DICOM_DERIVATION_DESCRIPTION"
             # tiff-useBigTIFF=1-clip=2-gain=10-useRgb=0-levels=10003,10002,10000,10001-q75;PHILIPS
@@ -158,7 +150,7 @@ class TileReader():
             if descstr.find("useBigTIFF=1") > 0:
                 self.isBigTIFF = True
 
-            # logging.log(logging.INFO, descstr)
+            # logger.debug(descstr)
 
             for b in xml.findall(".//DataObject[@ObjectType='PixelDataRepresentation']"):
                 level = int(
@@ -184,8 +176,7 @@ class TileReader():
                 elif typestr == "WSI":
                     pass
                 else:
-                    logging.log(
-                        logging.ERROR, "Unforeseen embedded image: %s" % (typestr))
+                    logger.error('Unforeseen embedded image: %s', typestr)
 
                 #columns = int(b.find(".//*[@Name='PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS']").text)
 
@@ -193,8 +184,7 @@ class TileReader():
                 self.isBigTIFF = True
 
         except Exception as E:
-            logging.log(
-                logging.WARNING, "Image Description failed for valid Philips XML because %s" % (E.message))
+            logger.warning('Image Description failed for valid Philips XML because %s', E.message)
 
     def get_embedded_image(self, imagetype):
         """
@@ -239,14 +229,14 @@ class TileReader():
         # Getting a single tile
         tile_size = libtiff.TIFFTileSize(self.tif, tileno)
 
-        # print "TileSize: ", tile_size.value
+        # logger.debug('TileSize: %s', tile_size.value)
         if not isinstance(tile_size, (int, long)):
             tile_size = tile_size.value
 
         tmp_tile = create_string_buffer(tile_size)
 
         r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
-        # print "Valid size in tile: ", r2.value
+        # logger.debug('Valid size in tile: %s', r2.value)
         # Experiment with the file output
 
         fp.write(
@@ -315,7 +305,7 @@ class TileReader():
 
         #self.image_width = tif.GetField("ImageWidth")
         #self.image_length = tif.GetField("ImageLength")
-        # print tif.GetField("ImageDescription")
+        # logger.debug('%s', tif.GetField('ImageDescription'))
 
 if __name__ == "__main__":
     # for i in ["d:\\data\\phillips\\20140313T180859-805105.ptif","d:\\data\\phillips\\20140313T130524-183511.ptif"]:

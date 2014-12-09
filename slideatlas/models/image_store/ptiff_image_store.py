@@ -3,7 +3,6 @@
 import base64
 import datetime
 import glob
-import logging
 import os
 import platform
 import re
@@ -12,6 +11,7 @@ try:
 except ImportError:
     import StringIO
 
+from flask import current_app
 from mongoengine import DateTimeField, StringField, DoesNotExist, \
     MultipleObjectsReturned
 from PIL import Image as PImage
@@ -27,7 +27,6 @@ from slideatlas.ptiffstore.common_utils import get_max_depth, get_tile_index
 
 ################################################################################
 __all__ = ('PtiffImageStore',)
-logger = logging.getLogger('slideatlas.ptiffstore')
 
 
 ################################################################################
@@ -142,6 +141,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
 
     def _import_new_images(self):
+        current_app.logger.info('Syncing images to %s', self)
         # place new images in the default session
         try:
             session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -172,7 +172,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     image = Image.objects.get(filename=image_file_name)
                 except DoesNotExist:
                     # Needs to sync
-                    logging.info('Creating new image from file: %s' % image_file_name)
+                    current_app.logger.info('Creating new image from file: %s', image_file_name)
                     image = Image(filename=image_file_name)
                     new_image_record = True
                 except MultipleObjectsReturned:
@@ -182,11 +182,11 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     timediff = image.uploaded_at - file_modified_time
                     if timediff.total_seconds() < 0.5:
                         # image unchanged as expected, skip processing
-                        logging.debug('Existing image unchanged: %s' % image_file_path)
+                        current_app.logger.debug('Existing image unchanged: %s', image_file_path)
                         continue
                     else:
                         new_image_record = False
-                        logging.warning('Existing image was modified: %s' % image_file_path)
+                        current_app.logger.warning('Existing image was modified: %s', image_file_path)
 
                 reader = make_reader({
                     'fname': image_file_path,
@@ -196,7 +196,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     'fname': image_file_path,
                 })
                 reader.parse_image_description()
-                logging.info('Image barcode: %s' % reader.barcode)
+                current_app.logger.debug('New image barcode: %s', reader.barcode)
 
                 if reader.barcode:
                     image.label = '%s (%s)' % (reader.barcode, image_file_name)
@@ -221,7 +221,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     view.save()
 
                     # newest images should be at the top of the session's view list
-                    logging.error('Adding view %s to session %s/%s' % (view.id, session.collection, session))
+                    current_app.logger.info('Adding new view %s to session %s/%s', view.id, session.collection, session)
                     session.views.insert(0, RefItem(ref=view.id))
                     session.save()
 
@@ -231,7 +231,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
 
     def _deliver_views_to_inboxes(self):
-
+        current_app.logger.info('Delivering images from %s', self)
         # '_import_new_images' will have been called previously, so we can assume
         #   that a default session exists
         default_session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -247,7 +247,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # TODO: move the creator_code to a property of Image objects
                 creator_code_match = re.match(r'^ *([a-zA-Z- ]+?)[0-9 _-]*\|', image.label)
                 if not creator_code_match:
-                    logging.warning('Could not read creator code from barcode "%s" in image: %s' % (image.label, image.filename))
+                    current_app.logger.warning('Could not read creator code from barcode "%s" in image: %s', image.label, image.filename)
                     continue
                 creator_code = creator_code_match.group(1)
 
@@ -255,10 +255,10 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 try:
                     collection = Collection.objects.get(creator_codes=creator_code)
                 except DoesNotExist:
-                    logging.warning('Collection for creator code "%s" not found' % creator_code)
+                    current_app.logger.warning('Collection for creator code "%s" not found' % creator_code)
                     continue
                 except MultipleObjectsReturned:
-                    logging.error('Multiple collections for creator code "%s" found' % creator_code)
+                    current_app.logger.error('Multiple collections for creator code "%s" found' % creator_code)
                     continue
 
                 # get the inbox session for the collection
@@ -280,7 +280,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # save destination session first, duplicate is preferable to dropped
                 inbox_session.save()
                 default_session.save()
-                logging.info('Delivered image: %s' % image.label)
+                current_app.logger.info('Delivered image: %s' % image.label)
 
 
     def sync(self):

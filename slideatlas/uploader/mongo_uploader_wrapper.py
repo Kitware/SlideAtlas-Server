@@ -6,10 +6,7 @@ import time
 import json
 
 import logging
-logging.basicConfig()
-rootLogger = logging.getLogger()
-logger = logging.getLogger("wrapper_uploader")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('slideatlas')
 
 from . import MongoUploader
 from . import WrapperReader
@@ -32,9 +29,9 @@ class MongoUploaderWrapper(MongoUploader):
         try:
             reader = WrapperReader({"fname": self.args["input"], 'bindir': self.args["bindir"]})
             # Introspect
-            logger.info("Dimensions: (%d, %d)" % (reader.width, reader.height))
+            logger.info('Dimensions: (%d, %d)', reader.width, reader.height)
         except:
-            logger.error("Fatal Error: Unable to read input file %s" % (self.args["input"]))
+            logger.error('Unable to read input file %s', self.args['input'])
             sys.exit(0)
 
         return reader
@@ -46,7 +43,7 @@ class MongoUploaderWrapper(MongoUploader):
         """
 
         if self.args["dry_run"]:
-            logger.info("Dry run .. not uploading base")
+            logger.info('Dry run .. not uploading base')
             return
 
         istore = self.imagestore
@@ -62,7 +59,7 @@ class MongoUploaderWrapper(MongoUploader):
 
             # args = " ".join(args)
 
-        logger.info("Params: " + str(args))
+        logger.info('Params: %s', str(args))
         # Get the information in json
 
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=self.args["bindir"], shell=False)
@@ -75,7 +72,7 @@ class MongoUploaderWrapper(MongoUploader):
             if not (result is None):
                 # Process died
                 if not result == 0:
-                    logger.error("Fatal error: Process died without any output")
+                    logger.error('Process died without any output')
                     sys.exit(1)
 
             output = proc.stdout.readline()
@@ -84,19 +81,19 @@ class MongoUploaderWrapper(MongoUploader):
             try:
                 js = json.loads(output)
             except:
-                logger.error("Fatal error: Invalid json output from image_uploader:\n%s" % output)
+                logger.error('Invalid json output from image_uploader: "%s"', output)
                 sys.exit(1)
 
             if "error" in js:
-                logger.error("Fatal error: image_uploader says:%s" % js["error"])
+                logger.error('image_uploader says: %s', js['error'])
                 sys.exit(1)
 
             if "information" in js:
-                logger.info("Information available")
+                logger.info('Information available')
 
             if "progress_percent" in js:
-                logger.info("Progress : %f" % js['progress_percent'])
+                logger.info('Progress : %f' % js['progress_percent'])
 
             if "success" in js:
-                logger.info("DONE !!")
+                logger.info('DONE')
                 break

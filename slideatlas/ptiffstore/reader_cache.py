@@ -1,10 +1,9 @@
 __author__ = 'dhan'
 
-from tiff_reader import TileReader
 import logging
+logger = logging.getLogger('slideatlas')
 
-# create logger
-logger = logging.getLogger('slideatlas.ptiffstore.reader_cache')
+from tiff_reader import TileReader
 
 def make_reader(params):
     reader = TileReader()
@@ -19,24 +18,15 @@ class MemoizeMutable:
         import cPickle
         str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
         if not self.memo.has_key(str):
-            logger.debug("miss")  # DEBUG INFO
+            logger.debug('miss')
             self.memo[str] = self.fn(*args, **kwds)
-            logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logger.debug('Length: %d', len(self.memo))
         else:
-            logger.debug("hit")  # DEBUG INFO
-            logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
+            logger.debug('hit')
+            logger.debug('Length: %d', len(self.memo))
         return self.memo[str]
 
     def status(self):
-        logger.debug("Length: %d"%(len(self.memo)))  # DEBUG INFO
+        logger.debug('Length: %d', len(self.memo))
 
 make_reader = MemoizeMutable(make_reader)
-#
-# a = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
-# b = make_reader({"fname" : "/home/dhan/data/phillips/20140313T123120-174321.ptif"})
-# c = make_reader({"fname" : "/home/dhan/data/phillips/20140313T165829-545675.ptif"})
-# print a is b
-# print b is c
-# print a is c
-
-
