@@ -103,7 +103,7 @@ function AnnotationWidget (viewer) {
                   'border-radius': '4px',
                   'border-thickness':'2px'})
             .attr('type','image')
-            .attr('src',"/webgl-viewer/static/fill1.jpg")
+            .attr('src',"/webgl-viewer/static/brush1.jpg")
             .click(function(){self.NewFill();});
     }
 }
