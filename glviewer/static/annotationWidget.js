@@ -12,81 +12,111 @@
 // or maybe the delete key.
 
 function AnnotationWidget (viewer) {
-  var self = this; // trick to set methods in callbacks.
-  this.Viewer = viewer;
-  viewer.AnnotationWidget = this;
+    var self = this; // trick to set methods in callbacks.
+    this.Viewer = viewer;
+    viewer.AnnotationWidget = this;
+    
+    if ( ! MOBILE_DEVICE) {
+        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
+        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 150);
+        new ToolTip(this.Tab.Div, "Annotation");
 
-  if ( ! MOBILE_DEVICE) {
-    // We need unique names for the HTML elements.
-    this.Widget = $('<table>').appendTo('body')
-      .css({
-        'opacity': '0.6',
-        'position': 'absolute',
-        'height': '28px',
-        'bottom' : '5px',
-        'right' : '20px',
-        'z-index': '1'});;
 
-    viewer.AddGuiObject(this.Widget, "Bottom", 5, "Right", 312);
+        this.Tab.Panel.css({'width': '108px',
+                            'left': '-28px'});
+        this.VisibilityDiv = $('<div>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'overflow': 'hidden',
+                  'position': 'relative'})
+            .click(function(){self.ToggleVisibility();});
+        this.VisibilityImage = $('<img>')
+            .appendTo(this.VisibilityDiv)
+            .css({'height': '56px',
+                  'opacity': '0.6',
+                  'position': 'relative'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
-    var row = $('<tr>').appendTo(this.Widget)
-    var cell = $('<td>').appendTo(row)
-    this.VisibilityButton = $('<img>').appendTo(cell)
-      .css({
-        'opacity': '0.6',
-        'border-radius': '5px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/pencil3Up.png")
-      .click(function(){self.ToggleVisibility();});
-
-    this.ToolsTable = $('<td>').appendTo(row)
-      .css({
-        'opacity': '0.6',
-        'width': '182',
-        'border-radius': '5px'});
-
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Text.gif")
-      .click(function(){self.NewText();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Circle.gif")
-      .click(function(){self.NewCircle();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/FreeForm.gif")
-      .click(function(){self.NewPolyline();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
-      .click(function(){self.NewPencil();});
-    $('<img>').appendTo(this.ToolsTable)
-      .css({'height': '28px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/select_lasso.png")
-      .click(function(){self.NewLasso();});
-  }
+        this.TextButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Text.gif")
+            .click(function(){self.NewText();});
+        this.CircleButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Circle.gif")
+            .click(function(){self.NewCircle();});
+        this.PolylineButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/FreeForm.gif")
+            .click(function(){self.NewPolyline();});
+        this.PencilButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
+            .click(function(){self.NewPencil();});
+        this.LassoButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/select_lasso.png")
+            .click(function(){self.NewLasso();});
+        this.FillButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/fill1.jpg")
+            .click(function(){self.NewFill();});
+    }
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
   if (this.Viewer.GetAnnotationVisibility() == visibility) {
     return;
   }
-  if (this.VisibilityButton) {
+  if (this.VisibilityImage) {
     if (visibility == ANNOTATION_OFF) {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3.png")
-      this.ToolsTable.fadeOut();
-    } else if (visibility == ANNOTATION_NO_TEXT) {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Flip.png")
-      this.ToolsTable.fadeIn();
+        this.VisibilityImage.css({'top': '-30px'});
     } else {
-      this.VisibilityButton.attr('src',"/webgl-viewer/static/pencil3Up.png")
-      this.ToolsTable.fadeIn();
+        this.VisibilityImage.css({'top': '1px'});
     }
   }
 
@@ -100,78 +130,106 @@ AnnotationWidget.prototype.GetVisibility = function() {
 }
 
 AnnotationWidget.prototype.ToggleVisibility = function() {
-  var vis = this.GetVisibility();
-  if (vis == ANNOTATION_OFF) {
-    vis = ANNOTATION_NO_TEXT;
-  } else if (vis == ANNOTATION_NO_TEXT) {
-    vis = ANNOTATION_ON;
-  } else {
-    vis = ANNOTATION_OFF;
-  }
-  this.SetVisibility( vis );
-  RecordState();
+    var vis = this.GetVisibility();
+    if (vis == ANNOTATION_OFF) {
+        vis = ANNOTATION_ON;
+    } else {
+        vis = ANNOTATION_OFF;
+    }
+    this.SetVisibility( vis );
+    RecordState();
 }
+
+
+
+AnnotationWidget.prototype.TogglePanel = function() {
+    this.Panel.toggle();
+    if (this.Panel.is(":visible")) {
+        this.TabButton.css({'border-color': '#FFF #BBB #BBB #BBB',
+                            'border-radius': '0px 0px 5px 5px',
+                            'opacity': '1'});
+    } else {
+        // Should we deactivate any active widget tool?
+        this.TabButton.css({'border-color': '#BBB',
+                            'border-radius': '5px',
+                            'opacity': '0.6'});
+    }
+}
+
+
+
+
+
+
 
 // I would like to change the behavior of this.
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new TextWidget(this.Viewer, "");
-  this.Viewer.ActiveWidget = widget;
-
-  // The dialog is used to set the initial text.
-  widget.ShowPropertiesDialog();
+    var button = this.TextButton;
+    var widget = this.ActivateButton(button, TextWidget);
+    // The dialog is used to set the initial text.
+    widget.ShowPropertiesDialog();
 }
 
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof PencilWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new PencilWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.PencilButton;
+    var widget = this.ActivateButton(button, PencilWidget);
 }
 
 AnnotationWidget.prototype.NewLasso = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget && (widget instanceof LassoWidget)) {
-    widget.Deactivate();
-    return;
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new LassoWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.LassoButton;
+    var widget = this.ActivateButton(button, LassoWidget);
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new PolylineWidget(this.Viewer, true);
-  this.Viewer.ActiveWidget = widget;
+    var button = this.PolylineButton;
+    var widget = this.ActivateButton(button, PolylineWidget);
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
-  this.SetVisibility(ANNOTATION_ON);
-  var widget = new CircleWidget(this.Viewer, true);
+    var button = this.CircleButton;
+    var widget = this.ActivateButton(button, CircleWidget);
+    // Use the mouse position to place the circle.
+    // Mouse in under button.  Should we put the cirlce in the middle?
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+                                                                EVENT_MANAGER.LastMouseY);
+}
 
-  // Use the mouse position to place the circle.
-  widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
-                                                              EVENT_MANAGER.LastMouseY);
 
-  this.Viewer.ActiveWidget = widget;
+AnnotationWidget.prototype.NewFill = function() {
+    var button = this.FillButton;
+    var widget = this.ActivateButton(button, FillWidget);
+    widget.Initialize();
+}
+
+
+// Boilerplate code that was in every "newWidget" method.
+AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
+    var widget = this.Viewer.ActiveWidget;
+    if ( widget ) {
+        if  (button.Pressed) {
+            // The user pressed the button again (while it was active).
+            widget.Deactivate();
+            return;
+        }
+        // This call sets pressed to false as a side action..
+        widget.Deactivate();
+    }
+    button.Pressed = true;
+    button.css({'border-style': 'inset'});
+
+    this.SetVisibility(ANNOTATION_ON);
+    widget = new WidgetType(this.Viewer, true);
+    this.Viewer.ActiveWidget = widget;
+
+    // Button remains "pressed" until the circle deactivates.
+    widget.DeactivateCallback = 
+        function () {
+            button.css({'border-style': 'outset'});
+            widget.DeactivateCallback = undefined;
+            button.Pressed = false;
+        }
+    return widget;
 }
 

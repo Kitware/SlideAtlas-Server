@@ -337,11 +337,14 @@ CircleWidget.prototype.GetActive = function() {
 }
 
 CircleWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer();
-  this.State = CIRCLE_WIDGET_WAITING;
-  this.Shape.Active = false;
-  this.Viewer.DeactivateWidget(this);
-  eventuallyRender();
+    this.Popup.StartHideTimer();
+    this.State = CIRCLE_WIDGET_WAITING;
+    this.Shape.Active = false;
+    this.Viewer.DeactivateWidget(this);
+    if (this.DeactivateCallback) {
+        this.DeactivateCallback();
+    }
+    eventuallyRender();
 }
 
 // Setting to active always puts state into "active".

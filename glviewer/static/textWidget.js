@@ -534,12 +534,15 @@ TextWidget.prototype.GetActive = function() {
 }
 
 TextWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer();
-  this.State = TEXT_WIDGET_WAITING;
-  this.Text.Active = false;
-  this.Arrow.Active = false;
-  this.Viewer.DeactivateWidget(this);
-  eventuallyRender();
+    this.Popup.StartHideTimer();
+    this.State = TEXT_WIDGET_WAITING;
+    this.Text.Active = false;
+    this.Arrow.Active = false;
+    this.Viewer.DeactivateWidget(this);
+    if (this.DeactivateCallback) {
+        this.DeactivateCallback();
+    }
+    eventuallyRender();
 }
 
 TextWidget.prototype.SetActive = function(flag) {

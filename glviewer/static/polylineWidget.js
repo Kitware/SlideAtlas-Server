@@ -313,12 +313,15 @@ PolylineWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 PolylineWidget.prototype.Deactivate = function() {
-  this.Popup.StartHideTimer();
-  this.State = POLYLINE_WIDGET_WAITING;
-  this.Viewer.DeactivateWidget(this);
-  this.Shape.Active = false;
-  this.ActivateVertex(-1);
-  eventuallyRender();
+    this.Popup.StartHideTimer();
+    this.State = POLYLINE_WIDGET_WAITING;
+    this.Viewer.DeactivateWidget(this);
+    this.Shape.Active = false;
+    this.ActivateVertex(-1);
+    if (this.DeactivateCallback) {
+        this.DeactivateCallback();
+    }
+    eventuallyRender();
 }
 
 // Mouse down does nothing. Mouse up causes all state changes.
