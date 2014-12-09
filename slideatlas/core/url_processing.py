@@ -7,7 +7,7 @@ from werkzeug.routing import BaseConverter, ValidationError
 from slideatlas import models
 
 ################################################################################
-__all__ =('add_url_converters', 'add_url_value_preprocessors')
+__all__ = ()
 
 
 ################################################################################

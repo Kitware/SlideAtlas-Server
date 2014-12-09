@@ -106,11 +106,11 @@ def view_a_session(session):
             if 'bounds' in imgObj:
                 bounds = imgObj['bounds']
             tileSize = 256
-            if 'tile_size' in imgObj: 
+            if 'tile_size' in imgObj:
                 tileSize = imgObj['tile_size']
-            if 'tileSize' in imgObj: 
+            if 'tileSize' in imgObj:
                 tileSize = imgObj['tileSize']
-            if 'TileSize' in imgObj: 
+            if 'TileSize' in imgObj:
                 tileSize = imgObj['TileSize']
             images.append({
                     'db': view_son['image_store_id'],
