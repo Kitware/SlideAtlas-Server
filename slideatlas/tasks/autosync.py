@@ -6,7 +6,7 @@ from slideatlas.models import ImageStore
 from bson import ObjectId
 
 import logging
-logger = logging.getLogger("tasks.autosync")
+logger = logging.getLogger('slideatlas')
 
 __all__ = ('sync_store', )
 

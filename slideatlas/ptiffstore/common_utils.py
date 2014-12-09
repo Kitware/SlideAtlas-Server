@@ -124,5 +124,3 @@ class Test(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    print get_tile_index("tqsttt")
-

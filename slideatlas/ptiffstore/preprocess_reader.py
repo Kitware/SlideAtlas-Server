@@ -11,14 +11,13 @@ import subprocess
 __all__ = ("PreprocessReader", )
 
 import logging
-logger = logging.getLogger("PreprocessReader")
-logger.setLevel(logging.ERROR)
+logger = logging.getLogger('slideatlas')
 from lockfile import LockFile
 
 class PreprocessReader(OpenslideReader):
 
     def __init__(self):
-        logger.info("PreprocessReader init")
+        logger.info('PreprocessReader init')
         super(PreprocessReader, self).__init__()
 
     def pre_process(self, params):
@@ -43,7 +42,7 @@ class PreprocessReaderJp2(PreprocessReader):
     """
 
     def __init__(self, kakadu_dir=None):
-        # logger.info("PreprocessReaderJp2 init")
+        # logger.info('PreprocessReaderJp2 init')
         self.kakadu_dir = kakadu_dir
         super(PreprocessReaderJp2, self).__init__()
 
@@ -72,14 +71,14 @@ class PreprocessReaderJp2(PreprocessReader):
         lock_path = os.path.join(dirname, filename + ".lock")
 
         lock = LockFile(lock_path)
-        # logger.error("waiting for lock")
+        # logger.info('waiting for lock')
         lock.acquire()
         # If the file is missing then create it
         if not os.path.exists(output2):
             # Make sure the processing lock can be acquired
-            logger.error("processing")
+            logger.info('processing')
 
-            logger.warning("# Convert to striped tiff")
+            logger.info('# Convert to striped tiff')
             if self.kakadu_dir is None:
                 params = ["gdal_translate", params["fname"], output1]
                 subprocess.call(params)
@@ -94,7 +93,7 @@ class PreprocessReaderJp2(PreprocessReader):
                 params = [os.path.join(self.kakadu_dir, "kdu_expand"), "-i", params["fname"], "-o", output1]
                 subprocess.call(params, env=environ)
 
-            logger.warning("# Convert to tiled tiff")
+            logger.info('# Convert to tiled tiff')
             params = ["gdal_translate", "-co", "TILED=YES", "-co", "COMPRESS=JPEG", output1, output2]
             subprocess.call(params)
 
@@ -106,6 +105,6 @@ class PreprocessReaderJp2(PreprocessReader):
 if __name__ == "__main__":
     reader = PreprocessReaderJp2()
     reader.set_input_params({"fname": "/home/dhan/Downloads/jp2/Bretagne2.j2k"})
-    print reader.name
+    logger.debug('%s', reader.name)
     # i = reader.get_tile(26000, 83000)
     # i.save("tile.jpg")

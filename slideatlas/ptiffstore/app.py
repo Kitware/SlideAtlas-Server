@@ -1,23 +1,18 @@
 __author__ = 'dhanannjay.deo'
 
-
 import flask
 from flask import request
 import sys
-import os
 
 # tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
 # pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-# print pylibtiffpath
-# print tplpath
 #
 # sys.path = [pylibtiffpath] + sys.path
 
 import os
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
 import logging
-logging.getLogger().setLevel(logging.INFO)
-logging.basicConfig()
+logger = logging.getLogger('slideatlas')
 sys.path.append(tilereaderpath)
 app = flask.Flask(__name__)
 
@@ -46,7 +41,6 @@ if app.config["LOGIN_REQUIRED"]:
     admindb.authenticate(app.config["USERNAME"], app.config["PASSWORD"])
 
 from common_utils import get_tile_name_slideatlas
-import logging
 blank = open("blank_512.jpg","rb").read()
 
 @app.route("/tile_mongo")
@@ -61,7 +55,7 @@ def tile_mongo():
     locx = x * 512
 
     docImage = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
-    logging.log(logging.ERROR,get_tile_name_slideatlas(x,y,z))
+    logger.error(get_tile_name_slideatlas(x, y, z))
     if docImage == None:
         return flask.Response(blank, mimetype="image/jpeg")
     return flask.Response(str(docImage['file']), mimetype="image/jpeg")
@@ -93,7 +87,7 @@ def tile_ptiff(fname,x,y,z):
     tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
 
     reader = make_reader({"fname" : tiffpath, "dir" : z})
-    logging.log(logging.INFO, "Viewing fname: %s" % (fname))
+    logger.info('Viewing fname: %s', fname)
 
     # Locate the tilename from x and y
     locx = x * 512 + 5
@@ -101,7 +95,7 @@ def tile_ptiff(fname,x,y,z):
 
     # if reader.dir != z:
     #     reader.select_dir(z)
-    #     logging.log(logging.ERROR, "Switched to %d zoom"%(reader.dir))
+    #     logger.error('Switched to %d zoom', reader.dir)
 
     fp = StringIO.StringIO()
     r = reader.dump_tile(locx,locy, fp)
@@ -109,18 +103,18 @@ def tile_ptiff(fname,x,y,z):
     try:
         r = reader.dump_tile(locx,locy, fp)
         if r > 0:
-            logging.log(logging.ERROR, "Read %d bytes"%(r))
+            logger.error('Read %d bytes', r)
         else:
             raise Exception("Tile not read")
 
     except Exception as e:
         #docIma ge = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
-        logging.log(logging.ERROR, "Tile not loaded: %s"%(e.message))
+        logger.error('Tile not loaded: %s', e.message)
         fp.close()
         return flask.Response(blank, mimetype="image/jpeg")
 
     #s = fp.getvalue()
-    #logging.log(logging.ERROR, "Got %d bytes in buffer"%(len(s)))
+    #logger.error('Got %d bytes in buffer', len(s))
     # fp2 = open("test_output.jpg","wb")
     # fp2.write(fp.getvalue())
     # fp2.close()
@@ -145,10 +139,10 @@ def example(fname, itype):
     tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
     oimagepath = tiffpath + "." + itype + ".jpg"
 
-    logging.log(logging.INFO, "Getting fname: %s, itype: %s" % (fname, itype))
+    logger.info('Getting fname: %s, itype: %s', fname, itype)
 
     if not os.path.exists(oimagepath):
-        logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
+        logger.info('Computing fname: %s, itype: %s', fname, itype)
         reader = make_reader({"fname" : tiffpath, "dir" : 0})
         reader.set_input_params({ "fname" : tiffpath })
         fout = open(oimagepath, "wb")
@@ -166,13 +160,13 @@ def slidelist():
     """
     slides = []
     searchpath = os.path.join(app.config["FILES_ROOT"], "*.ptif")
-    logging.log(logging.INFO, searchpath)
+    logger.info(searchpath)
     for aslide in glob.glob(searchpath):
         barcodepath = aslide + "." + "bc"
-        logging.log(logging.INFO, "Getting fname: %s, itype: %s" % (fname, "barcode"))
+        logger.info('Getting fname: %s, itype: %s', fname, 'barcode')
 
         if not os.path.exists(barcodepath):
-            logging.log(logging.INFO, "Computing fname: %s, itype: %s" % (fname, itype))
+            logger.info('Computing fname: %s, itype: %s', fname, itype)
             reader = make_reader({"fname" : aslide, "dir" : 0})
             reader.set_input_params({ "fname" : aslide })
             fout = open(barcodepath, "w")
@@ -198,10 +192,10 @@ def viewer():
     fname = request.args.get('image', '')
 
     tiffpath = os.path.join(app.config["FILES_ROOT"], fname)
-    logging.log(logging.INFO, "Viewing fname: %s" % (fname))
+    logger.info('Viewing fname: %s', fname)
 
     if not os.path.exists(tiffpath):
-        logging.log(logging.INFO, "Unknown file: %s" % (fname))
+        logger.info('Unknown file: %s', fname)
         return flask.Response('Unknown image, please click here to go <a href="/"> back </a>', 403)
 
     reader = make_reader({ "fname" : tiffpath , "dir" : 0})

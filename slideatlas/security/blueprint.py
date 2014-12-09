@@ -9,7 +9,6 @@ from flask.ext.security.core import _context_processor as security_default_conte
 from flask.ext.security.views import create_blueprint as security_create_blueprint
 from flask.ext.security.views import send_confirmation as security_send_confirmation
 from flask.ext.security.utils import send_mail
-from flask.ext.mail import Mail
 
 from slideatlas import models
 from . import forms, views, login_provider
@@ -24,14 +23,6 @@ def register_with_app(app):
     add_config(app)
 
     security, blueprint = create_security(app)
-
-    # register Flask-Mail with app
-    Mail(app)
-    # TODO: set up a Celery task to send mail asynchronously; this can be integrated
-    #   by creating a function that accepts 1 parameter, a flask.exe.mail.Message object,
-    #   then passing that function to 'security.send_mail_task(<send_mail_func>)' to register it
-    #   see https://pythonhosted.org/Flask-Security/customizing.html#emails-with-celery , but we
-    #   would not use a decorator
 
     register_principal(app, security)
 

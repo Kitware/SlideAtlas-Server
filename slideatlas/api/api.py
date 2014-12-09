@@ -2,15 +2,13 @@
 rest api for administrative interface
 refer to documentation
 """
-from flask import Blueprint, render_template, request, Response, abort
+from flask import Blueprint, render_template, request, Response, abort, current_app
 from flask.views import MethodView
 from bson import ObjectId
 from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from slideatlas import models, security
 from slideatlas.ptiffstore import asset_store
-import logging
-logger = logging.getLogger("slideatlas.apiv1")
 
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -217,11 +215,11 @@ class DatabaseAPI(AdminDBAPI):
 
         # The object should exist
         for anobj in asset_store.TileStore.objects:
-            print anobj.label, anobj.id
+            current_app.logger.debug('%s %s', anobj.label, anobj.id)
 
         database = asset_store.TileStore.objects.with_id(ObjectId(data["_id"]))
 
-        print "ID: ", data["_id"], ObjectId(data["_id"])
+        current_app.logger.debug('ID: %s %s', data['_id'], ObjectId(data['_id']))
         # Unknown request if no parameters
         if database == None:
             return Response("{\"error\" : \"Resource _id: %s  doesnot exist\"}" % (resid), status=403)
@@ -239,7 +237,7 @@ class DatabaseAPI(AdminDBAPI):
 
             # Add additional fields
             if "_cls" in data:
-                print data["_cls"]
+                current_app.logger.debug('%s', data['_cls'])
 
             database.save()
         except Exception as inst:
@@ -304,7 +302,6 @@ class DataSessionsAPI(MethodView):
             for aview in sessobj.views:
                 viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
                 # Viewdetails might not be a view
-                # logger.error("Type of viewdetails: " + str(type(viewdetails)))
 
                 if type(viewdetails) == type({}):
                     if "img" in viewdetails:
@@ -373,7 +370,7 @@ class DataSessionsAPI(MethodView):
                     # Perform the delete
                     try:
                         sessobj.delete()
-                        print "DELETED from application"
+                        current_app.logger.debug('DELETED from application')
                     except Exception as inst:
                         return Response("{\"error\" : %s}" % str(inst), status=405)
                     # TODO: How to return success?

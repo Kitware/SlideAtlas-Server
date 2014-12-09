@@ -1,15 +1,11 @@
 # coding=utf-8
 
 from mongoengine import DoesNotExist
-from bson import ObjectId
 
 from .image_store import MultipleDatabaseImageStore
 
 ################################################################################
 __all__ = ('MongoImageStore',)
-
-import logging
-logger = logging.getLogger("MongoImageStore")
 
 ################################################################################
 class MongoImageStore(MultipleDatabaseImageStore):
@@ -41,15 +37,7 @@ class MongoImageStore(MultipleDatabaseImageStore):
         TODO: decide the strategy for orphaned views
         """
         image_database = self.to_pymongo()
-        image_doc = image_database["images"].find_one({"_id": ObjectId(image_id)})
 
-        try:
-            # Attempt to remove the image record
-            if image_doc is not None:
-                image_database["images"].remove({"_id": ObjectId(image_id)})
-
-            # Attempt to remove the collection
-            image_database.drop_collection(str(image_id))
-
-        except Exception as e:
-            logger.error("Error while removing image from image store: " + e.message)
+        # Attempt to remove the image record and collection
+        image_database['images'].remove({'_id': image_id})
+        image_database.drop_collection(str(image_id))

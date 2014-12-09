@@ -2,12 +2,12 @@
 
 import collections
 
-import os
 from bson import ObjectId
 from bson import json_util as bson_json_util
 from flask import Flask
 from flask.json import JSONEncoder
 
+from .logger import setup_mail, setup_logger
 from .url_processing import add_url_converters, add_url_value_preprocessors
 
 from celery import Celery
@@ -22,13 +22,15 @@ def create_app(generate_docs=False):
 
     :param generate_docs: (optional) Disable certain app functionality that may
         break when generating documentation.
-
     """
     app = Flask('slideatlas')
 
     load_default_config(app)
     load_site_config(app)
     add_config(app)
+
+    setup_mail(app)
+    setup_logger(app)
 
     add_url_converters(app)
     add_url_value_preprocessors(app)
@@ -176,7 +178,8 @@ def setup_models(app):
         dbname=app.config['SLIDEATLAS_ADMIN_DATABASE_NAME'],
         username=app.config['SLIDEATLAS_ADMIN_DATABASE_USERNAME'],
         password=app.config['SLIDEATLAS_ADMIN_DATABASE_PASSWORD'],
-        auth_db=app.config['SLIDEATLAS_ADMIN_DATABASE_AUTH_DB']
+        auth_db=app.config['SLIDEATLAS_ADMIN_DATABASE_AUTH_DB'],
+        logger=app.logger
     )
 
 

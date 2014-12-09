@@ -1,8 +1,9 @@
-from PIL import Image
+# coding=utf-8
 
 import logging
-logger = logging.getLogger("BaseReader")
-logger.setLevel(logging.ERROR)
+logger = logging.getLogger('slideatlas')
+
+from PIL import Image
 
 
 class Reader(object):
@@ -51,8 +52,8 @@ class InvertedReader(Reader):
         top = self.height - ((y_index + 1) * tilesize)
         bottom = top + tilesize
 
-        logger.info("Before: left: %d, top: %d, right: %d, bottom: %d" % (left, top, right, bottom))
-        logger.info("Width: %d, Height: %d" % (self.width, self.height))
+        logger.debug('Before: left: %d, top: %d, right: %d, bottom: %d', left, top, right, bottom)
+        logger.debug('Width: %d, Height: %d', self.width, self.height)
         needs_padding = False
         # Clip the bounds with respect to image size
         if bottom > self.height:
@@ -68,7 +69,7 @@ class InvertedReader(Reader):
             needs_padding = True
 
         # If bottom more than width
-        logger.info("left: %d, top: %d, right: %d, bottom: %d" % (left, top, right, bottom))
+        logger.debug('left: %d, top: %d, right: %d, bottom: %d', left, top, right, bottom)
         output = self.read_region([left, top, right, bottom])
 
         if needs_padding:
@@ -77,7 +78,7 @@ class InvertedReader(Reader):
             h = output.size[1]
 
             wi = self.get_white_tile(tilesize)
-            logger.info("Pasting at: %s" % [0, tilesize-h])
+            logger.debug('Pasting at: %s', [0, tilesize-h])
             wi.paste(output, (0, tilesize-h, w, tilesize))
 
             # empty bi

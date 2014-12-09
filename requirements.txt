@@ -5,9 +5,9 @@ Flask-Security==1.7.3
 Flask-RESTful==0.2.12
 WTForms==1.0.5
 
-pymongo==2.7.1
+pymongo==2.7.2
 mongoengine==0.8.7
-flask-mongoengine==0.7.0
+flask-mongoengine==0.7.1
 
 enum==0.4.4
 

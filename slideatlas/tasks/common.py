@@ -39,5 +39,4 @@ def process_for_time(a):
         time.sleep(1)
         metastr = str({'current': i, 'total': a})
         celeryapp.current_task.update_state(state='PROGRESS', meta=metastr)
-        print metastr
     return a
