@@ -110,8 +110,6 @@ class RefItem(EmbeddedDocument):
         'allow_inheritance': False
     }
     ref = ObjectIdField(required=True)
-    hide = BooleanField(required=False, default=False)
-    label = StringField(required=False)
     db = ObjectIdField(required=False)
 
     def __eq__(self, other):
@@ -207,7 +205,7 @@ class Session(ModelDocument):
     label = StringField(required=True,
         verbose_name='Label', help_text='The sessions\'s label.')
 
-    views = RefListField(required=False,
+    views = ListField(ObjectIdField(), required=False,
         verbose_name='Views', help_text='')
 
     attachments = RefListField(required=False,

@@ -135,7 +135,7 @@
                       // We need the ids of the new views so they will
                       // stay the same if we save again.
                       for (var i = 0; i<data.views.length; ++i) {
-                        guiViews[i].attr('view', data.views[i].ref);
+                        guiViews[i].attr('view', data.views[i]);
                         guiViews[i].removeAttr('copy');
                       }
                       $('#saveButton').css({"color":"#000"});

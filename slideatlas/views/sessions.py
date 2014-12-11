@@ -264,14 +264,11 @@ def session_save_view():
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
 
-        new_views.append(models.RefItem(ref=ObjectId(view['_id'])))
+        new_views.append(ObjectId(view['_id']))
 
     # delete the views that are left over, as views are owned by the session.
-    old_view_ids = set(view_ref.ref for view_ref in session.views)
-    new_view_ids = set(view_ref.ref for view_ref in new_views)
-
     if delete_views:
-        removed_view_ids = old_view_ids - new_view_ids
+        removed_view_ids = set(session.views) - set(new_views)
         for view_id in removed_view_ids:
             apiv2.SessionViewItemAPI._delete(view_id)
 
@@ -339,7 +336,7 @@ def session_save_stack():
 
 
     # update the session
-    session.views.insert(0, models.RefItem(ref=view['_id']))
+    session.views.insert(0, view['_id'])
     session.save()
     return jsonify(view)
 

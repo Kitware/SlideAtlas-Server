@@ -19,7 +19,7 @@ from PIL import Image as PImage
 from .image_store import MultipleDatabaseImageStore
 from ..image import Image
 from ..view import View
-from ..session import Collection, Session, RefItem
+from ..session import Collection, Session
 
 from slideatlas.common_utils import reversed_enumerate, file_sha512
 from slideatlas.ptiffstore.reader_cache import make_reader
@@ -222,7 +222,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
                     # newest images should be at the top of the session's view list
                     current_app.logger.info('Adding new view %s to session %s/%s', view.id, session.collection, session)
-                    session.views.insert(0, RefItem(ref=view.id))
+                    session.views.insert(0, view.id)
                     session.save()
 
                 new_images.append(image.to_json())
@@ -239,8 +239,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         with self:
             # reverse to start with the oldest views at the end of the list, and
             #   more importantly, to permit deletion from the list while iterating
-            for view_ref_pos, view_ref in reversed_enumerate(default_session.views):
-                view = View.objects.only('ViewerRecords').with_id(view_ref.ref)
+            for view_id_pos, view_id in reversed_enumerate(default_session.views):
+                view = View.objects.only('ViewerRecords').with_id(view_id)
                 image = Image.objects.only('label', 'filename').with_id(view.ViewerRecords[0]['Image'])
 
                 # get creator_code
@@ -274,8 +274,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                     raise
 
                 # move the session
-                default_session.views.pop(view_ref_pos)
-                inbox_session.views.insert(0, view_ref)
+                default_session.views.pop(view_id_pos)
+                inbox_session.views.insert(0, view_id)
 
                 # save destination session first, duplicate is preferable to dropped
                 inbox_session.save()

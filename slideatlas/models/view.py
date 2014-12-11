@@ -142,3 +142,6 @@ class View(ModelDocument):
 
     options = ListField(EmbeddedDocumentField(Options), required=False,
         verbose_name='', help_text='')
+
+    hide = BooleanField(required=False,
+        verbose_name='', help_text='')

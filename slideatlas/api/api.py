@@ -300,7 +300,7 @@ class DataSessionsAPI(MethodView):
             views_response = list()
             # Dereference the views
             for aview in sessobj.views:
-                viewdetails = datadb["views"].find_one({"_id" : aview["ref"]})
+                viewdetails = datadb["views"].find_one({"_id" : aview})
                 # Viewdetails might not be a view
 
                 if type(viewdetails) == type({}):

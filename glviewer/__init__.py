@@ -227,15 +227,15 @@ def glstacksession():
         num = len(sessobj.views)
         for idx in range(0,num-1) :
             pair = {"Correlations": []}
-            pair["View0"] = sessobj.views[idx].ref
-            pair["View1"] = sessobj.views[idx+1].ref
+            pair["View0"] = sessobj.views[idx]
+            pair["View1"] = sessobj.views[idx+1]
             sessobj["transformations"].append(pair)
 
     annotations = []
     views = []
     viewIdx = 0
     for view in sessobj.views:
-        viewobj = readViewTree(admindb, view.ref)
+        viewobj = readViewTree(admindb, view)
 
         # convert annotation to stack format.
         sectionAnnotations = []
@@ -327,7 +327,7 @@ def glstacksave():
 
     # I do not understand the models object.
     #if 'views' in stackObj:
-    #    session.views = [models.RefItem(ref=ObjectId(view['_id']), db=ObjectId(dbid)) for view in stackObj['views']]
+    #    session.views = [ObjectId(view['_id']) for view in stackObj['views']]
     if 'transformations' in stackObj:
         # first convert all the view ids strings into ObjectIds
         for pair in stackObj["transformations"]:

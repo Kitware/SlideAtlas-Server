@@ -78,10 +78,9 @@ class SessionItemAPI(ItemAPIResource):
 
         # iterate through the session objects
         views_son = list()
-        for view_ref in session.views:
+        for view_id in session.views:
             admindb = models.ImageStore._get_db()
 
-            view_id = view_ref.ref
             view = admindb['views'].find_one({'_id': view_id})
             #view = models.View.objects.get(id=view_id).to_mongo()
             if not view:
@@ -100,14 +99,12 @@ class SessionItemAPI(ItemAPIResource):
                 continue
 
             # determine if view is hidden and will be skipped
-            if view_ref.hide or view.get('hide', False) or image.get('hide', False):
+            if view.get('hide', False) or image.get('hide', False):
                 continue
 
             # get 'view_label' and 'view_hidden_label'
             if 'Title' in view:
                 view_label = view['Title']
-            elif view_ref.label:
-                view_label = view_ref.label
             elif 'label' in view:
                 view_label = view['label']
             elif 'label' in image:
@@ -151,8 +148,7 @@ class SessionItemAPI(ItemAPIResource):
 
     @security.AdminSessionRequirement.protected
     def delete(self, session):
-        for view_ref in session.views:
-            view_id = view_ref.ref
+        for view_id in session.views:
             SessionViewItemAPI._delete(view_id)
 
         # TODO: A helper method can avoid duplication
