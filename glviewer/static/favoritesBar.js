@@ -31,7 +31,7 @@ function FavoritesBar(){
                 //'opacity': '0.6',
                 'background-color': 'rgba(0,0,0,.6)',
                 'overflow': 'visible',
-                'z-index': '2'
+                'z-index': '6'
               })
               .hide();
 

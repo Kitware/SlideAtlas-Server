@@ -14,20 +14,18 @@ function FavoritesWidget() {
     var self = this;
     this.MenuFavoriteButton =
       $('<img>')
-        .appendTo('body')
+        .appendTo(VIEW_PANEL)
         .css({'position': 'absolute',
               'height': '40px',
               'width': '40px',
               'left': '0px',
-              'bottom': '10px',
+              'bottom': '0px',
               'padding' : '5px',
               'opacity': '0.6',
               'z-index': '3'})
         .attr('src',"webgl-viewer/static/favorite-star.png")
         .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
     this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");
-
-    VIEWER1.AddGuiObject(this.MenuFavoriteButton, "Bottom", 0, "Left", 0);
   }
 
   LoadFavorites();

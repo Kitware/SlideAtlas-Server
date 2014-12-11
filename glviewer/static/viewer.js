@@ -28,7 +28,8 @@ function Viewer (viewport, cache) {
   this.AnimateDuration = 0.0;
   this.TranslateTarget = [0.0,0.0];
 
-  this.MainView = new View(viewport, 1);
+  this.MainView = new View();
+  this.MainView.InitializeViewport(viewport, 1);
   this.MainView.OutlineColor = [0,0,0];
   this.MainView.Camera.ZRange = [0,1];
   this.MainView.Camera.ComputeMatrix();
@@ -36,7 +37,8 @@ function Viewer (viewport, cache) {
     var overViewport = [viewport[0] + viewport[2]*0.8,
                         viewport[1] + viewport[3]*0.8,
                         viewport[2]*0.18, viewport[3]*0.18];
-    this.OverView = new View(overViewport, 2);
+    this.OverView = new View();
+    this.OverView.InitializeViewport(overViewport, 1);
     this.OverView.Camera.ZRange = [-1,0];
     this.OverView.Camera.FocalPoint = [13000.0, 11000.0, 10.0];
     this.OverView.Camera.SetHeight(22000.0);
@@ -97,7 +99,7 @@ Viewer.prototype.InitializeZoomGui = function() {
   // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
   var self = this;
   this.ZoomDiv = $('<div>')
-        .appendTo('body')
+        .appendTo(VIEW_PANEL)
         .css({
           'opacity': '0.6',
           'background-color': '#fff',

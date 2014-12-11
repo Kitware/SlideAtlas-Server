@@ -37,7 +37,7 @@ function NavigationWidget() {
   }
   var self = this;
   this.Div =
-    $('<div>').appendTo('body')
+    $('<div>').appendTo(VIEW_PANEL)
               .css({'position': 'absolute',
                     'left' : left,
                     'bottom' : bottom,
@@ -84,7 +84,7 @@ function NavigationWidget() {
   this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
 
   this.CopyrightWrapper =
-    $('<div>').appendTo('body')
+    $('<div>').appendTo(VIEW_PANEL)
               .css({
                 'width': '100%',
                 'text-align': 'center'

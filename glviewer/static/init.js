@@ -360,14 +360,26 @@ function initGC() {
   detectMobile();
 
   // Add a new canvas.
-  CANVAS = $('<div>').appendTo('body').css({
-                'position': 'absolute',
-                'width': '100%',
-                'height': '100%',
-                'top' : '0px',
-                'left' : '0px',
-                'z-index': '1'
-            });
+  CANVAS = $('<div>')
+        .appendTo('body').css({
+            'position': 'absolute',
+            'width': '100%',
+            'height': '100%',
+            'top' : '0px',
+            'left' : '0px',
+            'z-index': '1'
+        });
+
+  VIEW_PANEL = $('<div>')
+        .appendTo('body')
+        .css({
+            'position': 'absolute',
+            'width': '100%',
+            'height': '100%',
+            'top' : '0px',
+            'left' : '0px',
+            'z-index': '3'
+        });
 }
 
 
@@ -442,11 +454,14 @@ function FixJustification () {
 // should migrate into objects and other files.
 
 var CANVAS;
+
+var VIEW_PANEL; // div that should contain the two viewers.
 var EVENT_MANAGER;
 var VIEWER1;
 var VIEWER2;
 var DUAL_VIEW = false;
 var NAVIGATION_WIDGET;
+var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
 var NOTES_WIDGET;
@@ -509,19 +524,24 @@ function handleResize() {
     }
 
     // we set the left border to leave space for the notes window.
-    var left = 0;
-    if (NOTES_WIDGET) { left = width * NOTES_WIDGET.WidthFraction;}
+    var viewPanelLeft = 0;
+    if (NOTES_WIDGET) { viewPanelLeft = width * NOTES_WIDGET.WidthFraction;}
+    var viewPanelWidth = width - viewPanelLeft;
     // The remaining width is split between the two viewers.
-    var width1 = (width-left) * VIEWER1_FRACTION;
-    var width2 = (width-left) - width1;
+    var width1 = viewPanelWidth * VIEWER1_FRACTION;
+    var width2 = viewPanelWidth - width1;
+
+    // Setup the view panel div to be the same as the two viewers.
+    VIEW_PANEL.css({'left': viewPanelLeft+'px',
+                    'width': viewPanelWidth+'px'});
 
     // TODO: Make a multi-view object.
     if (VIEWER1) {
-      VIEWER1.SetViewport([left, 0, width1, height]);
+      VIEWER1.SetViewport([0, 0, width1, height]);
       eventuallyRender();
     }
     if (VIEWER2) {
-      VIEWER2.SetViewport([left+width1, 0, width2, height]);
+      VIEWER2.SetViewport([width1, 0, width2, height]);
       eventuallyRender();
     }
 }
@@ -639,11 +659,13 @@ function StartView() {
         VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
+    CONFERENCE_WIDGET = new ConferenceWidget();
+
     $(window).resize(function() {
         handleResize();
     }).trigger('resize');
 
-    var can = CANVAS[0];
+    var can = VIEW_PANEL[0];
     can.addEventListener("mousedown", handleMouseDown, false);
     can.addEventListener("mousemove", handleMouseMove, false);
     can.addEventListener("touchstart", handleTouchStart, false);
@@ -658,6 +680,7 @@ function StartView() {
     document.onkeyup = handleKeyUp;
     document.oncontextmenu = cancelContextMenu;
 
+
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
     annotationWidget1.SetVisibility(2);
     var annotationWidget2 = new AnnotationWidget(VIEWER2);
@@ -666,43 +689,15 @@ function StartView() {
     DualViewUpdateGui();
 
     if ( ! MOBILE_DEVICE) {
-        $('<img>')
-            .appendTo('body')
-            .css({
-                'opacity': '0.4',
-                'position': 'absolute',
-                'width': '40px',
-                'bottom' : '5px',
-                'right' : '60px',
-                'z-index': '2'})
-            .attr('id', 'viewMenu1')
-            .attr('class', 'viewer1')
-            .attr('type','image')
-            .attr('src', MENU_IMAGE_URL)
-            .click(function(){ ShowViewerEditMenu(VIEWER1);});
+        InitSlideSelector();
 
+        var viewMenu1 = new ViewEditMenu(VIEWER1);
+        VIEWER1.AddGuiObject(viewMenu1.Tab.Div, "Bottom", 0, "Right", 105);
+        new ToolTip(viewMenu1.Tab.Div, "View Menu");
 
-        // Formalize this later (actual object and methods in viewer).
-        // Register these buttons with the viewer.
-        VIEWER1.AddGuiElement("#viewMenu1", "Bottom", 5, "Right", 105);
-
-
-        $('<img>')
-            .appendTo('body')
-            .css({
-                'opacity': '0.4',
-                'position': 'absolute',
-                'width': '40px',
-                'bottom' : '5px',
-                'right' : '60px',
-                'z-index': '2'})
-            .attr('id', 'viewMenu2')
-            .attr('class', 'viewer2')
-            .attr('type','image')
-            .attr('src', MENU_IMAGE_URL)
-            .click(function(){ShowViewerEditMenu(VIEWER2);});
-
-        VIEWER2.AddGuiElement("#viewMenu2", "Bottom", 5, "Right", 105);
+        var viewMenu2 = new ViewEditMenu(VIEWER2);
+        VIEWER2.AddGuiObject(viewMenu2.Tab.Div, "Bottom", 0, "Right", 105);
+        new ToolTip(viewMenu2.Tab.Div, "View Menu");
     }/**/
 
     eventuallyRender();

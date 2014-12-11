@@ -11,7 +11,7 @@ function WidgetPopup (widget) {
   // buttons to replace right click.
   var self = this;
   this.ButtonDiv =
-    $('<div>').appendTo('body')
+    $('<div>').appendTo(VIEW_PANEL)
               .hide()
               .css({'position': 'absolute',
                     'z-index': '1'})

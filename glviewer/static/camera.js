@@ -1,14 +1,13 @@
 //==============================================================================
 // Camera Object
-function Camera (viewportWidth, viewportHeight) {
+// Set the viewport separately
+function Camera () {
     // Better managmenet of layers and sub layers.
     // Assign a range of the z buffer  for the view to use exclusively.
     // The full range is -1->1.  -1 is in front.
     this.ZRange = [-1.0,1.0];
     this.Roll = 0;
     this.Matrix = mat4.create();
-    this.ViewportWidth = viewportWidth;
-    this.ViewportHeight = viewportHeight;
     this.Height = 256.0 * 64.0;
     this.FocalPoint = [128.0*64.0, 128.0*64.0, 10.0];
     this.ComputeMatrix();
@@ -17,7 +16,21 @@ function Camera (viewportWidth, viewportHeight) {
     this.Buffer = null;
     this.CreateBuffer();
     this.Mirror = false;
+
+    // Placeholders
+    this.ViewportWidth = 100;
+    this.ViewportHeight = 100;
 }
+
+Camera.prototype.SetViewport = function (viewport) {
+  if (10*viewport[3] < viewport[2]) {
+    //alert("Unusual viewport " + viewport[3]);
+    return;
+  }
+  this.ViewportWidth = viewport[2];
+  this.ViewportHeight = viewport[3];
+}
+
 
 Camera.prototype.Serialize = function () {
   var obj = {};
@@ -35,15 +48,6 @@ Camera.prototype.Load = function (obj) {
   this.Height = obj.Height;
   // Width is computed from height and aspect.
   this.ComputeMatrix();
-}
-
-Camera.prototype.SetViewport = function (viewport) {
-  if (10*viewport[3] < viewport[2]) {
-    //alert("Unusual viewport " + viewport[3]);
-    return;
-  }
-  this.ViewportWidth = viewport[2];
-  this.ViewportHeight = viewport[3];
 }
 
 

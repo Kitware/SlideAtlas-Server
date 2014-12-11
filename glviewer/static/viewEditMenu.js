@@ -1,109 +1,178 @@
-// Todo There are two viewer menues for dual view.  
-// I do not think we handle this well.
+// TODO: HISTORY_MENU_ITEM
+//        .attr('id', 'dualViewCopyZoom') 
+//    this.SessiosList = $('<div>')
+//    $('#slideInformation')
+
+// get rid of these.
+//function ComparisonSaveAnnotations() {} (used wrongly in text widget.)
+//function ShowViewerEditMenu(viewer) {
 
 
-var HISTORY_MENU_ITEM;
-function ToggleHistory() {
-  $('#viewEditMenu').hide();
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  if ( ! viewer) { return; }
 
-  viewer.HistoryFlag = ! viewer.HitoryFlag;
-  if (viewer.HistoryFlag) {
-    HISTORY_MENU_ITEM.text("History Off")
-  } else {
-    HISTORY_MENU_ITEM.text("History On")
-  }
-  eventuallyRender();
+function ViewEditMenu (viewer) {
+    var self = this; // trick to set methods in callbacks.
+    this.Viewer = viewer;
+    this.Tab = new Tab("MENU_IMAGE_URL");
+    // I think we can get rid of this "GuiObject" stuff.
+    // css positioning can handle it now.
+    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 60);
+    new ToolTip(this.Tab.Div, "View Options");
+
+    this.Tab.Panel
+        .css({'width': '200px',
+              'right': '0px'})
+        .mouseleave(function(){$(this).fadeOut();}); 
+    // ^^^^ Probably not the best way to do this
+
+    $('<div>')
+        .appendTo(this.Tab.Panel)
+        .text("Load Slide")
+        .click(function(){self.ShowViewBrowser();});
+    if (EDIT) {
+        $('<div>')
+            .appendTo(this.Tab.Panel)
+            .text("Save View")
+            .click(function(){self.SaveView();});
+    }
+    $('<div>')
+        .appendTo(this.Tab.Panel)
+        .text("Download Image")
+        .click(function(){self.DownloadImage();});
+    $('<div>')
+        .appendTo(this.Tab.Panel)
+        .text("Slide Info")
+        .click(function(){self.ShowSlideInformation();});
+    
+    // Test for showing coverage of view histor.
+    this.HistoryMenuItem = $('<div>')
+        .appendTo(this.Tab.Panel)
+        .text("History On")
+        .click(function(){self.ToggleHistory();});
+    
+    // Hack until we have some sort of scale.
+    this.CopyZoomMenuItem = $('<div>')
+        .appendTo(this.Tab.Panel)
+        .attr('id', 'dualViewCopyZoom') 
+        .text("Copy Zoom")
+        .hide()
+        .click(function(){self.CopyZoom();});
+    $('<div>').appendTo(this.Tab.Panel)
+        .text("Flip Horizontal")
+        .click(function(){self.FlipHorizontal();});
+    
+    if(window.PLUGINS && window.PLUGINS.indexOf("ScarRatio") >= 0) {
+        $('<div>').appendTo(this.Tab.Panel)
+            .text('Color thresholding')
+            .click(function() {pluginScarRatio.Init();});
+    }
+    
+    // I need some indication that the behavior id different in edit mode.
+    // If the user is authorized, the new bounds are automatically saved.
+    if (EDIT) {
+        $('<div>').appendTo(this.Tab.Panel)
+            .text("Save Overview Bounds")
+            .click(function(){self.SetViewBounds();});
+    } else {
+        $('<div>').appendTo(this.Tab.Panel)
+            .text("Set Overview Bounds")
+            .click(function(){self.SetViewBounds();});
+    }
+
 }
 
-// Legacy  get rid of this.
-// Used wrongly in textWidget.js
-// Stub it out until we fix this.
-function ComparisonSaveAnnotations() {}
+
+ViewEditMenu.prototype.ToggleHistory = function() {
+    this.Tab.PanelOff();
+
+    this.Viewer.HistoryFlag = ! viewer.HitoryFlag;
+    if (this.Viewer.HistoryFlag) {
+        this.HistoryMenuItem.text("History Off")
+    } else {
+        this.HistoryMenuItem.text("History On")
+    }
+    eventuallyRender();
+}
 
 
 // Record the viewer into the current note and save into the database.
-function SaveView() {
-  NOTES_WIDGET.SaveCallback();
-  $('#viewEditMenu').hide();
+ViewEditMenu.prototype.SaveView = function() {
+    this.Tab.PanelOff();
+    NOTES_WIDGET.SaveCallback();
 }
 
-function GetViewerBounds (viewer) {
-  var cam = viewer.GetCamera();
-  var fp = cam.GetFocalPoint(); 
-  var halfWidth = cam.GetWidth()/2;
-  var halfHeight = cam.GetHeight()/2;
-  return [fp[0]-halfWidth, fp[0]+halfWidth, fp[1]-halfHeight, fp[1]+halfHeight];
+ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
+    var cam = viewer.GetCamera();
+    var fp = cam.GetFocalPoint(); 
+    var halfWidth = cam.GetWidth()/2;
+    var halfHeight = cam.GetHeight()/2;
+    return [fp[0]-halfWidth, fp[0]+halfWidth, fp[1]-halfHeight, fp[1]+halfHeight];
 }
 
 // Add bounds to view to overide image bounds.
-function SetViewBounds() {
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  var bounds = GetViewerBounds(viewer);
-  var note = NOTES_WIDGET.GetCurrentNote();
-  // Which view record?  Hack.
-  var viewerRecord = note.ViewerRecords[0];
-  if (viewer == VIEWER2) {
-    var viewerRecord = note.ViewerRecords[1];
-  }
-  viewerRecord.OverviewBounds = bounds;
-  // Set the image bounds so the new bounds are used immediately.
-  viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
-  viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
-  viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
-  viewer.OverView.Camera.ComputeMatrix();
-  eventuallyRender();
+ViewEditMenu.prototype.function = SetViewBounds() {
+    this.Tab.PanelOff();
+    var bounds = this.GetViewerBounds(this.Viewer);
+    var note = NOTES_WIDGET.GetCurrentNote();
+    // Which view record?  Hack.
+    var viewerRecord = note.ViewerRecords[0];
+    if (this.Viewer == VIEWER2) {
+        var viewerRecord = note.ViewerRecords[1];
+    }
+    viewerRecord.OverviewBounds = bounds;
+    // Set the image bounds so the new bounds are used immediately.
+    viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
+    this.Viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, 
+                                              (bounds[2]+bounds[3])/2);
+    this.Viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+    this.Viewer.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
 
-  // Save automatically if user has permission.
-  if (EDIT) {
-    // I cannot do this because it first sets the viewer record and bounds are lost.
-    //NOTES_WIDGET.SaveCallback();
-    // Lets try just setting this one note.
-    var noteObj = JSON.stringify(note.Serialize(false));
-    var d = new Date();
+    // Save automatically if user has permission.
+    if (EDIT) {
+        // I cannot do this because it first sets the viewer record and bounds are lost.
+        //NOTES_WIDGET.SaveCallback();
+        // Lets try just setting this one note.
+        var noteObj = JSON.stringify(note.Serialize(false));
+        var d = new Date();
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/saveviewnotes",
+            data: {"note" : noteObj,
+                   "date" : d.getTime()},
+            success: function(data,status) {},
+            error: function() { alert( "AJAX - error() : saveviewnotes (bounds)" ); },
+        });
+    }
+}
+
+// Add bounds to view to overide image bounds.
+ViewEditMenu.prototype.SetImageBounds = function() {
+    this.Tab.PanelOff();
+
+    var viewer = EVENT_MANAGER.CurrentViewer;
+    var imageDb = viewer.GetCache().Image.database;
+    var imageId = viewer.GetCache().Image._id;
+    var bounds = this.GetViewerBounds(viewer);
+
+    // Set the image bounds so the new bounds are used immediately.
+    viewer.GetCache().Image.bounds = bounds;
+    viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
+    viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+    viewer.OverView.Camera.ComputeMatrix();
+    eventuallyRender();
+
+    var data = JSON.stringify(bounds);
     $.ajax({
-      type: "post",
-      url: "/webgl-viewer/saveviewnotes",
-      data: {"note" : noteObj,
-             "date" : d.getTime()},
-      success: function(data,status) {},
-      error: function() { alert( "AJAX - error() : saveviewnotes (bounds)" ); },
+        type: "post",
+        url: "/webgl-viewer/set-image-bounds",
+        data: {"img" : imageId,
+               "imgdb"  : imageDb,
+               "bds" : JSON.stringify(bounds)},
+        success: function(data,status) {},
+        error: function() {
+            alert( "AJAX - error() : saveusernote 1" );
+        },
     });
-
-  }
-  $('#viewEditMenu').hide();
-}
-
-// Add bounds to view to overide image bounds.
-function SetImageBounds() {
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  var imageDb = viewer.GetCache().Image.database;
-  var imageId = viewer.GetCache().Image._id;
-  var bounds = GetViewerBounds(viewer);
-
-  // Set the image bounds so the new bounds are used immediately.
-  viewer.GetCache().Image.bounds = bounds;
-  viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
-  viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
-  viewer.OverView.Camera.ComputeMatrix();
-  eventuallyRender();
-
-  var data = JSON.stringify(bounds);
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/set-image-bounds",
-    data: {"img" : imageId,
-           "imgdb"  : imageDb,
-           "bds" : JSON.stringify(bounds)},
-    success: function(data,status) {},
-    error: function() {
-      alert( "AJAX - error() : saveusernote 1" );
-    },
-  });
-
-
-  $('#viewEditMenu').hide();
 }
 
 
@@ -111,175 +180,37 @@ function SetImageBounds() {
 // Create and manage the menu to edit dual views.
 
 
-function ShowViewerEditMenu(viewer) {
-    EVENT_MANAGER.CurrentViewer = viewer;
-    var viewport = viewer.GetViewport();
-    $('#viewEditMenu').css({'bottom': 10,
-                            'left': viewport[0]+viewport[2]-230})
-                      .show();
-}
+// hack: Find the other viewer to copy.
+ViewEditMenu.prototype.CopyZoom = function() {
+    this.Tab.PanelOff();
 
-
-function InitViewEditMenus() {
-    // Create the menu of edit options.
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'border-style': 'solid',
-        'border-width': '1px',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'bottom' : '10px',
-        'left' : '35px',
-        'padding-right' : '30px',
-        'z-index': '2',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'viewEditMenu').hide()
-      .mouseleave(function(){$(this).fadeOut();});
-
-    var viewEditSelector = $('<ol>');
-    viewEditSelector.appendTo('#viewEditMenu')
-             .attr('id', 'viewEditSelector')
-             .css({'width': '100%', 'list-style-type':'none'});
-    $('<li>').appendTo(viewEditSelector)
-             .text("Load Slide")
-             .click(function(){ShowViewBrowser();});
-    if (EDIT) {
-      $('<li>').appendTo(viewEditSelector)
-               .text("Save View")
-               .click(function(){SaveView();});
-    }
-    if (EDIT) {
-      $('<li>').appendTo(viewEditSelector)
-               .text("Download Image")
-               .click(function(){DownloadImage();});
-    }
-    $('<li>').appendTo(viewEditSelector)
-             .text("Slide Info")
-             .click(function(){ShowSlideInformation();});
-
-    // Test for showing coverage of view histor.
-    HISTORY_MENU_ITEM = $('<li>').appendTo(viewEditSelector)
-             .text("History On")
-             .click(function(){ToggleHistory();});
-
-    // Hack until we have some sort of scale.
-    $('<li>').appendTo(viewEditSelector)
-             .attr('id', 'dualViewCopyZoom')
-             .text("Copy Zoom")
-             .hide()
-             .click(function(){CopyZoom();});
-    $('<li>').appendTo(viewEditSelector)
-             .text("Flip Horizontal")
-             .click(function(){FlipHorizontal();});
-
-    if(window.PLUGINS && window.PLUGINS.indexOf("ScarRatio") >= 0) {
-      $('<li>').appendTo(viewEditSelector)
-        .text('Color thresholding')
-        .click(function() {pluginScarRatio.Init();});
-    }
-
-    // I need some indication that the behavior id different in edit mode.
-    // If the user is authorized, the new bounds are automatically saved.
-    if (EDIT) {
-      $('<li>').appendTo(viewEditSelector)
-               .text("Save Overview Bounds")
-               .click(function(){SetViewBounds();});
+    var cam = this.Viewer.GetCamera();
+    var copyCam;
+    if (this.Viewer == VIEWER1) {
+        var copyCam = VIEWER2.GetCamera();
     } else {
-      $('<li>').appendTo(viewEditSelector)
-               .text("Set Overview Bounds")
-               .click(function(){SetViewBounds();});
+        var copyCam = VIEWER1.GetCamera();
     }
-    // Create a selection list of sessions.
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'border-style': 'solid',
-        'border-width': '1px',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'top' : '35px',
-        'left' : '35px',
-        'width' : '500px',
-        'height' : '700px',
-        'overflow': 'auto',
-        'z-index': '2',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'sessionMenu').hide()
-        .mouseleave(function(){$(this).fadeOut();});
-    $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
+    
+    this.Viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
+}
 
-    // Create a selector for views.
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'border-style': 'solid',
-        'border-width': '1px',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'top' : '135px',
-        'left' : '135px',
-        'width' : '500px',
-        'height' : '700px',
-        'overflow': 'auto',
-        'z-index': '2',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'viewMenu').hide()
-        .mouseleave(function(){$(this).fadeOut();});
-    $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
+ViewEditMenu.prototype.ShowSlideInformation= function() {
+    this.Tab.PanelOff();
+    
+    imageObj = this.Viewer.MainView.Section.Caches[0].Image;
 
-    $('<div>').appendTo('body').css({
-        'background-color': 'white',
-        'border-style': 'solid',
-        'border-width': '1px',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'top' : '30%',
-        'left' : '30%',
-        'width': '40%',
-        'height': '40%',
-        'z-index': '2',
-        'color': '#303030',
-        'font-size': '20px'
-    }).attr('id', 'slideInformation').hide()
-      .mouseleave(function(){$(this).fadeOut();});
+    $('#slideInformation')
+        .html("File Name: " + imageObj.filename
+              + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
+              + imageObj.dimensions[1]
+              + "<br>Levels: " + imageObj.levels)
+        .show();
 }
 
 
-function CopyZoom() {
-  $('#viewEditMenu').hide();
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  if ( ! viewer) { return; }
-
-  var cam = viewer.GetCamera();
-  var copyCam;
-  if (viewer == VIEWER1) {
-    var copyCam = VIEWER2.GetCamera();
-  } else {
-    var copyCam = VIEWER1.GetCamera();
-  }
-
-  viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
-}
-
-function ShowSlideInformation() {
-  $('#viewEditMenu').hide();
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  if ( ! viewer) { return; }
-
-  imageObj = viewer.MainView.Section.Caches[0].Image;
-
-  $('#slideInformation')
-    .html("File Name: " + imageObj.filename
-          + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
-                               + imageObj.dimensions[1]
-          + "<br>Levels: " + imageObj.levels)
-    .show();
-}
-
-
-function ShowSlideInformation() {
-  $('#viewEditMenu').hide();
+ViewEditMenu.prototype.function ShowSlideInformation() {
+    this.Tab.PanelOff();
   var viewer = EVENT_MANAGER.CurrentViewer;
   if ( ! viewer) { return; }
 
@@ -295,8 +226,8 @@ function ShowSlideInformation() {
 
 
 // Mirror image
-function FlipHorizontal() {
-    $('#viewEditMenu').hide();
+ViewEditMenu.prototype.function FlipHorizontal() {
+    this.Tab.PanelOff();
     // When the circle button is pressed, create the widget.
     var viewer = EVENT_MANAGER.CurrentViewer;
     if ( ! viewer) { return; }
@@ -308,7 +239,7 @@ function FlipHorizontal() {
 }
 
 
-function SessionAdvance() {
+ViewEditMenu.prototype.function SessionAdvance() {
 // I do not have the session id and it is hard to get!
 //    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
 //          function(data,status){
@@ -318,12 +249,17 @@ function SessionAdvance() {
 //          });
 }
 
-function SessionAdvanceAjax() {
+ViewEditMenu.prototype.function SessionAdvanceAjax() {
 }
 
 
+
+
+
+// Stuff that should be moved to some other file.
+
 // Make the download dialog / function a module.
-var DownloadImage = (function () {
+ViewEditMenu.prototype.var DownloadImage = (function () {
 
     // Dialogs require an object when accept is pressed.
     var DOWNLOAD_WIDGET = undefined;
@@ -345,7 +281,6 @@ var DownloadImage = (function () {
 
         DOWNLOAD_WIDGET.DimensionDialog.Show(1);
     }
-
 
     function InitializeDialogs() {
 
@@ -661,3 +596,76 @@ var DownloadImage = (function () {
 
     return DownloadImage;
 })();
+
+
+
+// Create a selection list of sessions.
+// This does not belong here.
+function InitSlideSelector() {
+    $('<div>')
+        .appendTo('body')
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '35px',
+            'left' : '35px',
+            'width' : '500px',
+            'height' : '700px',
+            'overflow': 'auto',
+            'z-index': '2',
+            'color': '#303030',
+            'font-size': '20px' })
+        .attr('id', 'sessionMenu').hide()
+        .mouseleave(function(){$(this).fadeOut();});
+    $('<ul>').appendTo('#sessionMenu').attr('id', 'sessionMenuSelector');
+    
+    // Create a selector for views.
+    $('<div>')
+        .appendTo('body')
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '135px',
+            'left' : '135px',
+            'width' : '500px',
+            'height' : '700px',
+            'overflow': 'auto',
+            'z-index': '2',
+            'color': '#303030',
+            'font-size': '20px' })
+        .attr('id', 'viewMenu').hide()
+        .mouseleave(function(){$(this).fadeOut();});
+    $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
+    
+    $('<div>')
+        .appendTo('body')
+        .css({
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '30%',
+            'left' : '30%',
+            'width': '40%',
+            'height': '40%',
+            'z-index': '2',
+            'color': '#303030',
+            'font-size': '20px'})
+        .attr('id', 'slideInformation')
+        .hide()
+        .mouseleave(function(){$(this).fadeOut();});
+}
+
+
+
+
+
+
+

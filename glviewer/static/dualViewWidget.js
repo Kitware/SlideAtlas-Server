@@ -8,7 +8,7 @@ var VIEWER1_FRACTION = 1.0;
 function InitDualViewWidget() {
   if ( ! MOBILE_DEVICE) {
     // Todo: Make the button become more opaque when pressed.
-    $('<img>').appendTo('body')
+    $('<img>').appendTo(VIEW_PANEL)
       .css({
         'opacity': '0.4',
         'position': 'absolute',
@@ -21,7 +21,7 @@ function InitDualViewWidget() {
     .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
     .click(function(){ToggleDualView();});
 
-    $('<img>').appendTo('body')
+    $('<img>').appendTo(VIEW_PANEL)
       .hide()
       .css({
         'opacity': '0.4',
@@ -161,7 +161,7 @@ function CreateThumbnailImage(height) {
 function ShowImage(img) {
   //document.body.appendChild(img);
   var disp = 
-    $('<img>').appendTo('body')
+    $('<img>').appendTo(VIEW_PANEL)
       .css({'position': 'absolute',
             'left': '50px',
             'top' : '50px',

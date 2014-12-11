@@ -59,7 +59,7 @@ function NotesWidget() {
 
   // Root of the note tree.
   this.RootNote;
-
+2
   // Iterator is used to implement the next and previous note buttons.
   this.Iterator;
   // For clearing selected GUI setting.
@@ -82,35 +82,6 @@ function NotesWidget() {
   this.AnimationTarget;
 
 
-  if ( ! MOBILE_DEVICE) {
-    this.OpenNoteWindowButton = $('<img>')
-      .appendTo('body')
-      .css({'position': 'absolute',
-            'height': '20px',
-            'width': '20px',
-            'top' : '0px',
-            'right' : '0%',
-            'opacity': '0.6',
-            'z-index': '3'})
-      .attr('src',"webgl-viewer/static/dualArrowRight2.png")
-      .click(function(){self.ToggleNotesWindow();});
-    VIEWER1.AddGuiObject(this.OpenNoteWindowButton, "Top", 0, "Left", 0);
-
-    this.CloseNoteWindowButton = $('<img>')
-      .appendTo('body')
-      .css({'position': 'absolute',
-            'height': '20px',
-            'width': '20x',
-            'top' : '0px',
-            'right' : '0%',
-            'opacity': '0.6',
-            'z-index': '3'})
-      .hide()
-      .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
-      .click(function(){self.ToggleNotesWindow();});
-    VIEWER1.AddGuiObject(this.CloseNoteWindowButton, "Top", 0, "Left", -20);
-  }
-
   this.Window = $('<div>').appendTo('body')
     .css({
       'background-color': 'white',
@@ -122,6 +93,34 @@ function NotesWidget() {
       'z-index': '2'})
     .hide()
     .attr('id', 'NoteWindow');
+
+
+  if ( ! MOBILE_DEVICE) {
+    this.OpenNoteWindowButton = $('<img>')
+      .appendTo(VIEW_PANEL)
+      .css({'position': 'absolute',
+            'height': '20px',
+            'width': '20px',
+            'top' : '0px',
+            'left' : '0px',
+            'opacity': '0.6',
+            'z-index': '6'})
+      .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+      .click(function(){self.ToggleNotesWindow();});
+
+    this.CloseNoteWindowButton = $('<img>')
+      .appendTo(this.Window)
+      .css({'position': 'absolute',
+            'height': '20px',
+            'width': '20x',
+            'top' : '0px',
+            'right' : '0px',
+            'opacity': '0.6',
+            'z-index': '6'})
+      .hide()
+      .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+      .click(function(){self.ToggleNotesWindow();});
+  }
 
 
 
