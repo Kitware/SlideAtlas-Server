@@ -23,9 +23,12 @@ var TEXT_WIDGET_DRAG_TEXT = 3; // Drag text but leave the position the same.
 var TEXT_WIDGET_PROPERTIES_DIALOG = 4;
 
 function TextWidget (viewer, string) {
-  if (viewer == null) {
-    return null;
-  }
+    if (viewer == null) {
+        return null;
+    }
+    
+    if ( typeof string != "string") { string = "";} 
+
 
   // create and cuystomize the dialog properties popup.
   this.Dialog = new Dialog(this);
