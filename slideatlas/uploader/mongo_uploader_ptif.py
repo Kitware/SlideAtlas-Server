@@ -144,11 +144,7 @@ class MongoUploaderPtiff(MongoUploader):
         # colviews.insert({"img" : ObjectId(imageid) ,  "_id" : new_view_id})
         # logger.warning('New view id: %s', new_view_id)
         #
-        # item = RefItem()
-        # item.ref = new_view_id
-        # item.db = ObjectId(imagestore.id)
-        #
-        # session.views.append(item)
+        # session.views.append(new_view_id)
         # session.save()
 
     def upload_level(self, reader, db, imageid, level=0, dry_run=False):

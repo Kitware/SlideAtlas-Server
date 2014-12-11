@@ -5,7 +5,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from slideatlas import create_app
-from slideatlas.models import Collection, Session, RefItem, View
+from slideatlas.models import Collection, Session, View
 
 import logging
 logger = logging.getLogger('slideatlas')
@@ -113,10 +113,8 @@ class MongoUploader(object):
             self.new_view = View(ViewerRecords=[{'Image': ObjectId(self.imageid), 'Database': self.imagestore.id}])
             self.new_view.save()
 
-            item = RefItem(ref=self.new_view.id)
-
             # Insert the view at the top of current views
-            self.session.views.insert(0, item)
+            self.session.views.insert(0, self.new_view.id)
             self.session.save()
 
     def make_reader(self):

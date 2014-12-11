@@ -26,10 +26,7 @@ class SessionViewItemAPI(ItemAPIResource):
     @staticmethod
     def _fetch_view(session, view_id):
         # find the requested view in the session
-        for view_ref in session.views:
-            if view_ref.ref == view_id:
-                break
-        else:
+        if view_id not in session.views:
             abort(404, details='The requested view was not found in the requested session.')
 
         admin_db = models.ImageStore._get_db()
@@ -59,6 +56,8 @@ class SessionViewItemAPI(ItemAPIResource):
         """
         admin_db = models.ImageStore._get_db()
         view = admin_db['views'].find_one({'_id': view_id})
+        # TODO: verify that the view actually exists; but don't enable until
+        #   the database is cleaned of broken links
         if view:
             for child in view.get('Children', list()):
                 SessionViewItemAPI._delete(ObjectId(child))
@@ -66,14 +65,11 @@ class SessionViewItemAPI(ItemAPIResource):
 
     @security.EditSessionRequirement.protected
     def delete(self, session, view_id):
-        # TODO: verify that the view actually exists; but don't enable until
-        #   the database is cleaned of broken links
-
         # delete from session
-        for (pos, view_ref) in enumerate(session.views):
-            if view_ref.ref == view_id:
-                session.views.pop(pos)
-                break
+        try:
+            session.views.remove(view_id)
+        except ValueError:
+            abort(404, details='The requested view was not found in the requested session.')
         session.save()
 
         # delete from views collection
