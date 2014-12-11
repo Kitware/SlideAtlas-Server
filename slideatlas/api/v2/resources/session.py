@@ -1,9 +1,10 @@
 # coding=utf-8
 
-from itertools import ifilter
+from collections import defaultdict
+from itertools import groupby, izip
 
 from bson import ObjectId
-from flask import request, url_for
+from flask import request, url_for, current_app
 
 from slideatlas import models, security
 from ..base import ListAPIResource, ItemAPIResource, AccessAPIResource
@@ -71,31 +72,58 @@ class SessionListAPI(ListAPIResource):
 class SessionItemAPI(ItemAPIResource):
     @staticmethod
     def _get(session, with_hidden_label=False):
-        #unique_image_store_ids = set(ifilter(None, (view_ref.db for view_ref in session.views)))
-        #image_stores_by_id = models.ImageStore.objects.in_bulk(list(unique_image_store_ids))
-        #image_stores_by_id[session.image_store.id] = session.image_store
-        image_stores_by_id = dict()
+        admindb = models.ImageStore._get_db()
 
-        # iterate through the session objects
+        # pre-lookup views, image stores, and images in bulk for speed
+        # TODO: some of this could eventually be merged with the main loop, once
+        #   models are used
+        # TODO: change to an "in_bulk" lookup, once view models are used
+        known_views = admindb['views'].find({'_id': {'$in': session.views}})
+        views_by_id = {view['_id']: view for view in known_views}
+
+        known_image_id_pairs = set()
+        for view in views_by_id.itervalues():
+            try:
+                image_store_id = view['ViewerRecords'][0]['Database']
+                image_id = view['ViewerRecords'][0]['Image']
+            except (KeyError, IndexError):
+                continue
+            known_image_id_pairs.add((image_store_id, image_id))
+
+        known_image_store_ids = set(image_store_id for image_store_id, image_id in known_image_id_pairs)
+        image_stores_by_id = models.ImageStore.objects.in_bulk(list(known_image_store_ids))
+
+        images_by_id = {
+            image['_id']: image
+            for image_store_id, image_id_pairs
+            in groupby(sorted(known_image_id_pairs),
+                       lambda image_id_pair: image_id_pair[0])
+            for image
+            in image_stores_by_id[image_store_id].to_pymongo()['images'].find(
+                {'_id': {'$in': zip(*image_id_pairs)[1]}},
+                {'thumb': False})
+        }
+
+        # build the actual list to be returned
         views_son = list()
         for view_id in session.views:
-            admindb = models.ImageStore._get_db()
-
-            view = admindb['views'].find_one({'_id': view_id})
-            #view = models.View.objects.get(id=view_id).to_mongo()
-            if not view:
+            try:
+                view = views_by_id[view_id]
+            except KeyError:
+                current_app.logger.error('Session %s references a missing view: %s', session.id, view_id)
                 continue
 
-            image_id = view['ViewerRecords'][0]['Image']
-            image_store_id = view['ViewerRecords'][0]['Database']
+            try:
+                image_store_id = view['ViewerRecords'][0]['Database']
+                image_id = view['ViewerRecords'][0]['Image']
+            except (KeyError, IndexError):
+                current_app.logger.error('View %s does not contain any valid image reference', view_id)
+                continue
 
             # get 'image'
-            if image_store_id not in image_stores_by_id:
-                image_stores_by_id[image_store_id] = models.ImageStore.objects.get(id=image_store_id)
-            image_store = image_stores_by_id[image_store_id].to_pymongo()
-            image = image_store['images'].find_one({'_id': image_id}, {'thumb': False})
-
+            image = images_by_id.get(image_id)
             if not image:
+                current_app.logger.error('View %s references a missing image: %s/%s', view_id, image_store_id, image_id)
                 continue
 
             # determine if view is hidden and will be skipped
@@ -110,6 +138,7 @@ class SessionItemAPI(ItemAPIResource):
             elif 'label' in image:
                 view_label = image['label']
             else:
+                current_app.logger.warning('View %s has no label set or inherited', view_id)
                 view_label = ""
             view_hidden_label = view.get('HiddenTitle', '')
 
