@@ -7,8 +7,8 @@
 var ACTIVE_VIEWER;
 var VIEW_BROWSER_INFO;
 
-function ShowViewBrowser() {
-  ACTIVE_VIEWER = EVENT_MANAGER.CurrentViewer;
+function ShowViewBrowser(viewer) {
+  ACTIVE_VIEWER = viewer;
   if ( ! ACTIVE_VIEWER) { return; }
 
   $('#viewBrowser').show();
@@ -16,22 +16,24 @@ function ShowViewBrowser() {
 
 function InitViewBrowser() {
     // A view browser (short cut menu) for the text input.
-    $('<div>').appendTo('body').hide().css({
-        'background-color': 'white',
-        'opacity': '0.9',
-        'border-radius': '5px',
-        'position': 'absolute',
-        'top' : '10%',
-        'height' : '80%',
-        'left' : '20%',
-        'width': '60%',
-        'z-index': '2',
-        'text-align': 'left',
-        'color': '#303030',
-        'font-size': '20px',
-        'overflow': 'scroll'
-    }).attr('id', 'viewBrowser')
-      .mouseleave(function () {$('#viewBrowser').hide();});
+    $('<div>')
+        .appendTo(VIEW_PANEL)
+        .hide().css({
+            'background-color': 'white',
+            'opacity': '0.9',
+            'border-radius': '5px',
+            'position': 'absolute',
+            'top' : '10%',
+            'height' : '80%',
+            'left' : '20%',
+            'width': '60%',
+            'z-index': '7',
+            'text-align': 'left',
+            'color': '#303030',
+            'font-size': '20px',
+            'overflow': 'scroll'})
+        .attr('id', 'viewBrowser')
+        .mouseleave(function () {$('#viewBrowser').hide();});
 
     ReloadViewBrowserInfo();
 }

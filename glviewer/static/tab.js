@@ -12,9 +12,9 @@ Tab = (function () {
 
         if ( ! MOBILE_DEVICE) {
         this.Div = $('<div>')
-            .appendTo('body')
+            .appendTo(VIEW_PANEL)
             .attr('id', 'debug')
-            .css({'z-index' : '3',
+            .css({'z-index' : '5',
                   'position': 'absolute'});
 
         // Button has to have the border (not the tab) to be covered by Div.
@@ -22,7 +22,8 @@ Tab = (function () {
             .appendTo(this.Div)
             .attr('type','image')
             .attr('src',imageSrc)
-            .css({'padding' : '2px',
+            .css({'height': '28px',
+                  'padding' : '2px',
                   'border-width': '1px',
                   'border-style': 'solid',
                   'border-radius': '5px',
@@ -30,7 +31,7 @@ Tab = (function () {
                   'opacity': '0.6',
                   'background-color': '#FFF',
                   'position': 'relative',
-                  'z-index' : '2'})
+                  'z-index' : '5'})
             .click(function(){self.TogglePanel();});
 
         this.Panel = $('<div>')
@@ -45,7 +46,7 @@ Tab = (function () {
                 'position': 'absolute',
                 'bottom': '37px',
                 'left':  '-5px',
-                'z-index': '1',
+                'z-index': '4',
                 'padding': '2px 2px 0px 2px'});
         }
 

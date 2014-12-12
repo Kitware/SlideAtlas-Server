@@ -4,84 +4,55 @@
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
-// Cache is the source for the image tiles.
-function View (viewport, layer, hide) { // connectome: remove cache arg to constructor
-  for (var i = 0; i < 4; ++i) {
-    viewport[i] = Math.round(viewport[i]);
-  }
-  // Allow for border.
-  viewport[2] -=2;
-  viewport[3] -=2;
 
-  // connectome : default section so we cen set cache
-  this.Section = new Section;
-
-  // connectome: remove Cache ivar.
-  this.Viewport = viewport;
-  this.Camera = new Camera(viewport[2], viewport[3]);
-  this.Tiles = [];
-  this.OutlineColor = [0,0.5,0];
-  this.OutlineMatrix = mat4.create();
-  this.OutlineCamMatrix = mat4.create();
-
-  // 2d canvas
-  if ( ! GL) {
-      // Add a new canvas.
-      this.Canvas = $('<canvas>')
-          .css({
-              'position': 'absolute',
-              'left' : viewport[0]+"px",
-              'width': viewport[2]+"px",
-              'bottom' : viewport[1]+"px",
-              'height': viewport[3]+"px",
-              'z-index': layer.toString(),
-              'border-style': 'solid',
-              'border-width': '1px'
-          });
-      if ( ! hide) {
-          this.Canvas.appendTo(CANVAS)
-      }
-
-      this.Context2d = this.Canvas[0].getContext("2d");
-  }
+function View () {
+    // connectome : default section so we cen set cache
+    this.Section = new Section;
+    
+    // connectome: remove Cache ivar.
+    this.Camera = new Camera();
+    this.Tiles = []; // Not really used
+    this.OutlineColor = [0,0.5,0];
+    this.OutlineMatrix = mat4.create();
+    this.OutlineCamMatrix = mat4.create();
+    
+    // 2d canvas
+    if ( ! GL) {
+        // Add a new canvas.
+        this.Canvas = $('<canvas>')
+            .css({'border-style': 'solid',
+                  'border-width': '1px'});
+        this.Context2d = this.Canvas[0].getContext("2d");
+    }
 }
 
-View.prototype.CaptureImage = function() {
-    var url = this.Canvas[0].toDataURL();
-    var newImg = document.createElement("img"); //create
-    newImg.src = url;
-    return newImg;
-}
-
-
-View.prototype.GetBounds = function() {
-  return this.Section.GetBounds();
-}
-View.prototype.GetLeafSpacing = function() {
-  return this.Section.GetLeafSpacing();
-}
-
-
-// connectome
-View.prototype.AddCache = function(cache) {
-  if ( ! cache) { return; }
-  this.Section.Caches.push(cache);
-}
-
-
-View.prototype.SetCache = function(cache) {
-  // connectome
-  if ( ! cache) {
-    this.Section.Caches = [];
-  } else {
-    this.Section.Caches = [cache];
-  }
-}
-
-View.prototype.GetCache = function() {
-  // connectome: This makes less sense with a section with many caches.
-  // TODO: try to get rid of this
-  return this.Section.Caches[0];
+// Only new thing here is appendTo
+// TODO get rid of this eventually (SetViewport).
+View.prototype.InitializeViewport = function(viewport, layer, hide) {
+    for (var i = 0; i < 4; ++i) {
+        viewport[i] = Math.round(viewport[i]);
+    }
+    // Allow for border.
+    viewport[2] -=2;
+    viewport[3] -=2;
+    
+    this.Viewport = viewport;
+    this.Camera.SetViewport(viewport);
+    
+    // 2d canvas
+    if ( ! GL) {
+        // Add a new canvas.
+        this.Canvas
+            .css({'position': 'absolute',
+                  'left' : viewport[0]+"px",
+                  'width': viewport[2]+"px",
+                  'bottom' : viewport[1]+"px",
+                  'height': viewport[3]+"px",
+                  'z-index': layer.toString()});
+        if ( ! hide) {
+            this.Canvas.appendTo(VIEW_PANEL)
+        }
+    }
 }
 
 View.prototype.GetViewport = function() {
@@ -114,6 +85,48 @@ View.prototype.SetViewport = function(viewport) {
   this.Viewport = viewport;
   this.Camera.SetViewport(viewport);
 }
+
+
+
+
+View.prototype.CaptureImage = function() {
+    var url = this.Canvas[0].toDataURL();
+    var newImg = document.createElement("img"); //create
+    newImg.src = url;
+    return newImg;
+}
+
+
+View.prototype.GetBounds = function() {
+    return this.Section.GetBounds();
+}
+View.prototype.GetLeafSpacing = function() {
+    return this.Section.GetLeafSpacing();
+}
+
+
+// connectome
+View.prototype.AddCache = function(cache) {
+  if ( ! cache) { return; }
+  this.Section.Caches.push(cache);
+}
+
+
+View.prototype.SetCache = function(cache) {
+  // connectome
+  if ( ! cache) {
+    this.Section.Caches = [];
+  } else {
+    this.Section.Caches = [cache];
+  }
+}
+
+View.prototype.GetCache = function() {
+  // connectome: This makes less sense with a section with many caches.
+  // TODO: try to get rid of this
+  return this.Section.Caches[0];
+}
+
 
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;

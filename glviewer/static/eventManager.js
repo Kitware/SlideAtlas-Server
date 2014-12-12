@@ -79,28 +79,34 @@ EventManager.prototype.ChooseViewer = function() {
 }
 
 EventManager.prototype.SetMousePositionFromEvent = function(event) {
-  this.SystemEvent = event;
-  if (event.clientX && event.clientY) {
-    // Translate to coordinate of canvas
-    // There has to be a better what to get the offset of the canvas relative to the body (or screen even).
-    // Here I loop through the parents accumulating the offset.
-    var docObj = this.Canvas;
-    var xOffset = docObj.offsetLeft;
-    var yOffset = docObj.offsetTop;
-    while (docObj.offsetParent != null) {
-      docObj = docObj.offsetParent;
-      xOffset += docObj.offsetLeft;
-      yOffset += docObj.offsetTop;
-      }
-    // Scoll bars on html body element.
-    var body = document.getElementsByTagName("body");
-    xOffset -= body[0].scrollLeft;
-    yOffset -= body[0].scrollTop;
+    this.SystemEvent = event;
+    if (event.offsetX && event.offsetY) {
+        
 
-    this.MouseX = event.clientX-xOffset;
-    this.MouseY = event.clientY-yOffset;
-    this.MouseTime = (new Date()).getTime();
-  }
+        // Translate to coordinate of canvas
+        // There has to be a better what to get the offset of the canvas relative to the body (or screen even).
+        // Here I loop through the parents accumulating the offset.
+        /* I do not think this is necessary anymore. I introduced the VIEW_PANEL.
+        var docObj = this.Canvas;
+        var xOffset = docObj.offsetLeft;
+        var yOffset = docObj.offsetTop;
+        while (docObj.offsetParent != null) {
+            docObj = docObj.offsetParent;
+            xOffset += docObj.offsetLeft;
+            yOffset += docObj.offsetTop;
+        }
+        // Scoll bars on html body element.
+        var body = document.getElementsByTagName("body");
+        xOffset -= body[0].scrollLeft;
+        yOffset -= body[0].scrollTop;
+        this.MouseX = event.clientX-xOffset;
+        this.MouseY = event.clientY-yOffset;
+        */
+
+        this.MouseX = event.offsetX;
+        this.MouseY = event.offsetY;
+        this.MouseTime = (new Date()).getTime();
+    }
 }
 
 
@@ -148,30 +154,32 @@ function ShowPendingPropertiesMenu() {
 }
 
 EventManager.prototype.HandleMouseUp = function(event) {
-  if ( ! this.MouseDown) {
-    // This will occur if on double clicks (and probably if mouse down was outside canvas).
-    return;
-  }
-  this.SetMousePositionFromEvent(event);
-  this.MouseDown = false;
-
-  this.ChooseViewer();
-  if (this.CurrentViewer) {
-    this.CurrentViewer.HandleMouseUp(this);
-  }
-
-  // Record time so we can detect double click.
-  var date = new Date();
-  this.MouseUpTime = date.getTime();
-
-  // Should we let the viewer handle this?
-  // Can it supress on double click?
-  if (event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
-    // Wait to make sure this is not a double click.
-    PENDING_SHOW_PROPERTIES_MENU = true;
-    SHOW_PROPERTIES_MOUSE_POSITION = [event.clientX, event.clientY];
-    setTimeout(function(){ShowPendingPropertiesMenu();},200);
-  }
+    if ( ! this.MouseDown) {
+        // This will occur if on double clicks (and probably if mouse down was outside canvas).
+        return;
+    }
+    this.SetMousePositionFromEvent(event);
+    this.MouseDown = false;
+    
+    this.ChooseViewer();
+    if (this.CurrentViewer) {
+        this.CurrentViewer.HandleMouseUp(this);
+    }
+    
+    // Record time so we can detect double click.
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    
+    // Should we let the viewer handle this?
+    // Can it supress on double click?
+    /*
+      if (event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
+      // Wait to make sure this is not a double click.
+      PENDING_SHOW_PROPERTIES_MENU = true;
+      SHOW_PROPERTIES_MOUSE_POSITION = [event.clientX, event.clientY];
+      setTimeout(function(){ShowPendingPropertiesMenu();},200);
+      }
+    */
 }
 
 // Forward event to view.
