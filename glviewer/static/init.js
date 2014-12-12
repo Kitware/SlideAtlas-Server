@@ -610,6 +610,7 @@ function cancelContextMenu(e) {
     return false;
 }
 
+var VIEW_MENU;
 
 // Main function called by the default view.html template
 function StartView() {
@@ -639,7 +640,6 @@ function StartView() {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
     InitViews();
-    InitViewEditMenus();
     InitViewBrowser();
     InitDualViewWidget();
     InitNotesWidget();
@@ -659,7 +659,7 @@ function StartView() {
         VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
-    CONFERENCE_WIDGET = new ConferenceWidget();
+    //CONFERENCE_WIDGET = new ConferenceWidget();
 
     $(window).resize(function() {
         handleResize();
@@ -690,14 +690,9 @@ function StartView() {
 
     if ( ! MOBILE_DEVICE) {
         InitSlideSelector();
-
         var viewMenu1 = new ViewEditMenu(VIEWER1);
-        VIEWER1.AddGuiObject(viewMenu1.Tab.Div, "Bottom", 0, "Right", 105);
-        new ToolTip(viewMenu1.Tab.Div, "View Menu");
-
+        VIEW_MENU = viewMenu1;
         var viewMenu2 = new ViewEditMenu(VIEWER2);
-        VIEWER2.AddGuiObject(viewMenu2.Tab.Div, "Bottom", 0, "Right", 105);
-        new ToolTip(viewMenu2.Tab.Div, "View Menu");
     }/**/
 
     eventuallyRender();

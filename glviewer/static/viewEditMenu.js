@@ -1,80 +1,100 @@
-// TODO: HISTORY_MENU_ITEM
-//        .attr('id', 'dualViewCopyZoom') 
-//    this.SessiosList = $('<div>')
+// TODO: 
 //    $('#slideInformation')
-
+//  ShowViewBrowser();});
 // get rid of these.
+
 //function ComparisonSaveAnnotations() {} (used wrongly in text widget.)
 //function ShowViewerEditMenu(viewer) {
+
+// Empty
+//ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 
 
 
 function ViewEditMenu (viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
-    this.Tab = new Tab("MENU_IMAGE_URL");
+    this.Tab = new Tab("/webgl-viewer/static/Menu.jpg");
     // I think we can get rid of this "GuiObject" stuff.
     // css positioning can handle it now.
-    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 60);
-    new ToolTip(this.Tab.Div, "View Options");
+    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 118);
+    new ToolTip(this.Tab.Div, "View Menu");
 
     this.Tab.Panel
-        .css({'width': '200px',
-              'right': '0px'})
-        .mouseleave(function(){$(this).fadeOut();}); 
-    // ^^^^ Probably not the best way to do this
+        .css({'left': '-60px',
+              'width': '170px',
+              'padding': '0px 2px'});
 
-    $('<div>')
+    $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Load Slide")
-        .click(function(){self.ShowViewBrowser();});
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){self.Tab.PanelOff(); ShowViewBrowser(self.Viewer);});
     if (EDIT) {
-        $('<div>')
+        $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Save View")
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
             .click(function(){self.SaveView();});
     }
-    $('<div>')
+    $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Download Image")
-        .click(function(){self.DownloadImage();});
-    $('<div>')
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){self.Tab.PanelOff(); DownloadImage(self.Viewer);});
+    $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Slide Info")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
         .click(function(){self.ShowSlideInformation();});
     
     // Test for showing coverage of view histor.
-    this.HistoryMenuItem = $('<div>')
+    this.HistoryMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
         .text("History On")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
         .click(function(){self.ToggleHistory();});
     
     // Hack until we have some sort of scale.
-    this.CopyZoomMenuItem = $('<div>')
+    this.CopyZoomMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
-        .attr('id', 'dualViewCopyZoom') 
         .text("Copy Zoom")
         .hide()
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
         .click(function(){self.CopyZoom();});
-    $('<div>').appendTo(this.Tab.Panel)
+    $('<button>').appendTo(this.Tab.Panel)
         .text("Flip Horizontal")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
         .click(function(){self.FlipHorizontal();});
     
     if(window.PLUGINS && window.PLUGINS.indexOf("ScarRatio") >= 0) {
-        $('<div>').appendTo(this.Tab.Panel)
+        $('<button>').appendTo(this.Tab.Panel)
             .text('Color thresholding')
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
             .click(function() {pluginScarRatio.Init();});
     }
     
     // I need some indication that the behavior id different in edit mode.
     // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
-        $('<div>').appendTo(this.Tab.Panel)
+        $('<button>').appendTo(this.Tab.Panel)
             .text("Save Overview Bounds")
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
             .click(function(){self.SetViewBounds();});
     } else {
-        $('<div>').appendTo(this.Tab.Panel)
+        $('<button>').appendTo(this.Tab.Panel)
             .text("Set Overview Bounds")
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
             .click(function(){self.SetViewBounds();});
     }
 
@@ -84,7 +104,7 @@ function ViewEditMenu (viewer) {
 ViewEditMenu.prototype.ToggleHistory = function() {
     this.Tab.PanelOff();
 
-    this.Viewer.HistoryFlag = ! viewer.HitoryFlag;
+    this.Viewer.HistoryFlag = ! this.Viewer.HitoryFlag;
     if (this.Viewer.HistoryFlag) {
         this.HistoryMenuItem.text("History Off")
     } else {
@@ -109,7 +129,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 }
 
 // Add bounds to view to overide image bounds.
-ViewEditMenu.prototype.function = SetViewBounds() {
+ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
     var note = NOTES_WIDGET.GetCurrentNote();
@@ -195,7 +215,7 @@ ViewEditMenu.prototype.CopyZoom = function() {
     this.Viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
 }
 
-ViewEditMenu.prototype.ShowSlideInformation= function() {
+ViewEditMenu.prototype.ShowSlideInformation = function() {
     this.Tab.PanelOff();
     
     imageObj = this.Viewer.MainView.Section.Caches[0].Image;
@@ -209,24 +229,8 @@ ViewEditMenu.prototype.ShowSlideInformation= function() {
 }
 
 
-ViewEditMenu.prototype.function ShowSlideInformation() {
-    this.Tab.PanelOff();
-  var viewer = EVENT_MANAGER.CurrentViewer;
-  if ( ! viewer) { return; }
-
-  imageObj = viewer.MainView.Section.Caches[0].Image;
-
-  $('#slideInformation')
-    .html("File Name: " + imageObj.filename
-          + "<br>Dimensions: " + imageObj.dimensions[0] + ", "
-                               + imageObj.dimensions[1]
-          + "<br>Levels: " + imageObj.levels)
-    .show();
-}
-
-
 // Mirror image
-ViewEditMenu.prototype.function FlipHorizontal() {
+ViewEditMenu.prototype.FlipHorizontal = function() {
     this.Tab.PanelOff();
     // When the circle button is pressed, create the widget.
     var viewer = EVENT_MANAGER.CurrentViewer;
@@ -239,7 +243,7 @@ ViewEditMenu.prototype.function FlipHorizontal() {
 }
 
 
-ViewEditMenu.prototype.function SessionAdvance() {
+ViewEditMenu.prototype.SessionAdvance = function() {
 // I do not have the session id and it is hard to get!
 //    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
 //          function(data,status){
@@ -249,7 +253,7 @@ ViewEditMenu.prototype.function SessionAdvance() {
 //          });
 }
 
-ViewEditMenu.prototype.function SessionAdvanceAjax() {
+ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 }
 
 
@@ -259,18 +263,22 @@ ViewEditMenu.prototype.function SessionAdvanceAjax() {
 // Stuff that should be moved to some other file.
 
 // Make the download dialog / function a module.
-ViewEditMenu.prototype.var DownloadImage = (function () {
+var DownloadImage = (function () {
 
     // Dialogs require an object when accept is pressed.
     var DOWNLOAD_WIDGET = undefined;
+    var VIEWER;
 
-    function DownloadImage() {
+    function DownloadImage(viewer) {
+        // Use a global so apply callback can get the viewer.
+        VIEWER = viewer;
+
         if ( ! DOWNLOAD_WIDGET) {
             InitializeDialogs();
         }
 
         // Setup default dimensions.
-        var viewport = EVENT_MANAGER.CurrentViewer.GetViewport();
+        var viewport = viewer.GetViewport();
         var d = DOWNLOAD_WIDGET.DimensionDialog;
         d.PxWidthInput.val(viewport[2]);
         d.PxHeightInput.val(viewport[3]);
@@ -505,14 +513,13 @@ ViewEditMenu.prototype.var DownloadImage = (function () {
                 // The dialog hides itself.
             } else {
                 // Trigger the process to start rendering the image.
-                var viewer = EVENT_MANAGER.CurrentViewer;
-                DOWNLOAD_WIDGET.Viewer = viewer;
+                DOWNLOAD_WIDGET.Viewer = VIEWER;
                 var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
                 var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
                 // Show the dialog that empowers the user to cancel while rendering.
                 DOWNLOAD_WIDGET.CancelDialog.Show(1);
                 // We need a finished callback to hide the cancel dialog.
-                viewer.SaveLargeImage("slide-atlas.png", width, height,
+                VIEWER.SaveLargeImage("slide-atlas.png", width, height,
                                       function () {
                                           // Rendering has finished.
                                           // The user can no longer cancel.
@@ -603,7 +610,7 @@ ViewEditMenu.prototype.var DownloadImage = (function () {
 // This does not belong here.
 function InitSlideSelector() {
     $('<div>')
-        .appendTo('body')
+        .appendTo(VIEW_PANEL)
         .css({
             'background-color': 'white',
             'border-style': 'solid',
@@ -615,7 +622,7 @@ function InitSlideSelector() {
             'width' : '500px',
             'height' : '700px',
             'overflow': 'auto',
-            'z-index': '2',
+            'z-index': '4',
             'color': '#303030',
             'font-size': '20px' })
         .attr('id', 'sessionMenu').hide()
@@ -624,7 +631,7 @@ function InitSlideSelector() {
     
     // Create a selector for views.
     $('<div>')
-        .appendTo('body')
+        .appendTo(VIEW_PANEL)
         .css({
             'background-color': 'white',
             'border-style': 'solid',
@@ -636,7 +643,7 @@ function InitSlideSelector() {
             'width' : '500px',
             'height' : '700px',
             'overflow': 'auto',
-            'z-index': '2',
+            'z-index': '4',
             'color': '#303030',
             'font-size': '20px' })
         .attr('id', 'viewMenu').hide()
@@ -644,7 +651,7 @@ function InitSlideSelector() {
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
     
     $('<div>')
-        .appendTo('body')
+        .appendTo(VIEW_PANEL)
         .css({
             'background-color': 'white',
             'border-style': 'solid',
@@ -655,7 +662,7 @@ function InitSlideSelector() {
             'left' : '30%',
             'width': '40%',
             'height': '40%',
-            'z-index': '2',
+            'z-index': '4',
             'color': '#303030',
             'font-size': '20px'})
         .attr('id', 'slideInformation')

@@ -199,7 +199,8 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height,
     var cam = this.GetCamera();
 
     // Clone the main view.
-    var view = new View(viewport, 1, true);
+    var view = new View();
+    view.InitializeViewport(viewport, 1, true);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);

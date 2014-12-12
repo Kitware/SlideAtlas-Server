@@ -18,7 +18,7 @@ function AnnotationWidget (viewer) {
     
     if ( ! MOBILE_DEVICE) {
         this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
-        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 150);
+        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 155);
         new ToolTip(this.Tab.Div, "Annotation");
 
 
@@ -27,7 +27,7 @@ function AnnotationWidget (viewer) {
         this.VisibilityDiv = $('<div>')
             .appendTo(this.Tab.Panel)
             .css({'height': '28px',
-                  'opacity': '0.6',
+                  'opacity': '0.9',
                   'overflow': 'hidden',
                   'position': 'relative'})
             .click(function(){self.ToggleVisibility();});
@@ -94,7 +94,7 @@ function AnnotationWidget (viewer) {
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/select_lasso.png")
             .click(function(){self.NewLasso();});
-        this.FillButton = $('<img>')
+        /*this.FillButton = $('<img>')
             .appendTo(this.Tab.Panel)
             .css({'height': '28px',
                   'opacity': '0.6',
@@ -105,6 +105,7 @@ function AnnotationWidget (viewer) {
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/brush1.jpg")
             .click(function(){self.NewFill();});
+            */
     }
 }
 
@@ -217,7 +218,8 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
         widget.Deactivate();
     }
     button.Pressed = true;
-    button.css({'border-style': 'inset'});
+    button.css({'border-style': 'inset',
+                'opacity': '1.0'});
 
     this.SetVisibility(ANNOTATION_ON);
     widget = new WidgetType(this.Viewer, true);
@@ -226,7 +228,8 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     // Button remains "pressed" until the circle deactivates.
     widget.DeactivateCallback = 
         function () {
-            button.css({'border-style': 'outset'});
+            button.css({'border-style': 'outset',
+                        'opacity': '0.6'});
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }
