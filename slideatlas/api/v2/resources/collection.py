@@ -23,9 +23,7 @@ class CollectionListAPI(ListAPIResource):
             collection_son['_access'] = str(operation)
             return collection_son
         collections_son = map(_to_collection_son, collections_with_accesses)
-
-        return dict(collections=collections_son)
-
+        return collections_son
 
     def post(self):
         abort(501)  # Not Implemented
@@ -38,7 +36,7 @@ class CollectionItemAPI(ItemAPIResource):
         collection_son = collection.to_son()
         sessions = models.Session.objects(collection=collection)
         collection_son['sessions'] = sessions.to_son(only_fields=('label', 'type'))
-        return dict(collections=[collection_son])
+        return collection_son
 
     def put(self, collection):
         abort(501)  # Not Implemented
