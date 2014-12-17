@@ -50,9 +50,6 @@ class ImageStoreItemAPI(ItemAPIResource):
     def put(self, collection):
         abort(501)  # Not Implemented
 
-    def patch(self, collection):
-        abort(501)  # Not Implemented
-
     def delete(self):
         abort(501)  # Not Implemented
 

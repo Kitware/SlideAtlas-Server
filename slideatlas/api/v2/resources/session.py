@@ -172,9 +172,6 @@ class SessionItemAPI(ItemAPIResource):
     def put(self, session):
         abort(501)  # Not Implemented
 
-    def patch(self, session):
-        abort(501)  # Not Implemented
-
     @security.AdminSessionRequirement.protected
     def delete(self, session):
         for view_id in session.views:

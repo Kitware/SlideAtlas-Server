@@ -43,9 +43,6 @@ class CollectionItemAPI(ItemAPIResource):
     def put(self, collection):
         abort(501)  # Not Implemented
 
-    def patch(self, collection):
-        abort(501)  # Not Implemented
-
     def delete(self, collection):
         abort(501)  # Not Implemented
 
