@@ -1,9 +1,0 @@
-[submodule "libtiff"]
-    path = slideatlas/ptiffstore/tpl/tiff-4.0.3
-    url = https://github.com/vadz/libtiff.git
-    ignore = untracked
-[submodule "pylibtiff"]
-    path = slideatlas/ptiffstore/tpl/pylibtiff-read-only
-    url = https://github.com/brianhelba/pylibtiff.git
-    ignore = untracked
-
