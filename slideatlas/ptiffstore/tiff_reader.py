@@ -8,49 +8,16 @@ On windows requires C:\Python27\Lib\site-packages\libtiff in PATH, on might
 require that in LD_LIBRARY_PATH
 """
 
-import sys
-import svgwrite
-from svgwrite import px
-import cStringIO as StringIO
 import base64
 import os
 
-tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
-
-if os.name == 'nt':
-    pylibtiffpath = os.path.join(
-        tplpath, "pylibtiff-read-only", "build", "lib.win-amd64-2.7")
-else:
-    pylibtiffpath = os.path.join(
-        tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-
-sys.path = [pylibtiffpath] + sys.path
-
-
-class writer(object):
-    log = []
-
-    def write(self, data):
-        self.log.append(data)
-
 from xml.etree import cElementTree as ET
-
-from PIL import Image
-# Code to debug library loading
-#libname = find_library("libtiff")
-#lib = ctypes.cdll.LoadLibrary(libname)
 
 from libtiff import TIFF
 
-#tif = libtiff.tiff.TIFFfile("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif")
-# for atag in tiff.IFD:
 from libtiff.libtiff_ctypes import libtiff
 from libtiff.libtiff_ctypes import c_ttag_t
 
-#tif = TIFF.open("c:\\Users\\dhanannjay.deo\\Downloads\\example.tif","r")
-
-#table = tif.GetField("JPEGTables", count=2)
-#table = tif.GetField("colormap")
 import ctypes
 
 from ctypes import create_string_buffer

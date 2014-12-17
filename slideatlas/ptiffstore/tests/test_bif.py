@@ -1,18 +1,5 @@
 # test_bif.py
-import os
 import sys
-
-tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../tpl"))
-
-if os.name == 'nt':
-    pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only",
-                                 "build", "lib.win-amd64-2.7")
-else:
-    pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only",
-                                 "build", "lib.linux-x86_64-2.7")
-
-sys.path = [pylibtiffpath] + sys.path
-print pylibtiffpath
 import ctypes
 
 # print tplpath

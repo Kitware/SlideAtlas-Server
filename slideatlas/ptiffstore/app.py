@@ -4,11 +4,6 @@ import flask
 from flask import request
 import sys
 
-# tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__),"..", "tpl"))
-# pylibtiffpath = os.path.join(tplpath, "pylibtiff-read-only", "build", "lib.linux-x86_64-2.7")
-#
-# sys.path = [pylibtiffpath] + sys.path
-
 import os
 tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
 import logging

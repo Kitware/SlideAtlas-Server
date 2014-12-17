@@ -21,6 +21,7 @@ lockfile==0.10.2
 
 # For tilereader TODO potentially remove it
 
+-e svn+http://pylibtiff.googlecode.com/svn/trunk/
 Pillow==2.4.0
 svgwrite==1.1.5
 

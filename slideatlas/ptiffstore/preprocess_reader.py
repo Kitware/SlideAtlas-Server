@@ -1,21 +1,17 @@
-# import sys
 import os
-# from base_reader import InvertedReader
-# from common_utils import get_max_depth
-tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
 
-# import openslide
 from openslide_reader import OpenslideReader
 import subprocess
 
 __all__ = ("PreprocessReader", )
 
 import logging
+
 logger = logging.getLogger('slideatlas')
 from lockfile import LockFile
 
-class PreprocessReader(OpenslideReader):
 
+class PreprocessReader(OpenslideReader):
     def __init__(self):
         logger.info('PreprocessReader init')
         super(PreprocessReader, self).__init__()
@@ -101,6 +97,7 @@ class PreprocessReaderJp2(PreprocessReader):
             os.remove(output1)
         lock.release()
         return output2
+
 
 if __name__ == "__main__":
     reader = PreprocessReaderJp2()

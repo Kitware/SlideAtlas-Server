@@ -1,80 +1,44 @@
-To install dependencies
------------------------
+Getting started with SlideAtlas
+-------------------------------
 
-Requires python 2.7x, and pip.
+This document describes setting up SlideAtlas on linux, in particular on ubuntu releases 12.04 and 14.04,
+but it should be easy to interpret these instructions for platforms as well.
 
-Click here to install `python <http://www.python.org/download/>`_ and `pip <http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows>`_ on windows.
-
-Also please make sure that the python and scripts ("c:/python27/Scripts") are in PATH environment variable.
-
-To install dependencies mentioned in **requirements.txt**
+Python, pip and subversion-tools required, they can be installed by using
 
 .. code-block:: none
 
-   $ pip install -r requirements.txt
-
+   $ sudo apt-get install subversion-tools python2.7 python-pip
 
 Third party libraries
 ---------------------
 
-Third party dependencies / libraries (TPL) are included as submodules.
+SlideAtlas depends on several third party softwares and expects them to be installed on the system.
 
+ubunbu 14.04 lts
+~~~~~~~~~~~~~~~~
 
-Few packages may be required for compiling on ubunbu 12.04 lts
+Required packages libtiff5-dev and openslide-tools are both available in ubuntu release 14.04
 
-.. code-block:: none
-
-   $ sudo apt-get install build-essential libjpeg-dev
-
-The procedure to build TPL is as follows -
-
-Update the submodules
+Install them using
 
 .. code-block:: none
 
-   $ git submodule update --init
+   $ sudo apt-get install openslide-tools libtiff5-dev
 
+ubunbu 12.04 lts
+~~~~~~~~~~~~~~~~
 
-Building libTIFF
-----------------
-
-On Linux
-~~~~~~~~
+Latest versions of libtiff and openslide must be compiled from source. Following packages are required for successful compilation
 
 .. code-block:: none
 
-   $ cd slideatlas/ptiffstore/tpl/tiff-4.0.3/
-   $ ./configure
+   $ sudo apt-get install sudo apt-get install autoconf automake libtool pkg-config libgtk2.0-dev
+   $ sudo apt-get install libxml2-dev libjpeg-dev liblzma-dev liblz-dev zlib1g-dev lzma libmatio-dev
+   $ sudo apt-get install libexif-dev libfftw3-dev swig python-dev liborc-0.4-dev libsqlite3-dev
 
-Please make sure JPEG support is supported in the configuration. Now build as
-
-.. code-block:: none
-
-   $ make
-
-On Windows
-~~~~~~~~~~
-
-Start a console with visual studio build environment, for example start visual studio 2009 x64 86_64 command prompt
-
-   $ cd slideatlas/ptiffstore/tpl/tiff-4.0.3/
-   $ nmake /f Makefile.vc
-
-Building pylibtiff
-------------------
-
-.. code-block:: none
-
-   $ cd ../pylibtiff-read-only
-   $ python setup.py build
-
-Building openslide
------------------------------
-
-Slideatlas "expects" openslide installed. Instructions for building are as follows-
-
-Libtiff4
-~~~~~~~~
+Building Libtiff4
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 
@@ -86,8 +50,8 @@ Libtiff4
   make
   sudo make install
 
-Openslide
-~~~~~~~~~
+Building Openslide
+~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 
@@ -98,9 +62,24 @@ Openslide
   sudo make install
 
 
-.. note::
+.. warning::
 
   If any plugins are enabled, their dependencies should be installed accordingly. For more details see :ref:`plugins`
+
+
+Install python packages
+-----------------------
+
+Once third party libraries are installed on the system, the required python packages mentioned
+in **requirements.txt** can be installed with
+
+.. code-block:: none
+
+   $ sudo pip install -r requirements.txt
+
+.. note:: none
+
+    Some more packages may be required at this stage
 
 
 Building documentation
@@ -124,15 +103,15 @@ CMake is required for testing.
    $ ctest -S ctest_driver.cmake
 
 
-Run
-===
+Running SlideAtlas
+------------------
 
 .. code-block:: shell-session
 
   $(export SLIDEATLAS_CONFIG_PATH=/home/dhan/projects/slideatlas-config-kitware/localhost/site_slideatlas.py ;  gunicorn -k flask_sockets.worker run_websockets:app -b localhost:8080 --log-level=debug)
 
 To run without websockets support
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 

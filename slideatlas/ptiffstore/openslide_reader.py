@@ -1,8 +1,6 @@
 import os
 from base_reader import InvertedReader
 from common_utils import get_max_depth
-tplpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "tpl"))
-
 import openslide
 
 import logging
