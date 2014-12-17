@@ -1,0 +1,13 @@
+---
+
+  - name: install slideatlas dependencies
+    apt: name={{ item }} state=present
+    sudo: yes
+    with_items:
+      - libpng12-dev
+      - libfreetype6-dev
+      - libxft-dev
+
+  - name: install specified python requirements
+    pip: requirements=/vagrant/requirements.txt
+    sudo: yes

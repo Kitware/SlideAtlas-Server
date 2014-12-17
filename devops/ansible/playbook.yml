@@ -2,3 +2,5 @@
 - hosts: all
   roles:
     - role: mongodb
+    - role: openslide
+    - role: slideatlas
