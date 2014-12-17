@@ -1,13 +1,11 @@
 {% extends 'frontend_base.html' %}
 
-{% set is_site_admin = security.AdminSiteRequirement().can() %}
-
 
 {% block title %}{{ super() }} - Collection Editor{% endblock title %}
 
 
 {% block styles %}
-{# {{ super() }} #}
+{{ super() }}
     <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
     <style>
         #sortable {
@@ -52,11 +50,7 @@
 
 
 {% block scripts %}
-    {{ super() }}
-
-
-
-
+{{ super() }}
     <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='collectionBrowser.js') }}"></script>
     <script>
@@ -175,12 +169,6 @@
         }
 
         $(document).ready(function() {
-            var placeHoder = $('<div>')
-                .appendTo('body')
-                .css({'width': '100%',
-                      'height': '30px',
-                      'background-color': 'black'});
-
             var wrapper = $('<div>')
                 .appendTo('body')
                 .attr('id','wrapper')
@@ -195,7 +183,7 @@
                 .css({'width': '100%',
                       'display':'inline-block',
                       'outline': '#888 solid 1px'});
-            GALLERY1.DualArrow = 
+            GALLERY1.DualArrow =
                 $('<img>').appendTo(GALLERY1.OptionBar)
                     .css({'position': 'absolute',
                           'height': '20px',
@@ -214,8 +202,8 @@
                 .css({'width': '50%',
                       'display':'inline-block',
                       'outline': '#888 solid 1px'})
-                .hide();        
-            GALLERY2.DualArrow = 
+                .hide();
+            GALLERY2.DualArrow =
                 $('<img>').appendTo(GALLERY2.OptionBar)
                     .css({'position': 'absolute',
                           'height': '20px',
@@ -234,17 +222,5 @@
             $(".descriptiveLabel").on("input", modified);
             $(".hiddenLabel").on("input", modified);
         });
-
     </script>
 {% endblock scripts %}
-
-
-{# TODO: with navbar at the top, the session editor isn't the correct vertical height #}
-{% block navbar %}{% endblock navbar %}
-
-
-{% block content %}
-{{ super() }}
-
-
-{% endblock content %}
