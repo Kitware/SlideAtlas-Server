@@ -633,18 +633,14 @@ def addviewimage(viewObj, imgdb):
 
 @mod.route('/gettrackingdata')
 def gettrackingdata():
-    collectionStr = request.args.get('col', "tracking")
-
-    # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
 
-    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', '')})
+    viewItr = admindb['tracking'].find({"User": getattr(security.current_user, 'id', '')})
     viewArray = []
     for viewObj in viewItr:
-        if "Type" in viewObj :
-            viewObj["_id"] = str(viewObj["_id"])
-            viewObj["User"] = str(viewObj["User"])
-            #viewObj["ParentId"] = str(viewObj["ParentId"])
+        viewObj["_id"] = str(viewObj["_id"])
+        viewObj["User"] = str(viewObj["User"])
+        #viewObj["ParentId"] = str(viewObj["ParentId"])
         viewArray.append(viewObj)
 
     data = {'viewArray': viewArray}
