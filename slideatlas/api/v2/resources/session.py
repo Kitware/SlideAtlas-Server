@@ -23,12 +23,9 @@ class SessionListAPI(ListAPIResource):
     def get(self):
         # TODO: currently, session administrative access is all-or-nothing on
         #   the database level, but it should be made granular
-
         only_fields=('label', 'type')
-
         sessions = models.Session.objects.only(*only_fields).order_by('label')
-
-        return dict(sessions=sessions.to_son(only_fields=only_fields))
+        return sessions.to_son(only_fields=only_fields)
 
     def post(self):
         """
@@ -167,12 +164,9 @@ class SessionItemAPI(ItemAPIResource):
 
     @security.ViewSessionRequirement.protected
     def get(self, session):
-        return dict(sessions=[self._get(session)])
+        return self._get(session)
 
     def put(self, session):
-        abort(501)  # Not Implemented
-
-    def patch(self, session):
         abort(501)  # Not Implemented
 
     @security.AdminSessionRequirement.protected

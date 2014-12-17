@@ -37,9 +37,6 @@ class ItemAPIResource(APIResource):
     def put(self, *args):
         abort(501)  # Not Implemented
 
-    def patch(self, *args):
-        abort(501)  # Not Implemented
-
     def delete(self, *args):
         abort(501)  # Not Implemented
 

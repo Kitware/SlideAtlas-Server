@@ -44,9 +44,6 @@ class SessionViewItemAPI(ItemAPIResource):
     def put(self, session, view_id):
         abort(501)  # Not Implemented
 
-    def patch(self, session, view_id):
-        abort(501)  # Not Implemented
-
     @staticmethod
     def _delete(view_id):
         """

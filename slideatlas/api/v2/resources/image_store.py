@@ -17,7 +17,7 @@ class ImageStoreListAPI(ListAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self):
         image_stores = models.ImageStore.objects.order_by('label')
-        return dict(image_stores=image_stores.to_son(only_fields=('label',)))
+        return image_stores.to_son(only_fields=('label',))
 
     def post(self):
         abort(501)  # Not Implemented
@@ -45,12 +45,9 @@ class ImageStoreListDeliverAPI(APIResource):
 class ImageStoreItemAPI(ItemAPIResource):
     @security.AdminSiteRequirement.protected
     def get(self, image_store):
-        return dict(image_stores=[image_store.to_son()])
+        return image_store.to_son()
 
     def put(self, collection):
-        abort(501)  # Not Implemented
-
-    def patch(self, collection):
         abort(501)  # Not Implemented
 
     def delete(self):
