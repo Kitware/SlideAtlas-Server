@@ -432,23 +432,8 @@ function LogMessage (message) {
   }
 }
 
-function FixJustification () {
-  cache = VIEWER1.GetCache()
-
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/fixjustification",
-    data: {"img": cache.Image._id,
-           "db": cache.Image.database},
-    success: function(data,status) {},
-    error: function() { alert( "AJAX - error() : fixjustification" ); },
-    });
-}
-
-
-
 //----------------------------------------------------------
-// In an attempt to simplify the view.html template file, I am putting 
+// In an attempt to simplify the view.html template file, I am putting
 // as much of the javascript from that file into this file as I can.
 // As I abstract viewer features, these variables and functions
 // should migrate into objects and other files.

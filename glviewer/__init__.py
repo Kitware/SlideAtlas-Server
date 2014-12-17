@@ -768,25 +768,3 @@ def getview():
         noteObj["Children"] = []
 
     return jsonify(noteObj)
-
-
-# The Bioformats uploader justified images upper left.
-# fix the bounds for an image.
-@mod.route('/fixjustification', methods=['GET', 'POST'])
-def fixjustification():
-    dbid = request.form['db']  # for post
-    imgid  = request.form['img']
-
-    db = models.ImageStore._get_db()
-    if dbid != "None" :
-        db = models.ImageStore.objects.with_id(dbid).to_pymongo()
-
-    imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
-    #imgObj["CoordinateSystem"] = "Pixel"
-    #imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
-    imgObj["dimensions"][0] = imgObj["dimensions"][0] / 2
-    imgObj["dimensions"][1] = imgObj["dimensions"][1] / 2
-    imgObj["bounds"] = [0, imgObj["dimensions"][0], 0, imgObj["dimensions"][1]]
-
-    db["images"].save(imgObj)
-    return "success"
