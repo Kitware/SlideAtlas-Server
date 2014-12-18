@@ -7,6 +7,8 @@
       - libpng12-dev
       - libfreetype6-dev
       - libxft-dev
+      - subversion-tools
+      - python-numpy
 
   - name: install specified python requirements
     pip: requirements=/vagrant/requirements.txt
