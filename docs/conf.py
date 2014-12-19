@@ -36,9 +36,9 @@ class Mock(object):
             return Mock()
 
 MOCK_MODULES = ['numpy', 'Celery', 'celery.result', 'celery.task', 'celery.task.control', 'PIL', 'gevent', 'libtiff', 'libtiff.tiff', 'libtiff.utils', 'libtiff.libtiff_ctypes', "cv2", "numpy.ma", "matplotlib", "matplotlib.pyplot"]
+MOCK_MODULES = MOCK_MODULES + ['libtiff', 'celery']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
-
 
 
 from slideatlas.version import get_version
