@@ -1,53 +1,43 @@
-// I assume that multiple threads will not access the manager.
-
-// I need to implement 3d widgets.
-// When we create a drawing item (arrow) the arrow will follow the mouse until
-// the first mouse press which will set the tip position.
-// If the mouse moves while the button is pressed, the tail of the arrow
-// will follow the mouse position.  Button release will set the tail.
-
-// I will wait for later to make 3d widget hot spots.
-
-// I will make a new class to handle arrow events.
-// Should the manager or the Viewer delegate?
-
-
-
-// NOTE:  For this class events are passed in from outside.
-// For all other classes, the event manager is an "event".
+// This used to receive all events and route them to the two viewers.
+// Now the viewers receive their own events, and this class is less
+// necessary.  I may be able to get rid of it (or make it a minimal helper).
 
 
 
 function EventManager (canvas) {
-  // I cannot figure out how to do this with focus of canvas ...
-  // KeyFocus
-  this.HasFocus = true;
-  this.Canvas = canvas[0];
-  this.Viewers = [];
-  this.CurrentViewer = null;
-  this.ShiftKeyPressed = false;
-  this.ControlKeyPressed = false;
-  this.Key = '';
-  this.MouseX = 0;
-  this.MouseY = 0;
-  this.LastMouseX = 0;
-  this.LastMouseY = 0;
-  this.MouseDown = false;
-  this.SweepListeners = [];
-  this.SelectedSweepListener = undefined;
-  this.StartTouchTime = 0;
-
-  this.CursorFlag = false;
-
-  if (MOBILE_DEVICE == 'Andriod') {
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    var self = this;
-    //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
-    //                                             function(sweep) {self.GoFullScreen();});
-  }
-
-  this.StartInteractionListeners = [];
+    this.MouseUpTime = 0;
+    this.DoubleClick = false;
+    
+    // I cannot figure out how to do this with focus of canvas ...
+    // KeyFocus
+    this.HasFocus = true;
+    this.Canvas = canvas[0];
+    this.Viewers = [];
+    this.CurrentViewer = undefined;
+    
+    this.ShiftKeyPressed = false;
+    this.ControlKeyPressed = false;
+    this.Key = '';
+    this.MouseX = 0;
+    this.MouseY = 0;
+    this.LastMouseX = 0;
+    this.LastMouseY = 0;
+    this.MouseDown = false;
+    this.SweepListeners = [];
+    this.SelectedSweepListener = undefined;
+    this.StartTouchTime = 0;
+    
+    this.CursorFlag = false;
+    
+    if (MOBILE_DEVICE == 'Andriod') {
+        var width = CANVAS.innerWidth();
+        var height = CANVAS.innerHeight();
+        var self = this;
+        //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
+        //                                             function(sweep) {self.GoFullScreen();});
+    }
+    
+    this.StartInteractionListeners = [];
 }
 
 EventManager.prototype.OnStartInteraction = function(callback) {
@@ -66,19 +56,8 @@ EventManager.prototype.AddViewer = function(viewer) {
     this.Viewers.push(viewer);
 }
 
-EventManager.prototype.ChooseViewer = function() {
-  this.CurrentViewer = null;
-  for (var i = 0; i < this.Viewers.length; ++i) {
-    var vport = this.Viewers[i].GetViewport();
-    if (this.MouseX > vport[0] && this.MouseX < vport[0]+vport[2] &&
-      this.MouseY > vport[1] && this.MouseY < vport[1]+vport[3]) {
-      this.CurrentViewer = this.Viewers[i];
-      return;
-    }
-  }
-}
-
 EventManager.prototype.SetMousePositionFromEvent = function(event) {
+    // TODO: Get rid of system event.
     this.SystemEvent = event;
     if (event.offsetX && event.offsetY) {
         
@@ -110,38 +89,35 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
 }
 
 
-EventManager.prototype.HandleMouseDown = function(event) {
-  this.LastMouseX = this.MouseX;
-  this.LastMouseY = this.MouseY;
-  this.LastMouseTime = this.MouseTime;
-
-  this.SetMousePositionFromEvent(event);
-  this.ChooseViewer();
-
-  // TODO:  Formalize a call back to make GUI disappear when navigation starts.
-  // Get rid of the favorites and the link divs if they are visible
-  if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-  if (typeof FAVORITES_WIDGET !== 'undefined' && FAVORITES_WIDGET.hidden == false) { FAVORITES_WIDGET.ShowHideFavorites();}
-
-  if (this.CurrentViewer) {
-    event.preventDefault();
-    //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
-
+EventManager.prototype.RecordMouseDown = function(event) {
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    
+    // TODO:  Formalize a call back to make GUI disappear when 
+    // navigation starts.  I think I did this already but have not
+    // converted this code yet.
+    // Get rid of the favorites and the link divs if they are visible
+    if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { 
+	      LINK_DIV.fadeOut();
+    }
+    if (typeof FAVORITES_WIDGET !== 'undefined' && 
+	      FAVORITES_WIDGET.hidden == false) { 
+	      FAVORITES_WIDGET.ShowHideFavorites();
+    }
+    
     var date = new Date();
     var dTime = date.getTime() - this.MouseUpTime;
     if (dTime < 200.0) { // 200 milliseconds
-      PENDING_SHOW_PROPERTIES_MENU = false;
-      if (this.CurrentViewer.HandleDoubleClick(this)) {
-        this.TriggerStartInteraction();
-      }
-      return;
+        this.DoubleClick = true;
     }
-
-    this.MouseDown = true;
-    if (this.CurrentViewer.HandleMouseDown(this)) {
+            
+    /*
+      if (this.CurrentViewer) {
       this.TriggerStartInteraction();
-    }
-  }
+      }
+    */
 }
 
 
@@ -153,37 +129,21 @@ function ShowPendingPropertiesMenu() {
   }
 }
 
-EventManager.prototype.HandleMouseUp = function(event) {
-    if ( ! this.MouseDown) {
+EventManager.prototype.RecordMouseUp = function(event) {
+    //if ( ! this.MouseDown) {
         // This will occur if on double clicks (and probably if mouse down was outside canvas).
-        return;
-    }
+   //     return;
+    //}
     this.SetMousePositionFromEvent(event);
     this.MouseDown = false;
-    
-    this.ChooseViewer();
-    if (this.CurrentViewer) {
-        this.CurrentViewer.HandleMouseUp(this);
-    }
     
     // Record time so we can detect double click.
     var date = new Date();
     this.MouseUpTime = date.getTime();
-    
-    // Should we let the viewer handle this?
-    // Can it supress on double click?
-    /*
-      if (event.which == 3 && this.CurrentViewer.ActiveWidget == null) {
-      // Wait to make sure this is not a double click.
-      PENDING_SHOW_PROPERTIES_MENU = true;
-      SHOW_PROPERTIES_MOUSE_POSITION = [event.clientX, event.clientY];
-      setTimeout(function(){ShowPendingPropertiesMenu();},200);
-      }
-    */
+    this.DoubleClick = false;
 }
 
-// Forward event to view.
-EventManager.prototype.HandleMouseMove = function(event) {
+EventManager.prototype.RecordMouseMove = function(event) {
   this.LastMouseX = this.MouseX;
   this.LastMouseY = this.MouseY;
   this.LastMouseTime = this.MouseTime;
@@ -191,16 +151,10 @@ EventManager.prototype.HandleMouseMove = function(event) {
   this.MouseDeltaX = this.MouseX - this.LastMouseX;
   this.MouseDeltaY = this.MouseY - this.LastMouseY;
   this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
-
-  this.ChooseViewer();
-  if (this.CurrentViewer) {
-    this.CurrentViewer.HandleMouseMove(this);
-  }
 }
 
 EventManager.prototype.HandleMouseWheel = function(event) {
   this.SetMousePositionFromEvent(event);
-  this.ChooseViewer();
   if (this.CurrentViewer) {
     event.preventDefault();
     //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
@@ -221,48 +175,47 @@ EventManager.prototype.FocusOut = function() {
 }
 
 EventManager.prototype.HandleKeyDown = function(event) {
-  if ( ! this.HasFocus) {return true;}
-
-  if (event.keyCode == 16) {
-      // Shift key modifier.
-      this.ShiftKeyPressed = true;
-      // Do not forward modifier keys events to objects that consume keypresses.
-      return true;
-  }
-  if (event.keyCode == 17) {
-    // Control key modifier.
-    this.ControlKeyPressed = true;
-    return true;
-  }
-
-  // Handle undo and redo (cntrl-z, cntrl-y)
-  if (this.ControlKeyPressed && event.keyCode == 90) {
-    // Function in recordWidget.
-    UndoState();
-    return true;
-  } else if (this.ControlKeyPressed && event.keyCode == 89) {
-    // Function in recordWidget.
-    RedoState();
-    return true;
-  }
-
-  this.ChooseViewer();
-  if (this.CurrentViewer) {
-      // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
-      if (this.CurrentViewer.HandleKeyPress(event.keyCode, this)) {
-          // TODO: I choose return value true to stop processing event.
-          // It should be false to match browser.
-          return false;
-      }
-  }
-
-  if (typeof(NAVIGATION_WIDGET) != "undefined") {
-      if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
-      return true;
+    if ( ! this.HasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
     }
-  }
-
-  return true;
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+    
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return true;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return true;
+    }
+    
+    if (this.CurrentViewer) {
+        // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
+        if (this.CurrentViewer.HandleKeyPress(event.keyCode, this)) {
+            // TODO: I choose return value true to stop processing event.
+            // It should be false to match browser.
+            return false;
+        }
+    }
+    
+    if (typeof(NAVIGATION_WIDGET) != "undefined") {
+        if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
+            return true;
+        }
+    }
+    
+    return true;
 }
 
 EventManager.prototype.HandleKeyUp = function(event) {
@@ -537,7 +490,6 @@ EventManager.prototype.HandleTouchStart = function(e) {
     this.StartTouchTime = this.Time;
   }
 
-  this.ChooseViewer();
   if (this.CurrentViewer) {
     if (this.CurrentViewer.HandleTouchStart(this)) {
       this.TriggerStartInteraction();
@@ -562,7 +514,6 @@ EventManager.prototype.HandleTouchMove = function(e) {
     MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
   }
 
-  this.ChooseViewer();
   if (this.Touches.length == 1 && this.CurrentViewer) {
     this.CurrentViewer.HandleTouchPan(this);
     return;

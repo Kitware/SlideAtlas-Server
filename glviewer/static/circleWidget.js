@@ -138,7 +138,7 @@ CircleWidget.prototype.PasteCallback = function(data) {
   this.Load(data);
   // Place the widget over the mouse.
   // This would be better as an argument.
-  this.Shape.Origin = [EVENT_MANAGER.MouseWorldX, EVENT_MANAGER.MouseWorldY];
+  this.Shape.Origin = [event.worldX, event.worldY];
   eventuallyRender();
 }
 
@@ -206,73 +206,79 @@ CircleWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
 }
 
 CircleWidget.prototype.HandleDoubleClick = function(event) {
+    return false;
 }
 
 CircleWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which != 1)
-    {
-    return;
+    if (event.which != 1) {
+        return false;
     }
-  if (this.State == CIRCLE_WIDGET_NEW) {
-    // We need the viewer position of the circle center to drag radius.
-    this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-    this.State = CIRCLE_WIDGET_DRAG_RADIUS;
-  }
-  if (this.State == CIRCLE_WIDGET_ACTIVE) {
-    // Determine behavior from active radius.
-    if (this.NormalizedActiveDistance < 0.5) {
-      this.State = CIRCLE_WIDGET_DRAG;
-    } else {
-      this.OriginViewer = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.State = CIRCLE_WIDGET_DRAG_RADIUS;
+    if (this.State == CIRCLE_WIDGET_NEW) {
+        // We need the viewer position of the circle center to drag radius.
+        this.OriginViewer =
+            this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
+                                                  this.Shape.Origin[1]);
+        this.State = CIRCLE_WIDGET_DRAG_RADIUS;
     }
-  }
+    if (this.State == CIRCLE_WIDGET_ACTIVE) {
+        // Determine behavior from active radius.
+        if (this.NormalizedActiveDistance < 0.5) {
+            this.State = CIRCLE_WIDGET_DRAG;
+        } else {
+            this.OriginViewer =
+                this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
+                                                      this.Shape.Origin[1]);
+            this.State = CIRCLE_WIDGET_DRAG_RADIUS;
+        }
+    }
+    return true;
 }
 
 // returns false when it is finished doing its work.
 CircleWidget.prototype.HandleMouseUp = function(event) {
-  if ( this.State == CIRCLE_WIDGET_DRAG || this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
-    this.SetActive(false);
-    RecordState();
-  }
+    if ( this.State == CIRCLE_WIDGET_DRAG || this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+        this.SetActive(false);
+        RecordState();
+    }
 }
 
 CircleWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
-
-  if (event.MouseDown == false && this.State == CIRCLE_WIDGET_ACTIVE) {
-    this.CheckActive(event);
-    return;
-  }
-
-  if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
-    this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
-    this.PlacePopup();
-    eventuallyRender();
-  }
-
-  if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
-    var viewport = this.Viewer.GetViewport();
-    var cam = this.Viewer.MainView.Camera;
-    var dx = x-this.OriginViewer[0];
-    var dy = y-this.OriginViewer[1];
-    // Change units from pixels to world.
-    this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
-    this.Shape.UpdateBuffers();
-    this.PlacePopup();
-    eventuallyRender();
-  }
-
-   if (this.State == CIRCLE_WIDGET_WAITING) {
-    this.CheckActive(event);
-   }
+    var x = event.offsetX;
+    var y = event.offsetY;
+    
+    if (event.which == 0 && this.State == CIRCLE_WIDGET_ACTIVE) {
+        this.CheckActive(event);
+        return;
+    }
+    
+    if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
+        this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
+        this.PlacePopup();
+        eventuallyRender();
+    }
+    
+    if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+        var viewport = this.Viewer.GetViewport();
+        var cam = this.Viewer.MainView.Camera;
+        var dx = x-this.OriginViewer[0];
+        var dy = y-this.OriginViewer[1];
+        // Change units from pixels to world.
+        this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
+        this.Shape.UpdateBuffers();
+        this.PlacePopup();
+        eventuallyRender();
+    }
+    
+    if (this.State == CIRCLE_WIDGET_WAITING) {
+        this.CheckActive(event);
+    }
 }
 
 
 CircleWidget.prototype.HandleTouchPan = function(event) {
-  w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-  w1 = this.Viewer.ConvertPointViewerToWorld( event.MouseX, event.MouseY);
+  w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
+                                             EVENT_MAANGER.LastMouseY);
+  w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
   // This is the translation.
   var dx = w1[0] - w0[0];
@@ -295,16 +301,16 @@ CircleWidget.prototype.HandleTouchEnd = function(event) {
 
 
 CircleWidget.prototype.CheckActive = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = event.offsetX;
+  var y = event.offsetY;
 
   // change dx and dy to vector from center of circle.
   if (this.FixedSize) {
-    dx = event.MouseX - this.Shape.Origin[0];
-    dy = event.MouseY - this.Shape.Origin[1];
+    dx = event.offsetX - this.Shape.Origin[0];
+    dy = event.offsetY - this.Shape.Origin[1];
   } else {
-    dx = event.MouseWorldX - this.Shape.Origin[0];
-    dy = event.MouseWorldY - this.Shape.Origin[1];
+    dx = event.worldX - this.Shape.Origin[0];
+    dy = event.worldY - this.Shape.Origin[1];
   }
 
   var d = Math.sqrt(dx*dx + dy*dy)/this.Shape.Radius;

@@ -217,8 +217,8 @@ PolylineWidget.prototype.PasteCallback = function(data) {
   this.Load(data);
   // Place the widget over the mouse.
   // This is more difficult than the circle.  Compute the shift.
-  var xOffset = EVENT_MANAGER.MouseWorldX - (this.Bounds[0]+this.Bounds[1])/2;
-  var yOffset = EVENT_MANAGER.MouseWorldY - (this.Bounds[2]+this.Bounds[3])/2;
+  var xOffset = event.worldX - (this.Bounds[0]+this.Bounds[1])/2;
+  var yOffset = event.worldY - (this.Bounds[2]+this.Bounds[3])/2;
   for (var i = 0; i < this.Shape.Points.length; ++i) {
     this.Shape.Points[i][0] += xOffset;
     this.Shape.Points[i][1] += yOffset;
@@ -310,6 +310,8 @@ PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
 }
 
 PolylineWidget.prototype.HandleDoubleClick = function(event) {
+    this.Deactivate();
+    return true;
 }
 
 PolylineWidget.prototype.Deactivate = function() {
@@ -326,8 +328,8 @@ PolylineWidget.prototype.Deactivate = function() {
 
 // Mouse down does nothing. Mouse up causes all state changes.
 PolylineWidget.prototype.HandleMouseDown = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = event.offsetX;
+  var y = event.offsetY;
   var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
 
   if (this.State == POLYLINE_WIDGET_NEW) {
@@ -390,14 +392,14 @@ PolylineWidget.prototype.HandleMouseUp = function(event) {
   //if (this.State do this later.
 
   // Old, but could be useful.
-  if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
+  if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 3) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
     this.State = POLYLINE_WIDGET_PROPERTIES_DIALOG;
     this.ShowPropertiesDialog();
   }
 
-  if (event.SystemEvent.which == 1) {
+  if (event.which == 1) {
     if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
         this.State == POLYLINE_WIDGET_ACTIVE) {
       // Dragging a vertex or the whole polyline.
@@ -409,8 +411,8 @@ PolylineWidget.prototype.HandleMouseUp = function(event) {
 
 
 PolylineWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = event.offsetX;
+  var y = event.offsetY;
   var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
 
   if (this.State == POLYLINE_WIDGET_NEW) {
@@ -432,12 +434,12 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
   if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
       this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE ||
       this.State == POLYLINE_WIDGET_ACTIVE) {
-    if (event.SystemEvent.which == 0) {
+    if (event.which == 0) {
       // Turn off the active vertex if the mouse moves away.
       this.SetActive(this.CheckActive(event));
       return;
     }
-    if (this.State == POLYLINE_WIDGET_ACTIVE && event.SystemEvent.which == 1) {
+    if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 1) {
       //drag the whole widget.
       var dx = pt[0] - this.LastMouseWorld[0];
       var dy = pt[1] - this.LastMouseWorld[1];
@@ -452,7 +454,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
       eventuallyRender();
       return;
     }
-    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.SystemEvent.which == 1) {
+    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.which == 1) {
       //drag the vertex
       this.Shape.Points[this.ActiveVertex] = pt;
       this.Circle.Origin = pt;
@@ -512,8 +514,8 @@ PolylineWidget.prototype.HandleTouchEnd = function(event) {
 
 
 PolylineWidget.prototype.CheckActive = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = event.offsetX;
+  var y = event.offsetY;
   var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
 
   // First check if any vertices are active.

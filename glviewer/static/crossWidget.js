@@ -102,8 +102,8 @@ CrossWidget.prototype.HandleMouseMove = function(event) {
 }
 
 CrossWidget.prototype.CheckActive = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = event.offsetX;
+  var y = event.offsetY;
 
   // change dx and dy to vector from center of CROSS.
   if (this.FixedSize) {
@@ -111,8 +111,8 @@ CrossWidget.prototype.CheckActive = function(event) {
     return;
   }
 
-  dx = event.MouseWorldX - this.Shape.Origin[0];
-  dy = event.MouseWorldY - this.Shape.Origin[1];
+  dx = event.worldX - this.Shape.Origin[0];
+  dy = event.worldY - this.Shape.Origin[1];
 
   // We need to scale to pixels
   var cam = this.Viewer.GetCamera();
