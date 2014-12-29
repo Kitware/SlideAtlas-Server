@@ -8,7 +8,6 @@ from bson import ObjectId
 from slideatlas.common_utils import jsonify
 from gridfs import GridFS
 from slideatlas import models, security
-from slideatlas.ptiffstore import asset_store
 
 mod = Blueprint('api', __name__,
                 url_prefix="/apiv1",
@@ -89,7 +88,7 @@ class DatabaseAPI(AdminDBAPI):
     decorators = [security.AdminSiteRequirement.protected]
 
     def delete(self, resid):
-        obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
+        obj = models.ImageStore.objects.with_id(ObjectId(resid))
 
         if obj :
             obj.delete()
@@ -172,7 +171,7 @@ class DatabaseAPI(AdminDBAPI):
                 return Response("{\"error\" : \"No store id supplied for synchronization\"}" , status=405)
 
             # Locate the resource
-            obj = asset_store.TileStore.objects.with_id(ObjectId(resid))
+            obj = models.ImageStore.objects.with_id(ObjectId(resid))
 
             if obj == None:
                 # Invalid request if the object is not found
@@ -214,10 +213,10 @@ class DatabaseAPI(AdminDBAPI):
             return Response("{\"error\" : \"_id mismatch with the location in the url \"}", status=405)
 
         # The object should exist
-        for anobj in asset_store.TileStore.objects:
+        for anobj in models.ImageStore.objects:
             current_app.logger.debug('%s %s', anobj.label, anobj.id)
 
-        database = asset_store.TileStore.objects.with_id(ObjectId(data["_id"]))
+        database = models.ImageStore.objects.with_id(ObjectId(data["_id"]))
 
         current_app.logger.debug('ID: %s %s', data['_id'], ObjectId(data['_id']))
         # Unknown request if no parameters

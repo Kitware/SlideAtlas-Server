@@ -10,7 +10,6 @@ sys.path.append(slideatlaspath)
 
 from slideatlas.models import Image
 from slideatlas.models import ImageStore, View, Session
-from slideatlas.ptiffstore.asset_store import PtiffTileStore
 
 def test_image_access():
     obj = ImageStore.objects(dbname="demo")[0]

@@ -63,24 +63,24 @@ Some other
 API documentation
 =================
 
-.. automodule:: slideatlas.ptiffstore.asset_store
+.. automodule:: slideatlas.models.ImageStore
   :members:
   :undoc-members:
 
 Automatic synchronization
 =========================
 
-Following commands demonstrate how to submit the task to celery queue and how to read the results 
+Following commands demonstrate how to submit the task to celery queue and how to read the results
 
 
 .. code-block:: python
-	
+
 	>>> from slideatlas.tasks import sync_store
 	>>> a = sync_store.delay("5356d8b9e67655244bf3273a")
 	>>> a.ready()
 	>>> print a.result
 
-If the celery is started with a named worker queue (by adding option -Q celery_autosync, then the task must 
+If the celery is started with a named worker queue (by adding option -Q celery_autosync, then the task must
 be applied to that queue
 
 .. code-block:: python
