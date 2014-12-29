@@ -26,7 +26,7 @@ def sync_store(tilestore_id):
 
     # Request synchronization
     resp = {}
-    resp["syncresults"] = obj.sync()
+    resp["syncresults"] = obj.import_images()
     resp["database"] = obj.to_mongo()
 
     # Until we configure a different serializer

@@ -101,11 +101,17 @@ class Image(MultipleDatabaseModelDocument):
                 'unique': False, # TODO: this should be true for Ptiff images
                 'sparse': False,
             },
+            {
+                'fields': ('sha512',),  # TODO: only need to index this for Ptiff images
+                'cls': False,
+                'unique': True,
+                'sparse': True,  # TODO: this should not be true for Ptiff images
+            },
         ]
     }
 
-    filename = StringField(required=False, #TODO: filename with respect to root_path
-        verbose_name='Filename', help_text='The filename of uploaded image excluding path')
+    filename = StringField(required=False,
+        verbose_name='Filename', help_text='The original filename of the uploaded image')
 
     sha512 = StringField(required=False,
         verbose_name='SHA512 Hash', help_text='The SHA512 hash of the PTIFF image file\'s content.')

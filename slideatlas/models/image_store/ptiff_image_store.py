@@ -2,10 +2,12 @@
 
 import base64
 import datetime
+import fcntl
 import glob
 import os
 import platform
 import re
+import shutil
 try:
     import cStringIO as StringIO
 except ImportError:
@@ -52,13 +54,23 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     host_name = StringField(required=True,
         verbose_name='Host Name', help_text='The name of the host that the image files reside on.')
 
-    root_path = StringField(required=True,
-        verbose_name='Root Path', help_text='Location on local filesystem for image files.')
+    @property
+    def import_dir_path(self):
+        return os.path.join(current_app.config['SLIDEATLAS_IMPORT_ROOT'], self.dbname)
 
     @property
     def default_session_label(self):
         return 'All'
 
+    def image_file_path(self, image):
+        image_hash = image.sha512
+        return os.path.join(
+            current_app.config['SLIDEATLAS_IMAGE_STORE_ROOT'],
+            self.dbname,
+            image_hash[0:2],
+            image_hash[2:4],
+            image_hash
+        )
 
     def is_local(self):
         return platform.node() == self.host_name
@@ -74,7 +86,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             image = Image.objects.get_or_404(id=image_id)
 
         tile_size = image.tile_size
-        tiff_path = os.path.join(self.root_path, image.filename)
+        tiff_path = self.image_file_path(image)
 
         index_x, index_y, index_z = get_tile_index(tile_name[:-4], invert=False)
 
@@ -100,7 +112,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         """
         Returns a thumbnail with a label as a binary JPEG string.
         """
-        tiff_path = os.path.join(self.root_path, image.filename)
+        tiff_path = self.image_file_path(image)
 
         reader = make_reader({
             'fname': tiff_path,
@@ -140,8 +152,113 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         return contents
 
 
-    def _import_new_images(self):
-        current_app.logger.info('Syncing images to %s', self)
+    def _import_image(self, import_file_path):
+        import_file_name = os.path.basename(import_file_path)
+        current_app.logger.info('Importing Image %s to ImageStore %s', import_file_name, self)
+
+        with open(import_file_path) as import_file:
+            # lock the image against other tasks trying to import it
+            # while "lockf" is better supported on some remote file systems, it
+            #   cannot be used unless the file is opened for writing, which updates
+            #   the modification time and may interfere with other desirable read
+            #   operations; "flock" doesn't have this limitation, and is
+            #   supported by GlusterFS
+            # this will raise an IOError if the lock can't be acquired
+            try:
+                fcntl.flock(import_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except IOError:
+                current_app.logger.warning('Could not get file lock to import %s to ImageStore %s', import_file_path, self)
+                return None
+
+            # hash image file
+            image_hash = file_sha512(import_file_path)
+
+            # ensure that this is a new image
+            try:
+                image = Image.objects.get(sha512=image_hash)
+            except DoesNotExist:
+                pass
+            except MultipleObjectsReturned:
+                # TODO: this generally shouldn't happen, but should be handled
+                raise
+            else:  # existing image found
+                current_app.logger.warning(
+                    'Attempt to import duplicate new Image from %s to ImageStore %s containing existing Image %s with filename %s',
+                    import_file_name, self, image, image.filename)
+                storage_file_path = self.image_file_path(image)
+                if os.path.exists(storage_file_path):
+                    os.remove(import_file_path)
+                else:
+                    current_app.logger.error(
+                        'Existing Image %s missing from ImageStore %s filesystem at %s',
+                        image, self, storage_file_path)
+                # TODO: return something special?
+                return None
+
+            # setup and execute image reader
+            reader = make_reader({
+                'fname': import_file_path,
+                'dir': 0,
+            })
+            reader.set_input_params({
+                'fname': import_file_path,
+            })
+            reader.parse_image_description()
+
+            # create new image
+            with self:
+                image = Image(
+                    sha512=image_hash,
+                    filename=import_file_name,
+                    uploaded_at=datetime.datetime.fromtimestamp(os.path.getmtime(import_file_path)),
+                    label='%s (%s)' % (reader.barcode, import_file_name) if reader.barcode else import_file_name,
+                    dimensions=[reader.width, reader.height, 1],
+                    levels=get_max_depth(reader.width, reader.height, reader.tile_width),
+                    tile_size=reader.tile_width,
+                    bounds=[0, reader.width - 1, 0, reader.height - 1, 0, 0],
+                    coordinate_system='Pixel',
+                )
+                image.save()
+
+            # TODO: ensure any file handles that the reader has are closed
+            del reader
+
+            # move the file into the ImageStore filesystem
+            storage_file_path = self.image_file_path(image)
+            storage_dir_path = os.path.dirname(storage_file_path)
+            if not os.path.exists(storage_dir_path):
+                os.makedirs(storage_dir_path)
+
+            # it's possible that a file already exists at this point, due to a
+            #   race condition with duplicate imports; however, rename *should*
+            #   silently overwrite the file with identical data
+            # TODO: verify this fact
+
+            shutil.move(import_file_path, storage_file_path)
+            # TODO: change permissions?
+            # os.chmod(storage_file_path, stat.S_IRUSR | stat.S_IWUSR)
+
+            fcntl.flock(import_file, fcntl.LOCK_UN)
+
+            return image
+
+
+    def _import_view(self, session, image):
+        view = View(ViewerRecords=[{'Image': image.id, 'Database': self.id}])
+        view.save()
+
+        current_app.logger.info('Importing new View %s to Session %s/%s', view, session.collection, session)
+        session.update(__raw__={'$push': {'views': {
+            '$each': [view.id],
+            '$position': 0
+        }}})
+        # session.views.insert(0, view.id)
+        # session.save()
+
+
+    def _import_images(self):
+        import_dir_path = self.import_dir_path
+        current_app.logger.info('Importing images in %s to %s', import_dir_path, self)
         # place new images in the default session
         try:
             session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -153,81 +270,14 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             # TODO: this generally shouldn't happen, but should be handled
             raise
 
-        with self:
-            new_images = list()
-
-            search_path = os.path.join(self.root_path, '*.ptif')
-            # sorting will be by modification time, with earliest first
-            ptiff_files = sorted(
-                (datetime.datetime.fromtimestamp(os.path.getmtime(image_file_path)), image_file_path)
-                for image_file_path in glob.glob(search_path))
-
-            for file_modified_time, image_file_path in ptiff_files:
-                image_file_name = os.path.basename(image_file_path)
-
-                # always try to find images in database, even if the file
-                #   modification timestamp is before the last sync, in case there
-                #   are any images that were missed on a previous sync
-                try:
-                    image = Image.objects.get(filename=image_file_name)
-                except DoesNotExist:
-                    # Needs to sync
-                    current_app.logger.info('Creating new image from file: %s', image_file_name)
-                    image = Image(filename=image_file_name)
-                    new_image_record = True
-                except MultipleObjectsReturned:
-                    # TODO: this generally shouldn't happen, but should be handled
-                    raise
-                else:  # existing image found
-                    timediff = image.uploaded_at - file_modified_time
-                    if timediff.total_seconds() < 0.5:
-                        # image unchanged as expected, skip processing
-                        current_app.logger.debug('Existing image unchanged: %s', image_file_path)
-                        continue
-                    else:
-                        new_image_record = False
-                        current_app.logger.warning('Existing image was modified: %s', image_file_path)
-
-                reader = make_reader({
-                    'fname': image_file_path,
-                    'dir': 0,
-                })
-                reader.set_input_params({
-                    'fname': image_file_path,
-                })
-                reader.parse_image_description()
-                current_app.logger.debug('New image barcode: %s', reader.barcode)
-
-                if reader.barcode:
-                    image.label = '%s (%s)' % (reader.barcode, image_file_name)
-                else:
-                    # No barcode
-                    image.label = image_file_name
-
-                image.uploaded_at = file_modified_time
-                image.sha512 = file_sha512(image_file_path)
-                image.dimensions = [reader.width, reader.height, 1]
-                image.levels = get_max_depth(reader.width, reader.height, reader.tile_width)
-                image.tile_size = reader.tile_width
-                image.coordinate_system = 'Pixel'
-                image.bounds = [0, reader.width - 1, 0, reader.height - 1, 0, 0]
-
-                # need to save images to give it an id
-                image.save()
-
-                # Create views only if the file is newly added to the folder
-                if new_image_record:
-                    view = View(ViewerRecords=[{'Image': image.id, 'Database': self.id}])
-                    view.save()
-
-                    # newest images should be at the top of the session's view list
-                    current_app.logger.info('Adding new view %s to session %s/%s', view.id, session.collection, session)
-                    session.views.insert(0, view.id)
-                    session.save()
-
-                new_images.append(image.to_json())
-
-        return new_images
+        import_search_path = os.path.join(import_dir_path, '*.ptif')
+        # sorting will be by modification time, with earliest first
+        for import_file_path in sorted(
+                glob.glob(import_search_path),
+                key=lambda file_path: os.path.getmtime(file_path)):
+            image = self._import_image(import_file_path)
+            if image:
+                self._import_view(session, image)
 
 
     def _deliver_views_to_inboxes(self):
@@ -283,31 +333,15 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 current_app.logger.info('Delivered image: %s' % image.label)
 
 
-    def sync(self):
-        """
-        Syncs the objects in Image Session and View with the files in given folder.
-
-        - Verifies that all images referred in image collection are available in the file store.
-        - Finds out new files are not yet added to the store
-        - Creates a view for these in the session with a matching "image creator code" or 'self.default_session_label' session
-
-        It is assumed that the modification dates to any changes to folder are intact
-        """
+    def import_images(self):
         if not self.is_local():
             # TODO: raise exception?
             return
 
-        new_images = self._import_new_images()
+        self._import_images()
 
         self.last_sync = datetime.datetime.now()
         self.save()
-
-        resp = {
-            'count': None,  # TODO: deprecated
-            'synced': len(new_images),
-            'images': new_images,
-        }
-        return resp
 
 
     def deliver(self):

@@ -33,7 +33,7 @@ Latest versions of libtiff and openslide must be compiled from source. Following
 
 .. code-block:: none
 
-   $ sudo apt-get install sudo apt-get install autoconf automake libtool pkg-config libgtk2.0-dev
+   $ sudo apt-get install autoconf automake libtool pkg-config libgtk2.0-dev
    $ sudo apt-get install libxml2-dev libjpeg-dev liblzma-dev liblz-dev zlib1g-dev lzma libmatio-dev
    $ sudo apt-get install libexif-dev libfftw3-dev swig python-dev liborc-0.4-dev libsqlite3-dev
 
@@ -58,6 +58,7 @@ Building Openslide
   git clone git://github.com/openslide/openslide.git
   cd openslide
   autoreconf -i
+  ./configure
   make
   sudo make install
 
