@@ -7,9 +7,9 @@ from ..common import abort
 
 ################################################################################
 __all__ = ('ImageStoreListAPI',
-           'ImageStoreListSyncAPI', 'ImageStoreListDeliverAPI',
+           'ImageStoreListImportAPI', 'ImageStoreListDeliverAPI',
            'ImageStoreItemAPI',
-           'ImageStoreItemSyncAPI', 'ImageStoreItemDeliverAPI')
+           'ImageStoreItemImportAPI', 'ImageStoreItemDeliverAPI')
 
 
 ################################################################################
@@ -24,11 +24,11 @@ class ImageStoreListAPI(ListAPIResource):
 
 
 ################################################################################
-class ImageStoreListSyncAPI(APIResource):
+class ImageStoreListImportAPI(APIResource):
     @security.AdminSiteRequirement.protected
     def post(self):
         for image_store in models.PtiffImageStore.objects.order_by('label'):
-            image_store.sync()
+            image_store.import_images()
         return None, 204  # No Content
 
 
@@ -55,12 +55,12 @@ class ImageStoreItemAPI(ItemAPIResource):
 
 
 ################################################################################
-class ImageStoreItemSyncAPI(APIResource):
+class ImageStoreItemImportAPI(APIResource):
     @security.AdminSiteRequirement.protected
     def post(self, image_store):
         if not isinstance(image_store, models.PtiffImageStore):
-            abort(410, details='Only Ptiff ImageStores may be synced.')  # Gone
-        image_store.sync()
+            abort(410, details='Only Ptiff ImageStores may be imported.')  # Gone
+        image_store.import_images()
         return None, 204  # No Content
 
 
@@ -80,9 +80,9 @@ api.add_resource(ImageStoreListAPI,
                  endpoint='image_store_list',
                  methods=('GET', 'POST'))
 
-api.add_resource(ImageStoreListSyncAPI,
-                 '/imagestores/sync',
-                 endpoint='image_store_list_sync',
+api.add_resource(ImageStoreListImportAPI,
+                 '/imagestores/import',
+                 endpoint='image_store_list_import',
                  methods=('POST',))
 
 api.add_resource(ImageStoreListDeliverAPI,
@@ -95,9 +95,9 @@ api.add_resource(ImageStoreItemAPI,
                  endpoint='image_store_item',
                  methods=('GET', 'PUT', 'PATCH', 'DELETE'))
 
-api.add_resource(ImageStoreItemSyncAPI,
-                 '/imagestores/<ImageStore:image_store>/sync',
-                 endpoint='image_store_item_sync',
+api.add_resource(ImageStoreItemImportAPI,
+                 '/imagestores/<ImageStore:image_store>/import',
+                 endpoint='image_store_item_import',
                  methods=('POST',))
 
 api.add_resource(ImageStoreItemDeliverAPI,

@@ -261,8 +261,6 @@ class PtiffImageStoreView(ImageStoreView):
     model_class = models.PtiffImageStore
     name = 'PTIFF Image Stores'
 
-    column_list = ImageStoreView.column_list + ('root_path',)
-
 
 ################################################################################
 class CollectionView(SlideatlasModelView):
