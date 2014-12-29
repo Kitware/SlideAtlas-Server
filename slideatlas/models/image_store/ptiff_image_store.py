@@ -175,7 +175,8 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
             # ensure that this is a new image
             try:
-                image = Image.objects.get(sha512=image_hash)
+                with self:
+                    image = Image.objects.get(sha512=image_hash)
             except DoesNotExist:
                 pass
             except MultipleObjectsReturned:
