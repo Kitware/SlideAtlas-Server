@@ -15,7 +15,7 @@ This plugin also includes a javascript object pluginScarRatio.js to be loaded on
 
 
 # Create a blueprint
-mod = flask.Blueprint('ScarRatio', __name__, static_folder='static', url_prefix="/scar_ratio")
+mod = flask.Blueprint('scar_ratio', __name__, static_folder='static', url_prefix="/scar_ratio")
 
 
 def normalize(v):

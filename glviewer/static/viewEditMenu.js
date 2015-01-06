@@ -73,13 +73,24 @@ function ViewEditMenu (viewer) {
         .css({'margin':'2px 0px',
               'width' : '100%'})
         .click(function(){self.FlipHorizontal();});
-    
-    if(window.PLUGINS && window.PLUGINS.indexOf("ScarRatio") >= 0) {
-        $('<button>').appendTo(this.Tab.Panel)
-            .text('Color thresholding')
-            .css({'margin':'2px 0px',
-                  'width' : '100%'})
-            .click(function() {pluginScarRatio.Init();});
+
+
+    for(var plugin in window.PLUGINS) {
+        var that = this;
+        if(window.PLUGINS[plugin].button_text) {
+            (function (plugin) {
+                // console.log("Adding menu for " + plugin);
+                $('<button>').appendTo(that.Tab.Panel)
+                    .text(window.PLUGINS[plugin].button_text)
+                    .css({
+                        'margin': '2px 0px',
+                        'width': '100%'
+                    })
+                    .click(function () {
+                        window.PLUGINS[plugin].Init();
+                    });
+            })(plugin);
+        }
     }
     
     // I need some indication that the behavior id different in edit mode.
