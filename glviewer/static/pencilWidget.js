@@ -60,8 +60,8 @@ function PencilWidget (viewer, newFlag) {
       .css({'display':'table-cell'})
       .keypress(function(event) { return event.keyCode != 13; });
 
-  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
   this.Viewer.WidgetList.push(this);
 
   this.Cursor = $('<img>').appendTo('body')
@@ -143,7 +143,7 @@ PencilWidget.prototype.Load = function(obj) {
 }
 
 PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  return false;
+  return true;
 }
 
 PencilWidget.prototype.Deactivate = function() {
@@ -161,74 +161,71 @@ PencilWidget.prototype.Deactivate = function() {
 }
 
 PencilWidget.prototype.HandleMouseDown = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
-
-  if (event.SystemEvent.which == 1) {
-    // Start drawing.
-    var shape = new Polyline();
-    //shape.OutlineColor = [0.9, 1.0, 0.0];
-    shape.OutlineColor = [0.0, 0.0, 0.0];
-    shape.SetOutlineColor(this.Dialog.ColorInput.val());
-    shape.FixedSize = false;
-    shape.LineWidth = 0;
-    this.Shapes.push(shape);
-
-    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-    shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-  }
+  var x = event.offsetX;
+  var y = event.offsetY;
+    
+    if (event.which == 1) {
+        // Start drawing.
+        var shape = new Polyline();
+        //shape.OutlineColor = [0.9, 1.0, 0.0];
+        shape.OutlineColor = [0.0, 0.0, 0.0];
+        shape.SetOutlineColor(this.Dialog.ColorInput.val());
+        shape.FixedSize = false;
+        shape.LineWidth = 0;
+        this.Shapes.push(shape);
+        
+        var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
+        shape.Points.push([pt[0], pt[1]]); // avoid same reference.
+    }
 }
 
 PencilWidget.prototype.HandleMouseUp = function(event) {
-  if (event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    this.ShowPropertiesDialog();
-  }
-  // Middle mouse deactivates the widget.
-  if (event.SystemEvent.which == 2) {
-    // Middle mouse was pressed.
-    this.Deactivate();
-  }
-
-  // A stroke has just been finished.
-  if (event.SystemEvent.which == 1 && this.Shapes.length > 0) {
-    var spacing = this.Viewer.GetSpacing();
-    this.Decimate(this.Shapes[this.Shapes.length - 1], spacing);
-    RecordState();
-    this.ComputeActiveCenter();
-  }
+    if (event.which == 3) {
+        // Right mouse was pressed.
+        // Pop up the properties dialog.
+        this.ShowPropertiesDialog();
+    }
+    // Middle mouse deactivates the widget.
+    if (event.which == 2) {
+        // Middle mouse was pressed.
+        this.Deactivate();
+    }
+    
+    // A stroke has just been finished.
+    if (event.which == 1 && this.Shapes.length > 0) {
+        var spacing = this.Viewer.GetSpacing();
+        this.Decimate(this.Shapes[this.Shapes.length - 1], spacing);
+        RecordState();
+        this.ComputeActiveCenter();
+    }
 }
 
 PencilWidget.prototype.HandleDoubleClick = function(event) {
-  this.Deactivate();
+    this.Deactivate();
 }
 
 PencilWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-  // Move the pencil icon to follow the mouse.
-  this.Cursor.css({'left': (x+4), 'top': (y-32)});
-
-  if (event.MouseDown == true) {
-    if (event.SystemEvent.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
-      var shape = this.Shapes[this.Shapes.length-1];
-      var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
-      shape.Points.push([pt[0], pt[1]]); // avoid same reference.
-      shape.UpdateBuffers();
-      eventuallyRender();
-      return;
+    // Move the pencil icon to follow the mouse.
+    this.Cursor.css({'left': (x+4), 'top': (y-32)});
+    
+    if (event.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
+        var shape = this.Shapes[this.Shapes.length-1];
+        var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
+        shape.Points.push([pt[0], pt[1]]); // avoid same reference.
+        shape.UpdateBuffers();
+        eventuallyRender();
+        return;
     }
-  }
-
-  if (this.State == PENCIL_WIDGET_ACTIVE &&
-      event.SystemEvent.which == 0) {
-      // Deactivate
-      this.SetActive(this.CheckActive(event));
-      return;
+    
+    if (this.State == PENCIL_WIDGET_ACTIVE &&
+        event.which == 0) {
+        // Deactivate
+        this.SetActive(this.CheckActive(event));
+        return;
     }
-
 }
 
 PencilWidget.prototype.ComputeActiveCenter = function() {
@@ -264,8 +261,8 @@ PencilWidget.prototype.CheckActive = function(event) {
   var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
 
-  var dx = event.MouseX - pt[0];
-  var dy = event.MouseY - pt[1];
+  var dx = event.offsetX - pt[0];
+  var dy = event.offsetY - pt[1];
   var active = false;
 
   if (dx*dx + dy*dy < 1600) {

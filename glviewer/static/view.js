@@ -19,9 +19,7 @@ function View () {
     // 2d canvas
     if ( ! GL) {
         // Add a new canvas.
-        this.Canvas = $('<canvas>')
-            .css({'border-style': 'solid',
-                  'border-width': '1px'});
+        this.Canvas = $('<canvas>');
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 }
@@ -44,6 +42,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
         // Add a new canvas.
         this.Canvas
             .css({'position': 'absolute',
+                  'border-style': 'solid',
+                  'border-width': '1px',
+                  'border-color': '#AAA',
                   'left' : viewport[0]+"px",
                   'width': viewport[2]+"px",
                   'bottom' : viewport[1]+"px",

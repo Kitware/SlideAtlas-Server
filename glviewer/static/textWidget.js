@@ -126,8 +126,8 @@ function TextWidget (viewer, string) {
       .css({'display': 'table-cell'});
 
   // Create the hover popup for deleting and showing properties dialog.
-  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
   // Text widgets are created with the dialog open (to set the string).
   // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
   this.State = TEXT_WIDGET_WAITING;
@@ -226,11 +226,11 @@ TextWidget.prototype.RemoveFromViewer = function() {
 }
 
 
-TextWidget.prototype.PasteCallback = function(data) {
+TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.Load(data);
   // Place the tip of the arrow at the mose location.
-  this.Text.Position[0] = EVENT_MANAGER.MouseWorldX;
-  this.Text.Position[1] = EVENT_MANAGER.MouseWorldY;
+  this.Text.Position[0] = mouseWorldPt[0];
+  this.Text.Position[1] = mouseWorldPt[1];
   this.UpdateArrow();
   eventuallyRender();
 }
@@ -373,61 +373,67 @@ TextWidget.prototype.UpdateArrow = function() {
   this.Arrow.UpdateBuffers();
 }
 
-TextWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+TextWidget.prototype.HandleKeyPress = function(event) {
   // The dialog consumes all key events.
   if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-      return true;
+      return false;
   }
 
-
   // Copy
-  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+  if (event.keyCode == 67 && event.ctrlKey) {
     // control-c for copy
     // The extra identifier is not needed for widgets, but will be
     // needed if we have some other object on the clipboard.
     var clip = {Type:"TextWidget", Data: this.Serialize()};
     localStorage.ClipBoard = JSON.stringify(clip);
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 
 TextWidget.prototype.HandleDoubleClick = function(event) {
+    return false
 }
 
 TextWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which == 1) {
-    if (this.State == TEXT_WIDGET_ACTIVE) {
-      if (this.Arrow.Visibility && this.ActiveReason == 0) {
-        this.State = TEXT_WIDGET_DRAG_TEXT;
-      } else {
-        this.State = TEXT_WIDGET_DRAG;
-      }
-      eventuallyRender();
+    if (event.which == 1) {
+        if (this.State == TEXT_WIDGET_ACTIVE) {
+            if (this.Arrow.Visibility && this.ActiveReason == 0) {
+                this.State = TEXT_WIDGET_DRAG_TEXT;
+            } else {
+                this.State = TEXT_WIDGET_DRAG;
+            }
+            eventuallyRender();
+        }
+        return true;
     }
-  }
+    return false;
 }
 
 // returns false when it is finished doing its work.
 TextWidget.prototype.HandleMouseUp = function(event) {
-  if (event.SystemEvent.which == 1) {
-    if (this.State == TEXT_WIDGET_DRAG ||
-        this.State == TEXT_WIDGET_DRAG_TEXT) {
-      RecordState();
+    if (event.which == 1) {
+        if (this.State == TEXT_WIDGET_DRAG ||
+            this.State == TEXT_WIDGET_DRAG_TEXT) {
+            RecordState();
+        }
+        this.State = TEXT_WIDGET_ACTIVE;
+        return true;
     }
-    this.State = TEXT_WIDGET_ACTIVE;
-  }
+    
+    if (this.State == TEXT_WIDGET_ACTIVE && event.which == 3) {
+        // Right mouse was pressed.
+        // Pop up the properties dialog.
+        // Which one should we popup?
+        // Add a ShowProperties method to the widget. (With the magic of javascript).
+        this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+        this.ShowPropertiesDialog();
+        return true;
+    }
 
-  if (this.State == TEXT_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript).
-    this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-    }
+    return false;
 }
 
 
@@ -436,41 +442,42 @@ TextWidget.prototype.HandleMouseUp = function(event) {
 // Screen y vector point down (up is negative).
 // Text coordinate system will match canvas text: origin upper left, Y point down.
 TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
-  var textOriginScreenPixelPosition = this.Viewer.ConvertPointWorldToViewer(this.Text.Position[0],this.Text.Position[1]);
-  x = (x - textOriginScreenPixelPosition[0]) + this.Text.Anchor[0];
-  y = (y - textOriginScreenPixelPosition[1]) + this.Text.Anchor[1];
-
-  return [x,y];
+    var textOriginScreenPixelPosition = this.Viewer.ConvertPointWorldToViewer(this.Text.Position[0],this.Text.Position[1]);
+    x = (x - textOriginScreenPixelPosition[0]) + this.Text.Anchor[0];
+    y = (y - textOriginScreenPixelPosition[1]) + this.Text.Anchor[1];
+    
+    return [x,y];
 }
 
 TextWidget.prototype.HandleMouseMove = function(event) {
-  if (this.State == TEXT_WIDGET_DRAG) {
-    w0 = this.Viewer.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.Viewer.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    // This is the translation.
-    var dx = w1[0] - w0[0];
-    var dy = w1[1] - w0[1];
-
-    this.Text.Position[0] += dx;
-    this.Text.Position[1] += dy;
-    this.Arrow.Origin = this.Text.Position;
-    this.PlacePopup();
-    eventuallyRender();
+    if (this.State == TEXT_WIDGET_DRAG) {
+        w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
+                                                   EVENT_MANAGER.LastMouseY);
+        w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        // This is the translation.
+        var dx = w1[0] - w0[0];
+        var dy = w1[1] - w0[1];
+        
+        this.Text.Position[0] += dx;
+        this.Text.Position[1] += dy;
+        this.Arrow.Origin = this.Text.Position;
+        this.PlacePopup();
+        eventuallyRender();
+        return true;
+    }
+    if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
+        this.Text.Anchor[0] -= EVENT_MANAGER.MouseDeltaX;
+        this.Text.Anchor[1] -= EVENT_MANAGER.MouseDeltaY;
+        this.UpdateArrow();
+        this.PlacePopup();
+        eventuallyRender();
+        return true;
+    }
+    // We do not want to deactivate the widget while the properties dialog is showing.
+    if (this.State != TEXT_WIDGET_PROPERTIES_DIALOG) {
+        return this.CheckActive(event);
+    }
     return true;
-  }
-  if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
-    this.Text.Anchor[0] -= event.MouseDeltaX;
-    this.Text.Anchor[1] -= event.MouseDeltaY;
-    this.UpdateArrow();
-    this.PlacePopup();
-    eventuallyRender();
-    return true;
-  }
-  // We do not want to deactivate the widget while the properties dialog is showing.
-  if (this.State != TEXT_WIDGET_PROPERTIES_DIALOG) {
-    return this.CheckActive(event);
-  }
-  return true;
 }
 
 
@@ -504,7 +511,7 @@ TextWidget.prototype.HandleTouchEnd = function(event) {
 
 
 TextWidget.prototype.CheckActive = function(event) {
-  var tMouse = this.ScreenPixelToTextPixelPoint(event.MouseX, event.MouseY);
+  var tMouse = this.ScreenPixelToTextPixelPoint(event.offsetX, event.offsetY);
 
   // First check anchor
   // thencheck to see if the point is no the bounds of the text.

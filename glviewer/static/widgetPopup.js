@@ -4,27 +4,33 @@
 
 
 function WidgetPopup (widget) {
-  this.Widget = widget;
-  this.Visible = false;
-  this.HideTimerId = 0;
-
-  // buttons to replace right click.
-  var self = this;
-  this.ButtonDiv =
-    $('<div>').appendTo(VIEW_PANEL)
-              .hide()
-              .css({'position': 'absolute',
-                    'z-index': '1'})
-              .mouseenter(function() { self.CancelHideTimer(); })
-              .mouseleave(function(){ self.StartHideTimer();});
-  this.DeleteButton = $('<img>').appendTo(this.ButtonDiv)
-      .css({'height': '20px'})
-    .attr('src',"/webgl-viewer/static/deleteSmall.png")
-    .click(function(){self.DeleteCallback();});
-  this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
-      .css({'height': '20px'})
-    .attr('src',"/webgl-viewer/static/Menu.jpg")
-    .click(function(){self.PropertiesCallback();});
+    this.Widget = widget;
+    this.Visible = false;
+    this.HideTimerId = 0;
+    
+    // buttons to replace right click.
+    var self = this;
+    
+    // We cannot append this to the canvas, so just append
+    // it to the view panel, and add the viewport offset for now.
+    // I should probably create a div around the canvas.
+    // This is this only place I need viewport[0], [1] and I
+    // was thinking of getting rid of the viewport offset.
+    this.ButtonDiv =
+        $('<div>').appendTo(VIEW_PANEL)
+        .hide()
+        .css({'position': 'absolute',
+              'z-index': '1'})
+        .mouseenter(function() { self.CancelHideTimer(); })
+        .mouseleave(function(){ self.StartHideTimer();});
+    this.DeleteButton = $('<img>').appendTo(this.ButtonDiv)
+        .css({'height': '20px'})
+        .attr('src',"/webgl-viewer/static/deleteSmall.png")
+        .click(function(){self.DeleteCallback();});
+    this.PropertiesButton = $('<img>').appendTo(this.ButtonDiv)
+        .css({'height': '20px'})
+        .attr('src',"/webgl-viewer/static/Menu.jpg")
+        .click(function(){self.PropertiesCallback();});
 }
 
 WidgetPopup.prototype.DeleteCallback = function() {
@@ -46,11 +52,16 @@ WidgetPopup.prototype.PropertiesCallback = function() {
 
 //------------------------------------------------------------------------------
 WidgetPopup.prototype.Show = function(x, y) {
-  this.CancelHideTimer(); // Just in case: Show trumps previous hide.
-  this.ButtonDiv.css({
-                   'left' : x+'px',
-                   'top'  : y+'px'})
-                .show();
+    // Have to add the viewport offset because I cannot use Canvas as
+    // parent.
+    var viewport = this.Widget.Viewer.GetViewport();
+    x += viewport[0];
+    y += viewport[1];
+    this.CancelHideTimer(); // Just in case: Show trumps previous hide.
+    this.ButtonDiv.css({
+        'left' : x+'px',
+        'top'  : y+'px'})
+        .show();
 }
 
 // When some other event occurs, we want to hide the pop up quickly

@@ -22,7 +22,7 @@ function FavoritesWidget() {
               'bottom': '0px',
               'padding' : '5px',
               'opacity': '0.6',
-              'z-index': '3'})
+              'z-index': '7'})
         .attr('src',"webgl-viewer/static/favorite-star.png")
         .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
     this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");

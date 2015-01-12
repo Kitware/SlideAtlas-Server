@@ -568,10 +568,6 @@ function draw() {
 function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
 // I am getting rid of the right click feature now.
 
-function handleMouseDown(event) { EVENT_MANAGER.HandleMouseDown(event); }
-function handleMouseUp(event) { EVENT_MANAGER.HandleMouseUp(event); }
-function handleMouseMove(event) {EVENT_MANAGER.HandleMouseMove(event);}
-function handleMouseWheel(event) {EVENT_MANAGER.HandleMouseWheel(event);}
 
 function handleTouchStart(event) {EVENT_MANAGER.HandleTouchStart(event);}
 function handleTouchMove(event) {EVENT_MANAGER.HandleTouchMove(event);}
@@ -650,19 +646,21 @@ function StartView() {
         handleResize();
     }).trigger('resize');
 
-    var can = VIEW_PANEL[0];
-    can.addEventListener("mousedown", handleMouseDown, false);
-    can.addEventListener("mousemove", handleMouseMove, false);
-    can.addEventListener("touchstart", handleTouchStart, false);
-    can.addEventListener("touchmove", handleTouchMove, true);
-    can.addEventListener("touchend", handleTouchEnd, false);
-    can.addEventListener("wheel", handleMouseWheel, false);
+    // Events are not received by the viewers.
+    //var can = VIEW_PANEL[0];
+    //can.addEventListener("touchstart", handleTouchStart, false);
+    //can.addEventListener("touchmove", handleTouchMove, true);
+    //can.addEventListener("touchend", handleTouchEnd, false);
+    //document.body.addEventListener("mouseup", handleMouseUp, false);
+    //document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
-    document.body.addEventListener("mouseup", handleMouseUp, false);
-    document.body.addEventListener("touchcancel", handleTouchCancel, false);
-
+    // The event manager still handles stack alignment.
+    // This should be moved to a stack helper class.
+    // Undo and redo too.
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
+
+    // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
 

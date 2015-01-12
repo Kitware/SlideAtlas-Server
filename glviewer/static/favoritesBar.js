@@ -68,29 +68,28 @@ function FavoritesBar(){
   VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
 
   LoadFavorites();
-
-
-  var self = this;
-  EVENT_MANAGER.OnStartInteraction( function () { self.Hide();} );
 }
 
 
 FavoritesBar.prototype.Hide = function(){
-  if( ! this.hidden){
-    this.FavoritesList.fadeOut();
-    this.hidden = true;
-  }
+    if( ! this.hidden){
+        this.FavoritesList.fadeOut();
+        this.hidden = true;
+    }
 }
 
 
 FavoritesBar.prototype.ShowHideFavorites = function(){
-  if(this.hidden){
-    this.FavoritesList.show();
-    this.hidden = false;
-  } else {
-    this.FavoritesList.fadeOut();
-    this.hidden = true;
-  }
+    if(this.hidden){
+        this.FavoritesList.show();
+        this.hidden = false;
+        var self = this;
+        VIEWER1.OnInteraction( function () { self.Hide();} );
+        VIEWER2.OnInteraction( function () { self.Hide();} );
+    } else {
+        this.FavoritesList.fadeOut();
+        this.hidden = true;
+    }
 }
 
 var FAVORITES;
