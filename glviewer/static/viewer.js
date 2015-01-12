@@ -2,10 +2,9 @@
 
 // TODO: Fix
 // touch events.
-// key events.
-// trigger start interaction
-// test cut and past widgets.
 // test stack
+// load image (old annotation is not cleared).
+// Change hide annotation
 
 // I am changing this to support three states of annotation visibility:
 // None, Annotations, but no text, and all on.
@@ -21,8 +20,6 @@ var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
 
 
-
- 
 function Viewer (viewport, cache) {
     this.HistoryFlag = false;
     
@@ -73,23 +70,66 @@ function Viewer (viewport, cache) {
 
     var self = this;
     var can = this.MainView.Canvas[0];
-    can.addEventListener("mousedown",
-			                   function (event){return self.HandleMouseDown(event);},
-			                   false);
-    can.addEventListener("mousemove",
-			                   function (event){return self.HandleMouseMove(event);},
-			                   false);
-    can.addEventListener("wheel",
-			                   function (event){return self.HandleMouseWheel(event);},
-			                   false);
+    can.addEventListener(
+        "mousedown",
+			  function (event){
+            return self.HandleMouseDown(event);},
+			  false);
+    can.addEventListener(
+        "mousemove",
+			  function (event){
+            // So key events go the the right viewer.
+            this.focus();
+            return self.HandleMouseMove(event);},
+			  false);
+    // We need to detect the mouse up even if it happens outside the canvas,
+    document.body.addEventListener(
+        "mouseup",
+			  function (event){
+            self.HandleMouseUp(event);},
+			  false);
+    can.addEventListener(
+        "mousewheel", 
+        function(event){
+            self.HandleMouseWheel(event);
+        }, 
+        false);
+
+    can.addEventListener(
+        "touchstart", 
+        function(event){
+            self.HandleTouchStart(event);
+        }, 
+        false);
+    can.addEventListener(
+        "touchmove", 
+        function(event){
+            self.HandleTouchMove(event);
+        }, 
+        false);
+    can.addEventListener(
+        "touchend", 
+        function(event){
+            self.HandleTouchEnd(event);
+        }, 
+        false);
+
+    // necesary to respond to keyevents.
+    this.MainView.Canvas.attr("tabindex","1");
+    can.addEventListener(
+        "keydown",
+			  function (event){
+            //alert("keydown");
+            return self.HandleKeyDown(event);
+        },
+	      false);
+
+
     // This did not work for double left click
-    // Go back to my origin way of handling this.
+    // Go back to my original way of handling this.
     //can.addEventListener("dblclick",
 		//	                   function (event){self.HandleDoubleClick(event);},
 		//	                   false);
-    document.body.addEventListener("mouseup",
-			                             function (event){self.HandleMouseUp(event);},
-			                             false);
 
     if (this.OverView) {
         var can = this.OverView.Canvas[0];
@@ -102,7 +142,9 @@ function Viewer (viewport, cache) {
     }
 }
 
-
+Viewer.prototype.GetMainCanvas = function() {
+    return this.MainView.Canvas;
+}
  
 // A way to have a method called every time the camera changes.
 // Will be used for synchronizing viewers for stacks.
@@ -1230,11 +1272,12 @@ Viewer.prototype.HandleOverViewMouseMove = function(event) {
     // Animation handles the render.
     return true;
 }
-    
+
 
 
 
 Viewer.prototype.HandleMouseDown = function(event) {
+    event.preventDefault(); // Keep browser from selecting images.
     EVENT_MANAGER.RecordMouseDown(event);
     if (EVENT_MANAGER.DoubleClick) {
         // Without this, double click selects sub elementes.
@@ -1256,13 +1299,13 @@ Viewer.prototype.HandleMouseDown = function(event) {
 	      } else {
 	          this.InteractionState = INTERACTION_DRAG;
 	      }
-	      return true;
+	      return false;
     }
     if (event.which == 2 ) {
 	      this.InteractionState = INTERACTION_ROTATE;
-	      return true;
+	      return false;
     }
-    return false;
+    return true;
 }
 
 Viewer.prototype.HandleDoubleClick = function(event) {
@@ -1270,7 +1313,7 @@ Viewer.prototype.HandleDoubleClick = function(event) {
         return this.ActiveWidget.HandleDoubleClick(event);
     }
     
-    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offestY);
+    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
     if (event.which == 1) {
         this.AnimateZoomTo(0.5, mWorld);
     } else if (event.which == 3) {
@@ -1284,7 +1327,7 @@ Viewer.prototype.HandleMouseUp = function(event) {
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != null) {
         this.ActiveWidget.HandleMouseUp(event);
-        return;
+        return false; // trying to keep the browser from selecting images
     }
     
     if (this.InteractionState != INTERACTION_NONE) {
@@ -1292,45 +1335,26 @@ Viewer.prototype.HandleMouseUp = function(event) {
         RecordState();
     }
     
-    return;
+    return false; // trying to keep the browser from selecting images
 }
 
-
 Viewer.prototype.ComputeMouseWorld = function(event) {
-    // Many shapes, widgets and interactors will need the mouse in world coodinates.
-    var x = event.offsetX;
-    var y = event.offsetY;
-
-    var viewport = this.GetViewport();
-    // Convert mouse to viewer coordinate system.
-    // It would be nice to have this before this method.
-    x = x - viewport[0];
-    y = y - viewport[1];
-    // Convert (x,y) to ???
-    // Compute focal point from inverse overview camera.
-    x = x/viewport[2];
-    y = y/viewport[3];
-    var cam = this.MainView.Camera;
-    
-    x = (x*2.0 - 1.0)*cam.Matrix[15];
-    // View coordinates are defined by GL and have y=+1 at the top.
-    // I have pixel coordinates y=0 at top to match standard image coordinates.
-    y = (1 - y*2.0)*cam.Matrix[15];
-    var m = cam.Matrix;
-    var det = m[0]*m[5] - m[1]*m[4];
-    // Maybe we should save this in the viewer and not in the eventManager.
-    event.worldX = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-    event.worldY = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+    // We need to save these for pasting annotation.
+    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    // Maybe we should save this in the viewer and not in the event.
+    event.worldX = this.MouseWorld[0];
+    event.worldY= this.MouseWorld[1];
 }
 
 Viewer.prototype.HandleMouseMove = function(event) {
+    event.preventDefault(); // Keep browser from selecting images.
     EVENT_MANAGER.RecordMouseMove(event);
     this.ComputeMouseWorld(event);
     
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != null) {
 	      this.ActiveWidget.HandleMouseMove(event);
-	      return;
+        return false; // trying to keep the browser from selecting images
     }
     
     if (event.which == 0) {
@@ -1339,12 +1363,12 @@ Viewer.prototype.HandleMouseMove = function(event) {
 	          for (var i = 0; i < this.WidgetList.length; ++i) {
 		            if (this.WidgetList[i].CheckActive(event)) {
 		                this.ActivateWidget(this.WidgetList[i]);
-		                return;
+                    return false; // trying to keep the browser from selecting images
 		            }
 	          }
 	      }
 	      
-	      return;
+        return false; // trying to keep the browser from selecting images
     }
     
     var x = event.offsetX;
@@ -1394,6 +1418,7 @@ Viewer.prototype.HandleMouseMove = function(event) {
     // The only interaction that does not go through animate camera.
     this.TriggerInteraction();
     eventuallyRender();
+    return false; // trying to keep the browser from selecting images
 }
 
 Viewer.prototype.HandleMouseWheel = function(event) {
@@ -1438,8 +1463,11 @@ Viewer.prototype.HandleMouseWheel = function(event) {
 }
 
 var SAVING_IMAGE = undefined;
-Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
-    if (keyCode == 83 && modifiers.ControlKeyPressed) { // control -s to save.
+
+// returns false if the event was "consumed" (browser convention).
+// Returns true if nothing was done with the event.
+Viewer.prototype.HandleKeyDown = function(event) {
+    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
             SAVING_IMAGE = new Dialog();
             SAVING_IMAGE.Title.text('Saving');
@@ -1462,66 +1490,46 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
                                          SAVING_IMAGE.Hide();
                                      });
         }
-        return true;
+        return false;
     }
     
     // Handle paste
-    if (keyCode == 86 && modifiers.ControlKeyPressed) {
+    if (event.keyCode == 86 && event.ctrlKey) {
         // control-v for paste
         
         var clip = JSON.parse(localStorage.ClipBoard);
         if (clip.Type == "CircleWidget") {
             var widget = new CircleWidget(this, false);
-            widget.PasteCallback(clip.Data);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
         }
         if (clip.Type == "PolylineWidget") {
             var widget = new PolylineWidget(this, false);
-            widget.PasteCallback(clip.Data);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
         }
         if (clip.Type == "TextWidget") {
             var widget = new TextWidget(this, "");
-            widget.PasteCallback(clip.Data);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
         }
         
-        return true;
-    }
-    
-    
-    
-    // Handle stack (page up  / down)
-    /* This might be used for connectome, however, reworking path stacks.
-       var cache = this.GetCache();
-       if (cache && cache.Image.type && cache.Image.type == "stack") {
-       if (keyCode == 33) {
-       SLICE = SLICE - 1;
-       if (SLICE < 1) { SLICE = 1;}
-       eventuallyRender();
-       } else if (keyCode == 34) {
-       SLICE = SLICE + 1;
-       if (SLICE > cache.Image.dimensions[2]) {
-       SLICE = cache.Image.dimensions[2];
-       }
-       eventuallyRender();
-       }
-       }
-    */
+        return false;
+    }    
     
     //----------------------
     if (this.ActiveWidget != null) {
-        if (this.ActiveWidget.HandleKeyPress(keyCode, modifiers)) {
-            return true;
+        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
+            return false;
         }
     }
     
-    if (String.fromCharCode(keyCode) == 'R') {
+    if (String.fromCharCode(event.keyCode) == 'R') {
         //this.MainView.Camera.Reset();
         this.MainView.Camera.ComputeMatrix();
         this.ZoomTarget = this.MainView.Camera.GetHeight();
         eventuallyRender();
-        return true;
+        return false;
     }
     
-    if (keyCode == 38) {
+    if (event.keyCode == 38) {
         // Up cursor key
         var cam = this.GetCamera();
         var c = Math.cos(cam.Roll);
@@ -1535,8 +1543,8 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
         this.AnimateLast = new Date().getTime();
         this.AnimateDuration = 200.0;
         eventuallyRender();
-        return true;
-    } else if (keyCode == 40) {
+        return false;
+    } else if (event.keyCode == 40) {
         // Down cursor key
         var cam = this.GetCamera();
         var c = Math.cos(cam.Roll);
@@ -1550,8 +1558,8 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
         this.AnimateLast = new Date().getTime();
         this.AnimateDuration = 200.0;
         eventuallyRender();
-        return true;
-    } else if (keyCode == 37) {
+        return false;
+    } else if (event.keyCode == 37) {
         // Left cursor key
         var cam = this.GetCamera();
         var c = Math.cos(cam.Roll);
@@ -1565,8 +1573,8 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
         this.AnimateLast = new Date().getTime();
         this.AnimateDuration = 200.0;
         eventuallyRender();
-        return true;
-    } else if (keyCode == 39) {
+        return false;
+    } else if (event.keyCode == 39) {
         // Right cursor key
         var cam = this.GetCamera();
         var c = Math.cos(cam.Roll);
@@ -1580,9 +1588,9 @@ Viewer.prototype.HandleKeyPress = function(keyCode, modifiers) {
         this.AnimateLast = new Date().getTime();
         this.AnimateDuration = 200.0;
         eventuallyRender();
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
 

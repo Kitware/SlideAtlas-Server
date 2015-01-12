@@ -129,15 +129,17 @@ function ViewBrowserImageCallback(obj) {
 }
 
 function ViewBrowserLoadImage(viewData) {
-  // If we want to take origin and spacing into account, then we need to change tile geometry computation.
-  var imgobj = viewData.ViewerRecords[0].Image;
-  var source = new Cache(imgobj);
+    // If we want to take origin and spacing into account, then we need to change tile geometry computation.
+    var imgobj = viewData.ViewerRecords[0].Image;
+    var source = new Cache(imgobj);
 
-  ACTIVE_VIEWER.SetCache(source);
+    // We have to get rid of annotation which does not apply to tyhe new image.
+    ACTIVE_VIEWER.Reset();
+    ACTIVE_VIEWER.SetCache(source);    
 
-  RecordState();
+    RecordState();
 
-  eventuallyRender();
+    eventuallyRender();
 }
 
 

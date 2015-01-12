@@ -107,11 +107,11 @@ function PolylineWidget (viewer, newFlag) {
   }
 
 
+  this.Viewer = viewer;
   this.Popup = new WidgetPopup(this);
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
 
-  this.Viewer = viewer;
   // Circle is to show an active vertex.
   this.Circle = new Circle();
   this.Circle.FillColor = [1.0, 1.0, 0.2];
@@ -213,12 +213,12 @@ PolylineWidget.prototype.Draw = function(view) {
 }
 
 
-PolylineWidget.prototype.PasteCallback = function(data) {
+PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.Load(data);
   // Place the widget over the mouse.
   // This is more difficult than the circle.  Compute the shift.
-  var xOffset = event.worldX - (this.Bounds[0]+this.Bounds[1])/2;
-  var yOffset = event.worldY - (this.Bounds[2]+this.Bounds[3])/2;
+  var xOffset = mouseWorldPt[0] - (this.Bounds[0]+this.Bounds[1])/2;
+  var yOffset = mouseWorldPt[1] - (this.Bounds[2]+this.Bounds[3])/2;
   for (var i = 0; i < this.Shape.Points.length; ++i) {
     this.Shape.Points[i][0] += xOffset;
     this.Shape.Points[i][1] += yOffset;
@@ -286,27 +286,26 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
 }
 
-PolylineWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+PolylineWidget.prototype.HandleKeyPress = function(event) {
   // Copy
-  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+  if (event.keyCode == 67 && event.ctrlKey) {
     // control-c for copy
     // The extra identifier is not needed for widgets, but will be
     // needed if we have some other object on the clipboard.
     var clip = {Type:"PolylineWidget", Data: this.Serialize()};
     localStorage.ClipBoard = JSON.stringify(clip);
-    return true;
+    return false;
   }
 
-
-  return false;
-  if (keyCode == 27) { // escape
+  if (event.keyCode == 27) { // escape
     // Last resort.  ESC key always deactivates the widget.
     // Deactivate.
     this.Deactivate();
     RecordState();
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 PolylineWidget.prototype.HandleDoubleClick = function(event) {

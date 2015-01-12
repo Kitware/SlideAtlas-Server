@@ -81,8 +81,8 @@ function LassoWidget (viewer, newFlag) {
   }
 
 
-  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
   this.Viewer.WidgetList.push(this);
 
   this.Cursor = $('<img>').appendTo('body')

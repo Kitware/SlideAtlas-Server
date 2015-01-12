@@ -200,15 +200,6 @@ EventManager.prototype.HandleKeyDown = function(event) {
         return true;
     }
     
-    if (this.CurrentViewer) {
-        // All the keycodes seem to be Capitals.  Sent the shift modifier so we can compensate.
-        if (this.CurrentViewer.HandleKeyPress(event.keyCode, this)) {
-            // TODO: I choose return value true to stop processing event.
-            // It should be false to match browser.
-            return false;
-        }
-    }
-    
     if (typeof(NAVIGATION_WIDGET) != "undefined") {
         if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
             return true;
@@ -247,7 +238,7 @@ EventManager.prototype.HandleKeyUp = function(event) {
         eventuallyRender();
         return false;
     }
-    
+
     if (event.keyCode == 16) {
         // Shift key modifier.
         this.ShiftKeyPressed = false;

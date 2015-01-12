@@ -92,8 +92,8 @@ function CircleWidget (viewer, newFlag) {
   // This will allow us to expand annotations into notes.
   this.CreationCamera = viewer.GetCamera().Serialize();
 
-  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
   this.Shape = new Circle();
@@ -134,11 +134,11 @@ CircleWidget.prototype.RemoveFromViewer = function() {
   }
 }
 
-CircleWidget.prototype.PasteCallback = function(data) {
+CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.Load(data);
   // Place the widget over the mouse.
   // This would be better as an argument.
-  this.Shape.Origin = [event.worldX, event.worldY];
+  this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
   eventuallyRender();
 }
 
@@ -173,40 +173,26 @@ CircleWidget.prototype.Load = function(obj) {
 }
 
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  // Look for a copy command.
-  // Copy of a circle does not make much sense, but it is a test
-  // for polyline, which will be next.
+  // The dialog consumes all key events.
+  if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {
+      return false;
+  }
 
-  // Note: Event manager should probably handle the key modifiers like it
-  // proprocess mouse events.
-
-
-  if (keyCode == 17) { return false; }
-  // 67 is c
-
-  return false;
-}
-
-CircleWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
-  // Look for a copy command.
-  // Copy of a circle does not make much sense, but it is a test
-  // for polyline, which will be next.
-
-  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+  // Copy
+  if (event.keyCode == 67 && event.ctrlKey) {
     // control-c for copy
-
     // The extra identifier is not needed for widgets, but will be
     // needed if we have some other object on the clipboard.
     var clip = {Type:"CircleWidget", Data: this.Serialize()};
     localStorage.ClipBoard = JSON.stringify(clip);
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 CircleWidget.prototype.HandleDoubleClick = function(event) {
-    return false;
+    return true;
 }
 
 CircleWidget.prototype.HandleMouseDown = function(event) {

@@ -646,16 +646,21 @@ function StartView() {
         handleResize();
     }).trigger('resize');
 
-    var can = VIEW_PANEL[0];
-    can.addEventListener("touchstart", handleTouchStart, false);
-    can.addEventListener("touchmove", handleTouchMove, true);
-    can.addEventListener("touchend", handleTouchEnd, false);
-
+    // Events are not received by the viewers.
+    //var can = VIEW_PANEL[0];
+    //can.addEventListener("touchstart", handleTouchStart, false);
+    //can.addEventListener("touchmove", handleTouchMove, true);
+    //can.addEventListener("touchend", handleTouchEnd, false);
     //document.body.addEventListener("mouseup", handleMouseUp, false);
-    document.body.addEventListener("touchcancel", handleTouchCancel, false);
+    //document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
+    // The event manager still handles stack alignment.
+    // This should be moved to a stack helper class.
+    // Undo and redo too.
     document.onkeydown = handleKeyDown;
     document.onkeyup = handleKeyUp;
+
+    // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
 

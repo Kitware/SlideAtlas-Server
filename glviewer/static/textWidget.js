@@ -126,8 +126,8 @@ function TextWidget (viewer, string) {
       .css({'display': 'table-cell'});
 
   // Create the hover popup for deleting and showing properties dialog.
-  this.Popup = new WidgetPopup(this);
   this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
   // Text widgets are created with the dialog open (to set the string).
   // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
   this.State = TEXT_WIDGET_WAITING;
@@ -226,11 +226,11 @@ TextWidget.prototype.RemoveFromViewer = function() {
 }
 
 
-TextWidget.prototype.PasteCallback = function(data) {
+TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.Load(data);
   // Place the tip of the arrow at the mose location.
-  this.Text.Position[0] = event.worldX;
-  this.Text.Position[1] = event.worldY;
+  this.Text.Position[0] = mouseWorldPt[0];
+  this.Text.Position[1] = mouseWorldPt[1];
   this.UpdateArrow();
   eventuallyRender();
 }
@@ -373,24 +373,23 @@ TextWidget.prototype.UpdateArrow = function() {
   this.Arrow.UpdateBuffers();
 }
 
-TextWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
+TextWidget.prototype.HandleKeyPress = function(event) {
   // The dialog consumes all key events.
   if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
-      return true;
+      return false;
   }
 
-
   // Copy
-  if (keyCode == 67 && modifiers.ControlKeyPressed) {
+  if (event.keyCode == 67 && event.ctrlKey) {
     // control-c for copy
     // The extra identifier is not needed for widgets, but will be
     // needed if we have some other object on the clipboard.
     var clip = {Type:"TextWidget", Data: this.Serialize()};
     localStorage.ClipBoard = JSON.stringify(clip);
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 
