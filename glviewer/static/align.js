@@ -430,8 +430,8 @@ TriangleMesh.prototype.ConvertPointsToWorld = function (viewer) {
     var viewport = viewer.GetViewport();
     var idx = 0;
     while (idx < this.PointCoordinates.length) {
-        var pt = viewer.ConvertPointViewerToWorld(this.PointCoordinates[idx] + viewport[0],
-                                                  this.PointCoordinates[idx+1] + viewport[1]);
+        var pt = viewer.ConvertPointViewerToWorld(this.PointCoordinates[idx],
+                                                  this.PointCoordinates[idx+1]);
         this.PointCoordinates[idx++] = pt[0];
         this.PointCoordinates[idx++] = pt[1];
     }
@@ -1039,7 +1039,7 @@ ImageData.prototype.InBounds = function (x,y) {
 
 
 // Add a couple methods to the object.
-function GetImageData(ctx, x,y, width, height) {
+function GetImageData(ctx,width, height) {
     var data = ctx.getImageData(0,0,width,height);
     data.__proto__ = new ImageData();
     data.IncX = 4;
@@ -1197,8 +1197,8 @@ function MakeContourPolyline(points, viewer) {
     var viewport = viewer.GetViewport();
     for (var i = 0; i < points.length; ++i) {
         var viewPt = points[i];
-        slidePoints.push(viewer.ConvertPointViewerToWorld(viewPt[0] + viewport[0],
-                                                          viewPt[1] + viewport[1]));
+        slidePoints.push(viewer.ConvertPointViewerToWorld(viewPt[0],
+                                                          viewPt[1]));
     }
 
     // Create a polylineWidget from the loop.
@@ -2056,7 +2056,7 @@ function DeformableAlignViewers() {
             var viewer = VIEWER1;
             var ctx1 = viewer.MainView.Context2d;
             var viewport1 = viewer.GetViewport();
-            var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+            var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
             SmoothDataAlphaRGB(data1, 2);
             var histogram1 = ComputeIntensityHistogram(data1, true);
             var threshold1 = PickThreshold(histogram1);
@@ -2065,7 +2065,7 @@ function DeformableAlignViewers() {
             viewer = VIEWER2;
             var ctx2 = viewer.MainView.Context2d;
             var viewport2 = viewer.GetViewport();
-            var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+            var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
             SmoothDataAlphaRGB(data2, 2);
             var histogram2 = ComputeIntensityHistogram(data2, true);
             var threshold2 = PickThreshold(histogram2);
@@ -2109,11 +2109,11 @@ function DeformableAlignViewers() {
             var skip = Math.ceil(contour2.length / targetNumCorrelations);
             for (var i = 2; i < originalContour2.length; i += skip) {
                 var viewport = VIEWER1.GetViewport();
-                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0] + viewport[0],
-                                                            contour2[i][1] + viewport[1]);
+                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0],
+                                                            contour2[i][1]);
                 var viewport = VIEWER2.GetViewport();
-                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2[i][0] + viewport[0],
-                                                            originalContour2[i][1] + viewport[1]);
+                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2[i][0],
+                                                            originalContour2[i][1]);
                 var cor = new PairCorrelation();
                 cor.SetPoint0(pt1);
                 cor.SetPoint1(pt2);
@@ -2263,7 +2263,7 @@ function intensityHistogram(viewer, color, min, max) {
 
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     var histogram1 = ComputeIntensityHistogram(data1);
     PLOT.Draw(histogram1, color, min, max);
     var d = HistogramIntegral(histogram1);
@@ -2274,7 +2274,7 @@ function intensityHistogram(viewer, color, min, max) {
 function testSmooth(radius) {
     var ctx1 = VIEWER1.MainView.Context2d;
     var viewport1 = VIEWER1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1,radius);
     DrawImageData(VIEWER1, data1);
     delete data1;
@@ -2289,7 +2289,7 @@ function testSmooth(radius) {
 function testPrincipleComponentEncoding() {
     var ctx1 = VIEWER1.MainView.Context2d;
     var viewport1 = VIEWER1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1,2);
     //EncodePrincipleComponent(data1);
     var histogram1 = ComputeIntensityHistogram(data1);
@@ -2309,7 +2309,7 @@ function testPrincipleComponentEncoding() {
 function testAlignTranslationPixelMean() {
     var ctx1 = VIEWER1.MainView.Context2d;
     var viewport1 = VIEWER1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     ThresholdData(data1, threshold1);
@@ -2317,7 +2317,7 @@ function testAlignTranslationPixelMean() {
 
     var ctx2 = VIEWER2.MainView.Context2d;
     var viewport2 = VIEWER2.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     ThresholdData(data2, threshold2);
@@ -2350,7 +2350,7 @@ function testAlignTranslation(debug) {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -2359,7 +2359,7 @@ function testAlignTranslation(debug) {
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
     var viewport2 = viewer2.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -2395,7 +2395,7 @@ function testAlignTranslation2(debug) {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -2404,7 +2404,7 @@ function testAlignTranslation2(debug) {
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
     var viewport2 = viewer2.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -2443,7 +2443,7 @@ function testAlignTranslation() {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -2455,7 +2455,7 @@ function testAlignTranslation() {
     var viewer2 = VIEWER2;
     var ctx2 = viewer2.MainView.Context2d;
     var viewport2 = viewer2.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
@@ -2504,7 +2504,7 @@ function testDistanceMapContour() {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -2522,7 +2522,7 @@ function testDistanceMapThreshold() {
     var viewer1 = VIEWER1;
     var ctx1 = viewer1.MainView.Context2d;
     var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
@@ -2544,7 +2544,7 @@ function testContour(threshold) {
     var viewer = VIEWER1;
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
     ContourRemoveDuplicatePoints(points, 1);
@@ -2565,7 +2565,7 @@ function testContourMesh(deci) {
     var viewer = VIEWER2;
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -2603,7 +2603,7 @@ function testDeformableAlign(spacing) {
     var viewer = VIEWER1;
     var ctx1 = viewer.MainView.Context2d;
     var viewport1 = viewer.GetViewport();
-    var data1 = GetImageData(ctx1, 0,0,viewport1[2],viewport1[3]);
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
@@ -2613,7 +2613,7 @@ function testDeformableAlign(spacing) {
     viewer = VIEWER2;
     var ctx2 = viewer.MainView.Context2d;
     var viewport2 = viewer.GetViewport();
-    var data2 = GetImageData(ctx2, 0,0,viewport2[2],viewport2[3]);
+    var data2 = GetImageData(ctx2,viewport2[2],viewport2[3]);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
