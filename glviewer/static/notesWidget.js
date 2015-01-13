@@ -410,6 +410,10 @@ function Note () {
                'color':'#379BFF',})
         .text(this.Title)
         .appendTo(this.Div);
+  if (this.HideAnnotations && this.HiddenTitle) {
+      this.TitleDiv.text(this.HiddenTitle);
+  }
+
 
   if (EDIT) {
     this.TitleDiv
@@ -457,8 +461,12 @@ Note.prototype.TitleFocusOutCallback = function() {
   // Allow the viewer to process arrow keys.
   EVENT_MANAGER.FocusIn();
   var text = this.TitleDiv.text();
-  if (this.Title != text) {
+  if (this.Title != text && ! this.HideAnnotations) {
     this.Title = text;
+    NOTES_WIDGET.Modified();
+  }
+  if (this.HiddenTitle != text && this.HideAnnotations) {
+    this.HiddenTitle = text;
     NOTES_WIDGET.Modified();
   }
 }
