@@ -675,33 +675,18 @@ def getview():
     admindb = models.ImageStore._get_db()
     db = admindb
 
-    # check the session to see if notes are hidden
-    hideAnnotations = False
+    viewObj = readViewTree(db, viewid)
+    # I am giving the viewer the responsibility of hiding stuff.
+    viewObj["HideAnnotations"] = False
     if sessid :
         sessObj = models.Session.objects.with_id(sessid)
         if sessObj and sessObj.hide_annotations :
-            hideAnnotations = True
-
-    viewObj = readViewTree(db, viewid)
+            viewObj["HideAnnotations"] = sessObj.hide_annotations
 
     # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
     if "Type" in viewObj :
-        if hideAnnotations :
-            # The viewer has to hide image labels.
-            viewObj["HideAnnotations"] = True
-            # use a cryptic label
-            if 'HiddenTitle' in viewObj:
-                viewObj['Title'] = viewObj['HiddenTitle']
-            else :
-                viewObj['Title'] = 'view'
-            if viewObj["Type"] == "Stack":
-                for vr in viewObj["ViewerRecords"]:
-                    vr["Annotations"] = []
-            else:
-                viewObj["ViewerRecords"] = [viewObj["ViewerRecords"][0]]
-            viewObj["Children"] = []
-
+        viewObj['HiddenTitle'] = viewObj['HiddenTitle']
         convertViewToPixelCoordinateSystem(viewObj)
         return jsonify(viewObj)
 
@@ -753,14 +738,7 @@ def getview():
     }
     viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
-
     noteObj["Children"] = []
-
-    # it is easier to delete annotations than not generate them in the first place.
-    if hideAnnotations :
-        # use a cryptic label
-        noteObj["Title"] = viewObj["HiddenTitle"]
-        noteObj["ViewerRecords"] = [noteObj["ViewerRecords"][0]]
-        noteObj["Children"] = []
+    noteObj["HiddenTitle"] = viewObj["HiddenTitle"]
 
     return jsonify(noteObj)

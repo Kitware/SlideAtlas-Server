@@ -432,118 +432,73 @@ EventManager.prototype.HideSweepListeners = function() {
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
 EventManager.prototype.HandleTouch = function(e, startFlag) {
-  e.preventDefault();
-  var date = new Date();
-  var t = date.getTime();
-  // I have had trouble on the iPad with 0 delta times.
-  // Lets see how it behaves with fewer events.
-  // It was a bug in iPad4 Javascript.
-  // This throttle is not necessary.
-  if (t-this.Time < 20 && ! startFlag) { return false; }
+    e.preventDefault();
+    var date = new Date();
+    var t = date.getTime();
+    // I have had trouble on the iPad with 0 delta times.
+    // Lets see how it behaves with fewer events.
+    // It was a bug in iPad4 Javascript.
+    // This throttle is not necessary.
+    if (t-this.Time < 20 && ! startFlag) { return false; }
 
-  this.LastTime = this.Time;
-  this.Time = t;
+    this.LastTime = this.Time;
+    this.Time = t;
 
-  if (!e) {
-    var e = event;
-  }
-
-  this.SystemEvent = e;
-  this.LastTouches = this.Touches;
-  var can = this.Canvas;
-  this.Touches = [];
-  for (var i = 0; i < e.targetTouches.length; ++i) {
-    var x = e.targetTouches[i].pageX - can.offsetLeft;
-    var y = e.targetTouches[i].pageY - can.offsetTop;
-    this.Touches.push([x,y]);
-  }
-
-  this.LastMouseX = this.MouseX;
-  this.LastMouseY = this.MouseY;
-
-  // Compute the touch average.
-  var numTouches = this.Touches.length;
-  this.MouseX = this.MouseY = 0.0;
-  for (var i = 0; i < numTouches; ++i) {
-    this.MouseX += this.Touches[i][0];
-    this.MouseY += this.Touches[i][1];
-  }
-  this.MouseX = this.MouseX / numTouches;
-  this.MouseY = this.MouseY / numTouches;
-
-  return true;
-}
-
-
-EventManager.prototype.HandleTouchStart = function(e) {
-  this.HandleTouch(e, true);
-  if (this.StartTouchTime == 0) {
-    this.StartTouchTime = this.Time;
-  }
-
-  if (this.CurrentViewer) {
-    if (this.CurrentViewer.HandleTouchStart(this)) {
-      this.TriggerStartInteraction();
+    if (!e) {
+        var e = event;
     }
-  }
-}
 
+    this.SystemEvent = e;
+    this.LastTouches = this.Touches;
+    var can = this.Canvas;
+    this.Touches = [];
+    for (var i = 0; i < e.targetTouches.length; ++i) {
+        var x = e.targetTouches[i].pageX - can.offsetLeft;
+        var y = e.targetTouches[i].pageY - can.offsetTop;
+        this.Touches.push([x,y]);
+    }
 
-EventManager.prototype.HandleTouchMove = function(e) {
-  // Put a throttle on events
-  if ( ! this.HandleTouch(e, false)) { return; }
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
 
-  if (NAVIGATION_WIDGET.Visibility) {
-    // No slide interaction with the interface up.
-    // I had bad interaction with events going to browser.
-    NAVIGATION_WIDGET.ToggleVisibility();
-  }
+    // Compute the touch average.
+    var numTouches = this.Touches.length;
+    this.MouseX = this.MouseY = 0.0;
+    for (var i = 0; i < numTouches; ++i) {
+        this.MouseX += this.Touches[i][0];
+        this.MouseY += this.Touches[i][1];
+    }
+    this.MouseX = this.MouseX / numTouches;
+    this.MouseY = this.MouseY / numTouches;
 
-  if (MOBILE_ANNOTATION_WIDGET.Visibility) {
-    // No slide interaction with the interface up.
-    // I had bad interaction with events going to browser.
-    MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-  }
+    if (startFlag) {
+        if (this.StartTouchTime == 0) {
+            this.StartTouchTime = this.Time;
+        }
+        this.TriggerStartInteraction();
+    }
 
-  if (this.Touches.length == 1 && this.CurrentViewer) {
-    this.CurrentViewer.HandleTouchPan(this);
-    return;
-  }
-  if (this.Touches.length == 2 && this.CurrentViewer) {
-    this.CurrentViewer.HandleTouchPinch(this);
-    return
-  }
-  if (this.Touches.length == 3 && this.CurrentViewer) {
-    this.CurrentViewer.HandleTouchRotate(this);
-    return
-  }
+    return true;
 }
 
 EventManager.prototype.HandleTouchEnd = function(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  var t = new Date().getTime();
-  this.LastTime = this.Time;
-  this.Time = t;
+    var t = new Date().getTime();
+    this.LastTime = this.Time;
+    this.Time = t;
 
-  t = t - this.StartTouchTime;
-  if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
-    this.StartTouchTime = 0;
-    if (t < 90) {
-      NAVIGATION_WIDGET.ToggleVisibility();
-      MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-      return;
+    t = t - this.StartTouchTime;
+    if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
+        this.StartTouchTime = 0;
+        if (t < 90) {
+            NAVIGATION_WIDGET.ToggleVisibility();
+            MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+            return false;
+        }
     }
-    if (this.CurrentViewer) {
-      this.CurrentViewer.HandleTouchEnd(this);
-    }
-  }
+    return true;
 }
-
-EventManager.prototype.HandleTouchCancel = function(event) {
-  this.MouseDown = false;
-}
-
 
 
 

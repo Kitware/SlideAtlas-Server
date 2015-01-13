@@ -113,6 +113,13 @@ function Viewer (viewport, cache) {
             self.HandleTouchEnd(event);
         }, 
         false);
+    document.body.addEventListener(
+        "touchcancel", 
+        function (event) {
+            self.HandleTouchCancel(event);
+        }, 
+        false);
+
 
     // necesary to respond to keyevents.
     this.MainView.Canvas.attr("tabindex","1");
@@ -904,6 +911,8 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
 /**/
 Viewer.prototype.HandleTouchStart = function(event) {
+    EVENT_MANAGER.HandleTouch(event, true);
+    event = EVENT_MANAGER;
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -943,6 +952,42 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
     
     return false;
+}
+
+Viewer.prototype.HandleTouchMove = function(e) {
+    // Put a throttle on events
+    if ( ! EVENT_MANAGER.HandleTouch(e, false)) { return; }
+    e = EVENT_MANAGER;
+
+    if (NAVIGATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        NAVIGATION_WIDGET.ToggleVisibility();
+    }
+
+    if (MOBILE_ANNOTATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+    }
+
+    if (e.Touches.length == 1) {
+        this.HandleTouchPan(e);
+        return;
+    }
+    if (e.Touches.length == 2) {
+        this.HandleTouchPinch(e);
+        return
+    }
+    if (e.Touches.length == 3) {
+        this.HandleTouchRotate(e);
+        return
+    }
+}
+
+// Probably not needed now
+Viewer.prototype.HandleTouchCancel = function(event) {
+  EVENT_MANAGER.MouseDown = false;
 }
 
 // Only one touch
@@ -1138,6 +1183,8 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 }
 
 Viewer.prototype.HandleTouchEnd = function(event) {
+    EVENT_MANAGER.HandleTouchEnd(event);
+    event = EVENT_MANAGER;
     if (this.ActiveWidget != null) {
         this.ActiveWidget.HandleTouchEnd(event);
         return;
