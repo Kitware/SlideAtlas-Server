@@ -95,28 +95,24 @@ function Viewer (viewport, cache) {
         }, 
         false);
 
+    // I am delaying getting event manager out of receiving touch events.
+    // It has too many helper functions.
     can.addEventListener(
         "touchstart", 
         function(event){
-            self.HandleTouchStart(event);
+            EVENT_MANAGER.HandleTouchStart(event, self);
         }, 
         false);
     can.addEventListener(
         "touchmove", 
         function(event){
-            self.HandleTouchMove(event);
+            EVENT_MANAGER.HandleTouchMove(event, self);
         }, 
         false);
     can.addEventListener(
         "touchend", 
         function(event){
-            self.HandleTouchEnd(event);
-        }, 
-        false);
-    document.body.addEventListener(
-        "touchcancel", 
-        function (event) {
-            self.HandleTouchCancel(event);
+            EVENT_MANAGER.HandleTouchEnd(event, self);
         }, 
         false);
 
@@ -909,10 +905,11 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
   eventuallyRender();
 }
 
+
+
+
 /**/
 Viewer.prototype.HandleTouchStart = function(event) {
-    EVENT_MANAGER.HandleTouch(event, true);
-    event = EVENT_MANAGER;
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -921,7 +918,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
         window.cancelAnimationFrame(this.MomentumTimerId)
         this.MomentumTimerId = 0;
     }
-    
+
     // Four finger grab resets the view.
     if ( event.Touches.length >= 4) {
         var cam = this.GetCamera();
@@ -934,12 +931,12 @@ Viewer.prototype.HandleTouchStart = function(event) {
         // Return value hides navigation widget
         return true;
     }
-    
+
     // See if any widget became active.
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            event.offsetX = event.Touches[touchIdx][0];
-            event.offsetY = event.Touches[touchIdx][1];
+            event.MouseX = event.Touches[touchIdx][0];
+            event.MouseY = event.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -950,44 +947,8 @@ Viewer.prototype.HandleTouchStart = function(event) {
             }
         }
     }
-    
+
     return false;
-}
-
-Viewer.prototype.HandleTouchMove = function(e) {
-    // Put a throttle on events
-    if ( ! EVENT_MANAGER.HandleTouch(e, false)) { return; }
-    e = EVENT_MANAGER;
-
-    if (NAVIGATION_WIDGET.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        NAVIGATION_WIDGET.ToggleVisibility();
-    }
-
-    if (MOBILE_ANNOTATION_WIDGET.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-    }
-
-    if (e.Touches.length == 1) {
-        this.HandleTouchPan(e);
-        return;
-    }
-    if (e.Touches.length == 2) {
-        this.HandleTouchPinch(e);
-        return
-    }
-    if (e.Touches.length == 3) {
-        this.HandleTouchRotate(e);
-        return
-    }
-}
-
-// Probably not needed now
-Viewer.prototype.HandleTouchCancel = function(event) {
-  EVENT_MANAGER.MouseDown = false;
 }
 
 // Only one touch
@@ -996,40 +957,39 @@ Viewer.prototype.HandleTouchPan = function(event) {
         // Sanity check.
         return;
     }
-    
+
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != undefined) {
         this.ActiveWidget.HandleTouchPan(event);
         return;
     }
-    
+
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
     if (this.MomentumTimerId) {
         window.cancelAnimationFrame(this.MomentumTimerId)
         this.MomentumTimerId = 0;
     }
-    
+
     // Convert to world by inverting the camera matrix.
     // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
-                                        EVENT_MANAGER.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
-    
+    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+
     // This is the new focal point.
     var dx = w1[0] - w0[0];
     var dy = w1[1] - w0[1];
     var dt = event.Time - event.LastTime;
-    
+
     // Remember the last motion to implement momentum.
     var momentumX = dx/dt;
     var momentumY = dy/dt;
-    
+
     this.MomentumX = (this.MomentumX + momentumX) * 0.5;
     this.MomentumY = (this.MomentumY + momentumY) * 0.5;
     this.MomentumRoll = 0.0;
     this.MomentumScale = 0.0;
-    
+
     var cam = this.GetCamera();
     cam.Translate( -dx, -dy, 0);
     cam.ComputeMatrix();
@@ -1042,19 +1002,18 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         // Sanity check.
         return;
     }
-    
+
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
     if (this.MomentumTimerId) {
         window.cancelAnimationFrame(this.MomentumTimerId)
         this.MomentumTimerId = 0;
     }
-    
-    w0 = this.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
-                                        EVENT_MANAGER.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
-    var dt = EVENT_MANAGER.Time - EVENT_MANANGER.LastTime;
-    
+
+    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    var dt = event.Time - event.LastTime;
+
     // Compute rotation.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
     // We could also take the maximum.
@@ -1065,15 +1024,15 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         x = event.LastTouches[i][0] - event.LastMouseX;
         y = event.LastTouches[i][1] - event.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - event.offsetX;
-        y = event.Touches[i][1] - event.offsetY;
+        x = event.Touches[i][0] - event.MouseX;
+        y = event.Touches[i][1] - event.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
         a += a1;
     }
     a = a / numTouches;
-    
+
     // rotation and scale are around the mid point .....
     // we need to compute focal point height and roll (not just a matrix).
     // Focal point is the only difficult item.
@@ -1085,15 +1044,15 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     // This is the new focal point.
     x = w1[0] + (w0[0]*c - w0[1]*s);
     y = w1[1] + (w0[0]*s + w0[1]*c);
-    
+
     // Remember the last motion to implement momentum.
     var momentumRoll = a/dt;
-    
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
     this.MomentumScale = 0.0;
-    
+
     cam.Roll = cam.Roll - a;
     cam.ComputeMatrix();
     if (this.OverView) {
@@ -1110,22 +1069,22 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         // Sanity check.
         return;
     }
-    
+
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
     if (this.MomentumTimerId) {
         window.cancelAnimationFrame(this.MomentumTimerId)
         this.MomentumTimerId = 0;
     }
-    
+
     w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.offsetX,     event.offsetY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
     var dt = event.Time - event.LastTime;
     // iPad / iPhone must have low precision time
     if (dt == 0) {
         return;
     }
-    
+
     // Compute scale.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
     // We could also take max.
@@ -1137,8 +1096,8 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         x = event.LastTouches[i][0] - event.LastMouseX;
         y = event.LastTouches[i][1] - event.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - event.offsetX;
-        y = event.Touches[i][1] - event.offsetY;
+        x = event.Touches[i][0] - event.MouseX;
+        y = event.Touches[i][1] - event.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -1146,17 +1105,17 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         return;
     }
     scale = s1/ s0;
-    
-    
+
+
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != null) {
         event.PinchScale = scale;
         this.ActiveWidget.HandleTouchPinch(event);
         return;
     }
-    
-    
-    
+
+
+
     // scale is around the mid point .....
     // we need to compute focal point height and roll (not just a matrix).
     // Focal point is the only difficult item.
@@ -1166,15 +1125,15 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     // This is the new focal point.
     var x = w1[0] + w0[0] / scale;
     var y = w1[1] + w0[1] / scale;
-    
+
     // Remember the last motion to implement momentum.
     var momentumScale = (scale-1)/dt;
-    
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
     this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
-    
+
     cam.FocalPoint[0] = x;
     cam.FocalPoint[1] = y;
     cam.SetHeight(cam.GetHeight() / scale);
@@ -1183,8 +1142,6 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 }
 
 Viewer.prototype.HandleTouchEnd = function(event) {
-    EVENT_MANAGER.HandleTouchEnd(event);
-    event = EVENT_MANAGER;
     if (this.ActiveWidget != null) {
         this.ActiveWidget.HandleTouchEnd(event);
         return;
@@ -1193,6 +1150,9 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 /**/
+
+
+
 
 Viewer.prototype.HandleMomentum = function(event) {
     // I see an odd intermittent camera matrix problem

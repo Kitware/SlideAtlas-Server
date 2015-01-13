@@ -7,14 +7,14 @@
 function EventManager (canvas) {
     this.MouseUpTime = 0;
     this.DoubleClick = false;
-    
+
     // I cannot figure out how to do this with focus of canvas ...
     // KeyFocus
     this.HasFocus = true;
     this.Canvas = canvas[0];
     this.Viewers = [];
     this.CurrentViewer = undefined;
-    
+
     this.ShiftKeyPressed = false;
     this.ControlKeyPressed = false;
     this.Key = '';
@@ -26,9 +26,9 @@ function EventManager (canvas) {
     this.SweepListeners = [];
     this.SelectedSweepListener = undefined;
     this.StartTouchTime = 0;
-    
+
     this.CursorFlag = false;
-    
+
     if (MOBILE_DEVICE == 'Andriod') {
         var width = CANVAS.innerWidth();
         var height = CANVAS.innerHeight();
@@ -36,8 +36,16 @@ function EventManager (canvas) {
         //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
         //                                             function(sweep) {self.GoFullScreen();});
     }
-    
+
     this.StartInteractionListeners = [];
+
+    var self = this;
+    document.body.addEventListener(
+        "touchcancel", 
+        function () {
+            self.HandleTouchCancel();
+        },
+        false);
 }
 
 EventManager.prototype.OnStartInteraction = function(callback) {
@@ -256,39 +264,39 @@ EventManager.prototype.HandleKeyUp = function(event) {
 // Touch events.
 
 EventManager.prototype.IsFullScreen = function() {
-  return (document.fullScreenElement && document.fullScreenElement !==  null) ||
-          (document.mozFullScreen || document.webkitIsFullScreen);
+    return (document.fullScreenElement && document.fullScreenElement !==  null) ||
+           (document.mozFullScreen || document.webkitIsFullScreen);
 }
 
 
 EventManager.prototype.GoFullScreen = function () {
-  // Deactivate the listener
-  if (this.FullScreenSweep) {
-    this.FullScreenSweep.Active = false;
-  }
+    // Deactivate the listener
+    if (this.FullScreenSweep) {
+        this.FullScreenSweep.Active = false;
+    }
 
-  if (! this.IsFullScreen()) {
-    var docElm = document.documentElement;
-    if (docElm.requestFullscreen) {
-        docElm.requestFullscreen();
+    if (! this.IsFullScreen()) {
+        var docElm = document.documentElement;
+        if (docElm.requestFullscreen) {
+            docElm.requestFullscreen();
+        }
+        else if (docElm.mozRequestFullScreen) {
+            docElm.mozRequestFullScreen();
+        }
+        else if (docElm.webkitRequestFullScreen) {
+            docElm.webkitRequestFullScreen();
+        }
     }
-    else if (docElm.mozRequestFullScreen) {
-        docElm.mozRequestFullScreen();
-    }
-    else if (docElm.webkitRequestFullScreen) {
-        docElm.webkitRequestFullScreen();
-    }
-  }
-  handleResize();
-  eventuallyRender();
+    handleResize();
+    eventuallyRender();
 }
 
 
 EventManager.prototype.NextNote = function () {
-  NextNoteCallback();
+    NextNoteCallback();
 }
 EventManager.prototype.PreviousNote = function () {
-  PreviousNoteCallback();
+    PreviousNoteCallback();
 }
 
 
@@ -429,6 +437,8 @@ EventManager.prototype.HideSweepListeners = function() {
 
 
 
+
+
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
 EventManager.prototype.HandleTouch = function(e, startFlag) {
@@ -471,17 +481,55 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
     this.MouseX = this.MouseX / numTouches;
     this.MouseY = this.MouseY / numTouches;
 
-    if (startFlag) {
-        if (this.StartTouchTime == 0) {
-            this.StartTouchTime = this.Time;
-        }
-        this.TriggerStartInteraction();
-    }
-
     return true;
 }
 
-EventManager.prototype.HandleTouchEnd = function(e) {
+
+EventManager.prototype.HandleTouchStart = function(e, viewer) {
+    this.HandleTouch(e, true);
+    if (this.StartTouchTime == 0) {
+        this.StartTouchTime = this.Time;
+    }
+
+    if (viewer) {
+        if (viewer.HandleTouchStart(this)) {
+            this.TriggerStartInteraction();
+        }
+    }
+}
+
+
+EventManager.prototype.HandleTouchMove = function(e, viewer) {
+    // Put a throttle on events
+    if ( ! this.HandleTouch(e, false)) { return; }
+
+    if (NAVIGATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        NAVIGATION_WIDGET.ToggleVisibility();
+    }
+
+    if (MOBILE_ANNOTATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+    }
+
+    if (this.Touches.length == 1 && viewer) {
+        viewer.HandleTouchPan(this);
+        return;
+    }
+    if (this.Touches.length == 2 && viewer) {
+        viewer.HandleTouchPinch(this);
+        return
+    }
+    if (this.Touches.length == 3 && viewer) {
+        viewer.HandleTouchRotate(this);
+        return
+    }
+}
+
+EventManager.prototype.HandleTouchEnd = function(e, viewer) {
     e.preventDefault();
 
     var t = new Date().getTime();
@@ -494,11 +542,18 @@ EventManager.prototype.HandleTouchEnd = function(e) {
         if (t < 90) {
             NAVIGATION_WIDGET.ToggleVisibility();
             MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-            return false;
+            return;
+        }
+        if (viewer) {
+            viewer.HandleTouchEnd(this);
         }
     }
-    return true;
 }
+
+EventManager.prototype.HandleTouchCancel = function(event) {
+    this.MouseDown = false;
+}
+
 
 
 
