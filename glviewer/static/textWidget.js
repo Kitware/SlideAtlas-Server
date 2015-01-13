@@ -163,6 +163,9 @@ function TextWidget (viewer, string) {
   viewer.WidgetList.push(this);
   this.ActiveReason = 1;
 
+  // It is odd the way the Anchor is set.  Leave the above for now.
+  this.SetTextOffset(50,0);
+
   // Get default properties.
   this.VisibilityMode = 2;
   this.Text.BackgroundFlag = true;
@@ -181,15 +184,12 @@ function TextWidget (viewer, string) {
       this.Text.BackgroundFlag = defaults.BackgroundFlag;
     }
     if (defaults.VisibilityMode !== undefined) {
-      this.VisibilityMode = defaults.VisibilityMode;
+      this.SetVisibilityMode(defaults.VisibilityMode);
     }
   }
   this.Text.Color = hexcolor;
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
-
-  // It is odd the way the Anchor is set.  Leave the above for now.
-  this.SetTextOffset(50,0);
 
   // Lets save the zoom level (sort of).
   // Load will overwrite this for existing annotations.
@@ -320,27 +320,25 @@ TextWidget.prototype.SetPosition = function(x, y) {
 
 // Anchor is in the middle of the bounds when the shape is not visible.
 TextWidget.prototype.SetVisibilityMode = function(mode) {
-  if (this.VisibilityMode == mode) {
-    return;
-  }
-  this.VisibilityMode = mode;
-
-  if (mode == 2 || mode == 1) { // turn glyph on
-    if (this.SavedTextAnchor == undefined) {
-      this.SavedTextAnchor = [-30, 0];
+    this.VisibilityMode = mode;
+    
+    if (mode == 2 || mode == 1) { // turn glyph on
+        if (this.SavedTextAnchor == undefined) {
+            this.SavedTextAnchor = [-30, 0];
+        }
+        this.Text.Anchor = this.SavedTextAnchor;
+        this.Arrow.Visibility = true;
+        this.Arrow.Origin = this.Text.Position;
+        this.UpdateArrow();
+    } else if(mode == 0) { // turn glyph off
+        // save the old anchor incase glyph is turned back on.
+        this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
+        // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
+        this.Text.UpdateBuffers(); // computes pixel bounds.
+        this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
+        this.Arrow.Visibility = false;
     }
-    this.Text.Anchor = this.SavedTextAnchor;
-    this.Arrow.Visibility = true;
-    this.Arrow.Origin = this.Text.Position;
-    this.UpdateArrow();
-  } else if(mode == 0) { // turn glyph off
-    // save the old anchor incase glyph is turned back on.
-    this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
-    // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
-    this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
-    this.Arrow.Visibility = false;
-  }
-  eventuallyRender();
+    eventuallyRender();
 }
 
 // Change orientation and length of arrow based on the anchor location.
@@ -622,6 +620,10 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
   var fontSize = this.Dialog.FontInput.val();
+  this.Text.String = string;
+  this.Text.Size = parseFloat(fontSize);
+  this.Text.UpdateBuffers();
+
   if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
     this.SetVisibilityMode(0);
   } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
@@ -631,9 +633,6 @@ TextWidget.prototype.DialogApplyCallback = function () {
   }
   var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
-  this.Text.String = string;
-  this.Text.Size = parseFloat(fontSize);
-  this.Text.UpdateBuffers();
   this.Text.SetColor(hexcolor);
   this.Arrow.SetFillColor(hexcolor);
   this.Arrow.ChooseOutlineColor();
