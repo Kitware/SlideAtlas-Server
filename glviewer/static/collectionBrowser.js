@@ -419,6 +419,7 @@ CollectionBrowser = (function (){
             // The clone is put into the destination session.
             // The original is removed from the source session.
             var self = this;
+            clone.unbind('mousedown');
             clone
                 .css({'position':'static',
                       'float': 'left',
