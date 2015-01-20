@@ -25,6 +25,7 @@ from ctypes import create_string_buffer
 import logging
 logger = logging.getLogger('slideatlas')
 
+from cStringIO import StringIO
 
 class TileTiffWriter():
 
@@ -94,7 +95,7 @@ class TileTiffWriter():
         
         self.name = os.path.basename(self.params["fname"])
 
-    def get_tile_from_number(self, tileno, fp):
+    def write_tile_by_number(self, tileno, buf):
         """
         This function does something.
 
@@ -104,27 +105,13 @@ class TileTiffWriter():
         :raises: AttributeError, KeyError
         """
         # Getting a single tile
-        tile_size = libtiff.TIFFTileSize(self.tif, tileno)
+        # buf.seek(os.SEEK_)
+        tile_size = buf.tell()
+        # buf.seek(os.SEEK_SET)
+        print "TileSize: ", tile_size
 
-        # logger.debug('TileSize: %s', tile_size.value)
-        if not isinstance(tile_size, (int, long)):
-            tile_size = tile_size.value
-
-        tmp_tile = create_string_buffer(tile_size)
-
-        r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
-        # logger.debug('Valid size in tile: %s', r2.value)
-        # Experiment with the file output
-
-        fp.write(
-            ctypes.string_at(self.jpegtables, self.jpegtable_size.value)[:-2])
-        # Write padding
-        padding = "%c" % (255) * 4
-        fp.write(padding)
-        fp.write(ctypes.string_at(tmp_tile, r2)[2:])
-        if isinstance(r2, (int, long)):
-            return r2
-        return r2.value
+        ret = libtiff.TIFFWriteRawTile(self.tif, tileno, buf.getvalue(), tile_size)
+        print ret.value
 
     def tile_number(self, x, y):
         """
@@ -177,6 +164,15 @@ class TileTiffWriter():
         self.tif.SetField("TileWidth", 256)
         self.tif.SetField("TileLength", 256)
 
+        # Important for interpreting jpeg data
+        self.tif.SetField("SAMPLESPERPIXEL", 3)
+        self.tif.SetField("BITSPERSAMPLE", 8)
+
+        self.tif.SetField("PLANARCONFIG", 1);
+        self.tif.SetField("PHOTOMETRIC", 6);
+        self.tif.SetField('COMPRESSION', 7)
+
+
 
         # Grab the image dimensions through the metadata
         self.num_tiles = libtiff.TIFFNumberOfTiles(self.tif)
@@ -200,7 +196,20 @@ def test_ptiff_writer():
     # Write information 
     # writer.select_dir(0)
     writer.set_dir_info(reader.width, reader.height)
-    
+    print "Reader contains: ", reader.num_tiles
+    reader._read_JPEG_tables()
+    for tileno in range(reader.num_tiles):
+
+        # Read a tile
+        buf = StringIO()
+        reader.get_tile_from_number(tileno, buf)
+        print "Size: ", buf.tell()
+
+        # TODO: Read only tile data and write Jpegtables separately
+
+        # Write a tile
+        writer.write_tile_by_number(tileno, buf)
+
 
 if __name__ == "__main__":
     
