@@ -193,6 +193,9 @@ CollectionBrowser = (function (){
         this.SessionLabel = $('<span>')
             .appendTo(this.Body)
             .text(data.label);
+
+        this.Label = data.label;
+
         this.ViewList = $('<ul>')
             .appendTo(this.Body)
             .css({'list-style': 'none',
@@ -264,9 +267,11 @@ CollectionBrowser = (function (){
                     function () {$(this).css({'border-color': '#CCC'});})
                 .mousedown(
                     function(event){
+                        event.preventDefault(); 
                         // Startdragging.
                         HideImagePopup();
                         StartViewDrag($(this), self, event);
+                        return false;
                     });
 
             // This data array is only used to delay loading the images.
@@ -413,19 +418,27 @@ CollectionBrowser = (function (){
                                      'border-width':'2'});
             // The clone is put into the destination session.
             // The original is removed from the source session.
+            var self = this;
             clone
                 .css({'position':'static',
                       'float': 'left',
                       'list-style-type': 'none',
                       'margin': '2px',
                       'border': '2px solid #CCC',
-                      'padding': '2px'});
+                      'padding': '2px'})
+                .mousedown(
+                    function(event) {
+                        event.preventDefault(); 
+                        // Startdragging.
+                        HideImagePopup();
+                        StartViewDrag($(this), self, event);
+                        return false;
+                    });
 
             return true;
         }
         return false;
     }
-
 
     Session.prototype.Save = function() {
         if (this.LoadState != LOAD_METADATA_LOADED &&
@@ -449,19 +462,20 @@ CollectionBrowser = (function (){
             }
             views.push(view);
         });
-        
+
         // Save the new order in the database.
         // Python will have to detect if any view objects have to be deleted.
         var args = {};
         args.views = views;
         args.session = this.Id;
         args.label = this.SessionLabel.text();
-        
+
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
-            error: function() { alert( "AJAX - error: session-save (collectionBrowser)" ); }
+            success: function() {},
+            error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
         });
         
     }
@@ -495,6 +509,7 @@ CollectionBrowser = (function (){
         $('body')
             .mousemove(
                 function(event) {
+                    event.preventDefault();
                     ViewDrag(event);
                     return false;
                 })

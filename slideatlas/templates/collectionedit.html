@@ -56,10 +56,10 @@
     <script>
         var COLLECTION_ID = "{{ collection.id }}";
 
-        $(function() {
-            $( "#sortable" ).sortable({change:modified});
-            $( "#sortable" ).disableSelection();
-        });
+        //$(function() {
+        //    $( "#sortable" ).sortable({change:modified});
+        //    $( "#sortable" ).disableSelection();
+        //});
 
         function deleteView(arg) {
             modified();
@@ -69,7 +69,14 @@
         }
 
 
+
+        var saving = false;
         function save() {
+            if (saving) {
+                alert("Already saving");
+            }
+            saving = true;
+            var saving = true;
             var views = [];
             var guiViews = [];
             $('li', '#sortable').each(function () {
@@ -105,15 +112,11 @@
                 data: {"input" :  JSON.stringify( args )},
                 success:
                   function save_success (data, status) {
-                      $('#saveButton').css({"color":"#000"});
+                      saving = false;
                   },
                 error: function() { alert( "AJAX - error: collection-save" ); }
             });
 
-        }
-
-        function cancel() {
-            alert("Cancel not implemented");
         }
 
         function updateOptions() {
@@ -154,7 +157,6 @@
         }
 
         function modified () {
-            $('#saveButton').css({"color":"#E00"});
         }
 
         function hideAnnotation (flag) {
@@ -217,7 +219,6 @@
                 handleResize();
             }).trigger('resize');
 
-            $('#saveButton').css({"color":"#000"});
             $("#title").on("input", modified);
             $(".descriptiveLabel").on("input", modified);
             $(".hiddenLabel").on("input", modified);
