@@ -8,41 +8,7 @@
 {{ super() }}
     <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
     <style>
-        #sortable {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-        }
-        #sortable li {
-            margin: 0 3px 3px 3px;
-            padding: 3px 3px 3px 1.5em;
-            height: 37px;
-            position: relative;
-        }
-        #sortable li span {
-            position: absolute;
-            margin-left: -1.3em;
-        }
-        #sortable li img {
-            margin: 0;
-            padding: 0;
-            float: left;
-            height: 38px;
-        }
-        #sortable li input {
-            padding: 4px;
-            margin: 5px;
-            float: left;
-            width: 22em;
-        }
         body {
-            margin: 0;
-        }
-        #slideList {
-            padding-top: 3px;
-        }
-        h2 {
-            text-align: center;
             margin: 0;
         }
     </style>
@@ -56,78 +22,12 @@
     <script>
         var COLLECTION_ID = "{{ collection.id }}";
 
-        //$(function() {
-        //    $( "#sortable" ).sortable({change:modified});
-        //    $( "#sortable" ).disableSelection();
-        //});
-
-        function deleteView(arg) {
-            modified();
-            // A hack, but how should it be done right?
-            var tmp = "#"+arg;
-            $(tmp).remove();
-        }
-
-
-
-        var saving = false;
-        function save() {
-            if (saving) {
-                alert("Already saving");
-            }
-            saving = true;
-            var saving = true;
-            var views = [];
-            var guiViews = [];
-            $('li', '#sortable').each(function () {
-                // This is a pain keeping an extra array to update with new view ids.
-                // Better would be initializing with ajax call in the first place...
-                guiViews.push($(this));
-                var view = {
-                    'copy': $(this).attr('copy'),
-                    'label' : $('.descriptiveLabel',this).val(),
-                    'hiddenLabel' : $('.hiddenLabel',this).val(),
-                    'imgdb' : $(this).attr('imgdb'),
-                    'img': $(this).attr('img')
-                };
-                var viewId = $(this).attr('view');
-                if (viewId && viewId != "") {
-                    view.view = viewId;
-                }
-                views.push(view);
-            });
-
-            // Save the new order in the database.
-            // Python will have to detect if any view objects have to be deleted.
-            var args = {};
-            args.views = views;
-            args.collection = SESSION_ID;
-            args.label = $("#title").val();
-            args.hideAnnotation = $('#hideCheck').is(':checked');
-            args.stack = false;
-
-            $.ajax({
-                type: "post",
-                url: "{{ url_for('.session_save_view') }}",
-                data: {"input" :  JSON.stringify( args )},
-                success:
-                  function save_success (data, status) {
-                      saving = false;
-                  },
-                error: function() { alert( "AJAX - error: collection-save" ); }
-            });
-
-        }
-
-        function updateOptions() {
-            var x=document.getElementById("title");
-            //x.value=x.value.toUpperCase();
-        }
-
         function handleResize() {
             var top = $('#wrapper').position().top;
 
             // We need a dynamic resize
+            $('body').css({"height": window.innerHeight});
+
             var height = window.innerHeight - 2 - top;
             $('#wrapper').css({"height": height});
 
@@ -154,20 +54,6 @@
                              GALLERY2.DualArrow.hide();
                              GALLERY2.Div.hide();
                          });
-        }
-
-        function modified () {
-        }
-
-        function hideAnnotation (flag) {
-            modified();
-            if (flag) {
-                $(".descriptiveLabel" ).hide();
-                $(".hiddenLabel" ).show();
-            } else {
-                $(".hiddenLabel" ).hide();
-                $(".descriptiveLabel" ).show();
-            }
         }
 
         $(document).ready(function() {
@@ -219,9 +105,6 @@
                 handleResize();
             }).trigger('resize');
 
-            $("#title").on("input", modified);
-            $(".descriptiveLabel").on("input", modified);
-            $(".hiddenLabel").on("input", modified);
         });
     </script>
 {% endblock scripts %}

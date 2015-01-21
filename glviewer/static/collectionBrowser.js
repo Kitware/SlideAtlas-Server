@@ -1,16 +1,13 @@
 // TODO: 
-// Dragging is leaving dark lines.
-// Gray out item being dragged.
-// Implement drop.
-//     Indicate drop point before or after items.
-//     Drop in closed session ???
-//     Selection not turning off when dragging stops.
-//     Undo drop
-//     Window should scroll when dragged item gets to the top or bottom of the window.
+// Remove second scale bar
+// Update browser session to match.
+// Mouse down selects.  Mose move (past threshold) starts drag.
+// Multiple select (crtl) + drag and drop.
+// Shift?
+// Drag and copy with right click.
+// (maybe) Right click menu.
 // View names should be editable.
-// Select items
-// Select multiple items
-// Drag and drop multiple items.
+// Drop position indicator could be improved.
 
 
 // I am not so sure I like this pattern.
@@ -24,7 +21,15 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
+
+    var BROWSERS = [];
+
     function CollectionBrowser () {
+        // I am keeping a tree down to the view "leaves".
+        // I need to keep the view "tree index" so the view li knows its position.
+        this.BrowserIndex = BROWSERS.length;
+        BROWSERS.push(this);
+
         var self = this;
         this.Div = $('<div>')
             .css({'height': '100%'});
@@ -35,7 +40,9 @@ CollectionBrowser = (function (){
                   'position': 'relative',
                   'border': '1px solid #CCC'});
         
-        this.CollectionList = $('<ul>')
+        this.Collections = [];
+
+        this.CollectionItemList = $('<ul>')
             .appendTo(this.Div)
             .css({'list-style': 'none',
                   'margin-left': '0.5em',
@@ -45,7 +52,6 @@ CollectionBrowser = (function (){
                   'height':     '100%',
                   'overflow-y': 'auto'});
         
-        this.Collections = [];
         this.DefaultCollectionLabel = "";
         this.SelectedSession = undefined;
         this.Initialize();        
@@ -85,13 +91,13 @@ CollectionBrowser = (function (){
    
     CollectionBrowser.prototype.LoadCollectionList = function(data) {
         var self = this;
-        // The first "sessions" list is actually collections.
-        this.Collections = data.sessions;
         // Populate the collection menu.
         var defaultCollection = undefined;
-        for (var i = 0; i < this.Collections.length; ++i) {
+        // The first "sessions" list is actually collections.
+        for (var i = 0; i < data.sessions.length; ++i) {
             // Note: data.sessions is actually a list of collections.
-            var collection = new Collection(data.sessions[i],this.CollectionList);
+            var collection = new Collection(data.sessions[i],this);
+            // Which collection should be open.
             if (data.sessions[i].rule == this.DefaultCollectionLabel) {
                 defaultCollection = collection;
             }
@@ -99,7 +105,7 @@ CollectionBrowser = (function (){
         if (defaultCollection) {
             defaultCollection.ToggleSessionList();
             // Now scroll to put the collection at the top.
-            var scrollDiv = this.CollectionList;
+            var scrollDiv = this.CollectionItemList;
             // Why won't it scroll if call directly?
             setTimeout(function () {var offset = defaultCollection.ListItem.offset();
                                     scrollDiv.scrollTop(offset.top);},
@@ -121,9 +127,15 @@ CollectionBrowser = (function (){
 
 
 //==============================================================================
-    function Collection(data, scrollWindow) {
+
+    function Collection(data, browser) {
+        this.Browser = browser;
+        this.CollectionIndex = browser.Collections.length;
+        browser.Collections.push(this);
+        var ul = browser.CollectionItemList;
+
         this.ListItem = $('<li>')
-            .appendTo(scrollWindow)
+            .appendTo(ul)
             .css({'left':'o'});
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.ListItem)
@@ -147,7 +159,7 @@ CollectionBrowser = (function (){
         // Populate the sessions list.
         this.Sessions = [];
         for (var i = 0; i < data.sessions.length; ++i) {
-            this.Sessions.push(new Session(data.sessions[i], this.SessionList));
+            new Session(data.sessions[i], this);
         }
     }
 
@@ -163,7 +175,9 @@ CollectionBrowser = (function (){
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/minus.png")
             for (var i = 0; i < this.Sessions.length; ++i) {
                 var session = this.Sessions[i];
-                session.RequestMetaData();
+                if (this.LoadState == LOAD_INITIAL) {
+                    session.RequestMetaData();
+                }
             }
         }
     }
@@ -172,20 +186,26 @@ CollectionBrowser = (function (){
 //==============================================================================
     // State of loading a session.
     // The session name and id are loaded by default.
+    // Collection has not been opened.
     var LOAD_INITIAL = 0;
     // A request has been made for the meta data.
     var LOAD_METADATA_WAITING = 1;
     // The meta data has arrived.
+    // Collection is open, but the session is not.
     var LOAD_METADATA_LOADED = 2;
     // The images have been requested.
     var LOAD_IMAGES = 3;
     
     
-    
-    function Session(data, list) {
+    function Session(data, collection) {
+        this.Collection = collection;
+        var ul = collection.SessionList;
+        this.SessionIndex = collection.Sessions.length;
+        collection.Sessions.push(this);
+
         this.Id = data.sessid;
         this.Body = $('<li>')
-            .appendTo(list);
+            .appendTo(ul);
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.Body)
             .attr('src',"/webgl-viewer/static/plus.png")
@@ -217,14 +237,16 @@ CollectionBrowser = (function (){
 
     
     Session.prototype.RequestMetaData = function() {
-        if (this.LoadState != LOAD_INITIAL) { return; }
         this.LoadState = LOAD_METADATA_WAITING;
+
+        this.ViewList.empty();
 
         // Throw a waiting icon until the meta data arrives.
         var listItem = $('<li>')
             .appendTo(this.ViewList)
             .css({'margin': '2px',
-                  'padding': '2px'})
+                  'padding': '2px'});
+        
         var image = $('<img>')
             .appendTo(listItem)
             .attr("src", "/webgl-viewer/static/circular.gif")
@@ -257,6 +279,11 @@ CollectionBrowser = (function (){
                 .data('viewid', data.session.views[i].id)
                 .data('imgid', data.session.views[i].image_id)
                 .data('imgdb', data.session.views[i].image_store_id)
+                // I hate having to encode user data in attibutes.
+                // Remeber where this jquery element is in the tree.
+                .data("sessionIdx", this.SessionIndex)
+                .data("collectionIdx", this.Collection.CollectionIndex)
+                .data("browserIdx", this.Collection.Browser.BrowserIndex)
                 .css({'float': 'left',
                       'list-style-type': 'none',
                       'margin': '2px',
@@ -270,7 +297,7 @@ CollectionBrowser = (function (){
                         event.preventDefault(); 
                         // Startdragging.
                         HideImagePopup();
-                        StartViewDrag($(this), self, event);
+                        StartViewDrag($(this), event);
                         return false;
                     });
 
@@ -335,7 +362,10 @@ CollectionBrowser = (function (){
             // collection already requests session metadata.  However,
             // This method does nothing if the request has already been made,
             // And someone might call this directly.
-            this.RequestMetaData();
+            if (this.LoadState == LOAD_INITIAL) {
+                // This should not be necessary
+                this.RequestMetaData();
+            }
             this.RequestImages();
             
             this.ViewList.Open = true;
@@ -409,32 +439,48 @@ CollectionBrowser = (function (){
 
     Session.prototype.Drop = function(x,y, source, clone) {
         if (this.UpdateDropTarget(x,y, source)) {
-            if (this.DropTargetBefore) {
-                clone.insertBefore(this.DropTargetItem);
-            } else {
-                clone.insertAfter(this.DropTargetItem);
-            }
-            this.DropTargetItem.css({'border-color':'#CCC',
-                                     'border-width':'2'});
-            // The clone is put into the destination session.
-            // The original is removed from the source session.
-            var self = this;
-            clone.unbind('mousedown');
+            // Get the source session so we can save it.
+            // This is the whole point of making a tree.
+            var browserIdx = source.data("browserIdx");
+            var collectionIdx = source.data("collectionIdx");
+            var sessionIdx = source.data("sessionIdx");
+            var sourceSession = 
+                BROWSERS[browserIdx]
+                  .Collections[collectionIdx]
+                    .Sessions[sessionIdx];
+
+            // Lets delete the original source <li>
+            source.remove();
+            // and keep the clone <li>
             clone
                 .css({'position':'static',
                       'float': 'left',
                       'list-style-type': 'none',
                       'margin': '2px',
                       'border': '2px solid #CCC',
-                      'padding': '2px'})
-                .mousedown(
-                    function(event) {
-                        event.preventDefault(); 
-                        // Startdragging.
-                        HideImagePopup();
-                        StartViewDrag($(this), self, event);
-                        return false;
-                    });
+                      'padding': '2px'});
+            // Record the new position of the view <li> inthe tree.
+            // This session is the destination session.
+            clone
+                .data("sessionIdx", this.SessionIndex)
+                .data("collectionIdx", this.Collection.CollectionIndex)
+                .data("browserIdx", this.Collection.Browser.BrowserIndex);
+
+            // Reparent the clone.
+            if (this.DropTargetBefore) {
+                clone.insertBefore(this.DropTargetItem);
+            } else {
+                clone.insertAfter(this.DropTargetItem);
+            }
+            // Get rid of the thick border indicator of where the
+            // drop will take place.
+            this.DropTargetItem.css({'border-color':'#CCC',
+                                     'border-width':'2'});
+            // Save the two sessions.
+            this.Save();
+            if (sourceSession != this) {
+                sourceSession.Save();
+            }
 
             return true;
         }
@@ -478,22 +524,43 @@ CollectionBrowser = (function (){
             success: function() {},
             error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
         });
-        
+
+        // Update the other browser.
+        var collectionIdx = this.Collection.CollectionIndex;
+        // Browser index is different, but al the others are the same.
+        var browserIdx = (this.Collection.Browser.BrowserIndex+1)%2;
+        var otherSession = 
+            BROWSERS[browserIdx].Collections[collectionIdx].Sessions[this.SessionIndex];
+        if (otherSession.LoadState == LOAD_METADATA_WAITING ||
+            otherSession.LoadState == LOAD_METADATA_LOADED) {
+            // What to do?
+            otherSession.RequestMetaData();
+        } if (otherSession.LoadState == LOAD_IMAGES) {
+            otherSession.RequestMetaData();
+            /* this messed up the layout for some reason
+            // Lets just copy / clone this session
+            otherSession.ViewList.empty();
+            this.ViewList.children('li').each(function () {
+                viewItem = $(this).clone(true);
+                viewItem
+                    .data("browserIdx", browserIdx)
+                    .appendTo(otherSession.ViewList);
+            });
+            */
+        }
     }
 
     
     
 //==============================================================================
     var DROP_TARGETS = [];
-    var DRAG_SESSION = undefined;
     var DRAG_ITEM = undefined;
     var DRAG_CLONE = undefined;
-    function StartViewDrag(source, session, event) {
+    function StartViewDrag(source, event) {
         var x = event.clientX;
         var y = event.clientY;
 
         DRAG_ITEM = source;
-        DRAG_SESSION = session;
 
         var clone = source
             .clone(true)
@@ -518,6 +585,15 @@ CollectionBrowser = (function (){
                 function(event) {
                     $(this).unbind('mousemove');
                     $(this).unbind('mouseup');
+                    $(this).unbind('mouseleave');
+                    ViewDrop(event);
+                    return false;
+                })
+            .mouseleave(
+                function(event) {
+                    $(this).unbind('mousemove');
+                    $(this).unbind('mouseup');
+                    $(this).unbind('mouseleave');
                     ViewDrop(event);
                     return false;
                 });
@@ -541,23 +617,16 @@ CollectionBrowser = (function (){
     function ViewDrop(event) {
         var x = event.clientX;
         var y = event.clientY;
+        // This just drags the clone if the mouse postion changed.
+        // It is probably not necessary.
         DRAG_CLONE
             .css({'left': event.clientX-20,
                   'top' : event.clientY-20});
+        // Look through all open sessions to se if we dropped in one.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
             var destinationSession = DROP_TARGETS[i];
             if (destinationSession.Drop(x, y, DRAG_ITEM, DRAG_CLONE)) {
-                // change the original div to an undo button,
-                DRAG_ITEM
-                    .click(function () { UndoDrop($(this));});
-                DRAG_ITEM.unbind('mousedown');
-                // Actually, lets get this working without an undo for now.
-                DRAG_ITEM.remove();
-                destinationSession.Save();
-                if (DRAG_SESSION != destinationSession) {
-                    DRAG_SESSION.Save();
-                }
-
+                // Found the dropp session.  Drop does all the shuffling.
                 return true;
             }
         }
