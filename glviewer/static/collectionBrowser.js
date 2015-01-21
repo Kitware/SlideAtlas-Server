@@ -1,7 +1,5 @@
 // TODO: 
-// Remove second scale bar
-// Update browser session to match.
-// Mouse down selects.  Mose move (past threshold) starts drag.
+// Mouse down selects.  Mouse move (past threshold) starts drag.
 // Multiple select (crtl) + drag and drop.
 // Shift?
 // Drag and copy with right click.
@@ -21,7 +19,7 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
-
+    var SELECTED = [];
     var BROWSERS = [];
 
     function CollectionBrowser () {
@@ -294,7 +292,11 @@ CollectionBrowser = (function (){
                     function () {$(this).css({'border-color': '#CCC'});})
                 .mousedown(
                     function(event){
-                        event.preventDefault(); 
+                        event.preventDefault();
+                        // select
+
+
+ 
                         // Startdragging.
                         HideImagePopup();
                         StartViewDrag($(this), event);
@@ -408,7 +410,7 @@ CollectionBrowser = (function (){
                 var bottom = pos.top + $(item).innerHeight();
                 if (x > right) { dist += x - right; }
                 if (y > bottom) { dist += y - bottom; }
-                if (dist < bestDist && $(item) != source) {
+                if (source[0] != item && dist < bestDist && $(item) != source) {
                     bestDist = dist;
                     bestItem = $(item);
                     bestBefore = x < (pos.left+right)*0.5;
