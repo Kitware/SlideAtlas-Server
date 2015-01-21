@@ -1,3 +1,9 @@
+// Managing the view <LI> states is a pain.  It could be made more elegant.
+// We have hover, selected, different dragging states.
+// Events associated with all these.
+// Loading states....
+
+
 // TODO: 
 // Mouse down selects.  Mouse move (past threshold) starts drag.
 // Multiple select (crtl) + drag and drop.
@@ -20,7 +26,10 @@
 CollectionBrowser = (function (){
 
     var SELECTED = [];
+    var CLONES = [];
     var BROWSERS = [];
+
+
 
     function CollectionBrowser () {
         // I am keeping a tree down to the view "leaves".
@@ -194,8 +203,8 @@ CollectionBrowser = (function (){
     // The images have been requested.
     var LOAD_IMAGES = 3;
     
-    
     function Session(data, collection) {
+        this.Modified = false;
         this.Collection = collection;
         var ul = collection.SessionList;
         this.SessionIndex = collection.Sessions.length;
@@ -262,6 +271,34 @@ CollectionBrowser = (function (){
               });
     }
 
+
+    // Leaving triggers a drag (when mouse is pressed).
+    var leaveHandler = function(event){
+        // Mouse leave is sort of like mouse up.
+        $(this).unbind('mouseleave', leaveHandler);
+        if ( ! $(this).data("selected")) {
+            if ( ! event.ctrlKey) {
+                for (var i = 0; i < SELECTED.length; ++i) {
+                    SELECTED[i].data("selected", false);
+                    SELECTED[i].css({"background-color": "#FFF"});
+                }
+                SELECTED = [];
+            }
+            // Select this view.
+            $(this).data("selected", true);
+            $(this).css({"background-color": "#CDF"});
+            SELECTED.push($(this));
+        }
+
+        // This is only called when the mouse is pressed.
+        // Sanity check.
+        if (event.which == 1) {
+            // Startdragging.
+            HideImagePopup();
+            StartViewDrag(event);
+        }
+        return false;
+    }
     
     Session.prototype.LoadMetaData = function(data) {
         var self = this;
@@ -293,14 +330,40 @@ CollectionBrowser = (function (){
                 .mousedown(
                     function(event){
                         event.preventDefault();
-                        // select
-
-
- 
-                        // Startdragging.
-                        HideImagePopup();
-                        StartViewDrag($(this), event);
+                        // If we leave with the mouse pressed, then a drag
+                        // is started.
+                        $(this).mouseleave(leaveHandler);
                         return false;
+                    })
+                .mouseup(
+                    function(event){
+                        $(this).unbind('mouseleave', leaveHandler);
+
+                        // Unselect previously selected views when cntl is not pressed
+                        if ( ! event.ctrlKey) {
+                            for (var i = 0; i < SELECTED.length; ++i) {
+                                SELECTED[i].data("selected", false);
+                                SELECTED[i].css({"background-color": "#FFF"});
+                            }
+                            SELECTED = [];
+                        }
+
+                        // Control toggles views in selected list.
+                        if ( $(this).data("selected") ) {
+                            // unselect this view.
+                            $(this).data("selected", false);
+                            $(this).css({"background-color": "#FFF"});
+                            // Remove the item from the selected list.
+                            var index = SELECTED.indexOf($(this));
+                            if (index > -1) {
+                                SELECTED.splice(index, 1);
+                            }
+                        } else {
+                            // Select this view.
+                            $(this).data("selected", true);
+                            $(this).css({"background-color": "#CDF"});
+                            SELECTED.push($(this));
+                        }
                     });
 
             // This data array is only used to delay loading the images.
@@ -381,7 +444,7 @@ CollectionBrowser = (function (){
     // Sets DropTargetItem and DropTargetBefore.
     // It also handles highlighting the drop target.
     // Returns true if drop target was found.
-    Session.prototype.UpdateDropTarget = function(x,y,source) {
+    Session.prototype.UpdateDropTarget = function(x,y) {
         // Check to see if the mouse is in the body
         var pos = this.Body.offset();
         var width = this.Body.innerWidth();
@@ -410,7 +473,7 @@ CollectionBrowser = (function (){
                 var bottom = pos.top + $(item).innerHeight();
                 if (x > right) { dist += x - right; }
                 if (y > bottom) { dist += y - bottom; }
-                if (source[0] != item && dist < bestDist && $(item) != source) {
+                if ( ! $(item).data("selected") && dist < bestDist ) {
                     bestDist = dist;
                     bestItem = $(item);
                     bestBefore = x < (pos.left+right)*0.5;
@@ -420,10 +483,6 @@ CollectionBrowser = (function (){
             this.DropTargetItem.css({'border-color':'#CCC',
                                      'border-width':'2'});
             this.DropTargetItem = undefined;
-        }
-        if ( bestItem == source) {
-            this.DropTargetItem = undefinedl
-            return false;
         }
 
         this.DropTargetBefore = bestBefore;
@@ -439,49 +498,74 @@ CollectionBrowser = (function (){
     }
 
 
-    Session.prototype.Drop = function(x,y, source, clone) {
-        if (this.UpdateDropTarget(x,y, source)) {
-            // Get the source session so we can save it.
-            // This is the whole point of making a tree.
-            var browserIdx = source.data("browserIdx");
-            var collectionIdx = source.data("collectionIdx");
-            var sessionIdx = source.data("sessionIdx");
-            var sourceSession = 
-                BROWSERS[browserIdx]
-                  .Collections[collectionIdx]
-                    .Sessions[sessionIdx];
-
-            // Lets delete the original source <li>
-            source.remove();
-            // and keep the clone <li>
-            clone
-                .css({'position':'static',
-                      'float': 'left',
-                      'list-style-type': 'none',
-                      'margin': '2px',
-                      'border': '2px solid #CCC',
-                      'padding': '2px'});
-            // Record the new position of the view <li> inthe tree.
-            // This session is the destination session.
-            clone
-                .data("sessionIdx", this.SessionIndex)
-                .data("collectionIdx", this.Collection.CollectionIndex)
-                .data("browserIdx", this.Collection.Browser.BrowserIndex);
-
-            // Reparent the clone.
-            if (this.DropTargetBefore) {
-                clone.insertBefore(this.DropTargetItem);
-            } else {
-                clone.insertAfter(this.DropTargetItem);
+    Session.prototype.Drop = function(x,y) {
+        if (this.UpdateDropTarget(x,y)) {
+            // Lets delete the clone <li>s
+            for (var i = 0; i < CLONES.length; ++i) {
+                var clone = CLONES[i];
+                clone.remove();
             }
+            CLONES = [];
+            
             // Get rid of the thick border indicator of where the
             // drop will take place.
             this.DropTargetItem.css({'border-color':'#CCC',
                                      'border-width':'2'});
-            // Save the two sessions.
+
+            // Move the selected <li>s
+            sourceSessions = [];
+            for (var i = 0; i < SELECTED.length; ++i) {
+                var source = SELECTED[i];
+
+                // Get the source session so we can remove the item.
+                // This is the whole reason we made a tree.
+                var browserIdx = source.data("browserIdx");
+                var collectionIdx = source.data("collectionIdx");
+                var sessionIdx = source.data("sessionIdx");
+                var sourceSession = 
+                    BROWSERS[browserIdx]
+                    .Collections[collectionIdx]
+                    .Sessions[sessionIdx];
+                // Keep a list to save later.
+                sourceSessions.push(sourceSession);
+
+
+                // To avoid saving a session more than once.
+                sourceSession.Modified = true;
+                this.Modified = true;
+
+                // and move the original <li>
+                source.children().css({'opacity':'1.0'});
+                source
+                    .css({'position':'static',
+                          'float': 'left',
+                          'list-style-type': 'none',
+                          'background-color': '#FFF',
+                          'margin': '2px',
+                          'border': '2px solid #CCC',
+                          'padding': '2px'});
+                // Record the new position of the view <li> in the tree.
+                // This session is the destination session.
+                source
+                    .data("sessionIdx", this.SessionIndex)
+                    .data("collectionIdx", this.Collection.CollectionIndex)
+                    .data("browserIdx", this.Collection.Browser.BrowserIndex);
+                
+                // Reparent.
+                if (this.DropTargetBefore) {
+                    source.insertBefore(this.DropTargetItem);
+                } else {
+                    source.insertAfter(this.DropTargetItem);
+                }
+                // Put them in order (hack)
+                this.DropTargetItem = source;
+                this.DropTargetBefore = false;
+            }
+
+            // Save the sessions.
             this.Save();
-            if (sourceSession != this) {
-                sourceSession.Save();
+            for (var i = 0; i < sourceSessions.length; ++i) {
+                sourceSessions[i].Save();
             }
 
             return true;
@@ -490,6 +574,11 @@ CollectionBrowser = (function (){
     }
 
     Session.prototype.Save = function() {
+        if ( ! this.Modified) {
+            return;
+        }
+        this.modified = false;
+
         if (this.LoadState != LOAD_METADATA_LOADED &&
             this.LoadState != LOAD_IMAGES ) {
             alert("Error Save: Session not loaded.");
@@ -556,26 +645,30 @@ CollectionBrowser = (function (){
     
 //==============================================================================
     var DROP_TARGETS = [];
-    var DRAG_ITEM = undefined;
-    var DRAG_CLONE = undefined;
-    function StartViewDrag(source, event) {
+    function StartViewDrag(event) {
+        if (SELECTED.length == 0) {
+            return;
+        }
         var x = event.clientX;
         var y = event.clientY;
 
-        DRAG_ITEM = source;
+        // Gray out the selected items and make clones for dragging.
+        for (var i = 0; i < SELECTED.length; ++i) {
+            var source = SELECTED[i];
+            var clone = source
+                .clone(false)
+                .appendTo('body')
+                .css({'position':'fixed',
+                      'left': (x - 10*i),
+                      'top' : (y - 10*i),
+                      'margin': 0});
+            CLONES.push(clone);
 
-        var clone = source
-            .clone(true)
-            .appendTo('body')
-            .css({'position':'fixed',
-                  'left': x,
-                  'top' : y,
-                  'margin': 0});
-        DRAG_CLONE = clone;
+            // Change the original div to a placeholder.
+            source.children().css({'opacity':'0.2'});
+        }
 
-        // Change the original div to a placeholder.
-        source.children().css({'opacity':'0.2'});
-
+        // Setup the events for dragging.
         $('body')
             .mousemove(
                 function(event) {
@@ -607,39 +700,43 @@ CollectionBrowser = (function (){
     function ViewDrag(event) {
         var x = event.clientX;
         var y = event.clientY;
-        DRAG_CLONE
-            .css({'left': x-20,
-                  'top' : y-20});
+        for (var i = 0; i < CLONES.length; ++i) {
+            var clone = CLONES[i];
+            clone
+                .css({'left': x-20 - 10*i,
+                      'top' : y-20 - 10*i});
+        }
 
+        // Indicate where the items would be dropped.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
-            DROP_TARGETS[i].UpdateDropTarget(x, y, DRAG_ITEM);
+            DROP_TARGETS[i].UpdateDropTarget(x, y);
         }
     }
 
     function ViewDrop(event) {
         var x = event.clientX;
         var y = event.clientY;
-        // This just drags the clone if the mouse postion changed.
-        // It is probably not necessary.
-        DRAG_CLONE
-            .css({'left': event.clientX-20,
-                  'top' : event.clientY-20});
-        // Look through all open sessions to se if we dropped in one.
+        // Look through all open sessions to see if we dropped in one.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
             var destinationSession = DROP_TARGETS[i];
-            if (destinationSession.Drop(x, y, DRAG_ITEM, DRAG_CLONE)) {
+            if (destinationSession.Drop(x, y)) {
                 // Found the dropp session.  Drop does all the shuffling.
                 return true;
             }
         }
         // No drop destination, undo the drag / move.
-        DRAG_CLONE.remove();
-        DRAG_ITEM.children().css({'opacity':'1.0'});
-        return false;
-    }
+        for (var i = 0; i < CLONES.length; ++i) {
+            var clone = CLONES[i];
+            clone.remove();
+        }
+        CLONES = [];
+        for (var i = 0; i < SELECTED.length; ++i) {
+            var source = SELECTED[i];
+            source.children().css({'opacity':'1.0'});
+        }
+        SELECTED = [];
 
-    function UndoDrop(source){
-        alert("Undo move");
+        return false;
     }
 
     function AddDropTarget(dropTarget) {
