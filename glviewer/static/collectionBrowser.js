@@ -1,4 +1,4 @@
-M// Managing the view <LI> states is a pain.  It could be made more elegant.
+// Managing the view <LI> states is a pain.  It could be made more elegant.
 // We have hover, selected, different dragging states.
 // Events associated with all these.
 // Loading states....
