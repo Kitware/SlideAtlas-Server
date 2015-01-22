@@ -771,8 +771,6 @@ CollectionBrowser = (function (){
                     ViewDrop(event);
                     return false;
                 });
-            // Keep the context menu from popping up.
-            .onContextMenu(function () {return false;});
         
         ClearPendingImagePopup();
         return false;
