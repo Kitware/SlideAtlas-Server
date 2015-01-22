@@ -249,7 +249,7 @@ CollectionBrowser = (function (){
 
         // If we are copying views in a session,
         // stop editing until the view ids are set properly.
-        this.SaveLock;
+        this.SaveLock = false;
     }
 
     
@@ -343,7 +343,7 @@ CollectionBrowser = (function (){
                         event.preventDefault();
                         // If we leave with the mouse pressed, then a drag
                         // is started.
-                        if (this.SaveLock) {
+                        if (self.SaveLock) {
                             // Not the best feedback
                             //alert("Wait for copy to finish");
                             // The order of a session cannot change until
