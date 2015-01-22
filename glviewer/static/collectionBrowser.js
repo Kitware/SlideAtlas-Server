@@ -1,26 +1,24 @@
-// Managing the view <LI> states is a pain.  It could be made more elegant.
+M// Managing the view <LI> states is a pain.  It could be made more elegant.
 // We have hover, selected, different dragging states.
 // Events associated with all these.
 // Loading states....
 
 
 // TODO: 
-// Mouse down selects.  Mouse move (past threshold) starts drag.
-// Multiple select (crtl) + drag and drop.
+// Copy option.
+// Hidden title.
 // Shift?
 // Drag and copy with right click.
 // (maybe) Right click menu.
 // View names should be editable.
 // Drop position indicator could be improved.
 
-
-// I am not so sure I like this pattern.
+// I am not so sure I like this closure pattern.
 // I am trying to hide helper object, but
 // I could just declare them inside the contructor.
 // This pattern does not make any of the methods
 // private.  I do not think it makes any instance
 // variables private either.
-
 
 // Closure namespace 
 CollectionBrowser = (function (){
@@ -28,8 +26,16 @@ CollectionBrowser = (function (){
     var SELECTED = [];
     var CLONES = [];
     var BROWSERS = [];
+    var MESSAGE = 
+        $('<div>').appendTo('body')
+              .hide()
+              .text("Move")
+              .css({'position': 'fixed',
+                    'font-size' : '200%',
+                    'font-weight': 'bold',
+                    'z-index': '2'});
 
-
+    $('body')[0].oncontextmenu = function () {return false;};
 
     function CollectionBrowser () {
         // I am keeping a tree down to the view "leaves".
@@ -240,6 +246,10 @@ CollectionBrowser = (function (){
         
         // Delay loading
         this.LoadState = LOAD_INITIAL;
+
+        // If we are copying views in a session,
+        // stop editing until the view ids are set properly.
+        this.SaveLock;
     }
 
     
@@ -292,7 +302,7 @@ CollectionBrowser = (function (){
 
         // This is only called when the mouse is pressed.
         // Sanity check.
-        if (event.which == 1) {
+        if (event.which == 1 || event.which == 3) {
             // Startdragging.
             HideImagePopup();
             StartViewDrag(event);
@@ -311,6 +321,7 @@ CollectionBrowser = (function (){
             // Make a draggable list item
             var listItem = $('<li>')
                 .appendTo(this.ViewList)
+                .data('copy', false) // default is move.
                 .data('viewid', data.session.views[i].id)
                 .data('imgid', data.session.views[i].image_id)
                 .data('imgdb', data.session.views[i].image_store_id)
@@ -332,11 +343,20 @@ CollectionBrowser = (function (){
                         event.preventDefault();
                         // If we leave with the mouse pressed, then a drag
                         // is started.
-                        $(this).mouseleave(leaveHandler);
+                        if (this.SaveLock) {
+                            // Not the best feedback
+                            //alert("Wait for copy to finish");
+                            // The order of a session cannot change until
+                            // the lock is released.  We cannot save a
+                            // session (use viewIds) until lock is released.
+                        } else {
+                            $(this).mouseleave(leaveHandler);
+                        }
                         return false;
                     })
                 .mouseup(
                     function(event){
+                        event.preventDefault();
                         $(this).unbind('mouseleave', leaveHandler);
 
                         // Unselect previously selected views when cntl is not pressed
@@ -498,7 +518,7 @@ CollectionBrowser = (function (){
     }
 
 
-    Session.prototype.Drop = function(x,y) {
+    Session.prototype.Drop = function(x,y, copy) {
         if (this.UpdateDropTarget(x,y)) {
             // Lets delete the clone <li>s
             for (var i = 0; i < CLONES.length; ++i) {
@@ -506,14 +526,19 @@ CollectionBrowser = (function (){
                 clone.remove();
             }
             CLONES = [];
+            MESSAGE.hide();
             
             // Get rid of the thick border indicator of where the
             // drop will take place.
             this.DropTargetItem.css({'border-color':'#CCC',
                                      'border-width':'2'});
 
-            // Move the selected <li>s
-            sourceSessions = [];
+            // Move/copy the selected <li>s
+            // Keep track of the source sessions to save them.
+            var sourceSessions = [];
+            // I want the dropped views to remain selected,
+            // but not the originals when copying.
+            var newSelected = [];
             for (var i = 0; i < SELECTED.length; ++i) {
                 var source = SELECTED[i];
 
@@ -529,18 +554,33 @@ CollectionBrowser = (function (){
                 // Keep a list to save later.
                 sourceSessions.push(sourceSession);
 
-
-                // To avoid saving a session more than once.
-                sourceSession.Modified = true;
+                // Keep a modified flag to avoid 
+                // saving a session more than once.
+                if ( ! copy) { // move modifies the source too.
+                    sourceSession.Modified = true;
+                }
+                // The destination is always modified.
                 this.Modified = true;
 
                 // and move the original <li>
                 source.children().css({'opacity':'1.0'});
+
+                if (copy) {
+                    source
+                        .data("selected", false)
+                        .css({'background-color': '#FFF'});
+                    source = source.clone(true);
+                    source.data("copy", true);
+                }
+                source
+                    .data("selected", true)
+                    .css({'background-color': '#CDF'});
+                newSelected.push(source);
+                // Position the view <li> in the destination session.
                 source
                     .css({'position':'static',
                           'float': 'left',
                           'list-style-type': 'none',
-                          'background-color': '#FFF',
                           'margin': '2px',
                           'border': '2px solid #CCC',
                           'padding': '2px'});
@@ -561,11 +601,14 @@ CollectionBrowser = (function (){
                 this.DropTargetItem = source;
                 this.DropTargetBefore = false;
             }
+            SELECTED = newSelected;
 
             // Save the sessions.
-            this.Save();
-            for (var i = 0; i < sourceSessions.length; ++i) {
-                sourceSessions[i].Save();
+            this.Save(false);
+            if ( ! copy) {
+                for (var i = 0; i < sourceSessions.length; ++i) {
+                    sourceSessions[i].Save(false);
+                }
             }
 
             return true;
@@ -573,6 +616,7 @@ CollectionBrowser = (function (){
         return false;
     }
 
+    // Copy is set as a data in the <li> items
     Session.prototype.Save = function() {
         if ( ! this.Modified) {
             return;
@@ -591,8 +635,12 @@ CollectionBrowser = (function (){
                 'label' : $('div',this).text(),
                 'imgdb' : $(this).data('imgdb'),
                 'img'   : $(this).data('imgid'),
-                'view'  :$(this).data('viewid')
+                'view'  : $(this).data('viewid'),
+                'copy'  : $(this).data('copy')
             };
+            if (view.copy) {
+                this.SaveLock = true;
+            }
 
             var viewId = $(this).attr('view');
             if (viewId && viewId != "") {
@@ -608,11 +656,16 @@ CollectionBrowser = (function (){
         args.session = this.Id;
         args.label = this.SessionLabel.text();
 
+        var self = this;
         $.ajax({
             type: "post",
             url: "/session-save",
             data: {"input" :  JSON.stringify( args )},
-            success: function() {},
+            success: function(data) {
+                // If copy, view ids have changed.
+                self.UpdateViewIds(data);
+                self.SaveLock = false;
+            },
             error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
         });
 
@@ -628,7 +681,7 @@ CollectionBrowser = (function (){
             otherSession.RequestMetaData();
         } if (otherSession.LoadState == LOAD_IMAGES) {
             otherSession.RequestMetaData();
-            /* this messed up the layout for some reason
+            /* this messed up the layout for some reason  needs a clear.
             // Lets just copy / clone this session
             otherSession.ViewList.empty();
             this.ViewList.children('li').each(function () {
@@ -641,11 +694,23 @@ CollectionBrowser = (function (){
         }
     }
 
-    
+    // When views are copied, we need to set new ids.
+    Session.prototype.UpdateViewIds = function(data) {
+        var liList = this.ViewList.children('li');
+        for (var i = 0; i < liList.length; ++i) {
+            var li = liList[i];
+            if ($(li).data('copy')) {
+                $(li).data('viewid', data.views[i]);
+                $(li).data('copy', false);
+            }
+        }
+    }
     
 //==============================================================================
     var DROP_TARGETS = [];
     function StartViewDrag(event) {
+        var copy = (event.which == 3);
+
         if (SELECTED.length == 0) {
             return;
         }
@@ -665,8 +730,19 @@ CollectionBrowser = (function (){
             CLONES.push(clone);
 
             // Change the original div to a placeholder.
-            source.children().css({'opacity':'0.2'});
+            if ( ! copy) {
+                source.children().css({'opacity':'0.2'});
+            }
         }
+        if (copy) {
+            MESSAGE.text("Copy");
+        } else {
+            MESSAGE.text("Move");
+        }
+        MESSAGE.show()
+            .css({'left': (x-40),
+                  'top' : (y-40)});
+        
 
         // Setup the events for dragging.
         $('body')
@@ -678,9 +754,11 @@ CollectionBrowser = (function (){
                 })
             .mouseup(
                 function(event) {
+                    event.preventDefault();
                     $(this).unbind('mousemove');
                     $(this).unbind('mouseup');
                     $(this).unbind('mouseleave');
+                    $(this).unbind('oncontextmenu');
                     ViewDrop(event);
                     return false;
                 })
@@ -689,9 +767,12 @@ CollectionBrowser = (function (){
                     $(this).unbind('mousemove');
                     $(this).unbind('mouseup');
                     $(this).unbind('mouseleave');
+                    $(this).unbind('oncontextmenu');
                     ViewDrop(event);
                     return false;
                 });
+            // Keep the context menu from popping up.
+            .onContextMenu(function () {return false;});
         
         ClearPendingImagePopup();
         return false;
@@ -706,6 +787,9 @@ CollectionBrowser = (function (){
                 .css({'left': x-20 - 10*i,
                       'top' : y-20 - 10*i});
         }
+        MESSAGE
+            .css({'left': x-40,
+                  'top' : y-40});
 
         // Indicate where the items would be dropped.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
@@ -714,13 +798,14 @@ CollectionBrowser = (function (){
     }
 
     function ViewDrop(event) {
+        var copy = (event.which == 3);
         var x = event.clientX;
         var y = event.clientY;
         // Look through all open sessions to see if we dropped in one.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
             var destinationSession = DROP_TARGETS[i];
-            if (destinationSession.Drop(x, y)) {
-                // Found the dropp session.  Drop does all the shuffling.
+            if (destinationSession.Drop(x, y, copy)) {
+                // Found the drop session.  Drop does all the shuffling.
                 return true;
             }
         }
@@ -730,11 +815,11 @@ CollectionBrowser = (function (){
             clone.remove();
         }
         CLONES = [];
+        MESSAGE.hide();
         for (var i = 0; i < SELECTED.length; ++i) {
             var source = SELECTED[i];
             source.children().css({'opacity':'1.0'});
         }
-        SELECTED = [];
 
         return false;
     }

@@ -195,10 +195,6 @@ def deepcopyview(view_id):
 
 
 ################################################################################
-# It is up to the client to set the view database properly when copying.
-# this is a temporary pain.  Sessions has moved to admin but not views.
-# We need the source db and the destination db.
-# Use the viewdb var for the source.
 @mod.route('/session-save', methods=['GET', 'POST'])
 def session_save_view():
     input_str = request.form['input']  # for post
@@ -249,17 +245,13 @@ def session_save_view():
                 'SessionId': session_id,
                 'ViewerRecords': viewer_records
             }
-        # Hidden labels are a pain. Treat labels as hidden
-        # because the client may not know they are hidden.
+
+        # The client now knows when hide annotations is on and
+        # always knows both the label and hidden label.
         if 'hiddenLabel' in view_item:
             view['HiddenTitle'] = view_item['hiddenLabel']
+        if 'label' in view_item:
             view['Title'] = view_item['label']
-        else:
-            if session.hide_annotations:
-                view['HiddenTitle'] = view_item['label']
-            else:
-                view['Title'] = view_item['label']
-
 
         # TODO: don't save until the end, to make failure transactional
         admindb['views'].save(view, manipulate=True)
@@ -267,6 +259,8 @@ def session_save_view():
         new_views.append(ObjectId(view['_id']))
 
     # delete the views that are left over, as views are owned by the session.
+    # TODO: I would like to add deleted views to a trash session.
+    # There would be a chance of recovery ...
     if delete_views:
         removed_view_ids = set(session.views) - set(new_views)
         for view_id in removed_view_ids:
