@@ -37,10 +37,23 @@ def pingpong(data):
 from IPython.display import HTML
 import time
 
-def slideatlas_load(slideatlas_domain="http://localhost:8080/"):
+def slideatlas_load(slideatlas_domain="https://localhost:8080/", view="login", scale=1.0):
+    """
+    If view is specified 
 
-    slideatlas_view = slideatlas_domain + "webgl-viewer?db=5074589302e31023d4292d97&view=50763fab02e310163cbd059f"
-    slideatlas_iframe = '<iframe id="guest1" name="guest1" src="' + slideatlas_view + '" width=1024 height=768></iframe>'
+    """
+    if view == None or view == "login":
+        # Load login view
+        view = ""
+    elif view == "example":
+         # Load example view  
+        view = "webgl-viewer?db=5074589302e31023d4292d97&view=50763fab02e310163cbd059f"
+
+    width = int(1024 * scale)
+    height = int(768 * scale)
+
+    slideatlas_view = slideatlas_domain + view
+    slideatlas_iframe = '<iframe id="guest1" name="guest1" src="' + slideatlas_view + '" width=%d height=%d></iframe>'% (width, height)
     button = '<button onclick="postRequest()"> Update current view </Button><br>'
     javascript = """
     <script type="text/Javascript">
