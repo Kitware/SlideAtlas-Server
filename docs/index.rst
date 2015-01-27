@@ -10,6 +10,7 @@ Welcome to SlideAtlas's documentation!
     :titlesonly:
 
     get-started
+    vagrant-workflow
     deploy
     plugins
     schema
