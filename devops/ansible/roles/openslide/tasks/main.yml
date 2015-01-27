@@ -1,0 +1,17 @@
+---
+
+  - name: update apt
+    action: command /usr/bin/apt-get update
+    sudo: yes
+
+  - name: install openslide dependencies
+    apt: name={{ item }} state=present
+    sudo: yes
+    with_items:
+      - python-pip
+      - python2.7-dev
+      - build-essential
+      - python-software-properties
+      - openslide-tools
+      - python-openslide
+
