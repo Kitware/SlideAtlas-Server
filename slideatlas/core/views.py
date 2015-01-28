@@ -38,9 +38,13 @@ def status():
         'replica_set': current_app.config['SLIDEATLAS_ADMIN_DATABASE_REPLICA_SET'],
         'name': current_app.config['SLIDEATLAS_ADMIN_DATABASE_NAME']
     }
+
+    plugins = current_app.config['SLIDEATLAS_ENABLED_PLUGINS'] if 'SLIDEATLAS_ENABLED_PLUGINS' in current_app.config else []
+
     return render_template('status.html',
                            site=site,
-                           admin_db=admin_db)
+                           admin_db=admin_db,
+                           plugins=plugins)
 
 
 ################################################################################
