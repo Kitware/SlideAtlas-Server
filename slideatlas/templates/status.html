@@ -59,5 +59,17 @@
                 </tr>
             {% endif %}
         </table>
+
+        <table class="table table-bordered table-hover">
+            <tr>
+                <th colspan="2">Plugins</th>
+            </tr>
+            {% for aplugin in plugins %}
+                <tr>
+                    <td>{{ aplugin }}</td>
+                    <td> <span style="color:green;"> Enabled </span> </td>
+                </tr>
+            {% endfor%}
+        </table>
     </div>
 {% endblock content %}

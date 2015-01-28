@@ -11,6 +11,10 @@ testing/Testing
 chromedriver.log
 env/
 
+# Ipython checkpoints 
+
+.ipynb_checkpoints
+
 # Typical IDE metadata
 .idea
 .project
