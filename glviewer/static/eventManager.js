@@ -441,7 +441,7 @@ EventManager.prototype.HideSweepListeners = function() {
 
 // Save the previous touches and record the new
 // touch locations in viewport coordinates.
-EventManager.prototype.HandleTouch = function(e, startFlag) {
+EventManager.prototype.HandleTouch = function(e, startFlag, viewer) {
     e.preventDefault();
     var date = new Date();
     var t = date.getTime();
@@ -458,13 +458,16 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
         var e = event;
     }
 
+    // Still used on mobile devices?
+    var viewport = viewer.GetViewport();
     this.SystemEvent = e;
     this.LastTouches = this.Touches;
     var can = this.Canvas;
     this.Touches = [];
     for (var i = 0; i < e.targetTouches.length; ++i) {
-        var x = e.targetTouches[i].pageX - can.offsetLeft;
-        var y = e.targetTouches[i].pageY - can.offsetTop;
+        var offset = viewer.MainView.Canvas.offset();
+        var x = e.targetTouches[i].pageX - offset.left;
+        var y = e.targetTouches[i].pageY - offset.top;
         this.Touches.push([x,y]);
     }
 
@@ -486,7 +489,7 @@ EventManager.prototype.HandleTouch = function(e, startFlag) {
 
 
 EventManager.prototype.HandleTouchStart = function(e, viewer) {
-    this.HandleTouch(e, true);
+    this.HandleTouch(e, true, viewer);
     if (this.StartTouchTime == 0) {
         this.StartTouchTime = this.Time;
     }
@@ -501,7 +504,7 @@ EventManager.prototype.HandleTouchStart = function(e, viewer) {
 
 EventManager.prototype.HandleTouchMove = function(e, viewer) {
     // Put a throttle on events
-    if ( ! this.HandleTouch(e, false)) { return; }
+    if ( ! this.HandleTouch(e, false, viewer)) { return; }
 
     if (NAVIGATION_WIDGET.Visibility) {
         // No slide interaction with the interface up.

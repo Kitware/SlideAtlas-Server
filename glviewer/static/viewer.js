@@ -106,6 +106,7 @@ function Viewer (viewport, cache) {
     can.addEventListener(
         "touchmove", 
         function(event){
+            self.TriggerInteraction();
             EVENT_MANAGER.HandleTouchMove(event, self);
         }, 
         false);
@@ -168,9 +169,6 @@ Viewer.prototype.TriggerInteraction = function() {
         callback();
     }
 }
-
-
-
 
 
 Viewer.prototype.InitializeZoomGui = function() {
