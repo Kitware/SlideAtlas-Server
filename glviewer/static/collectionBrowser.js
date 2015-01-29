@@ -5,6 +5,12 @@
 
 
 // TODO: 
+// Verify save lock works.
+// Selected items stay selected after move.
+
+
+
+
 // Copy option.
 // Hidden title.
 // Shift?
@@ -23,6 +29,284 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
+    // For syncronizing data objects and GUI.
+    var TIME_COUNT = 1;
+
+    // Library singleton
+    var LIBRARY_OBJ = undefined;
+    function RequestLibraryData(callback) {
+        if (!LIBRARY_OBJ) {
+            // Just creating the library starts the load request.
+            LIBRARY_OBJ = new LibraryObject();
+        }
+
+        // Incase the library is already loaded
+        if (LIBRARY_OBJ.Loaded) {
+            if (callback) {
+                callback(LIBRARY_OBJ);
+            }
+        }
+
+        // Waiting: Add the callback.
+        if (callback) {
+            LIBRARY_OBJ.LoadCallbacks.push(callback)
+        }
+    }
+
+//==============================================================================
+    function LibraryObject() {
+        this.LoadCallbacks = [];
+        this.Loaded = false;
+        this.CollectionObjects = [];
+        // Make the request.
+        var self = this;
+        $.get("/sessions?json=true",
+              function(data,status){
+                  if (status == "success") {
+                      self.Load(data);
+                  } else {
+                      alert("ajax failed.");
+                  }
+              });   
+    }
+    LibraryObject.prototype.Load = function (data) {
+        // The first "sessions" list in data is actually a list of
+        // collections.
+        for (var i = 0; i < data.sessions.length; ++i) {
+            this.CollectionObjects.push(new CollectionObject(data.sessions[i]));
+        }
+        this.Loaded = true;
+        for (var i = 0; i < this.LoadCallbacks.length; ++i) {
+            this.LoadCallbacks[i](this);
+        }
+    }
+
+    LibraryObject.prototype.Save = function () {
+        for (var i = 0; i < this.CollectionObjects.length; ++i)
+            {
+                this.CollectionObjects[i].Save();
+            }
+    }
+
+
+
+//==============================================================================
+    // Collection data object
+    function CollectionObject(data) {
+        this.Label = data.rule;
+        this.SessionObjects = [];
+        for (var i = 0; i < data.sessions.length; ++i) {
+            this.SessionObjects.push(new SessionObject(data.sessions[i]));
+        }
+    }
+
+    CollectionObject.prototype.Save = function () {
+        for (var i = 0; i < this.SessionObjects.length; ++i)
+            {
+                this.SessionObjects[i].Save();
+            }
+    }
+
+
+
+
+//==============================================================================
+    INITIALIZED = 0;
+    WAITING = 1;
+    LOADED = 2;
+    function SessionObject(data) {
+        this.Id = data.sessid;
+        this.Label = data.label;
+        // A separate request is required to get the view data.
+        this.ViewObjects = [];
+        this.LoadCallbacks = [];
+
+        this.State = INITIALIZED;
+        this.ModifiedTime = this.SavedTime = TIME_COUNT;
+    }
+    SessionObject.prototype.RequestViewData = function(callback) {
+        if (this.State == LOADED) {
+            callback(this);
+        }
+        this.LoadCallbacks.push(callback);
+        if (this.State == WAITING) {
+            return;
+        }
+        this.State == WAITING;
+        // Make the request to populate the view list.
+        var self = this;
+        this.State = WAITING;
+        $.get("/sessions?json=1&sessid="+this.Id,
+              function(data,status){
+                  if (status == "success") {
+                      self.LoadViewData(data);
+                  } else {
+                      alert("ajax failed: sessions?json=1"); }
+              });
+    }
+
+    SessionObject.prototype.LoadViewData = function(data) {
+        this.State = LOADED;
+        this.ViewObjects = [];
+        for (var i = 0; i < data.session.views.length; ++i) {
+            viewObject = new ViewObject(this).LoadData(data.session.views[i]);
+            // Info not in views?
+            //viewObject.Label = data.images[i].label;
+            viewObject.Source = "/thumb?db="+data.images[i].db+"&img="+data.images[i].img;
+            this.ViewObjects.push(viewObject);
+        }
+        for (var i = 0; i < this.LoadCallbacks.length; ++i) {
+            if (this.LoadCallbacks[i]) {
+                this.LoadCallbacks[i](this);
+            }
+        }
+        this.LoadCallbacks = [];
+    }
+
+
+    SessionObject.prototype.Save = function() {
+        if ( this.SavedTime >= this.ModifiedTime) {
+            return;
+        }
+        this.SavedTime = this.ModifiedTime;
+
+        if (this.State != LOADED) {
+            alert("Error Save: Session not loaded.");
+            return;
+        }
+
+        var views = [];
+        for (var i = 0; i < this.ViewObjects.length; ++i) {
+            var viewObj = this.ViewObjects[i];
+            var view = {
+                'label' : viewObj.Label,
+                'imgdb' : viewObj.ImageDb,
+                'img'   : viewObj.ImageId,
+                'view'  : viewObj.Id,
+                'copy'  : viewObj.CopyFlag
+            };
+            if (viewObj.CopyFlag) {
+                this.SaveLock = true;
+            }
+
+            views.push(view);
+        }
+
+        // Save the new order in the database.
+        // Python will have to detect if any view objects have to be deleted.
+        var args = {};
+        args.views = views;
+        args.session = this.Id;
+        args.label = this.Label;
+
+        var self = this;
+        $.ajax({
+            type: "post",
+            url: "/session-save",
+            data: {"input" :  JSON.stringify( args )},
+            success: function(data) {
+                // If copy, view ids have changed.
+                self.UpdateViewIds(data);
+                self.SaveLock = false;
+            },
+            error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
+        });
+
+    }
+
+    // When views are copied, we need to set new ids.
+    SessionObject.prototype.UpdateViewIds = function(data) {
+        for (var i = 0; i < this.ViewObjects.length; ++i) {
+            var viewObj = this.ViewObjects[i];
+            if (viewObj.CopyFlag) {
+                viewObj.Id = data.views[i];
+                viewObj.CopyFlag = false;
+            }
+        }
+    }
+
+    SessionObject.prototype.RemoveViewObject = function(viewObj) {
+        // Move: remove the view from the session.
+        var idx = this.ViewObjects.indexOf(viewObj);
+        if (idx > -1) {
+            this.ViewObjects.splice(idx,1);
+            this.Modified();
+        }
+    }
+
+    SessionObject.prototype.InsertViewObject = function(viewObj, index) {
+        this.ViewObjects.splice(index,0,viewObj);
+        this.Modified();
+        viewObj.SessionObject = this;
+    }
+
+    SessionObject.prototype.Modified = function() {
+        this.ModifiedTime = ++TIME_COUNT;
+    }
+
+
+//==============================================================================
+    function ViewObject(sessionObj) {
+        this.CopyFlag = false;
+        this.SessionObject = sessionObj;
+        // I have to put this here so UpdateGUI will work
+        this.Selected = false;
+    }
+    // A work around for overloading constructors
+    ViewObject.prototype.LoadData = function(data) {
+        this.Id = data.id;
+        this.ImageId = data.image_id;
+        this.ImageDb = data.image_store_id;
+        this.Label = data.label;
+        this.CopyFlag = false;
+        this.Source = "";
+        return this;
+    }
+    ViewObject.prototype.Copy = function(viewObj) {
+        this.Id = viewObj.Id;
+        this.ImageId = viewObj.ImageId;
+        this.ImageDb = viewObj.ImageDb;
+        this.Label = viewObj.Label;
+        this.Source = viewObj.Source;
+        // Hidden here, but it makes sense.
+        this.CopyFlag = true;
+        return this;
+    }
+
+
+// Issues:
+// - When we update a sessionObject, how do we get the sessionGui objects to update?
+//   - Keep sync times, gui points to sessionObject. Loop through gui in update.
+// - How do gui callbacks link back to sessionObject objects?
+//      either a pointer (if we can figure it out) or an index.
+
+// Session GUI objects can simply have pointer to session data object.
+//********
+// View gui Objectects must point to session GUI object and viewobj
+// Maybe create javascript view gui objects.  Have them indexable?
+
+
+//==============================================================================
+//==============================================================================
+    // GUI objects.
+    // I am going to leave SELECTED as an array of GUI objects because
+    // it is difficult to get to the GUI objects from the data objects. 
+
+    function UpdateGUI() {
+        for (var i = 0; i < BROWSERS.length; ++i) {
+            BROWSERS[i].UpdateGUI();
+        }
+    }
+
+    function AddSelected(view) {
+        for (var i = 0; i < SELECTED.length; ++i) {
+            if (view.ViewData == SELECTED[i].ViewData) {
+                return;
+            }
+        }
+        SELECTED.push(view);
+    }
+
     var SELECTED = [];
     var CLONES = [];
     var BROWSERS = [];
@@ -40,7 +324,6 @@ CollectionBrowser = (function (){
     function CollectionBrowser () {
         // I am keeping a tree down to the view "leaves".
         // I need to keep the view "tree index" so the view li knows its position.
-        this.BrowserIndex = BROWSERS.length;
         BROWSERS.push(this);
 
         var self = this;
@@ -73,14 +356,10 @@ CollectionBrowser = (function (){
 
     CollectionBrowser.prototype.Initialize = function() {
         var self = this;
-        $.get("/sessions?json=true",
-              function(data,status){
-                  if (status == "success") {
-                      self.LoadCollectionList(data);
-                  } else {
-                      alert("ajax failed.");
-                  }
-              });
+        RequestLibraryData(
+            function(library) {
+                self.LoadLibrary(library)
+            });
     }
 
 
@@ -101,19 +380,20 @@ CollectionBrowser = (function (){
                       "width":(width-left)});
     }
     
-   
-    CollectionBrowser.prototype.LoadCollectionList = function(data) {
-        var self = this;
+    // Called after request returns with data from the server.
+    CollectionBrowser.prototype.LoadLibrary = function(library) {
         // Populate the collection menu.
         var defaultCollection = undefined;
         // The first "sessions" list is actually collections.
-        for (var i = 0; i < data.sessions.length; ++i) {
+        for (var i = 0; i < library.CollectionObjects.length; ++i) {
+            var collectionObject = library.CollectionObjects[i];
             // Note: data.sessions is actually a list of collections.
-            var collection = new Collection(data.sessions[i],this);
+            var collection = new Collection(collectionObject,this);
             // Which collection should be open.
-            if (data.sessions[i].rule == this.DefaultCollectionLabel) {
+            if (collectionObject.Label == this.DefaultCollectionLabel) {
                 defaultCollection = collection;
             }
+            this.Collections.push(collection);
         }
         if (defaultCollection) {
             defaultCollection.ToggleSessionList();
@@ -125,26 +405,17 @@ CollectionBrowser = (function (){
                        100);
         }
     }
-    
 
-    CollectionBrowser.prototype.OnSelect = function(callback) {
-        this.OnSelectCallback = callback;
-    }
-
-    
-    CollectionBrowser.prototype.SelectCallback = function(db,img,label,view) {
-        if (this.OnSelectCallback) {
-            this.OnSelectCallback(db,img,label,view);
+    CollectionBrowser.prototype.UpdateGUI = function() {
+        for (var i = 0; i < this.Collections.length; ++i) {
+            this.Collections[i].UpdateGUI();
         }
     }
-
+    
 
 //==============================================================================
 
-    function Collection(data, browser) {
-        this.Browser = browser;
-        this.CollectionIndex = browser.Collections.length;
-        browser.Collections.push(this);
+    function Collection(collectionObject, browser) {
         var ul = browser.CollectionItemList;
 
         this.ListItem = $('<li>')
@@ -156,7 +427,7 @@ CollectionBrowser = (function (){
             .css({'height': '15px'});
         $('<span>')
             .appendTo(this.ListItem)
-            .text(data.rule);
+            .text(collectionObject.Label);
         this.SessionList = $('<ul>')
             .appendTo(this.ListItem)
             .css({'list-style': 'none',
@@ -168,11 +439,11 @@ CollectionBrowser = (function (){
         var self = this;
         this.OpenCloseIcon.click(function(){self.ToggleSessionList();});
         
-        // data contains the sessions too.
         // Populate the sessions list.
         this.Sessions = [];
-        for (var i = 0; i < data.sessions.length; ++i) {
-            new Session(data.sessions[i], this);
+        for (var i = 0; i < collectionObject.SessionObjects.length; ++i) {
+            var session = new Session(collectionObject.SessionObjects[i], this);
+            this.Sessions.push(session);
         }
     }
 
@@ -195,6 +466,92 @@ CollectionBrowser = (function (){
         }
     }
 
+    Collection.prototype.UpdateGUI = function() {
+        for (var i = 0; i < this.Sessions.length; ++i) {
+            this.Sessions[i].UpdateGUI();
+        }
+    }
+
+//==============================================================================
+    function View(viewObject, session) {
+        this.ViewData = viewObject;
+        this.Session = session;
+
+        // Make a draggable list item
+        this.Item = $('<li>')
+            .appendTo(session.ViewList)
+            .css({'float': 'left',
+                  'list-style-type': 'none',
+                  'margin': '2px',
+                  'border': '2px solid #CCC',
+                  'padding': '2px'})
+            .hover(
+                function () {$(this).css({'border-color': '#333'});},
+                function () {$(this).css({'border-color': '#CCC'});})
+            .mousedown(
+                function(event){
+                    event.preventDefault();
+                    // If we leave with the mouse pressed, then a drag
+                    // is started.
+                    if (self.SaveLock) {
+                        // Not the best feedback
+                        //alert("Wait for copy to finish");
+                        // The order of a session cannot change until
+                        // the lock is released.  We cannot save a
+                        // session (use viewIds) until lock is released.
+                    } else {
+                        $(this).mouseleave(leaveHandler);
+                    }
+                    return false;
+                })
+            .mouseup(
+                function(event){
+                    var view = this.View;
+                    event.preventDefault();
+                    view.Item.unbind('mouseleave', leaveHandler);
+                    
+                    // Unselect previously selected views when cntl is not pressed
+                    if ( ! event.ctrlKey) {
+                        for (var i = 0; i < SELECTED.length; ++i) {
+                            SELECTED[i].ViewData.Selected = false;
+                            SELECTED[i].Item.css({"background-color": "#FFF"});
+                        }
+                        SELECTED = [];
+                    }
+                    
+                    // Control toggles views in selected list.
+                    if ( view.ViewData.Selected ) {
+                        // unselect this view.
+                        view.ViewData.Selected = false;
+                        view.Item.css({"background-color": "#FFF"});
+                        // Remove the item from the selected list.
+                        var index = SELECTED.indexOf(view);
+                        if (index > -1) {
+                            // Remove selected.
+                            SELECTED.splice(index, 1);
+                        }
+                    } else {
+                        // Select this view.
+                        view.ViewData.Selected = true;
+                        view.Item.css({"background-color": "#CDF"});
+                        AddSelected(view);
+                    }
+                });
+        if (viewObject.Selected) {
+            AddSelected(this);
+            this.Item.css({"background-color": "#CDF"});
+        }
+                        
+        var labelDiv = $('<div>')
+            .appendTo(this.Item)
+            .text(viewObject.Label)
+            .css({'color': '#333',
+                  'font-size': '11px',
+                  'display': 'block'});
+        // Stuff I used to save in data
+        // My hack to have the dom events call View menthod.
+        this.Item[0].View = this;
+    }
 
 //==============================================================================
     // State of loading a session.
@@ -209,14 +566,14 @@ CollectionBrowser = (function (){
     // The images have been requested.
     var LOAD_IMAGES = 3;
     
-    function Session(data, collection) {
-        this.Modified = false;
-        this.Collection = collection;
-        var ul = collection.SessionList;
-        this.SessionIndex = collection.Sessions.length;
-        collection.Sessions.push(this);
+    function Session(sessionObject, collection) {
+        this.SessionData = sessionObject;
+        this.Views = [];
 
-        this.Id = data.sessid;
+        this.UpdateTime = -1;
+        var ul = collection.SessionList;
+
+        this.Id = sessionObject.Id;
         this.Body = $('<li>')
             .appendTo(ul);
         this.OpenCloseIcon = $('<img>')
@@ -225,9 +582,9 @@ CollectionBrowser = (function (){
             .css({'height': '15px'});
         this.SessionLabel = $('<span>')
             .appendTo(this.Body)
-            .text(data.label);
+            .text(sessionObject.Label);
 
-        this.Label = data.label;
+        this.Label = sessionObject.Label;
 
         this.ViewList = $('<ul>')
             .appendTo(this.Body)
@@ -256,48 +613,32 @@ CollectionBrowser = (function (){
     Session.prototype.RequestMetaData = function() {
         this.LoadState = LOAD_METADATA_WAITING;
 
-        this.ViewList.empty();
-
-        // Throw a waiting icon until the meta data arrives.
-        var listItem = $('<li>')
-            .appendTo(this.ViewList)
-            .css({'margin': '2px',
-                  'padding': '2px'});
-        
-        var image = $('<img>')
-            .appendTo(listItem)
-            .attr("src", "/webgl-viewer/static/circular.gif")
-            .attr("alt", "waiting...")
-            .css({'width':'40px'});
-        
         var self = this;
-        // Make the request to populate the view list.
-        $.get("/sessions?json=1&sessid="+this.Id,
-              function(data,status){
-                  if (status == "success") {
-                      self.LoadMetaData(data);
-                  } else {
-                      alert("ajax failed: sessions?json=1"); }
-              });
+        this.SessionData.RequestViewData(
+            function(sessObject){
+                self.LoadViewData(sessObject);
+            });
     }
 
 
     // Leaving triggers a drag (when mouse is pressed).
     var leaveHandler = function(event){
+        var view = this.View;
         // Mouse leave is sort of like mouse up.
-        $(this).unbind('mouseleave', leaveHandler);
-        if ( ! $(this).data("selected")) {
+        view.Item.unbind('mouseleave', leaveHandler);
+        if ( ! view.ViewData.Selected ) {
+            // Mouse down and drag out.  Select is set on mouse up.
             if ( ! event.ctrlKey) {
                 for (var i = 0; i < SELECTED.length; ++i) {
-                    SELECTED[i].data("selected", false);
-                    SELECTED[i].css({"background-color": "#FFF"});
+                    SELECTED[i].ViewData.Selected = false;
+                    SELECTED[i].Item.css({"background-color": "#FFF"});
                 }
                 SELECTED = [];
             }
             // Select this view.
-            $(this).data("selected", true);
-            $(this).css({"background-color": "#CDF"});
-            SELECTED.push($(this));
+            view.ViewData.Selected = true;
+            view.Item.css({"background-color": "#CDF"});
+            AddSelected(view);
         }
 
         // This is only called when the mouse is pressed.
@@ -310,92 +651,40 @@ CollectionBrowser = (function (){
         return false;
     }
     
-    Session.prototype.LoadMetaData = function(data) {
+    Session.prototype.LoadViewData = function(sessionObject) {
         var self = this;
         this.LoadState = LOAD_METADATA_LOADED;
+        this.UpdateGUI();        
+    }
 
-        this.Data = [];
-        // Get rid of the waiting icon.
+    Session.prototype.UpdateGUI = function () {
+        if (this.UpdateTime >= this.SessionData.ModifiedTime) {
+            return;
+        }
+        this.UpdateTime = this.SessionData.ModifiedTime;
+
+        this.Views = [];
         this.ViewList.empty();
-        for (var i = 0; i < data.session.views.length; ++i) {
-            // Make a draggable list item
+
+        if (this.LoadState <= LOAD_METADATA_WAITING) {
+            // Throw a waiting icon until the meta data arrives.
             var listItem = $('<li>')
                 .appendTo(this.ViewList)
-                .data('copy', false) // default is move.
-                .data('viewid', data.session.views[i].id)
-                .data('imgid', data.session.views[i].image_id)
-                .data('imgdb', data.session.views[i].image_store_id)
-                // I hate having to encode user data in attibutes.
-                // Remeber where this jquery element is in the tree.
-                .data("sessionIdx", this.SessionIndex)
-                .data("collectionIdx", this.Collection.CollectionIndex)
-                .data("browserIdx", this.Collection.Browser.BrowserIndex)
-                .css({'float': 'left',
-                      'list-style-type': 'none',
-                      'margin': '2px',
-                      'border': '2px solid #CCC',
-                      'padding': '2px'})
-                .hover(
-                    function () {$(this).css({'border-color': '#333'});},
-                    function () {$(this).css({'border-color': '#CCC'});})
-                .mousedown(
-                    function(event){
-                        event.preventDefault();
-                        // If we leave with the mouse pressed, then a drag
-                        // is started.
-                        if (self.SaveLock) {
-                            // Not the best feedback
-                            //alert("Wait for copy to finish");
-                            // The order of a session cannot change until
-                            // the lock is released.  We cannot save a
-                            // session (use viewIds) until lock is released.
-                        } else {
-                            $(this).mouseleave(leaveHandler);
-                        }
-                        return false;
-                    })
-                .mouseup(
-                    function(event){
-                        event.preventDefault();
-                        $(this).unbind('mouseleave', leaveHandler);
-
-                        // Unselect previously selected views when cntl is not pressed
-                        if ( ! event.ctrlKey) {
-                            for (var i = 0; i < SELECTED.length; ++i) {
-                                SELECTED[i].data("selected", false);
-                                SELECTED[i].css({"background-color": "#FFF"});
-                            }
-                            SELECTED = [];
-                        }
-
-                        // Control toggles views in selected list.
-                        if ( $(this).data("selected") ) {
-                            // unselect this view.
-                            $(this).data("selected", false);
-                            $(this).css({"background-color": "#FFF"});
-                            // Remove the item from the selected list.
-                            var index = SELECTED.indexOf($(this));
-                            if (index > -1) {
-                                SELECTED.splice(index, 1);
-                            }
-                        } else {
-                            // Select this view.
-                            $(this).data("selected", true);
-                            $(this).css({"background-color": "#CDF"});
-                            SELECTED.push($(this));
-                        }
-                    });
-
-            // This data array is only used to delay loading the images.
-            this.Data.push({item:listItem, 
-                            label: data.images[i].label,
-                            src:"/thumb?db="+data.images[i].db+"&img="+data.images[i].img})
-            var labelDiv = $('<div>')
+                .css({'margin': '2px',
+                      'padding': '2px'});
+            
+            var image = $('<img>')
                 .appendTo(listItem)
-                .text(data.images[i].label)
-                .css({'color': '#333',
-                      'font-size': '11px',
-                      'display': 'block'});
+                .attr("src", "/webgl-viewer/static/circular.gif")
+                .attr("alt", "waiting...")
+                .css({'width':'40px'});
+            return;
+        }
+
+        this.LoadState = LOAD_METADATA_LOADED;        
+        for (var i = 0; i < this.SessionData.ViewObjects.length; ++i) {
+            var viewObject = this.SessionData.ViewObjects[i];
+            this.Views.push(new View(viewObject, this));
         }
         $('<div>')
             .appendTo(this.ViewList)
@@ -407,18 +696,20 @@ CollectionBrowser = (function (){
             this.RequestImages();
         }
     }
+
     
 
     Session.prototype.RequestImages = function() {
         if (this.LoadState != LOAD_METADATA_LOADED) { return; }
         this.LoadState = LOAD_IMAGES;
         
-        for (var i = 0; i < this.Data.length; ++i) {
+        for (var i = 0; i < this.Views.length; ++i) {
+            var view = this.Views[i];
             var image = $('<img>')
-                .appendTo(this.Data[i].item)
+                .appendTo(view.Item)
                 .css({'height':'32px'})
-                .attr("src", this.Data[i].src)
-                .attr("alt", this.Data[i].label)
+                .attr("src", view.ViewData.Source)
+                .attr("alt", view.ViewData.Label)
                 .mouseenter(
                     function (event) {
                         if (event.which == 0) {
@@ -482,6 +773,7 @@ CollectionBrowser = (function (){
         // Find the closest item.
         var bestDist = 1000000;
         var bestItem;
+        var bestIndex;
         var bestBefore = true;
         this.ViewList.children('li').each(
             function (index, item) {
@@ -497,6 +789,8 @@ CollectionBrowser = (function (){
                     bestDist = dist;
                     bestItem = $(item);
                     bestBefore = x < (pos.left+right)*0.5;
+                    bestIndex = index;
+                    if ( ! bestBefore) { ++bestIndex;}
                 }
             });
         if ( this.DropTargetItem) {
@@ -505,8 +799,10 @@ CollectionBrowser = (function (){
             this.DropTargetItem = undefined;
         }
 
+        // Planning on getting rid of the DropTargetBefore instance variable.
         this.DropTargetBefore = bestBefore;
         this.DropTargetItem = bestItem;
+        this.DropTargetIndex = bestIndex;
         if (this.DropTargetBefore) {
             bestItem.css({'border-left-color':'#333',
                           'border-left-width':'4px'});
@@ -517,10 +813,11 @@ CollectionBrowser = (function (){
         return true;
     }
 
-
+    // Not thrilled that this contains both the drop check and the drop
+    // implementation....
     Session.prototype.Drop = function(x,y, copy) {
         if (this.UpdateDropTarget(x,y)) {
-            // Lets delete the clone <li>s
+            // Delete the clone <li>s
             for (var i = 0; i < CLONES.length; ++i) {
                 var clone = CLONES[i];
                 clone.remove();
@@ -533,83 +830,40 @@ CollectionBrowser = (function (){
             this.DropTargetItem.css({'border-color':'#CCC',
                                      'border-width':'2'});
 
-            // Move/copy the selected <li>s
-            // Keep track of the source sessions to save them.
-            var sourceSessions = [];
-            // I want the dropped views to remain selected,
-            // but not the originals when copying.
-            var newSelected = [];
+            // From here out we will manipulate the data objects.
+            var selectedViewObjs = [];
             for (var i = 0; i < SELECTED.length; ++i) {
-                var source = SELECTED[i];
+                // Dom has view which has viewObject.  Still better than
+                // using data to store index.
+                var view = SELECTED[i];
+                // Hack to get rid of selected color when copying.
+                // Force a gui changel
+                view.Session.UpdateTime = -1;
+                var viewObj = view.ViewData;
+                viewObj.CopyFlag = copy;
+                selectedViewObjs.push(viewObj);
 
-                // Get the source session so we can remove the item.
-                // This is the whole reason we made a tree.
-                var browserIdx = source.data("browserIdx");
-                var collectionIdx = source.data("collectionIdx");
-                var sessionIdx = source.data("sessionIdx");
-                var sourceSession = 
-                    BROWSERS[browserIdx]
-                    .Collections[collectionIdx]
-                    .Sessions[sessionIdx];
-                // Keep a list to save later.
-                sourceSessions.push(sourceSession);
-
-                // Keep a modified flag to avoid 
-                // saving a session more than once.
-                if ( ! copy) { // move modifies the source too.
-                    sourceSession.Modified = true;
-                }
-                // The destination is always modified.
-                this.Modified = true;
-
-                // and move the original <li>
-                source.children().css({'opacity':'1.0'});
-
-                if (copy) {
-                    source
-                        .data("selected", false)
-                        .css({'background-color': '#FFF'});
-                    source = source.clone(true);
-                    source.data("copy", true);
-                }
-                source
-                    .data("selected", true)
-                    .css({'background-color': '#CDF'});
-                newSelected.push(source);
-                // Position the view <li> in the destination session.
-                source
-                    .css({'position':'static',
-                          'float': 'left',
-                          'list-style-type': 'none',
-                          'margin': '2px',
-                          'border': '2px solid #CCC',
-                          'padding': '2px'});
-                // Record the new position of the view <li> in the tree.
-                // This session is the destination session.
-                source
-                    .data("sessionIdx", this.SessionIndex)
-                    .data("collectionIdx", this.Collection.CollectionIndex)
-                    .data("browserIdx", this.Collection.Browser.BrowserIndex);
-                
-                // Reparent.
-                if (this.DropTargetBefore) {
-                    source.insertBefore(this.DropTargetItem);
+                if ( ! viewObj.CopyFlag) {
+                    var sessionObj = viewObj.SessionObject;
+                    sessionObj.RemoveViewObject(viewObj);
                 } else {
-                    source.insertAfter(this.DropTargetItem);
+                    // The destination session gets the copy.
+                    viewObj.CopyFlag = false;
+                    viewObj.Selected = false;
+                    viewObj = new ViewObject().Copy(viewObj);
+                    viewObj.Selected = true;
                 }
+                // Insert
+                this.SessionData.InsertViewObject(viewObj,
+                                                  this.DropTargetIndex);
                 // Put them in order (hack)
-                this.DropTargetItem = source;
-                this.DropTargetBefore = false;
+                this.DropTargetIndex++;
             }
-            SELECTED = newSelected;
-
-            // Save the sessions.
-            this.Save(false);
-            if ( ! copy) {
-                for (var i = 0; i < sourceSessions.length; ++i) {
-                    sourceSessions[i].Save(false);
-                }
-            }
+            // Update GUI will repopulate this array.
+            SELECTED = [];
+            // Save modified sessions.
+            LIBRARY_OBJ.Save();
+            UpdateGUI();
 
             return true;
         }
@@ -694,17 +948,6 @@ CollectionBrowser = (function (){
         }
     }
 
-    // When views are copied, we need to set new ids.
-    Session.prototype.UpdateViewIds = function(data) {
-        var liList = this.ViewList.children('li');
-        for (var i = 0; i < liList.length; ++i) {
-            var li = liList[i];
-            if ($(li).data('copy')) {
-                $(li).data('viewid', data.views[i]);
-                $(li).data('copy', false);
-            }
-        }
-    }
     
 //==============================================================================
     var DROP_TARGETS = [];
@@ -719,7 +962,7 @@ CollectionBrowser = (function (){
 
         // Gray out the selected items and make clones for dragging.
         for (var i = 0; i < SELECTED.length; ++i) {
-            var source = SELECTED[i];
+            var source = SELECTED[i].Item;
             var clone = source
                 .clone(false)
                 .appendTo('body')
@@ -815,8 +1058,7 @@ CollectionBrowser = (function (){
         CLONES = [];
         MESSAGE.hide();
         for (var i = 0; i < SELECTED.length; ++i) {
-            var source = SELECTED[i];
-            source.children().css({'opacity':'1.0'});
+            SELECTED[i].Item.children().css({'opacity':'1.0'});
         }
 
         return false;
