@@ -15,7 +15,7 @@ function MobileAnnotationWidget() {
     left = '80px';
   }
   
-  /*var self = this;
+  var self = this;
   this.MenuFavoriteButton =
     $('<img>')
       .appendTo('body')
@@ -29,7 +29,7 @@ function MobileAnnotationWidget() {
             'z-index': '3'})
       .attr('src',"webgl-viewer/static/favorite-star.png")
       .click(function(){ self.ShowHideFavorites(); });
-  this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");*/
+  this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");
 
   //VIEWER1.AddGuiObject(this.MenuFavoriteButton[0], "Bottom", 0, "Left", 0);
 
@@ -119,10 +119,10 @@ MobileAnnotationWidget.prototype.SetVisibility = function(v) {
   this.Visibility = v;
   if (v) {
     this.Div.show();
-    //this.MenuFavoriteButton.show();
+    this.MenuFavoriteButton.show();
   } else {
     this.Div.hide();
-    //this.MenuFavoriteButton.hide();
+    this.MenuFavoriteButton.hide();
   }
 }
 
