@@ -212,6 +212,30 @@ class TileReader():
             return r2
         return r2.value
 
+    def _get_raw_tile_from_number(self, tilenum):
+        """
+        Gets the jpeg bitstream
+        """
+        tile_size = libtiff.TIFFTileSize(self.tif, tileno)
+
+        # logger.debug('TileSize: %s', tile_size.value)
+        if not isinstance(tile_size, (int, long)):
+            tile_size = tile_size.value
+
+        tmp_tile = create_string_buffer(tile_size)
+
+        r2 = libtiff.TIFFReadRawTile(self.tif, tileno, tmp_tile, tile_size)
+        # logger.debug('Valid size in tile: %s', r2.value)
+        # Experiment with the file output
+
+        fp.write(
+            ctypes.string_at(self.jpegtables, self.jpegtable_size.value)[:-2])
+        # Write padding
+        padding = "%c" % (255) * 4
+        fp.write(padding)
+        fp.write(ctypes.string_at(tmp_tile, r2)[2:])
+
+
     def tile_number(self, x, y):
         """
         Returns tile number from current directory

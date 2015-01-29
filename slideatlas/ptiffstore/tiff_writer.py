@@ -210,6 +210,10 @@ def test_ptiff_writer():
         # Write a tile
         writer.write_tile_by_number(tileno, buf)
 
+def cutout():
+    pass
+
+
 
 if __name__ == "__main__":
     
