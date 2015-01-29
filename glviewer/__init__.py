@@ -739,6 +739,6 @@ def getview():
     viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
     noteObj["Children"] = []
-    noteObj["HiddenTitle"] = viewObj["HiddenTitle"]
+    noteObj["HiddenTitle"] = viewObj.get("HiddenTitle", "")
 
     return jsonify(noteObj)

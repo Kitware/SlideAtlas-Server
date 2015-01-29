@@ -249,6 +249,8 @@ CollectionBrowser = (function (){
     function ViewObject(sessionObj) {
         this.CopyFlag = false;
         this.SessionObject = sessionObj;
+        // I have to put this here so UpdateGUI will work
+        this.Selected = false;
     }
     // A work around for overloading constructors
     ViewObject.prototype.LoadData = function(data) {
@@ -296,6 +298,14 @@ CollectionBrowser = (function (){
         }
     }
 
+    function AddSelected(view) {
+        for (var i = 0; i < SELECTED.length; ++i) {
+            if (view.ViewData == SELECTED[i].ViewData) {
+                return;
+            }
+        }
+        SELECTED.push(view);
+    }
 
     var SELECTED = [];
     var CLONES = [];
@@ -503,29 +513,35 @@ CollectionBrowser = (function (){
                     // Unselect previously selected views when cntl is not pressed
                     if ( ! event.ctrlKey) {
                         for (var i = 0; i < SELECTED.length; ++i) {
-                            SELECTED[i].Selected == false;
+                            SELECTED[i].ViewData.Selected = false;
                             SELECTED[i].Item.css({"background-color": "#FFF"});
                         }
                         SELECTED = [];
                     }
                     
                     // Control toggles views in selected list.
-                    if ( view.Selected ) {
+                    if ( view.ViewData.Selected ) {
                         // unselect this view.
-                        view.Selected = false;
+                        view.ViewData.Selected = false;
                         view.Item.css({"background-color": "#FFF"});
                         // Remove the item from the selected list.
                         var index = SELECTED.indexOf(view);
                         if (index > -1) {
+                            // Remove selected.
                             SELECTED.splice(index, 1);
                         }
                     } else {
                         // Select this view.
-                        view.Selected = true;
+                        view.ViewData.Selected = true;
                         view.Item.css({"background-color": "#CDF"});
-                        SELECTED.push(view);
+                        AddSelected(view);
                     }
                 });
+        if (viewObject.Selected) {
+            AddSelected(this);
+            this.Item.css({"background-color": "#CDF"});
+        }
+                        
         var labelDiv = $('<div>')
             .appendTo(this.Item)
             .text(viewObject.Label)
@@ -554,7 +570,7 @@ CollectionBrowser = (function (){
         this.SessionData = sessionObject;
         this.Views = [];
 
-        this.ModifiedTime = -1;
+        this.UpdateTime = -1;
         var ul = collection.SessionList;
 
         this.Id = sessionObject.Id;
@@ -610,19 +626,19 @@ CollectionBrowser = (function (){
         var view = this.View;
         // Mouse leave is sort of like mouse up.
         view.Item.unbind('mouseleave', leaveHandler);
-        if ( ! view.Selected ) {
+        if ( ! view.ViewData.Selected ) {
             // Mouse down and drag out.  Select is set on mouse up.
             if ( ! event.ctrlKey) {
                 for (var i = 0; i < SELECTED.length; ++i) {
-                    SELECTED[i].Selected = false;
+                    SELECTED[i].ViewData.Selected = false;
                     SELECTED[i].Item.css({"background-color": "#FFF"});
                 }
                 SELECTED = [];
             }
             // Select this view.
-            view.Selected = true;
+            view.ViewData.Selected = true;
             view.Item.css({"background-color": "#CDF"});
-            SELECTED.push(view);
+            AddSelected(view);
         }
 
         // This is only called when the mouse is pressed.
@@ -641,12 +657,11 @@ CollectionBrowser = (function (){
         this.UpdateGUI();        
     }
 
-
     Session.prototype.UpdateGUI = function () {
-        if (this.ModifiedTime >= this.SessionData.ModifiedTime) {
+        if (this.UpdateTime >= this.SessionData.ModifiedTime) {
             return;
         }
-        this.ModifiedTime = this.SessionData.ModifiedTime;
+        this.UpdateTime = this.SessionData.ModifiedTime;
 
         this.Views = [];
         this.ViewList.empty();
@@ -821,6 +836,9 @@ CollectionBrowser = (function (){
                 // Dom has view which has viewObject.  Still better than
                 // using data to store index.
                 var view = SELECTED[i];
+                // Hack to get rid of selected color when copying.
+                // Force a gui changel
+                view.Session.UpdateTime = -1;
                 var viewObj = view.ViewData;
                 viewObj.CopyFlag = copy;
                 selectedViewObjs.push(viewObj);
@@ -831,7 +849,9 @@ CollectionBrowser = (function (){
                 } else {
                     // The destination session gets the copy.
                     viewObj.CopyFlag = false;
+                    viewObj.Selected = false;
                     viewObj = new ViewObject().Copy(viewObj);
+                    viewObj.Selected = true;
                 }
                 // Insert
                 this.SessionData.InsertViewObject(viewObj,
@@ -839,7 +859,7 @@ CollectionBrowser = (function (){
                 // Put them in order (hack)
                 this.DropTargetIndex++;
             }
-            // Fix this later.
+            // Update GUI will repopulate this array.
             SELECTED = [];
             // Save modified sessions.
             LIBRARY_OBJ.Save();

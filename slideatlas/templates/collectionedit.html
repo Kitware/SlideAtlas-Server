@@ -81,10 +81,6 @@
                     .attr('src',"/webgl-viewer/static/dualArrowLeft2.png")
                     .click(function(){showDualView();});
 
-            // disable dual view until we get the bug fixed:
-            // drag from the same session but in a different browser.
-            GALLERY1.DualArrow.hide();
-
             GALLERY2 = new CollectionBrowser();
             GALLERY2.AppendTo(wrapper);
             GALLERY2.DefaultCollectionLabel = "{{collection.label}}";
