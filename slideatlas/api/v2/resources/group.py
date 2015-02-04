@@ -11,7 +11,7 @@ __all__ = ('GroupListAPI', 'GroupItemAPI')
 
 ################################################################################
 class GroupListAPI(ListAPIResource):
-    @security.AdminSiteRequirement.protected
+    @security.AdminRequirement.protected
     def get(self):
         groups = models.Group.objects.only('label').order_by('label')
         return groups.to_son(only_fields=('label',))
