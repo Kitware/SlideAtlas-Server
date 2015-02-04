@@ -1,31 +1,34 @@
 # For displaying PIL images directly
 from io import BytesIO
 
-from IPython.core import display
+from IPython import get_ipython
 from PIL import Image
+import PIL.Image as PILImage
+from IPython.display import Image as displayImage
+from datauri import DataURI
+from cStringIO import StringIO
+from IPython.display import HTML, display
+
 
 def display_pil_image(im):
-   """Displayhook function for PIL Images, rendered as PNG."""
+    """Displayhook function for PIL Images, rendered as PNG."""
 
-   b = BytesIO()
-   im.save(b, format='png')
-   data = b.getvalue()
+    b = BytesIO()
+    im.save(b, format='png')
+    data = b.getvalue()
 
-   ip_img = display.Image(data=data, format='png', embed=True)
-   return ip_img._repr_png_()
+    ip_img = displayImage(data=data, format='png', embed=True)
+    return ip_img._repr_png_()
 
 # register display func with PNG formatter:
 png_formatter = get_ipython().display_formatter.formatters['image/png']
 dpi = png_formatter.for_type(Image.Image, display_pil_image)
 
-# For getting image data from javascript
-from datauri import DataURI
-from PIL import Image
-from cStringIO import StringIO
 
 def image_from_datauri(data):
     print "Something exciting"
     return Image.open(StringIO(DataURI(data).data))
+
 
 def pingpong(data):
     out = "Something exciting: " + str(data)
@@ -34,26 +37,26 @@ def pingpong(data):
 
 
 # Creating interactive slideatlas view
-from IPython.display import HTML
-import time
+
 
 def slideatlas_load(slideatlas_domain="https://localhost:8080/", view="login", scale=1.0):
     """
-    If view is specified 
-
+    If view is specified
     """
-    if view == None or view == "login":
+
+    if view is None or view == "login":
         # Load login view
         view = ""
     elif view == "example":
-         # Load example view  
+        # Load example view
         view = "webgl-viewer?db=5074589302e31023d4292d97&view=50763fab02e310163cbd059f"
 
     width = int(1024 * scale)
     height = int(768 * scale)
 
     slideatlas_view = slideatlas_domain + view
-    slideatlas_iframe = '<iframe id="guest1" name="guest1" src="' + slideatlas_view + '" width=%d height=%d></iframe>'% (width, height)
+    slideatlas_iframe = '<iframe id="guest1" name="guest1" src="' + \
+        slideatlas_view + '" width=%d height=%d></iframe>' % (width, height)
     button = '<button onclick="postRequest()"> Update current view </Button><br>'
     javascript = """
     <script type="text/Javascript">
@@ -103,3 +106,13 @@ def slideatlas_load(slideatlas_domain="https://localhost:8080/", view="login", s
     </script>
     """
     return HTML(button + slideatlas_iframe + javascript)
+
+
+# Basic routines to display numpy array as image
+def display_img_array(ima):
+    im = PILImage.fromarray(ima)
+    if im.mode != 'RGB':
+        im = im.convert('RGB')
+    bio = BytesIO()
+    im.save(bio, format='png')
+    display(displayImage(bio.getvalue(), format='png', retina=True))
