@@ -238,23 +238,38 @@ Tile.prototype.StartLoad = function (cache) {
 
 
 Tile.prototype.LoadHttp = function (cache) {
-  // For http simply set the data url and wait 
-  var imageSrc;
-  if (cache.Image.type && cache.Image.type == "stack") {
-    imageSrc = cache.GetSource() + this.Name + ".png";
-  } else {
-    imageSrc = cache.GetSource() + this.Name + ".jpg";
-  }
+    // For http simply set the data url and wait 
+    if (cache.TileSource) {
+        // This should eventually displace all other methods
+        // of getting the tile source.
+        
+        this.Name  = cache.TileSource.GetTileURL(this.Level,
+                                                     this.X, this.Y, this.Z);
+        // Name is just for debugging.
+        this.Image.src = this.Name;
 
-  if (cache.UseIIP) {
-    var level = this.Level + 2;
-    var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
-    var idx = this.Y * xDim + this.X;
-    imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
-  }
+        return;
+        
+    }
 
-  this.Image.src = imageSrc;
+    // Legacy
+    var imageSrc;
+    if (cache.Image.type && cache.Image.type == "stack") {
+        imageSrc = cache.GetSource() + this.Name + ".png";
+    } else {
+        imageSrc = cache.GetSource() + this.Name + ".jpg";
+    }
+    
+    if (cache.UseIIP) {
+        var level = this.Level + 2;
+        var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
+        var idx = this.Y * xDim + this.X;
+        imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
+    }
+    
+    this.Image.src = imageSrc;
 };
+
 
 Tile.prototype.LoadWebSocket = function (cache) {
   // Right now doing exact same thing

@@ -1,23 +1,16 @@
-// Managing the view <LI> states is a pain.  It could be made more elegant.
-// We have hover, selected, different dragging states.
-// Events associated with all these.
-// Loading states....
-
-
 // TODO: 
 // Verify save lock works.
-// Selected items stay selected after move.
+// Control drag for copy.
+// Delete
+//    Delete that moves a view to trash collection.
+//    Delete in GUI.
+// Undo.
 
-
-
-
-// Copy option.
-// Hidden title.
-// Shift?
-// Drag and copy with right click.
+// Shift for range selection.
 // (maybe) Right click menu.
 // View names should be editable.
 // Drop position indicator could be improved.
+
 
 // I am not so sure I like this closure pattern.
 // I am trying to hide helper object, but
@@ -29,11 +22,59 @@
 // Closure namespace 
 CollectionBrowser = (function (){
 
+//==============================================================================
+// History for undo
+// Note: I can only support a single undo because copy will orphan views.
+// Copy created views in trash so undo will work once, but a second undo
+// will not have the copied view and it will be orphaned.
+
+    // History
+    // TODO: Add hooks to record history
+    // TODO: Add ctrl -z binding to undo.
+    // TODO: Add undo button.
+    // TODO: Handle deleting new items.
+    var HISTORY = [];
+
+    function HistoryNewRecord() {
+        HISTORY = [];
+    }
+
+    function HistoryAddSession(sessionObj) {
+        var sessionItem = {session: sessionObj,
+                           viewObjects: []};
+        // Deep copy of the view objects.
+        for (var i = 0; i < sessionObj.ViewObjects.length; ++i) {
+            viewObj = new ViewObject().Copy(sessionObj.ViewObjects[i]);
+            sessionItem.viewObjects.push(viewObj);
+        }
+        HISTORY.push(sessionItem);
+    }
+
+    function HistoryUndo() {
+        if (HISTORY.length == 0) {
+            return;
+        }
+        ClearSelected();
+        for (var i = 0; i < HISTORY.length; ++i) {
+            var sessionItem = HISTORY[i];
+            sessionItem.session.ViewObjects = sessionItem.viewObjects;
+            sessionItem.session.Modified();
+        }
+        LIBRARY_OBJ.Save();
+        UpdateGUI();
+    }
+
+//==============================================================================
+// Global functions
+
     // For syncronizing data objects and GUI.
     var TIME_COUNT = 1;
-
     // Library singleton
     var LIBRARY_OBJ = undefined;
+    // Special trash sesison
+    var TRASH_SESSION = undefined;
+    var TRASH_SESSION_ID = "54d0e7a2dd98b5122dfc73f9";
+
     function RequestLibraryData(callback) {
         if (!LIBRARY_OBJ) {
             // Just creating the library starts the load request.
@@ -53,6 +94,30 @@ CollectionBrowser = (function (){
         }
     }
 
+    document.body.addEventListener(
+        "keydown",
+        function(e) {
+            if (e.keyCode == 90 && e.ctrlKey) {
+                // control-z
+                HistoryUndo();
+            }
+            return false; },
+        false);
+                                  
+
+    document.body.addEventListener(
+        "keydown",
+        function(e) {
+            if (e.keyCode == 46) {
+                // Delete just moves the selected to the strash session.
+                TRASH_SESSION.DropSelected(0, false, false);
+            }
+            return false; },
+        false);
+
+
+
+
 //==============================================================================
     function LibraryObject() {
         this.LoadCallbacks = [];
@@ -69,6 +134,7 @@ CollectionBrowser = (function (){
                   }
               });   
     }
+
     LibraryObject.prototype.Load = function (data) {
         // The first "sessions" list in data is actually a list of
         // collections.
@@ -123,7 +189,13 @@ CollectionBrowser = (function (){
 
         this.State = INITIALIZED;
         this.ModifiedTime = this.SavedTime = TIME_COUNT;
+
+        if (this.Id == TRASH_SESSION_ID) {
+            TRASH_SESSION = this;
+            this.RequestViewData();
+        }
     }
+
     SessionObject.prototype.RequestViewData = function(callback) {
         if (this.State == LOADED) {
             callback(this);
@@ -148,6 +220,7 @@ CollectionBrowser = (function (){
     SessionObject.prototype.LoadViewData = function(data) {
         this.State = LOADED;
         this.ViewObjects = [];
+        this.Modified();
         for (var i = 0; i < data.session.views.length; ++i) {
             viewObject = new ViewObject(this).LoadData(data.session.views[i]);
             // Info not in views?
@@ -161,6 +234,78 @@ CollectionBrowser = (function (){
             }
         }
         this.LoadCallbacks = [];
+    }
+
+
+    // Move all the selected views into this session.
+    // This does handle copying if the viewObj.Copy flag is set.
+    // It inserts the views at the index.
+    // Keep selected flag indicates that the moved views remain selected.
+    SessionObject.prototype.DropSelected = function(index, copy, keepSelected) {
+        if (SELECTED.length == 0) {
+            return;
+        }
+
+        // We have to deal with viewObjects because copies have no view GUIs
+        var selectedViewObjects = [];
+
+        // This is a bit of a pain.  Because we want an undo to put
+        // copies in the trash, copies have to originate in the trash
+        // before we save the history.
+        for (var i = 0; i < SELECTED.length; ++i) {
+            var view = SELECTED[i];
+            // Hack to get rid of selected color when copying.
+            // Force a gui change
+            // Wait, I may not need this anymore.
+            view.Session.UpdateTime = -1;
+            var viewObj = view.ViewData;
+            if (copy) {
+                viewObj.Selected = false;
+                viewObj = new ViewObject().Copy(viewObj);
+                viewObj.Selected = keepSelected;
+                viewObj.CopyFlag = true;
+                TRASH_SESSION.InsertViewObject(viewObj, i);
+            }
+            selectedViewObjects.push(viewObj);
+        }
+        ClearSelected();
+
+        HistoryNewRecord();
+        // Figure out which session should be recorded for undo.
+        // The destination session
+        HistoryAddSession(this);
+        // Now find the source sessions.
+        for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i];
+            // Move modifies the source session.
+            var sessionObj = viewObj.SessionObject;
+            if (sessionObj.SavedTime > 0 ) {
+                // misuse of the SavedTime variable to put the session
+                // in the history only once.
+                sessionObj.SavedTime = -1;
+                HistoryAddSession(sessionObj);
+            }
+        }
+
+        // Everything is a move now (copy, move from trash).
+        for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i];
+            var sessionObj = viewObj.SessionObject;
+            sessionObj.RemoveViewObject(viewObj);
+            viewObj.Selected = keepSelected;
+
+            // Insert
+            this.InsertViewObject(viewObj, index);
+            // Put them in order (hack)
+            index++;
+        }
+
+        // I am not sure that the GUI stuff belongs in this method.
+        // Update GUI will repopulate this array.
+        SELECTED = [];
+        // Save modified sessions.
+        LIBRARY_OBJ.Save();
+        UpdateGUI();
     }
 
 
@@ -268,6 +413,7 @@ CollectionBrowser = (function (){
         this.ImageDb = viewObj.ImageDb;
         this.Label = viewObj.Label;
         this.Source = viewObj.Source;
+        this.SessionObject = viewObj.SessionObject;
         // Hidden here, but it makes sense.
         this.CopyFlag = true;
         return this;
@@ -278,7 +424,7 @@ CollectionBrowser = (function (){
 // - When we update a sessionObject, how do we get the sessionGui objects to update?
 //   - Keep sync times, gui points to sessionObject. Loop through gui in update.
 // - How do gui callbacks link back to sessionObject objects?
-//      either a pointer (if we can figure it out) or an index.
+//      Set DOM instance variable to point to the viewObj
 
 // Session GUI objects can simply have pointer to session data object.
 //********
@@ -306,6 +452,16 @@ CollectionBrowser = (function (){
         }
         SELECTED.push(view);
     }
+
+    // Sets the SELECTED list to empty and removes highlighting from items.
+    function ClearSelected() {
+        for (var i = 0; i < SELECTED.length; ++i) {
+            SELECTED[i].Item.css({"background-color": "#FFF"});
+        }
+        SELECTED = [];
+    }
+
+
 
     var SELECTED = [];
     var CLONES = [];
@@ -510,7 +666,7 @@ CollectionBrowser = (function (){
                     event.preventDefault();
                     view.Item.unbind('mouseleave', leaveHandler);
                     
-                    // Unselect previously selected views when cntl is not pressed
+                    // Unselect previously selected views when control is not pressed
                     if ( ! event.ctrlKey) {
                         for (var i = 0; i < SELECTED.length; ++i) {
                             SELECTED[i].ViewData.Selected = false;
@@ -653,6 +809,7 @@ CollectionBrowser = (function (){
     
     Session.prototype.LoadViewData = function(sessionObject) {
         var self = this;
+        
         this.LoadState = LOAD_METADATA_LOADED;
         this.UpdateGUI();        
     }
@@ -734,6 +891,8 @@ CollectionBrowser = (function (){
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/plus.png");
             RemoveDropTarget(this);
         } else {
+            // Needed to display the waiting gif.
+            this.UpdateGUI();
             // It is not necessary to request meta data because opening the
             // collection already requests session metadata.  However,
             // This method does nothing if the request has already been made,
@@ -813,8 +972,8 @@ CollectionBrowser = (function (){
         return true;
     }
 
-    // Not thrilled that this contains both the drop check and the drop
-    // implementation....
+    // Check to see if the session is the drop target.
+    // Makes the drop if yes. (I could change this to "DropCheck".
     Session.prototype.Drop = function(x,y, copy) {
         if (this.UpdateDropTarget(x,y)) {
             // Delete the clone <li>s
@@ -829,41 +988,8 @@ CollectionBrowser = (function (){
             // drop will take place.
             this.DropTargetItem.css({'border-color':'#CCC',
                                      'border-width':'2'});
-
-            // From here out we will manipulate the data objects.
-            var selectedViewObjs = [];
-            for (var i = 0; i < SELECTED.length; ++i) {
-                // Dom has view which has viewObject.  Still better than
-                // using data to store index.
-                var view = SELECTED[i];
-                // Hack to get rid of selected color when copying.
-                // Force a gui changel
-                view.Session.UpdateTime = -1;
-                var viewObj = view.ViewData;
-                viewObj.CopyFlag = copy;
-                selectedViewObjs.push(viewObj);
-
-                if ( ! viewObj.CopyFlag) {
-                    var sessionObj = viewObj.SessionObject;
-                    sessionObj.RemoveViewObject(viewObj);
-                } else {
-                    // The destination session gets the copy.
-                    viewObj.CopyFlag = false;
-                    viewObj.Selected = false;
-                    viewObj = new ViewObject().Copy(viewObj);
-                    viewObj.Selected = true;
-                }
-                // Insert
-                this.SessionData.InsertViewObject(viewObj,
-                                                  this.DropTargetIndex);
-                // Put them in order (hack)
-                this.DropTargetIndex++;
-            }
-            // Update GUI will repopulate this array.
-            SELECTED = [];
-            // Save modified sessions.
-            LIBRARY_OBJ.Save();
-            UpdateGUI();
+            // Actually do the move
+            this.SessionData.DropSelected(this.DropTargetIndex, copy, true);
 
             return true;
         }
@@ -952,7 +1078,7 @@ CollectionBrowser = (function (){
 //==============================================================================
     var DROP_TARGETS = [];
     function StartViewDrag(event) {
-        var copy = (event.which == 3);
+        var copy = (event.which == 3) || event.ctrlKey;
 
         if (SELECTED.length == 0) {
             return;
@@ -1020,6 +1146,13 @@ CollectionBrowser = (function (){
     }
 
     function ViewDrag(event) {
+        var copy = (event.which == 3) || event.ctrlKey;
+        if (copy) {
+            MESSAGE.text("Copy");
+        } else {
+            MESSAGE.text("Move");
+        }
+
         var x = event.clientX;
         var y = event.clientY;
         for (var i = 0; i < CLONES.length; ++i) {
@@ -1039,7 +1172,7 @@ CollectionBrowser = (function (){
     }
 
     function ViewDrop(event) {
-        var copy = (event.which == 3);
+        var copy = (event.which == 3) || event.ctrlKey;
         var x = event.clientX;
         var y = event.clientY;
         // Look through all open sessions to see if we dropped in one.
