@@ -17,7 +17,7 @@ def display_pil_image(im):
     im.save(b, format='png')
     data = b.getvalue()
 
-    ip_img = display.Image(data=data, format='png', embed=True)
+    ip_img = displayImage(data=data, format='png', embed=True)
     return ip_img._repr_png_()
 
 # register display func with PNG formatter:
