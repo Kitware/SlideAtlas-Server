@@ -717,7 +717,7 @@ function StartScene(sceneSource) {
 
     $.ajax({
         type: "GET",
-        //dataType: "json",
+        dataType: "json",
         url: sceneSource,
         success: function(data,status) { LoadSceneData(data);},
         error: function(jqXHR, textStatus, errorThrown) { 
@@ -742,6 +742,8 @@ function StartScene(sceneSource) {
 function LoadSceneData(scene) {
     var cache = new Cache();
     cache.SetScene(scene);
+
+    scene.getTileUrl = eval(scene.getTileUrl);
 
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
