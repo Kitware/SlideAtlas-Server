@@ -1,47 +1,128 @@
+// A stripped down source object.
+// A source object must have a GetTileURL method.
+// It can have any instance variables it needs to
+// compute the URL.
+function SlideAtlasSource () {
+    this.Prefix = undefined;
+
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.GetTileURL = function(level, x, y, z) {
+        var name = this.Prefix + "t";
+        while (level  > 0) {
+            --level;
+            var cx = (x>>level)&1;
+            var cy = (y>>level)&1;
+            var childIdx = cx+(2*cy);
+            if (childIdx == 0) {name += "q";}
+            if (childIdx == 1) {name += "r";}
+            if (childIdx == 2) {name += "t";}
+            if (childIdx == 3) {name += "s";}
+        }
+        name = name + ".jpg"
+        return name;
+    }
+}
+
+function DanielSource () {
+    this.Prefix = "http://dragon.krash.net:2009/data/1"
+    this.MinLevel = 0;
+    this.MaxLevel = 7;
+
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.GetTileURL = function(level, x, y, z) {
+        if (z < this.MinLevel) {return "";}
+        if (z > this.MaxLevel) {return "";}
+        var name = this.Prefix + level + '-' + x + '-' + y;
+        return name;
+    }
+}
 
 
+function IIPSource () {
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.GetTileURL = function(level, x, y, z) {
+        // The number if tiles in a row for this level grid.
+        var xDim = Math.ceil(this.ImageWidth / 
+                             (this.TileSize << (this.NumLevels - z - 1)));
+        var idx = y * xDim + x;
+        imageSrc = this.Prefix + (z+2) + "," + idx;
+    }
+
+    this.ImageWidth = 0;
+    this.TileSize = 256;
+    this.NumLevels = 0;
+}
+
+
+
+
+
+
+
+
+
+
+//==============================================================================
 
 function Cache(image) {
-  // Look through existing caches and reuse one if possible
-  for (var i = 0; i < CACHES.length; ++i) {
-    if (CACHES[i].Image._id == image._id) {
-      return CACHES[i];
+    var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
+
+    //this.TileFunction = undefined;
+    /*
+    this.TileSource = new SlideAtlasSource();
+    this.TileSource.Prefix = sourceStr;
+    */
+    /*
+    this.TileSource = new DanielSource();
+    image.TileSize = 512;
+    image.levels = 7;
+    image.dimensions[0] = 496<<6;
+    image.dimensions[1] = 512<<6;
+    image.bounds[1] = image.dimensions[0];
+    image.bounds[2] = 0;
+    image.bounds[3] = image.dimensions[1];
+    */
+
+    // Look through existing caches and reuse one if possible
+    for (var i = 0; i < CACHES.length; ++i) {
+        if (CACHES[i].Image._id == image._id) {
+            return CACHES[i];
+        }
     }
-  }
-
-  if ( ! image.TileSize) {
-      image.TileSize = 256;
-  }
-  
-
-  var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
-
-  this.Image = image;
-
-//  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
-  this.UseIIP = false;
-
-  // For debugging
-  //this.PendingTiles = [];
-  this.Source = sourceStr;
-
-  this.Warp = null;
-  this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
-  this.RootTiles = [];
-  // Keep a global list for pruning tiles.
-  CACHES.push(this);
-  if (image.type && image.type == "stack") {
-    this.NumberOfSections = image.dimensions[2];
-    this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
-    var qTile;
-    for (var slice = 1; slice <= this.NumberOfSections; ++slice) {
-      qTile = this.GetTile(slice, 0, 0);
-      qTile.LoadQueueAdd();;
+    
+    if ( ! image.TileSize) {
+        image.TileSize = 256;
     }
-  } else {
-    this.TileDimensions = [image.TileSize, image.TileSize];
-    this.NumberOfSections = 1;
-  }
+    
+    this.Image = image;
+    
+    //  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
+    this.UseIIP = false;
+    
+    // For debugging
+    //this.PendingTiles = [];
+    this.Source = sourceStr;
+    
+    this.Warp = null;
+    this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
+    this.RootTiles = [];
+    // Keep a global list for pruning tiles.
+    CACHES.push(this);
+    if (image.type && image.type == "stack") {
+        this.NumberOfSections = image.dimensions[2];
+        this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
+        var qTile;
+        for (var slice = 1; slice <= this.NumberOfSections; ++slice) {
+            qTile = this.GetTile(slice, 0, 0);
+            qTile.LoadQueueAdd();;
+        }
+    } else {
+        this.TileDimensions = [image.TileSize, image.TileSize];
+        this.NumberOfSections = 1;
+    }
 }
 
 Cache.prototype.destructor=function()
