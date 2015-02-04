@@ -105,6 +105,11 @@ def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
+    # Option to load an image from an external server.
+    scene = request.args.get('scene', None)
+    if scene :
+        return make_response(render_template('scene.html', scene = scene))
+
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session

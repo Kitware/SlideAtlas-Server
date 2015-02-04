@@ -1,5 +1,5 @@
 // A stripped down source object.
-// A source object must have a GetTileURL method.
+// A source object must have a getTileUrl method.
 // It can have any instance variables it needs to
 // compute the URL.
 function SlideAtlasSource () {
@@ -7,7 +7,7 @@ function SlideAtlasSource () {
 
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
-    this.GetTileURL = function(level, x, y, z) {
+    this.getTileUrl = function(level, x, y, z) {
         var name = this.Prefix + "t";
         while (level  > 0) {
             --level;
@@ -31,7 +31,7 @@ function DanielSource () {
 
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
-    this.GetTileURL = function(level, x, y, z) {
+    this.getTileUrl = function(level, x, y, z) {
         if (z < this.MinLevel) {return "";}
         if (z > this.MaxLevel) {return "";}
         var name = this.Prefix + level + '-' + x + '-' + y;
@@ -43,7 +43,7 @@ function DanielSource () {
 function IIPSource () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
-    this.GetTileURL = function(level, x, y, z) {
+    this.getTileUrl = function(level, x, y, z) {
         // The number if tiles in a row for this level grid.
         var xDim = Math.ceil(this.ImageWidth / 
                              (this.TileSize << (this.NumLevels - z - 1)));
@@ -58,59 +58,55 @@ function IIPSource () {
 
 
 
-
-
-
-
-
-
-
 //==============================================================================
 
-function Cache(image) {
-    var sourceStr = "/tile?img="+image._id+"&db="+image.database+"&name=";
 
-    //this.TileFunction = undefined;
-    /*
-    this.TileSource = new SlideAtlasSource();
-    this.TileSource.Prefix = sourceStr;
-    */
-    /*
-    this.TileSource = new DanielSource();
-    image.TileSize = 512;
-    image.levels = 7;
-    image.dimensions[0] = 496<<6;
-    image.dimensions[1] = 512<<6;
-    image.bounds[1] = image.dimensions[0];
-    image.bounds[2] = 0;
-    image.bounds[3] = image.dimensions[1];
-    */
 
+function FindCache(image) {
     // Look through existing caches and reuse one if possible
     for (var i = 0; i < CACHES.length; ++i) {
         if (CACHES[i].Image._id == image._id) {
             return CACHES[i];
         }
     }
-    
+    var cache = new Cache();
+    cache.SetImageData(image);
+    return cache;
+}
+
+
+
+//==============================================================================
+
+function Cache() {
+    //  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
+    this.UseIIP = false;
+    this.TileSource = undefined;
+
+    this.RootTiles = [];
+    // Keep a global list for pruning tiles.
+    CACHES.push(this);
+    this.NumberOfSections = 1;
+}
+
+Cache.prototype.destructor=function()
+{
+}
+
+Cache.prototype.SetImageData = function(image) {
+
     if ( ! image.TileSize) {
         image.TileSize = 256;
     }
     
     this.Image = image;
-    
-    //  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
-    this.UseIIP = false;
-    
-    // For debugging
-    //this.PendingTiles = [];
-    this.Source = sourceStr;
+
+    this.Source = "/tile?img="+image._id+"&db="+image.database+"&name=";
     
     this.Warp = null;
     this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
     this.RootTiles = [];
-    // Keep a global list for pruning tiles.
-    CACHES.push(this);
+
     if (image.type && image.type == "stack") {
         this.NumberOfSections = image.dimensions[2];
         this.TileDimensions = [image.dimensions[0], image.dimensions[1]];
@@ -125,9 +121,18 @@ function Cache(image) {
     }
 }
 
-Cache.prototype.destructor=function()
-{
+Cache.prototype.SetScene = function(scene) {
+    this.TileSource = scene;
+    var image = {
+        TileSize: scene.tileSize,
+        levels:   scene.numLevels,
+        dimensions: scene.dimensions,
+        bounds: [0, scene.dimensions[0], 0, scene.dimensions[1]]};
+
+    this.SetImageData(image);
 }
+
+
 
 Cache.prototype.GetLeafSpacing = function() {
   return this.RootSpacing[0] / (1 << (this.Image.levels-1));
