@@ -11,7 +11,7 @@ __all__ = ('UserListAPI', 'UserItemAPI')
 
 ################################################################################
 class UserListAPI(ListAPIResource):
-    @security.AdminSiteRequirement.protected
+    @security.AdminRequirement.protected
     def get(self):
         # TODO: order by 'label', rather than 'full_name'?
         # TODO: order by last name?
