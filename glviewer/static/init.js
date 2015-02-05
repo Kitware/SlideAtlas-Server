@@ -687,7 +687,7 @@ function StartView() {
 
 
 // Main function called by the default view.html template
-function StartScene(sceneSource) {
+function StartScene(scene) {
     var dia = new Dialog();
     detectMobile();
     //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
@@ -710,24 +710,6 @@ function StartScene(sceneSource) {
     EVENT_MANAGER = new EventManager(CANVAS);
 
     /*
-    $.getJSON(sceneSource, function( data ) {
-        LoadSceneData(data);
-    });
-    */
-
-    $.ajax({
-        type: "GET",
-        dataType: "json",
-        url: sceneSource,
-        success: function(data,status) { LoadSceneData(data);},
-        error: function(jqXHR, textStatus, errorThrown) { 
-            alert( "AJAX - error() : " + sceneSource ); 
-        },
-    });
-}
-
-
-    /*
     scene =  {
         tileSize: 512,
         dimensions: [31784, 32768, 1],
@@ -738,8 +720,8 @@ function StartScene(sceneSource) {
         }
     };
     */
+    scene = eval(scene);
 
-function LoadSceneData(scene) {
     var cache = new Cache();
     cache.SetScene(scene);
 
