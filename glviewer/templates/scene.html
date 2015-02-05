@@ -1,11 +1,11 @@
 <!doctype html>
 
 <head>
-  <title>SlideAtlas Viewer</title>
+  <title>Scene Viewer</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
-<!-- view.html -->
+<!-- scene.html -->
 
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
@@ -31,11 +31,9 @@
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tab.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='conferenceWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesWidget.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesBar.js') }}"></script>
@@ -205,34 +203,24 @@ shape has visibility and
     vTextureCoord = aTextureCoord;
   }
 </script> <!---->
+
 <script type="text/javascript">
-  var TEMPLATE = "view.html";
-  var USER = "{{user}}";
-  // A view has the same structure as a note.
-  var VIEW_ID = "{{view}}";
-  var EDIT = {{edit}}; // Temporary way to hide editing.
-  var SESSIONS_URL = "{{url_for('session.sessions_view')}}";
-  var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  var MENU_IMAGE_URL = "{{ url_for('glviewer.static', filename='Menu.jpg')}}";
+  var TEMPLATE = "scene.html";
+
+  // TODO: Find a better way than a dummy function.
+  function RecordState() {}
 
 
   //********************************************************
 
   $(document).ready(function() {
-      //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
-      $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
-      StartView();
+      StartScene(
+{{scene | safe}}
+      );
   });
 
 </script>
 
-<style>
-#feedback { font-size: 1.4em; }
-#optionMenu .ui-selecting { background: #FECA40; }
-#optionMenu .ui-selected { background: #F39814; color: white; }
-#optionMenu { list-style-type: none; margin: 0; padding: 0; width: 60%; }
-#optionMenu li { padding: 3px; height: 18px; width: 100%}
-</style>
 
 
 

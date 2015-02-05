@@ -4,6 +4,8 @@ from slideatlas import models, security
 import json
 from slideatlas.common_utils import jsonify
 import re
+import urllib2
+
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -105,6 +107,14 @@ def glview():
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
+    # Option to load an image from an external server.
+    scene = request.args.get('scene', None)
+    if scene :
+        response = urllib2.urlopen(scene)
+        # this is a string
+        result = response.read()
+        return make_response(render_template('scene.html', scene = result))
+
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session

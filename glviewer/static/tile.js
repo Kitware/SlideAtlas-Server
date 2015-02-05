@@ -243,8 +243,8 @@ Tile.prototype.LoadHttp = function (cache) {
         // This should eventually displace all other methods
         // of getting the tile source.
         
-        this.Name  = cache.TileSource.GetTileURL(this.Level,
-                                                     this.X, this.Y, this.Z);
+        this.Name  = cache.TileSource.getTileUrl(this.Level,
+                                                 this.X, this.Y, this.Z);
         // Name is just for debugging.
         this.Image.src = this.Name;
 

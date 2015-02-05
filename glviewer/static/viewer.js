@@ -20,7 +20,7 @@ var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
 
 
-function Viewer (viewport, cache) {
+function Viewer (viewport) {
     this.HistoryFlag = false;
     
     // Interaction state:

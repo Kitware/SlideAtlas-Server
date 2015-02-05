@@ -344,7 +344,7 @@ function tick() {
 // I still need to make the zoom buttons relative to the viewport
 // Also the callback (zoom) cannot be hardcoded to VIEWER1!!!!!
 function initView(viewport) {
-  var viewer = new Viewer(viewport, null);
+  var viewer = new Viewer(viewport);
   EVENT_MANAGER.AddViewer(viewer);
 
   return viewer;
@@ -678,6 +678,77 @@ function StartView() {
         var viewMenu2 = new ViewEditMenu(VIEWER2);
     }/**/
 
+    eventuallyRender();
+}
+
+
+
+
+
+
+// Main function called by the default view.html template
+function StartScene(scene) {
+    var dia = new Dialog();
+    detectMobile();
+    //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
+    $('body').css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
+
+    // Just to see if webgl is supported:
+    var testCanvas = document.getElementById("gltest");
+    // I think the webgl viewer crashes.
+    // Maybe it is the texture leak I have seen in connectome.
+    // Just use the canvas for now.
+    // I have been getting crashes I attribute to not freeing texture
+    // memory properly.
+    // NOTE: I am getting similar crashe with the canvas too.
+    // Stack is running out of some resource.
+    //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
+    // initGL(); // Sets CANVAS and GL global variables
+    //} else {
+      initGC();
+    //}
+    EVENT_MANAGER = new EventManager(CANVAS);
+
+    /*
+    scene =  {
+        tileSize: 512,
+        dimensions: [31784, 32768, 1],
+        numLevels: 7,
+        mode: 'singleViewWithOverview',
+        getTileUrl: function(level, x, y, z) {
+            return "http://dragon.krash.net:2009/data/1" + level + "-" + x + "-" + y;
+        }
+    };
+    */
+    scene = eval(scene);
+
+    var cache = new Cache();
+    cache.SetScene(scene);
+
+    scene.getTileUrl = eval(scene.getTileUrl);
+
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    VIEWER1 = new Viewer([0,0, width, height]);
+    VIEWER1.SetCache(cache);
+
+    // Event manager will be going away.
+    // This is probably not necessay.
+    EVENT_MANAGER.AddViewer(VIEWER1);
+    VIEWER1.ViewerIndex = 0;
+    handleResize();
+
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+
+    // Keep the browser from showing the right click menu.
+    document.oncontextmenu = cancelContextMenu;
+
+    var annotationWidget = new AnnotationWidget(VIEWER1);
+    annotationWidget.SetVisibility(2);
+    handleResize();
     eventuallyRender();
 }
 
