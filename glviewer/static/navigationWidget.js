@@ -196,7 +196,11 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
-    if (iterator.IsStart()) { return; }
+    if (iterator.IsStart()) { 
+        // if not previous notes move to the previous slide
+        this.PreviousSlide();
+        return; 
+    }
 
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.
@@ -229,7 +233,11 @@ NavigationWidget.prototype.NextNote = function() {
         return;
     }
 
-    if (iterator.IsEnd()) { return; }
+    if (iterator.IsEnd()) {
+        // If we have no more notes, then move to the next slide.
+        this.NextSlide();
+        return; 
+    }
 
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.

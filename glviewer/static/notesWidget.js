@@ -550,24 +550,11 @@ Note.prototype.DeleteCallback = function() {
   parent.UpdateChildrenGUI();
 }
 
-
-
-
-
-
-
-
-
-
-
-
 Note.prototype.UserCanEdit = function() {
   return EDIT;
 }
 
-
 Note.prototype.RecordView = function() {
-    NOTES_WIDGET.RecordTextChanges();
     if (this.Type == "Stack") {
         // All we want to do is record the default
         // camera of the first section (if we at 
@@ -691,6 +678,7 @@ Note.prototype.Contains = function(decendent) {
 
 
 Note.prototype.Select = function() {
+
     // Save Text Entry into note before selecting a new note.
     NOTES_WIDGET.RecordTextChanges();
 
@@ -1145,8 +1133,9 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
 
 
 NotesWidget.prototype.RecordTextChanges = function () {
-    var note = this.GetCurrentNote();
-    note.Text = this.TextEntry.text();
+    if (this.SelectedNote) {
+        this.SelectedNote.Text = this.TextEntry.text();
+    }
 }
 
 
@@ -1281,7 +1270,8 @@ NotesWidget.prototype.RandomCallback = function() {
 NotesWidget.prototype.SaveCallback = function() {
     // Copy the current view into the note.
     // This used to be "Snap Shot", which was too complex.
-    var note = this.GetCurrentNote();
+    this.RecordTextChanges();
+    var note = this.SelectedNote;
     note.RecordView();
     if (note.Type == "Stack") {
         // Copy viewer annotation to the viewer record.
@@ -1350,11 +1340,10 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
+  this.TextEntry.val(this.RootNote.Text);
   this.NoteTreeDiv.empty();
   this.RootNote.DisplayGUI(this.NoteTreeDiv);
   this.RootNote.Select();
-
-  this.TextEntry.val(this.RootNote.Text);
 }
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
