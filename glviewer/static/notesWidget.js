@@ -28,155 +28,184 @@ var LINk_DIV;
 
 // Time to make this an object to get rid of all these global variables.
 function InitNotesWidget() {
-  NOTES_WIDGET = new NotesWidget();
-
-  LINK_DIV = 
-    $("<div>")
-      .appendTo('body')
-      .attr('contenteditable', "true")
-      .css({'top':'30px',
-            'left': '10%',
-            'position': 'absolute',
-            'width':'80%',
-            'height': '50px',
-            'z-index':'3',
-            'background-color':'#FFF',
-            'border':'1px solid #777',
-            'border-radius': '8px',
-            'text-align': 'center',
-            'padding-top': '26px'})
-      .hide()
-      .mouseleave(function() { LINK_DIV.fadeOut(); });
+    NOTES_WIDGET = new NotesWidget();
+    
+    // Popup div to display permalink.
+    LINK_DIV = 
+        $("<div>")
+        .appendTo('body')
+        .attr('contenteditable', "true")
+        .css({'top':'30px',
+              'left': '10%',
+              'position': 'absolute',
+              'width':'80%',
+              'height': '50px',
+              'z-index':'3',
+              'background-color':'#FFF',
+              'border':'1px solid #777',
+              'border-radius': '8px',
+              'text-align': 'center',
+              'padding-top': '26px'})
+        .hide()
+        .mouseleave(function() { LINK_DIV.fadeOut(); });
 }
 
 
 function NotesWidget() {
-  var self = this;
+    var self = this;
 
-  // For animating the display of the notes window (DIV).
-  this.WidthFraction = 0.0;
-  this.Visibilty = false;
+    // For animating the display of the notes window (DIV).
+    this.WidthFraction = 0.0;
+    this.Visibilty = false;
 
-  // Root of the note tree.
-  this.RootNote;
-2
-  // Iterator is used to implement the next and previous note buttons.
-  this.Iterator;
-  // For clearing selected GUI setting.
-  this.SelectedNote;
+    // Root of the note tree.
+    this.RootNote;
 
-  // GUI elements
-  this.Window;
-  this.NoteTreeDiv;
-  this.NewButton;
-  // We need this flag so cancel will get rid of a pending new note.
-  // User can be editing an old note, or a new note.
-  this.EditNew = false;
-  // Have any notes been modified (and need to be saved to the database)?
-  this.ModifiedFlag = false;
+    // Iterator is used to implement the next and previous note buttons.
+    this.Iterator;
+    // For clearing selected GUI setting.
+    this.SelectedNote;
 
-  // It would be nice to animate the transition
-  // It would be nice to integrate all animation in a flexible utility.
-  this.AnimationLastTime;
-  this.AnimationDuration;
-  this.AnimationTarget;
+    // GUI elements
+    this.Window;
+    this.NoteTreeDiv;
+    this.NewButton;
+    // We need this flag so cancel will get rid of a pending new note.
+    // User can be editing an old note, or a new note.
+    this.EditNew = false;
+    // Have any notes been modified (and need to be saved to the database)?
+    this.ModifiedFlag = false;
 
+    // It would be nice to animate the transition
+    // It would be nice to integrate all animation in a flexible utility.
+    this.AnimationLastTime;
+    this.AnimationDuration;
+    this.AnimationTarget;
 
-  this.Window = $('<div>').appendTo('body')
-    .css({
-      'background-color': 'white',
-      'position': 'absolute',
-      'top' : '0%',
-      'left' : '0%',
-      'height' : '100%',
-      'width': '20%',
-      'z-index': '2'})
-    .hide()
-    .attr('id', 'NoteWindow');
-
-
-  if ( ! MOBILE_DEVICE) {
-    this.OpenNoteWindowButton = $('<img>')
-      .appendTo(VIEW_PANEL)
-      .css({'position': 'absolute',
-            'height': '20px',
-            'width': '20px',
-            'top' : '0px',
-            'left' : '0px',
-            'opacity': '0.6',
-            'z-index': '6'})
-      .attr('src',"webgl-viewer/static/dualArrowRight2.png")
-      .click(function(){self.ToggleNotesWindow();});
-
-    this.CloseNoteWindowButton = $('<img>')
-      .appendTo(this.Window)
-      .css({'position': 'absolute',
-            'height': '20px',
-            'width': '20x',
-            'top' : '0px',
-            'right' : '0px',
-            'opacity': '0.6',
-            'z-index': '6'})
-      .hide()
-      .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
-      .click(function(){self.ToggleNotesWindow();});
-  }
+    this.Window = $('<div>').appendTo('body')
+        .css({
+            'background-color': 'white',
+            'position': 'absolute',
+            'top' : '0%',
+            'left' : '0%',
+            'height' : '100%',
+            'width': '20%',
+            'z-index': '2'})
+        .hide()
+        .attr('id', 'NoteWindow');
 
 
+    if ( ! MOBILE_DEVICE) {
+        this.OpenNoteWindowButton = $('<img>')
+            .appendTo(VIEW_PANEL)
+            .css({'position': 'absolute',
+                  'height': '20px',
+                  'width': '20px',
+                  'top' : '0px',
+                  'left' : '0px',
+                  'opacity': '0.6',
+                  'z-index': '6'})
+            .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+            .click(function(){self.ToggleNotesWindow();});
 
-  if (EDIT) {
-    var buttonWrapper =
-      $('<div>')
+        this.CloseNoteWindowButton = $('<img>')
+            .appendTo(this.Window)
+            .css({'position': 'absolute',
+                  'height': '20px',
+                  'width': '20x',
+                  'top' : '0px',
+                  'right' : '0px',
+                  'opacity': '0.6',
+                  'z-index': '6'})
+            .hide()
+            .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+            .click(function(){self.ToggleNotesWindow();});
+    }
+
+
+    if (EDIT) {
+        var buttonWrapper =
+            $('<div>')
+            .appendTo(this.Window)
+            .css({'width': '100%',
+                  'height': '40px',
+                  'border-bottom':'1px solid #B0B0B0'});
+        this.NewButton =
+            $('<button>')
+            .appendTo(buttonWrapper)
+            .text("New")
+            .css({'color' : '#278BFF',
+                  'font-size': '18px',
+                  'margin': '5px'})
+            .click(function(){self.NewCallback();});
+        this.SaveButton =
+            $('<button>')
+            .appendTo(buttonWrapper)
+            .text("Save")
+            .css({'color' : '#278BFF',
+                  'font-size': '18px',
+                  'margin': '5px'})
+            .click(function(){self.SaveCallback();});
+        /*this.RandomButton = $('<button>').appendTo(this.PopupMenu)
+          .hide()
+          .text("Randomize")
+          .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
+          .click(function(){self.RandomCallback();});
+        */
+    }
+
+    this.NoteTreeDiv = $('<div>')
         .appendTo(this.Window)
-        .css({'position': 'absolute',
+        .css({'width': '100%',
+              'height': '50%',
+              'overflow': 'auto',
+              'text-align': 'left',
+              'color': '#303030',
+              'font-size': '18px'})
+        .attr('id', 'NoteTree');
+
+
+    // The next three elements are to handle the addition of comments.
+    // Currently placeholders.
+    // The top div wraps the text field and the submit button at the bottom
+    // of the widget.
+    this.TextDiv = $('<div>')
+        .appendTo(this.Window)
+        .css({'box-sizing': 'border-box',
               'width': '100%',
-              'height': '40px',
-              'top': '0px',
-              'border-bottom':'1px solid #B0B0B0'});
-    this.NewButton =
-      $('<button>')
-        .appendTo(buttonWrapper)
-        .text("New")
-        .css({'color' : '#278BFF',
-              'font-size': '18px',
-              'margin': '5px'})
-        .click(function(){self.NewCallback();});
-    this.SaveButton =
-      $('<button>')
-        .appendTo(buttonWrapper)
-        .text("Save")
-        .css({'color' : '#278BFF',
-              'font-size': '18px',
-              'margin': '5px'})
-        .click(function(){self.SaveCallback();});
-    /*this.RandomButton = $('<button>').appendTo(this.PopupMenu)
-                                .hide()
-                                .text("Randomize")
-                                .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-                                .click(function(){self.RandomCallback();});
-    */
-  }
+              'height': '40%',
+              'padding': '3px'});
 
+    //this.TextEntry = $('<textarea>')
+    this.TextEntry = $('<div>')
+        .appendTo(this.TextDiv)
+        .attr('contenteditable', "true")
+        .css({'box-sizing': 'border-box',
+              'width': '100%',
+              'height': '100%',
+              'border-style': 'solid',
+              'background': '#ffffff',
+              'resize': 'none'})
+        .focusin(function() { EVENT_MANAGER.FocusOut(); })
+        .focusout(function() { EVENT_MANAGER.FocusIn(); })
+        .keypress(function() { NOTES_WIDGET.Modified(); })
+        .attr('readonly', 'readonly');
 
-  this.NoteTreeDiv = $('<div>').appendTo(this.Window)
-    .css({
-      'position': 'absolute',
-      'top' : '45px',
-      'left' : '0%',
-      'width': '100%',
-      'height': '90%',
-      'overflow': 'auto',
-      'text-align': 'left',
-      'color': '#303030',
-      'font-size': '18px'})
-    .attr('id', 'NoteTree');
+    if (EDIT) {
+        this.TextEntry.removeAttr('readonly');
+        this.TextEntry.css({'border-style': 'inset',
+                                    'background': '#f5f8ff'});
+    } else {
+        this.TextEntry.attr('readonly', 'readonly');
+        this.TextEntry.css({'border-style': 'solid',
+                                    'background': '#ffffff'});
+    }
 
-
-  // This sets "this.RootNote" and "this.Iterator"
-  this.LoadViewId(VIEW_ID);
-  // Setup the iterator using the view as root.
-  // Bookmarks (sub notes) are loaded next.
-  this.Iterator = this.RootNote.NewIterator();
+    // This sets "this.RootNote" and "this.Iterator"
+    this.LoadViewId(VIEW_ID);
+    // Setup the iterator using the view as root.
+    // Bookmarks (sub notes) are loaded next.
+    this.Iterator = this.RootNote.NewIterator();
 }
 
 //------------------------------------------------------------------------------
@@ -661,63 +690,70 @@ Note.prototype.Contains = function(decendent) {
 
 
 Note.prototype.Select = function() {
-  // This should method should be split between Note and NotesWidget
-  if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-  if (NOTES_WIDGET.Iterator.GetNote() != this) {
-    // For when user selects a note from a list.
-    // Find the note and set a new iterator
-    // This is so the next and previous buttons will behave.
-    var iter = NOTES_WIDGET.RootNote.NewIterator();
-    while (iter.GetNote() != this) {
-      if ( iter.IsEnd()) {
-        alert("Could not find note.");
-        return;
-      }
-      iter.Next();
+    // Save Text Entry into note before selecting a new note.
+    NOTES_WIDGET.RecordTextChanges();
+
+    // This should method should be split between Note and NotesWidget
+    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    if (NOTES_WIDGET.Iterator.GetNote() != this) {
+        // For when user selects a note from a list.
+        // Find the note and set a new iterator
+        // This is so the next and previous buttons will behave.
+        var iter = NOTES_WIDGET.RootNote.NewIterator();
+        while (iter.GetNote() != this) {
+            if ( iter.IsEnd()) {
+                alert("Could not find note.");
+                return;
+            }
+            iter.Next();
+        }
+        NOTES_WIDGET.Iterator = iter;
     }
-    NOTES_WIDGET.Iterator = iter;
-  }
 
 
-  // Handle the note that is being unselected.
-  // Clear the selected background of the deselected note.
-  if (NOTES_WIDGET.SelectedNote) {
-    NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
-  }
+    // Handle the note that is being unselected.
+    // Clear the selected background of the deselected note.
+    if (NOTES_WIDGET.SelectedNote) {
+        NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
+    }
 
 
-  NOTES_WIDGET.SelectedNote = this;
-  // Indicate which note is selected.
-  this.TitleDiv.css({'background':'#f0f0f0'});
+    NOTES_WIDGET.SelectedNote = this;
+    // Indicate which note is selected.
+    this.TitleDiv.css({'background':'#f0f0f0'});
 
-  if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
+    if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
-  if (typeof VIEWER2 !== 'undefined') {
-      VIEWER2.Reset();
-      // TODO:
-      // It would be nice to store the viewer configuration 
-      // as a separate state variable.  We might want a stack
-      // that defaults to a single viewer.
-      SetNumberOfViews(this.ViewerRecords.length);
-  }
+    if (typeof VIEWER2 !== 'undefined') {
+        VIEWER2.Reset();
+        // TODO:
+        // It would be nice to store the viewer configuration 
+        // as a separate state variable.  We might want a stack
+        // that defaults to a single viewer.
+        SetNumberOfViews(this.ViewerRecords.length);
+    }
 
-  if (this.Type == "Stack") {
-      // Select only gets called when the stack is first loaded.
-      var self = this;
-      VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
-      VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
-      this.DisplayStack();
-      // First view is set by viewer record camera.
-      // Second is set relative to the first.
-      this.SynchronizeViews(0);
-      // We do not support inserting sections in a stack right now.
-      NOTES_WIDGET.NewButton.hide();
-  } else {
-      // Clear the sync callback.
-      VIEWER1.OnInteraction();
-      VIEWER2.OnInteraction();
-      this.DisplayView();
-  }
+    if (this.Type == "Stack") {
+        // Select only gets called when the stack is first loaded.
+        var self = this;
+        VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
+        VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
+        this.DisplayStack();
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0);
+        // We do not support inserting sections in a stack right now.
+        NOTES_WIDGET.NewButton.hide();
+    } else {
+        // Clear the sync callback.
+        VIEWER1.OnInteraction();
+        VIEWER2.OnInteraction();
+        this.DisplayView();
+    }
+
+
+    // Put the note into the details section.
+    NOTES_WIDGET.TextEntry.text(this.Text);
 }
 
 Note.prototype.RecordAnnotations = function() {
@@ -859,7 +895,12 @@ Note.prototype.LoadViewId = function(viewId) {
     url: "/webgl-viewer/getview",
     data: {"sessid": localStorage.sessionId,
            "viewid": viewId},
-    success: function(data,status) { self.Load(data);},
+    success: function(data,status) { 
+        self.Load(data);
+        // This is necessary because we delay moving entry text to note.
+        // It has to be initialized with the first selected note (root).
+        NOTES_WIDGET.TextEntry.text(data.Text);
+    },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
 }
@@ -1102,6 +1143,11 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
 }
 
 
+NotesWidget.prototype.RecordTextChanges = function () {
+    var note = this.GetCurrentNote();
+    note.Text = this.TextEntry.text();
+}
+
 
 NotesWidget.prototype.GetCurrentNote = function() {
   return this.Iterator.GetNote();
@@ -1231,38 +1277,35 @@ NotesWidget.prototype.RandomCallback = function() {
   note.UpdateChildrenGUI();
 }
 
-
-
 NotesWidget.prototype.SaveCallback = function() {
-  // Copy the current view into the note.
-  // This used to be "Snap Shot", which was too complex.
-  var note = this.GetCurrentNote();
-  note.RecordView();
-  if (note.Type == "Stack") {
-      // Copy viewer annotation to the viewer record.
-      note.RecordAnnotations();
-  }
-
-
-  // changing an annotation does not cause modified yet, so do not block the save.
-  //if ( ! this.ModifiedFlag) { return;}
-  var self = this;
-  var d = new Date();
-
-  // Save this users notes in the user specific collection.
-  var noteObj = JSON.stringify(this.RootNote.Serialize(true));
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/saveviewnotes",
-    data: {"note" : noteObj,
-           "date" : d.getTime()},
-    success: function(data,status) {
-      self.SaveButton.css({'color' : '#278BFF'});
-      self.ModifiedFlag = false;
-      window.onbeforeunload = null;
-    },
-    error: function() { alert( "AJAX - error() : saveviewnotes" ); },
-  });
+    // Copy the current view into the note.
+    // This used to be "Snap Shot", which was too complex.
+    var note = this.GetCurrentNote();
+    note.RecordView();
+    if (note.Type == "Stack") {
+        // Copy viewer annotation to the viewer record.
+        note.RecordAnnotations();
+    }
+    
+    
+    if ( ! this.ModifiedFlag) { return;}
+    var self = this;
+    var d = new Date();
+    
+    // Save this users notes in the user specific collection.
+    var noteObj = JSON.stringify(this.RootNote.Serialize(true));
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveviewnotes",
+        data: {"note" : noteObj,
+               "date" : d.getTime()},
+        success: function(data,status) {
+            self.SaveButton.css({'color' : '#278BFF'});
+            self.ModifiedFlag = false;
+            window.onbeforeunload = null;
+        },
+        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+    });
 }
 
 NotesWidget.prototype.CheckForSave = function() {
@@ -1309,6 +1352,8 @@ NotesWidget.prototype.DisplayRootNote = function() {
   this.NoteTreeDiv.empty();
   this.RootNote.DisplayGUI(this.NoteTreeDiv);
   this.RootNote.Select();
+
+  this.TextEntry.val(this.RootNote.Text);
 }
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
