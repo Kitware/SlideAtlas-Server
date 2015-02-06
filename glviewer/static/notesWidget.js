@@ -567,6 +567,7 @@ Note.prototype.UserCanEdit = function() {
 
 
 Note.prototype.RecordView = function() {
+    NOTES_WIDGET.RecordTextChanges();
     if (this.Type == "Stack") {
         // All we want to do is record the default
         // camera of the first section (if we at 
