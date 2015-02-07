@@ -1107,8 +1107,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
 
     // Preload the adjacent sections.
     if (cameras[0]) {
-        var cache = new Cache();
-        cache.SetImageData(this.ViewerRecords[this.StartIndex-1].Image);
+        var cache = FindCache(this.ViewerRecords[this.StartIndex-1].Image);
         cameras[0].SetViewport(VIEWER1.GetViewport());
         var tiles = cache.ChooseTiles(cameras[0], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
@@ -1116,8 +1115,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
         }
     }
     if (cameras[3]) {
-        var cache = new Cache();
-        cache.SetImageData(this.ViewerRecords[this.StartIndex+2].Image);
+        var cache = FindCache(this.ViewerRecords[this.StartIndex+2].Image);
         cameras[3].SetViewport(VIEWER1.GetViewport());
         var tiles = cache.ChooseTiles(cameras[3], 0, []);
         for (var i = 0; i < tiles.length; ++i) {

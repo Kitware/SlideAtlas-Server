@@ -131,8 +131,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
 
   var cache = viewer.GetCache();
   if ( ! cache || this.Image._id != cache.Image._id) {
-    var newCache = new Cache();
-    newCache.SetImageData(this.Image);
+    var newCache = FindCache(this.Image);
     viewer.SetCache(newCache);
   }
 
