@@ -116,7 +116,8 @@ function ImageBrowserLoadImage(viewData) {
   imgobj.database = viewData.db;
   imgobj.levels = viewData.levels;
   imgobj.bounds = [0, viewData.dimensions[0], 0, viewData.dimensions[1]];
-  var source = new Cache(imgobj);
+  var source = new Cache();
+  source.SetImageData(imgobj);
 
   ACTIVE_VIEWER.SetCache(source);
 
