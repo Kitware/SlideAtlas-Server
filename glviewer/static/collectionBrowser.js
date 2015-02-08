@@ -1,10 +1,11 @@
 // TODO: 
+
+
 // Verify save lock works.
-// Control drag for copy.
-// Delete
-//    Delete that moves a view to trash collection.
-//    Delete in GUI.
-// Undo.
+// Undo button.
+// delete button.
+// Indicate last selected with boundary/ background
+//   hover exit should set values back to state of view.
 
 // Shift for range selection.
 // (maybe) Right click menu.
@@ -288,16 +289,24 @@ CollectionBrowser = (function (){
         }
 
         // Everything is a move now (copy, move from trash).
+        // Using an index causes a problem when moving to
+        // the same session.  Removing the object causes
+        // The index to point to the wrong location.
+        // Duplicate the object temporarily
+        // Add the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
-            var sessionObj = viewObj.SessionObject;
-            sessionObj.RemoveViewObject(viewObj);
             viewObj.Selected = keepSelected;
-
             // Insert
             this.InsertViewObject(viewObj, index);
             // Put them in order (hack)
             index++;
+        }
+        // Remove the selected.
+        for (var i = 0; i < selectedViewObjects.length; ++i) {
+            var viewObj = selectedViewObjects[i];
+            var sessionObj = viewObj.SessionObject;
+            sessionObj.RemoveViewObject(viewObj);
         }
 
         // I am not sure that the GUI stuff belongs in this method.
@@ -451,19 +460,33 @@ CollectionBrowser = (function (){
             }
         }
         SELECTED.push(view);
+        view.Item.css({"background-color": "#CDF"});
+        view.ViewData.Selected = true;
+    }
+
+    function RemoveSelected(view) {
+        view.ViewData.Selected = false;
+        view.Item.css({"background-color": "#FFF"});
+        // Remove the item from the selected list.
+        var index = SELECTED.indexOf(view);
+        if (index > -1) {
+            // Remove selected.
+            SELECTED.splice(index, 1);
+        }
     }
 
     // Sets the SELECTED list to empty and removes highlighting from items.
     function ClearSelected() {
         for (var i = 0; i < SELECTED.length; ++i) {
             SELECTED[i].Item.css({"background-color": "#FFF"});
+            SELECTED[i].ViewData.Selected = false;
         }
         SELECTED = [];
     }
 
-
-
     var SELECTED = [];
+    // Needed for shift select range.
+    var LAST_SELECTED = undefined;
     var CLONES = [];
     var BROWSERS = [];
     var MESSAGE = 
@@ -668,34 +691,45 @@ CollectionBrowser = (function (){
                     
                     // Unselect previously selected views when control is not pressed
                     if ( ! event.ctrlKey) {
-                        for (var i = 0; i < SELECTED.length; ++i) {
-                            SELECTED[i].ViewData.Selected = false;
-                            SELECTED[i].Item.css({"background-color": "#FFF"});
-                        }
-                        SELECTED = [];
+                        ClearSelected();
                     }
-                    
-                    // Control toggles views in selected list.
-                    if ( view.ViewData.Selected ) {
-                        // unselect this view.
-                        view.ViewData.Selected = false;
-                        view.Item.css({"background-color": "#FFF"});
-                        // Remove the item from the selected list.
-                        var index = SELECTED.indexOf(view);
-                        if (index > -1) {
-                            // Remove selected.
-                            SELECTED.splice(index, 1);
+
+                    if ( event.shiftKey) {
+                        // If the anchor is not in the same session,
+                        // just start from the begining.
+                        if (LAST_SELECTED === undefined ||
+                            LAST_SELECTED.ViewData.SessionObject !=
+                            view.ViewData.SessionObject) {
+                            LAST_SELECTED = view.Session.Views[0];
                         }
+                        // Now select the range
+                        var session = view.Session;
+                        var start = session.Views.indexOf(LAST_SELECTED);
+                        var end = session.Views.indexOf(view);
+                        if (start > end) {
+                            var tmp = start;
+                            start = end;
+                            end = temp;
+                        }
+                        for (var i = start; i <= end; ++i) {
+                            AddSelected(session.Views[i]);
+                        }
+                    } else if ( view.ViewData.Selected ) {
+                        // Control toggles views in selected list.
+                        // This is the way it works in ms windows.
+                        // Even unselecting sets the anchor.
+                        LAST_SELECTED = view;
+                        // unselect this view.
+                        RemoveSelected(view);
                     } else {
                         // Select this view.
                         view.ViewData.Selected = true;
-                        view.Item.css({"background-color": "#CDF"});
                         AddSelected(view);
+                        LAST_SELECTED = view;
                     }
                 });
         if (viewObject.Selected) {
             AddSelected(this);
-            this.Item.css({"background-color": "#CDF"});
         }
                         
         var labelDiv = $('<div>')
@@ -785,15 +819,10 @@ CollectionBrowser = (function (){
         if ( ! view.ViewData.Selected ) {
             // Mouse down and drag out.  Select is set on mouse up.
             if ( ! event.ctrlKey) {
-                for (var i = 0; i < SELECTED.length; ++i) {
-                    SELECTED[i].ViewData.Selected = false;
-                    SELECTED[i].Item.css({"background-color": "#FFF"});
-                }
-                SELECTED = [];
+                ClearSelected();
             }
             // Select this view.
             view.ViewData.Selected = true;
-            view.Item.css({"background-color": "#CDF"});
             AddSelected(view);
         }
 
@@ -853,7 +882,6 @@ CollectionBrowser = (function (){
             this.RequestImages();
         }
     }
-
     
 
     Session.prototype.RequestImages = function() {
