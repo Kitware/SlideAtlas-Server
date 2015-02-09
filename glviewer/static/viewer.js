@@ -1,13 +1,9 @@
 //==============================================================================
 
 // TODO: Fix
-// touch events.
-// test stack
-// load image (old annotation is not cleared).
-// Change hide annotation
+// Add stack option to Save large image GUI.
+// SaveStackImages.
 
-// I am changing this to support three states of annotation visibility:
-// None, Annotations, but no text, and all on.
 // I think this can go away now that we have hover mode in text.
 var ANNOTATION_OFF = 0;
 var ANNOTATION_NO_TEXT = 1;
@@ -330,8 +326,38 @@ Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
             }
         }
     );
-    eventuallyRender()
+    eventuallyRender();
 }
+
+
+// Save a bunch of stack images ----
+Viewer.prototype.SaveStackImages = function(fileNameRoot) {
+    var self = this;
+    SetFinishedLoadingCallback(
+        function () {
+            self.SaveStackImage(fileNameRoot); 
+        }
+    );
+    eventuallyRender();
+}
+
+Viewer.prototype.SaveStackImage = function(fileNameRoot) {
+    var self = this;
+    var note = NOTES_WIDGET.GetCurrentNote();
+    var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
+    this.SaveImage(fileName);
+    if (note.StartIndex < note.ViewerRecords.length-1) {
+        NAVIGATION_WIDGET.NextNote();
+        SetFinishedLoadingCallback(
+            function () {
+                self.SaveStackImage(fileNameRoot); 
+            }
+        );
+        eventuallyRender();
+    }
+}
+//-----
+
 
 
 Viewer.prototype.GetAnnotationVisibility = function() {
