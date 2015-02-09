@@ -6,7 +6,6 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
-
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -678,7 +677,6 @@ def getimagenames():
 # get a view as a tree of notes.
 @mod.route('/getview')
 def getview():
-
     sessid = request.args.get('sessid', None)
     viewid = request.args.get('viewid', "")
 
@@ -744,7 +742,8 @@ def getview():
     viewerRecord["Camera"] = {
         "Height": imgobj["dimensions"][1],
         "Roll": 0,
-        "FocalPoint": [imgobj["dimensions"][0]/2, imgobj["dimensions"][1]/2,0]
+        "FocalPoint": [(imgobj["bounds"][0]+imgobj["bounds"][1])/2, 
+                       (imgobj["bounds"][2]+imgobj["bounds"][3])/2,0]
     }
     viewerRecord["AnnotationVisibility"] = 2
     noteObj["ViewerRecords"] = [viewerRecord]
