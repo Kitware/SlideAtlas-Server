@@ -108,7 +108,36 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         return tile_buffer.getvalue()
 
 
+
     def get_thumb(self, image):
+        try:
+            return self.make_thumb_from_embedded_images(image)
+        except:
+            return self.make_thumb(image)
+
+
+    def make_thumb(self, image, max_depth=3):
+        """
+        Makes thumb by requesting tiles. Will not make
+        """
+        try:
+            output = self.get_tile(image.id, "t.jpg", )
+        except DoesNotExist:
+            # print "Did not exit"
+            # Grab other tiles
+
+            white_tile = PImage.new("RGB", (256,256), 'white')
+
+            # Open the children tiles as PIL image
+            img = PImage.new("RGB", (256,256), 'pink')
+            buf = StringIO.StringIO()
+            img.save(buf, format="jpeg")
+            output = buf.getvalue()
+            del buf
+        return output
+
+
+    def make_thumb_from_embedded_images(self, image):
         """
         Returns a thumbnail with a label as a binary JPEG string.
         """
