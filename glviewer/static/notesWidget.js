@@ -176,7 +176,6 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    //this.TextEntry = $('<textarea>')
     this.TextEntry = $('<div>')
         .appendTo(this.TextDiv)
         .attr('contenteditable', "true")
@@ -397,15 +396,17 @@ function Note () {
   // GUI elements.
   this.Div =
     $('<div>').attr({'class':'note'})
-        .css({'position':'relative'});
+        .css({'position':'relative'})
+        .sortable('disable');
 
   this.Icon =
     $('<img>')
-      .css({'height': '20px',
-            'width': '20x',
-            'float':'left'})
-      .attr('src',"webgl-viewer/static/dot.png")
-      .appendTo(this.Div);
+        .css({'height': '20px',
+              'width': '20x',
+              'float':'left'})
+        .attr('src',"webgl-viewer/static/dot.png")
+        .appendTo(this.Div)
+        .sortable('disable');
 
   // I could reuse this menu, but this is easy for callbacks
   this.IconMenuDiv =
@@ -1278,8 +1279,6 @@ NotesWidget.prototype.SaveCallback = function() {
         note.RecordAnnotations();
     }
     
-    
-    if ( ! this.ModifiedFlag) { return;}
     var self = this;
     var d = new Date();
     
