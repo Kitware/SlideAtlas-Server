@@ -232,7 +232,8 @@ class TileReader():
 
     def dump_tile(self, x, y, fp):
         """
-        This function does something.
+        Returns compressed image tile data (jpeg)containing specified x and y
+        coordinates
 
         :param x: x coordinates of an example pixel in the tile
         :type y: y coordinates of an example pixel in the tile
