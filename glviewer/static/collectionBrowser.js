@@ -293,10 +293,16 @@ CollectionBrowser = (function (){
         // the same session.  Removing the object causes
         // The index to point to the wrong location.
         // Duplicate the object temporarily
+
         // Add the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
             viewObj.Selected = keepSelected;
+            // This is a pain.  Adding the view object to a new session
+            // Changes SessionObject, so we do not know which
+            // session it needs to be removed from.
+            // Just save the source session temporarily
+            viewObj.SourceSessionObject = viewObj.SessionObject;
             // Insert
             this.InsertViewObject(viewObj, index);
             // Put them in order (hack)
@@ -305,7 +311,8 @@ CollectionBrowser = (function (){
         // Remove the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
-            var sessionObj = viewObj.SessionObject;
+            var sessionObj = viewObj.SourceSessionObject;
+            viewObj.SourceSessionObject = undefined;
             sessionObj.RemoveViewObject(viewObj);
         }
 
