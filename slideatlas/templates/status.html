@@ -1,6 +1,8 @@
 {% extends 'frontend_base.html' %}
 {% set active_page = 'status' %}
 
+{% set is_site_admin = security.AdminSiteRequirement().can() %}
+
 
 {% block content %}
 {{ super() }}
@@ -16,12 +18,18 @@
                 <td>Version</td>
                 <td>{{ site.version }}</td>
             </tr>
+            {% if is_site_admin %}
+            <tr>
+                <td>Host</td>
+                <td>{{ site.host }}</td>
+            </tr>
+            {% endif %}
         </table>
         <table class="table table-bordered table-hover">
             <tr>
                 <th colspan="2">Admin Database</th>
             </tr>
-            {% if security.AdminSiteRequirement().can() %}
+            {% if is_site_admin %}
             <tr>
                 <td>Host</td>
                 <td>{{ admin_db.host}}</td>
