@@ -1379,7 +1379,7 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
 
 Viewer.prototype.HandleMouseMove = function(event) {
     event.preventDefault(); // Keep browser from selecting images.
-    EVENT_MANAGER.RecordMouseMove(event);
+    if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
     this.ComputeMouseWorld(event);
     
     // Forward the events to the widget if one is active.

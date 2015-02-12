@@ -6,6 +6,7 @@
 
 function EventManager (canvas) {
     this.MouseUpTime = 0;
+    this.MouseTime = 0;
     this.DoubleClick = false;
 
     // I cannot figure out how to do this with focus of canvas ...
@@ -68,8 +69,6 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     // TODO: Get rid of system event.
     this.SystemEvent = event;
     if (event.offsetX && event.offsetY) {
-        
-
         // Translate to coordinate of canvas
         // There has to be a better what to get the offset of the canvas relative to the body (or screen even).
         // Here I loop through the parents accumulating the offset.
@@ -93,9 +92,21 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
         this.MouseX = event.offsetX;
         this.MouseY = event.offsetY;
         this.MouseTime = (new Date()).getTime();
+    } else if (event.layerX && event.layerY) {
+        this.MouseX = event.layerX;
+        this.MouseY = event.layerY;
+        this.MouseTime = (new Date()).getTime();
     }
 }
 
+
+var PENDING_SHOW_PROPERTIES_MENU = false;
+var SHOW_PROPERTIES_MOUSE_POSITION;
+function ShowPendingPropertiesMenu() {
+  if (PENDING_SHOW_PROPERTIES_MENU) {
+    ShowPropertiesMenu(SHOW_PROPERTIES_MOUSE_POSITION[0], SHOW_PROPERTIES_MOUSE_POSITION[1]);
+  }
+}
 
 EventManager.prototype.RecordMouseDown = function(event) {
     this.LastMouseX = this.MouseX;
@@ -128,15 +139,6 @@ EventManager.prototype.RecordMouseDown = function(event) {
     */
 }
 
-
-var PENDING_SHOW_PROPERTIES_MENU = false;
-var SHOW_PROPERTIES_MOUSE_POSITION;
-function ShowPendingPropertiesMenu() {
-  if (PENDING_SHOW_PROPERTIES_MENU) {
-    ShowPropertiesMenu(SHOW_PROPERTIES_MOUSE_POSITION[0], SHOW_PROPERTIES_MOUSE_POSITION[1]);
-  }
-}
-
 EventManager.prototype.RecordMouseUp = function(event) {
     //if ( ! this.MouseDown) {
         // This will occur if on double clicks (and probably if mouse down was outside canvas).
@@ -152,13 +154,14 @@ EventManager.prototype.RecordMouseUp = function(event) {
 }
 
 EventManager.prototype.RecordMouseMove = function(event) {
-  this.LastMouseX = this.MouseX;
-  this.LastMouseY = this.MouseY;
-  this.LastMouseTime = this.MouseTime;
-  this.SetMousePositionFromEvent(event);
-  this.MouseDeltaX = this.MouseX - this.LastMouseX;
-  this.MouseDeltaY = this.MouseY - this.LastMouseY;
-  this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    this.MouseDeltaX = this.MouseX - this.LastMouseX;
+    this.MouseDeltaY = this.MouseY - this.LastMouseY;
+    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
 }
 
 EventManager.prototype.HandleMouseWheel = function(event) {
