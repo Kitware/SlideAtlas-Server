@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import os.path
+import platform
 
 from flask import abort, current_app, render_template, send_from_directory, redirect
 
@@ -31,7 +32,8 @@ def home():
 ################################################################################
 def status():
     site = {
-        'version': get_version()
+        'version': get_version(),
+        'host': platform.node()
     }
     admin_db = {
         'host': current_app.config['SLIDEATLAS_ADMIN_DATABASE_HOST'],
