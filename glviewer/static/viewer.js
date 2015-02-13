@@ -290,6 +290,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     for (var i = 0; i < tiles.length; ++i) {
         LoadQueueAddTile(tiles[i]);
     }
+    LoadQueueUpdate();
 
     //this.CancelLargeImage = false;
     SetFinishedLoadingCallback(

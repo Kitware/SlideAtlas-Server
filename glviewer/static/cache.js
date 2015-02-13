@@ -113,8 +113,9 @@ Cache.prototype.SetImageData = function(image) {
         var qTile;
         for (var slice = 1; slice <= this.NumberOfSections; ++slice) {
             qTile = this.GetTile(slice, 0, 0);
-            qTile.LoadQueueAdd();;
+            qTile.LoadQueueAdd();
         }
+        LoadQueueUpdate();
     } else {
         this.TileDimensions = [image.TileSize, image.TileSize];
         this.NumberOfSections = 1;
@@ -186,35 +187,37 @@ Cache.prototype.LoadRoots = function () {
     }
     for (var slice = 1; slice <= this.Image.dimensions[2]; ++slice) {
         qTile = this.GetTile(slice, 0, 0);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
     }
+    LoadQueueUpdate();
     return;
 
     // Theses were for a demo (preload).
     for (var slice = 201; slice < 251; ++slice) {
         for (var j = 0; j < 4; ++j) {
             qTile = this.GetTile(slice, 1, j);
-            qTile.LoadQueueAdd();;
+            qTile.LoadQueueAdd();
         }
     }
     for (var slice = 0; slice < 50; ++slice) {
         for (var j = 0; j < 4; ++j) {
             qTile = this.GetTile(slice, 1, j);
-            qTile.LoadQueueAdd();;
+            qTile.LoadQueueAdd();
         }
         qTile = this.GetTile(slice, 5, 493);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
         qTile = this.GetTile(slice, 5, 494);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
         qTile = this.GetTile(slice, 5, 495);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
         qTile = this.GetTile(slice, 5, 525);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
         qTile = this.GetTile(slice, 5, 526);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
         qTile = this.GetTile(slice, 5, 527);
-        qTile.LoadQueueAdd();;
+        qTile.LoadQueueAdd();
     }
+    LoadQueueUpdate();
 }
 
 
@@ -224,116 +227,117 @@ Cache.prototype.LoadRoots = function () {
 // iPad flag includes low resolution ancestors to get rid of white lines between tiles.
 // Tiles is actually the return value.  It is not used for anything else.
 Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
-  // I am prioritizing tiles in the queue by time stamp.
-  // Loader sets the the tiles time stamp.
-  // Time stamp only progresses after a whole render.
-  AdvanceTimeStamp();
+    // I am prioritizing tiles in the queue by time stamp.
+    // Loader sets the the tiles time stamp.
+    // Time stamp only progresses after a whole render.
+    AdvanceTimeStamp();
 
-  // I am putting this here to avoid deleting tiles
-  // in the rendering list.
-  Prune();
+    // I am putting this here to avoid deleting tiles
+    // in the rendering list.
+    Prune();
 
-  // Pick a level to display.
-  //var fast = document.getElementById("fast").checked;
-  // Todo: fix this hack. (now a global variable gl).
-  var canvasHeight = camera.ViewportHeight;
-  var tmp = this.TileDimensions[1]*this.RootSpacing[1] / camera.Height;
-  //if (fast) {
-  //  tmp = tmp * 0.5;
-  //}
-  tmp = tmp * canvasHeight / this.TileDimensions[1];
-  var level = 0;
-  while (tmp > 1.0) {
-      ++level;
-      tmp = tmp * 0.5;
-  }
-  if (level >= this.Image.levels) {
-      level = this.Image.levels - 1;
-  }
-
-
-  // Compute the world bounds of camera view.
-  var xMax = 0.0;
-  var yMax = 0.0;
-  var hw = camera.GetWidth()*0.5;
-  var hh = camera.GetHeight()*0.5;
-  var roll = camera.Roll;
-  var s = Math.sin(roll);
-  var c = Math.cos(roll);
-  var rx, ry;
-  // Choose a camera corner and rotate. (Center of bounds in origin).
-  rx = hw*c + hh*s;
-  ry = hh*c - hw*s;
-  // Expand bounds.
-  if (xMax < rx)  { xMax = rx;}
-  if (xMax < -rx) { xMax = -rx;}
-  if (yMax < ry)  { yMax = ry;}
-  if (yMax < -ry) { yMax = -ry;}
-  // Now another corner (90 degrees away).
-  rx = hw*c - hh*s;
-  ry = -hh*c - hw*s;
-  // Expand bounds.
-  if (xMax < rx)  { xMax = rx;}
-  if (xMax < -rx) { xMax = -rx;}
-  if (yMax < ry)  { yMax = ry;}
-  if (yMax < -ry) { yMax = -ry;}
-
-  var bounds = [];
-  bounds[0] = camera.FocalPoint[0]-xMax;
-  bounds[1] = camera.FocalPoint[0]+xMax;
-  bounds[2] = camera.FocalPoint[1]-yMax;
-  bounds[3] = camera.FocalPoint[1]+yMax;
-
-  // Adjust bounds to compensate for warping.
-  if (this.Warp) {
-    // If this is too slow (occurs every render) we can estimate.
-    var iPt = this.WorldToImage([bounds[0], bounds[2]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;}
-    var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
-    iPt = this.WorldToImage([bounds[1], bounds[2]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;}
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    iPt = this.WorldToImage([bounds[0], bounds[3]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;}
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    iPt = this.WorldToImage([bounds[1], bounds[3]]);
-    if ( ! iPt) { tiles.length = 0; return tiles;}
-    if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
-    if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
-    if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
-    if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
-    bounds = iBounds;
-  }
-
-  // Logic for progressive rendering is in the loader:
-  // Do not load a tile if its parent is not loaded.
-
-  var tiles = [];
-  var endLevel = level;
-  // GetTile is inefficient and may be causing the ipad to render slowly.
-  if (I_PAD_FLAG) {
-    // Get rid of white line by rendering all ancestors.
-    endLevel = 0;
-  }
-  for (var i = level; i >= endLevel; --i) {
-    var tileIds = this.GetVisibleTileIds(i, bounds);
-    var tile;
-    for (var j = 0; j < tileIds.length; ++j) {
-      tile = this.GetTile(slice, i, tileIds[j]);
-      // If the tile is loaded or loading,
-      // this does nothing.
-      tile.LoadQueueAdd();
-      tiles.push(tile);
+    // Pick a level to display.
+    //var fast = document.getElementById("fast").checked;
+    // Todo: fix this hack. (now a global variable gl).
+    var canvasHeight = camera.ViewportHeight;
+    var tmp = this.TileDimensions[1]*this.RootSpacing[1] / camera.Height;
+    //if (fast) {
+    //  tmp = tmp * 0.5;
+    //}
+    tmp = tmp * canvasHeight / this.TileDimensions[1];
+    var level = 0;
+    while (tmp > 1.0) {
+        ++level;
+        tmp = tmp * 0.5;
     }
-  }
+    if (level >= this.Image.levels) {
+        level = this.Image.levels - 1;
+    }
 
-  return tiles;
+
+    // Compute the world bounds of camera view.
+    var xMax = 0.0;
+    var yMax = 0.0;
+    var hw = camera.GetWidth()*0.5;
+    var hh = camera.GetHeight()*0.5;
+    var roll = camera.Roll;
+    var s = Math.sin(roll);
+    var c = Math.cos(roll);
+    var rx, ry;
+    // Choose a camera corner and rotate. (Center of bounds in origin).
+    rx = hw*c + hh*s;
+    ry = hh*c - hw*s;
+    // Expand bounds.
+    if (xMax < rx)  { xMax = rx;}
+    if (xMax < -rx) { xMax = -rx;}
+    if (yMax < ry)  { yMax = ry;}
+    if (yMax < -ry) { yMax = -ry;}
+    // Now another corner (90 degrees away).
+    rx = hw*c - hh*s;
+    ry = -hh*c - hw*s;
+    // Expand bounds.
+    if (xMax < rx)  { xMax = rx;}
+    if (xMax < -rx) { xMax = -rx;}
+    if (yMax < ry)  { yMax = ry;}
+    if (yMax < -ry) { yMax = -ry;}
+
+    var bounds = [];
+    bounds[0] = camera.FocalPoint[0]-xMax;
+    bounds[1] = camera.FocalPoint[0]+xMax;
+    bounds[2] = camera.FocalPoint[1]-yMax;
+    bounds[3] = camera.FocalPoint[1]+yMax;
+
+    // Adjust bounds to compensate for warping.
+    if (this.Warp) {
+        // If this is too slow (occurs every render) we can estimate.
+        var iPt = this.WorldToImage([bounds[0], bounds[2]]);
+        if ( ! iPt) { tiles.length = 0; return tiles;}
+        var iBounds = [iPt[0], iPt[0], iPt[1], iPt[1]];
+        iPt = this.WorldToImage([bounds[1], bounds[2]]);
+        if ( ! iPt) { tiles.length = 0; return tiles;}
+        if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+        if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+        if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+        if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+        iPt = this.WorldToImage([bounds[0], bounds[3]]);
+        if ( ! iPt) { tiles.length = 0; return tiles;}
+        if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+        if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+        if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+        if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+        iPt = this.WorldToImage([bounds[1], bounds[3]]);
+        if ( ! iPt) { tiles.length = 0; return tiles;}
+        if (iBounds[0] > iPt[0]) { iBounds[0] = iPt[0]; }
+        if (iBounds[1] < iPt[0]) { iBounds[1] = iPt[0]; }
+        if (iBounds[2] > iPt[1]) { iBounds[2] = iPt[1]; }
+        if (iBounds[3] < iPt[1]) { iBounds[3] = iPt[1]; }
+        bounds = iBounds;
+    }
+
+    // Logic for progressive rendering is in the loader:
+    // Do not load a tile if its parent is not loaded.
+
+    var tiles = [];
+    var endLevel = level;
+    // GetTile is inefficient and may be causing the ipad to render slowly.
+    if (I_PAD_FLAG) {
+        // Get rid of white line by rendering all ancestors.
+        endLevel = 0;
+    }
+    for (var i = level; i >= endLevel; --i) {
+        var tileIds = this.GetVisibleTileIds(i, bounds);
+        var tile;
+        for (var j = 0; j < tileIds.length; ++j) {
+            tile = this.GetTile(slice, i, tileIds[j]);
+            // If the tile is loaded or loading,
+            // this does nothing.
+            tile.LoadQueueAdd();
+            tiles.push(tile);
+        }
+    }
+    LoadQueueUpdate();
+
+    return tiles;
 }
 
 // Get ids of all visible tiles (including ones that have not been

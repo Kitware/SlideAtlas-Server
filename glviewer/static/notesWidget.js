@@ -1114,6 +1114,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
         for (var i = 0; i < tiles.length; ++i) {
             LoadQueueAddTile(tiles[i]);
         }
+        LoadQueueUpdate();
     }
     if (cameras[3]) {
         var cache = FindCache(this.ViewerRecords[this.StartIndex+2].Image);
@@ -1122,6 +1123,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
         for (var i = 0; i < tiles.length; ++i) {
             LoadQueueAddTile(tiles[i]);
         }
+        LoadQueueUpdate();
     }
 
     // Overview cameras need to be updated.
