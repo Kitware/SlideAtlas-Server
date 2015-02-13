@@ -334,8 +334,10 @@ function eventuallyRender() {
 }
 
 function tick() {
+    //console.timeEnd("system");
     RENDER_PENDING = false;
     draw();
+    //console.time("system");
 }
 
 
