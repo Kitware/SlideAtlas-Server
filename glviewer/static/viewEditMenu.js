@@ -298,6 +298,13 @@ var DownloadImage = (function () {
         d.SizeHeightInput.val((viewport[3]/pixelsPerInch).toFixed(2));
         d.AspectRatio = viewport[2] / viewport[3];
 
+        // Hide or show the stack option.
+        if (NOTES_WIDGET.GetCurrentNote().Type == "Stack") {
+            DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
+        } else {
+            DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();
+        }
+
         DOWNLOAD_WIDGET.DimensionDialog.Show(1);
     }
 
@@ -499,7 +506,26 @@ var DownloadImage = (function () {
             .prop('checked', true);
         
 
+        d.StackDiv =
+            $('<div>')
+            .appendTo(d.Body)
+            .css({'margin': '15px',
+                  'padding-left': '5px'})
+            .hide();
+        d.StackLabel =
+            $('<div>')
+            .appendTo(d.StackDiv)
+            .text("All stack sections:")
+            .css({'display':'inline'});
+        d.StackCheckbox =
+            $('<input type="checkbox">')
+            .appendTo(d.StackDiv)
+            .css({'display':'inline'})
+            .prop('checked', false);
+
+
         d.AspectRatio = 1.0;
+
 
         // A dialog to cancel the download before we get all the tiles
         // needed to render thie image.
@@ -512,6 +538,11 @@ var DownloadImage = (function () {
             .attr("src", "/webgl-viewer/static/circular.gif")
             .attr("alt", "waiting...")
             .css({'width':'40px'});
+
+        d.StackMessage = $('<div>')
+            .appendTo(d.Body)
+            .text("Downloading multiple images.  Turn off browser's prompt-on-download option.")
+            .hide();
 
         d.ApplyButton.text("Cancel");
 
@@ -527,10 +558,17 @@ var DownloadImage = (function () {
                 DOWNLOAD_WIDGET.Viewer = VIEWER;
                 var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
                 var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
+                var stack = DOWNLOAD_WIDGET.DimensionDialog.StackCheckbox.prop('checked');
+
                 // Show the dialog that empowers the user to cancel while rendering.
                 DOWNLOAD_WIDGET.CancelDialog.Show(1);
                 // We need a finished callback to hide the cancel dialog.
-                VIEWER.SaveLargeImage("slide-atlas.png", width, height,
+                if (stack) {
+                    DOWNLOAD_WIDGET.CancelDialog.StackMessage.show();
+                } else {
+                   DOWNLOAD_WIDGET.CancelDialog.StackMessage.hide();
+                }
+                VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
                                       function () {
                                           // Rendering has finished.
                                           // The user can no longer cancel.
