@@ -128,7 +128,7 @@ Tile.prototype.destructor=function()
 }
 
 
-
+// Youy have to call LoadQueueUpdate after adding tiles.
 // Add the first unloaded ancestor to the load queue.
 Tile.prototype.LoadQueueAdd = function() {
   // Record that the tile is used (for prioritizing loading and pruning).

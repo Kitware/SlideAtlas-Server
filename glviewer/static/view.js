@@ -133,35 +133,37 @@ View.prototype.GetCache = function() {
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
 View.prototype.DrawTiles = function () {
-  if ( GL) {
-    if (MASK_HACK ) {
-        return;
+    //console.time("  ViewDraw");
+    if ( GL) {
+        if (MASK_HACK ) {
+            return;
+        }
+        this.Section.Draw(this, GL);
+    } else {
+        this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
+        this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+        // Clear the canvas to start drawing.
+        this.Context2d.fillStyle="#ffffff";
+        this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
+
+        // Start with a transform that flips the y axis.
+        // This is an issue later because the images will be upside down.
+        this.Context2d.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
+
+        // Map (-1->1, -1->1) to the viewport.
+        // Origin of the viewport does not matter because drawing is relative
+        // to this view's canvas.
+        this.Context2d.transform(0.5*this.Viewport[2], 0.0,
+                                 0.0, 0.5*this.Viewport[3],
+                                 0.5*this.Viewport[2],
+                                 0.5*this.Viewport[3]);
+
+        if (MASK_HACK ) {
+            return;
+        }
+        this.Section.Draw(this, this.Context2d);
     }
-    this.Section.Draw(this, GL);
-  } else {
-    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-    this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
-    // Clear the canvas to start drawing.
-    this.Context2d.fillStyle="#ffffff";
-    this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
-
-    // Start with a transform that flips the y axis.
-    // This is an issue later because the images will be upside down.
-    this.Context2d.setTransform(1, 0, 0, -1, 0, this.Viewport[3]);
-
-    // Map (-1->1, -1->1) to the viewport.
-    // Origin of the viewport does not matter because drawing is relative
-    // to this view's canvas.
-    this.Context2d.transform(0.5*this.Viewport[2], 0.0,
-                             0.0, 0.5*this.Viewport[3],
-                             0.5*this.Viewport[2],
-                             0.5*this.Viewport[3]);
-
-    if (MASK_HACK ) {
-        return;
-    }
-    this.Section.Draw(this, this.Context2d);
-  }
+    //console.timeEnd("  ViewDraw");
 }
 
 // Note: Tile in the list may not be loaded yet.

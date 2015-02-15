@@ -694,7 +694,7 @@ def getview():
     # This stuff should probably go into the readViewTree function.
     # Right now, only notes use "Type"
     if "Type" in viewObj :
-        viewObj['HiddenTitle'] = viewObj['HiddenTitle']
+        viewObj['HiddenTitle'] = viewObj.get('HiddenTitle', '');
         convertViewToPixelCoordinateSystem(viewObj)
         return jsonify(viewObj)
 

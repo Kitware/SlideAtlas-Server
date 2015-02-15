@@ -95,13 +95,13 @@ function ClearQueue() {
     LoadQueueUpdate();
 }
 
+// You have to call LoadQueueUpdate after adding tiles.
 // We could chop off the lowest priority tiles if the queue gets too long.
 // Simply add the tile to the queue.
 function LoadQueueAddTile(tile) {
   tile.LoadState = 1;
   // Add the tile at the front of the queue.
   LOAD_QUEUE.push(tile);
-  LoadQueueUpdate();
 }
 
 // Push the best tile to the end of the queue.

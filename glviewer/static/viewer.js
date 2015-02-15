@@ -266,7 +266,7 @@ Viewer.prototype.CancelLargeImage = function() {
 }
 
 // Create a virtual viewer to save a very large image.
-Viewer.prototype.SaveLargeImage = function(fileName, width, height,
+Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
                                            finishedCallback) {
     var self = this;
     var cache = this.GetCache();
@@ -290,29 +290,63 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height,
     for (var i = 0; i < tiles.length; ++i) {
         LoadQueueAddTile(tiles[i]);
     }
+    LoadQueueUpdate();
 
     //this.CancelLargeImage = false;
     SetFinishedLoadingCallback(
-        function () {
-            view.DrawTiles();
-            if (self.AnnotationVisibility) {
-                for(i=0; i<self.ShapeList.length; i++){
-                    self.ShapeList[i].Draw(view);
-                }
-                for(i in self.WidgetList){
-                    self.WidgetList[i].Draw(view, self.AnnotationVisibility);
-                }
-            }
-            finishedCallback();
-            view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
-        }
+        function () {self.SaveLargeImage2(view, fileName,
+                                          width, height, stack,
+                                          finishedCallback);}
     );
+
+    console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+
     // Needed to trigger loading.
     eventuallyRender();
 }
 
 
+Viewer.prototype.SaveLargeImage2 = function(view, fileName,
+                                            width, height, stack,
+                                            finishedCallback) {
+    var sectionFileName = fileName;
+    if (stack) {
+        var note = NOTES_WIDGET.GetCurrentNote();
+        var idx = fileName.indexOf('.');
+        if (idx < 0) {
+            sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
+        } else {
+            sectionFileName = fileName.substring(0, idx) +
+                              ZERO_PAD(note.StartIndex, 4) +
+                              fileName.substring(idx, fileName.length);
+        }
+    }
+    console.log(sectionFileName + " " + LOAD_QUEUE.length + " " + LOADING_COUNT);
 
+
+    view.DrawTiles();
+    if (this.AnnotationVisibility) {
+        for(i=0; i<this.ShapeList.length; i++){
+            this.ShapeList[i].Draw(view);
+        }
+        for(i in this.WidgetList){
+            this.WidgetList[i].Draw(view, this.AnnotationVisibility);
+        }
+    }
+
+    view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
+    if (stack) {
+        var note = NOTES_WIDGET.GetCurrentNote();
+        if (note.StartIndex < note.ViewerRecords.length-1) {
+            NAVIGATION_WIDGET.NextNote();
+            this.SaveLargeImage(fileName, width, height, stack,
+                                finishedCallback);
+            return;
+        }
+    }
+
+    finishedCallback();
+}
 
 // This method waits until all tiles are loaded before saving.
 var SAVE_FINISH_CALLBACK;
@@ -330,6 +364,8 @@ Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
 }
 
 
+// Not used anymore.  Incorpoarated in SaveLargeImage
+// delete these.
 // Save a bunch of stack images ----
 Viewer.prototype.SaveStackImages = function(fileNameRoot) {
     var self = this;
@@ -787,62 +823,65 @@ Viewer.prototype.DegToRad = function(degrees) {
 
 
 Viewer.prototype.Draw = function() {
-  // connectome
-  if ( ! this.MainView.Section) {
-    return;
-  }
+    //console.time("ViewerDraw");
 
-  this.ConstrainCamera();
-  // Should the camera have the viewport in them?
-  // The do not currently hav a viewport.
+    // connectome
+    if ( ! this.MainView.Section) {
+        return;
+    }
 
-  // Rendering text uses blending / transparency.
-  if (GL) {
+    this.ConstrainCamera();
+    // Should the camera have the viewport in them?
+    // The do not currently hav a viewport.
+
+    // Rendering text uses blending / transparency.
+    if (GL) {
     GL.disable(GL.BLEND);
     GL.enable(GL.DEPTH_TEST);
-  }
-
-  this.MainView.DrawTiles();
-
-  // This is only necessary for webgl, Canvas2d just uses a border.
-  this.MainView.DrawOutline(false);
-  if (this.OverView) {
-    this.OverView.DrawTiles();
-    this.OverView.DrawOutline(true);
-  }
-  if (this.AnnotationVisibility) {
-    for(i=0; i<this.ShapeList.length; i++){
-      this.ShapeList[i].Draw(this.MainView);
     }
-    for(i in this.WidgetList){
-      this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
+
+    this.MainView.DrawTiles();
+
+    // This is only necessary for webgl, Canvas2d just uses a border.
+    this.MainView.DrawOutline(false);
+    if (this.OverView) {
+        this.OverView.DrawTiles();
+        this.OverView.DrawOutline(true);
     }
-  }
-
-  // Draw a rectangle in the overview representing the camera's view.
-  if (this.OverView) {
-    this.MainView.Camera.Draw(this.OverView);
-    if (this.HistoryFlag) {
-      this.OverView.DrawHistory(this.MainView.Viewport[3]);
+    if (this.AnnotationVisibility) {
+        for(i=0; i<this.ShapeList.length; i++){
+            this.ShapeList[i].Draw(this.MainView);
+        }
+        for(i in this.WidgetList){
+            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
+        }
     }
-  }
 
-  var cache = this.GetCache(); 
-  if (cache != undefined) {
-      var copyright = cache.Image.copyright;
-      this.MainView.DrawCopyright(copyright);
-  }
-  // I am using shift for stack interaction.
-  // Turn on the focal point when shift is pressed.
-  if (EVENT_MANAGER.CursorFlag && EDIT) {
-      this.MainView.DrawFocalPoint();
-      if (this.StackCorrelations) {
-          this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
-      }
-  }
+    // Draw a rectangle in the overview representing the camera's view.
+    if (this.OverView) {
+        this.MainView.Camera.Draw(this.OverView);
+        if (this.HistoryFlag) {
+            this.OverView.DrawHistory(this.MainView.Viewport[3]);
+        }
+    }
 
-  // Here to trigger FINISHED_LOADING_CALLBACK
-  LoadQueueUpdate();
+    var cache = this.GetCache();
+    if (cache != undefined) {
+        var copyright = cache.Image.copyright;
+        this.MainView.DrawCopyright(copyright);
+    }
+    // I am using shift for stack interaction.
+    // Turn on the focal point when shift is pressed.
+    if (EVENT_MANAGER.CursorFlag && EDIT) {
+        this.MainView.DrawFocalPoint();
+        if (this.StackCorrelations) {
+            this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
+        }
+    }
+
+    // Here to trigger FINISHED_LOADING_CALLBACK
+    LoadQueueUpdate();
+    //console.timeEnd("ViewerDraw");
 }
 
 // Makes the viewer clean to setup a new slide...
