@@ -112,6 +112,11 @@ def glview():
         response = urllib2.urlopen(scene)
         # this is a string
         result = response.read()
+        # Take out the quotes that are giving me a pain.
+        result = result.replace('"function', 'function')
+        result = result.replace('}"', '}')
+        # temp fix for a typo in Daniels json.
+        result = result.replace("''", "'")
         return make_response(render_template('scene.html', scene = result))
 
     # See if editing will be enabled.
@@ -416,8 +421,8 @@ def saveusernote():
             viewer_record['Image'] = ObjectId(viewer_record['Image'])
         if 'Database' in viewer_record:
             viewer_record['Database'] = ObjectId(viewer_record['Database'])
-    if 'SessionId' in viewer_record:
-        viewer_record['SessionId'] = ObjectId(viewer_record['SessionId'])
+        if 'SessionId' in viewer_record:
+            viewer_record['SessionId'] = ObjectId(viewer_record['SessionId'])
 
     if request.form.has_key('thumb') :
         thumbStr = request.form['thumb']

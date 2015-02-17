@@ -80,53 +80,57 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // No, we need the viewport too.
 // Could the viewport be part of the camera?
 Section.prototype.Draw = function (view, context) {
-  if (GL) {
-    var program = imageProgram;
-    context.useProgram(program);
-    // Draw tiles.
-    context.viewport(view.Viewport[0], view.Viewport[1],
-                view.Viewport[2], view.Viewport[3]);
-    context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
-  } else {
-    // The camera maps the world coordinate system to (-1->1, -1->1).
-    var h = 1.0 / view.Camera.Matrix[15];
-    context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
-                 view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
-                 view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
-  }
-
-  for (var i = 0; i < this.Caches.length; ++i) {
-    var cache = this.Caches[i];
-    // Select the tiles to render first.
-    this.Tiles = cache.ChooseTiles(view.Camera, SLICE, view.Tiles);
-
-    // For the 2d viewer, the order the tiles are drawn is very important.
-    // Low-resolution tiles have to be drawn first.  Make a new sorted array.
-    // The problem is that unloaded tiles fall back to rendering parents.
-    // Make  copy (although we could just destroy the "Tiles" array which is not really used again).
-    var tiles = this.Tiles.slice(0);
-    var loadedTiles = [];
-    var j = 0;
-    while (j < tiles.length) { // We add tiles in the loop so we need a while.
-      if (tiles[j].LoadState == 3) {
-        loadedTiles.push(tiles[j]);
-      } else {
-        if (tiles[j].LoadState < 3) {
-          eventuallyRender();
-        }
-        if (tiles[j].Parent && ! I_PAD_FLAG) { // Queue up the parent.
-          // Note: Parents might be added multiple times by different siblings.
-          tiles.push(tiles[j].Parent);
-        }
-      }
-      ++j;
+    if (GL) {
+        var program = imageProgram;
+        context.useProgram(program);
+        // Draw tiles.
+        context.viewport(view.Viewport[0], view.Viewport[1],
+                         view.Viewport[2], view.Viewport[3]);
+        context.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+    } else {
+        // The camera maps the world coordinate system to (-1->1, -1->1).
+        var h = 1.0 / view.Camera.Matrix[15];
+        context.transform(view.Camera.Matrix[0]*h, view.Camera.Matrix[1]*h,
+                          view.Camera.Matrix[4]*h, view.Camera.Matrix[5]*h,
+                          view.Camera.Matrix[12]*h, view.Camera.Matrix[13]*h);
     }
-
-    // Reverse order to render low res tiles first.
-    for (var j = tiles.length-1; j >= 0; --j) {
-      tiles[j].Draw(program, context);
+    
+    for (var i = 0; i < this.Caches.length; ++i) {
+        var cache = this.Caches[i];
+        // Select the tiles to render first.
+        this.Tiles = cache.ChooseTiles(view.Camera, SLICE, view.Tiles);
+        // For the 2d viewer, the order the tiles are drawn is very important.
+        // Low-resolution tiles have to be drawn first.  Make a new sorted array.
+        // The problem is that unloaded tiles fall back to rendering parents.
+        // Make  copy (although we could just destroy the "Tiles" array which is not really used again).
+        var tiles = this.Tiles.slice(0);
+        var loadedTiles = [];
+        var j = 0;
+        while (j < tiles.length) { // We add tiles in the loop so we need a while.
+            var tile = tiles[j];
+            if (tile.LoadState == 3) {
+                loadedTiles.push(tile);
+            } else {
+                if (tiles[j].LoadState < 3) {
+                    // Keep rendering until we have all the tiles.
+                    eventuallyRender();
+                }
+                if (tile.Parent) { // Queue up the parent.
+                    // Note: Parents might be added multiple times by different siblings.
+                    // Ok, lets render the whole tree (low res first) to
+                    // cover cracks.  This is done in choose tiles.
+                    // This is not needed for prgressive rendering then.
+                    //tiles.push(tile.Parent);
+                }
+            }
+            ++j;
+        }
+        
+        // Reverse order to render low res tiles first.
+        for (var j = loadedTiles.length-1; j >= 0; --j) {
+            loadedTiles[j].Draw(program, context);
+        }
     }
-  }
 }
 
 Section.prototype.LoadTilesInView = function (view) {

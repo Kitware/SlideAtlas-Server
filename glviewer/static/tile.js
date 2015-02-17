@@ -343,13 +343,7 @@ Tile.prototype.Draw = function (program, context) {
     if ( tileSize == undefined) {
       tileSize = 256;
     }
-    // Shift a half pixel (white line fix) Draw tile one pixel bigger.
-    if (I_PAD_FLAG) {
-      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
-    } else {
-      tileSize -= 0.5;
-      context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, -0.25/(tileSize-0.5), -0.25/(tileSize-0.5));
-    }
+    context.transform(1.0/tileSize, 0.0, 0.0, 1.0/tileSize, 0.0, 0.0);
     context.drawImage(this.Image,0,0);
 
     //  Transform to map (0->1, 0->1)
