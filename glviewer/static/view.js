@@ -17,9 +17,9 @@ function View () {
     this.OutlineCamMatrix = mat4.create();
     
     // 2d canvas
+    // Add a new canvas.
+    this.Canvas = $('<canvas>');
     if ( ! GL) {
-        // Add a new canvas.
-        this.Canvas = $('<canvas>');
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 }
@@ -38,21 +38,19 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Camera.SetViewport(viewport);
     
     // 2d canvas
-    if ( ! GL) {
-        // Add a new canvas.
-        this.Canvas
-            .css({'position': 'absolute',
-                  'border-style': 'solid',
-                  'border-width': '1px',
-                  'border-color': '#AAA',
-                  'left' : viewport[0]+"px",
-                  'width': viewport[2]+"px",
-                  'bottom' : viewport[1]+"px",
-                  'height': viewport[3]+"px",
-                  'z-index': layer.toString()});
-        if ( ! hide) {
-            this.Canvas.appendTo(VIEW_PANEL)
-        }
+    // Add a new canvas.
+    this.Canvas
+        .css({'position': 'absolute',
+              'border-style': 'solid',
+              'border-width': '1px',
+              'border-color': '#AAA',
+              'left' : viewport[0]+"px",
+              'width': viewport[2]+"px",
+              'bottom' : viewport[1]+"px",
+              'height': viewport[3]+"px",
+              'z-index': layer.toString()});
+    if ( ! hide) {
+        this.Canvas.appendTo(VIEW_PANEL)
     }
 }
 
