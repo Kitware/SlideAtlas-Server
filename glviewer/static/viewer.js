@@ -836,8 +836,8 @@ Viewer.prototype.Draw = function() {
 
     // Rendering text uses blending / transparency.
     if (GL) {
-    GL.disable(GL.BLEND);
-    GL.enable(GL.DEPTH_TEST);
+        GL.disable(GL.BLEND);
+        GL.enable(GL.DEPTH_TEST);
     }
 
     this.MainView.DrawTiles();
