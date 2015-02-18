@@ -651,9 +651,6 @@ function StartView() {
     if (MOBILE_DEVICE) {
         NAVIGATION_WIDGET.SetVisibility(false);
         MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-        //VIEWER1.AddGuiObject(MOBILE_ANNOTATION_WIDGET.MenuFavoriteButton, "Bottom", 0, "Left", 0);
-    } else {
-        VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();

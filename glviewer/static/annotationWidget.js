@@ -18,12 +18,12 @@ function AnnotationWidget (viewer) {
     
     if ( ! MOBILE_DEVICE) {
         this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
-        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 155);
+        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
         new ToolTip(this.Tab.Div, "Annotation");
 
 
         this.Tab.Panel.css({'width': '108px',
-                            'left': '-28px'});
+                            'left': '-38px'});
         this.VisibilityDiv = $('<div>')
             .appendTo(this.Tab.Panel)
             .css({'height': '28px',

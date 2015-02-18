@@ -5,91 +5,95 @@
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function NavigationWidget() {
-  // Load the session slides from the localStorage
-  this.SlideIndex = 0;
-  this.Session = [];
-  if (localStorage && localStorage.session) {
-    this.Session = JSON.parse(localStorage.session);
-    // Find the index of the current slide.
-    while (this.SlideIndex < this.Session.length &&
-           this.Session[this.SlideIndex] != VIEW_ID) {
-      ++this.SlideIndex;
+    // Load the session slides from the localStorage
+    this.SlideIndex = 0;
+    this.Session = [];
+    if (localStorage && localStorage.session) {
+        this.Session = JSON.parse(localStorage.session);
+        // Find the index of the current slide.
+        while (this.SlideIndex < this.Session.length &&
+               this.Session[this.SlideIndex] != VIEW_ID) {
+            ++this.SlideIndex;
+        }
+        if (this.SlideIndex >= this.Session.length) {
+            // We did not find the slide.
+            this.SlideIndex = 0;
+            this.Session = [];
+        }
     }
-    if (this.SlideIndex >= this.Session.length) {
-      // We did not find the slide.
-      this.SlideIndex = 0;
-      this.Session = [];
+
+    var size = '40px';
+    var left = '170px';
+    var bottom = '10px';
+    if (MOBILE_DEVICE) {
+        size = '80px';
+        bottom = '170px';
+        left = '0px';
+        if (MOBILE_DEVICE == "iPhone") {
+            size = '100px';
+            bottom = '80px';
+            left = '80px';
+        }
     }
-  }
+    var self = this;
 
-  var size = '40px';
-  var left = '170px';
-  var bottom = '10px';
-  if (MOBILE_DEVICE) {
-    size = '80px';
-    bottom = '170px';
-    left = '0px';
-    if (MOBILE_DEVICE == "iPhone") {
-      size = '100px';
-      bottom = '80px';
-      left = '80px';
-    }
-  }
-  var self = this;
-  this.Div =
-    $('<div>').appendTo(VIEW_PANEL)
-              .css({'position': 'absolute',
-                    'left' : left,
-                    'bottom' : bottom,
-                    'z-index': '2'});
+    this.Tab = new Tab("/webgl-viewer/static/nav.png");
+    new ToolTip(this.Tab.Div, "Navigation");
+    this.Tab.Div.css({'left': '50px',
+                      'bottom': '0px'});
 
-  this.PreviousSlideButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/previousSlide.png")
-              .click(function(){self.PreviousSlide();});
-  this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, "Previous Slide");
+    this.Tab.Panel
+        .css({'left': '-45px',
+              'width': '200px',
+              'height': '50px',
+              'padding': '0px 2px'});
 
-  this.PreviousNoteButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/previousNote.png")
-              .click(function(){self.PreviousNote();});
-  this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, "Previous Note");
+    this.PreviousSlideButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/previousSlide.png")
+        .click(function(){self.PreviousSlide();});
+    this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, "Previous Slide");
 
-  this.NextNoteButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/nextNote.png")
-              .click(function(){self.NextNote();});
-  this.NextNoteTip = new ToolTip(this.NextNoteButton, "Next Note");
+    this.PreviousNoteButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/previousNote.png")
+        .click(function(){self.PreviousNote();});
+    this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, "Previous Note");
 
-  this.NextSlideButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/nextSlide.png")
-              .click(function(){self.NextSlide();});
-  this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
+    this.NextNoteButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/nextNote.png")
+        .click(function(){self.NextNote();});
+    this.NextNoteTip = new ToolTip(this.NextNoteButton, "Next Note");
 
-  this.CopyrightWrapper =
-    $('<div>').appendTo(VIEW_PANEL)
-              .css({
-                'width': '100%',
-                'text-align': 'center'
-              }).html();
+    this.NextSlideButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/nextSlide.png")
+        .click(function(){self.NextSlide();});
+    this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
 
+    this.CopyrightWrapper =
+        $('<div>').appendTo(VIEW_PANEL)
+        .css({
+            'width': '100%',
+            'text-align': 'center'
+        }).html();
 }
 
 
