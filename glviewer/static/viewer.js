@@ -168,64 +168,78 @@ Viewer.prototype.TriggerInteraction = function() {
 
 
 Viewer.prototype.InitializeZoomGui = function() {
-  // Place the zoom in / out buttons.
-  // Todo: Make the button become more opaque when pressed.
-  // Associate with viewer (How???).
-  // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-  var self = this;
-  this.ZoomDiv = $('<div>')
-        .appendTo(VIEW_PANEL)
+    // Put the zoom bottons in a tab.
+    this.ZoomTab = new Tab("/webgl-viewer/static/mag.png");
+    new ToolTip(this.ZoomTab.Div, "Zoom");
+    // TODO: Get rid of this Gui object stuff and just rely on css positioning.
+    this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
+    this.ZoomTab.Panel
+        .css({'left': '-25px',
+              'width': '55px',
+              'padding': '0px 2px'});
+    
+    // Put the magnification factor inside the magnify glass icon.
+    this.ZoomDisplay = $('<div>')
+        .appendTo(this.ZoomTab.Div)
         .css({
-          'opacity': '0.6',
-          'background-color': '#fff',
-          'position': 'absolute',
-          'height': '120px',
-          'width': '54px',
-          'bottom' : '5px',
-          'right' : '5px',
-          'border-style'  : 'solid',
-          'border-width'  : '1px',
-          'border-radius' : '27px',
-          'border-color'  : '#888',
-          'z-index': '2'});
-  this.ZoomInButton = $('<img>')
+            'opacity': '0.9',
+            'position': 'absolute',
+            'height':  '20px',
+            'width':   '100%',
+            'text-align' : 'center',
+            'color' : '#000',
+            'top' : '10px',
+            'left' : '1px',
+            'font-size':'10px',
+            'z-index': '10',
+            'pointer-events': 'none'})
+        .html("");
+
+
+    // Place the zoom in / out buttons.
+    // Todo: Make the button become more opaque when pressed.
+    // Associate with viewer (How???).
+    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+    var self = this;
+    this.ZoomDiv = $('<div>')
+        .appendTo(this.ZoomTab.Panel)
+        .css({
+            'opacity': '0.6',
+            'background-color': '#fff',
+            'height': '104px',
+            'width': '54px',
+            'margin-top': '2px',
+            'border-style'  : 'solid',
+            'border-width'  : '1px',
+            'border-radius' : '27px',
+            'border-color'  : '#AAA',
+            'z-index': '2'});
+    this.ZoomInButton = $('<img>')
         .appendTo(this.ZoomDiv)
         .css({
-          'opacity': '0.6',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'top' : '2px',
-          'right' : '2px',
-          'z-index': '2'})
+            'opacity': '0.6',
+            'position': 'absolute',
+            'height': '50px',
+            'width': '50px',
+            'top' : '4px',
+            'right' : '4px',
+            'z-index': '2'})
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/zoomin2.png")
         .click(function(){ self.AnimateZoom(0.5);});
-  this.ZoomDisplay = $('<div>')
-        .appendTo(this.ZoomDiv)
+    this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
         .css({
-          'opacity': '0.9',
-          'position': 'absolute',
-          'height':  '20px',
-          'width':   '100%',
-          'text-align' : 'center',
-          'color' : '#000',
-          'top' : '51px',
-          'left' : '0px'})
-        .html("");
-  this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
-        .css({
-          'opacity': '0.6',
-          'position': 'absolute',
-          'height': '50px',
-          'width': '50px',
-          'bottom' : '2px',
-          'right' : '2px'})
+            'opacity': '0.6',
+            'position': 'absolute',
+            'height': '50px',
+            'width': '50px',
+            'bottom' : '2px',
+            'right' : '4px'})
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/zoomout2.png")
         .click(function(){self.AnimateZoom(2.0);});
 
-  this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
+    this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
 }
 
 Viewer.prototype.UpdateZoomGui = function() {

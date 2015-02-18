@@ -16,8 +16,8 @@ function FavoritesWidget() {
       $('<img>')
         .appendTo(VIEW_PANEL)
         .css({'position': 'absolute',
-              'height': '40px',
-              'width': '40px',
+              'height': '35px',
+              'width': '35px',
               'left': '0px',
               'bottom': '0px',
               'padding' : '5px',

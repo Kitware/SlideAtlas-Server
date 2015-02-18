@@ -17,11 +17,11 @@ function ViewEditMenu (viewer) {
     this.Tab = new Tab("/webgl-viewer/static/Menu.jpg");
     // I think we can get rid of this "GuiObject" stuff.
     // css positioning can handle it now.
-    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 118);
+    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 99);
     new ToolTip(this.Tab.Div, "View Menu");
 
     this.Tab.Panel
-        .css({'left': '-60px',
+        .css({'left': '-78px',
               'width': '170px',
               'padding': '0px 2px'});
 
