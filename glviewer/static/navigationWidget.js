@@ -22,6 +22,7 @@ function NavigationWidget() {
         }
     }
 
+    var self = this;
     var size = '40px';
     var left = '170px';
     var bottom = '10px';
@@ -34,19 +35,29 @@ function NavigationWidget() {
             bottom = '80px';
             left = '80px';
         }
+        
+        // fake a tab
+        this.Tab = {};
+        this.Tab.Panel = 
+            $('<div>').appendTo('body')
+                      .hide()
+                      .css({'position': 'absolute',
+                            'left' : left,
+                            'bottom' : bottom,
+                            'z-index': '5'});
+    } else {
+        this.Tab = new Tab("/webgl-viewer/static/nav.png");
+        new ToolTip(this.Tab.Div, "Navigation");
+        this.Tab.Div.css({'left': '50px',
+                          'bottom': '0px'});
+        this.Tab.Panel
+            .css({'left': '-45px',
+                  'width': '200px',
+                  'height': '50px',
+                  'padding': '0px 2px'});
+
     }
-    var self = this;
 
-    this.Tab = new Tab("/webgl-viewer/static/nav.png");
-    new ToolTip(this.Tab.Div, "Navigation");
-    this.Tab.Div.css({'left': '50px',
-                      'bottom': '0px'});
-
-    this.Tab.Panel
-        .css({'left': '-45px',
-              'width': '200px',
-              'height': '50px',
-              'padding': '0px 2px'});
 
     this.PreviousSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
@@ -117,12 +128,13 @@ NavigationWidget.prototype.ToggleVisibility = function() {
   this.SetVisibility( ! this.Visibility);
 }
 
+// Used on mobile.
 NavigationWidget.prototype.SetVisibility = function(v) {
   this.Visibility = v;
   if (v) {
-    this.Div.show();
+    this.Tab.Panel.show();
   } else {
-    this.Div.hide();
+    this.Tab.Panel.hide();
   }
 }
 
