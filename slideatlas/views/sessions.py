@@ -75,6 +75,9 @@ def view_all_sessions():
                     for collection, sessions_dict
                     in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
 
+    # Whether to include administrative javascript
+    is_admin = bool(len(can_admin_collection_ids))
+
     if request.args.get('json'):
         ajax_session_list = [
             {
@@ -92,7 +95,7 @@ def view_all_sessions():
         user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
         return jsonify(sessions=ajax_session_list, name=user_name, ajax=1)
     else:
-        return render_template('sessionlist.html', all_sessions=all_sessions)
+        return render_template('sessionlist.html', all_sessions=all_sessions, is_admin=is_admin)
 
 
 ################################################################################

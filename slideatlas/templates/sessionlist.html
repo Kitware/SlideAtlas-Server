@@ -38,7 +38,7 @@
 {% block scripts %}
     {{ super() }}
 
-    {% if is_site_admin %}
+    {% if is_admin %}
         {# TODO: These standard scripts will be included higher up in the inheritance  #}
         <script src="/static/thirdparty/bootbox/4.2.0/bootbox.min.js"></script>
 
@@ -87,7 +87,7 @@
                     </span>
                 </a>
             </h2>
-            {% if is_site_admin %}
+            {% if can_admin_collection %}
             <div class="pull-right">
                 <button type="button"
                         class="btn btn-primary badge sa-session-create">
