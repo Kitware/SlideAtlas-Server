@@ -77,7 +77,7 @@
 {% block content %}
 {{ super() }}
     <div class="container" ng-app="SlideAtlas">
-        {% for (collection, sessions) in all_sessions %}
+        {% for (collection, can_admin_collection, sessions) in all_sessions %}
         <div class="row" data-collection-id="{{ collection.id }}">
             <h2 class="anchor pull-left" id="{{ collection.id }}">
                 <span>{{ collection.label }}</span>

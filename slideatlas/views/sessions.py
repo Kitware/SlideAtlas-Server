@@ -44,6 +44,10 @@ def view_all_sessions():
         .no_dereference()
     # disable dereferencing of of sessions, to prevent running a seperate
     #   query for every single session's collection
+    all_collections_query = models.Collection.objects\
+        .no_dereference()
+
+    can_admin_collection_ids = [collection.id for collection in all_collections_query.can_access(g.identity.provides , models.Operation.admin)]
 
     editable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.edit)
     viewable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.view, strict_operation=True)
@@ -64,7 +68,10 @@ def view_all_sessions():
             collection = collections_by_id[collection_ref.id]
             all_sessions[collection].update(dict.fromkeys(sessions, can_admin))
 
-    all_sessions = [(collection, sorted(sessions_dict.iteritems(), key=lambda item: item[0].label))
+    all_sessions = [(collection,
+                    True if collection.id in can_admin_collection_ids else False,
+                    sorted(sessions_dict.iteritems(), key=lambda item: item[0].label)
+                    )
                     for collection, sessions_dict
                     in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
 
@@ -72,6 +79,7 @@ def view_all_sessions():
         ajax_session_list = [
             {
                 'rule': collection.label,
+                'can_admin': can_admin,
                 'sessions': [
                     {
                         'sessdb': str(session.image_store.id),
@@ -80,7 +88,7 @@ def view_all_sessions():
                     }
                     for session, can_admin in sessions],
             }
-            for collection, sessions in all_sessions]
+            for collection, can_admin, sessions in all_sessions]
         user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
         return jsonify(sessions=ajax_session_list, name=user_name, ajax=1)
     else:
