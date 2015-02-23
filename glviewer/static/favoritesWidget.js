@@ -25,7 +25,7 @@ function FavoritesWidget() {
               'z-index': '7'})
         .attr('src',"webgl-viewer/static/favorite-star.png")
         .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
-    this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");
+    this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites");
   }
 
   LoadFavorites();

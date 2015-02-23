@@ -9,7 +9,7 @@ function ToolTip(widget, text) {
               .hide()
               .text(text)
               .css({'position': 'absolute',
-                    'z-index': '2'});
+                    'z-index': '3'});
   widget.mouseenter(function() { self.HandleMouseEnter(); })
         .mouseleave(function(){ self.HandleMouseLeave();});
 
@@ -31,7 +31,7 @@ ToolTip.prototype.TimerCallback = function() {
   this.TimerId = 0;
   // Where to place the help....
   // on top:
-  var pos = this.Widget.position(); // top, left
+  var pos = this.Widget.offset(); // top, left
   var tipHeight = this.Div.height();
   this.Div.show()
           .css({'top': (pos.top-tipHeight)+'px',
