@@ -170,7 +170,7 @@ Viewer.prototype.TriggerInteraction = function() {
 Viewer.prototype.InitializeZoomGui = function() {
     // Put the zoom bottons in a tab.
     this.ZoomTab = new Tab("/webgl-viewer/static/mag.png");
-    new ToolTip(this.ZoomTab.Div, "Zoom");
+    new ToolTip(this.ZoomTab.Div, "Zoom scroll");
     // TODO: Get rid of this Gui object stuff and just rely on css positioning.
     this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
     this.ZoomTab.Panel

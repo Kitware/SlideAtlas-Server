@@ -5,7 +5,8 @@
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function NavigationWidget() {
-    // Load the session slides from the localStorage
+
+   // Load the session slides from the localStorage
     this.SlideIndex = 0;
     this.Session = [];
     if (localStorage && localStorage.session) {
@@ -67,7 +68,8 @@ function NavigationWidget() {
               'opacity': '0.6'})
         .attr('src',"webgl-viewer/static/previousSlide.png")
         .click(function(){self.PreviousSlide();});
-    this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, "Previous Slide");
+    this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, 
+                                        "Previous Slide. (page-up)");
 
     this.PreviousNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
@@ -77,7 +79,8 @@ function NavigationWidget() {
               'opacity': '0.6'})
         .attr('src',"webgl-viewer/static/previousNote.png")
         .click(function(){self.PreviousNote();});
-    this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, "Previous Note");
+    this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, 
+                                       "Previous Note. (p)");
 
     this.NextNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
@@ -87,7 +90,8 @@ function NavigationWidget() {
               'opacity': '0.6'})
         .attr('src',"webgl-viewer/static/nextNote.png")
         .click(function(){self.NextNote();});
-    this.NextNoteTip = new ToolTip(this.NextNoteButton, "Next Note");
+    this.NextNoteTip = new ToolTip(this.NextNoteButton, 
+                                   "Next Note, (n, space)");
 
     this.NextSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
@@ -97,7 +101,8 @@ function NavigationWidget() {
               'opacity': '0.6'})
         .attr('src',"webgl-viewer/static/nextSlide.png")
         .click(function(){self.NextSlide();});
-    this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
+    this.NextSlideTip = new ToolTip(this.NextSlideButton, 
+                                    "Next Slide. (page-down)");
 
     this.CopyrightWrapper =
         $('<div>').appendTo(VIEW_PANEL)
@@ -110,12 +115,20 @@ function NavigationWidget() {
 
 NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
   // 34=page down, 78=n, 32=space
-  if (keyCode == 34 || keyCode == 78 || keyCode == 32) {
+  if (keyCode == 34) {
+    this.NextSlide();
+    return true;
+  }
+  if (keyCode == 78 || keyCode == 32) {
     this.NextNote();
     return true;
   }
   // 33=page up, 80=p
-  if (keyCode == 33 || keyCode == 80) {
+  if (keyCode == 33) {
+    this.PreviousSlide();
+    return true;
+  }
+  if (keyCode == 80) {
     this.PreviousNote();
     return true;
   }
