@@ -326,6 +326,20 @@ class SessionAttachmentItemAPI(ItemAPIResource):
 
 
 ################################################################################
+class SessionImageFileProcessAPI(ItemAPIResource):
+    @security.AdminSessionRequirement.protected
+    def post(self, session, restype, attachment_id):
+        """
+        Submits a celery request to process the given file again 
+        (retry)
+        """
+        # Verify that the state of the task is "success"
+        
+        return flask.Response("Reached process image endpoint")
+        # return None, 204  # No Content
+
+
+################################################################################
 api.add_resource(SessionAttachmentListAPI,
                  '/sessions/<Session:session>/<regex("(attachments|imagefiles)"):restype>',
                  endpoint='session_attachment_list',
@@ -335,3 +349,8 @@ api.add_resource(SessionAttachmentItemAPI,
                  '/sessions/<Session:session>/<regex("(attachments|imagefiles)"):restype>/<ObjectId:attachment_id>',
                  endpoint='session_attachment_item',
                  methods=('GET', 'PUT', 'POST', 'DELETE'))  # PATCH not allowed
+
+api.add_resource(SessionImageFileProcessAPI,
+                 '/sessions/<Session:session>/<regex("(imagefiles)"):restype>/<ObjectId:attachment_id>/process',
+                 endpoint='session_imagefile_item_process',
+                 methods=('POST',))
