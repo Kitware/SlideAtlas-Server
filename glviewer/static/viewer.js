@@ -496,43 +496,44 @@ Viewer.prototype.SetSection = function(section) {
 
 // Change the source / cache after a viewer has been created.
 Viewer.prototype.SetCache = function(cache) {
-
-  if (cache && cache.Image) {
-      if (cache.Image.bounds) {
-          this.SetOverViewBounds(cache.Image.bounds);
-      }
-
-      if (cache.Image.copyright == undefined) {
-          cache.Image.copyright = "Copyright 2014";
-      }
-      /*this.CopyrightWrapper
-        .html(cache.Image.copyright)
-        .show();*/
-  }
-
-  this.MainView.SetCache(cache);
-  if (this.OverView) {
-    this.OverView.SetCache(cache);
-    if (cache) {
-      var bds = cache.GetBounds();
-      if (bds) {
-        this.OverView.Camera.SetFocalPoint((bds[0] + bds[1]) / 2,
-                                           (bds[2] + bds[3]) / 2);
-        var height = (bds[3]-bds[2]);
-        // See if the view is constrained by the width.
-        var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
-        if (height2 > height) {
-          height = height2;
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            this.SetOverViewBounds(cache.Image.bounds);
         }
-        this.OverView.Camera.SetHeight(height);
-        this.OverView.Camera.ComputeMatrix();
-      }
+
+        if (cache.Image.copyright == undefined) {
+            cache.Image.copyright = "Copyright 2014";
+        }
+        /*this.CopyrightWrapper
+          .html(cache.Image.copyright)
+          .show();*/
     }
-  }
+
+    this.MainView.SetCache(cache);
+    if (this.OverView) {
+        this.OverView.SetCache(cache);
+        if (cache) {
+            var bds = cache.GetBounds();
+            if (bds) {
+                this.OverView.Camera.SetFocalPoint((bds[0] + bds[1]) / 2,
+                                                   (bds[2] + bds[3]) / 2);
+                var height = (bds[3]-bds[2]);
+                // See if the view is constrained by the width.
+                var height2 = (bds[1]-bds[0]) * this.OverView.Viewport[3] / this.OverView.Viewport[2];
+                if (height2 > height) {
+                    height = height2;
+                }
+                this.OverView.Camera.SetHeight(height);
+                this.OverView.Camera.ComputeMatrix();
+            }
+        }
+    }
+    // Change the overview to fit the new image dimensions.
+    handleResize();
 }
 
 Viewer.prototype.GetCache = function() {
-  return this.MainView.GetCache();
+    return this.MainView.GetCache();
 }
 
 Viewer.prototype.ShowGuiElements = function() {
@@ -574,64 +575,86 @@ Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
   this.GuiElements.push(element);
 }
 
-
+// ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
 Viewer.prototype.SetViewport = function(viewport) {
 
-  // I am working on getting gui elements managed by the viewer.
-  // Informal for now.
-  for (var i = 0; i < this.GuiElements.length; ++i) {
-    var element = this.GuiElements[i];
-    var object;
-    if ('Object' in element) {
-      object = element.Object;
-    } else if ('Id' in element) {
-      object = $(element.Id);
-    } else {
-      continue;
+    // I am working to depreciate GUI elements.
+    // The browser / css should place gui elements.
+    for (var i = 0; i < this.GuiElements.length; ++i) {
+        var element = this.GuiElements[i];
+        var object;
+        if ('Object' in element) {
+            object = element.Object;
+        } else if ('Id' in element) {
+            object = $(element.Id);
+        } else {
+            continue;
+        }
+
+        // When the viewports are too small, large elements overlap ....
+        // This stomps on the dual view arrow elementts visibility.
+        // We would need our own visibility state ...
+        //if (viewport[2] < 300 || viewport[3] < 300) {
+        //  object.hide();
+        //} else {
+        //  object.show();
+        //}
+
+        if ('Bottom' in element) {
+            var pos = element.Bottom.toString() + "px";
+            object.css({
+                'bottom' : pos});
+        } else if ('Top' in element) {
+            var pos = element.Top.toString() + "px";
+            object.css({
+                'top' : pos});
+        }
+        
+        if ('Left' in element) {
+            var pos = viewport[0] + element.Left;
+            pos = pos.toString() + "px";
+            object.css({
+                'left' : pos});
+        } else if ('Right' in element) {
+            var pos = viewport[0] + viewport[2] - element.Right;
+            pos = pos.toString() + "px";
+            object.css({
+                'left' : pos});
+        }
     }
 
-    // When the viewports are too small, large elements overlap ....
-    // This stomps on the dual view arrow elementts visibility.
-    // We would need out own visibility state ...
-    //if (viewport[2] < 300 || viewport[3] < 300) {
-    //  object.hide();
-    //} else {
-    //  object.show();
-    //}
+    this.MainView.SetViewport(viewport);
+    if (this.OverView) {
+        // Aspect ratio defaults to main view.
+        var overViewport = [viewport[0]+(0.8*viewport[2])-15,
+                            viewport[1]+(0.8*viewport[3])-15,
+                            viewport[2]*0.20, 
+                            viewport[3]*0.20];
+        // Fit the image into the default overViewport.
+        var cache = this.GetCache();
+        if (cache && cache.Image) {
+            var image = cache.Image;
+            if (image.dimensions[0] / image.dimensions[1] >
+                overViewport[2] / overViewport[3]) {
+                // Too wide. Modify height.
+                var height = overViewport[2] * 
+                    (image.dimensions[1]/image.dimensions[0]);
+                overViewport[1] += overViewport[3]-height;
+                overViewport[3] = height;
+            } else {
+                // Too tall. Modify width.
+                var width = overViewport[3] * 
+                    (image.dimensions[0]/image.dimensions[1]);
+                overViewport[0] += overViewport[2]-width;
+                overViewport[2] = width;
+            }
+        }
 
-    if ('Bottom' in element) {
-      var pos = element.Bottom.toString() + "px";
-      object.css({
-      'bottom' : pos});
-    } else if ('Top' in element) {
-      var pos = element.Top.toString() + "px";
-      object.css({
-      'top' : pos});
+        this.OverView.SetViewport(overViewport);
+        this.OverView.Camera.ComputeMatrix();
     }
-
-    if ('Left' in element) {
-      var pos = viewport[0] + element.Left;
-      pos = pos.toString() + "px";
-      object.css({
-      'left' : pos});
-    } else if ('Right' in element) {
-      var pos = viewport[0] + viewport[2] - element.Right;
-      pos = pos.toString() + "px";
-      object.css({
-      'left' : pos});
-    }
-  }
-
-  this.MainView.SetViewport(viewport);
-  if (this.OverView) {
-    var overViewport = [viewport[0] + viewport[2]*0.8,
-                        viewport[1] + viewport[3]*0.8,
-                        viewport[2]*0.18, viewport[3]*0.18];
-    this.OverView.SetViewport(overViewport);
-    this.OverView.Camera.ComputeMatrix();
-  }
-  this.MainView.Camera.ComputeMatrix();
+    this.MainView.Camera.ComputeMatrix();
 }
 
 Viewer.prototype.GetViewport = function() {
@@ -1338,6 +1361,10 @@ Viewer.prototype.ConstrainCamera = function () {
 
 
 Viewer.prototype.HandleOverViewMouseDown = function(event) {
+    // This target for animation is not implemented cleanly.
+    // This fixes a bug: Overview translated rotates camamera back to zero.
+    this.RollTarget = this.MainView.Camera.Roll;
+
     this.InteractionState = INTERACTION_OVERVIEW;
     var x = event.offsetX;
     var y = event.offsetY;
@@ -1425,7 +1452,8 @@ Viewer.prototype.HandleMouseUp = function(event) {
 Viewer.prototype.ComputeMouseWorld = function(event) {
     // We need to save these for pasting annotation.
     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-    // Maybe we should save this in the viewer and not in the event.
+    // Put this extra ivar in the even object.  
+    // This could be obsolete because we never pass this event to another object.
     event.worldX = this.MouseWorld[0];
     event.worldY= this.MouseWorld[1];
 }
