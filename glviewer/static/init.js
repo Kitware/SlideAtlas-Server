@@ -517,7 +517,6 @@ function handleResize() {
     var width1 = viewPanelWidth * VIEWER1_FRACTION;
     var width2 = viewPanelWidth - width1;
 
-
     if (GL) {
         // HACK:  view positioning is half managed by browser (VIEW_PANEL)
         // and half by this resize viewport chain.  I want to get rid of the
@@ -527,11 +526,6 @@ function handleResize() {
         // texture images.
         CANVAS.css({"left":viewPanelLeft});
     }
-
-
-
-
-
 
     // Setup the view panel div to be the same as the two viewers.
     VIEW_PANEL.css({'left': viewPanelLeft+'px',
