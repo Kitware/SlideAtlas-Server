@@ -33,11 +33,11 @@ function Viewer (viewport) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
     if ( ! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
-	      var overViewport = [viewport[0] + viewport[2]*0.8,
-                            viewport[1] + viewport[3]*0.8,
-                            viewport[2]*0.18, viewport[3]*0.18];
+        this.OverViewScale = 0.02; // Experimenting with scroll
+	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
+                             viewport[2]*0.18, viewport[3]*0.18];
 	      this.OverView = new View();
-	      this.OverView.InitializeViewport(overViewport, 1);
+	      this.OverView.InitializeViewport(this.OverViewport, 1);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.FocalPoint = [13000.0, 11000.0, 10.0];
 	      this.OverView.Camera.SetHeight(22000.0);
@@ -133,12 +133,18 @@ function Viewer (viewport) {
 
     if (this.OverView) {
         var can = this.OverView.Canvas[0];
-        can.addEventListener("mousedown",
-			                       function (event){return self.HandleOverViewMouseDown(event);},
-			                       false);
-        can.addEventListener("mousemove",
-			                       function (event){return self.HandleOverViewMouseMove(event);},
-			                       false);
+        can.addEventListener(
+            "mousedown",
+			      function (event){return self.HandleOverViewMouseDown(event);},
+			      false);
+        can.addEventListener(
+            "mousemove",
+			      function (event){return self.HandleOverViewMouseMove(event);},
+			      false);
+        can.addEventListener(
+            "mousewheel",
+			      function (event){return self.HandleOverViewMouseWheel(event);},
+			      false);
     }
 }
 
@@ -577,6 +583,7 @@ Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
 
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
+// TODO: Redo all this overview viewport junk.
 Viewer.prototype.SetViewport = function(viewport) {
 
     // I am working to depreciate GUI elements.
@@ -624,34 +631,41 @@ Viewer.prototype.SetViewport = function(viewport) {
         }
     }
 
+
+    if (viewport[2] <= 10) {
+        this.MainView.Canvas.hide();
+        this.OverView.Canvas.hide();
+        return;
+    }
+    this.MainView.Canvas.show();
+    this.OverView.Canvas.show();
+
     this.MainView.SetViewport(viewport);
     if (this.OverView) {
-        // Aspect ratio defaults to main view.
-        var overViewport = [viewport[0]+(0.8*viewport[2])-15,
-                            viewport[1]+(0.8*viewport[3])-15,
-                            viewport[2]*0.20, 
-                            viewport[3]*0.20];
-        // Fit the image into the default overViewport.
+        var area = viewport[2]*viewport[3];
+        var aspect = viewport[2] / viewport[3];
         var cache = this.GetCache();
         if (cache && cache.Image) {
             var image = cache.Image;
-            if (image.dimensions[0] / image.dimensions[1] >
-                overViewport[2] / overViewport[3]) {
-                // Too wide. Modify height.
-                var height = overViewport[2] * 
-                    (image.dimensions[1]/image.dimensions[0]);
-                overViewport[1] += overViewport[3]-height;
-                overViewport[3] = height;
-            } else {
-                // Too tall. Modify width.
-                var width = overViewport[3] * 
-                    (image.dimensions[0]/image.dimensions[1]);
-                overViewport[0] += overViewport[2]-width;
-                overViewport[2] = width;
-            }
+            aspect = image.dimensions[0]/image.dimensions[1];
         }
+        // size of overview
+        var h = Math.sqrt(area*this.OverViewScale/aspect);
+        var w = h*aspect;
+        // Limit size
+        if (h > viewport[3]/2) {
+            h = viewport[3]/2;
+            var w = h*aspect;
+            this.OverViewScale = w*h/area;
+        }
+        // center of overview
+        var radius = Math.sqrt(h*h+w*w)/2;
+        // Construct the viewport.
+        this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
+                             viewport[1]+radius-h/2,
+                             w, h];
 
-        this.OverView.SetViewport(overViewport);
+        this.OverView.SetViewport(this.OverViewport);
         this.OverView.Camera.ComputeMatrix();
     }
     this.MainView.Camera.ComputeMatrix();
@@ -688,15 +702,18 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 Viewer.prototype.UpdateCamera = function() {
     var cam = this.MainView.Camera;
     this.ZoomTarget = cam.Height;
-    
+
     this.TranslateTarget[0] = cam.FocalPoint[0];
     this.TranslateTarget[1] = cam.FocalPoint[1];
     this.RollTarget = cam.Roll;
     if (this.OverView) {
-        this.OverView.Camera.Roll = cam.Roll;
+        //this.OverView.Camera.Roll = cam.Roll;
+        //this.OverView.Camera.ComputeMatrix();
+        this.OverView.Canvas.css({'transform':'rotate('+cam.Roll+'rad'});
+        this.OverView.Camera.Roll = 0;
         this.OverView.Camera.ComputeMatrix();
     }
-    
+
     this.MainView.Camera.ComputeMatrix();
     this.UpdateZoomGui();
 }
@@ -707,7 +724,7 @@ Viewer.prototype.SetCamera = function(center, rotation, height) {
     this.MainView.Camera.SetHeight(height);
     this.MainView.Camera.SetFocalPoint(center[0], center[1]);
     this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
-    
+
     this.UpdateCamera();
     eventuallyRender();
 }
@@ -943,7 +960,11 @@ Viewer.prototype.Animate = function() {
     this.MainView.Camera.SetHeight(this.ZoomTarget);
     this.MainView.Camera.Roll = this.RollTarget;
     if (this.OverView) {
-      this.OverView.Camera.Roll = this.RollTarget;
+        //this.OverView.Camera.Roll = this.RollTarget;
+        var roll = this.RollTarget;
+        this.OverView.Canvas.css({'transform':'rotate('+roll+'rad'});
+        this.OverView.Camera.Roll = 0;
+        this.OverView.Camera.ComputeMatrix();
     }
     this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
                                        this.TranslateTarget[1]);
@@ -962,7 +983,11 @@ Viewer.prototype.Animate = function() {
       = currentRoll + (this.RollTarget-currentRoll)
             *(timeNow-this.AnimateLast)/this.AnimateDuration;
     if (this.OverView) {
-      this.OverView.Camera.Roll = this.MainView.Camera.Roll;
+        //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
+        var roll = this.MainView.Camera.Roll;
+        this.OverView.Canvas.css({'transform':'rotate('+roll+'rad'});
+        this.OverView.Camera.Roll = 0;
+        this.OverView.Camera.ComputeMatrix();
     }
     this.MainView.Camera.SetFocalPoint(
         currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
@@ -1261,23 +1286,23 @@ Viewer.prototype.HandleMomentum = function(event) {
         window.cancelAnimationFrame(this.MomentumTimerId)
         this.MomentumTimerId = 0;
     }
-    
+
     var t = new Date().getTime();
     if (t - event.LastTime < 50) {
         var self = this;
         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
         return;
     }
-    
+
     // Integrate the momentum.
     event.LastTime = event.Time;
     event.Time = t;
     var dt = event.Time - event.LastTime;
-    
+
     var k = 200.0;
     var decay = Math.exp(-dt/k);
     var integ = (-k * decay + k);
-    
+
     var cam = this.MainView.Camera;
     cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
     cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
@@ -1292,13 +1317,13 @@ Viewer.prototype.HandleMomentum = function(event) {
     // Maybe two renders occur at the same time.
     //eventuallyRender();
     draw();
-    
+
     // Decay the momentum.
     this.MomentumX *= decay;
     this.MomentumY *= decay;
     this.MomentumScale *= decay;
     this.MomentumRoll *= decay;
-    
+
     if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
         Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
         // Change is small. Stop the motion.
@@ -1324,7 +1349,7 @@ Viewer.prototype.ConstrainCamera = function () {
     var spacing = this.MainView.GetLeafSpacing();
     var viewport = this.MainView.GetViewport();
     var cam = this.MainView.Camera;
-    
+
     var modified = false;
     if (cam.FocalPoint[0] < bounds[0]) {
         cam.SetFocalPoint(bounds[0], cam.FocalPoint[1]);
@@ -1360,36 +1385,11 @@ Viewer.prototype.ConstrainCamera = function () {
 }
 
 
-Viewer.prototype.HandleOverViewMouseDown = function(event) {
-    // This target for animation is not implemented cleanly.
-    // This fixes a bug: Overview translated rotates camamera back to zero.
-    this.RollTarget = this.MainView.Camera.Roll;
-
-    this.InteractionState = INTERACTION_OVERVIEW;
-    var x = event.offsetX;
-    var y = event.offsetY;
-    // Transform to view's coordinate system.
-    this.OverViewPlaceCamera(x, y);
-    return true;
-}    
-
-Viewer.prototype.HandleOverViewMouseMove = function(event) {
-    if (this.InteractionState !== INTERACTION_OVERVIEW) {
-        return false;
-    }
-    var x = event.offsetX;
-    var y = event.offsetY;
-    this.OverViewPlaceCamera(x, y);
-    // Animation handles the render.
-    return true;
-}
-
-
-
 
 Viewer.prototype.HandleMouseDown = function(event) {
     event.preventDefault(); // Keep browser from selecting images.
     EVENT_MANAGER.RecordMouseDown(event);
+
     if (EVENT_MANAGER.DoubleClick) {
         // Without this, double click selects sub elementes.
         event.preventDefault();
@@ -1400,7 +1400,7 @@ Viewer.prototype.HandleMouseDown = function(event) {
     if (this.ActiveWidget != null) {
 	      return this.ActiveWidget.HandleMouseDown(event);
     }
-    
+
     // Choose what interaction will be performed.
     if (event.which == 1 ) {
 	      if (event.ctrlKey) {
@@ -1423,7 +1423,7 @@ Viewer.prototype.HandleDoubleClick = function(event) {
     if (this.ActiveWidget != null) {
         return this.ActiveWidget.HandleDoubleClick(event);
     }
-    
+
     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
     if (event.which == 1) {
         this.AnimateZoomTo(0.5, mWorld);
@@ -1440,35 +1440,36 @@ Viewer.prototype.HandleMouseUp = function(event) {
         this.ActiveWidget.HandleMouseUp(event);
         return false; // trying to keep the browser from selecting images
     }
-    
+
     if (this.InteractionState != INTERACTION_NONE) {
         this.InteractionState = INTERACTION_NONE;
         RecordState();
     }
-    
+
     return false; // trying to keep the browser from selecting images
 }
 
 Viewer.prototype.ComputeMouseWorld = function(event) {
     // We need to save these for pasting annotation.
     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-    // Put this extra ivar in the even object.  
+    // Put this extra ivar in the even object.
     // This could be obsolete because we never pass this event to another object.
     event.worldX = this.MouseWorld[0];
     event.worldY= this.MouseWorld[1];
 }
 
+
 Viewer.prototype.HandleMouseMove = function(event) {
     event.preventDefault(); // Keep browser from selecting images.
     if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
     this.ComputeMouseWorld(event);
-    
+
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != null) {
 	      this.ActiveWidget.HandleMouseMove(event);
         return false; // trying to keep the browser from selecting images
     }
-    
+
     if (event.which == 0) {
 	      // See if any widget became active.
 	      if (this.AnnotationVisibility) {
@@ -1479,13 +1480,13 @@ Viewer.prototype.HandleMouseMove = function(event) {
 		            }
 	          }
 	      }
-	      
+
         return false; // trying to keep the browser from selecting images
     }
-    
+
     var x = event.offsetX;
     var y = event.offsetY;
-    
+
     // Drag camera in main view.
     // Dragging is too slow.  I want to accelerate dragging the further
     // this mouse moves.  This is a moderate change, so I am
@@ -1497,8 +1498,8 @@ Viewer.prototype.HandleMouseMove = function(event) {
 	      var cx = x - (this.MainView.Viewport[2]*0.5);
 	      var cy = y - (this.MainView.Viewport[3]*0.5);
 	      // GLOBAL views will go away when views handle this.
-	      this.MainView.Camera.HandleRoll(cx, cy, 
-					                              EVENT_MANAGER.MouseDeltaX, 
+	      this.MainView.Camera.HandleRoll(cx, cy,
+					                              EVENT_MANAGER.MouseDeltaX,
 					                              EVENT_MANAGER.MouseDeltaY);
 	      //if (this.OverView) {
 	      //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
@@ -1538,7 +1539,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     if (this.ActiveWidget != null) {
 	      return false;
     }
-    
+
     // We want to accumulate the target, but not the duration.
     var tmp = 0;
     if (event.deltaY) {
@@ -1555,19 +1556,19 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     } else if (tmp < 0) {
 	      this.ZoomTarget /= 1.1;
     }
-    
+
     // Compute translate target to keep position in the same place.
     //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
     //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
     var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
     var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-    this.TranslateTarget[0] = position[0] 
+    this.TranslateTarget[0] = position[0]
 	      - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-    this.TranslateTarget[1] = position[1] 
+    this.TranslateTarget[1] = position[1]
 	      - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-    
+
     this.RollTarget = this.MainView.Camera.Roll;
-    
+
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0; // hard code 200 milliseconds
     eventuallyRender();
@@ -1789,4 +1790,111 @@ function colorNameToHex(color)
 
 
 
+
+
+//==============================================================================
+// Overview slide widget stuff.
+
+Viewer.prototype.OverViewCheckActive = function(event) {
+    var x = event.offsetX;
+    var y = event.offsetY;
+    // Half height and width
+    var hw = this.OverViewport[2]/2;
+    var hh = this.OverViewport[3]/2;
+    // Center of the overview.
+    var cx = this.OverViewport[0]+hw;
+    var cy = this.OverViewport[1]+hh;
+
+    x = x-cx;
+    y = y-cy;
+    // Rotate into overview slide coordinates.
+    var roll = this.MainView.Camera.Roll;
+    var c = Math.cos(roll);
+    var s = Math.sin(roll);
+    var nx = Math.abs(c*x+s*y);
+    var ny = Math.abs(c*y-s*x);
+    if ((Math.abs(hw-nx) < 5 && ny < hh) ||
+        (Math.abs(hh-ny) < 5 && nx < hw)) {
+        this.OverViewActive = true;
+        this.OverView.Canvas.css({
+            'border-color': '#FF0'});
+    } else {
+        this.OverViewActive = false;
+        this.OverView.Canvas.css({
+            'border-color': '#AAA'});
+    }
+    //return this.OverViewActive;
+}
+
+
+
+
+
+// Interaction events that change the main camera.
+
+// TODO: Make the overview slide a widget.
+Viewer.prototype.HandleOverViewMouseDown = function(event) {
+    // This target for animation is not implemented cleanly.
+    // This fixes a bug: Overview translated rotates camamera back to zero.
+    this.RollTarget = this.MainView.Camera.Roll;
+
+    this.InteractionState = INTERACTION_OVERVIEW;
+
+    if (event.which == 1) {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        // Transform to view's coordinate system.
+        this.OverViewPlaceCamera(x, y);
+    } else if (event.which == 2 || event.which == 3) {
+        // Drag the overview larger and smaller.
+        var w = this.GetViewport()[2];
+        var p = Math.max(w-event.x,event.y);
+        this.OverViewScaleLast = p;
+    }
+    return true;
+}
+
+Viewer.prototype.HandleOverViewMouseMove = function(event) {
+    // This consumes events even when I return true.
+    if (this.InteractionState !== INTERACTION_OVERVIEW) {
+        // Drag originated outside overview.
+        // Could be panning.
+        return true;
+    }
+    var x = event.offsetX;
+    var y = event.offsetY;
+    if (event.which == 1) {
+        this.OverViewPlaceCamera(x, y);
+        // Animation handles the render.
+        return false;
+    } else if (event.which == 2 || event.which == 3) { 
+        // Try drag to change overview size
+        var w = this.GetViewport()[2];
+        var p = Math.max(w-event.x,event.y);
+        var d = p/this.OverViewScaleLast;
+        this.OverViewScale *= d*d;
+        this.OverViewScaleLast = p;
+        handleResize();
+        return false;
+    }
+    return true;
+}
+
+Viewer.prototype.HandleOverViewMouseWheel = function(event) {
+    var tmp = 0;
+    if (event.deltaY) {
+	      tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+	      tmp = event.wheelDelta;
+    }
+
+    if (tmp > 0) {
+        this.OverViewScale *= 1.2;
+	  } else if (tmp < 0) {
+        this.OverViewScale /= 1.2;
+    }
+    handleResize();
+
+    return true;
+}
 
