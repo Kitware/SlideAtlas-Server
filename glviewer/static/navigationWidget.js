@@ -57,6 +57,22 @@ function NavigationWidget() {
                   'height': '50px',
                   'padding': '0px 2px'});
 
+        // Put the stack display in the navigation button
+        this.NoteDisplay = $('<div>')
+            .appendTo(this.Tab.Div)
+            .css({
+                'opacity': '0.9',
+                'position': 'absolute',
+                'height':  '20px',
+                'width':   '100%',
+                'text-align' : 'center',
+                'color' : '#000',
+                'top' : '23px',
+                'left' : '0px',
+                'font-size':'10px',
+                'z-index': '10',
+                'pointer-events': 'none'})
+            .html("");
     }
 
 
@@ -222,6 +238,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         current.SynchronizeViews(1);
         // activate or deactivate buttons.
         this.Update();
+        this.NoteDisplay.html("" + current.StartIndex);
         return;
     }
 
@@ -259,6 +276,8 @@ NavigationWidget.prototype.NextNote = function() {
         current.SynchronizeViews(0);
         // activate or deactivate buttons.
         this.Update();
+        this.NoteDisplay.html("" + current.StartIndex);
+
         return;
     }
 
@@ -279,29 +298,31 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-  EVENT_MANAGER.CursorFlag = false;
-  if (this.SlideIndex <= 0) { return; }
-  var check = true;
-  if (EDIT) {
-    //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
-  }
-  if (check) {
-    this.SlideIndex -= 1;
-    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+    EVENT_MANAGER.CursorFlag = false;
+    if (this.SlideIndex <= 0) { return; }
+    var check = true;
+    if (EDIT) {
+        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
+    }
+    if (check) {
+        this.SlideIndex -= 1;
+        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        this.NoteDisplay.html("");
     }
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-  EVENT_MANAGER.CursorFlag = false;
-  if (this.SlideIndex >= this.Session.length - 1) { return; }
-  var check = true;
-  if (EDIT) {
-    //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
-  }
-  if (check) {
-    this.SlideIndex += 1;
-    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
-  }
+    EVENT_MANAGER.CursorFlag = false;
+    if (this.SlideIndex >= this.Session.length - 1) { return; }
+    var check = true;
+    if (EDIT) {
+        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
+    }
+    if (check) {
+        this.SlideIndex += 1;
+        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        this.NoteDisplay.html("");
+    }
 }
 
 NavigationWidget.prototype.LoadViewId = function(viewId) {
