@@ -145,6 +145,7 @@ ViewerRecord.prototype.Apply = function (viewer) {
           viewer.OverView.Camera.ComputeMatrix();
       }
       viewer.UpdateZoomGui();
+      viewer.UpdateCamera();
   }
 
   if (this.AnnotationVisibility != undefined) {
