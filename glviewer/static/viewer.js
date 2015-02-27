@@ -1058,9 +1058,6 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // See if any widget became active.
-    if (this.OverViewCheckActive(event)) {
-        return true;
-    }
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
             event.MouseX = event.Touches[touchIdx][0];
@@ -1393,14 +1390,6 @@ Viewer.prototype.HandleMouseDown = function(event) {
     event.preventDefault(); // Keep browser from selecting images.
     EVENT_MANAGER.RecordMouseDown(event);
 
-    if (this.OverViewActive) {
-        // TODO: Make the overview a widget.
-        // Experiment with rotating overview slide.
-        this.OverViewLastX = event.offsetX;
-        this.OverViewLastY = event.offsetY;
-        return false;
-    }
-
     if (EVENT_MANAGER.DoubleClick) {
         // Without this, double click selects sub elementes.
         event.preventDefault();
@@ -1475,11 +1464,6 @@ Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
     this.ComputeMouseWorld(event);
 
-    // Make the overview a widget
-    if (this.OverViewActive) {
-        return this.OverViewHandleMouseMove(event);
-    }
-
     // Forward the events to the widget if one is active.
     if (this.ActiveWidget != null) {
 	      this.ActiveWidget.HandleMouseMove(event);
@@ -1487,11 +1471,6 @@ Viewer.prototype.HandleMouseMove = function(event) {
     }
 
     if (event.which == 0) {
-        // Overview should be merged with other widgets..
-        if (this.OverViewCheckActive(event)) {
-            return true;
-        }
-
 	      // See if any widget became active.
 	      if (this.AnnotationVisibility) {
 	          for (var i = 0; i < this.WidgetList.length; ++i) {
@@ -1817,9 +1796,6 @@ function colorNameToHex(color)
 // Overview slide widget stuff.
 
 Viewer.prototype.OverViewCheckActive = function(event) {
-    if (event.which != 0) {
-        return this.OverViewActive;
-    }
     var x = event.offsetX;
     var y = event.offsetY;
     // Half height and width
@@ -1847,46 +1823,10 @@ Viewer.prototype.OverViewCheckActive = function(event) {
         this.OverView.Canvas.css({
             'border-color': '#AAA'});
     }
-    return this.OverViewActive;
+    //return this.OverViewActive;
 }
 
 
-
-
-// Handlers for active overview.
-// Rotation interaction
-Viewer.prototype.OverViewHandleMouseDown = function(event) {
-}
-
-Viewer.prototype.OverViewHandleMouseMove = function(event) {
-    if (event.which == 0) {
-        this.OverViewCheckActive(event);
-        return false;
-    }
-    if (event.which == 1) {
-        // center of overview
-        var cx = this.OverViewport[0] + this.OverViewport[2]/2;
-        var cy = this.OverViewport[1] + this.OverViewport[3]/2;
-        // vector from center of overview to mouse
-        var rx = event.offsetX - cx;
-        var ry = event.offsetY - cy;
-        var rm2 = (rx*rx)+(ry*ry);
-        // Compute angle of rotation
-        var dx = event.offsetX - this.OverViewLastX;
-        var dy = event.offsetY - this.OverViewLastY;
-        var dRoll = (dy*rx-dx*ry) / rm2;
-        this.MainView.Camera.Roll += dRoll;
-        this.UpdateCamera();
-        eventuallyRender();
-        this.OverViewLastX = event.offsetX;
-        this.OverViewLastY = event.offsetY;
-    }
-    return false;
-}
-
-Viewer.prototype.OverViewHandleMouseUp = function(event) {
-    this.OverViewCheckActive();
-}
 
 
 
@@ -1916,15 +1856,6 @@ Viewer.prototype.HandleOverViewMouseDown = function(event) {
 
 Viewer.prototype.HandleOverViewMouseMove = function(event) {
     // This consumes events even when I return true.
-    if (this.OverViewActive && event.which == 0) {
-        this.OverViewCheckActive(event);
-    }
-
-    if (this.OverViewActive) {
-        return this.OverViewMouseMove();
-    }
-
-
     if (this.InteractionState !== INTERACTION_OVERVIEW) {
         // Drag originated outside overview.
         // Could be panning.
