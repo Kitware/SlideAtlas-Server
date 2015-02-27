@@ -462,6 +462,9 @@ Viewer.prototype.SetSectionIndex = function(idx) {
 Viewer.prototype.SetOverViewBounds = function(bounds) {
     this.OverViewBounds = bounds;
     if (this.OverView) {
+        // With the rotating overview, the overview camera
+        // never changes. Maybe this should be set in
+        // "UpdateCamera".
         this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
         this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
                                            0.5*(bounds[2]+bounds[3]));
@@ -473,6 +476,17 @@ Viewer.prototype.GetOverViewBounds = function() {
     if (this.OverViewBounds) {
         return this.OverViewBounds;
     }
+    var cache = this.GetCache();
+    if (cache && cache.Image) {
+        if (cache.Image.bounds) {
+            return cache.Image.bounds;
+        }
+        if (cache.Image.dimensions) {
+            var dims = cache.Image.dimensions;
+            return [0, dims[0], 0, dims[1]];
+        }
+    }
+    // Depreciated code.
     if (this.OverView) {
         var cam = this.OverView.Camera;
         var halfHeight = cam.GetHeight() / 2;
@@ -641,14 +655,16 @@ Viewer.prototype.SetViewport = function(viewport) {
     this.OverView.Canvas.show();
 
     this.MainView.SetViewport(viewport);
+    this.MainView.Camera.ComputeMatrix();
+
+
+    // I do not know the way the viewport is used to place
+    // this overview.  It should be like other widgets
+    // and be placed relative to the parent.
     if (this.OverView) {
         var area = viewport[2]*viewport[3];
-        var aspect = viewport[2] / viewport[3];
-        var cache = this.GetCache();
-        if (cache && cache.Image) {
-            var image = cache.Image;
-            aspect = image.dimensions[0]/image.dimensions[1];
-        }
+        var bounds = this.GetOverViewBounds();
+        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
         // size of overview
         var h = Math.sqrt(area*this.OverViewScale/aspect);
         var w = h*aspect;
@@ -668,7 +684,6 @@ Viewer.prototype.SetViewport = function(viewport) {
         this.OverView.SetViewport(this.OverViewport);
         this.OverView.Camera.ComputeMatrix();
     }
-    this.MainView.Camera.ComputeMatrix();
 }
 
 Viewer.prototype.GetViewport = function() {
@@ -700,6 +715,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 // This sets the overview camera from the main view camera.
 // The user can change the mainview camera and then call this method.
 Viewer.prototype.UpdateCamera = function() {
+
     var cam = this.MainView.Camera;
     this.ZoomTarget = cam.Height;
 
