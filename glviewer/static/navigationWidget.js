@@ -5,102 +5,146 @@
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function NavigationWidget() {
-  // Load the session slides from the localStorage
-  this.SlideIndex = 0;
-  this.Session = [];
-  if (localStorage && localStorage.session) {
-    this.Session = JSON.parse(localStorage.session);
-    // Find the index of the current slide.
-    while (this.SlideIndex < this.Session.length &&
-           this.Session[this.SlideIndex] != VIEW_ID) {
-      ++this.SlideIndex;
+
+   // Load the session slides from the localStorage
+    this.SlideIndex = 0;
+    this.Session = [];
+    if (localStorage && localStorage.session) {
+        this.Session = JSON.parse(localStorage.session);
+        // Find the index of the current slide.
+        while (this.SlideIndex < this.Session.length &&
+               this.Session[this.SlideIndex] != VIEW_ID) {
+            ++this.SlideIndex;
+        }
+        if (this.SlideIndex >= this.Session.length) {
+            // We did not find the slide.
+            this.SlideIndex = 0;
+            this.Session = [];
+        }
     }
-    if (this.SlideIndex >= this.Session.length) {
-      // We did not find the slide.
-      this.SlideIndex = 0;
-      this.Session = [];
+
+    var self = this;
+    var size = '40px';
+    var left = '170px';
+    var bottom = '10px';
+    if (MOBILE_DEVICE) {
+        size = '80px';
+        bottom = '170px';
+        left = '0px';
+        if (MOBILE_DEVICE == "iPhone") {
+            size = '100px';
+            bottom = '80px';
+            left = '80px';
+        }
+        
+        // fake a tab
+        this.Tab = {};
+        this.Tab.Panel = 
+            $('<div>').appendTo('body')
+                      .hide()
+                      .css({'position': 'absolute',
+                            'left' : left,
+                            'bottom' : bottom,
+                            'z-index': '5'});
+    } else {
+        this.Tab = new Tab("/webgl-viewer/static/nav.png");
+        new ToolTip(this.Tab.Div, "Navigation");
+        this.Tab.Div.css({'left': '50px',
+                          'bottom': '0px'});
+        this.Tab.Panel
+            .css({'left': '-45px',
+                  'width': '200px',
+                  'height': '50px',
+                  'padding': '0px 2px'});
+
+        // Put the stack display in the navigation button
+        this.NoteDisplay = $('<div>')
+            .appendTo(this.Tab.Div)
+            .css({
+                'opacity': '0.9',
+                'position': 'absolute',
+                'height':  '20px',
+                'width':   '100%',
+                'text-align' : 'center',
+                'color' : '#000',
+                'top' : '23px',
+                'left' : '0px',
+                'font-size':'10px',
+                'z-index': '10',
+                'pointer-events': 'none'})
+            .html("");
     }
-  }
 
-  var size = '40px';
-  var left = '170px';
-  var bottom = '10px';
-  if (MOBILE_DEVICE) {
-    size = '80px';
-    bottom = '170px';
-    left = '0px';
-    if (MOBILE_DEVICE == "iPhone") {
-      size = '100px';
-      bottom = '80px';
-      left = '80px';
-    }
-  }
-  var self = this;
-  this.Div =
-    $('<div>').appendTo(VIEW_PANEL)
-              .css({'position': 'absolute',
-                    'left' : left,
-                    'bottom' : bottom,
-                    'z-index': '2'});
 
-  this.PreviousSlideButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/previousSlide.png")
-              .click(function(){self.PreviousSlide();});
-  this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, "Previous Slide");
+    this.PreviousSlideButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/previousSlide.png")
+        .click(function(){self.PreviousSlide();});
+    this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, 
+                                        "Previous Slide. (page-up)");
 
-  this.PreviousNoteButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/previousNote.png")
-              .click(function(){self.PreviousNote();});
-  this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, "Previous Note");
+    this.PreviousNoteButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/previousNote.png")
+        .click(function(){self.PreviousNote();});
+    this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, 
+                                       "Previous Note. (p)");
 
-  this.NextNoteButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/nextNote.png")
-              .click(function(){self.NextNote();});
-  this.NextNoteTip = new ToolTip(this.NextNoteButton, "Next Note");
+    this.NextNoteButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/nextNote.png")
+        .click(function(){self.NextNote();});
+    this.NextNoteTip = new ToolTip(this.NextNoteButton, 
+                                   "Next Note, (n, space)");
 
-  this.NextSlideButton =
-    $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
-              .attr('src',"webgl-viewer/static/nextSlide.png")
-              .click(function(){self.NextSlide();});
-  this.NextSlideTip = new ToolTip(this.NextSlideButton, "Next Slide");
+    this.NextSlideButton =
+        $('<img>').appendTo(this.Tab.Panel)
+        .css({'height': size,
+              'width': size,
+              'padding' : '5px',
+              'opacity': '0.6'})
+        .attr('src',"webgl-viewer/static/nextSlide.png")
+        .click(function(){self.NextSlide();});
+    this.NextSlideTip = new ToolTip(this.NextSlideButton, 
+                                    "Next Slide. (page-down)");
 
-  this.CopyrightWrapper =
-    $('<div>').appendTo(VIEW_PANEL)
-              .css({
-                'width': '100%',
-                'text-align': 'center'
-              }).html();
-
+    this.CopyrightWrapper =
+        $('<div>').appendTo(VIEW_PANEL)
+        .css({
+            'width': '100%',
+            'text-align': 'center'
+        }).html();
 }
 
 
 NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
   // 34=page down, 78=n, 32=space
-  if (keyCode == 34 || keyCode == 78 || keyCode == 32) {
+  if (keyCode == 34) {
+    this.NextSlide();
+    return true;
+  }
+  if (keyCode == 78 || keyCode == 32) {
     this.NextNote();
     return true;
   }
   // 33=page up, 80=p
-  if (keyCode == 33 || keyCode == 80) {
+  if (keyCode == 33) {
+    this.PreviousSlide();
+    return true;
+  }
+  if (keyCode == 80) {
     this.PreviousNote();
     return true;
   }
@@ -113,12 +157,13 @@ NavigationWidget.prototype.ToggleVisibility = function() {
   this.SetVisibility( ! this.Visibility);
 }
 
+// Used on mobile.
 NavigationWidget.prototype.SetVisibility = function(v) {
   this.Visibility = v;
   if (v) {
-    this.Div.show();
+    this.Tab.Panel.show();
   } else {
-    this.Div.hide();
+    this.Tab.Panel.hide();
   }
 }
 
@@ -193,6 +238,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         current.SynchronizeViews(1);
         // activate or deactivate buttons.
         this.Update();
+        this.NoteDisplay.html("" + current.StartIndex);
         return;
     }
 
@@ -230,6 +276,8 @@ NavigationWidget.prototype.NextNote = function() {
         current.SynchronizeViews(0);
         // activate or deactivate buttons.
         this.Update();
+        this.NoteDisplay.html("" + current.StartIndex);
+
         return;
     }
 
@@ -250,29 +298,31 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-  EVENT_MANAGER.CursorFlag = false;
-  if (this.SlideIndex <= 0) { return; }
-  var check = true;
-  if (EDIT) {
-    //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
-  }
-  if (check) {
-    this.SlideIndex -= 1;
-    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+    EVENT_MANAGER.CursorFlag = false;
+    if (this.SlideIndex <= 0) { return; }
+    var check = true;
+    if (EDIT) {
+        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
+    }
+    if (check) {
+        this.SlideIndex -= 1;
+        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        this.NoteDisplay.html("");
     }
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-  EVENT_MANAGER.CursorFlag = false;
-  if (this.SlideIndex >= this.Session.length - 1) { return; }
-  var check = true;
-  if (EDIT) {
-    //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
-  }
-  if (check) {
-    this.SlideIndex += 1;
-    NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
-  }
+    EVENT_MANAGER.CursorFlag = false;
+    if (this.SlideIndex >= this.Session.length - 1) { return; }
+    var check = true;
+    if (EDIT) {
+        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
+    }
+    if (check) {
+        this.SlideIndex += 1;
+        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        this.NoteDisplay.html("");
+    }
 }
 
 NavigationWidget.prototype.LoadViewId = function(viewId) {

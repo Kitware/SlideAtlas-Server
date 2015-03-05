@@ -1,9 +1,3 @@
-// I am adding a levels with grids to index tiles in addition
-// to the tree.  Eventually I want to get rid fo the tree.
-// I am trying to get rid of the roots now.
-
-
-
 // A stripped down source object.
 // A source object must have a getTileUrl method.
 // It can have any instance variables it needs to
@@ -82,29 +76,14 @@ function FindCache(image) {
 
 
 
-
-
-
 //==============================================================================
-function CacheLevel(xGridDim, yGridDim) {
-    this.Tiles = new Array(xGridDim*yGridDim);
-    this.GridDims = [xGridDim, yGridDim];
-}
-// No bounds checking.
-CacheLevel.prototype.SetTile=function(tile){
-    return this.Tiles[tile.X+(tile.Y*this.GridDims[0])] = tile;
-}
-CacheLevel.prototype.GetTile=function(x, y){
-    return this.Tiles[x+(y*this.GridDims[0])];
-}
 
-
-//==============================================================================
 function Cache() {
     //  this.UseIIP = Boolean(image.filename !== undefined && image.filename.split(".")[1] === 'ptif');
     this.UseIIP = false;
-    this.Levels = [];
+    this.TileSource = undefined;
 
+    this.RootTiles = [];
     // Keep a global list for pruning tiles.
     CACHES.push(this);
     this.NumberOfSections = 1;
@@ -122,22 +101,11 @@ Cache.prototype.SetImageData = function(image) {
     
     this.Image = image;
 
-    this.Levels = new Array(image.levels);
-    for ( var i = 0; i < image.levels; ++i) {
-        var level = image.levels-1-i;
-        this.Levels[i] = new CacheLevel(
-            Math.ceil(image.dimensions[0]/(image.TileSize<<level)),
-            Math.ceil(image.dimensions[1]/(image.TileSize<<level)));
-    }
-
-    // TODO:  This should not be here.
-    // Source sound be initialized someplace else.
-    // Other sources have to overwrite this default.
-    this.TileSource = new SlideAtlasSource();
-    this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
+    this.Source = "/tile?img="+image._id+"&db="+image.database+"&name=";
     
     this.Warp = null;
     this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
+    this.RootTiles = [];
 
     if (image.type && image.type == "stack") {
         this.NumberOfSections = image.dimensions[2];
@@ -155,6 +123,7 @@ Cache.prototype.SetImageData = function(image) {
 }
 
 Cache.prototype.SetScene = function(scene) {
+    this.TileSource = scene;
     var image = {
         TileSize: scene.tileSize,
         levels:   scene.numLevels,
@@ -162,7 +131,6 @@ Cache.prototype.SetScene = function(scene) {
         bounds: [0, scene.dimensions[0], 0, scene.dimensions[1]]};
 
     this.SetImageData(image);
-    this.TileSource = scene;
 }
 
 
@@ -202,6 +170,11 @@ Cache.prototype.WorldToImage = function(worldPt) {
 }
 
 
+
+
+
+
+
 Cache.prototype.GetSource=function()
 {
     return this.Source;
@@ -218,6 +191,33 @@ Cache.prototype.LoadRoots = function () {
     }
     LoadQueueUpdate();
     return;
+
+    // Theses were for a demo (preload).
+    for (var slice = 201; slice < 251; ++slice) {
+        for (var j = 0; j < 4; ++j) {
+            qTile = this.GetTile(slice, 1, j);
+            qTile.LoadQueueAdd();
+        }
+    }
+    for (var slice = 0; slice < 50; ++slice) {
+        for (var j = 0; j < 4; ++j) {
+            qTile = this.GetTile(slice, 1, j);
+            qTile.LoadQueueAdd();
+        }
+        qTile = this.GetTile(slice, 5, 493);
+        qTile.LoadQueueAdd();
+        qTile = this.GetTile(slice, 5, 494);
+        qTile.LoadQueueAdd();
+        qTile = this.GetTile(slice, 5, 495);
+        qTile.LoadQueueAdd();
+        qTile = this.GetTile(slice, 5, 525);
+        qTile.LoadQueueAdd();
+        qTile = this.GetTile(slice, 5, 526);
+        qTile.LoadQueueAdd();
+        qTile = this.GetTile(slice, 5, 527);
+        qTile.LoadQueueAdd();
+    }
+    LoadQueueUpdate();
 }
 
 
@@ -314,21 +314,19 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
         bounds = iBounds;
     }
 
-    // Some logic for progressive rendering is in the loader:
+    // Logic for progressive rendering is in the loader:
     // Do not load a tile if its parent is not loaded.
 
-    var tile;
-    var tileIds;
     var tiles = [];
-    // TODO: Make a "GetVisibleTiles" method.
-    // Render all tiles from low res to high.
-    // Although this extra work, it covers up cracks.
-    // Rendering just level 0 should be enough, but that
-    // messed up progressive rendering logic in section.js.
-    // Just do this until I unify the progressive rendering
-    // Probably in this method. (check is loaded).
-    for (var i = level; i >=0; --i) {
-        tileIds = this.GetVisibleTileIds(i, bounds);
+    var endLevel = level;
+    // GetTile is inefficient and may be causing the ipad to render slowly.
+    if (I_PAD_FLAG) {
+        // Get rid of white line by rendering all ancestors.
+        endLevel = 0;
+    }
+    for (var i = level; i >= endLevel; --i) {
+        var tileIds = this.GetVisibleTileIds(i, bounds);
+        var tile;
         for (var j = 0; j < tileIds.length; ++j) {
             tile = this.GetTile(slice, i, tileIds[j]);
             // If the tile is loaded or loading,
@@ -337,7 +335,6 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
             tiles.push(tile);
         }
     }
-
     LoadQueueUpdate();
 
     return tiles;
@@ -431,41 +428,61 @@ Cache.prototype.UpdateBranchTimeStamp = function(tile) {
 }
 
 Cache.prototype.GetTile = function(slice, level, id) {
-    //Separate x and y.
-    var dim = 1 << level;
-    var x = id & (dim-1);
-    var y = id >> level;
-    
-    return this.RecursiveGetTile(level, x, y, slice);
+  //Separate x and y.
+  var dim = 1 << level;
+  var x = id & (dim-1);
+  var y = id >> level;
+  if (this.RootTiles[slice] == null) {
+    var tile;
+    var name;
+    if (this.Image.type && this.Image.type == "stack") {
+      // name = slice + "/t";
+      name = slice.toString();
+    } else {
+      name = "t";
+    }
+    tile = new Tile(0,0,slice, 0, name, this);
+    this.RootTiles[slice] = tile;
+  }
+  return this.RecursiveGetTile(this.RootTiles[slice], level, x, y, slice);
 }
 
-Cache.prototype.RecursiveGetTile = function(level, x, y, z) {
-    var tile = this.Levels[level].GetTile(x,y);
-    if (tile) {
-        return tile;
+// This creates the tile tree down to the tile (if necessary) and returns
+// the tile requested.  The tiles objects created are not added to
+// the load queue here.
+Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
+  if (deltaDepth == 0) {
+    return node;
+  }
+  --deltaDepth;
+  var cx = (x>>deltaDepth)&1;
+  var cy = (y>>deltaDepth)&1;
+  var childIdx = cx+(2*cy);
+  var child = node.Children[childIdx];
+  if (child == null) {
+    var childName = node.Name;
+    if (childIdx == 0) {childName += "q";}
+    if (childIdx == 1) {childName += "r";}
+    if (childIdx == 2) {childName += "t";}
+    if (childIdx == 3) {childName += "s";}
+    child = new Tile(x>>deltaDepth, y>>deltaDepth, z,
+                     (node.Level + 1),
+                     childName, this);
+    // This is to fix a bug. Root.BranchTime larger
+    // than all children BranchTimeStamps.  When
+    // long branch is added, node never gets updated.
+    if (node.Children[0] == null && node.Children[1] == null &&
+        node.Children[2] == null && node.Children[3] == null) {
+        node.BranchTimeStamp = GetCurrentTime();
     }
-    var tile = new Tile(x, y, z, level,
-                        this.TileSource.getTileUrl(level, x, y, z),
-                        this);
-    this.Levels[level].SetTile(tile);
-    if (level > 0) {
-        var parent = this.RecursiveGetTile(level-1,x>>1, y>>1, z);
-        // I do not know if this is still valid.
-        // This is to fix a bug. Root.BranchTime larger
-        // than all children BranchTimeStamps.  When
-        // long branch is added, node never gets updated.
-        if (parent.Children[0] == null && parent.Children[1] == null &&
-            parent.Children[2] == null && parent.Children[3] == null) {
-            parent.BranchTimeStamp = GetCurrentTime();
-        }
-        var cx = x&1;
-        var cy = y&1;
-        var childIdx = cx+(2*cy);
-        parent.Children[childIdx] = tile;
-        tile.Parent = parent;
-    }
-    return tile;
+
+    node.Children[childIdx] = child;
+    child.Parent = node;
+  }
+  return this.RecursiveGetTile(child, deltaDepth, x, y, z);
 }
+
+
 
 
 // Find the oldest tile, remove it from the tree and return it to be recycled.
@@ -473,14 +490,14 @@ Cache.prototype.RecursiveGetTile = function(level, x, y, z) {
 // PRUNE_TIME_TILES and PRUNE_TIME_TEXTURES are compared with used time of tile.
 Cache.prototype.PruneTiles = function()
 {
-    for (var i = 0; i < this.Levels[0].Tiles.length; ++i) {
-        var node = this.Levels[0].Tiles[i];
-        if (node != null) {
-            if (node.BranchTimeStamp < PRUNE_TIME_TILES || node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
-                this.RecursivePruneTiles(node);
-            }
-        }
+  for (var i = 0; i < this.RootTiles.length; ++i) {
+    var node = this.RootTiles[i];
+    if (node != null) {
+      if (node.BranchTimeStamp < PRUNE_TIME_TILES || node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+        this.RecursivePruneTiles(node);
+      }
     }
+  }
 }
 
 Cache.prototype.RecursivePruneTiles = function(node)

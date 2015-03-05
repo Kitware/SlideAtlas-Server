@@ -121,25 +121,37 @@ function doesBrowserSupportWebGL(canvas) {
 
 
 function initGL() {
-  // Add a new canvas.
-  CANVAS = $('<canvas>').appendTo('body').css({
-      'position': 'absolute',
-      'width': '100%',
-      'height': '100%',
-      'top' : '0px',
-      'left' : '0px',
-      'z-index': '1'
-  }); // class='fillin nodoubleclick'
-  //this.canvas.onselectstart = function() {return false;};
-  //this.canvas.onmousedown = function() {return false;};
-  GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
 
-  // Defined in HTML
-  initShaderPrograms();
-  initOutlineBuffers();
-  initImageTileBuffers();
-  GL.clearColor(1.0, 1.0, 1.0, 1.0);
-  GL.enable(GL.DEPTH_TEST);
+    // Add a new canvas.
+    CANVAS = $('<canvas>').appendTo('body').css({
+        'position': 'absolute',
+        'width': '100%',
+        'height': '100%',
+        'top' : '0px',
+        'left' : '0px',
+        'z-index': '1'
+    }); // class='fillin nodoubleclick'
+    //this.canvas.onselectstart = function() {return false;};
+    //this.canvas.onmousedown = function() {return false;};
+    GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
+
+    // Defined in HTML
+    initShaderPrograms();
+    initOutlineBuffers();
+    initImageTileBuffers();
+    GL.clearColor(1.0, 1.0, 1.0, 1.0);
+    GL.enable(GL.DEPTH_TEST);
+
+    VIEW_PANEL = $('<div>')
+        .appendTo('body')
+        .css({
+            'position': 'absolute',
+            'width': '100%',
+            'height': '100%',
+            'top' : '0px',
+            'left' : '0px',
+            'z-index': '3'
+        });
 }
 
 
@@ -359,10 +371,10 @@ function initView(viewport) {
 
 function initGC() {
 
-  detectMobile();
+    detectMobile();
 
-  // Add a new canvas.
-  CANVAS = $('<div>')
+    // Add a new canvas.
+    CANVAS = $('<div>')
         .appendTo('body').css({
             'position': 'absolute',
             'width': '100%',
@@ -372,7 +384,7 @@ function initGC() {
             'z-index': '1'
         });
 
-  VIEW_PANEL = $('<div>')
+    VIEW_PANEL = $('<div>')
         .appendTo('body')
         .css({
             'position': 'absolute',
@@ -464,18 +476,10 @@ $(window).bind('orientationchange', function(event) {
     handleResize();
 });
 
+
+
 // Getting resize right was a major pain.
 function handleResize() {
-    screenDiv = $('<div>').appendTo('body')
-                          .css({
-                            'background-color': '#f00',
-                            'border': '1px solid black',
-                            'width': '100%',
-                            'height': '100%',
-                            'z-index': '10'
-                          });
-
-
     var width = CANVAS.width();
     var height = CANVAS.height();
 
@@ -487,21 +491,16 @@ function handleResize() {
       document.documentElement.setAttribute('height', height + "px");
     }
 
-    // CANVAS is the containing div for the actual <canvas> tags in the 2D case.
-    if(GL){
-      var canvasParent = CANVAS[0].parentNode;
-      width = canvasParent.clientWidth;
-      height = canvasParent.clientHeight;
-    }
-
     if(height == 0){
       height = window.innerHeight;
     }
 
     if (GL) {
-      CANVAS.attr("width",width.toString());
-      CANVAS.attr("height",height.toString());
-      GL.viewport(0, 0, width, height);
+        CANVAS[0].width = width;
+        CANVAS[0].height = height;
+        //gl.viewportWidth = canvas.width;
+        //gl.viewportHeight = canvas.height;
+        GL.viewport(0, 0, width, height);
     } // GL.SetViewport does the work for 2d canvases.
 
     // Handle resizing of the favorites bar.
@@ -517,6 +516,16 @@ function handleResize() {
     // The remaining width is split between the two viewers.
     var width1 = viewPanelWidth * VIEWER1_FRACTION;
     var width2 = viewPanelWidth - width1;
+
+    if (GL) {
+        // HACK:  view positioning is half managed by browser (VIEW_PANEL)
+        // and half by this resize viewport chain.  I want to get rid of the
+        // viewport completely, but until then, I have to manage both.
+        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create 
+        // a separate webgl canvas for each view because thay cannot share 
+        // texture images.
+        CANVAS.css({"left":viewPanelLeft});
+    }
 
     // Setup the view panel div to be the same as the two viewers.
     VIEW_PANEL.css({'left': viewPanelLeft+'px',
@@ -577,8 +586,6 @@ function handleTouchEnd(event) {EVENT_MANAGER.HandleTouchEnd(event);}
 function handleTouchCancel(event) {EVENT_MANAGER.HandleTouchCancel(event);}
 
 function handleKeyDown(event) {
-    // control: 17, z: 90, y: 89
-    if (event.keyCode == 34) { SessionAdvance();}
     return EVENT_MANAGER.HandleKeyDown(event);
 }
 function handleKeyUp(event) {
@@ -601,7 +608,8 @@ function StartView() {
     detectMobile();
     $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
-    var testCanvas = document.getElementById("gltest");
+    //var testCanvas = document.getElementById("gltest");
+
     // I think the webgl viewer crashes.
     // Maybe it is the texture leak I have seen in connectome.
     // Just use the canvas for now.
@@ -609,14 +617,12 @@ function StartView() {
     // memory properly.
     // NOTE: I am getting similar crashe with the canvas too.
     // Stack is running out of some resource.
-    //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
-    // initGL(); // Sets CANVAS and GL global variables
-    //} else {
-      initGC();
-    //}
+    if ( ! MOBILE_DEVICE && false) { // && doesBrowserSupportWebGL(testCanvas)) {
+        initGL(); // Sets CANVAS and GL global variables
+    } else {
+        initGC();
+    }
     EVENT_MANAGER = new EventManager(CANVAS);
-
-
 
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
@@ -637,9 +643,6 @@ function StartView() {
     if (MOBILE_DEVICE) {
         NAVIGATION_WIDGET.SetVisibility(false);
         MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-        //VIEWER1.AddGuiObject(MOBILE_ANNOTATION_WIDGET.MenuFavoriteButton, "Bottom", 0, "Left", 0);
-    } else {
-        VIEWER1.AddGuiObject(NAVIGATION_WIDGET.Div, "Bottom", 0, "Left", 50);
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();

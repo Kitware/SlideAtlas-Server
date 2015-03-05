@@ -16,30 +16,12 @@ function MobileAnnotationWidget() {
   }
   
   var self = this;
-  this.MenuFavoriteButton =
-    $('<img>')
-      .appendTo('body')
-      .css({'position': 'absolute',
-            'height': '40px',
-            'width': '40px',
-            'left': '0px',
-            'bottom': '10px',
-            'padding' : '5px',
-            'opacity': '0.6',
-            'z-index': '3'})
-      .attr('src',"webgl-viewer/static/favorite-star.png")
-      .click(function(){ self.ShowHideFavorites(); });
-  this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites Menu");
-
-  //VIEWER1.AddGuiObject(this.MenuFavoriteButton[0], "Bottom", 0, "Left", 0);
-
-  var self = this;
   this.Div =
     $('<div>').appendTo('body')
               .css({'position': 'absolute',
                     'right' : right,
                     'bottom' : bottom,
-                    'z-index': '2'});
+                    'z-index': '5'});
 
   // I cannot get touch events that start in the image to continue in
   // the document / viewer.  Press to place, then interact to position.
@@ -119,10 +101,8 @@ MobileAnnotationWidget.prototype.SetVisibility = function(v) {
   this.Visibility = v;
   if (v) {
     this.Div.show();
-    this.MenuFavoriteButton.show();
   } else {
     this.Div.hide();
-    this.MenuFavoriteButton.hide();
   }
 }
 

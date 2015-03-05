@@ -10,7 +10,6 @@ Tab = (function () {
     function Tab (imageSrc) {
         var self = this; // trick to set methods in callbacks.
 
-        if ( ! MOBILE_DEVICE) {
         this.Div = $('<div>')
             .appendTo(VIEW_PANEL)
             .attr('id', 'debug')
@@ -48,7 +47,6 @@ Tab = (function () {
                 'left':  '-5px',
                 'z-index': '4',
                 'padding': '2px 2px 0px 2px'});
-        }
 
         Tabs.push(this);
     }

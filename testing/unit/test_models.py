@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 slideatlaspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(slideatlaspath)
 
+from slideatlas import models
 from slideatlas.models import Image
 from slideatlas.models import ImageStore, View, Session
 
@@ -44,6 +45,16 @@ def test_sess_access():
         logger.info("Found sess :  %s"%(str(asess.__dict__)))
 
 
+def test_collection_access():
+    """ Snippet to test collection access """
+    all_collections_query = models.Collection.objects\
+        .no_dereference()
+
+    can_admin_collections = all_collections_query.can_access(models.Operation.admin)
+
+    for col in all_collections_query:
+        print col.label
+
 
 if __name__ == "__main__":
     """
@@ -65,4 +76,5 @@ if __name__ == "__main__":
     # test_modify_store()
     # test_image_access()
     # test_view_access()
-    test_sess_access()
+    # test_sess_access()
+    test_collection_access()

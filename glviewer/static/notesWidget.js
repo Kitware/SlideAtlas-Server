@@ -1208,39 +1208,40 @@ NotesWidget.prototype.Modified = function() {
 
 
 NotesWidget.prototype.SaveBrownNote = function() {
-  // Create a new note.
-  var note = new Note();
-  note.RecordView();
+    // Create a new note.
+    var note = new Note();
+    note.RecordView();
 
-  // The note will want to know its context
-  note.SetParent(this.Iterator.GetNote());
-  
-  // Bug: canvas.getDataUrl() not supported in Safari on iPad.
-  // Fix: If on mobile, use the thumbnail for the entire slide.
-  var src;
-  if(MOBILE_DEVICE){
-    var image = VIEWER1.GetCache().Image;
-    src = "http://slide-atlas.org/thumb?db=" + image.database + "&img=" + image._id + "";
-  } else {
-    var thumb = CreateThumbnailImage(110);
-    src = thumb.src;
-  }
-  
-  // Save the note in the admin database for this specific user.
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/saveusernote",
-      data: {"note": JSON.stringify(note.Serialize(false)),
-             "thumb": src,
-             "col" : "views",
-             "type": "Favorite"},//"favorites"
-    success: function(data,status) {
-      note.Id = data;
-      LoadFavorites();
-    },
-    error: function() {
-      alert( "AJAX - error() : saveusernote 2" );
-    },
+    // This is not used and will probably be taken out of the scheme,
+    note.SetParent(this.Iterator.GetNote());
+
+    // Make a thumbnail image to represent the favorite.
+    // Bug: canvas.getDataUrl() not supported in Safari on iPad.
+    // Fix: If on mobile, use the thumbnail for the entire slide.
+    var src;
+    if(MOBILE_DEVICE){
+        var image = VIEWER1.GetCache().Image;
+        src = "http://slide-atlas.org/thumb?db=" + image.database + "&img=" + image._id + "";
+    } else {
+        var thumb = CreateThumbnailImage(110);
+        src = thumb.src;
+    }
+
+    // Save the favorite (note) in the admin database for this specific user.
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveusernote",
+        data: {"note": JSON.stringify(note.Serialize(false)),
+               "thumb": src,
+               "col" : "views",
+               "type": "Favorite"},//"favorites"
+        success: function(data,status) {
+            note.Id = data;
+            LoadFavorites();
+        },
+        error: function() {
+            alert( "AJAX - error() : saveusernote 2" );
+        },
     });
 }
 

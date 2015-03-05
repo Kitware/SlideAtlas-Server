@@ -31,7 +31,7 @@ class CollectionListAPI(ListAPIResource):
 
 ################################################################################
 class CollectionItemAPI(ItemAPIResource):
-    @security.AdminSiteRequirement.protected
+    @security.AdminCollectionRequirement.protected
     def get(self, collection):
         collection_son = collection.to_son()
         sessions = models.Session.objects(collection=collection)

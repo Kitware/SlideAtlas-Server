@@ -487,6 +487,12 @@ EventManager.prototype.HandleTouch = function(e, startFlag, viewer) {
     this.MouseX = this.MouseX / numTouches;
     this.MouseY = this.MouseY / numTouches;
 
+    // Hack because we are moving away from using the event manager
+    // Mouse interaction are already independant...
+    this.offsetX = this.MouseX;
+    this.offsetY = this.MouseY;
+
+
     return true;
 }
 

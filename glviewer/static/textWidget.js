@@ -14,7 +14,7 @@
 
 //==============================================================================
 
-
+var DEBUG;
 
 var TEXT_WIDGET_WAITING = 0;
 var TEXT_WIDGET_ACTIVE = 1;
@@ -23,6 +23,7 @@ var TEXT_WIDGET_DRAG_TEXT = 3; // Drag text but leave the position the same.
 var TEXT_WIDGET_PROPERTIES_DIALOG = 4;
 
 function TextWidget (viewer, string) {
+    DEBUG = this;
     if (viewer == null) {
         return null;
     }
@@ -306,7 +307,7 @@ TextWidget.prototype.Load = function(obj) {
 // When the arrow is visible, the text is offset from the position (tip of arrow).
 TextWidget.prototype.SetTextOffset = function(x, y) {
   this.SavedTextAnchor = [-x, -y];
-  this.Text.Anchor = this.SavedTextAnchor;
+  this.Text.Anchor = this.SavedTextAnchor.slice(0);
   this.UpdateArrow();
 }
 
@@ -326,13 +327,13 @@ TextWidget.prototype.SetVisibilityMode = function(mode) {
         if (this.SavedTextAnchor == undefined) {
             this.SavedTextAnchor = [-30, 0];
         }
-        this.Text.Anchor = this.SavedTextAnchor;
+        this.Text.Anchor = this.SavedTextAnchor.slice(0);
         this.Arrow.Visibility = true;
         this.Arrow.Origin = this.Text.Position;
         this.UpdateArrow();
     } else if(mode == 0) { // turn glyph off
         // save the old anchor incase glyph is turned back on.
-        this.SavedTextAnchor = [this.Text.Anchor[0], this.Text.Anchor[1]];
+        this.SavedTextAnchor = this.Text.Anchor.slice(0);
         // Put the new (invisible rotation point (anchor) in the middle bottom of the bounds.
         this.Text.UpdateBuffers(); // computes pixel bounds.
         this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];

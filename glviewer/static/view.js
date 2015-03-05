@@ -17,9 +17,9 @@ function View () {
     this.OutlineCamMatrix = mat4.create();
     
     // 2d canvas
+    // Add a new canvas.
+    this.Canvas = $('<canvas>');
     if ( ! GL) {
-        // Add a new canvas.
-        this.Canvas = $('<canvas>');
         this.Context2d = this.Canvas[0].getContext("2d");
     }
 }
@@ -38,21 +38,19 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Camera.SetViewport(viewport);
     
     // 2d canvas
-    if ( ! GL) {
-        // Add a new canvas.
-        this.Canvas
-            .css({'position': 'absolute',
-                  'border-style': 'solid',
-                  'border-width': '1px',
-                  'border-color': '#AAA',
-                  'left' : viewport[0]+"px",
-                  'width': viewport[2]+"px",
-                  'bottom' : viewport[1]+"px",
-                  'height': viewport[3]+"px",
-                  'z-index': layer.toString()});
-        if ( ! hide) {
-            this.Canvas.appendTo(VIEW_PANEL)
-        }
+    // Add a new canvas.
+    this.Canvas
+        .css({'position': 'absolute',
+              'border-style': 'solid',
+              'border-width': '1px',
+              'border-color': '#AAA',
+              'left'  : viewport[0]+"px",
+              'width' : viewport[2]+"px",
+              'top'   : viewport[1]+"px",
+              'height': viewport[3]+"px",
+              'z-index': layer.toString()});
+    if ( ! hide) {
+        this.Canvas.appendTo(VIEW_PANEL)
     }
 }
 
@@ -74,9 +72,9 @@ View.prototype.SetViewport = function(viewport) {
       this.Canvas.show();
     }
     this.Canvas.css({
-        'left' : viewport[0]+"px",
-        'width': viewport[2]+"px",
-        'bottom' : viewport[1]+"px",
+        'left'  : viewport[0]+"px",
+        'width' : viewport[2]+"px",
+        'top'   : viewport[1]+"px",
         'height': viewport[3]+"px"
     });
     this.Canvas.attr("width", viewport[2].toString());
@@ -337,48 +335,52 @@ View.prototype.DrawCopyright = function (copyright) {
 
 
 View.prototype.DrawOutline = function(backgroundFlag) {
-  if (GL) {
-    program = polyProgram;
-    GL.useProgram(program);
-    GL.viewport(this.Viewport[0], this.Viewport[1], this.Viewport[2], this.Viewport[3]);
+    if (GL) {
+        program = polyProgram;
+        GL.useProgram(program);
 
-    // Draw a line around the viewport, so move (0,0),(1,1) to (-1,-1),(1,1)
-    mat4.identity(this.OutlineCamMatrix);
-    this.OutlineCamMatrix[0] = 2.0; // width x
-    this.OutlineCamMatrix[5] = 2.0; // width y
-    this.OutlineCamMatrix[10] = 0;
-    this.OutlineCamMatrix[12] = -1.0;
-    this.OutlineCamMatrix[13] = -1.0;
-    var viewFrontZ = this.Camera.ZRange[0]+0.001;
-    var viewBackZ = this.Camera.ZRange[1]-0.001;
-    this.OutlineCamMatrix[14] = viewFrontZ; // front plane
+        GL.viewport(this.Viewport[0], 
+                    this.Viewport[3]-this.Viewport[1], 
+                    this.Viewport[2], 
+                    this.Viewport[3]);
 
-    mat4.identity(this.OutlineMatrix);
+        // Draw a line around the viewport, so move (0,0),(1,1) to (-1,-1),(1,1)
+        mat4.identity(this.OutlineCamMatrix);
+        this.OutlineCamMatrix[0] = 2.0; // width x
+        this.OutlineCamMatrix[5] = 2.0; // width y
+        this.OutlineCamMatrix[10] = 0;
+        this.OutlineCamMatrix[12] = -1.0;
+        this.OutlineCamMatrix[13] = -1.0;
+        var viewFrontZ = this.Camera.ZRange[0]+0.001;
+        var viewBackZ = this.Camera.ZRange[1]-0.001;
+        this.OutlineCamMatrix[14] = viewFrontZ; // front plane
 
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
+        mat4.identity(this.OutlineMatrix);
 
-    if (backgroundFlag) {
-      // White background fill
-      this.OutlineCamMatrix[14] = viewBackZ; // back plane
-      GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-      GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
-      GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
-      GL.vertexAttribPointer(program.vertexPositionAttribute,
-                     squarePositionBuffer.itemSize,
-                     GL.FLOAT, false, 0, 0);
-      GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.OutlineMatrix);
+
+        if (backgroundFlag) {
+            // White background fill
+            this.OutlineCamMatrix[14] = viewBackZ; // back plane
+            GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+            GL.uniform3f(program.colorUniform, 1.0, 1.0, 1.0);
+            GL.bindBuffer(GL.ARRAY_BUFFER, squarePositionBuffer);
+            GL.vertexAttribPointer(program.vertexPositionAttribute,
+                                   squarePositionBuffer.itemSize,
+                                   GL.FLOAT, false, 0, 0);
+            GL.drawArrays(GL.TRIANGLE_STRIP, 0, squarePositionBuffer.numItems);
+        }
+
+        // outline
+        this.OutlineCamMatrix[14] = viewFrontZ; // force in front
+        GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
+        GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
+        GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
+        GL.vertexAttribPointer(program.vertexPositionAttribute,
+                               squareOutlinePositionBuffer.itemSize,
+                               GL.FLOAT, false, 0, 0);
+        GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
     }
-
-    // outline
-    this.OutlineCamMatrix[14] = viewFrontZ; // force in front
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, this.OutlineCamMatrix);
-    GL.uniform3f(program.colorUniform, this.OutlineColor[0], this.OutlineColor[1], this.OutlineColor[2]);
-    GL.bindBuffer(GL.ARRAY_BUFFER, squareOutlinePositionBuffer);
-    GL.vertexAttribPointer(program.vertexPositionAttribute,
-                           squareOutlinePositionBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);
-    GL.drawArrays(GL.LINE_STRIP, 0, squareOutlinePositionBuffer.numItems);
-  }
 }
 
 
