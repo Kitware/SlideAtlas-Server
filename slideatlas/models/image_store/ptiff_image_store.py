@@ -288,7 +288,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
     def _import_images(self):
         import_dir_path = self.import_dir_path
-        current_app.logger.info('Importing images in "%s" to "%s"', import_dir_path, self)
+        current_app.logger.info('Importing Images in "%s" to "%s"', import_dir_path, self)
         # place new images in the default session
         try:
             session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -327,7 +327,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # TODO: move the creator_code to a property of Image objects
                 creator_code_match = re.match(r'^ *([a-zA-Z- ]+?)[0-9 _-]*\|', image.label)
                 if not creator_code_match:
-                    current_app.logger.warning('Could not read creator code from barcode "%s" in image: "%s"', image.label, image.filename)
+                    current_app.logger.warning('Could not read creator code from barcode "%s" in Image: "%s"', image.label, image)
                     continue
                 creator_code = creator_code_match.group(1)
 
@@ -360,7 +360,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # save destination session first, duplicate is preferable to dropped
                 inbox_session.save()
                 default_session.save()
-                current_app.logger.info('Delivered image: "%s"' % image.label)
+                current_app.logger.info('Delivered Image: "%s"' % image)
 
 
     def import_images(self):
