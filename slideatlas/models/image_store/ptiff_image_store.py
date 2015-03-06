@@ -103,7 +103,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
 
         if reader_result == 0:
-            raise DoesNotExist('Tile not able to be read from %s' % tiff_path)
+            raise DoesNotExist('Tile not able to be read from "%s"' % tiff_path)
 
         return tile_buffer.getvalue()
 
@@ -183,7 +183,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
     def _import_image(self, import_file_path):
         import_file_name = os.path.basename(import_file_path)
-        current_app.logger.info('Importing Image %s to ImageStore %s', import_file_name, self)
+        current_app.logger.info('Importing Image "%s" to ImageStore "%s"', import_file_name, self)
 
         with open(import_file_path) as import_file:
             # lock the image against other tasks trying to import it
@@ -196,7 +196,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             try:
                 fcntl.flock(import_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except IOError:
-                current_app.logger.warning('Could not get file lock to import %s to ImageStore %s', import_file_path, self)
+                current_app.logger.warning('Could not get file lock to import "%s" to ImageStore "%s"', import_file_path, self)
                 return None
 
             # hash image file
@@ -213,14 +213,14 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 raise
             else:  # existing image found
                 current_app.logger.warning(
-                    'Attempt to import duplicate new Image from %s to ImageStore %s containing existing Image %s with filename %s',
+                    'Attempt to import duplicate new Image from "%s" to ImageStore "%s" containing existing Image "%s" with filename "%s"',
                     import_file_name, self, image, image.filename)
                 storage_file_path = self.image_file_path(image)
                 if os.path.exists(storage_file_path):
                     os.remove(import_file_path)
                 else:
                     current_app.logger.error(
-                        'Existing Image %s missing from ImageStore %s filesystem at %s',
+                        'Existing Image "%s" missing from ImageStore "%s" filesystem at "%s"',
                         image, self, storage_file_path)
                 # TODO: return something special?
                 return None
@@ -277,7 +277,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         view = View(ViewerRecords=[{'Image': image.id, 'Database': self.id}])
         view.save()
 
-        current_app.logger.info('Importing new View %s to Session %s/%s', view, session.collection, session)
+        current_app.logger.info('Importing new View "%s" to Session "%s"/"%s"', view, session.collection, session)
         session.update(__raw__={'$push': {'views': {
             '$each': [view.id],
             '$position': 0
@@ -288,7 +288,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
     def _import_images(self):
         import_dir_path = self.import_dir_path
-        current_app.logger.info('Importing images in %s to %s', import_dir_path, self)
+        current_app.logger.info('Importing images in "%s" to "%s"', import_dir_path, self)
         # place new images in the default session
         try:
             session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -311,7 +311,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
 
     def _deliver_views_to_inboxes(self):
-        current_app.logger.info('Delivering images from %s', self)
+        current_app.logger.info('Delivering images from "%s"', self)
         # '_import_new_images' will have been called previously, so we can assume
         #   that a default session exists
         default_session = Session.objects.get(image_store=self, label=self.default_session_label)
@@ -327,7 +327,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # TODO: move the creator_code to a property of Image objects
                 creator_code_match = re.match(r'^ *([a-zA-Z- ]+?)[0-9 _-]*\|', image.label)
                 if not creator_code_match:
-                    current_app.logger.warning('Could not read creator code from barcode "%s" in image: %s', image.label, image.filename)
+                    current_app.logger.warning('Could not read creator code from barcode "%s" in image: "%s"', image.label, image.filename)
                     continue
                 creator_code = creator_code_match.group(1)
 
@@ -360,7 +360,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
                 # save destination session first, duplicate is preferable to dropped
                 inbox_session.save()
                 default_session.save()
-                current_app.logger.info('Delivered image: %s' % image.label)
+                current_app.logger.info('Delivered image: "%s"' % image.label)
 
 
     def import_images(self):
