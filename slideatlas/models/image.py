@@ -172,7 +172,3 @@ class Image(MultipleDatabaseModelDocument):
         verbose_name='', help_text='')
 
     # TODO: set '_cls' field on all documents in database
-
-    def __unicode__(self):
-        # TODO: make these fields required or have a better default representation
-        return unicode((self.label or '') + (self.copyright or ''))

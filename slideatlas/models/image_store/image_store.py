@@ -27,9 +27,6 @@ class ImageStore(ModelDocument):
     label = StringField(required=True, #TODO: make unique
         verbose_name='Label', help_text='The human-readable label.')
 
-    def __unicode__(self):
-        return unicode(self.label)
-
     def get_tile(self, image_id, tile_name):
         # TODO: make this use 'abc.abstractmethod', so that all instantiated
         #   subclasses are forced to implement it
