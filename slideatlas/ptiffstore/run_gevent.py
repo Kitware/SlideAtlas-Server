@@ -8,20 +8,25 @@ Kitware, Inc., 28 Corporate Drive, Clifton Park, NY 12065.
 
 """
 
-from flask import Flask
-import gevent.wsgi
 import gevent.monkey
 gevent.monkey.patch_all()
 
-import werkzeug.serving
+import gevent.wsgi
+
+# from flask import Flask
+# import werkzeug.serving
 from app import app
+
+import sys
+from flask_sockets import Sockets
+
 
 sockets = Sockets(app)
 
-@sockets.route('/ws') 
-def echo_socket(ws): 
-    while True: 
-        message = ws.receive() 
+@sockets.route('/ws')
+def echo_socket(ws):
+    while True:
+        message = ws.receive()
         ws.send(message)
 
 
@@ -31,4 +36,6 @@ def run_server():
     ws.serve_forever()
 
 if __name__ == "__main__":
-    run_server()
+    print "Gevents server is not ready yet"
+    sys.exit(1)
+    # run_server()
