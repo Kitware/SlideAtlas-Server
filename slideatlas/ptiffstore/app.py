@@ -2,26 +2,20 @@ __author__ = 'dhanannjay.deo'
 
 import flask
 from flask import request
-import sys
 
 import os
-tilereaderpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "../experiments"))
 import logging
 
 from common_utils import get_max_depth
 
-
 logger = logging.getLogger('slideatlas')
-sys.path.append(tilereaderpath)
 app = flask.Flask(__name__)
-app.config["FILES_ROOT"] = "/home/dhan/data/phillips"
+
 @app.route('/')
 def index():
 
     # return "Helllo"
     return flask.send_from_directory("static","index.html")
-
-
 
 
 # ##############################3
@@ -61,11 +55,9 @@ def index():
 
 
 os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
-# os.chdir('D:\\projects\\tiff-4.0.3\\libtiff')
-from tiff_reader import TileReader
 
-# myfname = "d:\\data\\phillips\\20140313T180859-805105.ptif"
-myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
+# # myfname = "d:\\data\\phillips\\20140313T180859-805105.ptif"
+# myfname = "/home/dhan/data/phillips/20140313T180859-805105.ptif"
 
 import StringIO
 
@@ -89,12 +81,9 @@ def tile_ptiff(fname,x,y,z):
     logger.info('Viewing fname: %s', fname)
 
     # Locate the tilename from x and y
-    locx = x * 512 + 5
-    locy = y * 512 + 5
+    locx = x * reader.tile_width + 5
+    locy = y * reader.tile_height + 5
 
-    # if reader.dir != z:
-    #     reader.select_dir(z)
-    #     logger.error('Switched to %d zoom', reader.dir)
 
     fp = StringIO.StringIO()
     r = reader.dump_tile(locx,locy, fp)
@@ -110,10 +99,10 @@ def tile_ptiff(fname,x,y,z):
         #docIma ge = colImage.find_one({'name': get_tile_name_slideatlas(x,y,z)})
         logger.error('Tile not loaded: %s', e.message)
         fp.close()
-        return flask.Response(blank, mimetype="image/jpeg")
+        return flask.Response("Tile not available", 404)
 
-    #s = fp.getvalue()
-    #logger.error('Got %d bytes in buffer', len(s))
+    # s = fp.getvalue()
+    # logger.error('Got %d bytes in buffer', len(s))
     # fp2 = open("test_output.jpg","wb")
     # fp2.write(fp.getvalue())
     # fp2.close()
