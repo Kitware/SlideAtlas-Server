@@ -212,6 +212,8 @@ Viewer.prototype.RollMove = function (e) {
     this.RotateIconX = x;
     this.RotateIconY = y;
 
+    this.TriggerInteraction();
+
     return false;
  }
 
