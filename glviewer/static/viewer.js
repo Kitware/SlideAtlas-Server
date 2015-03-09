@@ -14,6 +14,7 @@ var INTERACTION_DRAG = 1;
 var INTERACTION_ROTATE = 2;
 var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
+var INTERACTION_ICON_ROTATE = 5;
 
 
 function Viewer (viewport) {
@@ -47,6 +48,8 @@ function Viewer (viewport) {
 
         // One must be true for the icon to be active (opaque).
         this.RotateIconHover = false;
+        // I am not making this part of the InteractionState because
+        // I want to make the overview its own widget.
         this.RotateIconDrag = false;
         this.RotateIcon =
             $('<img>')
@@ -193,6 +196,11 @@ Viewer.prototype.RollDown = function (e) {
 }
 Viewer.prototype.RollMove = function (e) {
     if ( ! this.RotateIconDrag) { return; }
+    if ( e.which != 1) {
+        // We must have missed the mouse up event.
+        this.RotateIconDrag = false;
+        return;
+    }
     // Find the center of the overview window.
     var w = this.OverView.CanvasDiv;
     var o = w.offset();
@@ -1488,7 +1496,10 @@ Viewer.prototype.RollMove = function (e) {
      EVENT_MANAGER.RecordMouseDown(event);
 
      if (this.RotateIconDrag) {
-         return false;
+         // Problem with leaving the browser with mouse down.
+         // This is a mouse down outside the icon, so the mouse must
+         // have been let up and we did not get the event.
+         this.RotateIconDrag = false;
      }
 
      if (EVENT_MANAGER.DoubleClick) {
