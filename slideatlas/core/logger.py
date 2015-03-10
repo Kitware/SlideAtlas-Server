@@ -32,7 +32,7 @@ def setup_logger(app):
     # a handler to stderr is already setup by Flask if the app is in debug mode
     if not app.debug:
         setup_file_log_handler(app)
-#        setup_email_log_handler(app)
+        setup_email_log_handler(app)
 
 
 class AddRequestFilter(logging.Filter):
@@ -87,7 +87,7 @@ def setup_email_log_handler(app):
         )
 
         warning_email_handler = MailHandler(app)
-        warning_email_handler.setLevel(logging.WARNING)
+        warning_email_handler.setLevel(logging.ERROR)
         warning_email_handler.setFormatter(email_formatter)
         app.logger.addHandler(warning_email_handler)
 
