@@ -3,6 +3,7 @@
 import logging
 import os
 
+import flask
 from flask.ext.mail import Mail
 
 ################################################################################
@@ -24,13 +25,27 @@ def setup_mail(app):
 
 ################################################################################
 def setup_logger(app):
+    app.logger.addFilter(AddRequestFilter())
     # have the logger accept all messages; filtering will be done by handlers
     app.logger.setLevel(logging.DEBUG)
 
     # a handler to stderr is already setup by Flask if the app is in debug mode
     if not app.debug:
         setup_file_log_handler(app)
-#        setup_email_log_handler(app)
+        setup_email_log_handler(app)
+
+
+class AddRequestFilter(logging.Filter):
+    def filter(self, record):
+        try:
+            request = flask.request
+        except RuntimeError:
+            record.request_remote_ip = None
+            record.request_path = None
+        else:
+            record.request_remote_ip = request.remote_addr
+            record.request_path = request.full_path
+        return 1
 
 
 def setup_file_log_handler(app):
@@ -39,7 +54,10 @@ def setup_file_log_handler(app):
         os.makedirs(log_base_path)
 
     file_formatter = logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        '%(asctime)s %(levelname)s: %(message)s\n'
+        '  Request Path: %(request_path)s\n'
+        '  Remote IP: %(request_remote_ip)s\n'
+        '  At: %(pathname)s:%(lineno)d\n'
     )
 
     error_file_handler = logging.FileHandler(
@@ -69,7 +87,7 @@ def setup_email_log_handler(app):
         )
 
         warning_email_handler = MailHandler(app)
-        warning_email_handler.setLevel(logging.WARNING)
+        warning_email_handler.setLevel(logging.ERROR)
         warning_email_handler.setFormatter(email_formatter)
         app.logger.addHandler(warning_email_handler)
 
@@ -90,4 +108,3 @@ class MailHandler(logging.Handler):
             body=message_body,
             sender=self.sender,
         )
-

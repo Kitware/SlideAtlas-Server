@@ -43,3 +43,11 @@ class ModelDocument(Document, ToSonDocumentMixin):
         'abstract': True,
         'queryset_class': ModelQuerySet,
     }
+
+    def __unicode__(self):
+        try:
+            if self.label:
+                return u'%s ("%s")' % (self.id, self.label)
+        except AttributeError:
+            pass
+        return unicode(self.id)

@@ -70,8 +70,9 @@ class Permalink(ModelDocument):
     created_at = DateTimeField(required=True, default=datetime.datetime.utcnow,
         verbose_name='Creation Time', help_text='')
 
-    def __unicode__(self):
-        return unicode(self.code)
+    @property
+    def label(self):
+        return self.code
 
 
 # TODO: move to a common utility module

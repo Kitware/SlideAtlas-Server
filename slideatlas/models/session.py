@@ -226,9 +226,6 @@ class Session(ModelDocument):
     # what is the purpose of this?
     # user = StringField
 
-    def __unicode__(self):
-        return unicode(self.label)
-
 
 # class StackSession(Session):
 #     """
