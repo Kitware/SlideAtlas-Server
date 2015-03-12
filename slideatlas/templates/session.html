@@ -41,7 +41,12 @@
                 var attachmentUrl = attachmentGet.attr("href");
                 var attachmentName = attachmentGet.text();
                 confirmAttachmentDelete(attachmentUrl, attachmentName, function() {
-                    attachmentItem.remove();
+                    if(attachmentItem.is("li")) {
+                        attachmentItem.remove();
+                    }
+                    else if(attachmentItem.is("td")) {
+                        attachmentItem.parent().remove();
+                    }
                 });
             });
             $(".sa-attachment-post").click(function() {

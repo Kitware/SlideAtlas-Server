@@ -312,11 +312,21 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # this also ensures that the attachment actually exists
         attachments_fs = session._fetch_attachment(restype, attachment_id)[1]
 
+        if restype =="attachments":
+            reslist = session.attachments
+        elif restype == "imagefiles":
+            reslist = session.imagefiles
         # delete from session
-        for (pos, attachment_ref) in enumerate(session.attachments):
+        for (pos, attachment_ref) in enumerate(reslist):
             if attachment_ref.ref == attachment_id:
-                session.attachments.pop(pos)
+                reslist.pop(pos)
                 break
+
+        if restype =="attachments":
+            session.attachments = reslist
+        elif restype == "imagefiles":
+            session.imagefiles = reslist
+
         session.save()
 
         # delete from attachments collection
