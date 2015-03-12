@@ -115,3 +115,12 @@ function getPermalink(viewName, viewId, viewUrl) {
         }
     });
 }
+
+
+function reSubmitImagefile(imagefileName, imagefileUrl, onSuccess) {
+    $.ajax({
+        url: imagefileUrl + "/process",
+        type: "POST",
+        success: onSuccess
+        });
+}
