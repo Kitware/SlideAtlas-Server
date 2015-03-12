@@ -335,17 +335,40 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         return None, 204  # No Content
 
 
+
 ################################################################################
 class SessionImageFileProcessAPI(ItemAPIResource):
     @security.AdminSessionRequirement.protected
     def post(self, session, restype, attachment_id):
         """
-        Submits a celery request to process the given file again 
+        Submits a celery request to process the given file
         (retry)
         """
         # Verify that the state of the task is "success"
-        
-        return flask.Response("Reached process image endpoint")
+        # Prepare arguments
+        args = {}
+        args["input"] = str(attachment_id)
+        args["session"] = str(session.id)
+        args["collection"] = str(session.collection.id)
+
+        # Defaults
+        args["mongo_collection"] = None
+        args["verbose"] = None
+        args["dry_run"] = False
+        args["tilesize"] = 256
+        args["base_only"] = False
+        args["overwrite"] = True
+
+        # Submit the job
+        import slideatlas.tasks.dicer as dicer
+        job = dicer.process_file.delay(args)
+
+        # Update the file metadata
+        task_id = job.task_id
+        datadb = session._get_datadb(restype, attachment_id)
+        datadb[restype + ".files"].update({"_id": bson.ObjectId(attachment_id)}, {"$set": {"metadata": {"task": task_id, "status" : "pending" }}})
+
+        return None, 204  # No Content
         # return None, 204  # No Content
 
 
