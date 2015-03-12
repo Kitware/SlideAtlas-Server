@@ -365,11 +365,9 @@
                     </td>
                     <td>
                         <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
-                    </td>
-                    <td>
-                    {% if is_session_admin %}
-                    <button type="button" class="btn btn-danger badge sa-attachment-delete pull-right"><span class="glyphicon glyphicon-remove"></span>Delete</button>
-                    {% endif %}
+                        {% if is_session_admin %}
+                        <button type="button" class="btn btn-danger badge sa-attachment-delete pull-right"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                        {% endif %}
                     </td>
                     </tr>
                     {% endif %}
