@@ -41,7 +41,12 @@
                 var attachmentUrl = attachmentGet.attr("href");
                 var attachmentName = attachmentGet.text();
                 confirmAttachmentDelete(attachmentUrl, attachmentName, function() {
-                    attachmentItem.remove();
+                    if(attachmentItem.is("li")) {
+                        attachmentItem.remove();
+                    }
+                    else if(attachmentItem.is("td")) {
+                        attachmentItem.parent().remove();
+                    }
                 });
             });
             $(".sa-attachment-post").click(function() {
@@ -58,6 +63,16 @@
             // By Djay
             $(".sa-upload-images").click(function() {
                 alert("Working on this ..");
+            });
+
+            $(".sa-imagefile-resubmit").click(function() {
+                var attachmentItem = $(this).parent();
+                var attachmentGet = $(this).siblings(".sa-attachment-get");
+                var attachmentUrl = attachmentGet.attr("href");
+                var attachmentName = attachmentGet.text();
+                reSubmitImagefile(attachmentName, attachmentUrl, function() {
+                    alert("Submitted " + attachmentName);
+                });
             });
         });
 
@@ -365,11 +380,11 @@
                     </td>
                     <td>
                         <a href="{{ url_for('apiv2.session_attachment_item', session=session, attachment_id=imagefile_son.id, restype='imagefiles') }}" class="lead sa-attachment-get">{{ imagefile_son.name }}</a>
-                    </td>
-                    <td>
-                    {% if is_session_admin %}
-                    <button type="button" class="btn btn-danger badge sa-attachment-delete pull-right"><span class="glyphicon glyphicon-remove"></span>Delete</button>
-                    {% endif %}
+                        {% if is_session_admin %}
+                        <button type="button" class="btn btn-danger badge sa-attachment-delete pull-right"><span class="glyphicon glyphicon-remove"></span>Delete</button>
+                        <button type="button" class="btn btn-warning badge sa-imagefile-resubmit pull-right"><span class="glyphicon glyphicon-repeat"></span> Re-try</button>
+
+                        {% endif %}
                     </td>
                     </tr>
                     {% endif %}
