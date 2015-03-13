@@ -354,6 +354,7 @@
 
 
             <table class="table table-bordered table-hover" >
+            {% if is_session_admin %}
             <tbody>
                 <!--Render the imagefiles in process -->
                 {% for imagefile_son in session_son.imagefiles %}
@@ -393,6 +394,8 @@
             <!-- Insert the rows for incoming  for -->
             <tbody class="flow-list">
             </tbody>
+            {% endif %}
+
             <tbody>
                 {% for view_son in session_son.views %}
                     {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
