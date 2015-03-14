@@ -297,24 +297,25 @@ CollectionBrowser = (function (){
         // Add the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
+            // We have to be careful. If the destination session is the 
+            // same as the source destination.  Make a copy of the viewObj
+            // so it will not be removed when trying to remove the
+            // original.  Shallow copy so we do not need to duplicate the gui.
+            viewObj = new ViewObject().Copy(viewObj);
             viewObj.Selected = keepSelected;
-            // This is a pain.  Adding the view object to a new session
-            // Changes SessionObject, so we do not know which
-            // session it needs to be removed from.
-            // Just save the source session temporarily
-            viewObj.SourceSessionObject = viewObj.SessionObject;
             // Insert
             this.InsertViewObject(viewObj, index);
             // Put them in order (hack)
             index++;
         }
+
         // Remove the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
-            var sessionObj = viewObj.SourceSessionObject;
-            viewObj.SourceSessionObject = undefined;
+            var sessionObj = viewObj.SessionObject;
             sessionObj.RemoveViewObject(viewObj);
         }
+
 
         // I am not sure that the GUI stuff belongs in this method.
         // Update GUI will repopulate this array.
@@ -431,7 +432,11 @@ CollectionBrowser = (function (){
         this.Source = viewObj.Source;
         this.SessionObject = viewObj.SessionObject;
         // Hidden here, but it makes sense.
-        this.CopyFlag = true;
+        // this.CopyFlag = true;
+        // I am using this for a shallow copy to avoid
+        // confusion between the original and new when
+        // source and destination are the same.
+        this.CopyFlag = viewObj.CopyFlag;
         return this;
     }
 
