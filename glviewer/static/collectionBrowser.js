@@ -1,4 +1,8 @@
 // TODO: 
+// get closed sessions in taget list.
+// execute drop into session label.
+
+
 
 
 // Verify save lock works.
@@ -19,6 +23,11 @@
 // This pattern does not make any of the methods
 // private.  I do not think it makes any instance
 // variables private either.
+
+
+// Views cannot be dropped in empty sessions.
+// Implement drop in closed session to fix this.
+
 
 // Closure namespace 
 CollectionBrowser = (function (){
@@ -297,24 +306,25 @@ CollectionBrowser = (function (){
         // Add the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
+            // We have to be careful. If the destination session is the 
+            // same as the source destination.  Make a copy of the viewObj
+            // so it will not be removed when trying to remove the
+            // original.  Shallow copy so we do not need to duplicate the gui.
+            viewObj = new ViewObject().Copy(viewObj);
             viewObj.Selected = keepSelected;
-            // This is a pain.  Adding the view object to a new session
-            // Changes SessionObject, so we do not know which
-            // session it needs to be removed from.
-            // Just save the source session temporarily
-            viewObj.SourceSessionObject = viewObj.SessionObject;
             // Insert
             this.InsertViewObject(viewObj, index);
             // Put them in order (hack)
             index++;
         }
+
         // Remove the selected.
         for (var i = 0; i < selectedViewObjects.length; ++i) {
             var viewObj = selectedViewObjects[i];
-            var sessionObj = viewObj.SourceSessionObject;
-            viewObj.SourceSessionObject = undefined;
+            var sessionObj = viewObj.SessionObject;
             sessionObj.RemoveViewObject(viewObj);
         }
+
 
         // I am not sure that the GUI stuff belongs in this method.
         // Update GUI will repopulate this array.
@@ -431,7 +441,11 @@ CollectionBrowser = (function (){
         this.Source = viewObj.Source;
         this.SessionObject = viewObj.SessionObject;
         // Hidden here, but it makes sense.
-        this.CopyFlag = true;
+        // this.CopyFlag = true;
+        // I am using this for a shallow copy to avoid
+        // confusion between the original and new when
+        // source and destination are the same.
+        this.CopyFlag = viewObj.CopyFlag;
         return this;
     }
 
@@ -620,11 +634,11 @@ CollectionBrowser = (function (){
                   'margin-left': '2em',
                   'padding-left': '0'})
             .hide();
-        this.SessionList.Open = false;
-        
+        this.SessionListOpen = false;
+
         var self = this;
         this.OpenCloseIcon.click(function(){self.ToggleSessionList();});
-        
+
         // Populate the sessions list.
         this.Sessions = [];
         for (var i = 0; i < collectionObject.SessionObjects.length; ++i) {
@@ -635,16 +649,24 @@ CollectionBrowser = (function (){
 
 
     Collection.prototype.ToggleSessionList = function() {
-        if (this.SessionList.Open) {
-            this.SessionList.Open = false;
+        if (this.SessionListOpen) {
+            this.SessionListOpen = false;
             this.SessionList.slideUp();
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/plus.png")
+            for (var i = 0; i < this.Sessions.length; ++i) {
+                var session = this.Sessions[i];
+                RemoveDropTarget(session);
+            }
         } else {
-            this.SessionList.Open = true;
+            this.SessionListOpen = true;
             this.SessionList.slideDown();
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/minus.png")
             for (var i = 0; i < this.Sessions.length; ++i) {
                 var session = this.Sessions[i];
+                AddDropTarget(session);
+                // Important for dropping / saving.
+                session.RequestMetaData();
+
                 if (this.LoadState == LOAD_INITIAL) {
                     session.RequestMetaData();
                 }
@@ -792,8 +814,7 @@ CollectionBrowser = (function (){
                   'outline': '1px solid transparent',
                   'margin-left': '2em'})
             .hide();
-
-        this.ViewList.Open = false;
+        this.ViewListOpen = false;
         
         var self = this;
         this.OpenCloseIcon.click(function(){self.ToggleViewList();});
@@ -883,7 +904,7 @@ CollectionBrowser = (function (){
             .appendTo(this.ViewList)
             .css('clear','both');
         
-        if (this.ViewList.Open) {
+        if (this.ViewListOpen) {
             // View list was opened before we got the metadata.
             // Load the images too.
             this.RequestImages();
@@ -920,11 +941,10 @@ CollectionBrowser = (function (){
 
     
     Session.prototype.ToggleViewList = function() {
-        if (this.ViewList.Open) {
-            this.ViewList.Open = false;
+        if (this.ViewListOpen) {
+            this.ViewListOpen = false;
             this.ViewList.slideUp();
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/plus.png");
-            RemoveDropTarget(this);
         } else {
             // Needed to display the waiting gif.
             this.UpdateGUI();
@@ -937,14 +957,55 @@ CollectionBrowser = (function (){
                 this.RequestMetaData();
             }
             this.RequestImages();
-            
-            this.ViewList.Open = true;
+
+            this.ViewListOpen = true;
             this.ViewList.slideDown();
             this.OpenCloseIcon.attr('src',"/webgl-viewer/static/minus.png")
-            AddDropTarget(this);
         }
     }
 
+    // Value: boolean on, or false=>off
+    Session.prototype.HighlightDropTargetItem = function(on) {
+        if ( ! this.DropTargetItem) { return; }
+        if (this.DropTargetItem == this.SessionLabel[0]) {
+            if ( on ) {
+                $(this.DropTargetItem).css({'background-color':'#BBF'});
+            } else {
+                $(this.DropTargetItem).css({'background-color':'#FFF'});
+            }
+            return;
+        }
+        if ( on ) {
+            if (this.DropTargetBefore) {
+                $(this.DropTargetItem).css({'border-left-color':'#333',
+                                            'border-left-width':'4px'});
+            } else {
+                $(this.DropTargetItem).css({'border-right-color':'#333',
+                                            'border-right-width':'4px'});
+            }
+
+        } else {
+            $(this.DropTargetItem).css({'border-color':'#CCC',
+                                     'border-width':'2'});
+        }
+    }
+
+    Session.prototype.SetDropTargetItem = function(item, index, before) {
+        // the item object changes.
+        if (item) { item = item[0]; }
+
+        if (this.DropTargetItem === item &&
+            this.DropTargetBefore == before &&
+            this.DropTargetIndex == index) {
+            return;
+        }
+
+        this.HighlightDropTargetItem(false);
+        this.DropTargetItem = item;
+        this.DropTargetBefore = before;
+        this.DropTargetIndex = index;
+        this.HighlightDropTargetItem(true);
+    }
 
     // Sets DropTargetItem and DropTargetBefore.
     // It also handles highlighting the drop target.
@@ -953,57 +1014,63 @@ CollectionBrowser = (function (){
         // Check to see if the mouse is in the body
         var pos = this.Body.offset();
         var width = this.Body.innerWidth();
+        if (width == 0) {
+            // I cannot figure out why it is happening.
+            return;
+        }
         var height = this.Body.innerHeight();
         var rx = x - pos.left;
         var ry = y - pos.top;
         if (rx < 0 || ry < 0 || rx > width || ry > height) {
-            if ( this.DropTargetItem) {
-                this.DropTargetItem.css({'border-color':'#CCC',
-                                         'border-width':'2'});
-                this.DropTargetItem = undefined;
-            }
+            // Mouse leaves the session.
+            // Turn off the previous target.
+            this.SetDropTargetItem();
             return false;
         }
+
+        // Check for a drop in the session name.
+        // This should fix the empty session bug (unable to drop).
+        var pos = this.SessionLabel.offset();
+        if (y > pos.top) {
+            var bottom = pos.top + this.SessionLabel.innerHeight();
+            if (y < bottom) {
+                this.SetDropTargetItem(this.SessionLabel, true, 0);
+                return true;
+            }
+        }
+
+        // Now check the list items (views)
         // Find the closest item.
         var bestDist = 1000000;
         var bestItem;
         var bestIndex;
         var bestBefore = true;
-        this.ViewList.children('li').each(
-            function (index, item) {
-                var pos = $(item).offset();
-                var dist = 0;
-                if (x < pos.left) { dist += pos.left - x; }
-                if (y < pos.top) { dist += pos.top - y; }
-                var right = pos.left + $(item).innerWidth();
-                var bottom = pos.top + $(item).innerHeight();
-                if (x > right) { dist += x - right; }
-                if (y > bottom) { dist += y - bottom; }
-                if ( ! $(item).data("selected") && dist < bestDist ) {
-                    bestDist = dist;
-                    bestItem = $(item);
-                    bestBefore = x < (pos.left+right)*0.5;
-                    bestIndex = index;
-                    if ( ! bestBefore) { ++bestIndex;}
-                }
-            });
-        if ( this.DropTargetItem) {
-            this.DropTargetItem.css({'border-color':'#CCC',
-                                     'border-width':'2'});
-            this.DropTargetItem = undefined;
+
+        if (this.ViewListOpen) {
+            this.ViewList.children('li').each(
+                function (index, item) {
+                    var pos = $(item).offset();
+                    var dist = 0;
+                    if (x < pos.left) { dist += pos.left - x; }
+                    if (y < pos.top) { dist += pos.top - y; }
+                    var right = pos.left + $(item).innerWidth();
+                    var bottom = pos.top + $(item).innerHeight();
+                    if (x > right) { dist += x - right; }
+                    if (y > bottom) { dist += y - bottom; }
+                    if ( ! $(item).data("selected") && dist < bestDist ) {
+                        bestDist = dist;
+                        bestItem = $(item);
+                        bestBefore = x < (pos.left+right)*0.5;
+                        bestIndex = index;
+                        if ( ! bestBefore) { ++bestIndex;}
+                    }
+                });
         }
 
         // Planning on getting rid of the DropTargetBefore instance variable.
-        this.DropTargetBefore = bestBefore;
-        this.DropTargetItem = bestItem;
-        this.DropTargetIndex = bestIndex;
-        if (this.DropTargetBefore) {
-            bestItem.css({'border-left-color':'#333',
-                          'border-left-width':'4px'});
-        } else {
-            bestItem.css({'border-right-color':'#333',
-                          'border-right-width':'4px'});
-        }
+        // The index works, but how to determine highlighting?
+        // The border is a bit of a hack. I should just put an item in the ul.
+        this.SetDropTargetItem(bestItem, bestIndex, bestBefore);
         return true;
     }
 
@@ -1019,12 +1086,12 @@ CollectionBrowser = (function (){
             CLONES = [];
             MESSAGE.hide();
             
-            // Get rid of the thick border indicator of where the
-            // drop will take place.
-            this.DropTargetItem.css({'border-color':'#CCC',
-                                     'border-width':'2'});
             // Actually do the move
             this.SessionData.DropSelected(this.DropTargetIndex, copy, true);
+
+            // Get rid of the thick border indicator of where the
+            // drop will take place.
+            this.SetDropTargetItem();
 
             return true;
         }
