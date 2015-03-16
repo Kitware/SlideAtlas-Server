@@ -2,6 +2,7 @@
 
 from bson import ObjectId
 
+from flask import current_app
 from mongoengine import Q, EmbeddedDocument, BooleanField, DictField, \
     EmbeddedDocumentField, GenericEmbeddedDocumentField, FloatField, IntField, \
     ListField, ObjectIdField, ReferenceField, StringField
@@ -13,10 +14,6 @@ from .image_store import ImageStore
 from .collection import Collection
 
 import gridfs
-
-import logging
-logger = logging.getLogger("slideatlas.view.sessions")
-
 
 ################################################################################
 __all__ = ('Session', 'RefItem')
@@ -288,6 +285,6 @@ class Session(ModelDocument):
                     if "metadata" in file_gridfs_obj:
                         results.append({"id": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
                 else:
-                    logger.warning("Imagefile %s missing from gridfs in imagestore %s" %(animagefile.ref, self.image_store))
+                    current_app.logger.warning("Imagefile %s missing from gridfs in imagestore %s" %(animagefile.ref, self.image_store))
 
             return results
