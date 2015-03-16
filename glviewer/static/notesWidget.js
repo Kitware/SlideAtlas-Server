@@ -755,33 +755,37 @@ Note.prototype.RecordAnnotations = function() {
 
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
-  // Put an icon to the left of the text.
-  var self = this;
-  this.Div.appendTo(div);
+    // Put an icon to the left of the text.
+    var self = this;
+    this.Div.appendTo(div);
 
-  var self = this;
+    var self = this;
 
-  this.TitleDiv.text(this.Title);
-
-  // Changing a div "parent/appendTo" removes all event bindings like click.
-  // I would like to find a better solution to redraw.
-  this.Icon
-    .click(function() {self.Select()})
-    .mouseenter(function() { self.IconEnterCallback(); })
-    .mouseleave(function() { self.IconLeaveCallback(); });
-  if (EDIT) {
-    this.IconMenuDiv
-      .mouseenter(function() { self.IconMenuEnterCallback(); })
-      .mouseleave(function() { self.IconMenuLeaveCallback(); });
-    if (this.LinkButton) {
-      this.LinkButton.click(function(){self.LinkCallback();});
+    if (this.HideAnnotations && this.HiddenTitle) {
+        this.TitleDiv.text(this.HiddenTitle);
+    } else {
+        this.TitleDiv.text(this.Title);
     }
 
-    if (this.DeleteButton) { 
-      this.DeleteButton.click(function(){self.DeleteCallback();});
+    // Changing a div "parent/appendTo" removes all event bindings like click.
+    // I would like to find a better solution to redraw.
+    this.Icon
+        .click(function() {self.Select()})
+        .mouseenter(function() { self.IconEnterCallback(); })
+        .mouseleave(function() { self.IconLeaveCallback(); });
+    if (EDIT) {
+        this.IconMenuDiv
+            .mouseenter(function() { self.IconMenuEnterCallback(); })
+            .mouseleave(function() { self.IconMenuLeaveCallback(); });
+        if (this.LinkButton) {
+            this.LinkButton.click(function(){self.LinkCallback();});
+        }
+
+        if (this.DeleteButton) { 
+            this.DeleteButton.click(function(){self.DeleteCallback();});
+        }
     }
-  }
-  this.UpdateChildrenGUI();
+    this.UpdateChildrenGUI();
 }
 
 
@@ -830,51 +834,54 @@ Note.prototype.Serialize = function(includeChildren) {
 // This method of loading is causing a pain.
 // Children ...
 Note.prototype.Load = function(obj){
-  var self = this;
-  for (ivar in obj) {
-    this[ivar] = obj[ivar];
-  }
-  // I am not sure blindly copying all of the variables is a good idea.
-  if (this._id) {
-    this.Id = this._id;
-  }
-  delete this._id;
-
-  this.TitleDiv.text(this.Title);
-  for (var i = 0; i < this.Children.length; ++i) {
-    var childObj = this.Children[i];
-    var childNote = new Note();
-    childNote.SetParent(this);
-    childNote.Load(childObj);
-    this.Children[i] = childNote;
-    childNote.Div.data("index", i);
-  }
-
-  for (var i = 0; i < this.ViewerRecords.length; ++i) {
-    if (this.ViewerRecords[i]) {
-      obj = this.ViewerRecords[i];
-      // It would be nice to have a constructor that took an object.
-      this.ViewerRecords[i] = new ViewerRecord();
-      this.ViewerRecords[i].Load(obj);
+    var self = this;
+    for (ivar in obj) {
+        this[ivar] = obj[ivar];
     }
-  }
+    // I am not sure blindly copying all of the variables is a good idea.
+    if (this._id) {
+        this.Id = this._id;
+    }
+    delete this._id;
 
+    if (this.HideAnnotations && this.HiddenTitle) {
+        this.TitleDiv.text(this.HiddenTitle);
+    } else {
+        this.TitleDiv.text(this.Title);
+    }
 
-  if (this.Id) {
-    this.LinkButton =
-      $('<button>').appendTo(this.IconMenuDiv)
-        .text("link")
-        .css({'color' : '#278BFF',
-              'font-size': '14px',
-              'border-radius': '3px',
-              'width':'100%'});
-  }
+    for (var i = 0; i < this.Children.length; ++i) {
+        var childObj = this.Children[i];
+        var childNote = new Note();
+        childNote.SetParent(this);
+        childNote.Load(childObj);
+        this.Children[i] = childNote;
+        childNote.Div.data("index", i);
+    }
 
+    for (var i = 0; i < this.ViewerRecords.length; ++i) {
+        if (this.ViewerRecords[i]) {
+            obj = this.ViewerRecords[i];
+            // It would be nice to have a constructor that took an object.
+            this.ViewerRecords[i] = new ViewerRecord();
+            this.ViewerRecords[i].Load(obj);
+        }
+    }
 
-  // Hack to fix timing (Load after select)
-  if (this == NOTES_WIDGET.RootNote) {
-    NOTES_WIDGET.DisplayRootNote();
-  }
+    if (this.Id) {
+        this.LinkButton =
+            $('<button>').appendTo(this.IconMenuDiv)
+            .text("link")
+            .css({'color' : '#278BFF',
+                  'font-size': '14px',
+                  'border-radius': '3px',
+                  'width':'100%'});
+    }
+
+    // Hack to fix timing (Load after select)
+    if (this == NOTES_WIDGET.RootNote) {
+        NOTES_WIDGET.DisplayRootNote();
+    }
 }
 
 
