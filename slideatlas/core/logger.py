@@ -95,6 +95,7 @@ def setup_email_log_handler(app):
 ################################################################################
 class MailHandler(logging.Handler):
     def __init__(self, app):
+        super(MailHandler, self).__init__()
         self.mail = app.extensions.get('mail')
         self.sender = app.config['SECURITY_EMAIL_SENDER']
         self.recipients = [app.config['SLIDEATLAS_ADMIN_EMAIL']]
