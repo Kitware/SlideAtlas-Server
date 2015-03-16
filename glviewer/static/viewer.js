@@ -14,7 +14,8 @@ var INTERACTION_DRAG = 1;
 var INTERACTION_ROTATE = 2;
 var INTERACTION_ZOOM = 3;
 var INTERACTION_OVERVIEW = 4;
-var INTERACTION_ICON_ROTATE = 5;
+var INTERACTION_OVERVIEW_DRAG = 5;
+var INTERACTION_ICON_ROTATE = 6;
 
 
 function Viewer (viewport) {
@@ -51,6 +52,7 @@ function Viewer (viewport) {
         // I am not making this part of the InteractionState because
         // I want to make the overview its own widget.
         this.RotateIconDrag = false;
+
         this.RotateIcon =
             $('<img>')
             .appendTo(this.OverView.CanvasDiv)
@@ -161,6 +163,10 @@ function Viewer (viewport) {
 			      function (event){return self.HandleOverViewMouseDown(event);},
 			      false);
         can.addEventListener(
+            "mouseup",
+			      function (event){return self.HandleOverViewMouseUp(event);},
+			      false);
+        can.addEventListener(
             "mousemove",
 			      function (event){return self.HandleOverViewMouseMove(event);},
 			      false);
@@ -204,10 +210,10 @@ Viewer.prototype.RollMove = function (e) {
     // Find the center of the overview window.
     var w = this.OverView.CanvasDiv;
     var o = w.offset();
-    // Note the center does not seem to be correct.
-    // Close enough for now.
-    var cx = o.left + (w.width()/2);
-    var cy = o.top + (w.height()/2);
+    // center of rotation
+    var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
+    var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
+
     var x = e.clientX - cx;
     var y = e.clientY - cy;
     var c = x*this.RotateIconY - y*this.RotateIconX;
@@ -1955,59 +1961,79 @@ Viewer.prototype.RollMove = function (e) {
 
  // Interaction events that change the main camera.
 
+
+ // Resize of overview window will be drag with left mouse.
+ // Reposition camera with left click (no drag).
+ // Removing drag camera in overview.
+
  // TODO: Make the overview slide a widget.
  Viewer.prototype.HandleOverViewMouseDown = function(event) {
      if (this.RotateIconDrag) { return;}
 
+     this.InteractionState = INTERACTION_OVERVIEW;
+
+     // Delay actions until we see if it is a drag or click.
+     this.OverviewEventX = event.offsetX;
+     this.OverviewEventY = event.offsetY;
+
+     return false;
+ }
+
+
+ Viewer.prototype.HandleOverViewMouseUp = function(event) {
+     if (this.RotateIconDrag) { return;}
+     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) {return;}
+
      // This target for animation is not implemented cleanly.
      // This fixes a bug: OverView translated rotates camamera back to zero.
      this.RollTarget = this.MainView.Camera.Roll;
-
-     this.InteractionState = INTERACTION_OVERVIEW;
 
      if (event.which == 1) {
          var x = event.offsetX;
          var y = event.offsetY;
          // Transform to view's coordinate system.
          this.OverViewPlaceCamera(x, y);
-     } else if (event.which == 2 || event.which == 3) {
-         // Drag the overview larger and smaller.
-         var w = this.GetViewport()[2];
-         var p = Math.max(w-event.x,event.y);
-         this.OverViewScaleLast = p;
      }
+
+     this.InteractionState = INTERACTION_NONE;
+
      return true;
  }
 
  Viewer.prototype.HandleOverViewMouseMove = function(event) {
      if (this.RotateIconDrag) {
          this.RollMove(event);
-         return true;
+         return false;
      }
 
-     // This consumes events even when I return true.
-     if (this.InteractionState !== INTERACTION_OVERVIEW) {
+     if (this.InteractionState == INTERACTION_OVERVIEW) {
+         // Do not start dragging until the mouse has moved some distance.
+         if (Math.abs(event.offsetX - this.OverviewEventX) > 5 ||
+             Math.abs(event.offsetY - this.OverviewEventY) > 5) {
+             // Start dragging the overview window.
+             this.InteractionState = INTERACTION_OVERVIEW_DRAG;
+             var w = this.GetViewport()[2];
+             var p = Math.max(w-event.x,event.y);
+             this.OverViewScaleLast = p;
+         }
+         return false;
+     }
+
+     // This consumes events even when I return true. Why?
+     if (this.InteractionState !== INTERACTION_OVERVIEW_DRAG) {
          // Drag originated outside overview.
          // Could be panning.
          return true;
      }
-     var x = event.offsetX;
-     var y = event.offsetY;
-     if (event.which == 1) {
-         this.OverViewPlaceCamera(x, y);
-         // Animation handles the render.
-         return false;
-     } else if (event.which == 2 || event.which == 3) { 
-         // Try drag to change overview size
-         var w = this.GetViewport()[2];
-         var p = Math.max(w-event.x,event.y);
-         var d = p/this.OverViewScaleLast;
-         this.OverViewScale *= d*d;
-         this.OverViewScaleLast = p;
-         handleResize();
-         return false;
-     }
-     return true;
+
+     // Drag to change overview size
+     var w = this.GetViewport()[2];
+     var p = Math.max(w-event.x,event.y);
+     var d = p/this.OverViewScaleLast;
+     this.OverViewScale *= d*d;
+     this.OverViewScaleLast = p;
+     handleResize();
+     return false;
 }
 
 Viewer.prototype.HandleOverViewMouseWheel = function(event) {
