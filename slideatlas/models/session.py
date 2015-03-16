@@ -14,6 +14,10 @@ from .collection import Collection
 
 import gridfs
 
+import logging
+logger = logging.getLogger("slideatlas.view.sessions")
+
+
 ################################################################################
 __all__ = ('Session', 'RefItem')
 
@@ -226,9 +230,6 @@ class Session(ModelDocument):
     # what is the purpose of this?
     # user = StringField
 
-    def __unicode__(self):
-        return unicode(self.label)
-
 
 # class StackSession(Session):
 #     """
@@ -283,7 +284,10 @@ class Session(ModelDocument):
             for animagefile in self.imagefiles:
                 data_db = self._get_datadb("imagefiles", animagefile.ref)
                 file_gridfs_obj = data_db["imagefiles.files"].find_one({"_id": animagefile.ref})
-                if "metadata" in file_gridfs_obj:
-                    results.append({"id": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
+                if file_gridfs_obj is not None:
+                    if "metadata" in file_gridfs_obj:
+                        results.append({"id": animagefile.ref, "db": animagefile.db, "name": file_gridfs_obj["filename"], "metadata": file_gridfs_obj["metadata"]})
+                else:
+                    logger.warning("Imagefile %s missing from gridfs in imagestore %s" %(animagefile.ref, self.image_store))
 
             return results

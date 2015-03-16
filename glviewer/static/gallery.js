@@ -33,7 +33,6 @@ function Gallery() {
     this.GalleryDiv = $('<ul>')
         .appendTo(this.ImagePanel)
         .css({
-            'position':   'relative',
             'padding':    '0',
             'border':     '1px solid #CCC',
             'height':     '100%',
@@ -56,8 +55,10 @@ Gallery.prototype.AppendTo = function(parent) {
 Gallery.prototype.HandleResize = function() {
     // We need a dynamic resize
     var height = window.innerHeight - 2;
-    top = this.GalleryDiv.position().top + 15;
-    this.GalleryDiv.css({"height":(height-top)});
+    // var height = this.ImagePanel.height();
+    var tp = this.GalleryDiv.offset().top;
+    this.GalleryDiv.css({"height":(height-tp)});
+    //this.GalleryDiv.height(height-tp);
 }
 
 

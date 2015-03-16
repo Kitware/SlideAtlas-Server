@@ -112,6 +112,3 @@ class Collection(ModelDocument):
 
     creator_codes = ListField(StringField(), required=False,
         verbose_name='Creator Codes', help_text='A list of identifier codes for images to be uploaded to this collection.')
-
-    def __unicode__(self):
-        return unicode(self.label)

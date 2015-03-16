@@ -123,9 +123,6 @@ class User(ModelDocument, UserMixin):
         #   a non-password user attempts to login via password
         return None
 
-    def __unicode__(self):
-        return unicode('%s (%s)' % (self.full_name, self.email))
-
 
 ################################################################################
 class PasswordUser(User):

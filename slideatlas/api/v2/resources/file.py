@@ -312,17 +312,64 @@ class SessionAttachmentItemAPI(ItemAPIResource):
         # this also ensures that the attachment actually exists
         attachments_fs = session._fetch_attachment(restype, attachment_id)[1]
 
+        if restype =="attachments":
+            reslist = session.attachments
+        elif restype == "imagefiles":
+            reslist = session.imagefiles
         # delete from session
-        for (pos, attachment_ref) in enumerate(session.attachments):
+        for (pos, attachment_ref) in enumerate(reslist):
             if attachment_ref.ref == attachment_id:
-                session.attachments.pop(pos)
+                reslist.pop(pos)
                 break
+
+        if restype =="attachments":
+            session.attachments = reslist
+        elif restype == "imagefiles":
+            session.imagefiles = reslist
+
         session.save()
 
         # delete from attachments collection
         attachments_fs.delete(attachment_id)
 
         return None, 204  # No Content
+
+
+
+################################################################################
+class SessionImageFileProcessAPI(ItemAPIResource):
+    @security.AdminSessionRequirement.protected
+    def post(self, session, restype, attachment_id):
+        """
+        Submits a celery request to process the given file
+        (retry)
+        """
+        # Verify that the state of the task is "success"
+        # Prepare arguments
+        args = {}
+        args["input"] = str(attachment_id)
+        args["session"] = str(session.id)
+        args["collection"] = str(session.collection.id)
+
+        # Defaults
+        args["mongo_collection"] = None
+        args["verbose"] = None
+        args["dry_run"] = False
+        args["tilesize"] = 256
+        args["base_only"] = False
+        args["overwrite"] = True
+
+        # Submit the job
+        import slideatlas.tasks.dicer as dicer
+        job = dicer.process_file.delay(args)
+
+        # Update the file metadata
+        task_id = job.task_id
+        datadb = session._get_datadb(restype, attachment_id)
+        datadb[restype + ".files"].update({"_id": bson.ObjectId(attachment_id)}, {"$set": {"metadata": {"task": task_id, "status" : "pending" }}})
+
+        return None, 204  # No Content
+        # return None, 204  # No Content
 
 
 ################################################################################
@@ -335,3 +382,8 @@ api.add_resource(SessionAttachmentItemAPI,
                  '/sessions/<Session:session>/<regex("(attachments|imagefiles)"):restype>/<ObjectId:attachment_id>',
                  endpoint='session_attachment_item',
                  methods=('GET', 'PUT', 'POST', 'DELETE'))  # PATCH not allowed
+
+api.add_resource(SessionImageFileProcessAPI,
+                 '/sessions/<Session:session>/<regex("(imagefiles)"):restype>/<ObjectId:attachment_id>/process',
+                 endpoint='session_imagefile_item_process',
+                 methods=('POST',))

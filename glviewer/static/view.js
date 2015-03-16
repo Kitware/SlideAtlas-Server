@@ -39,7 +39,7 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     
     // 2d canvas
     // Add a new canvas.
-    this.Canvas
+    this.CanvasDiv = $('<div>')
         .css({'position': 'absolute',
               'border-style': 'solid',
               'border-width': '1px',
@@ -50,8 +50,12 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
               'height': viewport[3]+"px",
               'z-index': layer.toString()});
     if ( ! hide) {
-        this.Canvas.appendTo(VIEW_PANEL)
+        this.CanvasDiv.appendTo(VIEW_PANEL)
     }
+    this.Canvas
+        .appendTo(this.CanvasDiv)
+        .css({'width':'100%',
+              'height':'100%'});
 }
 
 View.prototype.GetViewport = function() {
@@ -65,13 +69,13 @@ View.prototype.SetViewport = function(viewport) {
   // Allow for border.
   viewport[2] -=2;
   viewport[3] -=2;
-  if (this.Canvas) {
+  if (this.CanvasDiv) {
     if (viewport[2] < 3 || viewport[3] < 1) {
-      this.Canvas.hide();
+      this.CanvasDiv.hide();
     } else {
-      this.Canvas.show();
+      this.CanvasDiv.show();
     }
-    this.Canvas.css({
+    this.CanvasDiv.css({
         'left'  : viewport[0]+"px",
         'width' : viewport[2]+"px",
         'top'   : viewport[1]+"px",

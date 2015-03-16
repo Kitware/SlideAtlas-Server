@@ -28,9 +28,6 @@ class BaseGroup(ModelDocument):
     permissions = ListField(EmbeddedDocumentField(PermissionDocument), required=False,
         verbose_name='Permissions', help_text='')
 
-    def __unicode__(self):
-        return unicode(self.label)
-
 
 ################################################################################
 class Group(BaseGroup):
