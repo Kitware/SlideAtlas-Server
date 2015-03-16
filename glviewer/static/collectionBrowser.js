@@ -1034,7 +1034,7 @@ CollectionBrowser = (function (){
         if (y > pos.top) {
             var bottom = pos.top + this.SessionLabel.innerHeight();
             if (y < bottom) {
-                this.SetDropTargetItem(this.SessionLabel, true, 0);
+                this.SetDropTargetItem(this.SessionLabel, 0);
                 return true;
             }
         }
