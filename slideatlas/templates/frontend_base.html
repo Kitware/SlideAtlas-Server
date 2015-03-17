@@ -43,6 +43,7 @@
     <script src="/static/ng-app/core/app.js"></script>
     <script src="/static/ng-app/core/resources.js"></script>
     <script src="/static/ng-app/access/access.js"></script>
+    <script src="/static/ng-app/search/search.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -100,6 +101,7 @@
     {% set navigation_bar = [
         ('home', '/', 'Home', True),
         ('sessions', '/sessions', 'Sessions', True),
+        ('search', '/search', 'Search', True),
         ('admin', '/apiv1/admin#/', 'Admin', show_admin),
         ('admin', url_for('admin.index'), 'Admin 2', show_admin),
         ('status', '/status', 'Status', True),

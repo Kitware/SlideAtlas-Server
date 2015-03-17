@@ -1,14 +1,11 @@
 # coding=utf-8
 
-import logging
-
 from flask import Blueprint, Response, current_app, request
 
 from slideatlas import models, security
 
 ################################################################################
 mod = Blueprint('tile', __name__)
-logger = logging.getLogger("slideatlas.view.tile")
 
 
 ################################################################################
@@ -42,7 +39,7 @@ def tile(image_store_id, image_id, tile_name):
             tile_data = image_store.get_tile(image_id, tile_name)
         except models.DoesNotExist as e:
             # TODO: more specific exception
-            logger.warning('Tile not loaded: %s' % e.message)
+            current_app.logger.warning('Tile not loaded: %s' % e.message)
             return Response('{"error": "Tile loading error: %s"}' % e.message, status=404)
         response.set_data(tile_data)
 
@@ -73,7 +70,7 @@ def thumb(image_store, image):
         tile_data = image_store.get_thumb(image)
         return Response(tile_data, mimetype='image/jpeg')
     except models.DoesNotExist as e:
-        logger.error('Thumb not available: %s' % e.message)
+        current_app.logger.warning('Thumb not available: %s' % e.message)
         return Response('{"error": "Thumb loading error: %s"}' % e.message, status=404)
 
 

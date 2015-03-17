@@ -76,38 +76,49 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         return platform.node() == self.host_name
 
 
-    def get_tile(self, image_id, tile_name):
+    def get_tile(self, image_id, tile_name, safe=False, raw=False):
         """
         Returns an image tile as a binary JPEG string.
 
         :raises: DoesNotExist
         """
-        with self:
-            image = Image.objects.get_or_404(id=image_id)
+        try:
+            with self:
+                image = Image.objects.get_or_404(id=image_id)
 
-        tile_size = image.tile_size
-        tiff_path = self.image_file_path(image)
+            tile_size = image.tile_size
+            tiff_path = self.image_file_path(image)
 
-        index_x, index_y, index_z = get_tile_index(tile_name[:-4], invert=False)
+            index_x, index_y, index_z = get_tile_index(tile_name[:-4], invert=False)
 
-        reader = make_reader({
-            'fname': tiff_path,
-            'dir': image.levels - index_z - 1,
-        })
+            reader = make_reader({
+                'fname': tiff_path,
+                'dir': image.levels - index_z - 1,
+            })
 
-        # Locate the tile name from x and y
-        pixel_x = index_x * tile_size + 5
-        pixel_y = index_y * tile_size + 5
+            # Locate the tile name from x and y
+            pixel_x = index_x * tile_size + 5
+            pixel_y = index_y * tile_size + 5
 
-        tile_buffer = StringIO.StringIO()
-        reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
+            tile_buffer = StringIO.StringIO()
+            reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
 
-        if reader_result == 0:
-            raise DoesNotExist('Tile not able to be read from "%s"' % tiff_path)
+            if reader_result == 0:
+                raise DoesNotExist('Tile not %s is stored in "%s"' % (tile_name, tiff_path))
 
-        return tile_buffer.getvalue()
+            if raw:
+                tile_buffer.seek(0L)
+                return PImage.open(tile_buffer)
+            else:
+                return tile_buffer.getvalue()
 
-
+        except Exception as e:
+            # Todo: currently accepting both exceptions level not stored, and tile not stored
+            current_app.logger.error("Exception while getting tile: " + e.message)
+            if safe:
+                return None
+            else:
+                raise DoesNotExist('Tile "%s" is not stored in "%s"' % (tile_name, tiff_path))
 
     def get_thumb(self, image):
         try:
@@ -120,22 +131,47 @@ class PtiffImageStore(MultipleDatabaseImageStore):
         """
         Makes thumb by requesting tiles. Will not make
         """
+        white_tile = None
+
         try:
-            output = self.get_tile(image.id, "t.jpg", )
+            # Try to generate thumbnail from overview image
+            output = self.get_tile(image.id, "t.jpg")
+
         except DoesNotExist:
-            # print "Did not exit"
-            # Grab other tiles
-
-            white_tile = PImage.new("RGB", (256,256), 'white')
-
             # Open the children tiles as PIL image
-            img = PImage.new("RGB", (256,256), 'pink')
+            tq = self.get_tile(image.id, "tq.jpg", safe=True, raw=True)
+            tr = self.get_tile(image.id, "tr.jpg", safe=True, raw=True)
+            ts = self.get_tile(image.id, "ts.jpg", safe=True, raw=True)
+            tt = self.get_tile(image.id, "tt.jpg", safe=True, raw=True)
+
+            # Check correct tile size if atleast one tile is available
+            available = tq or tr or ts or tt
+
+            if available is None:
+                # No children were found return white tile
+                outimg = PImage.new("RGB", (256,256), 'white')
+            else:
+                # Create white tile of required size
+                tilesize = available.size[0]
+                white_tile = PImage.new("RGB", (tilesize,tilesize), 'white')
+
+                # Combine
+                newim = PImage.new('RGB', (tilesize * 2, tilesize * 2), color=None)
+
+                newim.paste(tq or white_tile, (0, 0))
+                newim.paste(tr or white_tile, (tilesize, 0))
+                newim.paste(ts or white_tile, (tilesize, tilesize))
+                newim.paste(tt or white_tile, (0, tilesize))
+
+                # Resize
+                outimg = newim.resize((256, 256), PImage.ANTIALIAS)
+
+            # Return jpeg compressed version of outimg
             buf = StringIO.StringIO()
-            img.save(buf, format="jpeg")
+            outimg.save(buf, format="jpeg")
             output = buf.getvalue()
             del buf
         return output
-
 
     def make_thumb_from_embedded_images(self, image):
         """
