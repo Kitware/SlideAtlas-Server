@@ -2,8 +2,17 @@
 {% set active_page = 'search' %}
 
 {% block content %}
+<div class="container">
+<h1> Search </h1>
 <div ng-app="SlideAtlas">
     <!-- Load angularjs template and hand over the control-->
     <div ng-include src="'/static/ng-app/search/search.html'"> </div>
 </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="//cdnjs.cloudflare.com/ajax/libs/annyang/0.2.0/annyang.min.js"></script>
 {% endblock %}

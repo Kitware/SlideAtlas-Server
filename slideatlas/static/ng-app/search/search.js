@@ -15,4 +15,23 @@ module.controller('SearchCtrl', function ($scope, $location, $http) {
     error(function(data, status) {
         console.log("Some error occured while loading sessions")
     });
+
+    $scope.updateSearch = function(term) {
+        console.log("Searching :" + term);
+    };
+
+    $scope.commands = {
+        'show me *term': function(term) {
+          console.log('Show me: ' + term);
+          $scope.$apply($scope.updateSearch);
+        },
+        'hey': function() {
+          console.log('hey!')
+          $scope.$apply($scope.helloWorld);
+        }
+    };
+
+    annyang.debug();
+    annyang.init($scope.commands);
+    annyang.start();
 });
