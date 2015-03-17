@@ -1,0 +1,23 @@
+<div ng-controller="SearchCtrl">
+    <div ng-hide="data.loaded">
+        <img alt="loading ..." src="/webgl-viewer/static/circular.gif" height="25%">
+    </div>
+
+    <div ng-show="data.loaded">
+        <div class="row">
+            <div class="col-xs-4">
+                <input type="text" ng-model="query" placeholder="search" class="form-control">
+            </div>
+        </div>
+
+        <accordion close-others="oneAtATime" ng-show="query.length > 0">
+            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="arole.isOpen">
+                <table class="table table-striped">
+                    <tr ng-repeat="asession in arole.filtered">
+                        <td><a href="/sessions/{{asession.sessid}}"> {{ asession.label }} </a> </td>
+                    </tr>
+                </table>
+            </accordion-group>
+        </accordion>
+    </div>
+</div>
