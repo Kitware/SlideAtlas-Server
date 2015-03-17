@@ -122,6 +122,9 @@ def create_blueprints(app):
     from slideatlas.views import tile
     app.register_blueprint(tile.mod)
 
+    from slideatlas.views import search
+    app.register_blueprint(search.mod)
+
     from glviewer import mod as webgl_viewer
     app.register_blueprint(webgl_viewer)
 

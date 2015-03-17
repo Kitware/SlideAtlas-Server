@@ -1,0 +1,9 @@
+{% extends 'frontend_base.html' %}
+{% set active_page = 'search' %}
+
+{% block content %}
+<div ng-app="SlideAtlas">
+    <!-- Load angularjs template and hand over the control-->
+    <div ng-include src="'/static/ng-app/search/search.html'"> </div>
+</div>
+{% endblock %}
