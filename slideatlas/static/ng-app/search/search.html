@@ -6,24 +6,17 @@
     <div ng-show="data.loaded">
         <div class="row">
             <div class="col-xs-4">
-                <input type="text" ng-model="query" placeholder="filter" class="form-control" x-webkit-speech>
+                <input type="text" ng-model="query" placeholder="search" class="form-control">
             </div>
         </div>
 
-        <accordion close-others="oneAtATime">
-            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0">
-<!--                 filtered by {{query}}
-                <span ng-repeat="asession in arole.sessions | filter : { label : query}"> {{asession.label}} </span>
- -->                <table class="table table-striped">
-
-
-                    <tr ng-repeat="asession in arole.filtered = (arole.sessions | filter : { label : query})">
+        <accordion close-others="oneAtATime" ng-show="query.length > 0">
+            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="arole.isOpen">
+                <table class="table table-striped">
+                    <tr ng-repeat="asession in arole.filtered">
                         <td><a href="/sessions/{{asession.sessid}}"> {{ asession.label }} </a> </td>
                     </tr>
                 </table>
-                    <!-- <session-list sessions="arole.sessions"> {{ asession.label }} </session-list> -->
-                    <!-- <dj-li ng-repeat = "asession in arole.sessions track by $index"> {{ asession.label }} </dj-li> -->
-                    <!-- <djsessions sess={{arole.sessions track by $index}}/>  -->
             </accordion-group>
         </accordion>
     </div>
