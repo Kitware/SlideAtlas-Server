@@ -32,7 +32,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
         }
         $http.get("/query", {"params": {"terms" : $scope.query}})
             .success(function(data, status) {
-                alert(JSON.stringify(data));
+                $scope.results = data.results;
             })
             .error(function(data, status) {
                 alert("Search query failed")

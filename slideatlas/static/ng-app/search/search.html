@@ -5,11 +5,24 @@
 
     <div ng-show="data.loaded">
         <div class="row">
-            <div class="col-xs-4">
+            <div class="col-xs-5">
             <form ng-submit="updateSearch()">
                 <input type="text" ng-model="query" placeholder="search" class="form-control">
             </form>
             </div>
+        </div>
+        <br>
+        <div class="row">
+            <table class="table table-bordered table-hover" ng-show="results.length > 0">
+                <th> _id </th>
+                <th> Title </th>
+                <th> Text </th>
+                <tr ng-repeat="ares in results">
+                    <td> {{ ares._id }} </td>
+                    <td> {{ ares.Title }}</td>
+                    <td> {{ ares.Text }} </td>
+                </tr>
+            </table>
         </div>
 
         <accordion close-others="oneAtATime" ng-show="query.length > 0">
