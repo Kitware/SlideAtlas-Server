@@ -56,7 +56,6 @@ function Viewer (viewport) {
         this.RotateIcon =
             $('<img>')
             .appendTo(this.OverView.CanvasDiv)
-            .attr('draggable','false')
             .attr("src", "/webgl-viewer/static/rotate.png")
             .css({'width':'40px',
                   'position':'absolute',
@@ -67,6 +66,10 @@ function Viewer (viewport) {
             .mouseenter(function (e) {self.RollEnter(e);})
             .mouseleave(function (e) {self.RollLeave(e);})
             .mousedown( function (e) {self.RollDown(e);})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;
+            });
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -110,7 +113,7 @@ function Viewer (viewport) {
             self.HandleMouseUp(event);},
 			  false);
     can.addEventListener(
-        "mousewheel", 
+        "wheel", 
         function(event){
             self.HandleMouseWheel(event);
         }, 
@@ -171,7 +174,7 @@ function Viewer (viewport) {
 			      function (event){return self.HandleOverViewMouseMove(event);},
 			      false);
         can.addEventListener(
-            "mousewheel",
+            "wheel",
 			      function (event){return self.HandleOverViewMouseWheel(event);},
 			      false);
     }
@@ -1498,6 +1501,7 @@ Viewer.prototype.RollMove = function (e) {
 
 
  Viewer.prototype.HandleMouseDown = function(event) {
+     this.FireFoxWhich = event.which;
      event.preventDefault(); // Keep browser from selecting images.
      EVENT_MANAGER.RecordMouseDown(event);
 
@@ -1552,6 +1556,7 @@ Viewer.prototype.RollMove = function (e) {
  }
 
  Viewer.prototype.HandleMouseUp = function(event) {
+     this.FireFoxWhich = 0;
      EVENT_MANAGER.RecordMouseUp(event);
 
      if (this.RotateIconDrag) {
@@ -1599,7 +1604,8 @@ Viewer.prototype.RollMove = function (e) {
          return false; // trying to keep the browser from selecting images
      }
 
-     if (event.which == 0) {
+     //if (event.which == 0) { // Firefox does not set which for motion events.
+     if ( ! this.FireFoxWhich) {
          // See if any widget became active.
          if (this.AnnotationVisibility) {
              for (var i = 0; i < this.WidgetList.length; ++i) {
@@ -1667,6 +1673,12 @@ Viewer.prototype.RollMove = function (e) {
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
          return false;
+     }
+
+     if ( ! event.offsetX) {
+         // for firefox
+         event.offsetX = event.layerX;
+         event.offsetY = event.layerY;
      }
 
      // We want to accumulate the target, but not the duration.
@@ -1973,8 +1985,8 @@ Viewer.prototype.RollMove = function (e) {
      this.InteractionState = INTERACTION_OVERVIEW;
 
      // Delay actions until we see if it is a drag or click.
-     this.OverviewEventX = event.offsetX;
-     this.OverviewEventY = event.offsetY;
+     this.OverviewEventX = event.pageX;
+     this.OverviewEventY = event.pageY;
 
      return false;
  }
@@ -1991,6 +2003,8 @@ Viewer.prototype.RollMove = function (e) {
      if (event.which == 1) {
          var x = event.offsetX;
          var y = event.offsetY;
+         if (x == undefined) {x = event.layerX;}
+         if (y == undefined) {y = event.layerY;}
          // Transform to view's coordinate system.
          this.OverViewPlaceCamera(x, y);
      }
@@ -2008,12 +2022,12 @@ Viewer.prototype.RollMove = function (e) {
 
      if (this.InteractionState == INTERACTION_OVERVIEW) {
          // Do not start dragging until the mouse has moved some distance.
-         if (Math.abs(event.offsetX - this.OverviewEventX) > 5 ||
-             Math.abs(event.offsetY - this.OverviewEventY) > 5) {
+         if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+             Math.abs(event.pageY - this.OverviewEventY) > 5) {
              // Start dragging the overview window.
              this.InteractionState = INTERACTION_OVERVIEW_DRAG;
              var w = this.GetViewport()[2];
-             var p = Math.max(w-event.x,event.y);
+             var p = Math.max(w-event.pageX,event.pageY);
              this.OverViewScaleLast = p;
          }
          return false;
@@ -2028,7 +2042,7 @@ Viewer.prototype.RollMove = function (e) {
 
      // Drag to change overview size
      var w = this.GetViewport()[2];
-     var p = Math.max(w-event.x,event.y);
+     var p = Math.max(w-event.pageX,event.pageY);
      var d = p/this.OverViewScaleLast;
      this.OverViewScale *= d*d;
      this.OverViewScaleLast = p;
