@@ -19,8 +19,8 @@
                 <th> Text </th>
                 <tr ng-repeat="ares in results">
                     <td> {{ ares._id }} </td>
-                    <td> {{ ares.Title }}</td>
-                    <td> {{ ares.Text }} </td>
+                    <td> <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></td>
+                    <td> <span ng-bind-html="ares.Text | highlight:query.split(' ')"></span> </td>
                 </tr>
             </table>
         </div>

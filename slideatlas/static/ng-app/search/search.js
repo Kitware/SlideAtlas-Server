@@ -4,6 +4,25 @@ var module = angular.module('SlideAtlas.search', [
     'SlideAtlas.resources'
 ]);
 
+module.filter('highlight', function($sce) {
+    return function(str, termsToHighlight) {
+        if(!str) return '';
+
+        var terms = [];
+        termsToHighlight.forEach(function(term) {
+            terms.push(term.toLowerCase());
+        });
+
+        var colors = ["pink", "lightgreen", "lightblue", "khaki"];
+
+        // Regex to simultaneously replace terms
+        var regex = new RegExp('(' + termsToHighlight.join('|').toLowerCase() + ')', 'gi');
+        return $sce.trustAsHtml(str.replace(regex, function (x){
+             return '<span style="background-color:' + colors[terms.indexOf(x.toLowerCase())] + ';">' + x + '</span>'
+        }));
+    }
+});
+
 module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter) {
     $scope.data = {loaded : false};
     $scope.query = "";
