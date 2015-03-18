@@ -13,6 +13,7 @@ from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
 
+import pymongo
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('search', __name__)
@@ -44,7 +45,14 @@ def query_json_endpoint():
 
     # Filter for only viewable views
     col_view = models.View._get_collection()
-    selected_views = col_view.find({'$text': {"$search": terms}}, {"Title" : 1, "Text" : 1});
+    col_view.ensure_index([("Title","text"),("Text", "text")], name="titletext")
+    selected_views = col_view.find(
+        {'$text': {"$search": terms}},
+        {'score': {"$meta": "textScore"}, "Title" : 1, "Text" : 1});
+    print selected_views.count()
+
+    selected_views.sort([('score', {'$meta': 'textScore'})])
+
     resobj["results"] = [aview for aview in selected_views]
 
     return jsonify(resobj)
