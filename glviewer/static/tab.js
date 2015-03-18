@@ -30,8 +30,14 @@ Tab = (function () {
                   'opacity': '0.6',
                   'background-color': '#FFF',
                   'position': 'relative',
+                  '-moz-user-select': 'none',
+                  '-webkit-user-select': 'none',
                   'z-index' : '5'})
-            .click(function(){self.TogglePanel();});
+            .click(function(){self.TogglePanel();})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
 
         this.Panel = $('<div>')
             .appendTo(this.Div)

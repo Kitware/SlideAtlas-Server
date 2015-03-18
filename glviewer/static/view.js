@@ -48,6 +48,8 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
               'width' : viewport[2]+"px",
               'top'   : viewport[1]+"px",
               'height': viewport[3]+"px",
+              '-moz-user-select': 'none',
+              '-webkit-user-select': 'none',
               'z-index': layer.toString()});
     if ( ! hide) {
         this.CanvasDiv.appendTo(VIEW_PANEL)
