@@ -6,7 +6,9 @@
     <div ng-show="data.loaded">
         <div class="row">
             <div class="col-xs-4">
+            <form ng-submit="updateSearch()">
                 <input type="text" ng-model="query" placeholder="search" class="form-control">
+            </form>
             </div>
         </div>
 

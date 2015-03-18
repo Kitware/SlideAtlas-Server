@@ -25,9 +25,20 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
             console.log("Some error occured while loading sessions")
         });
 
+    // Make the query and refresh the contents
     $scope.updateSearch = function(term) {
-        console.log("Searching :" + term);
-        $scope.query = term;
+        if(term) {
+            $scope.query=term;
+        }
+        $http.get("/query", {"params": {"terms" : $scope.query}})
+            .success(function(data, status) {
+                alert(JSON.stringify(data));
+            })
+            .error(function(data, status) {
+                alert("Search query failed")
+            });
+
+
     };
 
     $scope.commands = {

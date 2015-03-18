@@ -22,6 +22,25 @@ mod = Blueprint('search', __name__)
 @mod.route('/search')
 def search_view():
     """
-
+    Entry point into angularjs app for interactive search results
     """
     return render_template('search.html')
+
+
+################################################################################
+@mod.route('/query')
+def query_json_endpoint():
+    """
+    /query?include=views&words=[]
+
+    accepts two parameters
+    """
+    terms = request.args.get("terms", "")
+    includes = []
+    words = terms.split(" ")
+
+    resobj = {}
+    resobj["terms"] = words
+    resobj["results"] = []
+
+    return jsonify(resobj)
