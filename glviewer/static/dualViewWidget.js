@@ -6,37 +6,50 @@ var VIEWER1_FRACTION = 1.0;
 
 
 function InitDualViewWidget() {
-  if ( ! MOBILE_DEVICE) {
-    // Todo: Make the button become more opaque when pressed.
-    $('<img>').appendTo(VIEW_PANEL)
-      .css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '20px',
-        'width': '20x',
-        'top' : '0px',
-        'right' : '0%',
-        'z-index': '4'})
-    .attr('id', 'dualWidgetLeft')
-    .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
-    .click(function(){ToggleDualView();});
+    if ( ! MOBILE_DEVICE) {
+        // Todo: Make the button become more opaque when pressed.
+        $('<img>')
+            .appendTo(VIEW_PANEL)
+            .css({
+                'opacity': '0.4',
+                'position': 'absolute',
+                'height': '20px',
+                'width': '20x',
+                'top' : '0px',
+                'right' : '0%',
+                '-moz-user-select': 'none',
+                '-webkit-user-select': 'none',
+                'z-index': '4'})
+            .attr('id', 'dualWidgetLeft')
+            .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+            .click(function(){ToggleDualView();})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
 
-    $('<img>').appendTo(VIEW_PANEL)
-      .hide()
-      .css({
-        'opacity': '0.4',
-        'position': 'absolute',
-        'height': '20px',
-        'width': '20px',
-        'top' : '0px',
-        'left' : '50%',
-        'z-index': '4'})
-    .attr('id', 'dualWidgetRight')
-    .attr('src',"webgl-viewer/static/dualArrowRight2.png")
-    .click(function(){ToggleDualView();});
 
-    VIEWER1.AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
-    VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
+        $('<img>').appendTo(VIEW_PANEL)
+            .hide()
+            .css({
+                'opacity': '0.4',
+                'position': 'absolute',
+                'height': '20px',
+                'width': '20px',
+                'top' : '0px',
+                'left' : '50%',
+                '-moz-user-select': 'none',
+                '-webkit-user-select': 'none',
+                'z-index': '4'})
+            .attr('id', 'dualWidgetRight')
+            .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+            .click(function(){ToggleDualView();})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
+
+        VIEWER1.AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
+        VIEWER1.AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
   }
 }
 
