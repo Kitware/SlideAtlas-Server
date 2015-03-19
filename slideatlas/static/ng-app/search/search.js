@@ -56,6 +56,8 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
                     dictlist.push(data.selected_and_accessible_views[id])
                 }
                 $scope.results = dictlist;
+                $scope.resultTree = data.selected_and_accessible_views_in_collections;
+                $scope.resultViews = data.selected_and_accessible_views;
             })
             .error(function(data, status) {
                 alert("Search query failed")

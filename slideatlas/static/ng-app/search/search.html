@@ -10,9 +10,13 @@
                 <input type="text" ng-model="query" placeholder="search" class="form-control">
             </form>
             </div>
+            <div class="col-xs-5">
+                <input type="checkbox" ng-model="listView">
+            </div>
         </div>
         <br>
-        <div class="row">
+        <div class="row" ng-show="listView">
+            <h1>List</h1>
             <table class="table table-bordered table-hover" ng-show="results.length > 0">
                 <th> _id </th>
                 <th> Title </th>
@@ -25,16 +29,26 @@
             </table>
         </div>
 
-<!--
+
+        <div class="row" ng-show="!listView">
+        <h1>Accordian</h1>
         <accordion close-others="oneAtATime" ng-show="query.length > 0">
-            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="arole.isOpen">
-                <table class="table table-striped">
-                    <tr ng-repeat="asession in arole.filtered">
-                        <td><a href="/sessions/{{asession.sessid}}"> {{ asession.label }} </a> </td>
-                    </tr>
-                </table>
+            <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" is-open="query.length > 0">
+                <accordion close-others="oneAtATime" is-open="query.length > 0">
+                    <accordion-group ng-repeat="session in arole.sessions" is-open="query.length > 0">
+                        <accordian-heading>
+                            <a href="/sessions/{{session.sessid}}"> {{ session.label }} </a>
+                        </accordian-heading>
+                        <table class="table table-striped">
+                            <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
+                                <td>
+                                <a href="/sessions/{{session.sessid}}"> <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span> </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </accordion-group>
+                </accordion>
             </accordion-group>
         </accordion>
--->
     </div>
 </div>
