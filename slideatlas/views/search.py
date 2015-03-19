@@ -54,8 +54,8 @@ def query_json_endpoint():
     selected_views.sort([('score', {'$meta': 'textScore'})])
 
     selected_views = dict((str(aview["_id"]), aview) for aview in selected_views)
-    resobj["selected_views"] = selected_views
 
+    # resobj["selected_views"] = selected_views
     # return jsonify(resobj)
 
     selected_ids = set(selected_views.keys())
