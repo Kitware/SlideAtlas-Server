@@ -49,75 +49,98 @@ def query_json_endpoint():
     selected_views = col_view.find(
         {'$text': {"$search": terms}},
         {'score': {"$meta": "textScore"}, "Title" : 1, "Text" : 1});
-    print selected_views.count()
 
+    # Sort according to score
     selected_views.sort([('score', {'$meta': 'textScore'})])
 
-    resobj["results"] = [aview for aview in selected_views]
+    selected_views = list(selected_views)
+    selected_ids = [aview["_id"] for aview in selected_views]
+    accessible_ids = set()
 
+    # resobj["selected_ids"] = selected_ids
+    # Also send sessions
+
+    # Only care only about views
+    all_sessions_query = models.Session.objects\
+        .only('collection', 'label', 'image_store', 'type', 'views')\
+        .order_by('collection', 'label')\
+        .no_dereference()
+    # disable dereferencing of of sessions, to prevent running a seperate
+    #   query for every single session's collection
+    all_collections_query = models.Collection.objects\
+        .no_dereference()
+
+    can_admin_collection_ids = [collection.id for collection in all_collections_query.can_access(g.identity.provides , models.Operation.admin)]
+
+    editable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.edit)
+    viewable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.view, strict_operation=True)
+
+    # fetch the relevant collections in bulk
+    collections_by_id = {collection.id: collection for collection in
+                         chain(editable_sessions_query.distinct('collection'),
+                               viewable_sessions_query.distinct('collection')
+                         )}
+
+    # filter each session
+    all_sessions = defaultdict(dict)
+    for sessions_query, can_admin in [
+        # viewable must come first, so editable can overwrite
+        (viewable_sessions_query, False),
+        (editable_sessions_query, True),
+        ]:
+        for collection_ref, sessions in groupby(sessions_query, attrgetter('collection')):
+            collection = collections_by_id[collection_ref.id]
+            all_sessions[collection].update(dict.fromkeys(sessions, can_admin))
+
+    all_sessions = [(collection,
+                    True if collection.id in can_admin_collection_ids else False,
+                    sorted(sessions_dict.iteritems(), key=lambda item: item[0].label)
+                    )
+                    for collection, sessions_dict
+                    in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
+
+
+    # Whether to include administrative javascript
+    is_admin = bool(len(can_admin_collection_ids))
+
+    ajax_session_list = []
+
+    # Compose the view tree
+    # Filter the view tree for selected views
+    # Filter the list of views for views that have no access
+    for collection, can_admin, sessions in all_sessions:
+        acollection ={
+            'rule': collection.label,
+            'can_admin': can_admin,
+            'sessions': []
+        }
+        atleast_one = False
+        for session, can_admin in sessions:
+            # Get views that have access in this session
+            accessible_ids |= set(session.views)
+            asession = {
+                        'sessdb': str(session.image_store.id),
+                        'sessid': str(session.id),
+                        'label': session.label,
+                        'views': filter(lambda x:x in selected_ids, session.views)
+                    }
+
+            if len(asession["views"]) > 0:
+                atleast_one = True
+                acollection["sessions"].append(asession)
+
+        if atleast_one:
+            ajax_session_list.append(acollection)
+
+    resobj["selected_views_in_collections"] = ajax_session_list
+    # resobj['accessible_ids'] = list(accessible_ids)
+    resobj["selected_and_accessible_views"] = filter(lambda x:x["_id"] in accessible_ids, selected_views)
+    resobj["stats"] = {
+        "selected_views": len(selected_views),
+        "selected_and_accessible_views" : len(resobj["selected_and_accessible_views"]),
+        "accessible_views": len(accessible_ids),
+        "all_views": col_view.find().count()
+        }
     return jsonify(resobj)
-
-    # # Only care only about views
-    # all_sessions_query = models.Session.objects\
-    #     .only('collection', 'label', 'image_store', 'type')\
-    #     .order_by('collection', 'label')\
-    #     .no_dereference()
-    # # disable dereferencing of of sessions, to prevent running a seperate
-    # #   query for every single session's collection
-    # all_collections_query = models.Collection.objects\
-    #     .no_dereference()
-
-    # can_admin_collection_ids = [collection.id for collection in all_collections_query.can_access(g.identity.provides , models.Operation.admin)]
-
-    # editable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.edit)
-    # viewable_sessions_query = all_sessions_query.can_access(g.identity.provides, models.Operation.view, strict_operation=True)
-
-    # # fetch the relevant collections in bulk
-    # collections_by_id = {collection.id: collection for collection in
-    #                      chain(editable_sessions_query.distinct('collection'),
-    #                            viewable_sessions_query.distinct('collection')
-    #                      )}
-
-    # all_sessions = defaultdict(dict)
-    # for sessions_query, can_admin in [
-    #     # viewable must come first, so editable can overwrite
-    #     (viewable_sessions_query, False),
-    #     (editable_sessions_query, True),
-    #     ]:
-    #     for collection_ref, sessions in groupby(sessions_query, attrgetter('collection')):
-    #         collection = collections_by_id[collection_ref.id]
-    #         all_sessions[collection].update(dict.fromkeys(sessions, can_admin))
-
-    # all_sessions = [(collection,
-    #                 True if collection.id in can_admin_collection_ids else False,
-    #                 sorted(sessions_dict.iteritems(), key=lambda item: item[0].label)
-    #                 )
-    #                 for collection, sessions_dict
-    #                 in sorted(all_sessions.iteritems(), key=lambda item: item[0].label)]
-
-    # # Whether to include administrative javascript
-    # is_admin = bool(len(can_admin_collection_ids))
-
-    # if request.args.get('json'):
-    #     ajax_session_list = [
-    #         {
-    #             'rule': collection.label,
-    #             'can_admin': can_admin,
-    #             'sessions': [
-    #                 {
-    #                     'sessdb': str(session.image_store.id),
-    #                     'sessid': str(session.id),
-    #                     'label': session.label
-    #                 }
-    #                 for session, can_admin in sessions],
-    #         }
-    #         for collection, can_admin, sessions in all_sessions]
-    #     user_name = security.current_user.full_name if security.current_user.is_authenticated() else 'Guest'
-    #     return jsonify(sessions=ajax_session_list, name=user_name, ajax=1)
-    # else:
-    #     return render_template('sessionlist.html', all_sessions=all_sessions, is_admin=is_admin)
-
-
-    # return jsonify(resobj)
 
 
