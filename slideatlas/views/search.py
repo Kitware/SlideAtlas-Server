@@ -53,12 +53,13 @@ def query_json_endpoint():
     # Sort according to score
     selected_views.sort([('score', {'$meta': 'textScore'})])
 
-    selected_views = list(selected_views)
-    selected_ids = [aview["_id"] for aview in selected_views]
-    accessible_ids = set()
+    selected_views = dict((str(aview["_id"]), aview) for aview in selected_views)
+    resobj["selected_views"] = selected_views
 
-    # resobj["selected_ids"] = selected_ids
-    # Also send sessions
+    # return jsonify(resobj)
+
+    selected_ids = set(selected_views.keys())
+    accessible_ids = set()
 
     # Only care only about views
     all_sessions_query = models.Session.objects\
@@ -117,12 +118,12 @@ def query_json_endpoint():
         atleast_one = False
         for session, can_admin in sessions:
             # Get views that have access in this session
-            accessible_ids |= set(session.views)
+            accessible_ids |= set([str(aview) for aview in session.views])
             asession = {
                         'sessdb': str(session.image_store.id),
                         'sessid': str(session.id),
                         'label': session.label,
-                        'views': filter(lambda x:x in selected_ids, session.views)
+                        'views': filter(lambda x:str(x) in selected_ids, session.views)
                     }
 
             if len(asession["views"]) > 0:
@@ -132,9 +133,12 @@ def query_json_endpoint():
         if atleast_one:
             ajax_session_list.append(acollection)
 
-    resobj["selected_views_in_collections"] = ajax_session_list
-    # resobj['accessible_ids'] = list(accessible_ids)
-    resobj["selected_and_accessible_views"] = filter(lambda x:x["_id"] in accessible_ids, selected_views)
+    resobj["selected_and_accessible_views_in_collections"] = ajax_session_list
+    resobj["selected_and_accessible_views"] = { selected_id: selected_views[selected_id] for selected_id in set(selected_ids) & set(accessible_ids)}
+
+    # resobj["selected_ids"] = list(selected_ids)
+    # resobj["accessible_ids"] = list(accessible_ids)
+
     resobj["stats"] = {
         "selected_views": len(selected_views),
         "selected_and_accessible_views" : len(resobj["selected_and_accessible_views"]),
