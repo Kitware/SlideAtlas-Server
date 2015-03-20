@@ -2,7 +2,10 @@
 
 from flask import Blueprint, Response, current_app, request
 
-from slideatlas import models, security
+from slideatlas import models#, security
+from slideatlas.common_utils import jsonify
+
+import base64
 
 ################################################################################
 mod = Blueprint('tile', __name__)
@@ -74,6 +77,7 @@ def thumb(image_store, image):
         return Response('{"error": "Thumb loading error: %s"}' % e.message, status=404)
 
 
+################################################################################
 @mod.route('/thumb')
 #@security.login_required
 def thumb_query():
@@ -85,3 +89,19 @@ def thumb_query():
         image = models.Image.objects.get_or_404(id=image_id)
 
     return thumb(image_store, image)
+
+################################################################################
+@mod.route('/thumb/<View:view>')
+def thumb_from_view(view):
+    """
+    Gets a thumbnail from view directly,
+    Chains the request to view objects helper method
+    """
+
+    imagestr = view.get_thumb("macro")
+    current_app.logger.warning("Imagestr: " + imagestr)
+
+    if int(request.args.get("binary", 0)):
+        return Response(base64.b64decode(imagestr), mimetype="image/jpeg")
+    else:
+        return jsonify({"macro": imagestr})
