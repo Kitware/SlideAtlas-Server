@@ -1,54 +1,49 @@
 <div ng-controller="SearchCtrl">
-    <div ng-hide="data.loaded">
-        <img alt="loading ..." src="/webgl-viewer/static/circular.gif" height="25%">
+
+<!--         <img alt="loading ..." src="/webgl-viewer/static/circular.gif" height="25%">
+ -->
+    <div class="row">
+        <div class="col-xs-5">
+        <form ng-submit="updateSearch()">
+            <input type="text" ng-model="query" placeholder="search" class="form-control">
+        </form>
+        </div>
+        <div class="col-xs-5">
+            <input type="checkbox" ng-model="listView">
+        </div>
     </div>
 
-    <div ng-show="data.loaded">
-        <div class="row">
-            <div class="col-xs-5">
-            <form ng-submit="updateSearch()">
-                <input type="text" ng-model="query" placeholder="search" class="form-control">
-            </form>
-            </div>
-            <div class="col-xs-5">
-                <input type="checkbox" ng-model="listView">
-            </div>
-        </div>
-        <br>
-        <div class="row" ng-show="listView">
-            <h1>List</h1>
-            <table class="table table-bordered table-hover" ng-show="results.length > 0">
-                <th> _id </th>
-                <th> Title </th>
-                <th> Text </th>
-                <tr ng-repeat="ares in results">
-                    <td> {{ ares._id }} </td>
-                    <td> <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></td>
-                    <td> <span ng-bind-html="ares.Text | highlight:query.split(' ')"></span> </td>
-                </tr>
-            </table>
-        </div>
+    <br>
 
+    <div class="row" ng-show="listView">
+        <table class="table table-bordered table-hover" ng-show="results.length > 0">
+            <th> _id </th>
+            <th> Title </th>
+            <th> Text </th>
+            <tr ng-repeat="ares in results">
+                <td> {{ ares._id }} </td>
+                <td> <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></td>
+                <td> <span ng-bind-html="ares.Text | highlight:query.split(' ')"></span> </td>
+            </tr>
+        </table>
+    </div>
 
-        <div class="row" ng-show="!listView">
-        <h1>Accordian</h1>
+    <div class="row" ng-show="!listView">
         <accordion close-others="oneAtATime" ng-show="query.length > 0">
-            <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" is-open="query.length > 0">
-                <accordion close-others="oneAtATime" is-open="query.length > 0">
-                    <accordion-group ng-repeat="session in arole.sessions" is-open="query.length > 0">
-                        <accordian-heading>
-                            <a href="/sessions/{{session.sessid}}"> {{ session.label }} </a>
-                        </accordian-heading>
-                        <table class="table table-striped">
-                            <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
-                                <td>
-                                <a href="/sessions/{{session.sessid}}"> <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span> </a>
-                                </td>
-                            </tr>
-                        </table>
-                    </accordion-group>
-                </accordion>
+        <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.sessions.length}} sessions)" is-open="arole.isOpen">
+            <accordion close-others="oneAtATime">
+            <accordion-group ng-repeat="session in arole.sessions" heading="{{session.label}} ({{session.views.length}} views)" is-open="session.isOpen">
+                <table class="table table-striped">
+                    <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
+                        <td> <img src="/api/v2/sessions/{{session.sessid}}/view/{{}}" style="min-width: 50px; height:50px"> </td>
+                        <td>
+                            <a href="/sessions/{{session.sessid}}"> <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span> </a>
+                        </td>
+                    </tr>
+                </table>
             </accordion-group>
+            </accordion>
+        </accordion-group>
         </accordion>
     </div>
 </div>

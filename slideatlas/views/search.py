@@ -113,7 +113,8 @@ def query_json_endpoint():
         acollection ={
             'rule': collection.label,
             'can_admin': can_admin,
-            'sessions': []
+            'sessions': [],
+            'isOpen': True
         }
         atleast_one = False
         for session, can_admin in sessions:
@@ -123,7 +124,9 @@ def query_json_endpoint():
                         'sessdb': str(session.image_store.id),
                         'sessid': str(session.id),
                         'label': session.label,
-                        'views': filter(lambda x:str(x) in selected_ids, session.views)
+                        'views': filter(lambda x:str(x) in selected_ids, session.views),
+                        'isOpen' :True
+
                     }
 
             if len(asession["views"]) > 0:
