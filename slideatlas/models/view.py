@@ -6,6 +6,15 @@ from mongoengine import EmbeddedDocument, BooleanField, DictField, \
 from mongoengine.errors import NotRegistered
 
 from .common import ModelDocument
+from .image_store import ImageStore
+from .image import Image
+
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
+
+import base64
 
 ################################################################################
 __all__ = ('View', )
@@ -142,3 +151,28 @@ class View(ModelDocument):
 
     hide = BooleanField(required=False,
         verbose_name='', help_text='')
+
+    thumbs = DictField(required=False, verbose_name='', help_text='')
+
+    def get_thumb(self, which="macro", force=False):
+        """
+        Helper method to return thumbnail from the view.
+        fetches the thumbnail from image_store if requied
+        """
+        if force or which not in self.thumbs:
+            # Refresh the thumbnail
+            if which not in ["macro"]:
+                # Only know how to make macro image
+                # Todo: add support for label supported
+                raise Exception("%s thumbnail creation not supported" % which)
+
+            # Get the image store and image id and off load the request
+            istore = ImageStore.objects.get(id=self.ViewerRecords[0]["Database"])
+            with istore:
+                thumbimgdata = istore.make_thumb(
+                        Image.objects.get(id=self.ViewerRecords[0]["Image"]))
+
+                self.thumbs[which] = base64.b64encode(thumbimgdata)
+                self.save()
+        # Assume that the thumbnail exists now
+        return self.thumbs[which]
