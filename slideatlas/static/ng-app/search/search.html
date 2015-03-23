@@ -25,23 +25,30 @@
                     ng-class="{ 'active' : viewType == 'table' }">
                     <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
                 </button>
- -->
+-->
             </div>
-        </div>
-        <div class="col-xs-5">
-        View: {{ viewType }}
         </div>
     </div>
 
     <br>
 
+    <div class="row" ng-show="loading == true">
+        <div "col-xs-2-offset">
+            <img src="/webgl-viewer/static/circular.gif" height="25px">
+        </div>
+    </div>
+
+    <div class="row" ng-show="results.length == 0 && !loading">
+        <p> No results for "{{ query }}".
+        <p> Please say "Show me "blood" from microphone input to trigger voice search for "blood".
+    </div>
     <div class="row" ng-show="viewType=='list'">
         <table class="table table-bordered table-hover" ng-show="results.length > 0">
             <th> _id </th>
             <th> Title </th>
             <th> Text </th>
             <tr ng-repeat="ares in results">
-                <td> <a href="/view?viewid={{ares._id}}"> <img src="/viewthumb?viewid={{ares._id}}&binary=1" style="min-width: 50px; height:50px"> </a>
+                <td> <a ng-href="/view?viewid={{ares._id}}"> <img ng-src="/viewthumb?viewid={{ares._id}}&binary=1" style="min-width: 50px; height:50px"> </a>
                 </td>
                 <td><a href="/view?viewid={{ares._id}}">  <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></a>
                 </td>
@@ -63,9 +70,9 @@
                 </accordion-heading>
                 <table class="table table-striped">
                     <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
-                        <td> <img ng-src="/viewthumb?viewid={{viewobj._id}}&binary=1" style="min-width: 50px; height:50px"> </td>
+                        <td> <img ng-src="/viewthumb?viewid={{viewobj._id}}&binary=1&force=1" style="min-width: 50px; height:50px"> </td>
                         <td>
-                            <a ng-href="/view?viewid={{ares._id}}">
+                            <a ng-href="/view?viewid={{viewobj._id}}">
                              <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span>
                              </a>
                         </td>

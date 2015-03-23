@@ -24,9 +24,10 @@ module.filter('highlight', function($sce) {
 });
 
 module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter) {
-    $scope.data = {loaded : false};
-    $scope.query = "blood";
+    $scope.loading = false;
+    $scope.query = "";
     $scope.roles = [];
+    $scope.results = [];
 
     $scope.viewType = "list";
 
@@ -35,6 +36,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
         if(term) {
             $scope.query=term;
         }
+        $scope.loading = true;
         $http.get("/query", {"params": {"terms" : $scope.query}})
             .success(function(data, status) {
                 var dictlist = [];
@@ -44,13 +46,14 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
                 $scope.results = dictlist;
                 $scope.resultTree = data.selected_and_accessible_views_in_collections;
                 $scope.resultViews = data.selected_and_accessible_views;
+                $scope.loading = false;
             })
             .error(function(data, status) {
                 alert("Search query failed")
             });
     };
 
-    $scope.updateSearch($scope.query);
+    // $scope.updateSearch($scope.query);
 
     $scope.visit = function(where, e) {
         window.location = where;

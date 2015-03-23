@@ -108,6 +108,8 @@ def thumb_from_view():
     # Implementation without View
     viewcol = models.View._get_collection()
     viewobj = viewcol.find_one({"_id": viewid})
+    if "thumbs" not in viewobj:
+        viewobj["thumbs"] = {}
 
     # Make thumbnail
     if force or which not in viewobj["thumbs"]:
