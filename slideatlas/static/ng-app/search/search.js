@@ -50,6 +50,14 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
 
     $scope.updateSearch($scope.query);
 
+    $scope.visit = function(where, e) {
+        window.location = where;
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+    };
+
     $scope.commands = {
         'show me *term': function(term) {
           console.log('Show me: ' + term);

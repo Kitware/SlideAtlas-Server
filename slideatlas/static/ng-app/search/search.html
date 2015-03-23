@@ -33,6 +33,11 @@
         <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.sessions.length}} sessions)" is-open="arole.isOpen">
             <accordion close-others="oneAtATime">
             <accordion-group ng-repeat="session in arole.sessions" heading="{{session.label}} ({{session.views.length}} views)" is-open="session.isOpen">
+                <accordion-heading>
+                    {{session.label}} ({{session.views.length}} views)
+                    <a ng-href='/sessions/{{session.sessid}}' ng-click="visit('/sessions/' + session.sessid, $event)"> <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+                     </a>
+                </accordion-heading>
                 <table class="table table-striped">
                     <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
                         <td> <img src="/viewthumb?viewid={{viewobj._id}}&binary=1" style="min-width: 50px; height:50px"> </td>
