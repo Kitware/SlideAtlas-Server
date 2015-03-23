@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from flask import Blueprint, Response, current_app, request
+from flask import Blueprint, Response, current_app, request, redirect, url_for
 
 from slideatlas import models#, security
 from slideatlas.common_utils import jsonify
@@ -135,3 +135,19 @@ def thumb_from_view():
         return Response(base64.b64decode(imagestr), mimetype="image/jpeg")
     else:
         return jsonify({which: imagestr})
+
+
+@mod.route('/view')
+def view_from_viewid():
+    """
+    redirects to the glviewer endpoint
+    """
+
+    # Get parameters
+    viewid = ObjectId(request.args.get("viewid",None))
+
+    # Implementation without View
+    viewcol = models.View._get_collection()
+    viewobj = viewcol.find_one({"_id": viewid})
+
+    return redirect("/webgl-viewer?db=%s&view=%s" % (viewobj["ViewerRecords"][0]["Database"], viewid), code=302)
