@@ -28,6 +28,8 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
     $scope.query = "blood";
     $scope.roles = [];
 
+    $scope.viewType = "list";
+
     // Make the query and refresh the contents
     $scope.updateSearch = function(term) {
         if(term) {

@@ -9,13 +9,33 @@
         </form>
         </div>
         <div class="col-xs-5">
-            <input type="checkbox" ng-model="listView">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default"
+                    ng-click="viewType='list'"
+                    ng-class="{ 'active' : viewType == 'list' }">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn btn-default"
+                    ng-click="viewType='tree'"
+                    ng-class="{ 'active' : viewType == 'tree' }">
+                    <img src="/static/ng-app/search/tree.png" width="15px" height="16px">
+                </button>
+<!--                 <button type="button" class="btn btn-default"
+                    ng-click="viewType='table'"
+                    ng-class="{ 'active' : viewType == 'table' }">
+                    <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
+                </button>
+ -->
+            </div>
+        </div>
+        <div class="col-xs-5">
+        View: {{ viewType }}
         </div>
     </div>
 
     <br>
 
-    <div class="row" ng-show="listView">
+    <div class="row" ng-show="viewType=='list'">
         <table class="table table-bordered table-hover" ng-show="results.length > 0">
             <th> _id </th>
             <th> Title </th>
@@ -30,7 +50,7 @@
         </table>
     </div>
 
-    <div class="row" ng-show="!listView">
+    <div class="row" ng-show="viewType=='tree'">
         <accordion close-others="oneAtATime" ng-show="query.length > 0">
         <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.sessions.length}} sessions)" is-open="arole.isOpen">
 
