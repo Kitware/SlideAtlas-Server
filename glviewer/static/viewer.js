@@ -223,7 +223,7 @@ Viewer.prototype.RollMove = function (e) {
     var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
     var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
 
-    var x = e.clientX - cx;
+    var x = e.clientX - cx - VIEW_PANEL.position().left;
     var y = e.clientY - cy;
     var c = x*this.RotateIconY - y*this.RotateIconX;
     var r = c / (x*x + y*y);
