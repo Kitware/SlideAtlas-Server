@@ -69,10 +69,6 @@ def query_json_endpoint():
 
     selected_session_ids = set([obj["_id"] for obj in selected_sessions])
 
-    resobj["selected_sessions"] = selected_sessions
-
-    # return jsonify(resobj)
-
     selected_ids = set(selected_views.keys())
     accessible_ids = set()
 
@@ -125,7 +121,7 @@ def query_json_endpoint():
     is_admin = bool(len(can_admin_collection_ids))
 
     ajax_session_list = []
-
+    selected_and_accessible_sessions = []
     # Compose the view tree
     # Filter the view tree for selected views
     # Filter the list of views for views that have no access
@@ -145,12 +141,15 @@ def query_json_endpoint():
                 'sessid': str(session.id),
                 'label': session.label,
                 'views': filter(lambda x: str(x) in selected_ids, session.views),
-                'total_views' : len(session.views),
-                'isOpen': True
+                'total_views': len(session.views),
+                'isOpen': True,
+                'collection_label': collection.label,
+                'collection_id': str(collection.id)
             }
 
             if len(asession["views"]) > 0 or session.id in selected_session_ids:
                 atleast_one = True
+                selected_and_accessible_sessions.append(asession)
                 acollection["sessions"].append(asession)
 
         if atleast_one:
@@ -160,6 +159,7 @@ def query_json_endpoint():
     resobj["selected_and_accessible_views"] = {selected_id: selected_views[
         selected_id] for selected_id in set(selected_ids) & set(accessible_ids)}
 
+    resobj["selected_and_accessible_sessions"] = selected_and_accessible_sessions
     # resobj["selected_ids"] = list(selected_ids)
     # resobj["accessible_ids"] = list(accessible_ids)
 

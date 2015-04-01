@@ -23,6 +23,7 @@ module.filter('highlight', function($sce) {
     }
 });
 
+
 module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter) {
     $scope.loading = false;
     $scope.query = "";
@@ -46,6 +47,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
                 $scope.results = dictlist;
                 $scope.resultTree = data.selected_and_accessible_views_in_collections;
                 $scope.resultViews = data.selected_and_accessible_views;
+                $scope.resultSessions = data.selected_and_accessible_sessions;
                 $scope.loading = false;
             })
             .error(function(data, status) {
@@ -53,7 +55,13 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
             });
     };
 
-    $scope.query = '"hodgkin disease"'
+    $scope.empty = function(prop){
+        return function(item){
+          return item[prop].length == 0;
+        }
+    };
+
+    // $scope.query = 'marmoset';
     $scope.updateSearch($scope.query);
 
     $scope.visit = function(where, e) {
