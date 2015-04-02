@@ -130,41 +130,41 @@ function NavigationWidget() {
 
 
 NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
-  // 34=page down, 78=n, 32=space
-  if (keyCode == 34) {
-    this.NextSlide();
-    return true;
-  }
-  if (keyCode == 78 || keyCode == 32) {
-    this.NextNote();
-    return true;
-  }
-  // 33=page up, 80=p
-  if (keyCode == 33) {
-    this.PreviousSlide();
-    return true;
-  }
-  if (keyCode == 80) {
-    this.PreviousNote();
-    return true;
-  }
+    // 34=page down, 78=n, 32=space
+    if (keyCode == 34) {
+        this.NextSlide();
+        return true;
+    }
+    if (keyCode == 78 || keyCode == 32) {
+        this.NextNote();
+        return true;
+    }
+    // 33=page up, 80=p
+    if (keyCode == 33) {
+        this.PreviousSlide();
+        return true;
+    }
+    if (keyCode == 80) {
+        this.PreviousNote();
+        return true;
+    }
 
-  return false;
+    return false;
 }
 
 
 NavigationWidget.prototype.ToggleVisibility = function() {
-  this.SetVisibility( ! this.Visibility);
+    this.SetVisibility( ! this.Visibility);
 }
 
 // Used on mobile.
 NavigationWidget.prototype.SetVisibility = function(v) {
-  this.Visibility = v;
-  if (v) {
-    this.Tab.Panel.show();
-  } else {
-    this.Tab.Panel.hide();
-  }
+    this.Visibility = v;
+    if (v) {
+        this.Tab.Panel.show();
+    } else {
+        this.Tab.Panel.hide();
+    }
 }
 
 NavigationWidget.prototype.Update = function() {
@@ -238,7 +238,9 @@ NavigationWidget.prototype.PreviousNote = function() {
         current.SynchronizeViews(1);
         // activate or deactivate buttons.
         this.Update();
-        this.NoteDisplay.html("" + current.StartIndex);
+        if (this.NoteDisplay) {
+            this.NoteDisplay.html("" + current.StartIndex);
+        }
         return;
     }
 
@@ -276,8 +278,9 @@ NavigationWidget.prototype.NextNote = function() {
         current.SynchronizeViews(0);
         // activate or deactivate buttons.
         this.Update();
-        this.NoteDisplay.html("" + current.StartIndex);
-
+        if (this.NoteDisplay) {
+            this.NoteDisplay.html("" + current.StartIndex);
+        }
         return;
     }
 
@@ -307,7 +310,9 @@ NavigationWidget.prototype.PreviousSlide = function() {
     if (check) {
         this.SlideIndex -= 1;
         NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
-        this.NoteDisplay.html("");
+        if (this.NoteDisplay) {
+            this.NoteDisplay.html("");
+        }
     }
 }
 
@@ -321,7 +326,9 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         this.SlideIndex += 1;
         NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
-        this.NoteDisplay.html("");
+        if (this.NoteDisplay) {
+            this.NoteDisplay.html("");
+        }
     }
 }
 

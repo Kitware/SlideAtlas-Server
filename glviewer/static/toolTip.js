@@ -1,30 +1,32 @@
 // Bubble help.
 
-function ToolTip(widget, text) {
-  var self = this;
-  this.Active = true;
-  this.Widget = widget;
-  this.Div =
-    $('<div>').appendTo(widget.offsetParent())
-              .hide()
-              .text(text)
-              .css({'position': 'absolute',
-                    'z-index': '3'});
-  widget.mouseenter(function() { self.HandleMouseEnter(); })
-        .mouseleave(function(){ self.HandleMouseLeave();});
 
-  this.TimerId = 0;
+
+
+function ToolTip(widget, text) {
+    var self = this;
+    this.Active = true;
+    this.Widget = widget;
+    this.Div =
+        $('<div>').appendTo(widget.offsetParent())
+        .hide()
+        .text(text)
+        .css({'position': 'absolute',
+              'z-index': '3'});
+    widget.hover(function() { self.HandleMouseEnter(); },
+                 function() { self.HandleMouseLeave(); });
+
+    this.TimerId = 0;
 }
 
 ToolTip.prototype.HandleMouseEnter = function() {
-  if ( ! this.Active) {
-    return;
-  }
-  if ( ! this.TimerId) {
-    var self = this;
-    this.TimerId = setTimeout(function(){self.TimerCallback();}, 2000); // two seconds
-  }
-
+    if ( ! this.Active) {
+        return;
+    }
+    if ( ! this.TimerId) {
+        var self = this;
+        this.TimerId = setTimeout(function(){self.TimerCallback();}, 2000); // two seconds
+    }
 }
 
 ToolTip.prototype.TimerCallback = function() {

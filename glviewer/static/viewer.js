@@ -198,6 +198,7 @@ Viewer.prototype.RollLeave = function (e) {
     }
 }
 Viewer.prototype.RollDown = function (e) {
+    if ( ! this.OverView) { return; }
     this.RotateIconDrag = true;
     // Find the center of the overview window.
     var w = this.OverView.CanvasDiv;
@@ -210,6 +211,7 @@ Viewer.prototype.RollDown = function (e) {
     return false;
 }
 Viewer.prototype.RollMove = function (e) {
+    if ( ! this.OverView) { return; }
     if ( ! this.RotateIconDrag) { return; }
     if ( e.which != 1) {
         // We must have missed the mouse up event.
@@ -760,12 +762,15 @@ Viewer.prototype.SaveImage = function(fileName) {
 
      if (viewport[2] <= 10) {
          this.MainView.CanvasDiv.hide();
-         this.OverView.CanvasDiv.hide();
+         if (this.OverView) {
+             this.OverView.CanvasDiv.hide();
+         }
          return;
      }
      this.MainView.CanvasDiv.show();
-     this.OverView.CanvasDiv.show();
-
+     if (this.OverView) {
+         this.OverView.CanvasDiv.show();
+     }
      this.MainView.SetViewport(viewport);
      this.MainView.Camera.ComputeMatrix();
 
@@ -1961,6 +1966,9 @@ Viewer.prototype.SaveImage = function(fileName) {
  // OverView slide widget stuff.
 
  Viewer.prototype.OverViewCheckActive = function(event) {
+     if ( ! this.OverView) {
+         return false;
+     }
      var x = event.offsetX;
      var y = event.offsetY;
      // Half height and width
