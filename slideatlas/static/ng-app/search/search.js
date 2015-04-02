@@ -61,6 +61,11 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
         }
     };
 
+
+    $scope.makeDataUri = function(str){
+        return "data:image/jpeg;base64," + str;
+    };
+
     // $scope.query = 'marmoset';
     $scope.updateSearch($scope.query);
 
