@@ -38,6 +38,27 @@
 {% block scripts %}
     {{ super() }}
 
+    <script>
+        document.addEventListener("DOMContentLoaded", theDomHasLoaded, false);
+        function theDomHasLoaded(e) {
+            if (localStorage.scrollTop) {
+                var s = parseInt(localStorage.scrollTop);
+                document.getElementsByTagName("body")[0].scrollTop = s;
+                // since I cannot stop the scrollTop = 0 from rendering
+                // I might as well animate
+                //$('body').animate({scrollTop: s});
+            }
+        }
+        window.addEventListener("load", pageFullyLoaded, false);
+        function pageFullyLoaded (e) {
+            document.getElementsByTagName("body")[0].onscroll =
+                function () {
+                    var s = document.getElementsByTagName("body")[0].scrollTop;
+                    localStorage.scrollTop = s.toString();
+                }
+        }
+    </script>
+
     {% if is_admin %}
         {# TODO: These standard scripts will be included higher up in the inheritance  #}
         <script src="/static/thirdparty/bootbox/4.2.0/bootbox.min.js"></script>
