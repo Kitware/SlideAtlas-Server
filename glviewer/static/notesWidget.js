@@ -751,7 +751,9 @@ Note.prototype.Select = function() {
         // Second is set relative to the first.
         this.SynchronizeViews(0);
         // We do not support inserting sections in a stack right now.
-        NOTES_WIDGET.NewButton.hide();
+        if (NOTES_WIDGET.NewButton) {
+            NOTES_WIDGET.NewButton.hide();
+        }
     } else {
         // Clear the sync callback.
         VIEWER1.OnInteraction();
