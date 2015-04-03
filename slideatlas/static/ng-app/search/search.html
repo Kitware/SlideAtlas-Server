@@ -47,7 +47,7 @@
             <th>  </th>
             <th> Title </th>
             <th> Notes </th>
-            <tr ng-repeat="ares in resultSessions | filter: empty('views')">
+            <tr ng-repeat="ares in resultSessions | filter: isSessionSelected('views')">
                 <td> <a ng-href="/sessions/{{ares.sessid}}"> <span class="btn btn-small btn-primary"> session </span> </a>
                 </td>
                 <td><a href="/sessions/{{ares.sessid}}">  <span ng-bind-html="ares.label | highlight:query.split(' ')"></span></a> in collection <a href="/sessions#{{ares.collection_id}}">  <span ng-bind-html="ares.collection_label | highlight:query.split(' ')"></span>

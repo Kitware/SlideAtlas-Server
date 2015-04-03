@@ -48,6 +48,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
                 $scope.resultTree = data.selected_and_accessible_views_in_collections;
                 $scope.resultViews = data.selected_and_accessible_views;
                 $scope.resultSessions = data.selected_and_accessible_sessions;
+                $scope.resultSessionIDs = data.selected_and_accessible_sessions.map(function(a) { return a._id});
                 $scope.loading = false;
             })
             .error(function(data, status) {
@@ -55,9 +56,9 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
             });
     };
 
-    $scope.empty = function(prop){
+    $scope.isSessionSelected = function(){
         return function(item){
-          return item[prop].length == 0;
+          return $scope.resultSessionIDs.indexOf(item._id) !== -1;
         }
     };
 
@@ -72,8 +73,9 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
         }
     };
 
+    // Uncomment following lines to get default results in the search
     // $scope.query = 'marmoset';
-    $scope.updateSearch($scope.query);
+    // $scope.updateSearch($scope.query);
 
     $scope.visit = function(where, e) {
         window.location = where;

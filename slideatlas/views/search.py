@@ -147,10 +147,13 @@ def query_json_endpoint():
                 'collection_id': str(collection.id)
             }
 
+
             if len(asession["views"]) > 0 or session.id in selected_session_ids:
                 atleast_one = True
-                selected_and_accessible_sessions.append(asession)
                 acollection["sessions"].append(asession)
+
+            if session.id in selected_session_ids:
+                selected_and_accessible_sessions.append(asession)
 
         if atleast_one:
             ajax_session_list.append(acollection)
@@ -166,6 +169,7 @@ def query_json_endpoint():
     resobj["stats"] = {
         "selected_views": len(selected_views),
         "selected_and_accessible_views": len(resobj["selected_and_accessible_views"]),
+        "selected_and_accessible_sessions": len(resobj["selected_and_accessible_sessions"]),
         "accessible_views": len(accessible_ids),
         "all_views": col_view.find().count()
     }
