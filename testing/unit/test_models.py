@@ -12,6 +12,8 @@ from slideatlas import models
 from slideatlas.models import Image
 from slideatlas.models import ImageStore, View, Session
 
+import base64
+
 def test_image_access():
     obj = ImageStore.objects(dbname="demo")[0]
     assert(obj != None)
@@ -56,6 +58,59 @@ def test_collection_access():
         print col.label
 
 
+def test_and_fix__macro_thumbs():
+    # params
+    viewcol = View._get_collection()
+    which = "macro"
+    force = False
+
+    made = 0
+    errored = 0
+    skipped = 0
+    total = 0
+
+    for viewobj in viewcol.find():
+        total = total + 1
+        logger.info("Total: %d" % total)
+        try:
+            # Make thumbnail
+            if "thumbs" not in viewobj:
+                viewobj["thumbs"] = {}
+
+            if force or which not in viewobj["thumbs"]:
+
+                # Refresh the thumbnail
+                if which not in ["macro"]:
+                    # Only know how to make macro image
+                    # Todo: add support for label supported
+                    raise Exception("%s thumbnail creation not supported" % which)
+
+                # Make the macro thumb
+                # Get the image store and image id and off load the request
+                istore = models.ImageStore.objects.get(id=viewobj["ViewerRecords"][0]["Database"])
+
+                # All image stores support macro thumb
+                with istore:
+                    thumbimgdata = istore.make_thumb(
+                        models.Image.objects.get(id=viewobj["ViewerRecords"][0]["Image"]))
+
+                    viewcol.update({"_id": viewobj["_id"]},
+                        {"$set" : { "thumbs." + which: base64.b64encode(thumbimgdata)}})
+
+                    made = made + 1
+                    logger.info("Made: %d" % made)
+            else:
+                skipped = skipped + 1
+                logger.info("Skipped: %d" % skipped)
+
+        except Exception as e:
+            errored = errored + 1
+            logger.info("Errored: %d, %s" % (errored, e.message))
+
+    logger.info("Made: %d" % made)
+    logger.info("Skipped: %d" % skipped)
+    logger.info("Errored: %d" % errored)
+
 if __name__ == "__main__":
     """
     Run few tests
@@ -77,4 +132,6 @@ if __name__ == "__main__":
     # test_image_access()
     # test_view_access()
     # test_sess_access()
-    test_collection_access()
+    # test_collection_access()
+    with app.app_context():
+        test_and_fix__macro_thumbs()

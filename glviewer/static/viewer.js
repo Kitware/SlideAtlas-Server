@@ -56,17 +56,22 @@ function Viewer (viewport) {
         this.RotateIcon =
             $('<img>')
             .appendTo(this.OverView.CanvasDiv)
-            .attr('draggable','false')
             .attr("src", "/webgl-viewer/static/rotate.png")
             .css({'width':'40px',
                   'position':'absolute',
                   'right':'-20px',
                   'top':'-20px',
                   'opacity':'0.6',
-                  'z-index':'16'})
+                  'z-index':'16',
+                  '-moz-user-select': 'none',
+                  '-webkit-user-select': 'none'})
             .mouseenter(function (e) {self.RollEnter(e);})
             .mouseleave(function (e) {self.RollLeave(e);})
             .mousedown( function (e) {self.RollDown(e);})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;
+            });
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -110,7 +115,7 @@ function Viewer (viewport) {
             self.HandleMouseUp(event);},
 			  false);
     can.addEventListener(
-        "mousewheel", 
+        "wheel", 
         function(event){
             self.HandleMouseWheel(event);
         }, 
@@ -162,6 +167,10 @@ function Viewer (viewport) {
             "mousedown",
 			      function (event){return self.HandleOverViewMouseDown(event);},
 			      false);
+        // Main window has to receive these and forward them to the
+        // overview. The mouse can go outside overview while interacting.
+        // Actually, both main view and overview need to listen.
+        // Main view did not get events when mouse was in overview!
         can.addEventListener(
             "mouseup",
 			      function (event){return self.HandleOverViewMouseUp(event);},
@@ -171,7 +180,7 @@ function Viewer (viewport) {
 			      function (event){return self.HandleOverViewMouseMove(event);},
 			      false);
         can.addEventListener(
-            "mousewheel",
+            "wheel",
 			      function (event){return self.HandleOverViewMouseWheel(event);},
 			      false);
     }
@@ -189,6 +198,7 @@ Viewer.prototype.RollLeave = function (e) {
     }
 }
 Viewer.prototype.RollDown = function (e) {
+    if ( ! this.OverView) { return; }
     this.RotateIconDrag = true;
     // Find the center of the overview window.
     var w = this.OverView.CanvasDiv;
@@ -201,6 +211,7 @@ Viewer.prototype.RollDown = function (e) {
     return false;
 }
 Viewer.prototype.RollMove = function (e) {
+    if ( ! this.OverView) { return; }
     if ( ! this.RotateIconDrag) { return; }
     if ( e.which != 1) {
         // We must have missed the mouse up event.
@@ -214,7 +225,7 @@ Viewer.prototype.RollMove = function (e) {
     var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
     var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
 
-    var x = e.clientX - cx;
+    var x = e.clientX - cx - VIEW_PANEL.position().left;
     var y = e.clientY - cy;
     var c = x*this.RotateIconY - y*this.RotateIconX;
     var r = c / (x*x + y*y);
@@ -268,106 +279,114 @@ Viewer.prototype.RollMove = function (e) {
  }
 
 
- Viewer.prototype.InitializeZoomGui = function() {
-     // Put the zoom bottons in a tab.
-     this.ZoomTab = new Tab("/webgl-viewer/static/mag.png");
-     new ToolTip(this.ZoomTab.Div, "Zoom scroll");
-     // TODO: Get rid of this Gui object stuff and just rely on css positioning.
-     this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
-     this.ZoomTab.Panel
-         .css({'left': '-25px',
-               'width': '55px',
-               'padding': '0px 2px'});
+Viewer.prototype.InitializeZoomGui = function() {
+    // Put the zoom bottons in a tab.
+    this.ZoomTab = new Tab("/webgl-viewer/static/mag.png");
+    new ToolTip(this.ZoomTab.Div, "Zoom scroll");
+    // TODO: Get rid of this Gui object stuff and just rely on css positioning.
+    this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
+    this.ZoomTab.Panel
+        .css({'left': '-25px',
+              'width': '55px',
+              'padding': '0px 2px'});
 
-     // Put the magnification factor inside the magnify glass icon.
-     this.ZoomDisplay = $('<div>')
-         .appendTo(this.ZoomTab.Div)
-         .css({
-             'opacity': '0.9',
-             'position': 'absolute',
-             'height':  '20px',
-             'width':   '100%',
-             'text-align' : 'center',
-             'color' : '#000',
-             'top' : '10px',
-             'left' : '1px',
-             'font-size':'10px',
-             'z-index': '10',
-             'pointer-events': 'none'})
-         .html("");
-
-
-     // Place the zoom in / out buttons.
-     // Todo: Make the button become more opaque when pressed.
-     // Associate with viewer (How???).
-     // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
-     var self = this;
-     this.ZoomDiv = $('<div>')
-         .appendTo(this.ZoomTab.Panel)
-         .css({
-             'opacity': '0.6',
-             'background-color': '#fff',
-             'height': '104px',
-             'width': '54px',
-             'margin-top': '2px',
-             'border-style'  : 'solid',
-             'border-width'  : '1px',
-             'border-radius' : '27px',
-             'border-color'  : '#AAA',
-             'z-index': '2'});
-     this.ZoomInButton = $('<img>')
-         .appendTo(this.ZoomDiv)
-         .css({
-             'opacity': '0.6',
-             'position': 'absolute',
-             'height': '50px',
-             'width': '50px',
-             'top' : '4px',
-             'right' : '4px',
-             'z-index': '2'})
-         .attr('type','image')
-         .attr('src',"/webgl-viewer/static/zoomin2.png")
-         .click(function(){ self.AnimateZoom(0.5);});
-     this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
-         .css({
-             'opacity': '0.6',
-             'position': 'absolute',
-             'height': '50px',
-             'width': '50px',
-             'bottom' : '2px',
-             'right' : '4px'})
-         .attr('type','image')
-         .attr('src',"/webgl-viewer/static/zoomout2.png")
-         .click(function(){self.AnimateZoom(2.0);});
-
-     this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
- }
-
- Viewer.prototype.UpdateZoomGui = function() {
-   var camHeight = this.GetCamera().Height;
-   var windowHeight = this.GetViewport()[3];
-   // Assume image scanned at 40x
-   var zoomValue = 40.0 * windowHeight / camHeight;
-   // 2.5 and 1.25 are standard in the geometric series.
-   if ( zoomValue < 2) {
-     zoomValue = zoomValue.toFixed(2);
-   } else if (zoomValue < 4) {
-     zoomValue = zoomValue.toFixed(1);
-   } else {
-     zoomValue = Math.round(zoomValue);
-   }
-   this.ZoomDisplay.html( 'x' + zoomValue);
-
-   // I am looking for the best place to update this value.
-   // Trying to fix a bug: Large scroll when wheel event occurs
-   // first.
-   this.ZoomTarget = camHeight;
- }
+    // Put the magnification factor inside the magnify glass icon.
+    this.ZoomDisplay = $('<div>')
+        .appendTo(this.ZoomTab.Div)
+        .css({
+            'opacity': '0.9',
+            'position': 'absolute',
+            'height':  '20px',
+            'width':   '100%',
+            'text-align' : 'center',
+            'color' : '#000',
+            'top' : '10px',
+            'left' : '1px',
+            'font-size':'10px',
+            'z-index': '10',
+            'pointer-events': 'none'})
+        .html("");
 
 
- Viewer.prototype.SaveImage = function(fileName) {
-   this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
- }
+    // Place the zoom in / out buttons.
+    // Todo: Make the button become more opaque when pressed.
+    // Associate with viewer (How???).
+    // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
+    var self = this;
+    this.ZoomDiv = $('<div>')
+        .appendTo(this.ZoomTab.Panel)
+        .css({
+            'opacity': '0.6',
+            'background-color': '#fff',
+            'height': '104px',
+            'width': '54px',
+            'margin-top': '2px',
+            'border-style'  : 'solid',
+            'border-width'  : '1px',
+            'border-radius' : '27px',
+            'border-color'  : '#AAA',
+            'z-index': '2'});
+    this.ZoomInButton = $('<img>')
+        .appendTo(this.ZoomDiv)
+        .css({
+            'opacity': '0.6',
+            'position': 'absolute',
+            'height': '50px',
+            'width': '50px',
+            'top' : '4px',
+            'right' : '4px',
+            'z-index': '2'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomin2.png")
+        .click(function(){ self.AnimateZoom(0.5);})
+        .attr('draggable','false')
+        .on("dragstart", function() {
+            return false;});
+
+    this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
+        .css({
+            'opacity': '0.6',
+            'position': 'absolute',
+            'height': '50px',
+            'width': '50px',
+            'bottom' : '2px',
+            'right' : '4px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/zoomout2.png")
+        .click(function(){self.AnimateZoom(2.0);})
+        .attr('draggable','false')
+        .on("dragstart", function() {
+            return false;});
+
+
+    this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
+}
+
+Viewer.prototype.UpdateZoomGui = function() {
+    var camHeight = this.GetCamera().Height;
+    var windowHeight = this.GetViewport()[3];
+    // Assume image scanned at 40x
+    var zoomValue = 40.0 * windowHeight / camHeight;
+    // 2.5 and 1.25 are standard in the geometric series.
+    if ( zoomValue < 2) {
+        zoomValue = zoomValue.toFixed(2);
+    } else if (zoomValue < 4) {
+        zoomValue = zoomValue.toFixed(1);
+    } else {
+        zoomValue = Math.round(zoomValue);
+    }
+    this.ZoomDisplay.html( 'x' + zoomValue);
+
+    // I am looking for the best place to update this value.
+    // Trying to fix a bug: Large scroll when wheel event occurs
+    // first.
+    this.ZoomTarget = camHeight;
+}
+
+
+Viewer.prototype.SaveImage = function(fileName) {
+    this.MainView.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+}
 
 
  // Cancel the large image request before it finishes.
@@ -743,12 +762,15 @@ Viewer.prototype.RollMove = function (e) {
 
      if (viewport[2] <= 10) {
          this.MainView.CanvasDiv.hide();
-         this.OverView.CanvasDiv.hide();
+         if (this.OverView) {
+             this.OverView.CanvasDiv.hide();
+         }
          return;
      }
      this.MainView.CanvasDiv.show();
-     this.OverView.CanvasDiv.show();
-
+     if (this.OverView) {
+         this.OverView.CanvasDiv.show();
+     }
      this.MainView.SetViewport(viewport);
      this.MainView.Camera.ComputeMatrix();
 
@@ -1498,6 +1520,7 @@ Viewer.prototype.RollMove = function (e) {
 
 
  Viewer.prototype.HandleMouseDown = function(event) {
+     this.FireFoxWhich = event.which;
      event.preventDefault(); // Keep browser from selecting images.
      EVENT_MANAGER.RecordMouseDown(event);
 
@@ -1552,11 +1575,17 @@ Viewer.prototype.RollMove = function (e) {
  }
 
  Viewer.prototype.HandleMouseUp = function(event) {
+     this.FireFoxWhich = 0;
      EVENT_MANAGER.RecordMouseUp(event);
 
      if (this.RotateIconDrag) {
          this.RollUp(event);
          return false;
+     }
+
+     if (this.InteractionState == INTERACTION_OVERVIEW ||
+         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+         return this.HandleOverViewMouseUp(event);
      }
 
      // Forward the events to the widget if one is active.
@@ -1593,13 +1622,19 @@ Viewer.prototype.RollMove = function (e) {
          return false;
      }
 
+     if (this.InteractionState == INTERACTION_OVERVIEW ||
+         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+         return this.HandleOverViewMouseMove(event);
+     }
+
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
          this.ActiveWidget.HandleMouseMove(event);
          return false; // trying to keep the browser from selecting images
      }
 
-     if (event.which == 0) {
+     //if (event.which == 0) { // Firefox does not set which for motion events.
+     if ( ! this.FireFoxWhich) {
          // See if any widget became active.
          if (this.AnnotationVisibility) {
              for (var i = 0; i < this.WidgetList.length; ++i) {
@@ -1667,6 +1702,12 @@ Viewer.prototype.RollMove = function (e) {
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
          return false;
+     }
+
+     if ( ! event.offsetX) {
+         // for firefox
+         event.offsetX = event.layerX;
+         event.offsetY = event.layerY;
      }
 
      // We want to accumulate the target, but not the duration.
@@ -1925,6 +1966,9 @@ Viewer.prototype.RollMove = function (e) {
  // OverView slide widget stuff.
 
  Viewer.prototype.OverViewCheckActive = function(event) {
+     if ( ! this.OverView) {
+         return false;
+     }
      var x = event.offsetX;
      var y = event.offsetY;
      // Half height and width
@@ -1973,8 +2017,8 @@ Viewer.prototype.RollMove = function (e) {
      this.InteractionState = INTERACTION_OVERVIEW;
 
      // Delay actions until we see if it is a drag or click.
-     this.OverviewEventX = event.offsetX;
-     this.OverviewEventY = event.offsetY;
+     this.OverviewEventX = event.pageX;
+     this.OverviewEventY = event.pageY;
 
      return false;
  }
@@ -1982,7 +2026,11 @@ Viewer.prototype.RollMove = function (e) {
 
  Viewer.prototype.HandleOverViewMouseUp = function(event) {
      if (this.RotateIconDrag) { return;}
-     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) {return;}
+     if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) 
+     {
+         this.InteractionState = INTERACTION_NONE;
+         return;
+     }
 
      // This target for animation is not implemented cleanly.
      // This fixes a bug: OverView translated rotates camamera back to zero.
@@ -1991,13 +2039,15 @@ Viewer.prototype.RollMove = function (e) {
      if (event.which == 1) {
          var x = event.offsetX;
          var y = event.offsetY;
+         if (x == undefined) {x = event.layerX;}
+         if (y == undefined) {y = event.layerY;}
          // Transform to view's coordinate system.
          this.OverViewPlaceCamera(x, y);
      }
 
      this.InteractionState = INTERACTION_NONE;
 
-     return true;
+     return false;
  }
 
  Viewer.prototype.HandleOverViewMouseMove = function(event) {
@@ -2008,12 +2058,12 @@ Viewer.prototype.RollMove = function (e) {
 
      if (this.InteractionState == INTERACTION_OVERVIEW) {
          // Do not start dragging until the mouse has moved some distance.
-         if (Math.abs(event.offsetX - this.OverviewEventX) > 5 ||
-             Math.abs(event.offsetY - this.OverviewEventY) > 5) {
+         if (Math.abs(event.pageX - this.OverviewEventX) > 5 ||
+             Math.abs(event.pageY - this.OverviewEventY) > 5) {
              // Start dragging the overview window.
              this.InteractionState = INTERACTION_OVERVIEW_DRAG;
              var w = this.GetViewport()[2];
-             var p = Math.max(w-event.x,event.y);
+             var p = Math.max(w-event.pageX,event.pageY);
              this.OverViewScaleLast = p;
          }
          return false;
@@ -2028,10 +2078,16 @@ Viewer.prototype.RollMove = function (e) {
 
      // Drag to change overview size
      var w = this.GetViewport()[2];
-     var p = Math.max(w-event.x,event.y);
+     var p = Math.max(w-event.pageX,event.pageY);
      var d = p/this.OverViewScaleLast;
      this.OverViewScale *= d*d;
      this.OverViewScaleLast = p;
+     if (p < 60) {
+         this.RotateIcon.hide();
+     } else {
+         this.RotateIcon.show();
+     }
+
      handleResize();
      return false;
 }

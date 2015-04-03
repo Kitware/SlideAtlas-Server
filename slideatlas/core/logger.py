@@ -39,12 +39,11 @@ class AddRequestFilter(logging.Filter):
     def filter(self, record):
         try:
             request = flask.request
+            record.request_remote_ip = request.remote_addr
+            record.request_path = request.full_path
         except RuntimeError:
             record.request_remote_ip = None
             record.request_path = None
-        else:
-            record.request_remote_ip = request.remote_addr
-            record.request_path = request.full_path
         return 1
 
 

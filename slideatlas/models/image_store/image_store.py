@@ -1,8 +1,15 @@
 # coding=utf-8
 
 from flask import g
-from mongoengine import StringField
+from mongoengine import StringField, DoesNotExist
 from mongoengine.connection import get_db
+
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
+
+from PIL import Image as PImage
 
 from ..common import ModelDocument, register_database
 
@@ -117,3 +124,50 @@ class MultipleDatabaseImageStore(ImageStore):
         if raw_object:
             return database.__dict__['conn']
         return database
+
+    def make_thumb(self, image, max_depth=3, height=100):
+        """
+        Makes thumb by requesting tiles. Will not make
+        """
+        white_tile = None
+
+        try:
+            # Try to generate thumbnail from overview image
+            output = self.get_tile(image.id, "t.jpg")
+
+        except DoesNotExist:
+            # Open the children tiles as PIL image
+            tq = self.get_tile(image.id, "tq.jpg", safe=True, raw=True)
+            tr = self.get_tile(image.id, "tr.jpg", safe=True, raw=True)
+            ts = self.get_tile(image.id, "ts.jpg", safe=True, raw=True)
+            tt = self.get_tile(image.id, "tt.jpg", safe=True, raw=True)
+
+            # Check correct tile size if atleast one tile is available
+            available = tq or tr or ts or tt
+
+            if available is None:
+                # No children were found return white tile
+                outimg = PImage.new("RGB", (256,256), 'white')
+            else:
+                # Create white tile of required size
+                tilesize = available.size[0]
+                white_tile = PImage.new("RGB", (tilesize,tilesize), 'white')
+
+                # Combine
+                newim = PImage.new('RGB', (tilesize * 2, tilesize * 2), color=None)
+
+                newim.paste(tq or white_tile, (0, 0))
+                newim.paste(tr or white_tile, (tilesize, 0))
+                newim.paste(ts or white_tile, (tilesize, tilesize))
+                newim.paste(tt or white_tile, (0, tilesize))
+
+                # Resize
+                outimg = newim.resize((256, 256), PImage.ANTIALIAS)
+
+            # Return jpeg compressed version of outimg
+            buf = StringIO.StringIO()
+            outimg.save(buf, format="jpeg")
+            output = buf.getvalue()
+            del buf
+
+        return output

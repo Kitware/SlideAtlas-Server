@@ -69,26 +69,6 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
     // TODO: Get rid of system event.
     this.SystemEvent = event;
     if (event.offsetX && event.offsetY) {
-        // Translate to coordinate of canvas
-        // There has to be a better what to get the offset of the canvas relative to the body (or screen even).
-        // Here I loop through the parents accumulating the offset.
-        /* I do not think this is necessary anymore. I introduced the VIEW_PANEL.
-        var docObj = this.Canvas;
-        var xOffset = docObj.offsetLeft;
-        var yOffset = docObj.offsetTop;
-        while (docObj.offsetParent != null) {
-            docObj = docObj.offsetParent;
-            xOffset += docObj.offsetLeft;
-            yOffset += docObj.offsetTop;
-        }
-        // Scoll bars on html body element.
-        var body = document.getElementsByTagName("body");
-        xOffset -= body[0].scrollLeft;
-        yOffset -= body[0].scrollTop;
-        this.MouseX = event.clientX-xOffset;
-        this.MouseY = event.clientY-yOffset;
-        */
-
         this.MouseX = event.offsetX;
         this.MouseY = event.offsetY;
         this.MouseTime = (new Date()).getTime();
@@ -96,6 +76,8 @@ EventManager.prototype.SetMousePositionFromEvent = function(event) {
         this.MouseX = event.layerX;
         this.MouseY = event.layerY;
         this.MouseTime = (new Date()).getTime();
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
     }
 }
 

@@ -1,10 +1,14 @@
 # coding=utf-8
 
-from flask import Blueprint, Response, current_app, request
+from flask import Blueprint, Response, current_app, request, redirect, url_for
 
-from slideatlas import models, security
+from slideatlas import models#, security
+from slideatlas.common_utils import jsonify
 
-################################################################################
+import base64
+from bson import ObjectId
+
+ ################################################################################
 mod = Blueprint('tile', __name__)
 
 
@@ -74,6 +78,7 @@ def thumb(image_store, image):
         return Response('{"error": "Thumb loading error: %s"}' % e.message, status=404)
 
 
+################################################################################
 @mod.route('/thumb')
 #@security.login_required
 def thumb_query():
@@ -85,3 +90,66 @@ def thumb_query():
         image = models.Image.objects.get_or_404(id=image_id)
 
     return thumb(image_store, image)
+
+################################################################################
+@mod.route('/viewthumb')
+def thumb_from_view():
+    """
+    Gets a thumbnail from view directly,
+    Chains the request to view objects helper method
+    """
+
+    # Get parameters
+    viewid = ObjectId(request.args.get("viewid",None))
+    # which = ObjectId(request.args.get("which","macro"))
+    which = "macro"
+    force = bool(request.args.get("force",False))
+
+    # Implementation without View
+    viewcol = models.View._get_collection()
+    viewobj = viewcol.find_one({"_id": viewid})
+    if "thumbs" not in viewobj:
+        viewobj["thumbs"] = {}
+
+    # Make thumbnail
+    if force or which not in viewobj["thumbs"]:
+        # Refresh the thumbnail
+        if which not in ["macro"]:
+            # Only know how to make macro image
+            # Todo: add support for label supported
+            raise Exception("%s thumbnail creation not supported" % which)
+
+        # Make the thumb
+        # Get the image store and image id and off load the request
+        istore = models.ImageStore.objects.get(id=viewobj["ViewerRecords"][0]["Database"])
+        with istore:
+            thumbimgdata = istore.make_thumb(
+                models.Image.objects.get(id=viewobj["ViewerRecords"][0]["Image"]))
+
+            viewcol.update({"_id": viewid},
+                {"$set" : { "thumbs." + which: base64.b64encode(thumbimgdata)}})
+
+    viewobj = viewcol.find_one({"_id": viewid})
+    imagestr = viewobj["thumbs"][which]
+    # current_app.logger.warning("Imagestr: " + imagestr)
+
+    if int(request.args.get("binary", 0)):
+        return Response(base64.b64decode(imagestr), mimetype="image/jpeg")
+    else:
+        return jsonify({which: imagestr})
+
+
+@mod.route('/view')
+def view_from_viewid():
+    """
+    redirects to the glviewer endpoint
+    """
+
+    # Get parameters
+    viewid = ObjectId(request.args.get("viewid",None))
+
+    # Implementation without View
+    viewcol = models.View._get_collection()
+    viewobj = viewcol.find_one({"_id": viewid})
+
+    return redirect("/webgl-viewer?db=%s&view=%s" % (viewobj["ViewerRecords"][0]["Database"], viewid), code=302)

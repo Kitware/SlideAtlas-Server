@@ -107,8 +107,10 @@ MobileAnnotationWidget.prototype.SetVisibility = function(v) {
 }
 
 MobileAnnotationWidget.prototype.ToggleVisibility = function() {
-  this.SetVisibility( ! this.Visibility);
-  FAVORITES_WIDGET.FavoritesBar.ShowHideFavorites();
+    this.SetVisibility( ! this.Visibility);
+    if (FAVORITES_WIDGET) { 
+        FAVORITES_WIDGET.FavoritesBar.ShowHideFavorites();
+    }
 }
 
 

@@ -1,23 +1,96 @@
 <div ng-controller="SearchCtrl">
-    <div ng-hide="data.loaded">
-        <img alt="loading ..." src="/webgl-viewer/static/circular.gif" height="25%">
-    </div>
 
-    <div ng-show="data.loaded">
-        <div class="row">
-            <div class="col-xs-4">
-                <input type="text" ng-model="query" placeholder="search" class="form-control">
+<!--         <img alt="loading ..." src="/webgl-viewer/static/circular.gif" height="25%">
+ -->
+    <div class="row">
+        <div class="col-xs-5">
+        <form ng-submit="updateSearch()">
+            <input type="text" ng-model="query" placeholder="search" class="form-control">
+        </form>
+        </div>
+        <div class="col-xs-5">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default"
+                    ng-click="viewType='list'"
+                    ng-class="{ 'active' : viewType == 'list' }">
+                    <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn btn-default"
+                    ng-click="viewType='tree'"
+                    ng-class="{ 'active' : viewType == 'tree' }">
+                    <img src="/static/ng-app/search/tree.png" width="15px" height="16px">
+                </button>
+<!--                 <button type="button" class="btn btn-default"
+                    ng-click="viewType='table'"
+                    ng-class="{ 'active' : viewType == 'table' }">
+                    <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
+                </button>
+-->
             </div>
         </div>
+    </div>
 
+    <br>
+
+    <div class="row" ng-show="loading == true">
+        <div "col-xs-2-offset">
+            <img src="/webgl-viewer/static/circular.gif" height="25px">
+        </div>
+    </div>
+
+    <div class="row" ng-show="results.length == 0 && !loading">
+        <p> No results for "{{ query }}".
+        <p> Please say "Show me "blood" from microphone input to trigger voice search for "blood".
+    </div>
+    <div class="row" ng-show="viewType=='list'">
+        <table class="table table-bordered table-hover" ng-show="results.length > 0 || resultSessions.length > 0">
+            <th>  </th>
+            <th> Title </th>
+            <th> Notes </th>
+            <tr ng-repeat="ares in resultSessions | filter: isSessionSelected('views')">
+                <td> <a ng-href="/sessions/{{ares.sessid}}"> <span class="btn btn-small btn-primary"> session </span> </a>
+                </td>
+                <td><a href="/sessions/{{ares.sessid}}">  <span ng-bind-html="ares.label | highlight:query.split(' ')"></span></a> in collection <a href="/sessions#{{ares.collection_id}}">  <span ng-bind-html="ares.collection_label | highlight:query.split(' ')"></span>
+                </td>
+                <td> ({{ares.views.length}}/{{ares.total_views}} views) </td>
+            </tr>
+
+
+            <tr ng-repeat="ares in results">
+                <td> <a ng-href="/view?viewid={{ares._id}}"> <img ng-src={{makeDataUri(ares)}} style="min-width: 50px; height:50px"> </a>
+                </td>
+                <td><a href="/view?viewid={{ares._id}}">  <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></a>
+                </td>
+                <td> <span ng-bind-html="ares.Text | highlight:query.split(' ')"></span> </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="row" ng-show="viewType=='tree'">
         <accordion close-others="oneAtATime" ng-show="query.length > 0">
-            <accordion-group ng-repeat="arole in roles" heading="{{arole.rule}} ({{arole.filtered.length}} sessions)" ng-show="arole.filtered.length > 0" is-open="arole.isOpen">
+        <accordion-group ng-repeat="arole in resultTree" heading="{{arole.rule}} ({{arole.sessions.length}} selected sessions)" is-open="arole.isOpen">
+
+            <accordion close-others="oneAtATime">
+            <accordion-group ng-repeat="session in arole.sessions" heading="{{session.label}} ({{session.views.length}} views)" is-open="session.isOpen">
+                <accordion-heading>
+                    <span ng-bind-html="session.label | highlight:query.split(' ')"></span>
+                    ({{session.views.length}}/{{session.total_views}} views)
+                    <a ng-href='/sessions/{{session.sessid}}' ng-click="visit('/sessions/' + session.sessid, $event)"> <span class="glyphicon glyphicon-link" aria-hidden="true"></span>
+                     </a>
+                </accordion-heading>
                 <table class="table table-striped">
-                    <tr ng-repeat="asession in arole.filtered">
-                        <td><a href="/sessions/{{asession.sessid}}"> {{ asession.label }} </a> </td>
+                    <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
+                        <td> <img ng-src={{makeDataUri(viewobj)}} style="min-width: 50px; height:50px"> </td>
+                        <td>
+                            <a ng-href="/view?viewid={{viewobj._id}}">
+                             <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span>
+                             </a>
+                        </td>
                     </tr>
                 </table>
             </accordion-group>
+            </accordion>
+        </accordion-group>
         </accordion>
     </div>
 </div>

@@ -104,9 +104,15 @@ function NotesWidget() {
                   'top' : '0px',
                   'left' : '0px',
                   'opacity': '0.6',
+                  '-moz-user-select': 'none',
+                  '-webkit-user-select': 'none',
                   'z-index': '6'})
             .attr('src',"webgl-viewer/static/dualArrowRight2.png")
-            .click(function(){self.ToggleNotesWindow();});
+            .click(function(){self.ToggleNotesWindow();})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
 
         this.CloseNoteWindowButton = $('<img>')
             .appendTo(this.Window)
@@ -116,10 +122,16 @@ function NotesWidget() {
                   'top' : '0px',
                   'right' : '0px',
                   'opacity': '0.6',
+                  '-moz-user-select': 'none',
+                  '-webkit-user-select': 'none',
                   'z-index': '6'})
             .hide()
             .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
-            .click(function(){self.ToggleNotesWindow();});
+            .click(function(){self.ToggleNotesWindow();})
+            .attr('draggable','false')
+            .on("dragstart", function() {
+                return false;});
+
     }
 
 
@@ -403,10 +415,16 @@ function Note () {
     $('<img>')
         .css({'height': '20px',
               'width': '20x',
-              'float':'left'})
+              'float':'left',
+              '-moz-user-select': 'none',
+              '-webkit-user-select': 'none'})
         .attr('src',"webgl-viewer/static/dot.png")
         .appendTo(this.Div)
-        .sortable('disable');
+        .sortable('disable')
+        .attr('draggable','false')
+        .on("dragstart", function() {
+            return false;});
+
 
   // I could reuse this menu, but this is easy for callbacks
   this.IconMenuDiv =
@@ -733,7 +751,9 @@ Note.prototype.Select = function() {
         // Second is set relative to the first.
         this.SynchronizeViews(0);
         // We do not support inserting sections in a stack right now.
-        NOTES_WIDGET.NewButton.hide();
+        if (NOTES_WIDGET.NewButton) {
+            NOTES_WIDGET.NewButton.hide();
+        }
     } else {
         // Clear the sync callback.
         VIEWER1.OnInteraction();
