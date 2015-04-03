@@ -62,8 +62,14 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
     };
 
 
-    $scope.makeDataUri = function(str){
-        return "data:image/jpeg;base64," + str;
+    $scope.makeDataUri = function(aview){
+        // Makes a data-uri for macro thumbs if supplied, or else refers
+        // to url endpoint
+        if(aview.thumbs && aview.thumbs.macro && aview.thumbs.macro.length > 0) {
+            return "data:image/jpeg;base64," + aview.thumbs.macro;
+        } else {
+            return "/viewthumb?viewid=" +aview._id + "&binary=1";
+        }
     };
 
     // $scope.query = 'marmoset';

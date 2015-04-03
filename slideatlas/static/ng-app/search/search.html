@@ -57,7 +57,7 @@
 
 
             <tr ng-repeat="ares in results">
-                <td> <a ng-href="/view?viewid={{ares._id}}"> <img ng-src={{makeDataUri(ares.thumbs.macro)}} style="min-width: 50px; height:50px"> </a>
+                <td> <a ng-href="/view?viewid={{ares._id}}"> <img ng-src={{makeDataUri(ares)}} style="min-width: 50px; height:50px"> </a>
                 </td>
                 <td><a href="/view?viewid={{ares._id}}">  <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></a>
                 </td>
@@ -80,7 +80,7 @@
                 </accordion-heading>
                 <table class="table table-striped">
                     <tr ng-repeat="aview in session.views" ng-init="viewobj = resultViews[aview]">
-                        <td> <img ng-src={{makeDataUri(viewobj.thumbs.macro)}} style="min-width: 50px; height:50px"> </td>
+                        <td> <img ng-src={{makeDataUri(viewobj)}} style="min-width: 50px; height:50px"> </td>
                         <td>
                             <a ng-href="/view?viewid={{viewobj._id}}">
                              <span ng-bind-html="viewobj.Title | highlight:query.split(' ')"></span>
