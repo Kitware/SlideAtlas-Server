@@ -48,6 +48,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
                 $scope.resultTree = data.selected_and_accessible_views_in_collections;
                 $scope.resultViews = data.selected_and_accessible_views;
                 $scope.resultSessions = data.selected_and_accessible_sessions;
+                $scope.resultSessionIDs = data.selected_and_accessible_sessions.map(function(a) { return a._id});
                 $scope.loading = false;
             })
             .error(function(data, status) {
@@ -55,14 +56,26 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
             });
     };
 
-    $scope.empty = function(prop){
+    $scope.isSessionSelected = function(){
         return function(item){
-          return item[prop].length == 0;
+          return $scope.resultSessionIDs.indexOf(item._id) !== -1;
         }
     };
 
+
+    $scope.makeDataUri = function(aview){
+        // Makes a data-uri for macro thumbs if supplied, or else refers
+        // to url endpoint
+        if(aview.thumbs && aview.thumbs.macro && aview.thumbs.macro.length > 0) {
+            return "data:image/jpeg;base64," + aview.thumbs.macro;
+        } else {
+            return "/viewthumb?viewid=" +aview._id + "&binary=1";
+        }
+    };
+
+    // Uncomment following lines to get default results in the search
     // $scope.query = 'marmoset';
-    $scope.updateSearch($scope.query);
+    // $scope.updateSearch($scope.query);
 
     $scope.visit = function(where, e) {
         window.location = where;
