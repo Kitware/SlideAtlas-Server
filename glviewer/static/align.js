@@ -1630,7 +1630,9 @@ function ComputeIntensityHistogram(data, ignoreWhite)
         var intensity = Math.floor((data.data[i++] + data.data[i++] + data.data[i++]) / 3);
         // Skip alpha
         if ( ! ignoreWhite || intensity < 254 ) {
-            ++hist[intensity];
+            if (intensity > 5) { // black background on some slides.
+                ++hist[intensity];
+            }
         }
         ++i;
     }
@@ -2494,6 +2496,28 @@ function testAlignTranslation() {
     var ty = ty * cam.Height / viewport2[3];
 
     VIEWER2.AnimateTransform(-tx, -ty, -trans.roll);
+}
+
+
+// Find all the sections on a slide (for a stack).
+// hagfish
+function testFindSections(s, t) {
+    var viewer1 = VIEWER1;
+    var ctx1 = viewer1.MainView.Context2d;
+    var viewport1 = viewer1.GetViewport();
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
+    SmoothDataAlphaRGB(data1, s);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
+    var threshold1 = PickThreshold(histogram1);
+    var contours = GetLongContours(data1, threshold1, t);
+
+    // Render the contours
+    if (true) {
+        for (var i = 0; i < contours.length; ++i) {
+            contour = DecimateContour(contours[i],1);
+            MakeContourPolyline(contour, VIEWER1);
+        }
+    }
 }
 
 
