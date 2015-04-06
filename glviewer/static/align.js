@@ -1055,6 +1055,10 @@ function GetImageData(ctx,width, height) {
 
 
 function GetContourArea(contour) {
+    if (contour.length < 3) {
+        return 0;
+    }
+
     // compute the center of mass.
     var cx = 0;
     var cy = 0;
