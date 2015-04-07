@@ -3,7 +3,6 @@
 
 
 
-
 //=================================================
 // Stuff for segmentation.
 // Start with pixel classification by RGB
@@ -1108,6 +1107,29 @@ function TranslateContour(contour, shift) {
     }
 }
 
+function GetContourCenter(contour) {
+    var cx = 0;
+    var cy = 0;
+    for (var i = 0; i < contour.length; ++i) {
+        cx += contour[i][0];
+        cy += contour[i][1];
+    }
+    return [cx/contour.length, cy/contour.length];
+}
+
+function GetContourBounds(contour) {
+    var xMin = contour[0][0];
+    var xMax = xMin;
+    var yMin = contour[0][1];
+    var yMax = yMin;
+    for (var i = 1; i < contour.length; ++i) {
+        if (contour[i][0] < xMin) xMin = contour[i][0];
+        if (contour[i][0] > xMax) xMax = contour[i][0];
+        if (contour[i][1] < yMin) yMin = contour[i][1];
+        if (contour[i][1] > yMax) yMax = contour[i][1];
+    }
+    return [xMin,xMax, yMin,yMax];
+}
 
 // I could also impliment a resample to get uniform spacing.
 function ContourRemoveDuplicatePoints(points, epsilon) {
@@ -1187,14 +1209,8 @@ function DecimateContour(points, spacing) {
 
 
 
-
-
-
-
-
-
 // Take a list of image points and make a viewer annotation out of them.
-function MakeContourPolyline(points, viewer) {
+function MakeContourPolyline(points, viewer, rgb) {
     // Make an annotation out of the points.
     // Transform the loop points to slide coordinate system.
     var slidePoints = [];
@@ -1207,9 +1223,14 @@ function MakeContourPolyline(points, viewer) {
 
     // Create a polylineWidget from the loop.
     var plWidget = new PolylineWidget(viewer,false);
-    plWidget.Shape.OutlineColor[0] = Math.random();
-    plWidget.Shape.OutlineColor[1] = Math.random();
-    plWidget.Shape.OutlineColor[2] = Math.random();
+    plWidget.Shape.OutlineColor[0] = rgb[0];
+    plWidget.Shape.OutlineColor[1] = rgb[1];
+    plWidget.Shape.OutlineColor[2] = rgb[2];
+
+    //plWidget.Shape.OutlineColor[0] = Math.random();
+    //plWidget.Shape.OutlineColor[1] = Math.random();
+    //plWidget.Shape.OutlineColor[2] = Math.random();
+
     plWidget.Shape.Points = slidePoints;
     plWidget.Shape.Closed = false;
     plWidget.LineWidth = 0;    
@@ -1392,32 +1413,6 @@ function LongestContour(data, threshold) {
 
     return bestContour;
 }
-
-
-// Returns all contours that circle areas greater than the areaFraction of the image.
-function GetLongContours(data, threshold, areaFraction) {
-    var areaThreshold = areaFraction * data.width * data.height;
-
-    // Loop over the cells.
-    var longContours = [];
-    for (var y = 1; y < data.height; ++y) {
-        for (var x = 1; x < data.width; ++x) {
-            // Look for contours crossing the xMax and yMax edges.
-            var xContour = TraceContour(data, x,y, x-1,y, threshold);
-            if (GetContourArea(xContour) > areaThreshold) {
-                longContours.push(xContour);
-            }
-
-            var yContour = TraceContour(data, x,y, x,y-1, threshold);
-            if (GetContourArea(yContour) > areaThreshold) {
-                longContours.push(yContour);
-            }
-        }
-    }
-
-    return longContours;
-}
-
 
 
 // Inplace (not considering tmp data).
@@ -2503,30 +2498,6 @@ function testAlignTranslation() {
 }
 
 
-// Find all the sections on a slide (for a stack).
-// hagfish
-function testFindSections(s, t) {
-    var viewer1 = VIEWER1;
-    var ctx1 = viewer1.MainView.Context2d;
-    var viewport1 = viewer1.GetViewport();
-    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
-    SmoothDataAlphaRGB(data1, s);
-    var histogram1 = ComputeIntensityHistogram(data1, true);
-    var threshold1 = PickThreshold(histogram1);
-    var contours = GetLongContours(data1, threshold1, t);
-
-    // Render the contours
-    if (true) {
-        for (var i = 0; i < contours.length; ++i) {
-            contour = DecimateContour(contours[i],1);
-            MakeContourPolyline(contour, VIEWER1);
-        }
-    }
-}
-
-
-
-
 
 function testDistanceMapContour() {
     var viewer1 = VIEWER1;
@@ -2651,6 +2622,204 @@ function testDeformableAlign(spacing) {
     DeformableAlignContours(contour1, contour2);
     MakeContourPolyline(contour2, VIEWER1);
     eventuallyRender();
+}
+
+//==============================================================================
+// Find all the sections on a slide (for a stack).
+// hagfish
+
+
+// The area threshold is important so we skip the internal structures.
+// Returns all contours that circle areas greater than the areaFraction of the image.
+function GetLongContours(data, threshold, areaMin, areaMax) {
+    var imageArea = data.width * data.height;
+    var areaMin = areaMin * imageArea;
+    var areaMax = areaMax * imageArea;
+
+    // Loop over the cells.
+    // Start at the bottom left: y up then x right.
+    // (The order of sections on the hagfish slides.)
+    var longContours = [];
+    for (var x = 1; x < data.width; ++x) {
+        for (var y = data.height-1; y > 0; --y) {
+            // Look for contours crossing the xMax and yMax edges.
+            var xContour = TraceContour(data, x,y, x-1,y, threshold);
+            ContourRemoveDuplicatePoints(xContour, 3);
+            var area = GetContourArea(xContour);
+            if (area > areaMin && area < areaMax) {
+                console.log(area/ imageArea);
+                longContours.push(xContour);
+            }
+
+            var yContour = TraceContour(data, x,y, x,y-1, threshold);
+            ContourRemoveDuplicatePoints(yContour, 3);
+            var area = GetContourArea(yContour);
+            if (area > areaMin && area < areaMax) {
+                console.log(area / imageArea);
+                longContours.push(yContour);
+            }
+        }
+    }
+
+    return longContours;
+}
+
+
+var HAGFISH_CONTOURS;
+var VERIRFIED_HAGFISH_CONTOURS = [];
+var HAGFISH_STACK;
+
+function initHagfish(){
+    HAGFISH_STACK = new Note();
+    HAGFISH_STACK._id = "5523dad0dd98b56d82d6d062";
+    HAGFISH_STACK.Title = "AutoStack";
+    HAGFISH_STACK.CoordinateSystem = "Pixel";
+    HAGFISH_STACK.HiddenTitle = "AutoStack";
+    HAGFISH_STACK.HideAnnotations = false;
+    HAGFISH_STACK.Type = "Stack";
+    HAGFISH_STACK.ViewerRecords = [];
+
+    // bind three keys:
+    // q for quit, w skip the section, e save the section in the stack.
+    $(body).mousedown(
+        function (e) {
+            if (HAGFISH_CONTOURS.length == 0) {
+                return;
+            }
+            //if (e.which == 1) { // q: quit
+            //    console.log("Skip");
+            //    VIEWER1.WidgetList = [];
+            //    eventuallyRender();
+            //    return;
+            //} else 
+            if (e.which == 3) { // w: skip
+                console.log("Skip");
+            } else if (e.which == 1) { // e: verify
+                console.log("Accept");
+                VERIFIED_HAGFISH_CONTOURS.push(HAGFISH_CONTOURS[0]);
+            }
+
+            // Take the contour off the source list.
+            eventuallyRender();
+            VIEWER1.WidgetList = [];
+            HAGFISH_CONTOURS = HAGFISH_CONTOURS.slice(1);
+            if (HAGFISH_CONTOURS.length > 0) {
+                MakeContourPolyline(HAGFISH_CONTOURS[0], VIEWER1, [1,0,0]);
+            } else {
+                console.log("Finished: adding contours.");
+                addVerifiedHagFishContours();
+            }
+        }
+    );
+}
+
+
+// We might constrain sequential contours to be similar areas.
+// This could eliminate the need for manual verification.
+function findHagFishSections(smooth, min, max) {
+    VIEWER1.WidgetList = [];
+    eventuallyRender();
+
+    VERIFIED_HAGFISH_CONTOURS = [];
+
+    var viewer1 = VIEWER1;
+    var ctx1 = viewer1.MainView.Context2d;
+    var viewport1 = viewer1.GetViewport();
+    var data1 = GetImageData(ctx1,viewport1[2],viewport1[3]);
+    SmoothDataAlphaRGB(data1, smooth);
+    var histogram1 = ComputeIntensityHistogram(data1, true);
+    var threshold1 = PickThreshold(histogram1);
+    var contours = GetLongContours(data1, threshold1, min, max);
+
+    // Sort the contours.
+    HAGFISH_CONTOURS = [];
+    while (contours.length) {
+        var bds = GetContourBounds(contours[0]);
+        var bestIdx = 0;
+        for (var i = 1; i < contours.length; ++i) {
+            var bds2 = GetContourBounds(contours[i]);
+            if (bds2[2] > bds[3] && bds2[0] < bds[1]) {
+                bds = bds2;
+                bestIdx = i;
+            }
+        }
+        HAGFISH_CONTOURS.push(contours.splice(bestIdx,1)[0]);
+    }
+
+    // render the first contour red
+    MakeContourPolyline(HAGFISH_CONTOURS[0], VIEWER1, [1,0,0]);
+    for (var i = 1; i < HAGFISH_CONTOURS.length; ++i) {
+        MakeContourPolyline(HAGFISH_CONTOURS[i], VIEWER1, [0,1,0]);
+    }
+    eventuallyRender();
+}
+
+
+function alignHagFishSections(record, contour1, contour2) {
+    var trans = new PairTransformation();
+    record.Transform = trans;
+
+    // Contour2 returns the result.  It is transformed into contour1's
+    // coordinate sytem, Save a copy of contour2.
+    var originalContour2 = contour2.slice(0);
+    DeformableAlignContours(contour1, contour2);
+
+    // Now make new correlations from the transformed contour.
+    var targetNumCorrelations = 40;
+    var skip = Math.ceil(contour2.length / targetNumCorrelations);
+    for (var i = 2; i < originalContour2.length; i += skip) {
+        var viewport = VIEWER1.GetViewport();
+        var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0],
+                                                    contour2[i][1]);
+        var viewport = VIEWER1.GetViewport();
+        var pt2 = VIEWER1.ConvertPointViewerToWorld(originalContour2[i][0],
+                                                    originalContour2[i][1]);
+        var cor = new PairCorrelation();
+        cor.SetPoint0(pt1);
+        cor.SetPoint1(pt2);
+        trans.Correlations.push(cor);
+    }
+}
+
+
+var LAST_HAGFISH_CONTOUR;
+function addVerifiedHagFishContours() {
+    for (var i = 0; i < VERIFIED_HAGFISH_CONTOURS.length; ++i) {
+        var imgData = VIEWER1.GetCache().Image;
+        var bds = GetContourBounds(VERIFIED_HAGFISH_CONTOURS[i]);
+        var record = new ViewerRecord();
+        record.Camera = {};
+        record.Camera.FocalPoint = [(bds[0]+bds[1])/2, (bds[2]+bds[3])/2, 10];
+        record.Camera.Height = bds[3]-bds[2];
+        record.Camera.Width = bds[1]-bds[0];
+        record.Image = imgData;
+        record.Database = imgData.db;
+        if (LAST_HAGFISH_CONTOUR) {
+            alignHagFishSections(record,
+                                 LAST_HAGFISH_CONTOUR,
+                                 VERIFIED_HAGFISH_CONTOURS[i]);
+        }
+        LAST_HAGFISH_CONTOUR = VERIFIED_HAGFISH_CONTOURS[i];
+
+        HAGFISH_STACK.ViewerRecords.push(record);
+    }                   
+}
+
+
+function saveHagFishStack() {
+    var d = new Date();
+    // Save this users notes in the user specific collection.
+    var noteObj = JSON.stringify(HAGFISH_STACK.Serialize(true));
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveviewnotes",
+        data: {"note" : noteObj,
+               "date" : d.getTime()},
+        success: function(data,status) {
+            alert("Auto Stack Saved");
+        },
+        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+    });
 }
 
 
