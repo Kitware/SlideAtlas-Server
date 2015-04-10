@@ -1432,17 +1432,32 @@ function SeedIsoContour(data, x0,y0, x1,y1, threshold) {
 
 function LongestContour(data, threshold) {
     // Loop over the cells.
-    var bestContour = [];
+    var contour;
+    var area;
+    var bestContour;
+    var bestArea = 0;
     for (var y = 1; y < data.height; ++y) {
         for (var x = 1; x < data.width; ++x) {
             // Look for contours crossing the xMax and yMax edges.
             var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
-            if (xContour.length > bestContour.length) {
-                bestContour = xContour;
+            if (xContour.length > 0) {
+                contour = new Contour();
+                contour.SetPoints(xContour);
+                area = contour.GetArea();
+                if (area > bestArea) {
+                    bestArea = area;
+                    bestContour = contour;
+                }
             }
             var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
-            if (yContour.length > bestContour.length) {
-                bestContour = yContour;
+            if (yContour.length > 0) {
+                contour = new Contour();
+                contour.SetPoints(yContour);
+                area = contour.GetArea();
+                if (area > bestArea) {
+                    bestArea = area;
+                    bestContour = contour;
+                }
             }
         }
     }
@@ -2118,15 +2133,12 @@ function DeformableAlignViewers() {
             var histogram2 = ComputeIntensityHistogram(data2, true);
             var threshold2 = PickThreshold(histogram2);
             var contour2 = LongestContour(data2, threshold2);
-            ContourRemoveDuplicatePoints(contour2, spacing);
+            contour2.RemoveDuplicatePoints(spacing);
 
             // Save a copy of the contour before it is transformed.
             // We need before and after to make correlation points.
-            var originalContour2 = new Array(contour2.length);
-            for (var i = 0; i < contour2.length; ++i) {
-                originalContour2[i] = [contour2[i][0], contour2[i][1]];
-            }
-
+            var originalContour2 = new Contour();
+            originalContour2.DeepCopy(contour2);
             DeformableAlignContours(contour1, contour2);
 
             DEBUG_CONTOUR1 = contour1;
@@ -2154,14 +2166,14 @@ function DeformableAlignViewers() {
 
             // Now make new correlations from the transformed contour.
             var targetNumCorrelations = 40;
-            var skip = Math.ceil(contour2.length / targetNumCorrelations);
-            for (var i = 2; i < originalContour2.length; i += skip) {
+            var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
+            for (var i = 2; i < originalContour2.Length(); i += skip) {
                 var viewport = VIEWER1.GetViewport();
-                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2[i][0],
-                                                            contour2[i][1]);
+                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
+                                                            contour2.GetPoint(i)[1]);
                 var viewport = VIEWER2.GetViewport();
-                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2[i][0],
-                                                            originalContour2[i][1]);
+                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
+                                                            originalContour2.GetPoint(i)[1]);
                 var cor = new PairCorrelation();
                 cor.SetPoint0(pt1);
                 cor.SetPoint1(pt2);
