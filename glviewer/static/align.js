@@ -1975,8 +1975,8 @@ function RigidAlignContourWithMap(contour, distMap) {
 }
 
 var ITERATIONS = 5000;
-var EDGE_FACTOR = 0.5;
-var GRADIENT_FACTOR = 0.04;
+var EDGE_FACTOR = 0.2;
+var GRADIENT_FACTOR = 0.03;
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Convert the contour into a mesh for internal use, but modify contour2
 // to match contour1.
