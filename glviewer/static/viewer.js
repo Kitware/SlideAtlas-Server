@@ -389,55 +389,56 @@ Viewer.prototype.SaveImage = function(fileName) {
 }
 
 
- // Cancel the large image request before it finishes.
- Viewer.prototype.CancelLargeImage = function() {
-     // This will abort the save blob that occurs after rendering.
-     SetFinishedLoadingCallback(undefined);
-     // We also need to stop the request for pending tiles.
-     ClearQueue();
+// Cancel the large image request before it finishes.
+Viewer.prototype.CancelLargeImage = function() {
+    // This will abort the save blob that occurs after rendering.
+    SetFinishedLoadingCallback(undefined);
+    // We also need to stop the request for pending tiles.
+    ClearQueue();
      // Incase some of the queued tiles were for normal rendering.
-     eventuallyRender();
- }
+    eventuallyRender();
+}
 
- // Create a virtual viewer to save a very large image.
- Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
-                                            finishedCallback) {
-     var self = this;
-     var cache = this.GetCache();
-     var viewport = [0,0, width, height];
-     var cam = this.GetCamera();
 
-     // Clone the main view.
-     var view = new View();
-     view.InitializeViewport(viewport, 1, true);
-     view.SetCache(cache);
-     view.Canvas.attr("width", width);
-     view.Canvas.attr("height", height);
-     var newCam = view.Camera;
-     newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
-     newCam.Roll = cam.Roll;
-     newCam.Height = cam.Height;
-     newCam.ComputeMatrix();
+// Create a virtual viewer to save a very large image.
+Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
+                                           finishedCallback) {
+    var self = this;
+    var cache = this.GetCache();
+    var viewport = [0,0, width, height];
+    var cam = this.GetCamera();
 
-     // Load only the tiles we need.
-     var tiles = cache.ChooseTiles(newCam, 0, []);
-     for (var i = 0; i < tiles.length; ++i) {
-         LoadQueueAddTile(tiles[i]);
-     }
-     LoadQueueUpdate();
+    // Clone the main view.
+    var view = new View();
+    view.InitializeViewport(viewport, 1, true);
+    view.SetCache(cache);
+    view.Canvas.attr("width", width);
+    view.Canvas.attr("height", height);
+    var newCam = view.Camera;
+    newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
+    newCam.Roll = cam.Roll;
+    newCam.Height = cam.Height;
+    newCam.ComputeMatrix();
 
-     //this.CancelLargeImage = false;
-     SetFinishedLoadingCallback(
-         function () {self.SaveLargeImage2(view, fileName,
-                                           width, height, stack,
-                                           finishedCallback);}
-     );
+    // Load only the tiles we need.
+    var tiles = cache.ChooseTiles(newCam, 0, []);
+    for (var i = 0; i < tiles.length; ++i) {
+        LoadQueueAddTile(tiles[i]);
+    }
+    LoadQueueUpdate();
 
-     console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+    //this.CancelLargeImage = false;
+    SetFinishedLoadingCallback(
+        function () {self.SaveLargeImage2(view, fileName,
+                                          width, height, stack,
+                                          finishedCallback);}
+    );
 
-     // Needed to trigger loading.
-     eventuallyRender();
- }
+    console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+
+    // Needed to trigger loading.
+    //eventuallyRender();
+}
 
 
  Viewer.prototype.SaveLargeImage2 = function(view, fileName,
@@ -636,7 +637,7 @@ Viewer.prototype.SaveImage = function(fileName) {
          }
 
          if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2014";
+             cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
          /*this.CopyrightWrapper
            .html(cache.Image.copyright)
@@ -1055,7 +1056,7 @@ Viewer.prototype.SaveImage = function(fileName) {
      var cache = this.GetCache();
      if (cache != undefined) {
          var copyright = cache.Image.copyright;
-         this.MainView.DrawCopyright(copyright);
+         //this.MainView.DrawCopyright(copyright);
      }
      // I am using shift for stack interaction.
      // Turn on the focal point when shift is pressed.
@@ -1877,52 +1878,39 @@ Viewer.prototype.SaveImage = function(fileName) {
  }
 
 
- // Get the current scale factor between pixels and world units.
- Viewer.prototype.GetPixelsPerUnit = function() {
-   // Determine the scale difference between the two coordinate systems.
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
-   var m = cam.Matrix;
+// Get the current scale factor between pixels and world units.
+Viewer.prototype.GetPixelsPerUnit = function() {
+    // Determine the scale difference between the two coordinate systems.
+    var viewport = this.GetViewport();
+    var cam = this.MainView.Camera;
+    var m = cam.Matrix;
 
-   // Convert from world coordinate to view (-1->1);
-   return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
- }
+    // Convert from world coordinate to view (-1->1);
+    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+}
 
- // Covert a point from world coordiante system to viewer coordinate system (units pixels).
- Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
-   var m = cam.Matrix;
+// Covert a point from world coordiante system to viewer coordinate system (units pixels).
+Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
+    var viewport = this.GetViewport();
+    var cam = this.MainView.Camera;
+    var m = cam.Matrix;
 
-   // Convert from world coordinate to view (-1->1);
-   var h = (x*m[3] + y*m[7] + m[15]);
-   var xNew = (x*m[0] + y*m[4] + m[12]) / h;
-   var yNew = (x*m[1] + y*m[5] + m[13]) / h;
-   // Convert from view to screen pixel coordinates.
-   xNew = (1.0+xNew)*0.5*viewport[2];
-   yNew = (1.0-yNew)*0.5*viewport[3];
+    // Convert from world coordinate to view (-1->1);
+    var h = (x*m[3] + y*m[7] + m[15]);
+    var xNew = (x*m[0] + y*m[4] + m[12]) / h;
+    var yNew = (x*m[1] + y*m[5] + m[13]) / h;
+    // Convert from view to screen pixel coordinates.
+    xNew = (1.0+xNew)*0.5*viewport[2];
+    yNew = (1.0-yNew)*0.5*viewport[3];
 
-   return [xNew, yNew];
- }
+    return [xNew, yNew];
+}
 
+Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
+    var cam = this.MainView.Camera;
+    return cam.ConvertPointViewerToWorld(x, y);
+}
 
- Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
-
-   // Convert to world coordinate system
-   // Compute focal point from inverse overview camera.
-   x = x/viewport[2];
-   y = y/viewport[3];
-   x = (x*2.0 - 1.0)*cam.Matrix[15];
-   y = (1.0 - y*2.0)*cam.Matrix[15];
-   var m = cam.Matrix;
-   var det = m[0]*m[5] - m[1]*m[4];
-   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-   var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
-
-   return [xNew, yNew];
- }
 
  // Where else should I put this?
  function colorNameToHex(color)

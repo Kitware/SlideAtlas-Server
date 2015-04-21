@@ -136,11 +136,7 @@
             {% for session, can_admin in sessions %}
             <tr>
                 <td>
-                    {% if session.type == 'stack' %}
-                    <a href="/webgl-viewer/stack?db={{ session.image_store.id|string }}&sess={{ session.id|string }}" class="lead">{{ session.label }}</a>
-                    {% else %}
                     <a href="{{ url_for('.view_a_session', session=session) }}" class="lead">{{ session.label }}</a>
-                    {% endif %}
                 </td>
                 {% if can_admin %}
                 <td>

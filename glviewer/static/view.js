@@ -148,7 +148,7 @@ View.prototype.DrawTiles = function () {
         this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
         // Clear the canvas to start drawing.
         this.Context2d.fillStyle="#ffffff";
-        this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
+        //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
 
         // Start with a transform that flips the y axis.
         // This is an issue later because the images will be upside down.

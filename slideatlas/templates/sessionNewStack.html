@@ -1,3 +1,4 @@
+
 {% extends 'frontend_base.html' %}
 
 
@@ -7,7 +8,20 @@
 {% block styles %}
 {# TODO: base style assumes navbar will be present #}
 {#{{ super() }}#}
-    <link rel="stylesheet" href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet"
+          href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+    <script type="text/javascript" src="/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
+
+
     <style>
 
       .clear {
@@ -85,14 +99,17 @@
 
 {% block scripts %}
 {{ super() }}
-    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
     <script>
+
+var GL = false;                // hack
+var TILELOADER = 'http';       // hack
+function eventuallyRender() {} // hack
 
 var SESSION_ID = "{{ session.id }}";
 var COLLECTIONS;
 var SELECTED_COLLECTION;
 var SELECTED_SESSION;
-
+var DETECT_MODE = 'single';
 
 
 function handleResize() {
@@ -121,8 +138,23 @@ function main() {
           }
       });
 
+    // Populate the sessions menu.
+    $("#detectList").empty();
+    $('<option>').appendTo($('#detectList'))
+        .attr('value', 0)
+        .text("Single");
+    $('<option>').appendTo($('#detectList'))
+        .attr('value', 1)
+        .text("Multiple");
+
     $(window).resize(function() { handleResize(); })
              .trigger('resize');
+}
+
+function detectCallback (idx) {
+    idx = parseInt(idx);
+    if (idx == 0) { DETECT_MODE = 'single'; }
+    if (idx == 1) { DETECT_MODE = 'multiple'; }
 }
 
 
@@ -157,93 +189,8 @@ function loadSessionFromId(sessionId) {
                   loadSessionData(data);
               } else {
                   alert("ajax failed."); }
-          });
+         });
 
-}
-
-// In the future we could include multiple tiles to make the best thumb.
-// Create a div with a cropped scaled thumb from the root tile.
-// image = database image object.
-// height = height in screen pixels of the returned div image.
-// request = (optional) bounds of cropped image in slide pixel units.
-//           if request is not defined, it defaults to the whole image bounds.
-function thumb(image, height, request) {
-    if ( ! request) {
-        request = image.bounds;
-    }
-
-    var width = height * (request[1]-request[0]) / (request[3]-request[2]);
-    var div = $('<div>')
-        .css({'width' : width + 'px',
-              'height': height + 'px',
-              'overflow': 'hidden',
-              'position': 'relative'});
-    // Use the cropped request bounds because we are displaying only a
-    // single tile and we do not want to count virtual tiles outside image.
-    var croppedReq = [Math.max(request[0],image.bounds[0]),
-                      Math.min(request[1],image.bounds[1]),
-                      Math.max(request[2],image.bounds[2]),
-                      Math.min(request[3],image.bounds[3])];
-
-    // size in tile-pixel units (the same for all tiles).
-    var tileDim = 256;
-    if (image.tile_size) {
-        tileDim = image.tile_size;
-    }
-
-    // Start with the root tile.
-    var tileSpacing = 1 << (image.levels-1);
-    // Index of the tile in the level grid.
-    var tileIndex = [0,0];
-    tileName = "t";
-    // Lets see if we can use a higher resolution tile.
-    // The requested bounds as level grid index.  
-    var tileSize = tileDim * tileSpacing;
-    var gridReq = [croppedReq[0]/tileSize, 
-                   croppedReq[1]/tileSize,
-                   croppedReq[2]/tileSize,
-                   croppedReq[3]/tileSize];
-    // Todo: Make this recursive.
-    // Convert the request to the next level.
-    var gridReq2 = [gridReq[0]*2, gridReq[1]*2, gridReq[2]*2, gridReq[3]*2];
-    var xIdx = Math.floor(gridReq2[0]);
-    var yIdx = Math.floor(gridReq2[2]);
-    if (xIdx == Math.floor(gridReq2[1]) &&
-        yIdx == Math.floor(gridReq2[3])) {
-        // The whole request is in one tile in the next level.
-        if (xIdx == 0 && yIdx == 0) {tileName = tileName + "q";}
-        if (xIdx == 1 && yIdx == 0) {tileName = tileName + "r";}
-        if (xIdx == 0 && yIdx == 1) {tileName = tileName + "t";}
-        if (xIdx == 1 && yIdx == 1) {tileName = tileName + "s";}
-        tileSize = tileSize / 2;
-        tileIndex[0] = tileIndex[0]*2 + xIdx;
-        tileIndex[1] = tileIndex[1]*2 + yIdx;
-    }
-
-    // Add the pixel origin and spacing so we can transform
-    // mouse clicks to slide coordinates.
-    var screenPixelSpacing = (request[3]-request[2]) / height;
-    var screenPixelOrigin = [request[0], request[2]];
-    div.data("spacing", screenPixelSpacing);
-    div.data("origin", screenPixelOrigin);
-
-
-    var left = ((tileIndex[0]*tileSize)-request[0])/screenPixelSpacing;
-    var top = ((tileIndex[1]*tileSize)-request[2])/screenPixelSpacing;
-
-    var imgSize = tileSize / screenPixelSpacing;
-
-    var img = $('<img>')
-        .appendTo(div)
-        .attr("width", imgSize)
-        .attr("height", imgSize)
-        .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name="+tileName+".jpg")
-        .attr("alt", image.label)
-        .css({"left": left.toString()+"px",
-              "top":  top.toString()+"px",
-              "position" : "absolute"});
-
-    return div;
 }
 
 
@@ -261,8 +208,10 @@ function loadSessionData(data) {
 
         (function(){ // for closure scoping
             var imageData = data.images[i];
-            var image =
-                thumb(imageData, 128)
+            // cache expects different variables.
+            imageData._id = imageData.img;
+            imageData.database = imageData.db;
+            var image = CutoutThumb(imageData, 192)
                     .appendTo(listItem)
                     .mousedown(function(event) {
                         addViewToStack($(this), imageData, event);
@@ -276,48 +225,145 @@ function loadSessionData(data) {
 }
 
 var STACK_ITEMS = [];
-function addViewToStack(self, imageData, event) {
+var STACK_END_X = 5;
+function addViewToStack(self, imageObj, event) {
 
     $('#saveButton').prop('disabled',false);
 
-    var x = (STACK_ITEMS.length * 110) + 2;
-    var item = $('<div>')
-        .attr("class","stackItem")
-        .appendTo($('#stack'))
-        .css({"top": '2px',
-              "left": x.toString()+"px"});
-
     var spacing = self.data("spacing");
-    // Even though the event was triggered of the thumb div,
+    // Even though the event was triggered off the thumb div,
     // offsetX and offsetY behave like they are relative to
     // the image before cropping.
-    //var xMid = imageData.bounds[0] + (event.offsetX * spacing);
-    //var yMid = imageData.bounds[2] + (event.offsetY * spacing);
+    //var xMid = imageObj.bounds[0] + (event.offsetX * spacing);
+    //var yMid = imageObj.bounds[2] + (event.offsetY * spacing);
 
+    // Must work in world coordinates.  
+    // Images have different camreas.
     var xMid, yMid;
     if (event.offsetX) {
         xMid = (event.offsetX * spacing);
         yMid = (event.offsetY * spacing);
     } else {
         // Triggered programatically
-        xMid = (imageData.bounds[0]+imageData.bounds[1])*0.5;
-        yMid = (imageData.bounds[2]+imageData.bounds[3])*0.5;
+        xMid = (imageObj.bounds[0]+imageObj.bounds[1])*0.5;
+        yMid = (imageObj.bounds[2]+imageObj.bounds[3])*0.5;
     }
-    var radius = (imageData.bounds[3]-imageData.bounds[2])*0.4;
-    var bds = [xMid-radius, xMid+radius, yMid-radius, yMid+radius];
+
+    // Get the image.
+    // Find contours.
+    // Split up the contours into sections.
+    var cache = FindCache(imageObj);
+    var bds = imageObj.bounds;
+    var fp = [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5];
+    var dims = imageObj.dimensions.slice(0);
+    var scale = 1.0;
+    while (dims[0] > 1024) {
+        scale *= 2;
+        dims[0] *= 0.5;
+        dims[1] *= 0.5;
+    }
+    dims[0] = Math.floor(dims[0]);
+    dims[1] = Math.floor(dims[1]);
+    // We do not have the view data to get roll.
+    GetCutoutImage(cache, dims, fp, scale, 0,
+        function (data) {
+            contours = FindSectionContours(data);
+            // Find the contour that is closest to the selected point.
+            contours[0].TransformToWorld();
+            var closestContour = contours[0];
+            var closestDist2 = closestContour.GetDistanceSquared(xMid,yMid);
+            for (var i = 1; i < contours.length; ++i) {
+                contours[i].TransformToWorld();
+                var dist2 = contours[i].GetDistanceSquared(xMid,yMid);
+                if (dist2 < closestDist2) {
+                    closestDist2 = dist2;
+                    closestContour = contours[i];
+                }
+            }
+
+            if (DETECT_MODE == 'single') {
+                addViewSectionToStack(closestContour, imageObj);
+            } else {
+                // Sort based on the location of the selected section.
+                // Filter the contours based on the positive example.
+                contours = SortAndFilterContours(contours, closestContour);
+                for (var i = 0; i < contours.length; ++i) {
+                    addViewSectionToStack(contours[i], imageObj);
+                }
+            }
+            $('#stackDiv').animate({scrollLeft: STACK_END_X});
+        }
+    );
+}
+
+function deleteItem(item, itemObj) {
+    item.remove();
+    var index = STACK_ITEMS.indexOf(itemObj);
+    if (index > -1) {
+        STACK_ITEMS.splice(index, 1);
+    }
+    // Since we positioned the items explicility.
+    var items = $('#stack').children();
+    STACK_END_X = 5;
+    for (var idx = 0; idx < items.length; ++idx) {
+        $(items[idx])
+            .css({"top": '2px',
+                  "left": STACK_END_X.toString()+"px"});
+        STACK_END_X += $(items[idx]).width() + 10;
+    }
+}
+
+function addViewSectionToStack(contour, imageObj) {
+    contour.TransformToWorld();
+    var center = contour.GetCenter();
+    var bds = contour.GetBounds();
+
+    // Add the contour to the stack
 
     // Height is only for the first items default view.
-    STACK_ITEMS.push({img:    imageData.img,
-                      db:     imageData.db,
-                      x:      xMid, 
-                      y:      yMid,
-                      height: bds[3]-bds[2]});
+    var itemObj = {img:    imageObj.img,
+                   db:     imageObj.db,
+                   x:      center[0],
+                   y:      center[1],
+                   height: bds[3]-bds[2]};
+    STACK_ITEMS.push(itemObj);
 
-    var section =
-        thumb(imageData, 100, bds)
-            .appendTo(item);
+    // Give the image some padding.
+    bds[0] = center[0] + (bds[0]-center[0])*1.1;
+    bds[1] = center[0] + (bds[1]-center[0])*1.1;
+    bds[2] = center[1] + (bds[2]-center[1])*1.1;
+    bds[3] = center[1] + (bds[3]-center[1])*1.1;
 
-    $('#stackDiv').animate({scrollLeft: x});
+    var deleteButton = $('<img>');
+    var item = $('<div>')
+        .attr("class","stackItem")
+        .appendTo($('#stack'))
+        .css({"top": '2px',
+              "left": STACK_END_X.toString()+"px"})
+        .hover(function () {
+                   deleteButton.css({'-webkit-filter': 'grayscale(0)',
+                                    'opacity':'1.0'});
+               },
+               function () {
+                   deleteButton.css({'-webkit-filter': 'grayscale(1)',
+                                     'opacity': '0.3'});
+               });
+     deleteButton
+        .appendTo(item)
+        .css({'height': '10px',
+              'position': 'absolute',
+              'top': '0px',
+              'right': '0px',
+              'z-index': '5',
+              'opacity': '0.3',
+              '-webkit-filter': 'grayscale(1)'})
+        .attr('src',"/webgl-viewer/static/deleteSmall.png")
+        .click(function(){
+                   deleteItem(item, itemObj);
+               });
+    var section = CutoutThumb(imageObj, 100, bds)
+        .appendTo(item);
+    STACK_END_X += item.width() + 10;
 }
 
 function collectionCallback(idx) {
@@ -436,11 +482,11 @@ function save() {
 {{ super() }}
     <div id="wrapper">
         <div class="bar">
-            <label class="barItem" id="collectionLabel">{{ collection.label }} : {{ session_son.label }}</label>
+            <label class="barItem" id="collectionLabel"> Stack : </label>
             <div class="barItem">
                 <label>Label</label>
                 <input type="text" id="stackLabel"
-                       name="views" style="width: 340px;" value="Stack"/>
+                       name="views" style="width: 340px;" value="new stack"/>
             </div>
             <button class="barItem" id="saveButton" onclick="save()" >Save</button>
             <div class="clear"></div>
@@ -461,8 +507,12 @@ function save() {
                 <select id="sessionList" onchange="sessionCallback(this.value)"> </select> 
             </div>
             <div class="barItem">
-                Search: <input type="text" id="imagesearch">
+                Filter: <input type="text" id="imagesearch">
                 <button onclick="searchCallback()">Submit</button>
+            </div>
+            <div class="barItem">
+                <label>Detect</label>
+                <select id="detectList" onchange="detectCallback(this.value)"> </select> 
             </div>
             <div class="barItem">
                 <button onclick="addAllCallback()">Add All</button>

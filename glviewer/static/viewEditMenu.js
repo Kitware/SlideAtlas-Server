@@ -51,7 +51,7 @@ function ViewEditMenu (viewer) {
         .css({'margin':'2px 0px',
               'width' : '100%'})
         .click(function(){self.ShowSlideInformation();});
-    
+
     // Test for showing coverage of view histor.
     this.HistoryMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
@@ -59,7 +59,15 @@ function ViewEditMenu (viewer) {
         .css({'margin':'2px 0px',
               'width' : '100%'})
         .click(function(){self.ToggleHistory();});
-    
+
+    // Initial slide show feature.
+    this.SlideShowMenuItem = $('<button>')
+        .appendTo(this.Tab.Panel)
+        .text("Presentation")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){self.ConvertToPresentation();});
+
     // Hack until we have some sort of scale.
     this.CopyZoomMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
@@ -92,7 +100,7 @@ function ViewEditMenu (viewer) {
             })(plugin);
         }
     }
-    
+
     // I need some indication that the behavior id different in edit mode.
     // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
@@ -109,6 +117,21 @@ function ViewEditMenu (viewer) {
             .click(function(){self.SetViewBounds();});
     }
 
+    this.StackDetectButton =
+        $('<button>').appendTo(this.Tab.Panel)
+            .text("Detect Tissue Sections")
+            .hide()
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
+            .click(function(){self.DetectTissueSections();});
+}
+
+
+
+
+ViewEditMenu.prototype.DetectTissueSections = function() {
+    initHagfish();
+    findHagFishSections(2, 0.0002, 0.01);
 }
 
 
@@ -130,6 +153,17 @@ ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
     NOTES_WIDGET.SaveCallback();
 }
+
+// Change type to presentation, save and reload page.
+ViewEditMenu.prototype.ConvertToPresentation = function() {
+    this.Tab.PanelOff();
+    //var note = NOTES_WIDGET.SelectedNote;
+    //note.Type = "Presentation";
+    //NOTES_WIDGET.SaveCallback();
+    //window.location.href = "/webgl-viewer?view="+note.Id;
+    PresentationOn();
+}
+
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
     var cam = viewer.GetCamera();

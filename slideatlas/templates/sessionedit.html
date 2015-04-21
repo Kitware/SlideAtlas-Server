@@ -205,6 +205,8 @@
             // When the annotations are turned off we have to change the labels of the views.
             $("#hideCheck").change(
             function(){
+                // trouble with loosing labels.
+                save();
                 hideAnnotation( $(this).is(':checked') );
             });
 

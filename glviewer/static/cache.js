@@ -66,7 +66,8 @@ function IIPSource () {
 
 //==============================================================================
 
-
+//==============================================================================
+var CACHES = [];
 
 function FindCache(image) {
     // Look through existing caches and reuse one if possible
@@ -79,10 +80,6 @@ function FindCache(image) {
     cache.SetImageData(image);
     return cache;
 }
-
-
-
-
 
 
 //==============================================================================
@@ -134,6 +131,7 @@ Cache.prototype.SetImageData = function(image) {
     // Source sound be initialized someplace else.
     // Other sources have to overwrite this default.
     this.TileSource = new SlideAtlasSource();
+
     this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
     
     this.Warp = null;

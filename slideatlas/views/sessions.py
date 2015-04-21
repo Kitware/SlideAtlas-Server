@@ -130,7 +130,8 @@ def view_a_session(session):
                     'view': view_son['id'],
                     'bounds': bounds,
                     'tile_size': tileSize,
-                    'levels': imgObj['levels']
+                    'levels': imgObj['levels'],
+                    'dimensions': imgObj['dimensions']
                 })
 
         ajax_data = {

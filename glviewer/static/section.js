@@ -1,5 +1,9 @@
 //==============================================================================
 // Section Object
+// Leftover from Connectome.
+var SLICE = 0;
+
+
 function Section () {
   // Warping to align this section with previous / next.
   // This is only a matrix transformation.
