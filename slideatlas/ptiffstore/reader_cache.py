@@ -1,7 +1,4 @@
-__author__ = 'dhan'
-
 import logging
-logger = logging.getLogger('slideatlas')
 
 from tiff_reader import TileReader
 import collections
@@ -9,11 +6,24 @@ import cPickle
 
 import flask
 
+logger = logging.getLogger('slideatlas')
+
+
 class LRUCache(object):
     """
     Least Recently Used (LRU) Cache of limited capacity
     """
-    def __init__(self, capacity=5):
+    def __init__(self, capacity=0):
+
+        if capacity == 0:
+            # If capacity is supplied, use it,
+            # else
+            try:
+                capacity_config = int(flask.current_app.config["READER_CACHE_LENGTH"])
+                capacity = capacity_config
+            except:
+                capacity = 5
+
         self.capacity = capacity
         self.cache = collections.OrderedDict()
 
@@ -34,24 +44,25 @@ class LRUCache(object):
         self.cache[key] = value
 
 
-try:
-    capacity=int(flask.current_app.config["READER_CACHE_LENGTH"])
-except:
-    capacity=100
+cache = None
 
-cache = LRUCache(capacity=capacity)
 
 def make_reader(params):
     """
     returns a reader, updates the cache
     """
+    global cache
+
+    if cache is None:
+        cache = LRUCache()
+
     key = cPickle.dumps(params)
     reader = cache.get(key)
     if not reader:
         reader = TileReader()
         reader.set_input_params(params)
         cache.set(key, reader)
-        logger.info("Cache size is now: %d" % len(cache.cache))
+        logger.info("Cache size is now: %d of %d" % (len(cache.cache), cache.capacity))
 
     return reader
 
