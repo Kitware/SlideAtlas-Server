@@ -40,9 +40,10 @@ class LRUCache(object):
             self.cache.pop(key)
         except KeyError:
             if len(self.cache) >= self.capacity:
-                self.cache.popitem(last=False)
-        self.cache[key] = value
+                key, val = self.cache.popitem(last=False)
+                del val
 
+        self.cache[key] = value
 
 cache = None
 
