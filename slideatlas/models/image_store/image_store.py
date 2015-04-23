@@ -176,3 +176,16 @@ class MultipleDatabaseImageStore(ImageStore):
             del buf
 
         return output
+
+    def get_image_metadata(self, image_id):
+        """
+         Returns the image object as registered in the slideatlas
+        """
+
+        image_database = self.to_pymongo()
+        image_obj = image_database['images'].find_one({'_id': image_id})
+
+        if "thumb" in image_obj:
+            del image_obj["thumb"]
+
+        return image_obj
