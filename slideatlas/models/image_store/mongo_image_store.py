@@ -4,7 +4,7 @@ from mongoengine import DoesNotExist
 
 from .image_store import MultipleDatabaseImageStore
 from slideatlas.ptiffstore.common_utils import get_tile_name_slideatlas
-
+from flask import current_app
 ################################################################################
 __all__ = ('MongoImageStore',)
 
@@ -14,12 +14,14 @@ class MongoImageStore(MultipleDatabaseImageStore):
     """
     """
 
-    def get_tile_at(self, image_id, x, y, z):
+    def get_tile_at(self, image_id, x, y, z, tilesize=256):
         """
+        Returns tile at the given location in the pyramid
+        need to divide by the tilesize
         """
-        tile_name = get_tile_name_slideatlas(x, y, z)
+        tile_name = get_tile_name_slideatlas(x / tilesize, y / tilesize, z)
+        current_app.logger.debug("TileName: %s" % tile_name)
         return self.get_tile(image_id, tile_name)
-        pass
 
     def get_tile(self, image_id, tile_name):
         """
