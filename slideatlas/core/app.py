@@ -122,6 +122,9 @@ def create_blueprints(app):
     from slideatlas.views import tile
     app.register_blueprint(tile.mod)
 
+    from slideatlas.views import cutout
+    app.register_blueprint(cutout.mod)
+
     from slideatlas.views import search
     app.register_blueprint(search.mod)
 
