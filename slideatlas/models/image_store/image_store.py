@@ -27,16 +27,19 @@ class ImageStore(ModelDocument):
     meta = {
         'db_alias': 'admin_db',
         'collection': 'databases',
-        'allow_inheritance' : True,
-        #'abstract': True,
+        'allow_inheritance': True,
+        # 'abstract': True,
     }
 
-    label = StringField(required=True, #TODO: make unique
-        verbose_name='Label', help_text='The human-readable label.')
+    label = StringField(required=True,  # TODO: make unique
+                        verbose_name='Label', help_text='The human-readable label.')
 
     def get_tile(self, image_id, tile_name):
         # TODO: make this use 'abc.abstractmethod', so that all instantiated
         #   subclasses are forced to implement it
+        raise NotImplementedError()
+
+    def get_tile_at(self, image_id, x, y):
         raise NotImplementedError()
 
     def get_thumb(self, image):
@@ -45,6 +48,8 @@ class ImageStore(ModelDocument):
     def remove_image(self, image_id):
         raise NotImplementedError
 
+    def get_image_metadata(self, image_id):
+        raise NotImplementedError
 
 
 ################################################################################

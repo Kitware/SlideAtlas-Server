@@ -3,14 +3,23 @@
 from mongoengine import DoesNotExist
 
 from .image_store import MultipleDatabaseImageStore
+from slideatlas.ptiffstore.common_utils import get_tile_name_slideatlas
 
 ################################################################################
 __all__ = ('MongoImageStore',)
+
 
 ################################################################################
 class MongoImageStore(MultipleDatabaseImageStore):
     """
     """
+
+    def get_tile_at(self, image_id, x, y, z):
+        """
+        """
+        tile_name = get_tile_name_slideatlas(x, y, z)
+        return self.get_tile(image_id, tile_name)
+        pass
 
     def get_tile(self, image_id, tile_name):
         """
@@ -41,3 +50,4 @@ class MongoImageStore(MultipleDatabaseImageStore):
         # Attempt to remove the image record and collection
         image_database['images'].remove({'_id': image_id})
         image_database.drop_collection(str(image_id))
+
