@@ -2,6 +2,8 @@
 
 import math
 import cStringIO as StringIO
+import datetime
+import time
 
 from flask import Blueprint, Response, request, current_app
 import json
@@ -131,7 +133,10 @@ def cutout(image_store_id, image_id, filename):
     response = Response(content_type='image/jpeg')
     response.set_data(buf.getvalue())
     buf.close()
-    response.headers["Content-Disposition"] = "attachment; filename=\"output.jpeg\";"
+
+    # Set filename
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+    response.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".jpeg\";"
     # response.headers["Content-Transfer-Encoding"] = "binary"
     # header("Content-Length: ".filesize($filename));
     return response
