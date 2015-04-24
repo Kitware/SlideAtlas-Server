@@ -371,9 +371,8 @@ Contour.prototype.TransformToWorld = function() {
     this.World = true;
 }
 
-
 // Take a list of image points and make a viewer annotation out of them.
-Contour.prototype.MakePolyline = function(viewer, rgb) {
+Contour.prototype.MakePolyline = function(rgb, view) {
     // Make an annotation out of the points.
     // Transform the loop points to slide coordinate system.
     var slidePoints = [];
@@ -388,22 +387,22 @@ Contour.prototype.MakePolyline = function(viewer, rgb) {
     }
 
     // Create a polylineWidget from the loop.
-    var plWidget = new PolylineWidget(viewer,false);
-    plWidget.Shape.OutlineColor[0] = rgb[0];
-    plWidget.Shape.OutlineColor[1] = rgb[1];
-    plWidget.Shape.OutlineColor[2] = rgb[2];
+    var pl = new Polyline();
+    pl.OutlineColor = rgb;
 
-    //plWidget.Shape.OutlineColor[0] = Math.random();
-    //plWidget.Shape.OutlineColor[1] = Math.random();
-    //plWidget.Shape.OutlineColor[2] = Math.random();
+    pl.Points = slidePoints;
+    pl.Closed = true;
+    pl.LineWidth = 0;
+    pl.UpdateBuffers();
+    pl.FixedSize = false;
 
-    plWidget.Shape.Points = slidePoints;
-    plWidget.Shape.Closed = true;
-    plWidget.LineWidth = 0;
-    plWidget.Shape.UpdateBuffers();
-    eventuallyRender();
+    // We do not need to do this here.
+    // This is sort of legacy
+    if (view) {
+        view.AddShape(pl);
+    }
 
-    return plWidget;
+    return pl;
 }
 
 
@@ -1446,6 +1445,10 @@ ImageData.prototype.InBounds = function (x,y) {
 // Add a couple methods to the object.
 // change this to take a view instead of a viewer.
 function GetImageData(view) {
+    // interesting: When does it need to be set?
+    //ctx.imageSmoothingEnabled = true; 
+    // useful for debugging
+    //ctx.putImageData(imagedata, dx, dy);
     var cam = view.Camera;
     var width = cam.ViewportWidth;
     var height = cam.ViewportHeight;
@@ -1500,12 +1503,34 @@ ImageData.prototype.MarkEdge = function (x0,y0, x1,y1) {
 // Helper method.
 // Trace contour one direction until it ends or circles back.
 // Return a list of points.
-function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
-    var s0 = data.GetIntensity(x0, y0) - threshold;
-    var s1 = data.GetIntensity(x1, y1) - threshold;
+// There is some extra complexity to trace both directions...
+// (both in and out marking of edges).
+function TraceIsoContourDirection(data, x0,y0, x1,y1, threshold, direction) {
+    var s0 = (data.GetIntensity(x0, y0) - threshold) * direction;
+    var s1 = (data.GetIntensity(x1, y1) - threshold) * direction;
     if ((s0 > 0 && s1 > 0) || (s0 <= 0 && s1 <= 0)) {
         // No contour crosses this edge.
-        return [];
+        return false;
+    }
+
+    // I am looking to distinguish light versus dark objects.
+    // Always trace contours right handed.
+    if ( s0 > 0 ) {
+        // swap 0 and 1
+        var tmp = x1;
+        x1 = x0;
+        x0 = tmp;
+        tmp = y1;
+        y1 = y0;
+        y0 = tmp;
+        tmp = s1;
+        s1 = s0;
+        s0 = tmp;
+    }
+
+    // Leaving the edge (-,+)
+    if (data.MarkEdge(x0,y0, x1,y1)) {
+        return false;
     }
 
     // 0,1,2,3 is the current square.
@@ -1518,10 +1543,6 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
     yr = y1-y0;
     xu = -yr;
     yu = xr;
-
-    //var insideOut = ! (s0 > 0);
-    // I am looking to distinguish light versus dark objects.
-    var insideOut = true;
 
     // Now start tracing the contour.
     // Initialize the line with the countour end on edge 0-1.
@@ -1539,17 +1560,14 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
         y3 = y1+yu;
         // No need to check if the second point is in bounds.
         //if (!data.InBounds(x3,y3)) { return polyLine;}
-        // Mark the edge/direction as completed.
-        if (data.MarkEdge(x0,y0, x1,y1)) {
-            return polyLine;
-        }
         // Get the other corner values.
-        s2 = data.GetIntensity(x2, y2) - threshold;
-        if (insideOut != (s2 > 0)) { // xor
-            s3 = data.GetIntensity(x3, y3) - threshold;
-            if (insideOut != (s3 > 0)) { // xor
+        s2 = (data.GetIntensity(x2, y2) - threshold) * direction;
+        if (! (s2 > 0)) { 
+            s3 = (data.GetIntensity(x3, y3) - threshold) * direction;
+            if ( ! (s3 > 0)) {
+                // Entering the edge (+,-)
                 if (data.MarkEdge(x1,y1, x3,y3)) {
-                    // We need to check both edge directions
+                    // We need to check both edge directions (in and out)
                     // Note the reverse order of the points
                     return polyLine;
                 }
@@ -1563,6 +1581,7 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
                 xr = -xu; yr = -yu;
                 xu = -yr; yu = xr;
             } else { // The new propoagating edge is 2-3.
+                // Entering the edge (+,-)
                 if (data.MarkEdge(x3,y3, x2,y2)) {
                     // We need to check both edge directions
                     // Note the reverse order of the points
@@ -1576,7 +1595,8 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
                 s1=s3;  x1=x3;  y1=y3;
             }
         } else { // The new propoagating edge is 0-2.
-            if (data.MarkEdge(x2,y2, x1,y1)) {
+            // Entering the edge (+,-)
+            if (data.MarkEdge(x2,y2, x0,y0)) {
                 // We need to check both edge directions
                 // Note the reverse order of the points
                 return polyLine;
@@ -1590,13 +1610,11 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
             xr = xu; yr = yu;
             xu = -yr; yu = xr;
         }
-        // With the edge marking, this check is no longer necessary :)
-        // Check for loop termination.
-        // x0 annd basis has returned to its original position.
-        //if (x0 == xStart && y0 == yStart &&
-        //    xr == xrStart && yr == yrStart) {
-        //    return polyLine;
-        //}
+        // Leaving the edge (-,+)
+        if (data.MarkEdge(x0,y0, x1,y1)) {
+            return polyLine;
+        }
+        // Edge marking detects the end of the loop.
     }
     // while(true) neve exits.
 }
@@ -1605,13 +1623,13 @@ function TraceIsoContourRight(data, x0,y0, x1,y1, threshold) {
 // Find the entire (both directions) that crosses an edge.
 function SeedIsoContour(data, x0,y0, x1,y1, threshold) {
     this.Bounds = [0,-1,0,-1];
-    var polyLineRight = TraceIsoContourRight(data, x0,y0, x1,y1, threshold);
-    if (polyLineRight.length == 0) {
+    var polyLineRight = TraceIsoContourDirection(data, x0,y0, x1,y1, threshold,1);
+    if ( ! polyLineRight) {
         // No contour through this edge.
-        return polyLineRight;
+        return false;
     }
-    var polyLineLeft = TraceIsoContourRight(data, x1,y1, x0,y0, threshold);
-    if (polyLineLeft.length < 2) {
+    var polyLineLeft = TraceIsoContourDirection(data, x1,y1, x0,y0, threshold,-1);
+    if ( ! polyLineLeft || polyLineLeft.length < 2) {
         // Must have been a boundary edge.
         return polyLineRight;
     }
@@ -1635,7 +1653,7 @@ function LongestContour(data, threshold) {
         for (var x = 1; x < data.width; ++x) {
             // Look for contours crossing the xMax and yMax edges.
             var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
-            if (xContour.length > 0) {
+            if (xContour) {
                 contour = new Contour();
                 contour.Camera = data.Camera;
                 contour.SetPoints(xContour);
@@ -1646,7 +1664,7 @@ function LongestContour(data, threshold) {
                 }
             }
             var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
-            if (yContour.length > 0) {
+            if (yContour) {
                 contour = new Contour();
                 contour.Camera = data.Camera;
                 contour.SetPoints(yContour);
@@ -2874,22 +2892,7 @@ function FindSectionContours(data) {
     var threshold = PickThreshold(histogram);
     var contours = GetHagFishContours(data, threshold, min, max);
 
-    // Sort the contours.
-    var sortedContours = [];
-    while (contours.length) {
-        var bds = contours[0].GetBounds();
-        var bestIdx = 0;
-        for (var i = 1; i < contours.length; ++i) {
-            var bds2 = contours[i].GetBounds();
-            if (bds2[2] > bds[3] && bds2[0] < bds[1]) {
-                bds = bds2;
-                bestIdx = i;
-            }
-        }
-        sortedContours.push(contours.splice(bestIdx,1)[0]);
-    }
-    // We could further filter contours based on proximity.
-    return sortedContours;
+    return contours;
 }
 
 
@@ -2909,27 +2912,31 @@ function GetHagFishContours(data, threshold, areaMin, areaMax) {
         for (var y = data.height-1; y > 0; --y) {
             // Look for contours crossing the xMax and yMax edges.
             var xContour = SeedIsoContour(data, x,y, x-1,y, threshold);
-            var c = new Contour();
-            c.Camera = data.Camera;
-            c.Threshold = threshold;
-            c.SetPoints(xContour);
-            c.RemoveDuplicatePoints(2);
-            var area = c.GetArea();
-            if (area > areaMin && area < areaMax) {
-                console.log(area/ imageArea);
-                longContours.push(c);
+            if (xContour) {
+                var c = new Contour();
+                c.Camera = data.Camera;
+                c.Threshold = threshold;
+                c.SetPoints(xContour);
+                c.RemoveDuplicatePoints(2);
+                var area = c.GetArea();
+                if (area > areaMin && area < areaMax) {
+                    console.log(area/ imageArea);
+                    longContours.push(c);
+                }
             }
 
             var yContour = SeedIsoContour(data, x,y, x,y-1, threshold);
-            c = new Contour();
-            c.Camera = data.Camera;
-            c.Threshold = threshold;
-            c.SetPoints(yContour);
-            c.RemoveDuplicatePoints(2);
-            area = c.GetArea();
-            if (area > areaMin && area < areaMax) {
-                console.log(area / imageArea);
-                longContours.push(c);
+            if (yContour) {
+                c = new Contour();
+                c.Camera = data.Camera;
+                c.Threshold = threshold;
+                c.SetPoints(yContour);
+                c.RemoveDuplicatePoints(2);
+                area = c.GetArea();
+                if (area > areaMin && area < areaMax) {
+                    console.log(area / imageArea);
+                    longContours.push(c);
+                }
             }
         }
     }
@@ -3004,7 +3011,7 @@ function findHagFishSections(smooth, min, max) {
     // render the first contour red
     for (var i = 0; i < HAGFISH_CONTOURS.length; ++i) {
         var red = i / HAGFISH_CONTOURS.length;
-        HAGFISH_CONTOURS[i].MakePolyline(VIEWER1, [red,0,1.0-red]);
+        HAGFISH_CONTOURS[i].MakePolyline([red,0,1.0-red], VIEWER1.MainView);
     }
     eventuallyRender();
 }
@@ -3027,7 +3034,7 @@ function alignHagFishSections(record, contour1, contour2) {
     console.log("shift: "+(ac2[0]-c1[0])+", "+(ac2[1]-c1[1]));
 
     // I want to see the alignment for debugging.
-    alignedContour2.MakePolyline(VIEWER1, [1,0,1]);
+    alignedContour2.MakePolyline([1,0,1], VIEWER1.MainView);
 
     // Now make new correlations from the transformed contour.
     var targetNumCorrelations = 40;

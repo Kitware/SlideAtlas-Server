@@ -18,6 +18,9 @@
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
 
@@ -127,6 +130,9 @@ function main() {
 
     $('#saveButton').prop('disabled',true);
 
+    // A toggle between slide and section view.
+    $('<div>')
+
     //loadSessionFromId(SESSION_ID);
     // This loads the session eventually
     $.get("/sessions?json=true",
@@ -211,11 +217,13 @@ function loadSessionData(data) {
             // cache expects different variables.
             imageData._id = imageData.img;
             imageData.database = imageData.db;
-            var image = CutoutThumb(imageData, 192)
-                    .appendTo(listItem)
-                    .mousedown(function(event) {
-                        addViewToStack($(this), imageData, event);
-                    });
+            var thumb = CutoutThumb(imageData, 192)
+                    .appendTo(listItem);
+            var spacing = thumb.data("spacing2");
+            var origin = thumb.data("origin2");
+            thumb.click(function(event) {
+                            addViewToStack(origin, spacing, imageData, event);
+                        });
         })();
         var labelDiv = $('<div>')
             .appendTo(listItem)
@@ -224,25 +232,21 @@ function loadSessionData(data) {
     $('#imagesearch').autocomplete({source: searchStrings});
 }
 
+var DEBUG = false;
 var STACK_ITEMS = [];
 var STACK_END_X = 5;
-function addViewToStack(self, imageObj, event) {
+function addViewToStack(origin, spacing, imageObj, event) {
 
     $('#saveButton').prop('disabled',false);
 
-    var spacing = self.data("spacing");
-    // Even though the event was triggered off the thumb div,
-    // offsetX and offsetY behave like they are relative to
-    // the image before cropping.
-    //var xMid = imageObj.bounds[0] + (event.offsetX * spacing);
-    //var yMid = imageObj.bounds[2] + (event.offsetY * spacing);
-
-    // Must work in world coordinates.  
-    // Images have different camreas.
     var xMid, yMid;
     if (event.offsetX) {
-        xMid = (event.offsetX * spacing);
-        yMid = (event.offsetY * spacing);
+        // Why is the y postiion so messed up?
+        var y = event.offsetY - event.currentTarget.offsetHeight;
+        var x = event.offsetX;
+
+        xMid = imageObj.bounds[0] + (x * spacing);
+        yMid = imageObj.bounds[2] + (y * spacing);
     } else {
         // Triggered programatically
         xMid = (imageObj.bounds[0]+imageObj.bounds[1])*0.5;
@@ -270,6 +274,21 @@ function addViewToStack(self, imageObj, event) {
             contours = FindSectionContours(data);
             // Find the contour that is closest to the selected point.
             contours[0].TransformToWorld();
+
+            if (DEBUG) {
+              CUTOUT_VIEW
+                .appendTo('body')
+                .css({'position': 'fixed',
+                      'left': '50px',
+                      'top': '50px'});
+              // Draw the contours.
+              for (var i = 0; i < contours.length; ++i) {
+                  var red = i / contours.length;
+                  contours[i].MakePolyline([red,0,1.0-red], CUTOUT_VIEW);
+              }
+              CUTOUT_VIEW.DrawTiles();
+              CUTOUT_VIEW.DrawShapes();
+            }
             var closestContour = contours[0];
             var closestDist2 = closestContour.GetDistanceSquared(xMid,yMid);
             for (var i = 1; i < contours.length; ++i) {

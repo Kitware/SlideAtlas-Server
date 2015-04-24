@@ -77,7 +77,6 @@ function Viewer (viewport) {
     this.RollTarget = this.MainView.Camera.Roll;
     
     this.AnnotationVisibility = ANNOTATION_ON;
-    this.ShapeList = [];
     this.WidgetList = [];
     this.ActiveWidget = null;
     
@@ -461,9 +460,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
      view.DrawTiles();
      if (this.AnnotationVisibility) {
-         for(i=0; i<this.ShapeList.length; i++){
-             this.ShapeList[i].Draw(view);
-         }
+         this.MainView.DrawShapes();
          for(i in this.WidgetList){
              this.WidgetList[i].Draw(view, this.AnnotationVisibility);
          }
@@ -1010,79 +1007,77 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
  }
 
 
- Viewer.prototype.Draw = function() {
-     //console.time("ViewerDraw");
+Viewer.prototype.Draw = function() {
+    //console.time("ViewerDraw");
 
-     // connectome
-     if ( ! this.MainView.Section) {
-         return;
-     }
+    // connectome
+    if ( ! this.MainView.Section) {
+        return;
+    }
 
-     this.ConstrainCamera();
-     // Should the camera have the viewport in them?
-     // The do not currently hav a viewport.
+    this.ConstrainCamera();
+    // Should the camera have the viewport in them?
+    // The do not currently hav a viewport.
 
-     // Rendering text uses blending / transparency.
-     if (GL) {
-         GL.disable(GL.BLEND);
-         GL.enable(GL.DEPTH_TEST);
-     }
+    // Rendering text uses blending / transparency.
+    if (GL) {
+        GL.disable(GL.BLEND);
+        GL.enable(GL.DEPTH_TEST);
+    }
 
-     this.MainView.DrawTiles();
+    this.MainView.DrawTiles();
 
-     // This is only necessary for webgl, Canvas2d just uses a border.
-     this.MainView.DrawOutline(false);
-     if (this.OverView) {
-         this.OverView.DrawTiles();
-         this.OverView.DrawOutline(true);
-     }
-     if (this.AnnotationVisibility) {
-         for(i=0; i<this.ShapeList.length; i++){
-             this.ShapeList[i].Draw(this.MainView);
-         }
-         for(i in this.WidgetList){
-             this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-         }
-     }
+    // This is only necessary for webgl, Canvas2d just uses a border.
+    this.MainView.DrawOutline(false);
+    if (this.OverView) {
+        this.OverView.DrawTiles();
+        this.OverView.DrawOutline(true);
+    }
+    if (this.AnnotationVisibility) {
+        this.MainView.DrawShapes();
+        for(i in this.WidgetList){
+            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
+        }
+    }
 
-     // Draw a rectangle in the overview representing the camera's view.
-     if (this.OverView) {
-         this.MainView.Camera.Draw(this.OverView);
-         if (this.HistoryFlag) {
-             this.OverView.DrawHistory(this.MainView.Viewport[3]);
-         }
-     }
+    // Draw a rectangle in the overview representing the camera's view.
+    if (this.OverView) {
+        this.MainView.Camera.Draw(this.OverView);
+        if (this.HistoryFlag) {
+            this.OverView.DrawHistory(this.MainView.Viewport[3]);
+        }
+    }
 
-     var cache = this.GetCache();
-     if (cache != undefined) {
-         var copyright = cache.Image.copyright;
-         //this.MainView.DrawCopyright(copyright);
-     }
-     // I am using shift for stack interaction.
-     // Turn on the focal point when shift is pressed.
-     if (EVENT_MANAGER.CursorFlag && EDIT) {
-         this.MainView.DrawFocalPoint();
-         if (this.StackCorrelations) {
-             this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
-         }
-     }
+    var cache = this.GetCache();
+    if (cache != undefined) {
+        var copyright = cache.Image.copyright;
+        //this.MainView.DrawCopyright(copyright);
+    }
+    // I am using shift for stack interaction.
+    // Turn on the focal point when shift is pressed.
+    if (EVENT_MANAGER.CursorFlag && EDIT) {
+        this.MainView.DrawFocalPoint();
+        if (this.StackCorrelations) {
+            this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
+        }
+    }
 
-     // Here to trigger FINISHED_LOADING_CALLBACK
-     LoadQueueUpdate();
-     //console.timeEnd("ViewerDraw");
- }
+    // Here to trigger FINISHED_LOADING_CALLBACK
+    LoadQueueUpdate();
+    //console.timeEnd("ViewerDraw");
+}
 
- // Makes the viewer clean to setup a new slide...
- Viewer.prototype.Reset = function() {
-   this.SetCache(null);
-   this.WidgetList = [];
-   this.ShapeList = [];
- }
+// Makes the viewer clean to setup a new slide...
+Viewer.prototype.Reset = function() {
+    this.SetCache(null);
+    this.WidgetList = [];
+    this.MainView.ShapeList = [];
+}
 
- // A list of shapes to render in the viewer
- Viewer.prototype.AddShape = function(shape) {
-   this.ShapeList.push(shape);
- }
+// A list of shapes to render in the viewer
+Viewer.prototype.AddShape = function(shape) {
+    this.MainView.AddShape(shape);
+}
 
  Viewer.prototype.Animate = function() {
    if (this.AnimateDuration <= 0.0) {

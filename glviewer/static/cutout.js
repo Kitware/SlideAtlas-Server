@@ -18,6 +18,9 @@
 //     function. The data returned is same as "ctx.getImageData(0,0,w,h);",
 //     but we add data.Camera for conversion to the slide coordinate system.
 
+// for debugging
+var CUTOUT_VIEW;
+
 function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
                         returnCallback) {
     // Construct a view to render the image on the client.
@@ -26,6 +29,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
     var viewport = [0,0, width, height];
 
     var view = new View();
+    CUTOUT_VIEW = view;
     view.InitializeViewport(viewport, 1, true);
     view.SetCache(cache);
     view.Canvas.attr("width", width);
@@ -109,8 +113,8 @@ function CutoutThumb(image, height, request) {
 
     var screenPixelSpacing = (request[3]-request[2]) / height;
     var screenPixelOrigin = [request[0], request[2]];
-    div.data("spacing", screenPixelSpacing);
-    div.data("origin", screenPixelOrigin);
+    div.data("spacing2", screenPixelSpacing);
+    div.data("origin2", screenPixelOrigin);
     var imgSize = (tileDim<<level) / screenPixelSpacing;
 
 
