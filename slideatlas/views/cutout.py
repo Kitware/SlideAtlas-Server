@@ -125,11 +125,13 @@ def cutout(image_store_id, image_id, filename):
         except:
             pass
 
-
     # Compress and return the image
     buf = StringIO.StringIO()
     image.save(buf, format="jpeg")
     response = Response(content_type='image/jpeg')
     response.set_data(buf.getvalue())
     buf.close()
+    response.headers["Content-Disposition"] = "attachment; filename=\"output.jpeg\";"
+    # response.headers["Content-Transfer-Encoding"] = "binary"
+    # header("Content-Length: ".filesize($filename));
     return response

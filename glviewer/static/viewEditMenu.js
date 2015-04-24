@@ -135,12 +135,15 @@ function ViewEditMenu (viewer) {
                         cutout_bounds[2] = temp;
                     }
 
-                    $.ajax({
-                        type: "GET",
-                        url: "/cutout/" + image_source.db + "/" +
-                            image_source.img + "/image.png",
-                        data: {debug:0, bounds:JSON.stringify(cutout_bounds)},
-                    });
+                    window.location = "/cutout/" + image_source.db + "/" +
+                            image_source.img + "/image.png?bounds=" + JSON.stringify(cutout_bounds);
+
+                    // $.ajax({
+                    //     type: "GET",
+                    //     url: "/cutout/" + image_source.db + "/" +
+                    //         image_source.img + "/image.png",
+                    //     data: {debug:0, bounds:JSON.stringify(cutout_bounds)},
+                    // });
                 }
             });
         });
