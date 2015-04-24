@@ -74,6 +74,79 @@ function ViewEditMenu (viewer) {
               'width' : '100%'})
         .click(function(){self.FlipHorizontal();});
 
+    $('<button>').appendTo(this.Tab.Panel)
+        .text("Download image from server")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){
+            // Define helper function to parse params
+            function params_unserialize(p){
+                var ret = {},
+                seg = p.replace(/^\?/,'').split('&'),
+                len = seg.length, i = 0, s;
+                for (;i<len;i++) {
+                    if (!seg[i]) { continue; }
+                    s = seg[i].split('=');
+                    ret[s[0]] = s[1];
+                }
+                return ret;
+            }
+
+            // grab image source
+            var image_source = params_unserialize(
+                VIEWER1.GetCache().TileSource.Prefix.split("?")[1]);
+
+            var viewer_bounds = VIEWER1.MainView.Camera.GetBounds();
+            viewer_bounds[0] = parseInt(viewer_bounds[0]);
+            viewer_bounds[1] = parseInt(viewer_bounds[1]);
+            viewer_bounds[2] = parseInt(viewer_bounds[2]);
+            viewer_bounds[3] = parseInt(viewer_bounds[3]);
+            // console.log("Viewer bounds");
+            // console.log(viewer_bounds);
+
+            // Need to invert viewer bounds
+            // i.e. bounds: [0, 800, 491, 1024],
+            // to dimensions: [0, 800, 0, 533],
+            $.ajax({
+                type: "GET",
+                url: "/webgl-viewer/getview?viewid=" + VIEW_ID,
+                success: function(viewData){
+                    var image_bounds = viewData.ViewerRecords[0].Image.bounds;
+
+                    // clamp view to image boundaries
+                    if(viewer_bounds[0] < image_bounds[0]) { viewer_bounds[0] = image_bounds[0]};
+                    if(viewer_bounds[1] > image_bounds[1]) { viewer_bounds[1] = image_bounds[1]};
+
+                    if(viewer_bounds[2] < image_bounds[2]) { viewer_bounds[2] = image_bounds[2]};
+                    if(viewer_bounds[3] > image_bounds[3]) { viewer_bounds[3] = image_bounds[3]};
+
+                    // Translate to cutout
+                    var cutout_bounds = [];
+                    cutout_bounds[0] = viewer_bounds[0];
+                    cutout_bounds[1] = viewer_bounds[1];
+
+                    // TODO: Deal with this in server side
+                    cutout_bounds[3] = image_bounds[3]-viewer_bounds[2];
+                    cutout_bounds[2] = image_bounds[3]-viewer_bounds[3];
+
+                    if(cutout_bounds[3] < cutout_bounds[2]) {
+                        temp = cutout_bounds[3];
+                        cutout_bounds[3] = cutout_bounds[2];
+                        cutout_bounds[2] = temp;
+                    }
+
+                    window.location = "/cutout/" + image_source.db + "/" +
+                            image_source.img + "/image.png?bounds=" + JSON.stringify(cutout_bounds);
+
+                    // $.ajax({
+                    //     type: "GET",
+                    //     url: "/cutout/" + image_source.db + "/" +
+                    //         image_source.img + "/image.png",
+                    //     data: {debug:0, bounds:JSON.stringify(cutout_bounds)},
+                    // });
+                }
+            });
+        });
 
     for(var plugin in window.PLUGINS) {
         var that = this;
