@@ -22,6 +22,16 @@ function Camera () {
     this.ViewportHeight = 100;
 }
 
+Camera.prototype.DeepCopy = function (inCam) {
+    this.ZRange = inCam.ZRange.slice(0);
+    this.Roll = inCam.Roll;
+    this.Height = inCam.Height;
+    this.FocalPoint = inCam.FocalPoint.slice(0);
+    this.ViewportWidth = inCam.ViewportWidth;
+    this.ViewportHeight = inCam.ViewportHeight;
+    this.ComputeMatrix();
+}
+
 Camera.prototype.SetViewport = function (viewport) {
   if (10*viewport[3] < viewport[2]) {
     //alert("Unusual viewport " + viewport[3]);
@@ -72,6 +82,26 @@ Camera.prototype.SetFocalPoint = function (x, y) {
   this.FocalPoint[1] = y;
   // Ignore z on purpose.
 }
+
+
+Camera.prototype.ConvertPointViewerToWorld = function(x, y) {
+    // Convert to world coordinate system
+    // Compute focal point from inverse overview camera.
+    x = x/this.ViewportWidth;
+    y = y/this.ViewportHeight;
+    x = (x*2.0 - 1.0)*this.Matrix[15];
+    y = (1.0 - y*2.0)*this.Matrix[15];
+    var m = this.Matrix;
+    var det = m[0]*m[5] - m[1]*m[4];
+    var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
+    var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+
+    return [xNew, yNew];
+}
+
+
+
+
 
 // dx, dy are in view coordinates [-0.5,0.5].
 // The camera matrix converts world to view.

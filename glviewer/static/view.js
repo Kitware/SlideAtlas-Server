@@ -6,6 +6,10 @@
 
 
 function View () {
+    // Should widgets use shapes?
+    // Should views be used independently to viewers?
+    this.ShapeList = [];
+
     // connectome : default section so we cen set cache
     this.Section = new Section;
     
@@ -58,6 +62,22 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
               'height':'100%'});
+}
+
+View.prototype.appendTo = function(j) {
+  return this.CanvasDiv.appendTo(j);
+}
+
+View.prototype.remove = function(j) {
+  return this.CanvasDiv.remove(j);
+}
+
+View.prototype.css = function(j) {
+  return this.CanvasDiv.css(j);
+}
+
+View.prototype.GetViewport = function() {
+  return this.Viewport;
 }
 
 View.prototype.GetViewport = function() {
@@ -132,6 +152,16 @@ View.prototype.GetCache = function() {
   return this.Section.Caches[0];
 }
 
+// A list of shapes to render in the view
+View.prototype.AddShape = function(shape) {
+  this.ShapeList.push(shape);
+}
+
+View.prototype.DrawShapes = function () {
+    for(i=0; i<this.ShapeList.length; i++){
+        this.ShapeList[i].Draw(this);
+    }
+}
 
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;
@@ -148,7 +178,7 @@ View.prototype.DrawTiles = function () {
         this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
         // Clear the canvas to start drawing.
         this.Context2d.fillStyle="#ffffff";
-        this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
+        //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);
 
         // Start with a transform that flips the y axis.
         // This is an issue later because the images will be upside down.

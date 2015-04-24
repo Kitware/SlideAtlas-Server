@@ -742,6 +742,7 @@ Note.prototype.Select = function() {
     }
 
     if (this.Type == "Stack") {
+        VIEW_MENU.StackDetectButton.show();
         // Select only gets called when the stack is first loaded.
         var self = this;
         VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
@@ -755,12 +756,12 @@ Note.prototype.Select = function() {
             NOTES_WIDGET.NewButton.hide();
         }
     } else {
+        VIEW_MENU.StackDetectButton.hide();
         // Clear the sync callback.
         VIEWER1.OnInteraction();
         VIEWER2.OnInteraction();
         this.DisplayView();
     }
-
 
     // Put the note into the details section.
     NOTES_WIDGET.TextEntry.text(this.Text);
@@ -1139,7 +1140,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
         cameras[0].SetViewport(VIEWER1.GetViewport());
         var tiles = cache.ChooseTiles(cameras[0], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
-            LoadQueueAddTile(tiles[i]);
+            tiles[i].LoadQueueAdd();
         }
         LoadQueueUpdate();
     }
@@ -1148,7 +1149,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
         cameras[3].SetViewport(VIEWER1.GetViewport());
         var tiles = cache.ChooseTiles(cameras[3], 0, []);
         for (var i = 0; i < tiles.length; ++i) {
-            LoadQueueAddTile(tiles[i]);
+            tiles[i].LoadQueueAdd();
         }
         LoadQueueUpdate();
     }
@@ -1308,10 +1309,10 @@ NotesWidget.prototype.SaveCallback = function() {
         // Copy viewer annotation to the viewer record.
         note.RecordAnnotations();
     }
-    
+
     var self = this;
     var d = new Date();
-    
+
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.RootNote.Serialize(true));
     $.ajax({

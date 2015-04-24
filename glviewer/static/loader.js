@@ -13,7 +13,6 @@ var MAXIMUM_NUMBER_OF_TILES = 50000;
 var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
 var PRUNE_TIME_TILES = 0;
 var PRUNE_TIME_TEXTURES = 0;
-var CACHES = [];
 
 // Keep a queue of tiles to load so we can sort them as
 // new requests come in.
@@ -27,6 +26,7 @@ var PROGRESS_BAR = null;
 
 // Only used for saving images right now.
 var FINISHED_LOADING_CALLBACK;
+
 
 
 
