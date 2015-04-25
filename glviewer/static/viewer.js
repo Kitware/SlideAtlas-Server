@@ -391,7 +391,7 @@ Viewer.prototype.SaveImage = function(fileName) {
 // Cancel the large image request before it finishes.
 Viewer.prototype.CancelLargeImage = function() {
     // This will abort the save blob that occurs after rendering.
-    SetFinishedLoadingCallback(undefined);
+    ClearFinishedLoadingCallbacks();
     // We also need to stop the request for pending tiles.
     ClearQueue();
      // Incase some of the queued tiles were for normal rendering.
@@ -427,7 +427,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     LoadQueueUpdate();
 
     //this.CancelLargeImage = false;
-    SetFinishedLoadingCallback(
+    AddFinishedLoadingCallback(
         function () {self.SaveLargeImage2(view, fileName,
                                           width, height, stack,
                                           finishedCallback);}
@@ -484,7 +484,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
  var SAVE_FINISH_CALLBACK;
  Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
      var self = this;
-     SetFinishedLoadingCallback(
+     AddFinishedLoadingCallback(
          function () {
              self.SaveImage(fileName); 
              if (finishedCallback) {
@@ -501,7 +501,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
  // Save a bunch of stack images ----
  Viewer.prototype.SaveStackImages = function(fileNameRoot) {
      var self = this;
-     SetFinishedLoadingCallback(
+     AddFinishedLoadingCallback(
          function () {
              self.SaveStackImage(fileNameRoot); 
          }
@@ -516,7 +516,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
      this.SaveImage(fileName);
      if (note.StartIndex < note.ViewerRecords.length-1) {
          NAVIGATION_WIDGET.NextNote();
-         SetFinishedLoadingCallback(
+         AddFinishedLoadingCallback(
              function () {
                  self.SaveStackImage(fileNameRoot); 
              }

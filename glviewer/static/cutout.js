@@ -46,7 +46,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
         LoadQueueAddTile(tiles[i]);
     }
 
-    SetFinishedLoadingCallback(
+    AddFinishedLoadingCallback(
         function () {GetCutoutImage2(view, returnCallback);}
     );
 
@@ -78,15 +78,20 @@ GetCutoutImage2 = function(view, returnCallback) {
 // height = height in screen pixels of the returned div image.
 // request = (optional) bounds of cropped image in slide pixel units.
 //           if request is not defined, it defaults to the whole image bounds.
-function CutoutThumb(image, height, request) {
+// Events are funny,  The mouse position is realtive to the bounds of
+// all the tiles.  click and bounds are callback functions to make
+// interaction simpler.
+function  CutoutThumb(image, height, request) {
     if ( ! request) {
         request = image.bounds;
     }
 
-    var width = Math.ceil(height * (request[1]-request[0]) / (request[3]-request[2]));
-    var div = $('<div>')
-        .css({'width' : width + 'px',
-              'height': height + 'px',
+    this.ImageData = image;
+    this.Height = height;
+    this.Width = Math.ceil(height * (request[1]-request[0]) / (request[3]-request[2]));
+    this.Div = $('<div>')
+        .css({'width' : this.Width + 'px',
+              'height': this.Height + 'px',
               'overflow': 'hidden',
               'position': 'relative'});
     // Cropp the request so we do not ask for tiles that do not exist.
@@ -96,9 +101,10 @@ function CutoutThumb(image, height, request) {
                     Math.min(request[3],image.bounds[3])];
 
     // pick the level to use.
-    var level = 0;
-    while ((levelReq[3]-levelReq[2]) > height && level < image.levels-1) {
-        level += 1;
+    this.Level = 0; // 0 = leaves
+    while ((levelReq[3]-levelReq[2]) > this.Height && 
+           this.Level < image.levels-1) {
+        this.Level += 1;
         levelReq[0] *= 0.5;
         levelReq[1] *= 0.5;
         levelReq[2] *= 0.5;
@@ -111,23 +117,25 @@ function CutoutThumb(image, height, request) {
         tileDim = image.tile_size;
     }
 
-    var screenPixelSpacing = (request[3]-request[2]) / height;
-    var screenPixelOrigin = [request[0], request[2]];
-    div.data("spacing2", screenPixelSpacing);
-    div.data("origin2", screenPixelOrigin);
-    var imgSize = (tileDim<<level) / screenPixelSpacing;
+    this.ScreenPixelSpacing = (request[3]-request[2]) / this.Height;
+    var imgSize = (tileDim<<this.Level) / this.ScreenPixelSpacing;
 
 
     // grid of tiles to render.
-    var gridReq = [Math.floor(levelReq[0]/tileDim),
-                   Math.floor(levelReq[1]/tileDim),
-                   Math.floor(levelReq[2]/tileDim),
-                   Math.floor(levelReq[3]/tileDim)];
+    this.GridReq = [Math.floor(levelReq[0]/tileDim),
+                    Math.floor(levelReq[1]/tileDim),
+                    Math.floor(levelReq[2]/tileDim),
+                    Math.floor(levelReq[3]/tileDim)];
+
+    // Compute the origin: the upper left corner of the upper left image.
+    this.ScreenPixelOrigin = [this.GridReq[0]*(tileDim<<this.Level),
+                              this.GridReq[2]*(tileDim<<this.Level)];
+
     // loop over the tiles.
-    for (var y = gridReq[2]; y <= gridReq[3]; ++y) {
-        for (var x = gridReq[0]; x <= gridReq[1]; ++x) {
+    for (var y = this.GridReq[2]; y <= this.GridReq[3]; ++y) {
+        for (var x = this.GridReq[0]; x <= this.GridReq[1]; ++x) {
             // Compute the tile name.
-            var tx = x, ty = y, tl = level;
+            var tx = x, ty = y, tl = this.Level;
             var tileName = "";
             while (tl < image.levels-1) {
                 if ((tx&1) == 0 && (ty&1) == 0) {tileName = "q" + tileName;}
@@ -138,10 +146,10 @@ function CutoutThumb(image, height, request) {
                 ty = (ty>>1);
                 ++tl;
             }
-            var left = (((x<<level)*tileDim)-request[0])/screenPixelSpacing;
-            var top  = (((y<<level)*tileDim)-request[2])/screenPixelSpacing;
+            var left = (((x<<this.Level)*tileDim)-request[0])/this.ScreenPixelSpacing;
+            var top  = (((y<<this.Level)*tileDim)-request[2])/this.ScreenPixelSpacing;
             var img  = $('<img>')
-                .appendTo(div)
+                .appendTo(this.Div)
                 .attr("width", imgSize)
                 .attr("height", imgSize)
                 .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t"+tileName+".jpg")
@@ -151,9 +159,34 @@ function CutoutThumb(image, height, request) {
                       "position" : "absolute"});
         }
     }
-
-    return div;
 }
+
+CutoutThumb.prototype.AppendTo = function(parent) {
+    this.Div.appendTo(parent);
+    return this;
+}
+
+// Call back argument is this thumb object.
+// slideX, and slideY are set to mouse in slide coordinates.
+CutoutThumb.prototype.Click = function(callback) {
+    var self = this;
+    this.ClickCallback = callback;
+    this.Div.click(function (e) {
+        self.SlideX = (e.offsetX * self.ScreenPixelSpacing) 
+            + self.ScreenPixelOrigin[0];
+        self.SlideY = (e.offsetY * self.ScreenPixelSpacing) 
+            + self.ScreenPixelOrigin[1];
+        (self.ClickCallback)(self);
+    });
+
+    return this;
+}
+
+
+
+
+
+
 
 
 

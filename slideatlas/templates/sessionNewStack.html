@@ -113,7 +113,7 @@ var COLLECTIONS;
 var SELECTED_COLLECTION;
 var SELECTED_SESSION;
 var DETECT_MODE = 'single';
-
+var GALLERY_THUMBS = [];
 
 function handleResize() {
     var height = window.innerHeight - 2;
@@ -205,6 +205,7 @@ function loadSessionData(data) {
     var searchStrings = [];
     $('#imagesearch').val("");
     $('#gallery').empty();
+    GALLERY_THUMBS = [];
 
     for (var i = 0; i < data.session.views.length; ++i) {
         searchStrings.push(data.session.views[i].label);
@@ -212,19 +213,19 @@ function loadSessionData(data) {
         var listItem = $('<li>').appendTo($('#gallery'))
                         .attr('search',data.session.views[i].label);
 
-        (function(){ // for closure scoping
-            var imageData = data.images[i];
-            // cache expects different variables.
-            imageData._id = imageData.img;
-            imageData.database = imageData.db;
-            var thumb = CutoutThumb(imageData, 192)
-                    .appendTo(listItem);
-            var spacing = thumb.data("spacing2");
-            var origin = thumb.data("origin2");
-            thumb.click(function(event) {
-                            addViewToStack(origin, spacing, imageData, event);
-                        });
-        })();
+        var imageData = data.images[i];
+        // cache expects different variables.
+        imageData._id = imageData.img;
+        imageData.database = imageData.db;
+        var thumb = new CutoutThumb(imageData, 192)
+        thumb.AppendTo(listItem);
+        thumb.ListItem = listItem; // To check for visibility.
+        GALLERY_THUMBS.push(thumb);
+        thumb.Click(function(tmb) {
+                        addViewToStack(tmb);
+                        $('#stackDiv').animate({scrollLeft: STACK_END_X});
+                    });
+
         var labelDiv = $('<div>')
             .appendTo(listItem)
             .text(data.session.views[i].label); // Should really have the image label.
@@ -235,23 +236,12 @@ function loadSessionData(data) {
 var DEBUG = false;
 var STACK_ITEMS = [];
 var STACK_END_X = 5;
-function addViewToStack(origin, spacing, imageObj, event) {
+function addViewToStack(thumb) {
+    var imageObj = thumb.ImageData;
+    var xMid = thumb.SlideX;
+    var yMid = thumb.SlideY;
 
     $('#saveButton').prop('disabled',false);
-
-    var xMid, yMid;
-    if (event.offsetX) {
-        // Why is the y postiion so messed up?
-        var y = event.offsetY - event.currentTarget.offsetHeight;
-        var x = event.offsetX;
-
-        xMid = imageObj.bounds[0] + (x * spacing);
-        yMid = imageObj.bounds[2] + (y * spacing);
-    } else {
-        // Triggered programatically
-        xMid = (imageObj.bounds[0]+imageObj.bounds[1])*0.5;
-        yMid = (imageObj.bounds[2]+imageObj.bounds[3])*0.5;
-    }
 
     // Get the image.
     // Find contours.
@@ -310,7 +300,6 @@ function addViewToStack(origin, spacing, imageObj, event) {
                     addViewSectionToStack(contours[i], imageObj);
                 }
             }
-            $('#stackDiv').animate({scrollLeft: STACK_END_X});
         }
     );
 }
@@ -380,19 +369,21 @@ function addViewSectionToStack(contour, imageObj) {
         .click(function(){
                    deleteItem(item, itemObj);
                });
-    var section = CutoutThumb(imageObj, 100, bds)
-        .appendTo(item);
+    var section = new CutoutThumb(imageObj, 100, bds)
+        .AppendTo(item);
     STACK_END_X += item.width() + 10;
 }
 
 function collectionCallback(idx) {
     $('#gallery').empty();
+    GALLERY_THUMBS = [];
     selectCollection(parseInt(idx));
 }
 
 
 function sessionCallback(idx) {
     $('#gallery').empty();
+    GALLERY_THUMBS = [];
     selectSession(parseInt(idx));
 }
 
@@ -426,7 +417,7 @@ function selectSession(idx) {
               if (status == "success") {
                   loadSessionData(data);
               } else {
-                  alert("ajax failed."); 
+                  alert("ajax failed.");
               }
           });
 }
@@ -453,19 +444,20 @@ function searchCallback() {
 
 
 function addAllCallback() {
-    slides = $('#gallery li');
-    for (var i = 0; i < slides.length; ++i) {
-        var slide = $(slides[i]);
-        if (slide.is(":visible")) {
-            // Can we simply trigger the mousedown event?
-            // This matches the label too.
-            slide.children("div").trigger('mousedown');
+    for (var i = 0; i < GALLERY_THUMBS.length; ++i) {
+        var thumb = GALLERY_THUMBS[i];
+        if (thumb.ListItem.is(':visible')) {
+            // Todo: more sophisticated algorithm that will 
+            // will work with multiple option..
+            var bds = thumb.ImageData.bounds;
+            thumb.SlideX = (bds[0]+bds[1]) * 0.5;
+            thumb.SlideY = (bds[2]+bds[3]) * 0.5;
+            addViewToStack(thumb);
         }
     }
 
     $('#saveButton').prop('disabled',false);
-    var x = (STACK_ITEMS.length * 110) + 2;
-    $('#stackDiv').animate({scrollLeft: x});
+    $('#stackDiv').animate({scrollLeft: STACK_END_X});
 }
 
 

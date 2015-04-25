@@ -25,7 +25,7 @@ var LOAD_PROGRESS_MAX = 0;
 var PROGRESS_BAR = null;
 
 // Only used for saving images right now.
-var FINISHED_LOADING_CALLBACK;
+var FINISHED_LOADING_CALLBACKS = [];
 
 
 
@@ -159,61 +159,62 @@ function LoadTimeout() {
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
-  if (LOADING_COUNT < 0) {
-    // Tiles must have arrived after timeout.
-    LOADING_COUNT = 0;
-  }
-  while (LOADING_COUNT < LOADING_MAXIMUM &&
-         LOAD_QUEUE.length > 0) {
-    PushBestToLast();
-    var tile = LOAD_QUEUE.pop();
-    // For debugging
-    //this.PendingTiles.push(tile);
-    if (tile != null && tile.LoadState == 1) {
-      tile.StartLoad(tile.Cache);
-      tile.LoadState = 2; // Loading.
-      ++LOADING_COUNT;
+    if (LOADING_COUNT < 0) {
+        // Tiles must have arrived after timeout.
+        LOADING_COUNT = 0;
     }
-  }
-
-  // Observed bug: If 4 tile requests never return, loading stops.
-  // Do a time out to clear this hang.
-  if (LOAD_TIMEOUT_ID) {
-    clearTimeout(LOAD_TIMEOUT_ID);
-    LOAD_TIMEOUT_ID = 0;
-  }
-  if (LOADING_COUNT) {
-    LOAD_TIMEOUT_ID = setTimeout(function(){LoadTimeout();}, 1000);
-  }
-
-  if (PROGRESS_BAR) {
-    if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
-      LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+    while (LOADING_COUNT < LOADING_MAXIMUM &&
+           LOAD_QUEUE.length > 0) {
+        PushBestToLast();
+        var tile = LOAD_QUEUE.pop();
+        // For debugging
+        //this.PendingTiles.push(tile);
+        if (tile != null && tile.LoadState == 1) {
+            tile.StartLoad(tile.Cache);
+            tile.LoadState = 2; // Loading.
+            ++LOADING_COUNT;
+        }
     }
-    var width = (100 * LOAD_QUEUE.length / LOAD_PROGRESS_MAX).toFixed();
-    width = width + "%";
-    PROGRESS_BAR.css({"width" : width});
-    // Reset maximum
-    if (LOAD_QUEUE.length == 0) {
-      LOAD_PROGRESS_MAX = 0;
-    }
-  }
 
-  if (FINISHED_LOADING_CALLBACK && LOAD_QUEUE.length == 0 && LOADING_COUNT == 0) {
-      // One time call.
-      var callback = FINISHED_LOADING_CALLBACK;
-      FINISHED_LOADING_CALLBACK = undefined;
-      callback();
-  }
+    // Observed bug: If 4 tile requests never return, loading stops.
+    // Do a time out to clear this hang.
+    if (LOAD_TIMEOUT_ID) {
+        clearTimeout(LOAD_TIMEOUT_ID);
+        LOAD_TIMEOUT_ID = 0;
+    }
+    if (LOADING_COUNT) {
+        LOAD_TIMEOUT_ID = setTimeout(function(){LoadTimeout();}, 1000);
+    }
+
+    if (PROGRESS_BAR) {
+        if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
+            LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+        }
+        var width = (100 * LOAD_QUEUE.length / LOAD_PROGRESS_MAX).toFixed();
+        width = width + "%";
+        PROGRESS_BAR.css({"width" : width});
+        // Reset maximum
+        if (LOAD_QUEUE.length == 0) {
+            LOAD_PROGRESS_MAX = 0;
+        }
+    }
+
+    if (FINISHED_LOADING_CALLBACKS.length > 0 &&
+        LOAD_QUEUE.length == 0 && LOADING_COUNT == 0) {
+        var tmp = FINISHED_LOADING_CALLBACKS.slice(0); // copy
+        FINISHED_LOADING_CALLBACKS = [];
+        for (var i = 0; i < tmp.length; ++i) {
+            (tmp[i])();
+        }
+    }
 }
 
-function SetFinishedLoadingCallback(callback) {
-    if (callback && FINISHED_LOADING_CALLBACK) {
-        alert("Finished loading callback already set.");
-        return false;
-    }
-    FINISHED_LOADING_CALLBACK = callback;
-    return true;
+function AddFinishedLoadingCallback(callback) {
+    FINISHED_LOADING_CALLBACKS.push(callback);
+}
+
+function ClearFinishedLoadingCallbacks() {
+    FINISHED_LOADING_CALLBACKS = [];
 }
 
 
