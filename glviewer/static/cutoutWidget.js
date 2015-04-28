@@ -68,14 +68,13 @@ function CutoutWidget (viewer) {
 
 CutoutWidget.prototype.Accept = function () {
     this.Deactivate();
-    alert("Saving");
 
     var type = "tif";
     if (this.Select.val() == 1) {
         type = "png";
     }
     var image_source = this.Viewer.GetCache().Image;
-    window.location = "http://slide-atlas.org/cutout/" + image_source.database + "/" +
+    window.location = "/cutout/" + image_source.database + "/" +
         image_source._id + "/image."+type+"?bounds=" + JSON.stringify(this.Bounds);
 }
 
