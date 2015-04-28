@@ -99,9 +99,19 @@ Camera.prototype.ConvertPointViewerToWorld = function(x, y) {
     return [xNew, yNew];
 }
 
+Camera.prototype.ConvertPointWorldToViewer = function(x, y) {
+    var m = this.Matrix;
 
+    // Convert from world coordinate to view (-1->1);
+    var h = (x*m[3] + y*m[7] + m[15]);
+    var xNew = (x*m[0] + y*m[4] + m[12]) / h;
+    var yNew = (x*m[1] + y*m[5] + m[13]) / h;
+    // Convert from view to screen pixel coordinates.
+    xNew = (1.0+xNew)*0.5*this.ViewportWidth;
+    yNew = (1.0-yNew)*0.5*this.ViewportHeight;
 
-
+    return [xNew, yNew];
+}
 
 // dx, dy are in view coordinates [-0.5,0.5].
 // The camera matrix converts world to view.
@@ -384,8 +394,8 @@ Camera.prototype.Draw = function (overview) {
         // We have to rotate the rectangle.
         var c = Math.cos(this.Roll);
         var s = Math.sin(this.Roll);
-        ctx.setTransform(c,-s,+s,c, 
-                         (1-c)*newCx-s*newCy, 
+        ctx.setTransform(c,-s,+s,c,
+                         (1-c)*newCx-s*newCy,
                          (1-c)*newCy+s*newCx)
 
         ctx.strokeStyle="#4011E5";
