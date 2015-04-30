@@ -51,9 +51,6 @@ def cutout(image_store_id, image_id, filename):
     resp = {}
     resp["request"] = args
 
-    if args["debug"]:
-        return jsonify(resp)
-
     # Parameter checking
     if len(args["bounds"]) != 4:
         resp["error"] = "Expecting 4 coordinates of enclosing rectangle, x1, x2, y1, y2"
@@ -64,6 +61,7 @@ def cutout(image_store_id, image_id, filename):
 
     try:
         image_store = models.ImageStore.objects.get(id=image_store_id)
+        resp["image_store"] = image_store.to_mongo()
     except:
         resp["error"] = "Unable to access imagestore"
         return jsonify(resp)
@@ -76,11 +74,15 @@ def cutout(image_store_id, image_id, filename):
         resp["error"] = "Unable to access imagestore"
         return jsonify(resp)
 
+    if args["debug"]:
+        return jsonify(resp)
+
     # Image properties
     tilesize = int(image_obj["TileSize"])
     base_level = image_obj["levels"] - 1  # as t.jpg is level 0
 
     # Round the bounds off to nearest tile boundaries
+    # TODO: Assert that client is doing it for us
     tile_bounds = [int(math.floor(bounds[0] / tilesize)),
                    int(math.ceil(bounds[1] / tilesize)),
                    int(math.floor(bounds[2] / tilesize)),
