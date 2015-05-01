@@ -74,6 +74,16 @@ def cutout(image_store_id, image_id, filename):
         resp["error"] = "Unable to access imagestore"
         return jsonify(resp)
 
+    # Interprete the bounds
+    coordinate_system = image_obj.get("CoordinateSystem", "Pixel")
+    resp["coordinate_system"] = coordinate_system
+
+    # Swap the higher number
+    if coordinate_system == "Pixel":
+        bounds[3], bounds[2] = image_obj["bounds"][3]-bounds[2], image_obj["bounds"][3]-bounds[3]
+
+    resp["bounds"] = bounds
+
     if args["debug"]:
         return jsonify(resp)
 
