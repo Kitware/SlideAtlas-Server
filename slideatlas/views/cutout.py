@@ -185,9 +185,10 @@ def cutout(image_store_id, image_id, filename):
                x - origin_x + tilesize,
                y - origin_y + tilesize]
 
-        # Account for the flipped y axis of the PIL
-        box[1] = height - box[1]
-        box[3] = box[1] + tilesize
+        # Account for the inverted axis between image and PIL
+        if coordinate_system == "Photo":
+            box[1] = height - box[1]
+            box[3] = box[1] + tilesize
 
         resp["boxes"].append(box)
         image.paste(tile_image, box)
