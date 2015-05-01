@@ -75,6 +75,30 @@ class PtiffImageStore(MultipleDatabaseImageStore):
     def is_local(self):
         return platform.node() == self.host_name
 
+    def get_tile_at(self, image_id, x, y, z, tilesize=256):
+        """
+        Gets tile name and sends out the image in raw
+        """
+
+        with self:
+            image = Image.objects.get_or_404(id=image_id)
+
+        tiff_path = self.image_file_path(image)
+
+        reader = make_reader({
+            'fname': tiff_path,
+            'dir': image.levels - z - 1
+        })
+
+        tile_buffer = StringIO.StringIO()
+        reader_result = reader.dump_tile(x, y, tile_buffer)
+
+        if reader_result == 0:
+            raise DoesNotExist('Tile at %d,%d,%d is not stored in "%s"' % (x, y, z, tiff_path))
+        else:
+            return tile_buffer.getvalue()
+
+
 
     def get_tile(self, image_id, tile_name, safe=False, raw=False):
         """

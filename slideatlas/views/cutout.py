@@ -20,6 +20,39 @@ mod = Blueprint('cutout', __name__)
 
 from slideatlas.core import logger
 
+
+################################################################################
+@mod.route('/tileat/<ObjectId:image_store_id>/<ObjectId:image_id>', methods=["GET"])
+# @security.login_required
+def tileat(image_store_id, image_id):
+    """
+    Returns a requested image assembled from the tiles
+    """
+    # Accept parameters
+    args = {}
+    args["x"] = int(request.args.get("x", "-1"))
+    args["y"] = int(request.args.get("y", "-1"))
+    args["z"] = int(request.args.get("z", "-1"))
+
+    if args["z"] < 0:
+        # Make it max
+        pass
+
+    resp = {}
+    resp["request"] = args
+
+    try:
+        image_store = models.ImageStore.objects.get(id=image_store_id)
+        # resp["image_store"] = image_store.to_mongo()
+    except:
+        resp["error"] = "Unable to access imagestore"
+        return jsonify(resp)
+
+    response = Response(content_type='image/jpeg')
+    response.set_data(image_store.get_tile_at(image_id, args["x"],args["y"],args["z"],))
+    return response
+
+
 ################################################################################
 @mod.route('/cutout/<ObjectId:image_store_id>/<ObjectId:image_id>/<filename>', methods=["GET"])
 # @security.login_required
