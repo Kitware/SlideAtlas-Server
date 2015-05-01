@@ -13,6 +13,22 @@ Polyline.prototype.destructor=function() {
     // Get rid of the buffers?
 }
 
+Polyline.prototype.GetBounds = function () {
+    if (this.Points.length == 0) {
+        return [0,-1,0,-1];
+    }
+    var bds = [this.Points[0][0], this.Points[0][0],
+               this.Points[0][1], this.Points[0][1]];
+    for (var i = 1; i < this.Points.length; ++i) {
+        var pt = this.Points[i];
+        if (pt[0] < bds[0]) bds[0] = pt[0];
+        if (pt[0] > bds[1]) bds[1] = pt[0];
+        if (pt[1] < bds[2]) bds[2] = pt[1];
+        if (pt[1] > bds[3]) bds[3] = pt[1];
+    }
+    return bds;
+}
+
 Polyline.prototype.UpdateBuffers = function() {
   var points = this.Points.slice(0);
   if (this.Closed && points.length > 2) {

@@ -372,6 +372,11 @@ TextWidget.prototype.UpdateArrow = function() {
   this.Arrow.UpdateBuffers();
 }
 
+TextWidget.prototype.HandleMouseWheel = function(event) {
+    // TODO: Scale the size of the text.
+    return false;
+}
+
 TextWidget.prototype.HandleKeyPress = function(event) {
   // The dialog consumes all key events.
   if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {

@@ -183,6 +183,15 @@ function Viewer (viewport) {
 			      function (event){return self.HandleOverViewMouseWheel(event);},
 			      false);
     }
+
+    this.CopyrightWrapper = $('<div>')
+        .appendTo(this.MainView.CanvasDiv)
+        .css({'position':'absolute',
+              'opacity' :'0.3',
+              'bottom'  :'1px',
+              'left'    :'100px',
+              'z-index' : '4'});
+
 }
 
 // These should be in an overview widget class.
@@ -636,9 +645,9 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
          if (cache.Image.copyright == undefined) {
              cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
-         /*this.CopyrightWrapper
-           .html(cache.Image.copyright)
-           .show();*/
+         this.CopyrightWrapper
+             .html(cache.Image.copyright)
+             .show();
      }
 
      this.MainView.SetCache(cache);
@@ -975,6 +984,14 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
        break;
      case "polyline":
        var pl = new PolylineWidget(this, false);
+       pl.Load(obj);
+       break;
+     case "stack_section":
+       var pl = new StackSectionWidget(this);
+       pl.Load(obj);
+       break;
+     case "sections":
+       var pl = new SectionsWidget(this);
        pl.Load(obj);
        break;
    }
@@ -1697,7 +1714,9 @@ Viewer.prototype.AddShape = function(shape) {
  Viewer.prototype.HandleMouseWheel = function(event) {
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
-         return false;
+         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+             return false;
+         }
      }
 
      if ( ! event.offsetX) {

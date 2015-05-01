@@ -314,7 +314,8 @@ def session_save_stack():
         viewer_record = {
             'Image': ObjectId(item['img']),
             'Database': ObjectId(item['db']),
-            'Camera' : camera}
+            'Camera' : camera,
+            'Annotations': [item['widget']]}
         records.append(viewer_record)
 
 
