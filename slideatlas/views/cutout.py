@@ -108,11 +108,11 @@ def cutout(image_store_id, image_id, filename):
         return jsonify(resp)
 
     # Interprete the bounds
-    coordinate_system = image_obj.get("CoordinateSystem", "Pixel")
+    coordinate_system = image_obj.get("CoordinateSystem", "Photo")
     resp["coordinate_system"] = coordinate_system
 
     # Swap the higher number
-    if coordinate_system == "Pixel":
+    if coordinate_system == "Photo":
         bounds[3], bounds[2] = image_obj["bounds"][3]-bounds[2], image_obj["bounds"][3]-bounds[3]
 
     # Subtract 1 from the x2 and y2 to not leak into next tiles
