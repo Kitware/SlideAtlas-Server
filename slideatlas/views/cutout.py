@@ -20,6 +20,39 @@ mod = Blueprint('cutout', __name__)
 
 from slideatlas.core import logger
 
+
+################################################################################
+@mod.route('/tileat/<ObjectId:image_store_id>/<ObjectId:image_id>', methods=["GET"])
+# @security.login_required
+def tileat(image_store_id, image_id):
+    """
+    Returns a requested image assembled from the tiles
+    """
+    # Accept parameters
+    args = {}
+    args["x"] = int(request.args.get("x", "-1"))
+    args["y"] = int(request.args.get("y", "-1"))
+    args["z"] = int(request.args.get("z", "-1"))
+
+    if args["z"] < 0:
+        # Make it max
+        pass
+
+    resp = {}
+    resp["request"] = args
+
+    try:
+        image_store = models.ImageStore.objects.get(id=image_store_id)
+        # resp["image_store"] = image_store.to_mongo()
+    except:
+        resp["error"] = "Unable to access imagestore"
+        return jsonify(resp)
+
+    response = Response(content_type='image/jpeg')
+    response.set_data(image_store.get_tile_at(image_id, args["x"],args["y"],args["z"],))
+    return response
+
+
 ################################################################################
 @mod.route('/cutout/<ObjectId:image_store_id>/<ObjectId:image_id>/<filename>', methods=["GET"])
 # @security.login_required
@@ -49,10 +82,7 @@ def cutout(image_store_id, image_id, filename):
     args["image"] = image_id
 
     resp = {}
-    resp["request"] = args
-
-    if args["debug"]:
-        return jsonify(resp)
+    # resp["request"] = args
 
     # Parameter checking
     if len(args["bounds"]) != 4:
@@ -64,6 +94,7 @@ def cutout(image_store_id, image_id, filename):
 
     try:
         image_store = models.ImageStore.objects.get(id=image_store_id)
+        # resp["image_store"] = image_store.to_mongo()
     except:
         resp["error"] = "Unable to access imagestore"
         return jsonify(resp)
@@ -71,24 +102,45 @@ def cutout(image_store_id, image_id, filename):
     # Get the record of the image to know tilesize
     try:
         image_obj = image_store.get_image_metadata(image_id)
-        resp["image_obj"] = image_obj
+        # resp["image_obj"] = image_obj
     except:
         resp["error"] = "Unable to access imagestore"
         return jsonify(resp)
+
+    # Interprete the bounds
+    coordinate_system = image_obj.get("CoordinateSystem", "Photo")
+    resp["coordinate_system"] = coordinate_system
+
+    # Swap the higher number
+    if coordinate_system == "Photo":
+        bounds[3], bounds[2] = image_obj["bounds"][3]-bounds[2], image_obj["bounds"][3]-bounds[3]
+
+    # Subtract 1 from the x2 and y2 to not leak into next tiles
+    bounds[1] = bounds[1] - 1
+    bounds[3] = bounds[3] - 1
+
+    resp["bounds"] = bounds
 
     # Image properties
     tilesize = int(image_obj["TileSize"])
     base_level = image_obj["levels"] - 1  # as t.jpg is level 0
 
     # Round the bounds off to nearest tile boundaries
-    tile_bounds = [int(math.floor(bounds[0] / tilesize)),
-                   int(math.ceil(bounds[1] / tilesize)),
-                   int(math.floor(bounds[2] / tilesize)),
-                   int(math.ceil(bounds[3] / tilesize))
+    # TODO: Assert that client is doing it for us
+    tile_bounds = [int(math.floor(float(bounds[0]) / tilesize)),
+                   int(math.ceil(float(bounds[1]) / tilesize))-1,
+                   int(math.floor(float(bounds[2]) / tilesize)),
+                   int(math.ceil(float(bounds[3]) / tilesize)-1)
                    ]
+
+    # tile_bounds = [1,1,1,1]
+
+    resp["tile_bounds"] = tile_bounds
 
     tile_cols = tile_bounds[1] - tile_bounds[0] + 1
     tile_rows = tile_bounds[3] - tile_bounds[2] + 1
+
+    resp["tile_grid"] = tile_cols, tile_rows
 
     # Create image
     image = Image.new("RGB",
@@ -98,9 +150,20 @@ def cutout(image_store_id, image_id, filename):
     # Grab and paste tiles
     tiles = [(x + tile_bounds[0], y + tile_bounds[2]) for x in range(tile_cols) for y in range(tile_rows)]
 
+    resp["tiles"] = tiles
+
     origin_x = tile_bounds[0] * tilesize
     origin_y = tile_bounds[2] * tilesize
-    max_y = (tile_bounds[3]) * tilesize
+    height = (tile_bounds[3]-tile_bounds[2]) * tilesize
+
+    # Global origin in the coordinate system of the image
+    # For the region requested
+
+    resp["origins"] = {"origin_x": origin_x,
+                       "origin_y": origin_y,
+                       "height": height}
+
+    resp["boxes"] = []
 
     for atile in tiles:
         # Get the tile
@@ -117,15 +180,27 @@ def cutout(image_store_id, image_id, filename):
 
         # Paste into the image
         # box = [left, upper, right, lower]
-        box = [x - origin_x, y - origin_y, x + tilesize - origin_x, y + tilesize - origin_y]
-        box[1] = max_y - box[1]
-        box[3] = box[1] + tilesize
+        box = [x - origin_x,
+               y - origin_y,
+               x - origin_x + tilesize,
+               y - origin_y + tilesize]
 
+        # Account for the inverted axis between image and PIL
+        if coordinate_system == "Photo":
+            box[1] = height - box[1]
+            box[3] = box[1] + tilesize
+
+        resp["boxes"].append(box)
         image.paste(tile_image, box)
         try:
             tile_buf.close()
         except:
             pass
+
+    if args["debug"]:
+        resp["url"] = request.base_url+"?bounds=" + json.dumps(args["bounds"]).replace(" ","")
+        return jsonify(resp)
+
 
     # Compress and return the image
     buf = StringIO.StringIO()

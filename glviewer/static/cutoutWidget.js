@@ -74,6 +74,11 @@ CutoutWidget.prototype.Accept = function () {
         type = "png";
     }
     var image_source = this.Viewer.GetCache().Image;
+    // var bounds = [];
+    // for (var i=0; i <this.Bounds.length; i++) {
+    //  bounds[i] = this.Bounds[i] -1;
+    // }
+
     window.location = "/cutout/" + image_source.database + "/" +
         image_source._id + "/image."+type+"?bounds=" + JSON.stringify(this.Bounds);
 }
