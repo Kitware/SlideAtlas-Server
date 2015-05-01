@@ -121,11 +121,14 @@ def cutout(image_store_id, image_id, filename):
 
     origin_x = tile_bounds[0] * tilesize
     origin_y = tile_bounds[2] * tilesize
-    max_y = (tile_bounds[3]) * tilesize
+    height = (tile_bounds[3]-tile_bounds[2]) * tilesize
+
+    # Global origin in the coordinate system of the image
+    # For the region requested
 
     resp["origins"] = {"origin_x": origin_x,
                        "origin_y": origin_y,
-                       "max_y": max_y}
+                       "height": height}
 
     resp["boxes"] = []
 
@@ -149,9 +152,9 @@ def cutout(image_store_id, image_id, filename):
                x - origin_x + tilesize,
                y - origin_y + tilesize]
 
-        # Account for the flipped y
-        # box[1] = max_y - box[1]
-        # box[3] = box[1] + tilesize
+        # Account for the flipped y axis of the PIL
+        box[1] = height - box[1]
+        box[3] = box[1] + tilesize
 
         resp["boxes"].append(box)
         image.paste(tile_image, box)
