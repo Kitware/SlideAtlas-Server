@@ -91,8 +91,67 @@ StackSectionWidget.prototype.ContainedInBounds = function(bds) {
     return 0;
 }
 
+// Returns the center of the bounds in view coordinates.
+StackSectionWidget.prototype.GetViewCenter = function(view) {
+    var bds = this.GetBounds();
+    return view.Camera.ConvertPointWorldToViewer((bds[0]+bds[1])*0.5,
+                                                 (bds[2]+bds[3])*0.5);
+}
+
+// We need bounds in view coordiantes for sorting.
+// Do not bother caching the value.
+StackSectionWidget.prototype.GetViewBounds = function (view) {
+    if (this.Shapes.length == 0) {
+        return [0,0,0,0];
+    }
+    var c = this.GetViewCenter(view);
+    var bds = [c[0],c[0],c[1],c[1]];
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        var shape = this.Shapes[i];
+        for (j = 0; j < shape.Points.length; ++j) {
+            var pt = shape.Points[j];
+            pt = view.Camera.ConvertPointWorldToViewer(pt[0],pt[1]);
+            if (pt[0] < bds[0]) { bds[0] = pt[0]; }
+            if (pt[0] > bds[1]) { bds[1] = pt[0]; }
+            if (pt[1] < bds[2]) { bds[2] = pt[1]; }
+            if (pt[1] > bds[3]) { bds[3] = pt[1]; }
+        }
+    }
+    return bds;
+}
+
+
+StackSectionWidget.prototype.ComputeViewUpperRight = function(view) {
+    // Compute the upper right corner in view coordinates.
+    // This is used by the SectionsWidget holds this section.
+    var bds = this.GetBounds();
+    var p0 = view.Camera.ConvertPointWorldToViewer(bds[0],bds[2]);
+    var p1 = view.Camera.ConvertPointWorldToViewer(bds[0],bds[3]);
+    var p2 = view.Camera.ConvertPointWorldToViewer(bds[1],bds[3]);
+    var p3 = view.Camera.ConvertPointWorldToViewer(bds[1],bds[2]);
+    // Pick the furthest upper right corner.
+    this.ViewUpperRight = p0;
+    var best = p0[0]-p0[1];
+    var tmp = p1[0]-p1[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p1;
+    }
+    tmp = p2[0]-p2[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p2;
+    }
+    tmp = p3[0]-p3[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p3;
+    }
+}
+
 
 StackSectionWidget.prototype.Draw = function(view) {
+    this.ComputeViewUpperRight(view);
     for (var i = 0; i < this.Shapes.length; ++i) {
         if (this.Active) {
             this.Shapes[i].OutlineColor = [1,1,0];
