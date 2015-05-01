@@ -164,6 +164,11 @@ LassoWidget.prototype.Load = function(obj) {
   this.Loop.UpdateBuffers();
 }
 
+LassoWidget.prototype.HandleMouseWheel = function(event) {
+    // TODO: grow or shrink region.
+    return false;
+}
+
 LassoWidget.prototype.HandleKeyPress = function(keyCode, shift) {
   return false;
 }

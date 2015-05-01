@@ -1,4 +1,5 @@
 
+
 {% extends 'frontend_base.html' %}
 
 
@@ -21,6 +22,7 @@
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='stackSectionWidget.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
 
@@ -327,13 +329,15 @@ function addViewSectionToStack(contour, imageObj) {
     var bds = contour.GetBounds();
 
     // Add the contour to the stack
+    var widget = contour.MakeStackSectionWidget();
 
     // Height is only for the first items default view.
     var itemObj = {img:    imageObj.img,
                    db:     imageObj.db,
                    x:      center[0],
                    y:      center[1],
-                   height: bds[3]-bds[2]};
+                   height: bds[3]-bds[2],
+                   widget: widget.Serialize()};
     STACK_ITEMS.push(itemObj);
 
     // Give the image some padding.

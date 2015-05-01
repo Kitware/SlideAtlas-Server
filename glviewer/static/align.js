@@ -92,7 +92,7 @@ function SortAndFilterContours(contours, firstContour) {
                         bestIdx = i;
                         bestBds = bds;
                     } else if (bds[(axis1<<1)] < bestBds[(axis1<<1)+1] &&
-                               bds[(axis0<<1)+1] < bestBds[(axis0<<1)]) { 
+                               bds[(axis0<<1)+1] < bestBds[(axis0<<1)]) {
                         // Axis 1 =, and Axis0 <
                         bestIdx = i;
                         bestBds = bds;
@@ -107,6 +107,50 @@ function SortAndFilterContours(contours, firstContour) {
         last = contours.splice(bestIdx,1)[0];
         sortedContours.push(last);
         lastBds = bestBds;
+    }
+}
+
+
+// Use the bounds to create an ordering of sections.
+// Direction or ordering is defined by axis0 and axis1 in {"+x","+y","-x","-y"}
+// axis0 is less siginficat axis, axis1 is the more significant axis.
+function SortContours(contours, axis0, axis1) {
+    // Decode the axes strings.
+    var direction0 = axis0[0] == "-" ? -1 : 1;
+    var direction1 = axis1[0] == "-" ? -1 : 1;
+    var axis0 = axis0[1] == "x" ? 0 : 1;
+    var axis1 = axis1[1] == "x" ? 0 : 1;
+
+    // Copy the array so we can modify the original.
+    var copy = contours.slice(0);
+
+    // Sort the contours
+    function lessThanContours(c1,c2) {
+        var bds1 = c1.GetBounds();
+        PermuteBounds(bds1, axis0, direction0);
+        PermuteBounds(bds1, axis1, direction1);
+        var bds2 = c2.GetBounds();
+        PermuteBounds(bds2, axis0, direction0);
+        PermuteBounds(bds2, axis1, direction1);
+        if ((bds2[(axis1<<1)+1] > bds1[axis1<<1]) &&
+            ((bds2[axis1<<1] > bds1[(axis1<<1)+1] ||
+              bds2[axis0<<1] > bds1[(axis0<<1)+1]))) {
+            return true;
+        }
+        return false;
+    }
+    var idx = 0;
+    while (copy.length > 0) {
+        var bestContour = null;
+        var bestIdx = -1;
+        for (i = 0; i < copy.length; ++i) {
+            if (bestIdx < 0 || lessThanContours(copy[i],bestContour)) {
+                bestIdx = i;
+                bestContour = copy[i];
+            }
+        }
+        contours[idx++] = bestContour;
+        copy.splice(bestIdx,1);
     }
 }
 
@@ -403,6 +447,18 @@ Contour.prototype.MakePolyline = function(rgb, view) {
     }
 
     return pl;
+}
+
+// Take a list of image points and make a viewer annotation out of them.
+Contour.prototype.MakeStackSectionWidget = function() {
+    // Make an annotation out of the points.
+    // Create a widget.
+    var w = new StackSectionWidget();
+    w.Shapes.push(this.MakePolyline([0,1,0]));
+    // Probably still in pixel coordinates.
+    //w.Bounds = this.GetBounds();
+
+    return w;
 }
 
 

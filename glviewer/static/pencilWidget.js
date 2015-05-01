@@ -142,6 +142,10 @@ PencilWidget.prototype.Load = function(obj) {
   }
 }
 
+PencilWidget.prototype.HandleMouseWheel = function(event) {
+    return false;
+}
+
 PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
   return true;
 }
