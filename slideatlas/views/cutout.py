@@ -7,10 +7,10 @@ import time
 
 from flask import Blueprint, Response, request, current_app
 import json
-# from slideatlas import models#, security
 from slideatlas.common_utils import jsonify
-# from slideatlas.ptiffstore.tiff_reader import TileReader
-from slideatlas import models
+
+from slideatlas.ptiffstore.tiff_writer import TileTiffWriter
+from slideatlas import common_utilsmodels
 
 from PIL import Image
 
@@ -51,6 +51,45 @@ def tileat(image_store_id, image_id):
     response = Response(content_type='image/jpeg')
     response.set_data(image_store.get_tile_at(image_id, args["x"],args["y"],args["z"],))
     return response
+
+
+
+def create_tiff(image_store, tile_cols, tile_rows,resp={}):
+        """
+        Creates tiff image in a temporary file, later
+        reads from it and returns the data
+        """
+        # Create a temporary file
+
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+        tempfilename = "cutout" + timestamp + ".tif"
+        resp["tempfilename"] = tempfilename
+
+        # Create width and height in the writer
+        writer = TileTiffWriter({"fname": tempfilename})
+
+        writer.set_dir_info((tile_cols) * tilesize,  # width
+                            (tile_rows) * tilesize   # height
+                            )
+
+        tileno_out = writer.tile_number(x-origin_x, y-origin_y)
+
+        # Read a tile
+        # It is faster to recreate StringIO than reuse it
+        for atile in tiles:
+
+            buf = StringIO()
+            reader.get_tile_from_number(tileno_in, buf)
+            writer.write_tile_by_number(tileno_out, buf)
+
+            if tileno_out < 0:
+                logger.error("Tile errored: %s", atile)
+                logger.error("TileIN: %d", tileno_in)
+                logger.error("TileOUT: %d", tileno_out)
+
+
+    pass
+
 
 
 ################################################################################
@@ -142,6 +181,9 @@ def cutout(image_store_id, image_id, filename):
 
     resp["tile_grid"] = tile_cols, tile_rows
 
+    if(filename.endswith("tif")):
+        create_tiff(image_store, bounds)
+
     # Create image
     image = Image.new("RGB",
                       (tile_cols * tilesize, tile_rows * tilesize),
@@ -204,7 +246,7 @@ def cutout(image_store_id, image_id, filename):
 
     # Compress and return the image
     buf = StringIO.StringIO()
-    image.save(buf, format="jpeg")
+    image.save(buf, format="png")
     response = Response(content_type='image/jpeg')
     response.set_data(buf.getvalue())
     buf.close()
