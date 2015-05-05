@@ -1,17 +1,3 @@
-// TODO:
-// - Save stackSctionWidgts in stacks from stack creator.
-// - Start by treating it as an annotation (visibility, WidgetList).
-// - Show all section annotations in every section view.
-// - highlight the current section widget.
-// - have each widget display a number indicating its sequence location.
-// - each widget will have a delete icon.
-// - Tool to draw a rectangle to create a new contour, or merge multiple
-//     contours into one.
-
-// The only place to keep a list of sections on a slide is in the cache.
-// I will start keeping it in the viewer record (section) annotation in 
-// the DB, but create a cache list when they are loaded.
-
 //==============================================================================
 // Initially a contour found for each section in a stack.
 // Each section gets on of these StackSectionWidgets.  I am extending this
@@ -91,8 +77,67 @@ StackSectionWidget.prototype.ContainedInBounds = function(bds) {
     return 0;
 }
 
+// Returns the center of the bounds in view coordinates.
+StackSectionWidget.prototype.GetViewCenter = function(view) {
+    var bds = this.GetBounds();
+    return view.Camera.ConvertPointWorldToViewer((bds[0]+bds[1])*0.5,
+                                                 (bds[2]+bds[3])*0.5);
+}
+
+// We need bounds in view coordiantes for sorting.
+// Do not bother caching the value.
+StackSectionWidget.prototype.GetViewBounds = function (view) {
+    if (this.Shapes.length == 0) {
+        return [0,0,0,0];
+    }
+    var c = this.GetViewCenter(view);
+    var bds = [c[0],c[0],c[1],c[1]];
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        var shape = this.Shapes[i];
+        for (j = 0; j < shape.Points.length; ++j) {
+            var pt = shape.Points[j];
+            pt = view.Camera.ConvertPointWorldToViewer(pt[0],pt[1]);
+            if (pt[0] < bds[0]) { bds[0] = pt[0]; }
+            if (pt[0] > bds[1]) { bds[1] = pt[0]; }
+            if (pt[1] < bds[2]) { bds[2] = pt[1]; }
+            if (pt[1] > bds[3]) { bds[3] = pt[1]; }
+        }
+    }
+    return bds;
+}
+
+
+StackSectionWidget.prototype.ComputeViewUpperRight = function(view) {
+    // Compute the upper right corner in view coordinates.
+    // This is used by the SectionsWidget holds this section.
+    var bds = this.GetBounds();
+    var p0 = view.Camera.ConvertPointWorldToViewer(bds[0],bds[2]);
+    var p1 = view.Camera.ConvertPointWorldToViewer(bds[0],bds[3]);
+    var p2 = view.Camera.ConvertPointWorldToViewer(bds[1],bds[3]);
+    var p3 = view.Camera.ConvertPointWorldToViewer(bds[1],bds[2]);
+    // Pick the furthest upper right corner.
+    this.ViewUpperRight = p0;
+    var best = p0[0]-p0[1];
+    var tmp = p1[0]-p1[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p1;
+    }
+    tmp = p2[0]-p2[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p2;
+    }
+    tmp = p3[0]-p3[1];
+    if (tmp > best) {
+        best = tmp;
+        this.ViewUpperRight = p3;
+    }
+}
+
 
 StackSectionWidget.prototype.Draw = function(view) {
+    this.ComputeViewUpperRight(view);
     for (var i = 0; i < this.Shapes.length; ++i) {
         if (this.Active) {
             this.Shapes[i].OutlineColor = [1,1,0];
@@ -143,12 +188,22 @@ StackSectionWidget.prototype.Load = function(obj) {
         shape.UpdateBuffers();
     }
 
+    // TODO:
+    // I do not think we should save the bounds in the database.
+    // They can be computed easily enough.
     if (obj.bounds !== undefined) {
-        this.Bounds[0] = parseFloat(obj.bounds[0]);
-        this.Bounds[1] = parseFloat(obj.bounds[1]);
-        this.Bounds[2] = parseFloat(obj.bounds[2]);
-        this.Bounds[3] = parseFloat(obj.bounds[3]);
+        this.Bounds = [parseFloat(obj.bounds[0]),
+                       parseFloat(obj.bounds[1]),
+                       parseFloat(obj.bounds[2]),
+                       parseFloat(obj.bounds[3])];
     }
+}
+
+
+// We could recompute the bounds from the
+StackSectionWidget.prototype.GetCenter = function () {
+    var bds = this.GetBounds();
+    return [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5];
 }
 
 // We could recompute the bounds from the
@@ -231,4 +286,221 @@ StackSectionWidget.prototype.RemoveFromViewer = function() {
         this.Viewer.WidgetList.splice(idx, 1);
     }
 }
+
+//==============================================================================
+// These features might better belong in a separate object of edges.
+
+// Modifies this section's points to match argument section
+// Also returns the translation and rotation.
+StackSectionWidget.prototype.RigidAlign = function (section) {
+    var center1 = this.GetCenter();
+    var center2 = section.GetCenter();
+    // Translate so that the centers are the same.
+    this.Translate([(center2[0]-center1[0]),
+                    (center2[1]-center2[1])]);
+
+    // Get the bounds of both contours.
+    var bds1 = this.GetBounds();
+    var bds2 = section.GetBounds();
+
+    // Combine them (union).
+    bds2[0] = Math.min(bds1[0], bds2[0]);
+    bds2[1] = Math.max(bds1[1], bds2[1]);
+    bds2[2] = Math.min(bds1[2], bds2[2]);
+    bds2[3] = Math.max(bds1[3], bds2[3]);
+    // Exapnd the contour by 10%
+    var xMid = (bds2[0] + bds2[1])*0.5;
+    var yMid = (bds2[2] + bds2[3])*0.5;
+    bds2[0] = xMid + 1.1*(bds1[0]-xMid);
+    bds2[1] = xMid + 1.1*(bds1[1]-xMid);
+    bds2[2] = yMid + 1.1*(bds1[2]-yMid);
+    bds2[3] = yMid + 1.1*(bds1[3]-yMid);
+
+    var spacing;
+    // choose a spacing.
+    // about 160,000 kPixels (400x400);
+    spacing = Math.sqrt((bds2[1]-bds2[0])*(bds2[3]-bds2[2])/160000);
+    // Note. gradient decent messes up with spacing too small.
+
+    var distMap = new DistanceMap(bds2, spacing);
+    for (var i = 0; i < section.Shapes.length; ++i) {
+        // ignore origin.
+        distMap.AddPolyline(section.Shapes[i].Points);
+    }
+    distMap.Update();
+
+    eventuallyRender();
+    // Coordinate system has changed.
+    return this.RigidAlignWithMap(distMap);
+}
+
+// Perform gradient descent on the transform....
+// Do not apply the points unti the end.
+StackSectionWidget.prototype.RigidAlignWithMap = function(distMap) {
+    // Compute center of rotation
+    var center = this.GetCenter();
+
+    // shiftX, shiftY, roll
+    var trans = [0,0, 0];
+
+    // Try several rotations to see which is the best.
+    bestRoll = 0;
+    bestDist = -1;
+    for (a = 0; a < 360; a += 30) {
+        trans = [0,0,Math.PI*a/180];
+        var dist;
+        for (i = 0; i < 10; ++i) {
+            dist = this.RigidDecentStep(trans, center, distMap, 200);
+        }
+        if (bestDist < 0 || dist < bestDist) {
+            bestDist = dist;
+            bestRoll = trans[2];
+        }
+    }
+
+    // Now the real gradient decent.
+    trans = [0,0,bestRoll];
+    for (var i = 0; i < 200; ++i) {
+        // Slowing discount outliers.
+        this.RigidDecentStep(trans, center, distMap, 200-i);
+    }
+    this.Transform([trans[0],trans[1]], center, trans[2]);
+}
+
+// Returns the average distance as the error.
+// trans is the starting transform (dx,dy, dRoll). This state is modified
+// by this method.
+// Center: center of rotation.
+// distMap is the array of distances.
+// Threshold sets large distances to a constant. It should be reduced to
+// minimize the contribution of outliers. Thresh is in units of map pixels.
+StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
+                                                         distMap, thresh) {
+    var vx,vy, rx,ry;
+    var s = Math.sin(trans[2]);
+    var c = Math.cos(trans[2]);
+    var sumx = 0, sumy = 0, totalDist = 0;
+    var sumr = 0, totalr = 0;
+    var totalPoints = 0;
+    for (var j = 0; j < this.Shapes.length; ++j) {
+        var shape = this.Shapes[j];
+        for (var k = 0; k < shape.Points.length; ++k) {
+            var pt = shape.Points[k];
+            var x = pt[0];
+            var y = pt[1];
+
+            // transform the point.
+            vx = (x-center[0]);
+            vy = (y-center[1]);
+            rx =  c*vx + s*vy;
+            ry = -s*vx + c*vy;
+            x = x + (rx-vx) + trans[0];
+            y = y + (ry-vy) + trans[1];
+
+            // Get the gradient
+            var dist = distMap.GetDistance(x,y);
+            var grad = distMap.GetGradient(x,y);
+            var factor = 1 / ((dist/thresh) + 1);
+            grad[0] *= factor;
+            grad[1] *= factor;
+            sumx += grad[0];
+            sumy += grad[1];
+            totalDist += dist;
+            // For rotation
+            var cross = rx*grad[1]-ry*grad[0];
+            sumr += cross;
+            totalr += Math.sqrt(vx*vx + vy*vy);
+            ++totalPoints;
+        }
+    }
+
+    var aveDist = totalDist / totalPoints;
+    if (aveDist < 1.0) { totald = 1.0;}
+    var mag = Math.abs(sumx) + Math.abs(sumy);
+    if (mag > aveDist) {
+        sumx = sumx * aveDist / mag;
+        sumy = sumy * aveDist / mag;
+    }
+    sumr /= (totalr * 500);
+
+    // The magintudes are all messed up.
+    // Hack a fix with a rate factor.
+    // This probably will not work if scale of slide changes.
+    trans[0] -= sumx;
+    trans[1] -= sumy;
+    trans[2] += sumr;
+
+    // for debugging (the rest is in shape.js
+    //t = {cx: center[0], cy: center[1], 
+    //     c: Math.cos(trans[2]), s: Math.sin(trans[2]),
+    //     sx: trans[0], sy: trans[1]};
+    //for (var i = 0; i < this.Shapes.length; ++i) {
+    //    this.Shapes[i].Trans = t;
+    //}
+    //VIEWER1.Draw();
+
+    return aveDist;
+}
+
+StackSectionWidget.prototype.Transform = function (shift, center, roll) {
+    this.Bounds = null;
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        var shape = this.Shapes[i];
+        shape.Trans = null;
+        for (var j = 0; j < shape.Points.length; ++j) {
+            var pt = shape.Points[j];
+            var x = pt[0];
+            var y = pt[1];
+            var vx = x-center[0];
+            var vy = y-center[1];
+            var s = Math.sin(roll);
+            var c = Math.cos(roll);
+            var rx =  c*vx + s*vy;
+            var ry = -s*vx + c*vy;
+            pt[0] = x + (rx-vx) + shift[0];
+            pt[1] = y + (ry-vy) + shift[1];
+        }
+        shape.UpdateBuffers();
+    }
+}
+
+// shift is [x,y]
+StackSectionWidget.prototype.Translate = function (shift) {
+    this.Bounds = null;
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        var shape = this.Shapes[i];
+        for (var j = 0; j < shape.Points.length; ++j) {
+            var pt = shape.Points[j];
+            pt[0] += shift[0];
+            pt[1] += shift[1];
+        }
+        shape.UpdateBuffers();
+    }
+}
+
+// I could also implement a resample to get uniform spacing.
+StackSectionWidget.prototype.RemoveDuplicatePoints = function (epsilon) {
+    if ( epsilon == undefined) {
+        epsilon = 0;
+    }
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        var shape = this.Shapes[i];
+        var p0 = shape.Points[shape.Points.length-1];
+        var idx = 0;
+        while (idx < shape.Points.length) {
+            var p1 = shape.Points[idx];
+            var dx = p1[0] - p0[0];
+            var dy = p1[1] - p0[1];
+            if (Math.sqrt(dx*dx + dy*dy) <= epsilon) {
+                shape.Points.splice(idx,1);
+            } else {
+                ++idx;
+                p0 = p1;
+            }
+        }
+        shape.UpdateBuffers();
+    }
+}
+
+
 

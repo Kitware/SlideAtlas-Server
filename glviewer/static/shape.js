@@ -164,16 +164,40 @@ Shape.prototype.Draw = function (view) {
     var m = view.Camera.Matrix;
     var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
     var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
+
     // convert origin-view to pixels (view coordinate system).
     x = view.Viewport[2]*(0.5*(1.0+x));
     y = view.Viewport[3]*(0.5*(1.0-y));
     view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);
 
     view.Context2d.beginPath();
-    view.Context2d.moveTo(this.PointBuffer[0]*scale,this.PointBuffer[1]*scale);
+      // for debugging section alignmnet.
+      var x = this.PointBuffer[0];
+      var y = this.PointBuffer[1];
+      // For debugging gradient decent aligning contours.
+      //if (this.Trans) {
+      //      var vx = x-this.Trans.cx;
+      //      var vy = y-this.Trans.cy;
+      //      var rx =  this.Trans.c*vx + this.Trans.s*vy;
+      //      var ry = -this.Trans.s*vx + this.Trans.c*vy;
+      //      x = x + (rx-vx) + this.Trans.sx;
+      //      y = y + (ry-vy) + this.Trans.sy;
+      //}
+
+    view.Context2d.moveTo(x*scale,y*scale);
     var i = 3;
     while ( i < this.PointBuffer.length ) {
-      view.Context2d.lineTo(this.PointBuffer[i]*scale,this.PointBuffer[i+1]*scale);
+        x = this.PointBuffer[i];
+        y = this.PointBuffer[i+1];
+        if (this.Trans) {
+            var vx = x-this.Trans.cx;
+            var vy = y-this.Trans.cy;
+            var rx =  this.Trans.c*vx + this.Trans.s*vy;
+            var ry = -this.Trans.s*vx + this.Trans.c*vy;
+            x = x + (rx-vx) + this.Trans.sx;
+            y = y + (ry-vy) + this.Trans.sy;
+        }
+      view.Context2d.lineTo(x*scale,y*scale);
       i += 3;
     }
 

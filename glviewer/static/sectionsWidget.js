@@ -1,20 +1,21 @@
 //==============================================================================
 // A single widget to detect multiple sections on a slide
 // TODO:
-// - Dragable icon to indicate starting section (and direction).
 // - Click to add a section.
+// - Stack editor use the stack sections.
+//   Distribute the stackSections to sections in the stack.
+//   Default to multiple.
+// - Improve the registration to handle multiple contours.
+// - Improve the registration to deal better with outliers.
 // - ScrollWheel to change the threshold of a section.
 //   Allow scroll wheel to zoom when not over a section.
 // - drag box to add or crop sections.
 // - edit the sequence of numbers (somehow).
-// - Stack editor use the stack sections.
-//   Distribute the stackSections to sections in the stack.
-//   Default to multiple.
 // - WHen mouse leaves window, cancel the bbox drag.
 
-// I do not like this behavior.
+// I do not like this behavior:
 // Real widgets are always in the viewer.
-// Widgets waiting on notes are serialized.
+// Widgets waiting in notes are serialized.
 function SectionsWidget (viewer, newFlag) {
     if (viewer == null) {
         return;
@@ -46,6 +47,112 @@ function SectionsWidget (viewer, newFlag) {
                    self.DeleteActiveSection();
                });
 
+    // Right click menu.
+    this.Menu = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .hide()
+        .css({
+            'width': '150px',
+            'background-color': 'white',
+            'border-style': 'solid',
+            'border-width': '1px',
+            'border-radius': '5px',
+            'border-color': '#BBB',
+            'position': 'absolute',
+            'z-index': '4',
+            'padding': '0px 2px'});
+    $('<button>')
+        .appendTo(this.Menu)
+        .text("Horizontal Sort")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .mouseup(function(){self.Menu.hide(); self.Sort(0);});
+    $('<button>')
+        .appendTo(this.Menu)
+        .text("Vertical Sort")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .mouseup(function(){self.Menu.hide(); self.Sort(1);});
+}
+
+// Get union of all section bounds.
+SectionsWidget.prototype.GetBounds = function() {
+    if (this.Sections.length == 0){ return [0,0,0,0]; }
+    var allBds = this.Sections[0].GetBounds();
+    for (var i = 0; i < this.Sections.length; ++i) {
+        var bds = this.Sections[i].GetBounds();
+        if (bds[0] < allBds[0]) { allBds[0] = bds[0];}
+        if (bds[1] > allBds[1]) { allBds[1] = bds[1];}
+        if (bds[2] < allBds[2]) { allBds[2] = bds[2];}
+        if (bds[3] > allBds[3]) { allBds[3] = bds[3];}
+    }
+    return allBds;
+}
+
+// Gets direction from the active section.
+SectionsWidget.prototype.Sort = function(axis) {
+    var axis0 = 0;
+    var axis1 = 1;
+    var direction0 = 1;
+    var direction1 = 1;
+    if (this.ActiveSection) {
+        var allBds = this.GetBounds();
+        var allCenter = this.Viewer.ConvertPointWorldToViewer(
+            (allBds[0]+allBds[1])*0.5, (allBds[0]+allBds[1])*0.5);
+        var center = this.ActiveSection.GetViewCenter(this.Viewer.MainView);
+        if (center[0] < allCenter[0]) {
+            direction0 = -1;
+        }
+        if (center[1] < allCenter[1]) {
+            direction1 = -1;
+        }
+    }
+    if (axis == 1) {
+        var tmp = direction0;
+        direction0 = direction1;
+        direction1 = tmp;
+        axis0 = 1;
+        axis1 = 0;
+    }
+    this.ViewSortSections(axis0,direction0, axis1,direction1);
+}
+
+SectionsWidget.prototype.ViewSortSections = function(axis0,direction0, 
+                                                     axis1,direction1) {
+    function lessThan(bds1,bds2) {
+        if ((bds1[(axis1<<1)+1] > bds2[axis1<<1]) &&
+            ((bds1[axis1<<1] > bds2[(axis1<<1)+1] ||
+              bds1[axis0<<1] > bds2[(axis0<<1)+1]))) {
+            return true;
+        }
+        return false;
+    }
+    // Compute and save view bounds for each section.
+    for (var i = 0; i < this.Sections.length; ++i) {
+        var section = this.Sections[i];
+        section.ViewBounds = section.GetViewBounds(this.Viewer.MainView);
+        PermuteBounds(section.ViewBounds, axis0, direction0);
+        PermuteBounds(section.ViewBounds, axis1, direction1);
+    }
+
+    // Use lessThan to sort (insertion).
+    for (var i = 1; i < this.Sections.length; ++i) {
+        var bestBds = this.Sections[i-1].ViewBounds;
+        var bestIdx = -1;
+        for (var j = i; j < this.Sections.length; ++j) {
+            var bds = this.Sections[j].ViewBounds;
+            if (lessThan(bds, bestBds)) {
+                bestBds = bds;
+                bestIdx = j;
+            }
+        }
+        if (bestIdx > 0) {
+            var tmp = this.Sections[bestIdx];
+            this.Sections[bestIdx] = this.Sections[i-1];
+            this.Sections[i-1] = tmp;
+        }
+    }
+    eventuallyRender();
 }
 
 SectionsWidget.prototype.DeleteActiveSection = function() {
@@ -70,21 +177,25 @@ SectionsWidget.prototype.SetActiveSection = function(section) {
     if (this.ActiveSection) {
         this.ActiveSection.Active = false;
         this.DeleteButton.hide();
-    }
-    if (section) {
-        var bds = section.GetBounds();
+    } else {
         section.Active = true;
-        var p1 = this.Viewer.ConvertPointWorldToViewer(bds[1],bds[2]);
-        this.DeleteButton
-            .show()
-            .css({'left': (p1[0]-10)+'px',
-                  'top':  (p1[1]-10)+'px'});
+        this.DeleteButton.show();
+        // Draw moves it to the correct location.
     }
     this.ActiveSection = section;
     eventuallyRender();
 }
 
 
+SectionsWidget.prototype.PlaceDeleteButton = function(section) {
+    if (section) {
+        p = section.ViewUpperRight;
+        this.DeleteButton
+            .show()
+            .css({'left': (p[0]-10)+'px',
+                  'top':  (p[1]-10)+'px'});
+    }
+}
 
 SectionsWidget.prototype.ComputeSections = function() {
     var data = GetImageData(this.Viewer.MainView);
@@ -133,10 +244,10 @@ SectionsWidget.prototype.Draw = function(view) {
         return;
     }
     for (var i = 0; i < this.Sections.length; ++i) {
-        this.Sections[i].Draw(view);
+        var section = this.Sections[i];
+        section.Draw(view);
         // Draw the section index.
-        var bds = this.Sections[i].GetBounds();
-        var pt = this.Viewer.ConvertPointWorldToViewer(bds[1],bds[2]);
+        var pt = section.ViewUpperRight;
         var ctx = view.Context2d;
         ctx.save();
         ctx.setTransform(1,0,0,1,0,0);
@@ -144,6 +255,9 @@ SectionsWidget.prototype.Draw = function(view) {
         ctx.fillStyle='#00F';
         ctx.fillText((i+1).toString(),pt[0]-10,pt[1]+25);
         ctx.restore();
+    }
+    if (this.ActiveSection) {
+        this.PlaceDeleteButton(this.ActiveSection);
     }
     if (this.ActiveSection) {
         var bds = this.ActiveSection.GetBounds();
@@ -193,6 +307,14 @@ SectionsWidget.prototype.HandleKeyPress = function(event, shift) {
 SectionsWidget.prototype.HandleMouseDown = function(event) {
     this.StartX = event.offsetX;
     this.StartY = event.offsetY;
+    if (this.ActiveSection) {
+        if (event.which == 3) {
+            this.Menu
+                .show()
+                .css({'left': event.offsetX+'px',
+                      'top' : event.offsetY+'px'});
+        }
+    }
 }
 
 SectionsWidget.prototype.HandleMouseUp = function(event) {
@@ -208,6 +330,7 @@ SectionsWidget.prototype.HandleMouseUp = function(event) {
         this.DragBounds = null;
         eventuallyRender();
     }
+    this.Menu.hide();
 }
 
 SectionsWidget.prototype.ProcessBounds = function(bds) {
