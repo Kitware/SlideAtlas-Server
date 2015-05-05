@@ -17,7 +17,7 @@ function AnnotationWidget (viewer) {
     viewer.AnnotationWidget = this;
     
     if ( ! MOBILE_DEVICE) {
-        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
+        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
         viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
         new ToolTip(this.Tab.Div, "Annotation");
 
