@@ -1327,6 +1327,30 @@ DistanceMap.prototype.AddContour = function (contour) {
     }
 }
 
+// Rasterize the polyline into the distance map.
+DistanceMap.prototype.AddPolyline = function (pline) {
+    if (pline.length == 0) { return; }
+    var m0 = [(pline[0][0]-this.Bounds[0]) / this.Spacing,
+              (pline[0][1]-this.Bounds[2]) / this.Spacing];
+    for (var i = 1; i < pline.length; ++i) {
+        var m1 = [(pline[i][0]-this.Bounds[0]) / this.Spacing,
+                  (pline[i][1]-this.Bounds[2]) / this.Spacing];
+        this.AddEdge(m0,m1);
+        m0 = m1;
+    }
+}
+
+// m0, and m1 should already be in map coordinates.
+DistanceMap.prototype.AddEdge = function (m0, m1) {
+    var divisions = Math.max(Math.abs(m0[0]-m1[0]), Math.abs(m0[1]-m1[1]));
+    divisions = Math.ceil(divisions);
+    for (var i = 0; i <= divisions; ++i) {
+        var x = Math.round((m0[0]*(divisions-i)+m1[0]*i)/divisions);
+        var y = Math.round((m0[1]*(divisions-i)+m1[1]*i)/divisions);
+        this.Map[x + (y*this.Dimensions[0])] = 0;
+    }    
+}
+
 // Rasterize points with alpha = 255
 DistanceMap.prototype.AddImageData = function (data) {
     var idx = 0;
@@ -2106,58 +2130,6 @@ function AlignContours(contour1, contour2) {
     var trans = {delta :[dx,dy]};
     return trans;
 }
-
-// Modifies contour2
-// Also returns the translation and rotation.
-function RigidAlignContours(contour1, contour2) {
-    var center1 = contour1.GetCenter();
-    var center2 = contour2.GetCenter();
-    // Translate contour2 so that the centers are the same.
-    contour2.Translate([(center1[0]-center2[0]),
-                        (center1[1]-center2[1])]);
-
-
-    var c1 = contour1.GetCenter();
-    var c2 = contour2.GetCenter();
-    console.log("1: "+(c2[0]-c1[0])+", "+(c2[1]-c1[1]));
-
-
-    // Get the bounds of both contours.
-    var bds1 = contour1.GetBounds();
-    var bds2 = contour2.GetBounds();
-
-    // Combine them (union).
-    bds1[0] = Math.min(bds1[0], bds2[0]);
-    bds1[1] = Math.max(bds1[1], bds2[1]);
-    bds1[2] = Math.min(bds1[2], bds2[2]);
-    bds1[3] = Math.max(bds1[3], bds2[3]);
-    // Exapnd the contour by 10%
-    var xMid = (bds1[0] + bds1[1])*0.5;
-    var yMid = (bds1[2] + bds1[3])*0.5;
-    bds1[0] = xMid + 1.1*(bds1[0]-xMid);
-    bds1[1] = xMid + 1.1*(bds1[1]-xMid);
-    bds1[2] = yMid + 1.1*(bds1[2]-yMid);
-    bds1[3] = yMid + 1.1*(bds1[3]-yMid);
-
-    var spacing;
-    if (contour1.Camera) {
-        spacing = 2;
-    } else {
-        // choose a spacing.
-        // about 250,000 kPixels
-        spacing = Math.sqrt((bds1[1]-bds1[0])*(bds1[3]-bds1[2])/250000);
-        // Note. gradient decent messes up with spacing too small.
-    }
-    var distMap = new DistanceMap(bds1, spacing);
-    distMap.AddContour(contour1);
-    distMap.Update();
-
-    // Coordinate system has changed.
-    contour2.Camera = contour1.Camera;
-    contour2.RemoveDuplicatePoints(0.1* spacing);
-    return RigidAlignContourWithMap(contour2, distMap);
-}
-
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // This first transforms contour2 to match contour1 with a rigid transformation.

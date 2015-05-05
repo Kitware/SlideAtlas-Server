@@ -1,7 +1,6 @@
 //==============================================================================
 // A single widget to detect multiple sections on a slide
 // TODO:
-// - Dragable icon to indicate starting section (and direction).
 // - Click to add a section.
 // - Stack editor use the stack sections.
 //   Distribute the stackSections to sections in the stack.
@@ -14,9 +13,9 @@
 // - edit the sequence of numbers (somehow).
 // - WHen mouse leaves window, cancel the bbox drag.
 
-// I do not like this behavior.
+// I do not like this behavior:
 // Real widgets are always in the viewer.
-// Widgets waiting on notes are serialized.
+// Widgets waiting in notes are serialized.
 function SectionsWidget (viewer, newFlag) {
     if (viewer == null) {
         return;
