@@ -1272,6 +1272,66 @@ TriangleMesh.prototype.TriangulateContour = function(contour) {
 
 
 
+//=================================================
+// Circular array for fifo methods
+function MapQueue(length) {
+    // Points to the first full spot.
+    this.StartIdx = 0;
+    // Points to the next empty spot.
+    this.EndIdx = 0;
+    this.Allocate(length);
+}
+
+MapQueue.prototype.Push = function (item) {
+    var nextEndIdx = this.EndIdx + 1;
+    // If the circular buffer is full, reallocate.
+    if (nextEndIdx >= this.Array.length) {
+        nextEndIdx == 0;
+    }
+    if (this.Array[nextEndIdx] != null) {
+        this.Allocate(this.Array.length * 2);
+        nextEndIdx = this.EndIdx+1;
+    }
+    // Add the index into the buffer.
+    this.Array[this.EndIdx] = item;
+    this.EndIdx = nextEndIdx;
+}
+
+MapQueue.prototype.Shift = function () {
+    var item = this.Array[this.StartIdx];
+    if (item == null) {
+        return item;
+    }
+    this.Array[this.StartIdx] = null;
+    this.StartIdx += 1;
+    if (this.StartIdx >= this.Array.length) {
+        this.StartIdx == 0;
+    }
+    return item;
+}
+
+// Reallocate
+MapQueue.prototype.Allocate = function (length) {
+    if (this.Array && this.Array.length > length) { return; }
+    var newArray = new Array(length);
+    var i = 0;
+    if (this.Array) {
+        for (var j = this.StartIdx; j != this.EndIdx; ++j) {
+            if (j >= this.Array.length) { j = 0; }
+            newArray[i++] = this.Array[j];
+        }
+        this.StartIdx = 0;
+        this.EndIdx = i;
+        delete this.Array;
+    }
+    while (i++ < length) {
+        newArray[i] = null;
+    }
+    this.Array = newArray;
+}
+
+
+
 
 
 //=================================================
@@ -1291,6 +1351,8 @@ function DistanceMap(bounds, spacing) {
     for (var i = 0; i < size; ++i) {
         this.Map[i] = size; // a convenient large distance
     }
+
+    this.Queue = null;
 }
 
 // For debugging
@@ -1314,7 +1376,6 @@ DistanceMap.prototype.Draw = function (viewer) {
     ctx.putImageData(data,10,10);
 }
 
-
 // Only rasterize contour points for now.  Assume they are close together.
 DistanceMap.prototype.AddContour = function (contour) {
     for (var i = 0; i < contour.Length(); ++i) {
@@ -1328,15 +1389,70 @@ DistanceMap.prototype.AddContour = function (contour) {
 }
 
 // Rasterize the polyline into the distance map.
+// Fill it if it is closed
 DistanceMap.prototype.AddPolyline = function (pline) {
-    if (pline.length == 0) { return; }
-    var m0 = [(pline[0][0]-this.Bounds[0]) / this.Spacing,
-              (pline[0][1]-this.Bounds[2]) / this.Spacing];
-    for (var i = 1; i < pline.length; ++i) {
-        var m1 = [(pline[i][0]-this.Bounds[0]) / this.Spacing,
-                  (pline[i][1]-this.Bounds[2]) / this.Spacing];
-        this.AddEdge(m0,m1);
-        m0 = m1;
+    var m0, m1, m2;
+    var points = pline.Points;
+    if (points.length == 0) { return; }
+    m0 = [(points[0][0]-this.Bounds[0]) / this.Spacing,
+          (points[0][1]-this.Bounds[2]) / this.Spacing];
+    m1 = m0;
+    for (var i = 1; i < points.length; ++i) {
+        m2 = [(points[i][0]-this.Bounds[0]) / this.Spacing,
+              (points[i][1]-this.Bounds[2]) / this.Spacing];
+        this.AddEdge(m1,m2);
+        m1 = m2;
+    }
+
+    // There is a chance this could fail if there are no pixels between two
+    // edges.  Maybe get the mask from the thresholded image. 
+    if (pline.Closed && points.length > 2) {
+        this.AddEdge(m2,m0);
+
+        if ( ! this.Queue) {
+            this.Queue = new MapQueue(this.Dimensions[0] +
+                                      this.Dimensions[1]);
+        }
+        // Pick a seed.
+        // Average perpendiculars to the first two edges
+        var vy = (points[2][0] - points[0][0]);
+        var vx = (points[0][1] - points[2][1]);
+        // normalize
+        var k = 1 / Math.sqrt(vx*vx + vy*vy);
+        vx *= k;
+        vy *= k;
+        var x = (points[1][0]-this.Bounds[0]) / this.Spacing;
+        var y = (points[1][1]-this.Bounds[2]) / this.Spacing;
+        var ix, iy;
+        do {
+            x += vx;
+            y += vy;
+            ix = Math.round(x);
+            iy = Math.round(y);
+            if (ix < 0 || ix >= this.Dimensions[0] ||
+                iy < 0 || iy >= this.Dimensions[1]) {
+                // Failed to find seed.
+                return;
+            }
+        } while (this.Map[ix + (iy*this.Dimensions[0])] == 0);
+        this.Queue.Push([ix,iy]);
+        var seed, idx;
+        while ( (seed = this.Queue.Shift()) != null) {
+            this.AddSeedToQueue(seed[0]-1, seed[1]);
+            this.AddSeedToQueue(seed[0]+1, seed[1]);
+            this.AddSeedToQueue(seed[0], seed[1]-1);
+            this.AddSeedToQueue(seed[0], seed[1]+1);
+        }
+    }
+}
+
+DistanceMap.prototype.AddSeedToQueue = function (ix,iy) {
+    var idx = ix + (iy*this.Dimensions[0]);
+    if (ix >= 0 && ix < this.Dimensions[0] &&
+        iy >= 0 && iy < this.Dimensions[1] &&
+        this.Map[idx] != 0) {
+        this.Map[idx] = 0;
+        this.Queue.Push([ix,iy]);
     }
 }
 
@@ -1432,7 +1548,8 @@ DistanceMap.prototype.UpdatePass = function () {
     return changed;
 }
 
-
+// TODO:
+// Change this so that it gives distance in units of world, not map.
 DistanceMap.prototype.GetDistance = function (x, y) {
     var ix = Math.round((x-this.Bounds[0])/this.Spacing);
     var iy = Math.round((y-this.Bounds[2])/this.Spacing);

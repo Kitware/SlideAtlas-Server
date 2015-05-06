@@ -1,12 +1,13 @@
 //==============================================================================
 // A single widget to detect multiple sections on a slide
 // TODO:
+// - Stack editor.
+//   Create a rigid alignmnet from the sectionWidget.
+//   ? Should we save the SectionsWidget in addition to the stackSectionWidget??????
+//   ? Default to multiple??????.
 // - Click to add a section.
-// - Stack editor use the stack sections.
-//   Distribute the stackSections to sections in the stack.
-//   Default to multiple.
-// - Improve the registration to handle multiple contours.
-// - Improve the registration to deal better with outliers.
+// - Improve the deformable registration to handle multiple contours.
+// - Extend the rigid outlier code to work with deformable.
 // - ScrollWheel to change the threshold of a section.
 //   Allow scroll wheel to zoom when not over a section.
 // - drag box to add or crop sections.

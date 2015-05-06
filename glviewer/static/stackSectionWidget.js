@@ -155,14 +155,14 @@ StackSectionWidget.prototype.Serialize = function() {
     obj.shapes = [];
     for (var i = 0; i < this.Shapes.length; ++i) {
         var shape = this.Shapes[i];
-        var points = [];
+        // Is is a pain that polyline does not serialize.
+        var polyLineObj = {
+            closedloop: shape.Closed,
+            points: []};
         for (var j = 0; j < shape.Points.length; ++j) {
-            points.push([shape.Points[j][0], shape.Points[j][1]]);
+            polyLineObj.points.push([shape.Points[j][0], shape.Points[j][1]]);
         }
-        obj.shapes.push(points);
-    }
-    if (this.Bounds) {
-        obj.bounds = this.Bounds;
+        obj.shapes.push(polyLineObj);
     }
     return obj;
 }
@@ -176,26 +176,20 @@ StackSectionWidget.prototype.Load = function(obj) {
         this.Color[2] = parseFloat(obj.color[2]);
     }
     for(var n=0; n < obj.shapes.length; n++){
-        var points = obj.shapes[n];
+        var polyLineObj = obj.shapes[n];
+        var points = polyLineObj.points;
         var shape = new Polyline();
         shape.OutlineColor = this.Color;
         shape.FixedSize = false;
         shape.LineWidth = 0;
+        if (polyLineObj.closedloop) {
+            shape.Closed = polyLineObj.closedloop;
+        }
         this.Shapes.push(shape);
         for (var m = 0; m < points.length; ++m) {
             shape.Points[m] = [points[m][0], points[m][1]];
         }
         shape.UpdateBuffers();
-    }
-
-    // TODO:
-    // I do not think we should save the bounds in the database.
-    // They can be computed easily enough.
-    if (obj.bounds !== undefined) {
-        this.Bounds = [parseFloat(obj.bounds[0]),
-                       parseFloat(obj.bounds[1]),
-                       parseFloat(obj.bounds[2]),
-                       parseFloat(obj.bounds[3])];
     }
 }
 
@@ -292,15 +286,22 @@ StackSectionWidget.prototype.RemoveFromViewer = function() {
 
 // Modifies this section's points to match argument section
 // Also returns the translation and rotation.
-StackSectionWidget.prototype.RigidAlign = function (section) {
+StackSectionWidget.prototype.RigidAlign = function (section, trans) {
     var center1 = this.GetCenter();
     var center2 = section.GetCenter();
     // Translate so that the centers are the same.
-    this.Translate([(center2[0]-center1[0]),
-                    (center2[1]-center2[1])]);
+    //this.Translate([(center2[0]-center1[0]),
+    //                (center2[1]-center2[1])]);
+
+    // Lets use a transformation instead.  It will be easier for the stack
+    // editor.
+    trans[0] = (center2[0]-center1[0]);
+    trans[1] = (center2[1]-center1[1]);
 
     // Get the bounds of both contours.
     var bds1 = this.GetBounds();
+    bds1[0] += trans[0];  bds1[1] += trans[0];
+    bds1[2] += trans[1];  bds1[3] += trans[1];
     var bds2 = section.GetBounds();
 
     // Combine them (union).
@@ -325,46 +326,54 @@ StackSectionWidget.prototype.RigidAlign = function (section) {
     var distMap = new DistanceMap(bds2, spacing);
     for (var i = 0; i < section.Shapes.length; ++i) {
         // ignore origin.
-        distMap.AddPolyline(section.Shapes[i].Points);
+        distMap.AddPolyline(section.Shapes[i]);
     }
     distMap.Update();
 
     eventuallyRender();
     // Coordinate system has changed.
-    return this.RigidAlignWithMap(distMap);
+    this.RigidAlignWithMap(distMap, trans);
 }
 
 // Perform gradient descent on the transform....
-// Do not apply the points unti the end.
-StackSectionWidget.prototype.RigidAlignWithMap = function(distMap) {
+// Do not apply to the points.
+// trans is the starting position as well as the return value.
+StackSectionWidget.prototype.RigidAlignWithMap = function(distMap, trans) {
     // Compute center of rotation
     var center = this.GetCenter();
 
     // shiftX, shiftY, roll
-    var trans = [0,0, 0];
+    var tmpTrans = [0,0,0];
 
     // Try several rotations to see which is the best.
-    bestRoll = 0;
+    bestTrans = null;
     bestDist = -1;
     for (a = 0; a < 360; a += 30) {
-        trans = [0,0,Math.PI*a/180];
+        tmpTrans = [trans[0],trans[1],Math.PI*a/180];
         var dist;
-        for (i = 0; i < 10; ++i) {
-            dist = this.RigidDecentStep(trans, center, distMap, 200);
+        for (i = 0; i < 5; ++i) {
+            dist = this.RigidDecentStep(tmpTrans, center, distMap, 200000);
         }
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
-            bestRoll = trans[2];
+            bestTrans = tmpTrans.slice(0);
         }
     }
 
     // Now the real gradient decent.
-    trans = [0,0,bestRoll];
-    for (var i = 0; i < 200; ++i) {
-        // Slowing discount outliers.
-        this.RigidDecentStep(trans, center, distMap, 200-i);
+    tmpTrans = bestTrans;
+    // Slowing discount outliers.
+    var aveDist = 200000;
+    for (var i = 0; i < 100; ++i) {
+        aveDist = this.RigidDecentStep(tmpTrans, center, distMap, aveDist);
     }
-    this.Transform([trans[0],trans[1]], center, trans[2]);
+    // caller can do this if they want.
+    //this.Transform([trans[0],trans[1]], center, trans[2]);
+    // Just return the transformation parameters.
+    // The center is als part of the transform, but it can be gotten with GetCenter.
+    trans[0] = tmpTrans[0];
+    trans[1] = tmpTrans[1];
+    trans[2] = tmpTrans[2];
 }
 
 // Returns the average distance as the error.
@@ -380,10 +389,12 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
     var s = Math.sin(trans[2]);
     var c = Math.cos(trans[2]);
     var sumx = 0, sumy = 0, totalDist = 0;
-    var sumr = 0, totalr = 0;
-    var totalPoints = 0;
+    var sumr = 0;
+    var numContributingPoints = 0;
     for (var j = 0; j < this.Shapes.length; ++j) {
         var shape = this.Shapes[j];
+        var debugScalars = new Array(shape.Points.length);
+        shape.DebugScalars = debugScalars;
         for (var k = 0; k < shape.Points.length; ++k) {
             var pt = shape.Points[k];
             var x = pt[0];
@@ -397,38 +408,45 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
             x = x + (rx-vx) + trans[0];
             y = y + (ry-vy) + trans[1];
 
-            // Get the gradient
-            var dist = distMap.GetDistance(x,y);
-            var grad = distMap.GetGradient(x,y);
-            var factor = 1 / ((dist/thresh) + 1);
-            grad[0] *= factor;
-            grad[1] *= factor;
-            sumx += grad[0];
-            sumy += grad[1];
+            // Get the distance for this point.
+            var dist = distMap.GetDistance(x,y) * distMap.Spacing;
             totalDist += dist;
-            // For rotation
-            var cross = rx*grad[1]-ry*grad[0];
-            sumr += cross;
-            totalr += Math.sqrt(vx*vx + vy*vy);
-            ++totalPoints;
+            // Use threshold to minimize effect of outliers.
+            //debugScalars[k] = (thresh)/(thresh + dist);
+            //dist = (thresh*dist)/(thresh + dist);
+            
+            //debugScalars[k] = (dist < thresh) ? 1:0;
+            //if (dist > thresh) {dist = 0;}
+            debugScalars[k] = Math.exp(-0.69*(dist*dist)/(thresh*thresh));
+            dist = dist * debugScalars[k];
+
+            // Scale the negative gradient by thresholded distance.
+            var grad = distMap.GetGradient(x,y);
+            var mag = Math.sqrt(grad[0]*grad[0] + grad[1]*grad[1]);
+
+            if (mag > 0) {
+                ++numContributingPoints;
+
+                // Keep a total for translation
+                grad[0] = -grad[0] * dist / mag;
+                grad[1] = -grad[1] * dist / mag;
+                sumx += grad[0];
+                sumy += grad[1];
+
+                // For rotation
+                var cross = ry*grad[0]-rx*grad[1];
+                sumr += cross / (rx*rx + ry*ry);
+            } else {
+                var skip = 1;
+            }
         }
     }
 
-    var aveDist = totalDist / totalPoints;
-    if (aveDist < 1.0) { totald = 1.0;}
-    var mag = Math.abs(sumx) + Math.abs(sumy);
-    if (mag > aveDist) {
-        sumx = sumx * aveDist / mag;
-        sumy = sumy * aveDist / mag;
-    }
-    sumr /= (totalr * 500);
-
-    // The magintudes are all messed up.
-    // Hack a fix with a rate factor.
-    // This probably will not work if scale of slide changes.
-    trans[0] -= sumx;
-    trans[1] -= sumy;
-    trans[2] += sumr;
+    var aveDist = totalDist / numContributingPoints;
+    // Trying to be intelligent about the step size
+    trans[0] += sumx / numContributingPoints;
+    trans[1] += sumy / numContributingPoints;
+    trans[2] += sumr / numContributingPoints;
 
     // for debugging (the rest is in shape.js
     //t = {cx: center[0], cy: center[1], 
