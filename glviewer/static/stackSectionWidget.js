@@ -400,8 +400,11 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
             // Use threshold to minimize effect of outliers.
             //debugScalars[k] = (thresh)/(thresh + dist);
             //dist = (thresh*dist)/(thresh + dist);
-            debugScalars[k] = (dist < thresh) ? 1:0;
-            if (dist > thresh) {dist = 0;}
+            
+            //debugScalars[k] = (dist < thresh) ? 1:0;
+            //if (dist > thresh) {dist = 0;}
+            debugScalars[k] = Math.exp(-0.69*(dist*dist)/(thresh*thresh));
+            dist = dist * debugScalars[k];
 
             // Scale the negative gradient by thresholded distance.
             var grad = distMap.GetGradient(x,y);

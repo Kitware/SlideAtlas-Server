@@ -23,6 +23,7 @@
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='stackSectionWidget.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('glviewer.static', filename='sectionsWidget.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
 
@@ -227,11 +228,22 @@ function loadSessionData(data) {
                         addViewToStack(tmb);
                         $('#stackDiv').animate({scrollLeft: STACK_END_X});
                     });
+        // Reqeuest the view information.
+        (function () {
+            var self = thumb;
+            $.ajax({
+                type: "get",
+                url: "/webgl-viewer/getview",
+                data: {"viewid": data.session.views[i].id},
+                success: function(data,status) {
+                         self.ViewData = data;}
+            });
+         })();
 
         var labelDiv = $('<div>')
             .appendTo(listItem)
             .text(data.session.views[i].label); // Should really have the image label.
-        }
+    }
     $('#imagesearch').autocomplete({source: searchStrings});
 }
 
@@ -244,6 +256,25 @@ function addViewToStack(thumb) {
     var yMid = thumb.SlideY;
 
     $('#saveButton').prop('disabled',false);
+
+    // Special case if the sections have already been defined.
+    if (thumb.ViewData) {
+        var sectionsObj = null;
+        var annotations = thumb.ViewData.ViewerRecords[0].Annotations;
+        for (var i = 0; i < annotations.length && sectionsObj == null; ++i) {
+            if (annotations[i].type == "sections") {
+                sectionsObj = annotations[i];
+            }
+        }
+        if (sectionsObj) {
+            for (var i = 0; i < sectionsObj.sections.length; ++i) {
+                var widget = new StackSectionWidget();
+                widget.Load(sectionsObj.sections[i]);
+                addViewSectionToStack(widget, thumb.ImageData);
+            }
+        return;
+        }
+    }
 
     // Get the image.
     // Find contours.
@@ -293,13 +324,17 @@ function addViewToStack(thumb) {
             }
 
             if (DETECT_MODE == 'single') {
-                addViewSectionToStack(closestContour, imageObj);
+                closestContour.TransformToWorld();
+                var widget = closestContour.MakeStackSectionWidget();
+                addViewSectionToStack(widget, imageObj);
             } else {
                 // Sort based on the location of the selected section.
                 // Filter the contours based on the positive example.
                 contours = SortAndFilterContours(contours, closestContour);
                 for (var i = 0; i < contours.length; ++i) {
-                    addViewSectionToStack(contours[i], imageObj);
+                    contours[i].TransformToWorld();
+                    var widget = contours[i].MakeStackSectionWidget();
+                    addViewSectionToStack(widget, imageObj);
                 }
             }
         }
@@ -323,13 +358,9 @@ function deleteItem(item, itemObj) {
     }
 }
 
-function addViewSectionToStack(contour, imageObj) {
-    contour.TransformToWorld();
-    var center = contour.GetCenter();
-    var bds = contour.GetBounds();
-
-    // Add the contour to the stack
-    var widget = contour.MakeStackSectionWidget();
+function addViewSectionToStack(stackSectionWidget, imageObj) {
+    var center = stackSectionWidget.GetCenter();
+    var bds = stackSectionWidget.GetBounds();
 
     // Height is only for the first items default view.
     var itemObj = {img:    imageObj.img,
@@ -337,7 +368,7 @@ function addViewSectionToStack(contour, imageObj) {
                    x:      center[0],
                    y:      center[1],
                    height: bds[3]-bds[2],
-                   widget: widget.Serialize()};
+                   widget: stackSectionWidget.Serialize()};
     STACK_ITEMS.push(itemObj);
 
     // Give the image some padding.
