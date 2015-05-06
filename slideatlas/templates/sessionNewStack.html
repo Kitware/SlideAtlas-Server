@@ -341,9 +341,9 @@ function addViewToStack(thumb) {
     );
 }
 
-function deleteItem(item, itemObj) {
+function deleteItem(item, stackSectionWidget) {
     item.remove();
-    var index = STACK_ITEMS.indexOf(itemObj);
+    var index = STACK_ITEMS.indexOf(stackSectionWidget);
     if (index > -1) {
         STACK_ITEMS.splice(index, 1);
     }
@@ -359,17 +359,13 @@ function deleteItem(item, itemObj) {
 }
 
 function addViewSectionToStack(stackSectionWidget, imageObj) {
+    // Hang this on the widget so we only need to keep trak of one object.
+    stackSectionWidget.ImageData = imageObj;
+    STACK_ITEMS.push(stackSectionWidget);
+
+    // These methods copy the ararys, so they are alright to modify.
     var center = stackSectionWidget.GetCenter();
     var bds = stackSectionWidget.GetBounds();
-
-    // Height is only for the first items default view.
-    var itemObj = {img:    imageObj.img,
-                   db:     imageObj.db,
-                   x:      center[0],
-                   y:      center[1],
-                   height: bds[3]-bds[2],
-                   widget: stackSectionWidget.Serialize()};
-    STACK_ITEMS.push(itemObj);
 
     // Give the image some padding.
     bds[0] = center[0] + (bds[0]-center[0])*1.1;
@@ -402,7 +398,7 @@ function addViewSectionToStack(stackSectionWidget, imageObj) {
               '-webkit-filter': 'grayscale(1)'})
         .attr('src',"/webgl-viewer/static/deleteSmall.png")
         .click(function(){
-                   deleteItem(item, itemObj);
+                   deleteItem(item, stackSectionWidget);
                });
     var section = new CutoutThumb(imageObj, 100, bds)
         .AppendTo(item);
@@ -497,22 +493,57 @@ function addAllCallback() {
 
 
 function save() {
-  var args = {sessId: SESSION_ID,
-              label: $('#stackLabel').val(),
-              items: STACK_ITEMS};
+    // Create the initial rigid alignment.
+    // TODO:
+    // How are we going to save the transformation?
+    // We have translation with the center.
+    // Just save the roll too.
+    // We could put the information in the widget
 
-  $.ajax({type: "post",
-          url: "{{ url_for('.session_save_stack') }}",
-          data: {"input" :  JSON.stringify( args )},
-          success:
-              function save_success (data, status) {
-                  // Redirect to stack: problem, getting back to session.
-                  //window.location.href = "/webgl-viewer?edit=true&view="+data._id;
-                  var d = new Date();
-                  window.location.href = "/sessions?sessid="+SESSION_ID+"&reload="+d.getTime();
-                  },
-                error: function() { alert( "AJAX - error: sessios_save_stack" ); }
-            });
+    if (STACK_ITEMS.length == 0) { return; }
+
+    var stackObj = [];
+    var roll = 0;
+    var bds = STACK_ITEMS[0].GetBounds();
+    var center = STACK_ITEMS[0].GetCenter();
+    for (var i = 0; i < STACK_ITEMS.length; ++i) {
+        var stackSectionWidget = STACK_ITEMS[i];
+        var trans = [0,0,0];
+        if (i > 0) {
+            stackSectionWidget.RigidAlign(STACK_ITEMS[i-1], trans);
+            center[0] -= trans[0];
+            center[1] -= trans[1];
+            roll      -= trans[2];
+        }
+
+        var imageObj = stackSectionWidget.ImageData;
+        // Height is only for the first items default view.
+        var itemObj = {img:    imageObj.img,
+                       db:     imageObj.db,
+                       x:      center[0],
+                       y:      center[1],
+                       roll:   roll,
+                       height: bds[3]-bds[2],
+                       widget: stackSectionWidget.Serialize()};
+        stackObj.push(itemObj);
+    }
+
+    var args = {sessId: SESSION_ID,
+                label: $('#stackLabel').val(),
+                items: stackObj};
+
+    $.ajax({type: "post",
+            url: "{{ url_for('.session_save_stack') }}",
+            data: {"input" :  JSON.stringify( args )},
+            success:
+                function save_success (data, status) {
+                    // Redirect to stack: problem, getting back to session.
+                    //window.location.href = "/webgl-viewer?edit=true&view="+data._id;
+                    var d = new Date();
+                    window.location.href = "/sessions?sessid="+SESSION_ID+"&reload="+d.getTime();
+                    },
+                  error: function() { alert( "AJAX - error: sessios_save_stack" ); }
+           });
 }
 
 

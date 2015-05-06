@@ -286,15 +286,22 @@ StackSectionWidget.prototype.RemoveFromViewer = function() {
 
 // Modifies this section's points to match argument section
 // Also returns the translation and rotation.
-StackSectionWidget.prototype.RigidAlign = function (section) {
+StackSectionWidget.prototype.RigidAlign = function (section, trans) {
     var center1 = this.GetCenter();
     var center2 = section.GetCenter();
     // Translate so that the centers are the same.
-    this.Translate([(center2[0]-center1[0]),
-                    (center2[1]-center2[1])]);
+    //this.Translate([(center2[0]-center1[0]),
+    //                (center2[1]-center2[1])]);
+
+    // Lets use a transformation instead.  It will be easier for the stack
+    // editor.
+    trans[0] = (center2[0]-center1[0]);
+    trans[1] = (center2[1]-center1[1]);
 
     // Get the bounds of both contours.
     var bds1 = this.GetBounds();
+    bds1[0] += trans[0];  bds1[1] += trans[0];
+    bds1[2] += trans[1];  bds1[3] += trans[1];
     var bds2 = section.GetBounds();
 
     // Combine them (union).
@@ -325,41 +332,48 @@ StackSectionWidget.prototype.RigidAlign = function (section) {
 
     eventuallyRender();
     // Coordinate system has changed.
-    return this.RigidAlignWithMap(distMap);
+    this.RigidAlignWithMap(distMap, trans);
 }
 
 // Perform gradient descent on the transform....
-// Do not apply the points unti the end.
-StackSectionWidget.prototype.RigidAlignWithMap = function(distMap) {
+// Do not apply to the points.
+// trans is the starting position as well as the return value.
+StackSectionWidget.prototype.RigidAlignWithMap = function(distMap, trans) {
     // Compute center of rotation
     var center = this.GetCenter();
 
     // shiftX, shiftY, roll
-    var trans = [0,0, 0];
+    var tmpTrans = [0,0,0];
 
     // Try several rotations to see which is the best.
     bestTrans = null;
     bestDist = -1;
     for (a = 0; a < 360; a += 30) {
-        trans = [0,0,Math.PI*a/180];
+        tmpTrans = [trans[0],trans[1],Math.PI*a/180];
         var dist;
         for (i = 0; i < 5; ++i) {
-            dist = this.RigidDecentStep(trans, center, distMap, 200000);
+            dist = this.RigidDecentStep(tmpTrans, center, distMap, 200000);
         }
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
-            bestTrans = trans.slice(0);
+            bestTrans = tmpTrans.slice(0);
         }
     }
 
     // Now the real gradient decent.
-    trans = bestTrans;
+    tmpTrans = bestTrans;
     // Slowing discount outliers.
     var aveDist = 200000;
     for (var i = 0; i < 100; ++i) {
-        aveDist = this.RigidDecentStep(trans, center, distMap, aveDist);
+        aveDist = this.RigidDecentStep(tmpTrans, center, distMap, aveDist);
     }
-    this.Transform([trans[0],trans[1]], center, trans[2]);
+    // caller can do this if they want.
+    //this.Transform([trans[0],trans[1]], center, trans[2]);
+    // Just return the transformation parameters.
+    // The center is als part of the transform, but it can be gotten with GetCenter.
+    trans[0] = tmpTrans[0];
+    trans[1] = tmpTrans[1];
+    trans[2] = tmpTrans[2];
 }
 
 // Returns the average distance as the error.
@@ -435,13 +449,13 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
     trans[2] += sumr / numContributingPoints;
 
     // for debugging (the rest is in shape.js
-    t = {cx: center[0], cy: center[1], 
-         c: Math.cos(trans[2]), s: Math.sin(trans[2]),
-         sx: trans[0], sy: trans[1]};
-    for (var i = 0; i < this.Shapes.length; ++i) {
-        this.Shapes[i].Trans = t;
-    }
-    VIEWER1.Draw();
+    //t = {cx: center[0], cy: center[1], 
+    //     c: Math.cos(trans[2]), s: Math.sin(trans[2]),
+    //     sx: trans[0], sy: trans[1]};
+    //for (var i = 0; i < this.Shapes.length; ++i) {
+    //    this.Shapes[i].Trans = t;
+    //}
+    //VIEWER1.Draw();
 
     return aveDist;
 }
