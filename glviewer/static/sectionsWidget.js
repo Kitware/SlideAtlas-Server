@@ -1,6 +1,10 @@
 //==============================================================================
 // A single widget to detect multiple sections on a slide
 // TODO:
+// - Split a section.
+// - Automatically merge close contours.
+// - Processing feedback when saving.
+
 // - Stack editor.
 //   Create a rigid alignmnet from the sectionWidget.
 //   ? Should we save the SectionsWidget in addition to the stackSectionWidget??????

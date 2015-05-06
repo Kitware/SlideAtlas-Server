@@ -29,6 +29,63 @@ Polyline.prototype.GetBounds = function () {
     return bds;
 }
 
+// The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
+// Pass in the spacing as a hint to get rid of aliasing.
+Polyline.prototype.Decimate = function (spacing) {
+    // Keep looping over the line removing points until the line does not change.
+    var modified = true;
+    while (modified) {
+        modified = false;
+        var newPoints = [];
+        newPoints.push(this.Points[0]);
+        // Window of four points.
+        var i = 3;
+        while (i < this.Points.length) {
+            var p0 = this.Points[i];
+            var p1 = this.Points[i-1];
+            var p2 = this.Points[i-2];
+            var p3 = this.Points[i-3];
+            // Compute the average of the center two.
+            var cx = (p1[0] + p2[0]) * 0.5;
+            var cy = (p1[1] + p2[1]) * 0.5;
+            // Find the perendicular normal.
+            var nx = (p0[1] - p3[1]);
+            var ny = -(p0[0] - p3[0]);
+            var mag = Math.sqrt(nx*nx + ny*ny);
+            nx = nx / mag;
+            ny = ny / mag;
+            mag = Math.abs(nx*(cx-this.Points[i-3][0]) + ny*(cy-this.Points[i-3][1]));
+            // Mag metric does not distinguish between line and a stroke that double backs on itself.
+            // Make sure the two point being merged are between the outer points 0 and 3.
+            var dir1 = (p0[0]-p1[0])*(p3[0]-p1[0]) + (p0[1]-p1[1])*(p3[1]-p1[1]);
+            var dir2 = (p0[0]-p2[0])*(p3[0]-p2[0]) + (p0[1]-p2[1])*(p3[1]-p2[1]);
+            if (mag < spacing && dir1 < 0.0 && dir2 < 0.0) {
+                // Replace the two points with their average.
+                newPoints.push([cx, cy]);
+                modified = true;
+                // Skip the next point the window will have one old merged point,
+                // but that is ok because it is just used as reference and not altered.
+                i += 2;
+            } else {
+                //  No modification.  Just move the window one.
+                newPoints.push(this.Points[i-2]);
+                ++i;
+            }
+        }
+        // Copy the remaing point / 2 points
+        i = i-2;
+        while (i < this.Points.length) {
+            newPoints.push(this.Points[i]);
+            ++i;
+        }
+        this.Points = newPoints;
+    }
+    this.UpdateBuffers();
+}
+
+
+
+
 Polyline.prototype.UpdateBuffers = function() {
   var points = this.Points.slice(0);
   if (this.Closed && points.length > 2) {

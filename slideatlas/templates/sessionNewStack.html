@@ -516,6 +516,9 @@ function save() {
             roll      -= trans[2];
         }
 
+        // Too large to save? try decimating.
+        stackSectionWidget.Decimate();
+
         var imageObj = stackSectionWidget.ImageData;
         // Height is only for the first items default view.
         var itemObj = {img:    imageObj.img,
