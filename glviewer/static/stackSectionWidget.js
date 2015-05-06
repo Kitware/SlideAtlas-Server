@@ -393,8 +393,8 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
     var numContributingPoints = 0;
     for (var j = 0; j < this.Shapes.length; ++j) {
         var shape = this.Shapes[j];
-        var debugScalars = new Array(shape.Points.length);
-        shape.DebugScalars = debugScalars;
+        //var debugScalars = new Array(shape.Points.length);
+        //shape.DebugScalars = debugScalars;
         for (var k = 0; k < shape.Points.length; ++k) {
             var pt = shape.Points[k];
             var x = pt[0];
@@ -417,8 +417,10 @@ StackSectionWidget.prototype.RigidDecentStep = function (trans, center,
             
             //debugScalars[k] = (dist < thresh) ? 1:0;
             //if (dist > thresh) {dist = 0;}
-            debugScalars[k] = Math.exp(-0.69*(dist*dist)/(thresh*thresh));
-            dist = dist * debugScalars[k];
+            //debugScalars[k] = Math.exp(-0.69*(dist*dist)/(thresh*thresh));
+            var gs = 1;
+            if (thresh > 0) {gs = Math.exp(-0.69*(dist*dist)/(thresh*thresh));}
+            dist = dist * gs;
 
             // Scale the negative gradient by thresholded distance.
             var grad = distMap.GetGradient(x,y);
@@ -519,6 +521,16 @@ StackSectionWidget.prototype.RemoveDuplicatePoints = function (epsilon) {
         shape.UpdateBuffers();
     }
 }
+
+
+StackSectionWidget.prototype.Decimate = function() {
+    var bds = this.GetBounds();
+    var spacing = (bds[1]-bds[0] + bds[3]-bds[2]) / 400;
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        this.Shapes[i].Decimate(spacing);
+    }
+}
+
 
 
 

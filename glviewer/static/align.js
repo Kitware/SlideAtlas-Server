@@ -1406,7 +1406,10 @@ DistanceMap.prototype.AddPolyline = function (pline) {
 
     // There is a chance this could fail if there are no pixels between two
     // edges.  Maybe get the mask from the thresholded image. 
-    if (pline.Closed && points.length > 2) {
+    if (pline.Closed && points.length > 2 && false) {
+        // Fill leaked out on one section.  Make it more robust, or
+        // use the thresholded image.
+
         this.AddEdge(m2,m0);
 
         if ( ! this.Queue) {
