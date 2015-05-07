@@ -19,7 +19,7 @@ from PIL import Image
 ################################################################################
 mod = Blueprint('cutout', __name__)
 
-from slideatlas.core import logger
+from flask import current_app
 
 
 ################################################################################
@@ -99,7 +99,9 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
                         )
     # Read a tile
     # It is faster to recreate StringIO than reuse it
-    tiles_out = []
+    count = 0
+    total = len(tiles)
+    olddone = 1
     try:
         for atile in tiles:
 
@@ -112,25 +114,29 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
 
             # Write the tile
             if coordinate_system == "Photo":
-                pass
+                where = [x-origin_x, height-(y-origin_y)]
+            else:
+                where = [x-origin_x, (y-origin_y)]
 
-            where = [x-origin_x, height-(y-origin_y)]
-
-            tiles_out.append(where)
             tileno_out = writer.tile_number(where[0], where[1])
             writer.write_tile_by_number(tileno_out, buf)
 
             if tileno_out < 0:
-                logger.error("Tile errored: %s", atile)
-                logger.error("TileIN: %d", tileno_in)
-                logger.error("TileOUT: %d", tileno_out)
+                current_app.logger.error("Tile errored: %s", atile)
+
+            count = count + 1
+            done = int(float(count) / total * 100.0)
+
+            if done % 2 == 0 and olddone != done:
+                current_app.logger.info("Done: %d" % (done))
+                olddone = done
+
         writer.close()
-        resp["tiles_out"] = tiles_out
     except Exception as e:
         resp["error"] = e.message
         return jsonify(resp)
 
-    fin = open(tempfilename,"rb")
+    fin = open(tempfilename, "rb")
     resp2 = Response()
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
     resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".tif\";"
