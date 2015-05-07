@@ -4,21 +4,22 @@ import math
 import cStringIO as StringIO
 import datetime
 import time
+import uuid
+import os
 
-from flask import Blueprint, Response, request, current_app
+from flask import Blueprint, Response, request
 import json
-# from slideatlas import models#, security
 from slideatlas.common_utils import jsonify
-# from slideatlas.ptiffstore.tiff_reader import TileReader
+
+from slideatlas.ptiffstore.tiff_writer import TileTiffWriter
 from slideatlas import models
 
 from PIL import Image
 
-
 ################################################################################
 mod = Blueprint('cutout', __name__)
 
-from slideatlas.core import logger
+from flask import current_app
 
 
 ################################################################################
@@ -49,8 +50,99 @@ def tileat(image_store_id, image_id):
         return jsonify(resp)
 
     response = Response(content_type='image/jpeg')
-    response.set_data(image_store.get_tile_at(image_id, args["x"],args["y"],args["z"],))
+    response.set_data(image_store.get_tile_at(image_id, args["x"], args["y"], args["z"], ))
     return response
+
+def create_png(image_store, tile_cols, tile_rows, resp={}):
+    """
+    Creates tiff image in a temporary file, later
+    reads from it and returns the data
+    """
+    # Create a temporary file
+    pass
+
+
+def create_tiff(image_store, image_obj, tile_bounds, resp={}, extension="tif"):
+    """
+    Creates tiff image in a temporary file, later
+    reads from it and returns the data
+    """
+
+    # Create a temporary filename
+    tempfilename = "cutout-" + str(uuid.uuid4()) + ".tif"
+    resp["tempfilename"] = tempfilename
+
+    # Get tilesize from Image record
+    tilesize = int(image_obj["TileSize"])
+    base_level = image_obj["levels"] - 1  # as t.jpg is level 0
+    coordinate_system = image_obj.get("CoordinateSystem", "Photo")
+
+    origin_x = tile_bounds[0] * tilesize
+    origin_y = tile_bounds[2] * tilesize
+    height = (tile_bounds[3]-tile_bounds[2]) * tilesize
+
+    tile_cols = tile_bounds[1] - tile_bounds[0] + 1
+    tile_rows = tile_bounds[3] - tile_bounds[2] + 1
+
+    tiles = [(tx + tile_bounds[0], ty + tile_bounds[2]) for tx in range(tile_cols) for ty in range(tile_rows)]
+
+    resp["tiles"] = tiles
+    resp["height"] = height
+
+    # Create width and height in the writer
+    writer = TileTiffWriter({"fname": tempfilename})
+
+
+    writer.set_dir_info((tile_cols) * tilesize,  # width
+                        (tile_rows) * tilesize   # height
+                        )
+    # Read a tile
+    # It is faster to recreate StringIO than reuse it
+    count = 0
+    total = len(tiles)
+    olddone = 1
+    try:
+        for atile in tiles:
+
+            # Where
+            x = atile[0]*tilesize
+            y = atile[1]*tilesize
+
+            # Get tile
+            buf = image_store.get_tile_at(image_obj["_id"], x, y, base_level, tilesize=tilesize)
+
+            # Write the tile
+            if coordinate_system == "Photo":
+                where = [x-origin_x, height-(y-origin_y)]
+            else:
+                where = [x-origin_x, (y-origin_y)]
+
+            tileno_out = writer.tile_number(where[0], where[1])
+            writer.write_tile_by_number(tileno_out, buf)
+
+            if tileno_out < 0:
+                current_app.logger.error("Tile errored: %s", atile)
+
+            count = count + 1
+            done = int(float(count) / total * 100.0)
+
+            if done % 2 == 0 and olddone != done:
+                current_app.logger.info("Done: %d" % (done))
+                olddone = done
+
+        writer.close()
+    except Exception as e:
+        resp["error"] = e.message
+        return jsonify(resp)
+
+    fin = open(tempfilename, "rb")
+    resp2 = Response()
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+    resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + "." + extension + "\";"
+    resp2.set_data(fin.read())
+    os.remove(tempfilename)
+    return resp2
+
 
 
 ################################################################################
@@ -141,6 +233,14 @@ def cutout(image_store_id, image_id, filename):
     tile_rows = tile_bounds[3] - tile_bounds[2] + 1
 
     resp["tile_grid"] = tile_cols, tile_rows
+    name, extension = os.path.splitext(filename)
+    extension = extension[1:]  # to get rid of the .
+
+    if(extension in ["tif", "svs"]):
+        return create_tiff(image_store, image_obj, tile_bounds, resp, extension=extension)
+    elif extension not in ["png","jpg","jpeg"]:
+        resp["error"] = "Unsupported file format \"%s\"" % extension
+        return jsonify(resp)
 
     # Create image
     image = Image.new("RGB",
@@ -204,14 +304,14 @@ def cutout(image_store_id, image_id, filename):
 
     # Compress and return the image
     buf = StringIO.StringIO()
-    image.save(buf, format="jpeg")
-    response = Response(content_type='image/jpeg')
+    image.save(buf, format=extension)
+    response = Response(content_type='image/' + extension)
     response.set_data(buf.getvalue())
     buf.close()
 
     # Set filename
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
-    response.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".jpeg\";"
+    response.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + "." + extension + "\";"
     # response.headers["Content-Transfer-Encoding"] = "binary"
     # header("Content-Length: ".filesize($filename));
     return response
