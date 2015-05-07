@@ -53,10 +53,16 @@ function CutoutWidget (viewer) {
         .appendTo(this.Div);
     $('<option>').appendTo(this.Select)
         .attr('value', 0)
-        .text("tiff");
+        .text("tif");
     $('<option>').appendTo(this.Select)
         .attr('value', 1)
+        .text("jpeg");
+    $('<option>').appendTo(this.Select)
+        .attr('value', 2)
         .text("png");
+    $('<option>').appendTo(this.Select)
+        .attr('value', 3)
+        .text("svs");
 
     this.Label = $('<div>')
         .css({'display': 'inline-block',
@@ -68,11 +74,7 @@ function CutoutWidget (viewer) {
 
 CutoutWidget.prototype.Accept = function () {
     this.Deactivate();
-
-    var type = "tif";
-    if (this.Select.val() == 1) {
-        type = "png";
-    }
+    var types = ["tif", "jpeg", "png", "svs"]
     var image_source = this.Viewer.GetCache().Image;
     // var bounds = [];
     // for (var i=0; i <this.Bounds.length; i++) {
@@ -80,7 +82,7 @@ CutoutWidget.prototype.Accept = function () {
     // }
 
     window.location = "/cutout/" + image_source.database + "/" +
-        image_source._id + "/image."+type+"?bounds=" + JSON.stringify(this.Bounds);
+        image_source._id + "/image."+types[this.Select.val()]+"?bounds=" + JSON.stringify(this.Bounds);
 }
 
 
