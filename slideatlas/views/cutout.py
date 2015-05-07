@@ -76,9 +76,11 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
     # Get tilesize from Image record
     tilesize = int(image_obj["TileSize"])
     base_level = image_obj["levels"] - 1  # as t.jpg is level 0
+    coordinate_system = image_obj.get("CoordinateSystem", "Photo")
 
     origin_x = tile_bounds[0] * tilesize
     origin_y = tile_bounds[2] * tilesize
+    height = (tile_bounds[3]-tile_bounds[2]) * tilesize
 
     tile_cols = tile_bounds[1] - tile_bounds[0] + 1
     tile_rows = tile_bounds[3] - tile_bounds[2] + 1
@@ -86,6 +88,7 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
     tiles = [(tx + tile_bounds[0], ty + tile_bounds[2]) for tx in range(tile_cols) for ty in range(tile_rows)]
 
     resp["tiles"] = tiles
+    resp["height"] = height
 
     # Create width and height in the writer
     writer = TileTiffWriter({"fname": tempfilename})
@@ -96,6 +99,7 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
                         )
     # Read a tile
     # It is faster to recreate StringIO than reuse it
+    tiles_out = []
     try:
         for atile in tiles:
 
@@ -107,7 +111,13 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
             buf = image_store.get_tile_at(image_obj["_id"], x, y, base_level, tilesize=tilesize)
 
             # Write the tile
-            tileno_out = writer.tile_number(x-origin_x, y-origin_y)
+            if coordinate_system == "Photo":
+                pass
+
+            where = [x-origin_x, height-(y-origin_y)]
+
+            tiles_out.append(where)
+            tileno_out = writer.tile_number(where[0], where[1])
             writer.write_tile_by_number(tileno_out, buf)
 
             if tileno_out < 0:
@@ -115,20 +125,18 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
                 logger.error("TileIN: %d", tileno_in)
                 logger.error("TileOUT: %d", tileno_out)
         writer.close()
-
+        resp["tiles_out"] = tiles_out
     except Exception as e:
         resp["error"] = e.message
+        return jsonify(resp)
 
-    finally:
-        fin = open(tempfilename,"rb")
-        resp2 = Response()
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
-        resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".tif\";"
-        resp2.set_data(fin.read())
-        os.remove(tempfilename)
-        return resp2
-
-    return jsonify(resp)
+    fin = open(tempfilename,"rb")
+    resp2 = Response()
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+    resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".tif\";"
+    resp2.set_data(fin.read())
+    os.remove(tempfilename)
+    return resp2
 
 
 
