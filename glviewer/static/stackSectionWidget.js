@@ -46,7 +46,7 @@ StackSectionWidget.prototype.ContainedInBounds = function(bds) {
         // section is fully contained in the bounds.
         return 2;
     }
-    if (sBds[1] < bds[0] || sBds[0] > bds[1] || 
+    if (sBds[1] < bds[0] || sBds[0] > bds[1] ||
         sBds[3] < bds[2] || sBds[2] > bds[3] ) {
         // No overlap of bounds.
         return 0;
@@ -56,18 +56,18 @@ StackSectionWidget.prototype.ContainedInBounds = function(bds) {
     var pointsIn = false;
     var pointsOut = false;
     for (var i = 0; i < this.Shapes.length; ++i) {
-        var shape = this.Shapes[i];
-        for (j = 0; j < shape.Points.length; ++j) {
-            var pt = shape.Points[j];
-            if (bds[0] < pt[0] && pt[0] < bds[1] &&
-                bds[0] < pt[0] && pt[0] < bds[1]) {
-                pointsIn = true;
-            } else {
-                pointsOut = true;
-            }
-            if (pointsIn && pointsOut) {
-                return 1;
-            }
+        var contained = this.Shapes[i].ContainedInBounds(bds);
+        if (contained == 1) {
+            return 1;
+        }
+        if (contained == 0) {
+            pointsOut = true;
+        }
+        if (contained == 2) {
+            pointsIn = true;
+        }
+        if (pointsIn && pointsOut) {
+            return 1;
         }
     }
 
