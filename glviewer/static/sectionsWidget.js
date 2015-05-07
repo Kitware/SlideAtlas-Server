@@ -358,10 +358,38 @@ SectionsWidget.prototype.ProcessBounds = function(bds) {
         if (mode == 2) { full.push(section); }
         if (mode == 1) { partial.push(section); }
     }
+    // If the rectangle fully contains more than one shape, group them
     if (full.length > 1) {
         for (var i = 1; i < full.length; ++i) {
             full[0].Union(full[i]);
             this.RemoveSection(full[i]);
+        }
+    }
+    // If the contours partially contains only one section, and clean
+    // separates the shapes, then split them.
+    if (full.length == 0 && partial.length == 1) {
+        var section = partial[0];
+        full = [];
+        partial = [];
+        for (var i = 0; i < section.Shapes.length; ++i) {
+            var contains = section.Shapes[i].ContainedInBounds(bds);
+            if (contains == 1) { partial.push(section.Shapes[i]); }
+            if (contains == 2) { full.push(section.Shapes[i]); }
+        }
+        if (partial.length == 0) {
+            var idx;
+            // Split it up.
+            var newSection = new StackSectionWidget();
+            newSection.Shapes = full;
+            for (var i = 0; i < full.length; ++i) {
+                idx = section.Shapes.indexOf(full[i]);
+                if (idx != -1) {
+                    section.Shapes.splice(idx,1);
+                }
+                section.Bounds = null;
+            }
+            idx = this.Sections.indexOf(section);
+            this.Sections.splice(idx,0,newSection);
         }
     }
 }

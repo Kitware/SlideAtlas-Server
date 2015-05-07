@@ -29,6 +29,36 @@ Polyline.prototype.GetBounds = function () {
     return bds;
 }
 
+
+
+// Returns 0 if is does not overlap at all.
+// Returns 1 if part of the section is in the bounds.
+// Returns 2 if all of the section is in the bounds.
+Polyline.prototype.ContainedInBounds = function(bds) {
+    // Polyline does not cache bounds, so just look to the points.
+
+    var pointsIn = false;
+    var pointsOut = false;
+    for (j = 0; j < this.Points.length; ++j) {
+        var pt = this.Points[j];
+        if (bds[0] < pt[0] && pt[0] < bds[1] &&
+            bds[2] < pt[1] && pt[1] < bds[3]) {
+            pointsIn = true;
+        } else {
+            pointsOut = true;
+        }
+        if (pointsIn && pointsOut) {
+            return 1;
+        }
+    }
+
+    if (pointsIn) {
+        return 2;
+    }
+    return 0;
+}
+
+
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
 // Pass in the spacing as a hint to get rid of aliasing.
 Polyline.prototype.Decimate = function (spacing) {
