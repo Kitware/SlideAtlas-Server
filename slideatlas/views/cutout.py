@@ -4,16 +4,17 @@ import math
 import cStringIO as StringIO
 import datetime
 import time
+import uuid
+import os
 
-from flask import Blueprint, Response, request, current_app
+from flask import Blueprint, Response, request
 import json
 from slideatlas.common_utils import jsonify
 
 from slideatlas.ptiffstore.tiff_writer import TileTiffWriter
-from slideatlas import common_utilsmodels
+from slideatlas import models
 
 from PIL import Image
-
 
 ################################################################################
 mod = Blueprint('cutout', __name__)
@@ -49,46 +50,85 @@ def tileat(image_store_id, image_id):
         return jsonify(resp)
 
     response = Response(content_type='image/jpeg')
-    response.set_data(image_store.get_tile_at(image_id, args["x"],args["y"],args["z"],))
+    response.set_data(image_store.get_tile_at(image_id, args["x"], args["y"], args["z"], ))
     return response
 
 
+def create_png(image_store, tile_cols, tile_rows, resp={}):
+    """
+    Creates tiff image in a temporary file, later
+    reads from it and returns the data
+    """
+    # Create a temporary file
+    pass
 
-def create_tiff(image_store, tile_cols, tile_rows,resp={}):
-        """
-        Creates tiff image in a temporary file, later
-        reads from it and returns the data
-        """
-        # Create a temporary file
 
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
-        tempfilename = "cutout" + timestamp + ".tif"
-        resp["tempfilename"] = tempfilename
+def create_tiff(image_store, image_obj, tile_bounds, resp={}):
+    """
+    Creates tiff image in a temporary file, later
+    reads from it and returns the data
+    """
 
-        # Create width and height in the writer
-        writer = TileTiffWriter({"fname": tempfilename})
+    # Create a temporary filename
+    tempfilename = "cutout-" + str(uuid.uuid4()) + ".tif"
+    resp["tempfilename"] = tempfilename
 
-        writer.set_dir_info((tile_cols) * tilesize,  # width
-                            (tile_rows) * tilesize   # height
-                            )
+    # Get tilesize from Image record
+    tilesize = int(image_obj["TileSize"])
+    base_level = image_obj["levels"] - 1  # as t.jpg is level 0
 
-        tileno_out = writer.tile_number(x-origin_x, y-origin_y)
+    origin_x = tile_bounds[0] * tilesize
+    origin_y = tile_bounds[2] * tilesize
 
-        # Read a tile
-        # It is faster to recreate StringIO than reuse it
+    tile_cols = tile_bounds[1] - tile_bounds[0] + 1
+    tile_rows = tile_bounds[3] - tile_bounds[2] + 1
+
+    tiles = [(tx + tile_bounds[0], ty + tile_bounds[2]) for tx in range(tile_cols) for ty in range(tile_rows)]
+
+    resp["tiles"] = tiles
+
+    # Create width and height in the writer
+    writer = TileTiffWriter({"fname": tempfilename})
+
+
+    writer.set_dir_info((tile_cols) * tilesize,  # width
+                        (tile_rows) * tilesize   # height
+                        )
+    # Read a tile
+    # It is faster to recreate StringIO than reuse it
+    try:
         for atile in tiles:
 
-            buf = StringIO()
-            reader.get_tile_from_number(tileno_in, buf)
+            # Where
+            x = atile[0]*tilesize
+            y = atile[1]*tilesize
+
+            # Get tile
+            buf = image_store.get_tile_at(image_obj["_id"], x, y, base_level, tilesize=tilesize)
+
+            # Write the tile
+            tileno_out = writer.tile_number(x-origin_x, y-origin_y)
             writer.write_tile_by_number(tileno_out, buf)
 
             if tileno_out < 0:
                 logger.error("Tile errored: %s", atile)
                 logger.error("TileIN: %d", tileno_in)
                 logger.error("TileOUT: %d", tileno_out)
+        writer.close()
 
+    except Exception as e:
+        resp["error"] = e.message
 
-    pass
+    finally:
+        fin = open(tempfilename,"rb")
+        resp2 = Response()
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
+        resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".tif\";"
+        resp2.set_data(fin.read())
+        os.remove(tempfilename)
+        return resp2
+
+    return jsonify(resp)
 
 
 
@@ -182,7 +222,7 @@ def cutout(image_store_id, image_id, filename):
     resp["tile_grid"] = tile_cols, tile_rows
 
     if(filename.endswith("tif")):
-        create_tiff(image_store, bounds)
+        return create_tiff(image_store, image_obj, tile_bounds, resp)
 
     # Create image
     image = Image.new("RGB",

@@ -40,6 +40,9 @@ class TileTiffWriter():
         # self.isBigTIFF = False
         # self.barcode = ""
 
+    def close(self):
+        self.tif.close()
+
     def select_dir(self, dir):
         """
         :param dir: Number of Directory to select
@@ -108,14 +111,12 @@ class TileTiffWriter():
         # Getting a single tile
         # buf.seek(os.SEEK_END)
         # tile_size = buf.tell()
-        contents = buf.getvalue()
         # buf.seek(os.SEEK_SET)
         # print len(contents)
         ret = libtiff.TIFFWriteRawTile(
-            self.tif, tileno, contents, len(contents))
+            self.tif, tileno, buf, len(buf))
         if ret == -1:
             raise Exception("Tile write failed")
-
 
     def tile_number(self, x, y):
         """
@@ -182,34 +183,6 @@ class TileTiffWriter():
             self.num_tiles = self.num_tiles.value
 
         # self._read_JPEG_tables()
-
-
-def test_ptiff_writer():
-    """
-    tests the ptiff writer by copying from a tiled ptiff image locally available
-    It is stored in slideatlas test image dataset
-
-    """
-
-    writer = TileTiffWriter({"fname": "test.tif"})
-    reader.set_input_params({"fname": "input.tiff"})
-
-    # Write information
-    # writer.select_dir(0)
-    writer.set_dir_info(reader.width, reader.height)
-    print "Reader contains: ", reader.num_tiles
-    reader._read_JPEG_tables()
-    for tileno in range(reader.num_tiles):
-
-        # Read a tile
-        buf = StringIO()
-        reader.get_tile_from_number(tileno, buf)
-        print "Size: ", buf.tell()
-
-        # TODO: Read only tile data and write Jpegtables separately
-
-        # Write a tile
-        writer.write_tile_by_number(tileno, buf)
 
 
 def test_cutout_from_slideatlas():
