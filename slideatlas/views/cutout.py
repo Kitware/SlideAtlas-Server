@@ -53,7 +53,6 @@ def tileat(image_store_id, image_id):
     response.set_data(image_store.get_tile_at(image_id, args["x"], args["y"], args["z"], ))
     return response
 
-
 def create_png(image_store, tile_cols, tile_rows, resp={}):
     """
     Creates tiff image in a temporary file, later
@@ -63,7 +62,7 @@ def create_png(image_store, tile_cols, tile_rows, resp={}):
     pass
 
 
-def create_tiff(image_store, image_obj, tile_bounds, resp={}):
+def create_tiff(image_store, image_obj, tile_bounds, resp={}, extension="tif"):
     """
     Creates tiff image in a temporary file, later
     reads from it and returns the data
@@ -139,7 +138,7 @@ def create_tiff(image_store, image_obj, tile_bounds, resp={}):
     fin = open(tempfilename, "rb")
     resp2 = Response()
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
-    resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".tif\";"
+    resp2.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + "." + extension + "\";"
     resp2.set_data(fin.read())
     os.remove(tempfilename)
     return resp2
@@ -234,9 +233,14 @@ def cutout(image_store_id, image_id, filename):
     tile_rows = tile_bounds[3] - tile_bounds[2] + 1
 
     resp["tile_grid"] = tile_cols, tile_rows
+    name, extension = os.path.splitext(filename)
+    extension = extension[1:]  # to get rid of the .
 
-    if(filename.endswith("tif")):
-        return create_tiff(image_store, image_obj, tile_bounds, resp)
+    if(extension in ["tif", "svs"]):
+        return create_tiff(image_store, image_obj, tile_bounds, resp, extension=extension)
+    elif extension not in ["png","jpg","jpeg"]:
+        resp["error"] = "Unsupported file format \"%s\"" % extension
+        return jsonify(resp)
 
     # Create image
     image = Image.new("RGB",
@@ -300,14 +304,14 @@ def cutout(image_store_id, image_id, filename):
 
     # Compress and return the image
     buf = StringIO.StringIO()
-    image.save(buf, format="png")
-    response = Response(content_type='image/jpeg')
+    image.save(buf, format=extension)
+    response = Response(content_type='image/' + extension)
     response.set_data(buf.getvalue())
     buf.close()
 
     # Set filename
     timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S')
-    response.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + ".jpeg\";"
+    response.headers["Content-Disposition"] = "attachment; filename=\"cutout_" + timestamp + "." + extension + "\";"
     # response.headers["Content-Transfer-Encoding"] = "binary"
     # header("Content-Length: ".filesize($filename));
     return response
