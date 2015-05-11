@@ -965,37 +965,33 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
  // Load a widget from a json object (origin MongoDB).
  Viewer.prototype.LoadWidget = function(obj) {
-   switch(obj.type){
+     var widget;
+     switch(obj.type){
      case "lasso":
-       var lasso = new LassoWidget(this, false);
-       lasso.Load(obj);
-       break;
+         widget = new LassoWidget(this, false);
+         break;
      case "pencil":
-       var pencil = new PencilWidget(this, false);
-       pencil.Load(obj);
-       break;
+         widget = new PencilWidget(this, false);
+         break;
      case "text":
-       var text = new TextWidget(this, "");
-       text.Load(obj);
-       break;
+         widget = new TextWidget(this, "");
+         break;
      case "circle":
-       var circle = new CircleWidget(this, false);
-       circle.Load(obj);
-       break;
+         widget = new CircleWidget(this, false);
+         break;
      case "polyline":
-       var pl = new PolylineWidget(this, false);
-       pl.Load(obj);
-       break;
+         widget = new PolylineWidget(this, false);
+         break;
      case "stack_section":
-       var pl = new StackSectionWidget(this);
-       pl.Load(obj);
-       break;
+         widget = new StackSectionWidget(this);
+         break;
      case "sections":
-       var pl = new SectionsWidget(this);
-       pl.Load(obj);
-       break;
-   }
- }
+         widget = new SectionsWidget(this);
+         break;
+     }
+     widget.Load(obj);
+     return widget;
+}
 
  // I am doing a dance because I expect widget SetActive to call this,
  // but this calls widget SetActive.

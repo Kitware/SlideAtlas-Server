@@ -257,7 +257,7 @@ AnnotationWidget.prototype.DetectSections = function() {
             widget.Deactivate();
             return;
         }
-        // This call sets pressed to false as a side action..
+        // This call sets pressed to false as a side action.
         widget.Deactivate();
     }
     button.Pressed = true;
@@ -277,7 +277,13 @@ AnnotationWidget.prototype.DetectSections = function() {
         // Find sections to initialize sections widget.
         widget = new SectionsWidget(this.Viewer, false);
         widget.ComputeSections();
-        widget.SetActive(true);
+        if (widget.IsEmpty()) {
+            widget.RemoveFromViewer();
+            button.css({'border-style': 'outset',
+                        'opacity': '0.6'});
+            button.Pressed = false;
+            return;
+        }
     }
 
     widget.SetActive(true);
