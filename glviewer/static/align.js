@@ -2605,28 +2605,33 @@ function HistogramIntegral(hist) {
 }
 
 
-// Start at 50% integration and work backward.
-// find max of integral / hist,
+// I cannot make any good assumptions about percentages because
+// a bounding box could be tight around the tissue.
+// Just look for the minimum histogram value in the correct
+// intensity range.
 function PickThreshold(hist) {
-    var integral = HistogramIntegral(hist);
-    var idx = integral.length-1;
-    var half = integral[idx]/2;
+    var best = -1;
+    var bestIdx = -1;
 
-    // Find the max value.
-    var maxValue = 0;
-    for (idx = 0; integral[idx]< half; ++idx) {
-        if (hist[idx] > maxValue) { maxValue = hist[idx];}
-    }
-    var offset = maxValue * 0.01;
-    var best = 0;
-    var bestIdx = idx;
-    while (--idx > 0) {
-        var goodness = integral[idx] / (hist[idx]+offset);
+    var integral = HistogramIntegral(hist);
+    var max = integral[integral.length - 1];
+    for (idx = 0; idx < hist.length; ++idx) {
+        // Compute a metric for a good threshold.
+        var goodness = 0;
+        // > 10%, < 90%
+        var tmp = integral[idx]/max;
+        if (tmp > 0.1 && tmp < 0.9) {
+            // Pick a gap (low point) in the histogram.
+            goodness = 1.0 / (hist[idx]+1);
+            // Pick a high value over a low value
+            goodness *= Math.exp(idx / 8);  // tried 4-8, all very similar.
+        }
         if (goodness > best) {
             best = goodness;
             bestIdx = idx;
         }
     }
+
     return bestIdx;
 }            
 

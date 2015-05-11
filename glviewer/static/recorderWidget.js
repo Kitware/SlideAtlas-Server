@@ -155,15 +155,21 @@ ViewerRecord.prototype.Apply = function (viewer) {
     viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
   }
   if (this.Annotations != undefined) {
-    // For now lets just do the easy thing and recreate all the annotations.
-    viewer.WidgetList = [];
-    viewer.ShapeList = [];
-    for (var i = 0; i < this.Annotations.length; ++i) {
-      viewer.LoadWidget(this.Annotations[i]);
-    }
+      // TODO: Fix this.  Keep actual widgets in the records / notes.
+      // For now lets just do the easy thing and recreate all the annotations.
+      viewer.WidgetList = [];
+      viewer.ShapeList = [];
+      for (var i = 0; i < this.Annotations.length; ++i) {
+          var widget = viewer.LoadWidget(this.Annotations[i]);
+          // Until we do the above todo.  This is the messy way of removing
+          // empty widgets (widgets that did not load properly).
+          if (widget.Type == "sections" && widget.IsEmpty()) {
+              this.Annotations.splice(i,1);
+              --i;
+          }
+      }
   }
 }
-
 
 
 function GetTrackingData(){

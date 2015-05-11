@@ -27,6 +27,10 @@ function StackSectionWidget (viewer) {
     }
 }
 
+StackSectionWidget.prototype.IsEmpty = function() {
+    return this.Shapes.length == 0;
+}
+
 // Add all the lines in the in section to this section.
 StackSectionWidget.prototype.Union = function(section) {
     for (var i = 0; i < section.Shapes.length; ++i) {
@@ -175,21 +179,26 @@ StackSectionWidget.prototype.Load = function(obj) {
         this.Color[1] = parseFloat(obj.color[1]);
         this.Color[2] = parseFloat(obj.color[2]);
     }
+    if ( ! obj.shapes) {
+        return;
+    }
     for(var n=0; n < obj.shapes.length; n++){
-        var polyLineObj = obj.shapes[n];
-        var points = polyLineObj.points;
-        var shape = new Polyline();
-        shape.OutlineColor = this.Color;
-        shape.FixedSize = false;
-        shape.LineWidth = 0;
-        if (polyLineObj.closedloop) {
-            shape.Closed = polyLineObj.closedloop;
+        var polylineObj = obj.shapes[n];
+        if ( polylineObj.points) { 
+            var points = polylineObj.points;
+            var shape = new Polyline();
+            shape.OutlineColor = this.Color;
+            shape.FixedSize = false;
+            shape.LineWidth = 0;
+            if (polylineObj.closedloop) {
+                shape.Closed = polylineObj.closedloop;
+            }
+            this.Shapes.push(shape);
+            for (var m = 0; m < points.length; ++m) {
+                shape.Points[m] = [points[m][0], points[m][1]];
+            }
+            shape.UpdateBuffers();
         }
-        this.Shapes.push(shape);
-        for (var m = 0; m < points.length; ++m) {
-            shape.Points[m] = [points[m][0], points[m][1]];
-        }
-        shape.UpdateBuffers();
     }
 }
 
