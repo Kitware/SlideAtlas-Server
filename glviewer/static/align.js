@@ -2615,7 +2615,7 @@ function PickThreshold(hist) {
 
     var integral = HistogramIntegral(hist);
     var max = integral[integral.length - 1];
-    for (idx = 0; idx < hist.length; ++idx) {
+    for (idx = 10; idx < hist.length-10; ++idx) {
         // Compute a metric for a good threshold.
         var goodness = 0;
         // > 10%, < 90%

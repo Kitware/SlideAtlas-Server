@@ -21,14 +21,14 @@ function Gallery() {
     this.SessionList = $('<select>')
         .appendTo(this.ImagePanel)
         .change(function(){ self.SessionCallback($(this).val()); });
-    this.SearchDiv = $('<div>')
+    this.FilterDiv = $('<div>')
         .appendTo(this.ImagePanel)
-        .text("Search:");
-    this.SearchInput = $('<input type="text">')
-        .appendTo(this.SearchDiv);
+        .text("Filter:");
+    this.FilterInput = $('<input type="text">')
+        .appendTo(this.FilterDiv);
     this.Submit = $('<button>')
-        .appendTo(this.SearchDiv)
-        .click(function () {self.SearchCallback();})
+        .appendTo(this.FilterDiv)
+        .click(function () {self.FilterCallback();})
         .text("Submit");
     this.GalleryDiv = $('<ul>')
         .appendTo(this.ImagePanel)
@@ -224,7 +224,7 @@ Gallery.prototype.LoadImages = function(data, imgdb) {
                   'font-size': '11px'});
 
     }
-    this.SearchInput.autocomplete({source: labelStrings});
+    this.FilterInput.autocomplete({source: labelStrings});
 }
 
 
@@ -270,11 +270,11 @@ Gallery.prototype.LoadSession = function(data) {
                   'font-size': '11px'});
     }
 
-    this.SearchInput.autocomplete({source: labelStrings});
+    this.FilterInput.autocomplete({source: labelStrings});
 }
 
-Gallery.prototype.SearchCallback = function() {
-    var str = this.SearchInput.val();
+Gallery.prototype.FilterCallback = function() {
+    var str = this.FilterInput.val().toLowerCase();
     keys = str.split(" ");
     // Todo: find a different way to iterate through the images.
     items = this.GalleryDiv.children();
@@ -283,7 +283,7 @@ Gallery.prototype.SearchCallback = function() {
         var label = item.children('div').text();
         var found = true;
         for (var j = 0; j < keys.length && found; ++j) {
-            if (label.indexOf(keys[j]) == -1) { found = false; }
+            if (label.toLowerCase().indexOf(keys[j]) == -1) { found = false; }
         }
         if (found) {
             item.show();
