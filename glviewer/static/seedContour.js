@@ -6,6 +6,7 @@
 
 
 
+
 function GetDataValue(d, x, y, threshold, insideOut) {
     if (x < 0 || x >= d.width ||
         y < 0 || y >= d.height) {

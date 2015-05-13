@@ -164,31 +164,74 @@ Shape.prototype.Draw = function (view) {
     var m = view.Camera.Matrix;
     var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
     var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
+
     // convert origin-view to pixels (view coordinate system).
     x = view.Viewport[2]*(0.5*(1.0+x));
     y = view.Viewport[3]*(0.5*(1.0-y));
     view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);
 
-    view.Context2d.beginPath();
-    view.Context2d.moveTo(this.PointBuffer[0]*scale,this.PointBuffer[1]*scale);
+      // for debugging section alignmnet.
+      var x0 = this.PointBuffer[0];
+      var y0 = this.PointBuffer[1];
+      // For debugging gradient decent aligning contours.
+      // This could be put into the canvas transform, but it is only for debugging.
+      //if (this.Trans) {
+      //      var vx = x0-this.Trans.cx;
+      //      var vy = y0-this.Trans.cy;
+      //      var rx =  this.Trans.c*vx + this.Trans.s*vy;
+      //      var ry = -this.Trans.s*vx + this.Trans.c*vy;
+      //      x0 = x0 + (rx-vx) + this.Trans.sx;
+      //      y0 = y0 + (ry-vy) + this.Trans.sy;
+      //}
+
+      // This gets remove when the debug code is uncommented.
+      view.Context2d.beginPath();
+      view.Context2d.moveTo(x0*scale,y0*scale);
+
     var i = 3;
     while ( i < this.PointBuffer.length ) {
-      view.Context2d.lineTo(this.PointBuffer[i]*scale,this.PointBuffer[i+1]*scale);
+        var x1 = this.PointBuffer[i];
+        var y1 = this.PointBuffer[i+1];
+        // For debugging.  Apply a trasformation and color by scalars.
+        //if (this.Trans) {
+        //    var vx = x1-this.Trans.cx;
+        //    var vy = y1-this.Trans.cy;
+        //    var rx =  this.Trans.c*vx + this.Trans.s*vy;
+        //    var ry = -this.Trans.s*vx + this.Trans.c*vy;
+        //    x1 = x1 + (rx-vx) + this.Trans.sx;
+        //    y1 = y1 + (ry-vy) + this.Trans.sy;
+        //}
+        //view.Context2d.beginPath();
+        //view.Context2d.moveTo(x0*scale,y0*scale);
+        // Also for debuggin
+        //if (this.DebugScalars) {
+        //    view.Context2d.strokeStyle=ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
+        //} else {
+        //    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+        //}
+        //view.Context2d.stroke();
+        //x0 = x1;
+        //y0 = y1;
+
+        // This gets remove when the debug code is uncommented.
+        view.Context2d.lineTo(x1*scale,y1*scale);
+
       i += 3;
     }
 
     if (this.OutlineColor != undefined) {
-      var width = this.LineWidth * scale;
-      if (width == 0) {
-        width = 1;
-      }
-      view.Context2d.lineWidth = width;
-      if (this.Active) {
-        view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
-      } else {
-        view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
-      }
-      view.Context2d.stroke();
+        var width = this.LineWidth * scale;
+        if (width == 0) {
+            width = 1;
+        }
+        view.Context2d.lineWidth = width;
+        if (this.Active) {
+            view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
+        } else {
+            view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+        }
+        // This gets remove when the debug code is uncommented.
+        view.Context2d.stroke();
     }
 
     if (this.FillColor != undefined) {

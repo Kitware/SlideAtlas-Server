@@ -47,7 +47,7 @@ function NavigationWidget() {
                             'bottom' : bottom,
                             'z-index': '5'});
     } else {
-        this.Tab = new Tab("/webgl-viewer/static/nav.png");
+        this.Tab = new Tab("/webgl-viewer/static/nav.png", "navigationTab");
         new ToolTip(this.Tab.Div, "Navigation");
         this.Tab.Div.css({'left': '50px',
                           'bottom': '0px'});

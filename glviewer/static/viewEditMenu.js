@@ -14,7 +14,7 @@
 function ViewEditMenu (viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
-    this.Tab = new Tab("/webgl-viewer/static/Menu.jpg");
+    this.Tab = new Tab("/webgl-viewer/static/Menu.jpg", "editTab");
     // I think we can get rid of this "GuiObject" stuff.
     // css positioning can handle it now.
     viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 99);
@@ -51,7 +51,7 @@ function ViewEditMenu (viewer) {
         .css({'margin':'2px 0px',
               'width' : '100%'})
         .click(function(){self.ShowSlideInformation();});
-    
+
     // Test for showing coverage of view histor.
     this.HistoryMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
@@ -59,7 +59,15 @@ function ViewEditMenu (viewer) {
         .css({'margin':'2px 0px',
               'width' : '100%'})
         .click(function(){self.ToggleHistory();});
-    
+
+    // Initial slide show feature.
+    this.SlideShowMenuItem = $('<button>')
+        .appendTo(this.Tab.Panel)
+        .text("Presentation")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){self.ConvertToPresentation();});
+
     // Hack until we have some sort of scale.
     this.CopyZoomMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
@@ -74,6 +82,16 @@ function ViewEditMenu (viewer) {
               'width' : '100%'})
         .click(function(){self.FlipHorizontal();});
 
+    $('<button>').appendTo(this.Tab.Panel)
+        .text("Download image from server")
+        .css({'margin':'2px 0px',
+              'width' : '100%'})
+        .click(function(){
+            self.Tab.PanelOff();
+            // When the circle button is pressed, create the widget.
+            if ( ! self.Viewer) { return; }
+            new CutoutWidget(self.Viewer);
+        });
 
     for(var plugin in window.PLUGINS) {
         var that = this;
@@ -92,7 +110,7 @@ function ViewEditMenu (viewer) {
             })(plugin);
         }
     }
-    
+
     // I need some indication that the behavior id different in edit mode.
     // If the user is authorized, the new bounds are automatically saved.
     if (EDIT) {
@@ -109,6 +127,21 @@ function ViewEditMenu (viewer) {
             .click(function(){self.SetViewBounds();});
     }
 
+    this.StackDetectButton =
+        $('<button>').appendTo(this.Tab.Panel)
+            .text("Detect Tissue Sections")
+            .hide()
+            .css({'margin':'2px 0px',
+                  'width' : '100%'})
+            .click(function(){self.DetectTissueSections();});
+}
+
+
+
+
+ViewEditMenu.prototype.DetectTissueSections = function() {
+    initHagfish();
+    findHagFishSections(2, 0.0002, 0.01);
 }
 
 
@@ -130,6 +163,17 @@ ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
     NOTES_WIDGET.SaveCallback();
 }
+
+// Change type to presentation, save and reload page.
+ViewEditMenu.prototype.ConvertToPresentation = function() {
+    this.Tab.PanelOff();
+    //var note = NOTES_WIDGET.SelectedNote;
+    //note.Type = "Presentation";
+    //NOTES_WIDGET.SaveCallback();
+    //window.location.href = "/webgl-viewer?view="+note.Id;
+    PresentationOn();
+}
+
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
     var cam = viewer.GetCamera();
@@ -180,7 +224,8 @@ ViewEditMenu.prototype.SetViewBounds = function() {
 ViewEditMenu.prototype.SetImageBounds = function() {
     this.Tab.PanelOff();
 
-    var viewer = EVENT_MANAGER.CurrentViewer;
+    //var viewer = EVENT_MANAGER.CurrentViewer;
+    var viewer = this.Viewer;
     var imageDb = viewer.GetCache().Image.database;
     var imageId = viewer.GetCache().Image._id;
     var bounds = this.GetViewerBounds(viewer);
@@ -244,12 +289,11 @@ ViewEditMenu.prototype.ShowSlideInformation = function() {
 ViewEditMenu.prototype.FlipHorizontal = function() {
     this.Tab.PanelOff();
     // When the circle button is pressed, create the widget.
-    var viewer = EVENT_MANAGER.CurrentViewer;
-    if ( ! viewer) { return; }
+    if ( ! this.Viewer) { return; }
 
     var cam = viewer.GetCamera();
-    viewer.ToggleMirror();
-    viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
+    this.Viewer.ToggleMirror();
+    this.Viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
     RecordState();
 }
 

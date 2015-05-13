@@ -17,7 +17,7 @@ function AnnotationWidget (viewer) {
     viewer.AnnotationWidget = this;
     
     if ( ! MOBILE_DEVICE) {
-        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png");
+        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
         viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
         new ToolTip(this.Tab.Div, "Annotation");
 
@@ -94,6 +94,17 @@ function AnnotationWidget (viewer) {
             .attr('type','image')
             .attr('src',"/webgl-viewer/static/select_lasso.png")
             .click(function(){self.NewLasso();});
+        this.SectionsButton = $('<img>')
+            .appendTo(this.Tab.Panel)
+            .css({'height': '28px',
+                  'opacity': '0.6',
+                  'margin': '1px',
+                  'border-style': 'outset',
+                  'border-radius': '4px',
+                  'border-thickness':'2px'})
+            .attr('type','image')
+            .attr('src',"/webgl-viewer/static/sections.png")
+            .click(function(){self.DetectSections();});
         /*this.FillButton = $('<img>')
             .appendTo(this.Tab.Panel)
             .css({'height': '28px',
@@ -236,3 +247,51 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     return widget;
 }
 
+
+AnnotationWidget.prototype.DetectSections = function() {
+    var widget = this.Viewer.ActiveWidget;
+    var button = this.SectionsButton;
+    if ( widget ) {
+        if  (button.Pressed) {
+            // The user pressed the button again (while it was active).
+            widget.Deactivate();
+            return;
+        }
+        // This call sets pressed to false as a side action.
+        widget.Deactivate();
+    }
+    button.Pressed = true;
+    button.css({'border-style': 'inset',
+                'opacity': '1.0'});
+
+    // See if a SectionsWidget already exists.
+    var widget = null;
+    for (var i = 0; i < this.Viewer.WidgetList.length && widget == null; ++i) {
+        var w = this.Viewer.WidgetList[i];
+        //if (w instanceOf SectionsWidget) {
+        if (w.Type == "sections") {
+            widget = w;
+        }
+    }
+    if (widget == null) {
+        // Find sections to initialize sections widget.
+        widget = new SectionsWidget(this.Viewer, false);
+        widget.ComputeSections();
+        if (widget.IsEmpty()) {
+            widget.RemoveFromViewer();
+            button.css({'border-style': 'outset',
+                        'opacity': '0.6'});
+            button.Pressed = false;
+            return;
+        }
+    }
+
+    widget.SetActive(true);
+    widget.DeactivateCallback = 
+        function () {
+            button.css({'border-style': 'outset',
+                        'opacity': '0.6'});
+            widget.DeactivateCallback = undefined;
+            button.Pressed = false;
+        }
+}

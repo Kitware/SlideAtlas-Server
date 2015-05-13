@@ -114,6 +114,13 @@ Running SlideAtlas
 To run without websockets support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Unless actively debugging, the fast way to run slide-atlas for serving tiles is to use gunicorn. This can start multiple workers.
+
+.. code-block:: shell-session
+
+   $ EXPORT SLIDEATLAS_CONFIG_PATH=/path/to/site_config
+   $ gunicorn --reload run_gunicorn:app -b 0.0.0.0:8080 -w 4 --log-level=DEBUG
+
 .. code-block:: none
 
    $ EXPORT SLIDEATLAS_CONFIG_PATH=/path/to/site_config

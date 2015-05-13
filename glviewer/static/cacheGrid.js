@@ -1,5 +1,5 @@
 // This cache is being generalized to other sources.
-// We are using grinds to store tiles for each level.
+// We are using grids to store tiles for each level.
 
 
 // A stripped down source object.
@@ -58,24 +58,6 @@ function GetIipTileUrl () {
     this.ImageWidth = 0;
     this.TileSize = 256;
     this.NumLevels = 0;
-}
-
-
-
-//==============================================================================
-
-
-
-function FindCache(image) {
-    // Look through existing caches and reuse one if possible
-    for (var i = 0; i < CACHES.length; ++i) {
-        if (CACHES[i].Image._id == image._id) {
-            return CACHES[i];
-        }
-    }
-    var cache = new Cache();
-    cache.SetImageData(image);
-    return cache;
 }
 
 

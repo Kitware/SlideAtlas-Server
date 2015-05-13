@@ -172,6 +172,11 @@ CircleWidget.prototype.Load = function(obj) {
   }
 }
 
+CircleWidget.prototype.HandleMouseWheel = function(event) {
+    // TODO: Scale the radius.
+    return false;
+}
+
 CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
   // The dialog consumes all key events.
   if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {

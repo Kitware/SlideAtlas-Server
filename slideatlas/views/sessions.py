@@ -130,7 +130,8 @@ def view_a_session(session):
                     'view': view_son['id'],
                     'bounds': bounds,
                     'tile_size': tileSize,
-                    'levels': imgObj['levels']
+                    'levels': imgObj['levels'],
+                    'dimensions': imgObj['dimensions']
                 })
 
         ajax_data = {
@@ -309,11 +310,12 @@ def session_save_stack():
     for item in stack_items:
         camera = {'FocalPoint': [item['x'], item['y'], 0],
                   'Height':     item['height'],
-                  'Roll':       0}
+                  'Roll':       item['roll']}
         viewer_record = {
             'Image': ObjectId(item['img']),
             'Database': ObjectId(item['db']),
-            'Camera' : camera}
+            'Camera' : camera,
+            'Annotations': [item['widget']]}
         records.append(viewer_record)
 
 
@@ -323,7 +325,7 @@ def session_save_stack():
         correlationHeight = (item0['height']+item1['height'])*0.5;
         records[idx]['Transform'] = {'Correlations':[{'point0': [item0['x'], item0['y']],
                                                       'point1': [item1['x'], item1['y']],
-                                                      'roll': 0,
+                                                      'roll':   item1['roll']-item0['roll'],
                                                       'height': correlationHeight } ]}
 
     # Now make the view

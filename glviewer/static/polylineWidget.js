@@ -286,6 +286,11 @@ PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
 }
 
+PolylineWidget.prototype.HandleMouseWheel = function(event) {
+    // TODO: Scale the thickness.
+    return false;
+}
+
 PolylineWidget.prototype.HandleKeyPress = function(event) {
   // Copy
   if (event.keyCode == 67 && event.ctrlKey) {

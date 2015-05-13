@@ -77,7 +77,6 @@ function Viewer (viewport) {
     this.RollTarget = this.MainView.Camera.Roll;
     
     this.AnnotationVisibility = ANNOTATION_ON;
-    this.ShapeList = [];
     this.WidgetList = [];
     this.ActiveWidget = null;
     
@@ -184,6 +183,15 @@ function Viewer (viewport) {
 			      function (event){return self.HandleOverViewMouseWheel(event);},
 			      false);
     }
+
+    this.CopyrightWrapper = $('<div>')
+        .appendTo(this.MainView.CanvasDiv)
+        .css({'position':'absolute',
+              'opacity' :'0.3',
+              'bottom'  :'1px',
+              'left'    :'100px',
+              'z-index' : '4'});
+
 }
 
 // These should be in an overview widget class.
@@ -281,7 +289,7 @@ Viewer.prototype.RollMove = function (e) {
 
 Viewer.prototype.InitializeZoomGui = function() {
     // Put the zoom bottons in a tab.
-    this.ZoomTab = new Tab("/webgl-viewer/static/mag.png");
+    this.ZoomTab = new Tab("/webgl-viewer/static/mag.png", "zoomTab");
     new ToolTip(this.ZoomTab.Div, "Zoom scroll");
     // TODO: Get rid of this Gui object stuff and just rely on css positioning.
     this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
@@ -389,55 +397,56 @@ Viewer.prototype.SaveImage = function(fileName) {
 }
 
 
- // Cancel the large image request before it finishes.
- Viewer.prototype.CancelLargeImage = function() {
-     // This will abort the save blob that occurs after rendering.
-     SetFinishedLoadingCallback(undefined);
-     // We also need to stop the request for pending tiles.
-     ClearQueue();
+// Cancel the large image request before it finishes.
+Viewer.prototype.CancelLargeImage = function() {
+    // This will abort the save blob that occurs after rendering.
+    ClearFinishedLoadingCallbacks();
+    // We also need to stop the request for pending tiles.
+    ClearQueue();
      // Incase some of the queued tiles were for normal rendering.
-     eventuallyRender();
- }
+    eventuallyRender();
+}
 
- // Create a virtual viewer to save a very large image.
- Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
-                                            finishedCallback) {
-     var self = this;
-     var cache = this.GetCache();
-     var viewport = [0,0, width, height];
-     var cam = this.GetCamera();
 
-     // Clone the main view.
-     var view = new View();
-     view.InitializeViewport(viewport, 1, true);
-     view.SetCache(cache);
-     view.Canvas.attr("width", width);
-     view.Canvas.attr("height", height);
-     var newCam = view.Camera;
-     newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
-     newCam.Roll = cam.Roll;
-     newCam.Height = cam.Height;
-     newCam.ComputeMatrix();
+// Create a virtual viewer to save a very large image.
+Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
+                                           finishedCallback) {
+    var self = this;
+    var cache = this.GetCache();
+    var viewport = [0,0, width, height];
+    var cam = this.GetCamera();
 
-     // Load only the tiles we need.
-     var tiles = cache.ChooseTiles(newCam, 0, []);
-     for (var i = 0; i < tiles.length; ++i) {
-         LoadQueueAddTile(tiles[i]);
-     }
-     LoadQueueUpdate();
+    // Clone the main view.
+    var view = new View();
+    view.InitializeViewport(viewport, 1, true);
+    view.SetCache(cache);
+    view.Canvas.attr("width", width);
+    view.Canvas.attr("height", height);
+    var newCam = view.Camera;
+    newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
+    newCam.Roll = cam.Roll;
+    newCam.Height = cam.Height;
+    newCam.ComputeMatrix();
 
-     //this.CancelLargeImage = false;
-     SetFinishedLoadingCallback(
-         function () {self.SaveLargeImage2(view, fileName,
-                                           width, height, stack,
-                                           finishedCallback);}
-     );
+    // Load only the tiles we need.
+    var tiles = cache.ChooseTiles(newCam, 0, []);
+    for (var i = 0; i < tiles.length; ++i) {
+        LoadQueueAddTile(tiles[i]);
+    }
+    LoadQueueUpdate();
 
-     console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+    //this.CancelLargeImage = false;
+    AddFinishedLoadingCallback(
+        function () {self.SaveLargeImage2(view, fileName,
+                                          width, height, stack,
+                                          finishedCallback);}
+    );
 
-     // Needed to trigger loading.
-     eventuallyRender();
- }
+    console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+
+    // Needed to trigger loading.
+    //eventuallyRender();
+}
 
 
  Viewer.prototype.SaveLargeImage2 = function(view, fileName,
@@ -460,9 +469,7 @@ Viewer.prototype.SaveImage = function(fileName) {
 
      view.DrawTiles();
      if (this.AnnotationVisibility) {
-         for(i=0; i<this.ShapeList.length; i++){
-             this.ShapeList[i].Draw(view);
-         }
+         this.MainView.DrawShapes();
          for(i in this.WidgetList){
              this.WidgetList[i].Draw(view, this.AnnotationVisibility);
          }
@@ -486,7 +493,7 @@ Viewer.prototype.SaveImage = function(fileName) {
  var SAVE_FINISH_CALLBACK;
  Viewer.prototype.EventuallySaveImage = function(fileName, finishedCallback) {
      var self = this;
-     SetFinishedLoadingCallback(
+     AddFinishedLoadingCallback(
          function () {
              self.SaveImage(fileName); 
              if (finishedCallback) {
@@ -503,7 +510,7 @@ Viewer.prototype.SaveImage = function(fileName) {
  // Save a bunch of stack images ----
  Viewer.prototype.SaveStackImages = function(fileNameRoot) {
      var self = this;
-     SetFinishedLoadingCallback(
+     AddFinishedLoadingCallback(
          function () {
              self.SaveStackImage(fileNameRoot); 
          }
@@ -518,7 +525,7 @@ Viewer.prototype.SaveImage = function(fileName) {
      this.SaveImage(fileName);
      if (note.StartIndex < note.ViewerRecords.length-1) {
          NAVIGATION_WIDGET.NextNote();
-         SetFinishedLoadingCallback(
+         AddFinishedLoadingCallback(
              function () {
                  self.SaveStackImage(fileNameRoot); 
              }
@@ -636,11 +643,11 @@ Viewer.prototype.SaveImage = function(fileName) {
          }
 
          if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2014";
+             cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
-         /*this.CopyrightWrapper
-           .html(cache.Image.copyright)
-           .show();*/
+         this.CopyrightWrapper
+             .html(cache.Image.copyright)
+             .show();
      }
 
      this.MainView.SetCache(cache);
@@ -958,29 +965,33 @@ Viewer.prototype.SaveImage = function(fileName) {
 
  // Load a widget from a json object (origin MongoDB).
  Viewer.prototype.LoadWidget = function(obj) {
-   switch(obj.type){
+     var widget;
+     switch(obj.type){
      case "lasso":
-       var lasso = new LassoWidget(this, false);
-       lasso.Load(obj);
-       break;
+         widget = new LassoWidget(this, false);
+         break;
      case "pencil":
-       var pencil = new PencilWidget(this, false);
-       pencil.Load(obj);
-       break;
+         widget = new PencilWidget(this, false);
+         break;
      case "text":
-       var text = new TextWidget(this, "");
-       text.Load(obj);
-       break;
+         widget = new TextWidget(this, "");
+         break;
      case "circle":
-       var circle = new CircleWidget(this, false);
-       circle.Load(obj);
-       break;
+         widget = new CircleWidget(this, false);
+         break;
      case "polyline":
-       var pl = new PolylineWidget(this, false);
-       pl.Load(obj);
-       break;
-   }
- }
+         widget = new PolylineWidget(this, false);
+         break;
+     case "stack_section":
+         widget = new StackSectionWidget(this);
+         break;
+     case "sections":
+         widget = new SectionsWidget(this);
+         break;
+     }
+     widget.Load(obj);
+     return widget;
+}
 
  // I am doing a dance because I expect widget SetActive to call this,
  // but this calls widget SetActive.
@@ -1009,79 +1020,77 @@ Viewer.prototype.SaveImage = function(fileName) {
  }
 
 
- Viewer.prototype.Draw = function() {
-     //console.time("ViewerDraw");
+Viewer.prototype.Draw = function() {
+    //console.time("ViewerDraw");
 
-     // connectome
-     if ( ! this.MainView.Section) {
-         return;
-     }
+    // connectome
+    if ( ! this.MainView.Section) {
+        return;
+    }
 
-     this.ConstrainCamera();
-     // Should the camera have the viewport in them?
-     // The do not currently hav a viewport.
+    this.ConstrainCamera();
+    // Should the camera have the viewport in them?
+    // The do not currently hav a viewport.
 
-     // Rendering text uses blending / transparency.
-     if (GL) {
-         GL.disable(GL.BLEND);
-         GL.enable(GL.DEPTH_TEST);
-     }
+    // Rendering text uses blending / transparency.
+    if (GL) {
+        GL.disable(GL.BLEND);
+        GL.enable(GL.DEPTH_TEST);
+    }
 
-     this.MainView.DrawTiles();
+    this.MainView.DrawTiles();
 
-     // This is only necessary for webgl, Canvas2d just uses a border.
-     this.MainView.DrawOutline(false);
-     if (this.OverView) {
-         this.OverView.DrawTiles();
-         this.OverView.DrawOutline(true);
-     }
-     if (this.AnnotationVisibility) {
-         for(i=0; i<this.ShapeList.length; i++){
-             this.ShapeList[i].Draw(this.MainView);
-         }
-         for(i in this.WidgetList){
-             this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
-         }
-     }
+    // This is only necessary for webgl, Canvas2d just uses a border.
+    this.MainView.DrawOutline(false);
+    if (this.OverView) {
+        this.OverView.DrawTiles();
+        this.OverView.DrawOutline(true);
+    }
+    if (this.AnnotationVisibility) {
+        this.MainView.DrawShapes();
+        for(i in this.WidgetList){
+            this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
+        }
+    }
 
-     // Draw a rectangle in the overview representing the camera's view.
-     if (this.OverView) {
-         this.MainView.Camera.Draw(this.OverView);
-         if (this.HistoryFlag) {
-             this.OverView.DrawHistory(this.MainView.Viewport[3]);
-         }
-     }
+    // Draw a rectangle in the overview representing the camera's view.
+    if (this.OverView) {
+        this.MainView.Camera.Draw(this.OverView);
+        if (this.HistoryFlag) {
+            this.OverView.DrawHistory(this.MainView.Viewport[3]);
+        }
+    }
 
-     var cache = this.GetCache();
-     if (cache != undefined) {
-         var copyright = cache.Image.copyright;
-         this.MainView.DrawCopyright(copyright);
-     }
-     // I am using shift for stack interaction.
-     // Turn on the focal point when shift is pressed.
-     if (EVENT_MANAGER.CursorFlag && EDIT) {
-         this.MainView.DrawFocalPoint();
-         if (this.StackCorrelations) {
-             this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
-         }
-     }
+    var cache = this.GetCache();
+    if (cache != undefined) {
+        var copyright = cache.Image.copyright;
+        //this.MainView.DrawCopyright(copyright);
+    }
+    // I am using shift for stack interaction.
+    // Turn on the focal point when shift is pressed.
+    if (EVENT_MANAGER.CursorFlag && EDIT) {
+        this.MainView.DrawFocalPoint();
+        if (this.StackCorrelations) {
+            this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
+        }
+    }
 
-     // Here to trigger FINISHED_LOADING_CALLBACK
-     LoadQueueUpdate();
-     //console.timeEnd("ViewerDraw");
- }
+    // Here to trigger FINISHED_LOADING_CALLBACK
+    LoadQueueUpdate();
+    //console.timeEnd("ViewerDraw");
+}
 
- // Makes the viewer clean to setup a new slide...
- Viewer.prototype.Reset = function() {
-   this.SetCache(null);
-   this.WidgetList = [];
-   this.ShapeList = [];
- }
+// Makes the viewer clean to setup a new slide...
+Viewer.prototype.Reset = function() {
+    this.SetCache(null);
+    this.WidgetList = [];
+    this.MainView.ShapeList = [];
+}
 
- // A list of shapes to render in the viewer
- Viewer.prototype.AddShape = function(shape) {
-   this.ShapeList.push(shape);
- }
+// A list of shapes to render in the viewer
+Viewer.prototype.AddShape = function(shape) {
+    this.MainView.AddShape(shape);
+}
 
  Viewer.prototype.Animate = function() {
    if (this.AnimateDuration <= 0.0) {
@@ -1701,7 +1710,9 @@ Viewer.prototype.SaveImage = function(fileName) {
  Viewer.prototype.HandleMouseWheel = function(event) {
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
-         return false;
+         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+             return false;
+         }
      }
 
      if ( ! event.offsetX) {
@@ -1877,86 +1888,62 @@ Viewer.prototype.SaveImage = function(fileName) {
  }
 
 
- // Get the current scale factor between pixels and world units.
- Viewer.prototype.GetPixelsPerUnit = function() {
-   // Determine the scale difference between the two coordinate systems.
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
-   var m = cam.Matrix;
+// Get the current scale factor between pixels and world units.
+Viewer.prototype.GetPixelsPerUnit = function() {
+    // Determine the scale difference between the two coordinate systems.
+    var viewport = this.GetViewport();
+    var cam = this.MainView.Camera;
+    var m = cam.Matrix;
 
-   // Convert from world coordinate to view (-1->1);
-   return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
- }
+    // Convert from world coordinate to view (-1->1);
+    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+}
 
- // Covert a point from world coordiante system to viewer coordinate system (units pixels).
- Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
-   var m = cam.Matrix;
+// Covert a point from world coordiante system to viewer coordinate system (units pixels).
+Viewer.prototype.ConvertPointWorldToViewer = function(x, y) {
+    var cam = this.MainView.Camera;
+    return cam.ConvertPointWorldToViewer(x, y);
+}
 
-   // Convert from world coordinate to view (-1->1);
-   var h = (x*m[3] + y*m[7] + m[15]);
-   var xNew = (x*m[0] + y*m[4] + m[12]) / h;
-   var yNew = (x*m[1] + y*m[5] + m[13]) / h;
-   // Convert from view to screen pixel coordinates.
-   xNew = (1.0+xNew)*0.5*viewport[2];
-   yNew = (1.0-yNew)*0.5*viewport[3];
-
-   return [xNew, yNew];
- }
+Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
+    var cam = this.MainView.Camera;
+    return cam.ConvertPointViewerToWorld(x, y);
+}
 
 
- Viewer.prototype.ConvertPointViewerToWorld = function(x, y) {
-   var viewport = this.GetViewport();
-   var cam = this.MainView.Camera;
+// Where else should I put this?
+function colorNameToHex(color)
+{
+    var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
+                  "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
+                  "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
+                  "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
+                  "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
+                  "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
+                  "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
+                  "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
+                  "honeydew":"#f0fff0","hotpink":"#ff69b4",
+                  "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
+                  "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
+                  "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
+                  "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
+                  "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
+                  "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
+                  "navajowhite":"#ffdead","navy":"#000080",
+                  "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
+                  "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
+                  "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
+                  "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
+                  "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
+                  "violet":"#ee82ee",
+                  "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
+                  "yellow":"#ffff00","yellowgreen":"#9acd32"};
 
-   // Convert to world coordinate system
-   // Compute focal point from inverse overview camera.
-   x = x/viewport[2];
-   y = y/viewport[3];
-   x = (x*2.0 - 1.0)*cam.Matrix[15];
-   y = (1.0 - y*2.0)*cam.Matrix[15];
-   var m = cam.Matrix;
-   var det = m[0]*m[5] - m[1]*m[4];
-   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-   var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+    if (typeof colors[color.toLowerCase()] != 'undefined')
+        return colors[color.toLowerCase()];
 
-   return [xNew, yNew];
- }
-
- // Where else should I put this?
- function colorNameToHex(color)
- {
-     var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",
-     "beige":"#f5f5dc","bisque":"#ffe4c4","black":"#000000","blanchedalmond":"#ffebcd","blue":"#0000ff","blueviolet":"#8a2be2","brown":"#a52a2a","burlywood":"#deb887",
-     "cadetblue":"#5f9ea0","chartreuse":"#7fff00","chocolate":"#d2691e","coral":"#ff7f50","cornflowerblue":"#6495ed","cornsilk":"#fff8dc","crimson":"#dc143c","cyan":"#00ffff",
-     "darkblue":"#00008b","darkcyan":"#008b8b","darkgoldenrod":"#b8860b","darkgray":"#a9a9a9","darkgreen":"#006400","darkkhaki":"#bdb76b","darkmagenta":"#8b008b","darkolivegreen":"#556b2f",
-     "darkorange":"#ff8c00","darkorchid":"#9932cc","darkred":"#8b0000","darksalmon":"#e9967a","darkseagreen":"#8fbc8f","darkslateblue":"#483d8b","darkslategray":"#2f4f4f","darkturquoise":"#00ced1",
-     "darkviolet":"#9400d3","deeppink":"#ff1493","deepskyblue":"#00bfff","dimgray":"#696969","dodgerblue":"#1e90ff",
-     "firebrick":"#b22222","floralwhite":"#fffaf0","forestgreen":"#228b22","fuchsia":"#ff00ff",
-     "gainsboro":"#dcdcdc","ghostwhite":"#f8f8ff","gold":"#ffd700","goldenrod":"#daa520","gray":"#808080","green":"#008000","greenyellow":"#adff2f",
-     "honeydew":"#f0fff0","hotpink":"#ff69b4",
-     "indianred ":"#cd5c5c","indigo ":"#4b0082","ivory":"#fffff0","khaki":"#f0e68c",
-     "lavender":"#e6e6fa","lavenderblush":"#fff0f5","lawngreen":"#7cfc00","lemonchiffon":"#fffacd","lightblue":"#add8e6","lightcoral":"#f08080","lightcyan":"#e0ffff","lightgoldenrodyellow":"#fafad2",
-     "lightgrey":"#d3d3d3","lightgreen":"#90ee90","lightpink":"#ffb6c1","lightsalmon":"#ffa07a","lightseagreen":"#20b2aa","lightskyblue":"#87cefa","lightslategray":"#778899","lightsteelblue":"#b0c4de",
-     "lightyellow":"#ffffe0","lime":"#00ff00","limegreen":"#32cd32","linen":"#faf0e6",
-     "magenta":"#ff00ff","maroon":"#800000","mediumaquamarine":"#66cdaa","mediumblue":"#0000cd","mediumorchid":"#ba55d3","mediumpurple":"#9370d8","mediumseagreen":"#3cb371","mediumslateblue":"#7b68ee",
-     "mediumspringgreen":"#00fa9a","mediumturquoise":"#48d1cc","mediumvioletred":"#c71585","midnightblue":"#191970","mintcream":"#f5fffa","mistyrose":"#ffe4e1","moccasin":"#ffe4b5",
-     "navajowhite":"#ffdead","navy":"#000080",
-     "oldlace":"#fdf5e6","olive":"#808000","olivedrab":"#6b8e23","orange":"#ffa500","orangered":"#ff4500","orchid":"#da70d6",
-     "palegoldenrod":"#eee8aa","palegreen":"#98fb98","paleturquoise":"#afeeee","palevioletred":"#d87093","papayawhip":"#ffefd5","peachpuff":"#ffdab9","peru":"#cd853f","pink":"#ffc0cb","plum":"#dda0dd","powderblue":"#b0e0e6","purple":"#800080",
-     "red":"#ff0000","rosybrown":"#bc8f8f","royalblue":"#4169e1",
-     "saddlebrown":"#8b4513","salmon":"#fa8072","sandybrown":"#f4a460","seagreen":"#2e8b57","seashell":"#fff5ee","sienna":"#a0522d","silver":"#c0c0c0","skyblue":"#87ceeb","slateblue":"#6a5acd","slategray":"#708090","snow":"#fffafa","springgreen":"#00ff7f","steelblue":"#4682b4",
-     "tan":"#d2b48c","teal":"#008080","thistle":"#d8bfd8","tomato":"#ff6347","turquoise":"#40e0d0",
-     "violet":"#ee82ee",
-     "wheat":"#f5deb3","white":"#ffffff","whitesmoke":"#f5f5f5",
-     "yellow":"#ffff00","yellowgreen":"#9acd32"};
-
-     if (typeof colors[color.toLowerCase()] != 'undefined')
-         return colors[color.toLowerCase()];
-
-     return false;
- }
+    return false;
+}
 
 
 
