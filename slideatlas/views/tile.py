@@ -27,7 +27,7 @@ def tile(image_store_id, image_id, tile_name):
     # tiles could change, especially if PTIFFs are rebuilt, so mark the ETag as
     #   weak
     # TODO: could we ensure that tiles are immutable?
-    response.set_etag('%s-%s' % (image_id, tile_name), weak=True)
+    response.set_etag('%s-%s-v2' % (image_id, tile_name), weak=True)
     response.cache_control.public = True
     # since Last Modified is not used, and the ETag is weak, setting a max-age
     #   is important, so clients don't cache tiles too long
