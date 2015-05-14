@@ -36,6 +36,15 @@ class TileReader():
         self.levels = {}
         self.isBigTIFF = False
         self.barcode = ""
+        self.tif = None
+
+    def close(self):
+        if self.tif:
+            self.tif.close()
+            self.tif = None
+
+    def __del__(self):
+        pass
 
     def select_dir(self, dir):
         """

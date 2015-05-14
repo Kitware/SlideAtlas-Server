@@ -2,7 +2,6 @@ import logging
 
 from tiff_reader import TileReader
 import collections
-import cPickle
 
 import flask
 
@@ -40,8 +39,8 @@ class LRUCache(object):
             self.cache.pop(key)
         except KeyError:
             if len(self.cache) >= self.capacity:
-                key, val = self.cache.popitem(last=False)
-                del val
+                _, val = self.cache.popitem(last=False)
+                val.close()
 
         self.cache[key] = value
 
@@ -57,9 +56,15 @@ def make_reader(params):
     if cache is None:
         cache = LRUCache()
 
-    key = cPickle.dumps(params)
+    key = str(params["dir"]) + "_" + params["fname"][-10:]
     reader = cache.get(key)
     if not reader:
+        reader = TileReader()
+        reader.set_input_params(params)
+        cache.set(key, reader)
+        logger.info("Cache size is now: %d of %d" % (len(cache.cache), cache.capacity))
+    elif reader.dir != params["dir"]:
+        logger.info("Useless reader")
         reader = TileReader()
         reader.set_input_params(params)
         cache.set(key, reader)
