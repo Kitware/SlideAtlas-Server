@@ -128,7 +128,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
             reader_result = reader.dump_tile(pixel_x, pixel_y, tile_buffer)
 
             if reader_result == 0:
-                raise DoesNotExist('Tile not %s is stored in "%s"' % (tile_name, tiff_path))
+                raise DoesNotExist('Tile %s is not stored in "%s"' % (tile_name, tiff_path))
 
             if raw:
                 tile_buffer.seek(0L)
