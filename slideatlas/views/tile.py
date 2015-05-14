@@ -1,20 +1,20 @@
 # coding=utf-8
 
-from flask import Blueprint, Response, current_app, request, redirect, url_for
+from flask import Blueprint, Response, current_app, request, redirect
 
-from slideatlas import models#, security
+from slideatlas import models
 from slideatlas.common_utils import jsonify
 
 import base64
 from bson import ObjectId
 
- ################################################################################
+################################################################################
 mod = Blueprint('tile', __name__)
 
 
 ################################################################################
 @mod.route('/tile/<ObjectId:image_store_id>/<ObjectId:image_id>/<string:tile_name>')
-#@security.login_required
+# @security.login_required
 def tile(image_store_id, image_id, tile_name):
     """
     Return a tile image.
@@ -51,7 +51,7 @@ def tile(image_store_id, image_id, tile_name):
 
 
 @mod.route('/tile')
-#@security.login_required
+# @security.login_required
 def tile_query():
     image_store_id = request.args.get('db')
     image_id = request.args.get('img')
@@ -62,7 +62,7 @@ def tile_query():
 
 ################################################################################
 @mod.route('/thumb/<ImageStore:image_store>/<Image:image>')
-#@security.login_required
+# @security.login_required
 def thumb(image_store, image):
     """
     Return a thumbnail image
@@ -80,7 +80,7 @@ def thumb(image_store, image):
 
 ################################################################################
 @mod.route('/thumb')
-#@security.login_required
+# @security.login_required
 def thumb_query():
     image_id = request.args.get('img')
     image_store_id = request.args.get('db')
@@ -91,6 +91,7 @@ def thumb_query():
 
     return thumb(image_store, image)
 
+
 ################################################################################
 @mod.route('/viewthumb')
 def thumb_from_view():
@@ -100,10 +101,10 @@ def thumb_from_view():
     """
 
     # Get parameters
-    viewid = ObjectId(request.args.get("viewid",None))
+    viewid = ObjectId(request.args.get("viewid", None))
     # which = ObjectId(request.args.get("which","macro"))
     which = "macro"
-    force = bool(request.args.get("force",False))
+    force = bool(request.args.get("force", False))
 
     # Implementation without View
     viewcol = models.View._get_collection()
@@ -127,7 +128,7 @@ def thumb_from_view():
                 models.Image.objects.get(id=viewobj["ViewerRecords"][0]["Image"]))
 
             viewcol.update({"_id": viewid},
-                {"$set" : { "thumbs." + which: base64.b64encode(thumbimgdata)}})
+                           {"$set": {"thumbs." + which: base64.b64encode(thumbimgdata)}})
 
     viewobj = viewcol.find_one({"_id": viewid})
     imagestr = viewobj["thumbs"][which]
@@ -146,7 +147,7 @@ def view_from_viewid():
     """
 
     # Get parameters
-    viewid = ObjectId(request.args.get("viewid",None))
+    viewid = ObjectId(request.args.get("viewid", None))
 
     # Implementation without View
     viewcol = models.View._get_collection()
