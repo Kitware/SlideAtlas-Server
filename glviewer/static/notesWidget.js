@@ -188,7 +188,7 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    this.TextEntry = $('<div>')
+    this.TextEntry = $('<pre>')
         .appendTo(this.TextDiv)
         .attr('contenteditable', "true")
         .css({'box-sizing': 'border-box',
@@ -742,7 +742,7 @@ Note.prototype.Select = function() {
     }
 
     if (this.Type == "Stack") {
-        VIEW_MENU.StackDetectButton.show();
+        if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
         // Select only gets called when the stack is first loaded.
         var self = this;
         VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
@@ -756,7 +756,7 @@ Note.prototype.Select = function() {
             NOTES_WIDGET.NewButton.hide();
         }
     } else {
-        VIEW_MENU.StackDetectButton.hide();
+        if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
         // Clear the sync callback.
         VIEWER1.OnInteraction();
         VIEWER2.OnInteraction();
