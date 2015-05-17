@@ -2610,12 +2610,17 @@ function HistogramIntegral(hist) {
 // Just look for the minimum histogram value in the correct
 // intensity range.
 function PickThreshold(hist) {
+    return PickThresholdContaining(hist,10);
+}            
+
+// Threshold has to be above val.
+function PickThresholdContaining(hist, val) {
     var best = -1;
     var bestIdx = -1;
 
     var integral = HistogramIntegral(hist);
     var max = integral[integral.length - 1];
-    for (idx = 10; idx < hist.length-10; ++idx) {
+    for (idx = val; idx < hist.length-10; ++idx) {
         // Compute a metric for a good threshold.
         var goodness = 0;
         // > 10%, < 90%
@@ -3035,14 +3040,15 @@ function testDeformableAlign(spacing) {
 
 // We might constrain sequential contours to be similar areas.
 // This could eliminate the need for manual verification.
-function FindSectionContours(data) {
+function FindSectionContours(data, val) {
     var smooth = 2; // is this really necesary?  It is expensive.
     var min = 0.00002;
     var max = 0.5;
+    if ( ! val) { val = 10; }
 
     SmoothDataAlphaRGB(data, smooth);
     var histogram = ComputeIntensityHistogram(data, true);
-    var threshold = PickThreshold(histogram);
+    var threshold = PickThresholdContaining(histogram, val);
     var contours = GetHagFishContours(data, threshold, min, max);
 
     return contours;

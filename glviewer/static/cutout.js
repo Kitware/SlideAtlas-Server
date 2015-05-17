@@ -172,9 +172,18 @@ CutoutThumb.prototype.Click = function(callback) {
     var self = this;
     this.ClickCallback = callback;
     this.Div.click(function (e) {
-        self.SlideX = (e.offsetX * self.ScreenPixelSpacing) 
+        // It is a real pain to get the mouse position rlative to the div.
+        var x = e.pageX;
+        var y = e.pageY;
+        // Now get the location of this thumb on the screen.
+        var offset = self.Div.offset();
+        x -= offset.left;
+        y -= offset.top;
+        console.log("click: " + x + ", " + y);
+
+        self.SlideX = (x * self.ScreenPixelSpacing) 
             + self.ScreenPixelOrigin[0];
-        self.SlideY = (e.offsetY * self.ScreenPixelSpacing) 
+        self.SlideY = (y * self.ScreenPixelSpacing) 
             + self.ScreenPixelOrigin[1];
         (self.ClickCallback)(self);
     });

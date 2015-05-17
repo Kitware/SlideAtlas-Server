@@ -261,9 +261,11 @@ function addViewToStack(thumb) {
     if (thumb.ViewData) {
         var sectionsObj = null;
         var annotations = thumb.ViewData.ViewerRecords[0].Annotations;
-        for (var i = 0; i < annotations.length && sectionsObj == null; ++i) {
-            if (annotations[i].type == "sections") {
-                sectionsObj = annotations[i];
+        if (annotations) {
+            for (var i = 0; i < annotations.length && sectionsObj == null; ++i) {
+                if (annotations[i].type == "sections") {
+                    sectionsObj = annotations[i];
+                }
             }
         }
         if (sectionsObj) {
@@ -294,7 +296,15 @@ function addViewToStack(thumb) {
     // We do not have the view data to get roll.
     GetCutoutImage(cache, dims, fp, scale, 0,
         function (data) {
-            contours = FindSectionContours(data);
+            // Use has clicked on a section. Make sure the threshold
+            // is above the pixel value.
+            // Change xMid and yMid into data coordinates (assume roll is 0).
+            var iPt = data.Camera.ConvertPointWorldToViewer(xMid,yMid);
+            //var ix = Math.round(((xMid - fp[0]) / scale) + (dims[0]*0.5));
+            //var iy = Math.round(((yMid - fp[1]) / scale) + (dims[1]*0.5));
+            var val = data.GetIntensity(iPt[0], iPt[1]);
+
+            contours = FindSectionContours(data, val);
             // Find the contour that is closest to the selected point.
             contours[0].TransformToWorld();
 
