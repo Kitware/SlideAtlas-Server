@@ -357,12 +357,14 @@ StackSectionWidget.prototype.RigidAlignWithMap = function(distMap, trans) {
     // Try several rotations to see which is the best.
     bestTrans = null;
     bestDist = -1;
-    for (a = 0; a < 360; a += 30) {
+    for (a = -180; a < 180; a += 30) {
         tmpTrans = [trans[0],trans[1],Math.PI*a/180];
         var dist;
         for (i = 0; i < 5; ++i) {
             dist = this.RigidDecentStep(tmpTrans, center, distMap, 200000);
         }
+        // For symetrical cases, give no rotation a slight advantage.
+        dist = dist * (1.0 + Math.abs(a/180));
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
             bestTrans = tmpTrans.slice(0);
