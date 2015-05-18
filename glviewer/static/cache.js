@@ -37,9 +37,9 @@ function GigamacroSource () {
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
-        var g = this.GridSize[z];
+        var g = this.GridSize[level];
         var num = y*g[0] + x;
-        for (var i = 0; i < z; ++i) {
+        for (var i = 0; i < level; ++i) {
             g = this.GridSize[i];
             num += g[0]*g[1];
         }
