@@ -30,6 +30,26 @@ function SlideAtlasSource () {
     }
 }
 
+function GigamacroSource () {
+    this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+    this.GridSize = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.getTileUrl = function(level, x, y, z) {
+        var g = this.GridSize[z];
+        var num = y*g[0] + x;
+        for (var i = 0; i < z; ++i) {
+            g = this.GridSize[i];
+            num += g[0]*g[1];
+        }
+        var tileGroup = Math.floor(num / 256);
+        var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
+        return name;
+    }
+}
+
+
 function DanielSource () {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
@@ -77,7 +97,19 @@ function FindCache(image) {
         }
     }
     var cache = new Cache();
+
+    // Special case to link to gigamacro.
+    if (image._id == "555a1af93ed65909dbc2e19a") {
+        image.levels = 7;
+        image.dimensions = [14272,8448];
+        image.bounds = [0,14271, 0,8447];
+        cache.SetImageData(image);
+        cache.TileSource = new GigamacroSource ();
+        return cache;
+    }
+
     cache.SetImageData(image);
+
     return cache;
 }
 
