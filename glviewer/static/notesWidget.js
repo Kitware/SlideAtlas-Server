@@ -764,7 +764,7 @@ Note.prototype.Select = function() {
     }
 
     // Put the note into the details section.
-    NOTES_WIDGET.TextEntry.text(this.Text);
+    NOTES_WIDGET.TextEntry.html(this.Text);
 }
 
 Note.prototype.RecordAnnotations = function() {
@@ -917,7 +917,7 @@ Note.prototype.LoadViewId = function(viewId) {
         self.Load(data);
         // This is necessary because we delay moving entry text to note.
         // It has to be initialized with the first selected note (root).
-        NOTES_WIDGET.TextEntry.text(data.Text);
+        NOTES_WIDGET.TextEntry.html(data.Text);
     },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
@@ -1165,7 +1165,7 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
 
 NotesWidget.prototype.RecordTextChanges = function () {
     if (this.SelectedNote) {
-        this.SelectedNote.Text = this.TextEntry.text();
+        this.SelectedNote.Text = this.TextEntry.html();
     }
 }
 
@@ -1370,7 +1370,7 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
-  this.TextEntry.val(this.RootNote.Text);
+  this.TextEntry.html(this.RootNote.Text);
   this.NoteTreeDiv.empty();
   this.RootNote.DisplayGUI(this.NoteTreeDiv);
   this.RootNote.Select();
