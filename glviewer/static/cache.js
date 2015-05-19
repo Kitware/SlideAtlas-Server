@@ -140,6 +140,42 @@ function FindCache(image) {
 
         return cache;
     }
+    if (image._id == "555b66483ed65909dbc2e1a0") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_top/zoomify/"
+        tileSource.setDimensions(64893,40749);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555b664d3ed65909dbc2e1a3") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/drawer_unit_box_test_05-01-2015_08-52-29_0000/zoomify/"
+        tileSource.setDimensions(11893,7322);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555b66523ed65909dbc2e1a6") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/full_drawer_test_05-01-2015_09-04-17_0000/zoomify/"
+        tileSource.setDimensions(44245,34013);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
 
     cache.SetImageData(image);
 
