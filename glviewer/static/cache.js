@@ -32,12 +32,29 @@ function SlideAtlasSource () {
 
 function GigamacroSource () {
     this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
-    this.GridSize = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+    this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+
+    this.setDimensions = function(xDim,yDim) {
+        this.Dimensions = [xDim, yDim];
+        this.GridSize = [];
+        this.Levels = 0;
+        while (true) {
+            var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+            this.GridSize.splice(0,0,gridLevelDim);
+            this.Levels += 1;
+            if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+            xDim = xDim / 2;
+            yDim = yDim / 2;
+        }
+    }
 
     // Higher levels are higher resolution.
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
         var g = this.GridSize[level];
+        if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) { 
+            return "";
+        }
         var num = y*g[0] + x;
         for (var i = 0; i < level; ++i) {
             g = this.GridSize[i];
@@ -100,11 +117,27 @@ function FindCache(image) {
 
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
-        image.levels = 7;
-        image.dimensions = [14272,8448];
-        image.bounds = [0,14271, 0,8447];
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+        tileSource.setDimensions(14316,8459);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
-        cache.TileSource = new GigamacroSource ();
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555a5e163ed65909dbc2e19d") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_bottom/zoomify/"
+        tileSource.setDimensions(64893, 40749);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
         return cache;
     }
 
