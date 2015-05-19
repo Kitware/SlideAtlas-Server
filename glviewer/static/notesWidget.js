@@ -188,7 +188,47 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    this.TextEntry = $('<pre>')
+    this.BoldButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text("B")
+        .css({'font-weight': 'bold'})
+        .click(function () {
+            document.execCommand('bold',false,null);
+        });
+    this.ItalicButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text("I")
+        .css({'font-style': 'italic',
+              'font-family': 'serif'})
+        .click(function () {
+            document.execCommand('italic',false,null);
+        });
+    this.OrderedListButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text("1.")
+        .click(function () {
+            document.execCommand("InsertOrderedList", false, null);
+        });
+    this.OrderedListButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text("*")
+        .click(function () {
+            document.execCommand("InsertUnorderedList", false, null);
+        });
+    this.OutdentButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text("<")
+        .click(function () {
+            document.execCommand('outdent',false,null);
+        });
+    this.IndentButton = $('<button>')
+        .appendTo(this.TextDiv)
+        .text(">")
+        .click(function () {
+            document.execCommand('indent',false,null);
+        });
+
+    this.TextEntry = $('<div>')
         .appendTo(this.TextDiv)
         .attr('contenteditable', "true")
         .css({'box-sizing': 'border-box',
