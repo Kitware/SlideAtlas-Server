@@ -188,94 +188,129 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    this.BoldButton = $('<img>')
+    if (EDIT) { // Ideally everyone should be able to take notes (saved separately).
+     this.BoldButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/font_bold.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('bold',false,null);
         });
-    this.ItalicButton = $('<img>')
+     this.ItalicButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/text_italic.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('italic',false,null);
         });
-    this.UnorderedListButton = $('<img>')
+     this.UnderlineButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_underline.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('underline',false,null);
+        });
+     this.UnorderedListButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/list_bullets.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand("InsertUnorderedList", false, null);
         });
-    this.OrderedListButton = $('<img>')
+     this.OrderedListButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/list_numbers.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand("InsertOrderedList", false, null);
         });
-    this.IndentButton = $('<img>')
+     this.IndentButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/indent_increase.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('indent',false,null);
         });
-    this.OutdentButton = $('<img>')
+     this.OutdentButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/indent_decrease.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('outdent',false,null);
         });
-    this.AlignLeftButton = $('<img>')
+     this.AlignLeftButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/alignment_left.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('justifyLeft',false,null);
         });
-    this.AlignCenterButton = $('<img>')
+     this.AlignCenterButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/alignment_center.png")
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
             'border': '1px solid #AAA',
-            'border-radius': '2px'})
+            'border-radius': '3px'})
         .click(function () {
             document.execCommand('justifyCenter',false,null);
         });
+     this.AlignCenterButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_superscript.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('superscript',false,null);
+        });
+     this.AlignCenterButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_subscript.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('subscript',false,null);
+        });
+    }
 
     this.TextEntry = $('<div>')
         .appendTo(this.TextDiv)
