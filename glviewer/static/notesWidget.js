@@ -188,44 +188,93 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    this.BoldButton = $('<button>')
+    this.BoldButton = $('<img>')
         .appendTo(this.TextDiv)
-        .text("B")
-        .css({'font-weight': 'bold'})
+        .attr('src',"webgl-viewer/static/font_bold.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
         .click(function () {
             document.execCommand('bold',false,null);
         });
-    this.ItalicButton = $('<button>')
+    this.ItalicButton = $('<img>')
         .appendTo(this.TextDiv)
-        .text("I")
-        .css({'font-style': 'italic',
-              'font-family': 'serif'})
+        .attr('src',"webgl-viewer/static/text_italic.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
         .click(function () {
             document.execCommand('italic',false,null);
         });
-    this.OrderedListButton = $('<button>')
+    this.UnorderedListButton = $('<img>')
         .appendTo(this.TextDiv)
-        .text("1.")
-        .click(function () {
-            document.execCommand("InsertOrderedList", false, null);
-        });
-    this.OrderedListButton = $('<button>')
-        .appendTo(this.TextDiv)
-        .text("*")
+        .attr('src',"webgl-viewer/static/list_bullets.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
         .click(function () {
             document.execCommand("InsertUnorderedList", false, null);
         });
-    this.OutdentButton = $('<button>')
+    this.OrderedListButton = $('<img>')
         .appendTo(this.TextDiv)
-        .text("<")
+        .attr('src',"webgl-viewer/static/list_numbers.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
+        .click(function () {
+            document.execCommand("InsertOrderedList", false, null);
+        });
+    this.IndentButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/indent_increase.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
+        .click(function () {
+            document.execCommand('indent',false,null);
+        });
+    this.OutdentButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/indent_decrease.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
         .click(function () {
             document.execCommand('outdent',false,null);
         });
-    this.IndentButton = $('<button>')
+    this.AlignLeftButton = $('<img>')
         .appendTo(this.TextDiv)
-        .text(">")
+        .attr('src',"webgl-viewer/static/alignment_left.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
         .click(function () {
-            document.execCommand('indent',false,null);
+            document.execCommand('justifyLeft',false,null);
+        });
+    this.AlignCenterButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/alignment_center.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '2px'})
+        .click(function () {
+            document.execCommand('justifyCenter',false,null);
         });
 
     this.TextEntry = $('<div>')
@@ -236,6 +285,7 @@ function NotesWidget() {
               'height': '100%',
               'border-style': 'solid',
               'background': '#ffffff',
+              'overflow': 'auto',
               'resize': 'none'})
         .focusin(function() { EVENT_MANAGER.FocusOut(); })
         .focusout(function() { EVENT_MANAGER.FocusIn(); })
