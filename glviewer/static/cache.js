@@ -176,6 +176,32 @@ function FindCache(image) {
 
         return cache;
     }
+    if (image._id == "555c93973ed65909dbc2e1b5") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/impasto_polarized/zoomify/";
+        tileSource.setDimensions(76551, 57364);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555c93913ed65909dbc2e1b2") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/restoration_polaraized/zoomify/";
+        tileSource.setDimensions(55884, 55750);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+
+
 
     cache.SetImageData(image);
 
