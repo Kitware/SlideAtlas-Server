@@ -30,6 +30,43 @@ function SlideAtlasSource () {
     }
 }
 
+function GigamacroSource () {
+    this.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+    this.GridSizeDebug = [[1,1],[2,2],[4,3],[7,5],[14,9],[28,17],[56,34]];
+
+    this.setDimensions = function(xDim,yDim) {
+        this.Dimensions = [xDim, yDim];
+        this.GridSize = [];
+        this.Levels = 0;
+        while (true) {
+            var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+            this.GridSize.splice(0,0,gridLevelDim);
+            this.Levels += 1;
+            if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+            xDim = xDim / 2;
+            yDim = yDim / 2;
+        }
+    }
+
+    // Higher levels are higher resolution.
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.getTileUrl = function(level, x, y, z) {
+        var g = this.GridSize[level];
+        if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) { 
+            return "";
+        }
+        var num = y*g[0] + x;
+        for (var i = 0; i < level; ++i) {
+            g = this.GridSize[i];
+            num += g[0]*g[1];
+        }
+        var tileGroup = Math.floor(num / 256);
+        var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
+        return name;
+    }
+}
+
+
 function DanielSource () {
     this.Prefix = "http://dragon.krash.net:2009/data/1"
     this.MinLevel = 0;
@@ -77,7 +114,97 @@ function FindCache(image) {
         }
     }
     var cache = new Cache();
+
+    // Special case to link to gigamacro.
+    if (image._id == "555a1af93ed65909dbc2e19a") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/unit_box_test2_05-01-2015/zoomify/"
+        tileSource.setDimensions(14316,8459);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555a5e163ed65909dbc2e19d") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_bottom/zoomify/"
+        tileSource.setDimensions(64893, 40749);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555b66483ed65909dbc2e1a0") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/cmnh/redbug_top/zoomify/"
+        tileSource.setDimensions(64893,40749);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555b664d3ed65909dbc2e1a3") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/drawer_unit_box_test_05-01-2015_08-52-29_0000/zoomify/"
+        tileSource.setDimensions(11893,7322);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555b66523ed65909dbc2e1a6") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/AMNH/full_drawer_test_05-01-2015_09-04-17_0000/zoomify/"
+        tileSource.setDimensions(44245,34013);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555c93973ed65909dbc2e1b5") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/impasto_polarized/zoomify/";
+        tileSource.setDimensions(76551, 57364);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+    if (image._id == "555c93913ed65909dbc2e1b2") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/restoration_polaraized/zoomify/";
+        tileSource.setDimensions(55884, 55750);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+
+        return cache;
+    }
+
+
+
     cache.SetImageData(image);
+
     return cache;
 }
 

@@ -23,6 +23,10 @@ function PolylineWidget (viewer, newFlag) {
     return;
   }
 
+  // Circle is to show an active vertex.
+  this.Circle = new Circle();
+  this.Shape = new Polyline();
+
   this.Dialog = new Dialog(this);
   // Customize dialog for a lasso.
   this.Dialog.Title.text('Lasso Annotation Editor');
@@ -42,6 +46,23 @@ function PolylineWidget (viewer, newFlag) {
       .appendTo(this.Dialog.ColorDiv)
       .val('#30ff00')
       .css({'display':'table-cell'});
+
+  // closed check
+  this.Dialog.ClosedDiv =
+    $('<div>')
+      .appendTo(this.Dialog.Body)
+      .css({'display':'table-row'});
+  this.Dialog.ClosedLabel =
+    $('<div>')
+      .appendTo(this.Dialog.ClosedDiv)
+      .text("Closed:")
+      .css({'display':'table-cell',
+            'text-align': 'left'});
+  this.Dialog.ClosedInput =
+    $('<input type="checkbox">')
+      .appendTo(this.Dialog.ClosedDiv)
+      .attr('checked', 'false')
+      .css({'display': 'table-cell'});
 
   // Line Width
   this.Dialog.LineWidthDiv =
@@ -95,10 +116,14 @@ function PolylineWidget (viewer, newFlag) {
 
   // Get default properties.
   this.LineWidth = 10.0;
+  this.Shape.Closed = false;
   if (localStorage.PolylineWidgetDefaults) {
     var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
     if (defaults.Color) {
       this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    }
+    if (defaults.ClosedLoop !== undefined) {
+      this.Shape.Closed = defaults.ClosedLoop;
     }
     if (defaults.LineWidth) {
       this.LineWidth = defaults.LineWidth;
@@ -106,23 +131,20 @@ function PolylineWidget (viewer, newFlag) {
     }
   }
 
-
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  var cam = viewer.MainView.Camera;
-  var viewport = viewer.MainView.Viewport;
-
-  // Circle is to show an active vertex.
-  this.Circle = new Circle();
   this.Circle.FillColor = [1.0, 1.0, 0.2];
   this.Circle.OutlineColor = [0.0,0.0,0.0];
   this.Circle.FixedSize = false;
   this.Circle.ZOffset = -0.05;
 
-  this.Shape = new Polyline();
   this.Shape.OutlineColor = [0.0, 0.0, 0.0];
   this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
   this.Shape.FixedSize = false;
+
+
+  this.Viewer = viewer;
+  this.Popup = new WidgetPopup(this);
+  var cam = viewer.MainView.Camera;
+  var viewport = viewer.MainView.Viewport;
 
   this.Viewer.WidgetList.push(this);
 
@@ -351,8 +373,6 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
       this.Shape.Points.pop();
       if (this.ActiveVertex == 0) {
         this.Shape.Closed = true;
-      } else {
-        this.Shape.Closed = false;
       }
       this.Deactivate();
       RecordState();
@@ -680,6 +700,7 @@ PolylineWidget.prototype.PlacePopup = function () {
 var POLYLINE_WIDGET_DIALOG_SELF;
 PolylineWidget.prototype.ShowPropertiesDialog = function () {
   this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+  this.Dialog.ClosedInput.prop('checked', this.Shape.Closed);
   this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
   var length = this.ComputeLength() * 0.25; // microns per pixel.
@@ -723,6 +744,8 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
 PolylineWidget.prototype.DialogApplyCallback = function() {
   var hexcolor = this.Dialog.ColorInput.val();
   this.Shape.SetOutlineColor(hexcolor);
+  this.Shape.Closed = this.Dialog.ClosedInput.prop("checked");
+
   // Cannot use the shap line width because it is set to zero (single pixel)
   // it the dialog value is too thin.
   this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
@@ -731,7 +754,9 @@ PolylineWidget.prototype.DialogApplyCallback = function() {
   RecordState();
   eventuallyRender();
 
-  localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.LineWidth});
+  localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor,
+                                                        ClosedLoop: this.Shape.Closed,
+                                                        LineWidth: this.LineWidth});
 }
 
 // Note, self intersection can cause unexpected areas.

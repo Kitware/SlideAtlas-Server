@@ -188,7 +188,7 @@ function NotesWidget() {
               'height': '40%',
               'padding': '3px'});
 
-    this.TextEntry = $('<pre>')
+    this.TextEntry = $('<div>')
         .appendTo(this.TextDiv)
         .attr('contenteditable', "true")
         .css({'box-sizing': 'border-box',
@@ -196,11 +196,173 @@ function NotesWidget() {
               'height': '100%',
               'border-style': 'solid',
               'background': '#ffffff',
+              'overflow': 'auto',
               'resize': 'none'})
-        .focusin(function() { EVENT_MANAGER.FocusOut(); })
-        .focusout(function() { EVENT_MANAGER.FocusIn(); })
+        .focusin(function() {
+            self.BoldButton.show();
+            self.ItalicButton.show();
+            self.UnderlineButton.show();
+            self.UnorderedListButton.show();
+            self.OrderedListButton.show();
+            self.IndentButton.show();
+            self.OutdentButton.show();
+            self.AlignLeftButton.show();
+            self.AlignCenterButton.show();
+            self.SuperscriptButton.show();
+            self.SubscriptButton.show();
+            EVENT_MANAGER.FocusOut();
+        })
+        .focusout(function() {
+            self.BoldButton.hide();
+            self.ItalicButton.hide();
+            self.UnderlineButton.hide();
+            self.UnorderedListButton.hide();
+            self.OrderedListButton.hide();
+            self.IndentButton.hide();
+            self.OutdentButton.hide();
+            self.AlignLeftButton.hide();
+            self.AlignCenterButton.hide();
+            self.SuperscriptButton.hide();
+            self.SubscriptButton.hide();
+            EVENT_MANAGER.FocusIn();
+        })
         .keypress(function() { NOTES_WIDGET.Modified(); })
         .attr('readonly', 'readonly');
+
+    if (EDIT) { // Ideally everyone should be able to take notes (saved separately).
+     this.BoldButton = $('<img>')
+        .hide()
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/font_bold.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('bold',false,null);
+        });
+     this.ItalicButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/text_italic.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('italic',false,null);
+        });
+     this.UnderlineButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_underline.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('underline',false,null);
+        });
+     this.UnorderedListButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/list_bullets.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand("InsertUnorderedList", false, null);
+        });
+     this.OrderedListButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/list_numbers.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand("InsertOrderedList", false, null);
+        });
+     this.IndentButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/indent_increase.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('indent',false,null);
+        });
+     this.OutdentButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/indent_decrease.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('outdent',false,null);
+        });
+     this.AlignLeftButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/alignment_left.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('justifyLeft',false,null);
+        });
+     this.AlignCenterButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/alignment_center.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('justifyCenter',false,null);
+        });
+     this.SuperscriptButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_superscript.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('superscript',false,null);
+        });
+     this.SubscriptButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/edit_subscript.png")
+        .hide()
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            document.execCommand('subscript',false,null);
+        });
+    }
 
     if (EDIT) {
         this.TextEntry.removeAttr('readonly');
