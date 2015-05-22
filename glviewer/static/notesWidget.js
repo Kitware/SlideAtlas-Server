@@ -23,6 +23,22 @@
 // Show the user "favorite" notes.
 // Allow user to delete the favorite note (even if edit is not on).
 
+// HTML:
+// Students like the HTML Text and would like to see hyperlinks to
+// annotation and cameras.  The Scheme is not setup for this because
+// children have their own text.  I am going to change the behavior so
+// that children that do not have their own text, show the text of their
+// parent.  I will probably hide children without text in the top display.
+// TODO:
+// Make browser back arrow undo link (will this cause tiles to reload (note
+// panel to disapear?)
+// Handle situation when child has no text.
+// Should child become current when link is selected?
+// Split curent note for view and text.
+// Make the text window bigger.
+// Make text window bottom justified (with format buttons handled properly).
+// Get the childs id rather than use its index for the link.
+
 
 var LINk_DIV;
 
@@ -169,7 +185,8 @@ function NotesWidget() {
     this.NoteTreeDiv = $('<div>')
         .appendTo(this.Window)
         .css({'width': '100%',
-              'height': '50%',
+              'height': '40%',
+              'top' : '0px',
               'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
@@ -185,7 +202,8 @@ function NotesWidget() {
         .appendTo(this.Window)
         .css({'box-sizing': 'border-box',
               'width': '100%',
-              'height': '40%',
+              'height': '50%',
+              'bottom': '0px',
               'padding': '3px'});
 
     this.TextEntry = $('<div>')
@@ -199,39 +217,33 @@ function NotesWidget() {
               'overflow': 'auto',
               'resize': 'none'})
         .focusin(function() {
-            self.BoldButton.show();
-            self.ItalicButton.show();
-            self.UnderlineButton.show();
-            self.UnorderedListButton.show();
-            self.OrderedListButton.show();
-            self.IndentButton.show();
-            self.OutdentButton.show();
-            self.AlignLeftButton.show();
-            self.AlignCenterButton.show();
-            self.SuperscriptButton.show();
-            self.SubscriptButton.show();
             EVENT_MANAGER.FocusOut();
         })
         .focusout(function() {
-            self.BoldButton.hide();
-            self.ItalicButton.hide();
-            self.UnderlineButton.hide();
-            self.UnorderedListButton.hide();
-            self.OrderedListButton.hide();
-            self.IndentButton.hide();
-            self.OutdentButton.hide();
-            self.AlignLeftButton.hide();
-            self.AlignCenterButton.hide();
-            self.SuperscriptButton.hide();
-            self.SubscriptButton.hide();
             EVENT_MANAGER.FocusIn();
         })
         .keypress(function() { NOTES_WIDGET.Modified(); })
         .attr('readonly', 'readonly');
 
     if (EDIT) { // Ideally everyone should be able to take notes (saved separately).
+     this.CameraButton = $('<img>')
+        .appendTo(this.TextDiv)
+        .attr('src',"webgl-viewer/static/camera.png")
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .click(function () {
+            var text = window.getSelection().toString();
+            // Create a child note.
+            var parentNote = self.GetCurrentNote();
+            var childIdx = parentNote.Children.length;
+            var childNote = self.NewChild(parentNote, childIdx, text);
+            var htmlText = '<font color="blue" onclick="showChildNote('+childIdx+')">' +text+ '</font>';
+            document.execCommand('insertHTML',false, htmlText);
+        });
      this.BoldButton = $('<img>')
-        .hide()
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/font_bold.png")
         .css({
@@ -245,7 +257,6 @@ function NotesWidget() {
      this.ItalicButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/text_italic.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -257,7 +268,6 @@ function NotesWidget() {
      this.UnderlineButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/edit_underline.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -269,7 +279,6 @@ function NotesWidget() {
      this.UnorderedListButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/list_bullets.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -281,7 +290,6 @@ function NotesWidget() {
      this.OrderedListButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/list_numbers.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -293,7 +301,6 @@ function NotesWidget() {
      this.IndentButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/indent_increase.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -305,7 +312,6 @@ function NotesWidget() {
      this.OutdentButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/indent_decrease.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -317,7 +323,6 @@ function NotesWidget() {
      this.AlignLeftButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/alignment_left.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -329,7 +334,6 @@ function NotesWidget() {
      this.AlignCenterButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/alignment_center.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -341,7 +345,6 @@ function NotesWidget() {
      this.SuperscriptButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/edit_superscript.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -353,7 +356,6 @@ function NotesWidget() {
      this.SubscriptButton = $('<img>')
         .appendTo(this.TextDiv)
         .attr('src',"webgl-viewer/static/edit_subscript.png")
-        .hide()
         .css({
             'padding' : '1px',
             'margin-right' : '1px',
@@ -379,6 +381,19 @@ function NotesWidget() {
     // Setup the iterator using the view as root.
     // Bookmarks (sub notes) are loaded next.
     this.Iterator = this.RootNote.NewIterator();
+}
+
+function showChildNote(childIdx) {
+    parentNote = NOTES_WIDGET.GetCurrentNote();
+    if (childIdx >=0 && childIdx < parentNote.Children.length) {
+        var childNote = parentNote.Children[childIdx];
+        if (childNote.Text != "") {
+            childNote.Select();
+        } else {
+            // Just set the veiw, but do not change the current note.
+            childNote.DisplayView();            
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -1539,41 +1554,49 @@ NotesWidget.prototype.DisplayRootNote = function() {
 }
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
-  VIEW_ID = viewId;
-  this.RootNote = new Note();
-  if (typeof(viewId) != "undefined" && viewId != "") {
-    this.RootNote.LoadViewId(viewId);
-  }
-  // Since loading the view is asynchronous,
-  // the this.RootNote is not complete at this point.
+    VIEW_ID = viewId;
+    this.RootNote = new Note();
+    if (typeof(viewId) != "undefined" && viewId != "") {
+        this.RootNote.LoadViewId(viewId);
+    }
+    // Since loading the view is asynchronous,
+    // the this.RootNote is not complete at this point.
 }
 
 
 
 // Add a user note to the currently selected notes children.
 NotesWidget.prototype.NewCallback = function() {
-  var childIdx = 0;
-  var currentNote = this.Iterator.GetNote();
-  var parentNote = this.Iterator.GetParentNote();
-  if (parentNote) {
-    childIdx = parentNote.Children.indexOf(currentNote)+1;
-  } else {
-    parentNote = currentNote;
-  }
+    var childIdx = 0;
+    var currentNote = this.Iterator.GetNote();
+    var parentNote = this.Iterator.GetParentNote();
+    if (parentNote) {
+        childIdx = parentNote.Children.indexOf(currentNote)+1;
+    } else {
+        parentNote = currentNote;
+    }
 
-  // Create a new note.
-  var childNote = new Note();
-  childNote.Title = "New Note";
-  var d = new Date();
-  childNote.Date = d.getTime(); // Temporary. Set for real by server.
-  childNote.RecordView();
+    // Create a new note.
+    var childNote = this.NewChild(parentNote, childIdx, "New Note");
+    childNote.Select();
+}
 
-  // Now insert the child after the current note.
-  parentNote.Children.splice(childIdx,0,childNote);
-  childNote.SetParent(parentNote);
-  parentNote.UpdateChildrenGUI();
-  childNote.Select();
+// Create a new note,  add it to the parent notes children at index "childIdx".
+// The new note is not automatically selected.
+NotesWidget.prototype.NewChild = function(parentNote, childIdx, title) {
+    // Create a new note.
+    var childNote = new Note();
+    childNote.Title = title;
+    var d = new Date();
+    childNote.Date = d.getTime(); // Temporary. Set for real by server.
+    childNote.RecordView();
 
-  this.Modified();
+    // Now insert the child after the current note.
+    parentNote.Children.splice(childIdx,0,childNote);
+    childNote.SetParent(parentNote);
+    parentNote.UpdateChildrenGUI();
+    this.Modified();
+
+    return childNote;
 }
 
