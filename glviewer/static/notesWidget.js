@@ -32,12 +32,10 @@
 // TODO:
 // Make browser back arrow undo link (will this cause tiles to reload (note
 // panel to disapear?)
-// Handle situation when child has no text.
-// Should child become current when link is selected?
-// Split curent note for view and text.
+// Split curent note for view and text ??? Might be a good idea.
 // Make the text window bigger.
 // Make text window bottom justified (with format buttons handled properly).
-// Get the childs id rather than use its index for the link.
+
 
 
 var LINk_DIV;
@@ -220,6 +218,8 @@ function NotesWidget() {
             EVENT_MANAGER.FocusOut();
         })
         .focusout(function() {
+            console.log("focusout");
+            self.TextEntry.offKeyboardFocus();
             EVENT_MANAGER.FocusIn();
         })
         .keypress(function() { NOTES_WIDGET.Modified(); })
@@ -235,13 +235,7 @@ function NotesWidget() {
             'border': '1px solid #AAA',
             'border-radius': '3px'})
         .click(function () {
-            var text = window.getSelection().toString();
-            // Create a child note.
-            var parentNote = self.GetCurrentNote();
-            var childIdx = parentNote.Children.length;
-            var childNote = self.NewChild(parentNote, childIdx, text);
-            var htmlText = '<font color="blue" onclick="showChildNote('+childIdx+')">' +text+ '</font>';
-            document.execCommand('insertHTML',false, htmlText);
+            self.InsertCameraLink();
         });
      this.BoldButton = $('<img>')
         .appendTo(this.TextDiv)
@@ -383,15 +377,36 @@ function NotesWidget() {
     this.Iterator = this.RootNote.NewIterator();
 }
 
-function showChildNote(childIdx) {
+NotesWidget.prototype.InsertCameraLink = function() {
+    var text = window.getSelection().toString();
+    // Create a child note.
+    var parentNote = this.GetCurrentNote();
+    var childIdx = parentNote.Children.length;
+    var childNote = parentNote.NewChild(childIdx, text);
+    // We need to save the not to get its Id.
+    childNote.Save(
+        function (note) {
+            var id = note.Id;
+            var htmlText = '<font color="blue" onclick="showChildNote(\''+id+'\')">' +text+ '</font>';
+            document.execCommand('insertHTML',false, htmlText);
+            // Save the parent too, or the child may be orphaned.
+            NOTES_WIDGET.RecordTextChanges();
+            parentNote.Save();
+        });
+}
+
+
+function showChildNote(childId) {
     parentNote = NOTES_WIDGET.GetCurrentNote();
-    if (childIdx >=0 && childIdx < parentNote.Children.length) {
-        var childNote = parentNote.Children[childIdx];
-        if (childNote.Text != "") {
-            childNote.Select();
-        } else {
-            // Just set the veiw, but do not change the current note.
-            childNote.DisplayView();            
+    for (var idx = 0; idx < parentNote.Children.length; ++idx) {
+        var childNote = parentNote.Children[idx];
+        if (childNote.Id == childId) {
+            if (childNote.Text != "") {
+                childNote.Select();
+            } else {
+                // Just set the veiw, but do not change the current note.
+                childNote.DisplayView();
+            }
         }
     }
 }
@@ -870,6 +885,48 @@ Note.prototype.Contains = function(decendent) {
     }
   }
   return false;
+}
+
+
+// Create a new note,  add it to the parent notes children at index "childIdx".
+// The new note is not automatically selected.
+Note.prototype.NewChild = function(childIdx, title) {
+    // Create a new note.
+    var childNote = new Note();
+    childNote.Title = title;
+    var d = new Date();
+    childNote.Date = d.getTime(); // Temporary. Set for real by server.
+    childNote.RecordView();
+
+    // Now insert the child after the current note.
+    this.Children.splice(childIdx,0,childNote);
+    childNote.SetParent(parentNote);
+    this.UpdateChildrenGUI();
+
+    return childNote;
+}
+
+
+// Save the note in the database and set the note's id if it is new.
+// callback function can be set to execute an action with the new id.
+Note.prototype.Save = function(callback) {
+    var self = this;
+    // Save this users notes in the user specific collection.
+    var noteObj = JSON.stringify(this.Serialize(true));
+    var d = new Date();
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveviewnotes",
+        data: {"note" : noteObj,
+               "date" : d.getTime()},
+        success: function(data,status) {
+            self.Id = data._id;
+            if (callback) {
+                (callback)(self);
+            }
+        },
+        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+    });
 }
 
 
@@ -1490,20 +1547,12 @@ NotesWidget.prototype.SaveCallback = function() {
     var self = this;
     var d = new Date();
 
-    // Save this users notes in the user specific collection.
-    var noteObj = JSON.stringify(this.RootNote.Serialize(true));
-    $.ajax({
-        type: "post",
-        url: "/webgl-viewer/saveviewnotes",
-        data: {"note" : noteObj,
-               "date" : d.getTime()},
-        success: function(data,status) {
+    this.RootNote.Save(
+        function (note) {
             self.SaveButton.css({'color' : '#278BFF'});
             self.ModifiedFlag = false;
             window.onbeforeunload = null;
-        },
-        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
-    });
+        });
 }
 
 NotesWidget.prototype.CheckForSave = function() {
@@ -1577,26 +1626,9 @@ NotesWidget.prototype.NewCallback = function() {
     }
 
     // Create a new note.
-    var childNote = this.NewChild(parentNote, childIdx, "New Note");
+    var childNote = parentNote.NewChild(childIdx, "New Note");
+    this.Modified();
     childNote.Select();
 }
 
-// Create a new note,  add it to the parent notes children at index "childIdx".
-// The new note is not automatically selected.
-NotesWidget.prototype.NewChild = function(parentNote, childIdx, title) {
-    // Create a new note.
-    var childNote = new Note();
-    childNote.Title = title;
-    var d = new Date();
-    childNote.Date = d.getTime(); // Temporary. Set for real by server.
-    childNote.RecordView();
-
-    // Now insert the child after the current note.
-    parentNote.Children.splice(childIdx,0,childNote);
-    childNote.SetParent(parentNote);
-    parentNote.UpdateChildrenGUI();
-    this.Modified();
-
-    return childNote;
-}
 
