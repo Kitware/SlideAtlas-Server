@@ -201,6 +201,51 @@ function FindCache(image) {
         return cache;
     }
 
+    if (image._id == "555f46503ed65909dbc2e1b8") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/eucalyptus_10-31-2010/zoomify/";
+        tileSource.setDimensions(38392, 45242);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+    if (image._id == "555f46553ed65909dbc2e1bb") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/Bunton/leaf_fossil_04-30-2015/zoomify/";
+        tileSource.setDimensions(22590, 10793);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+    if (image._id == "555f465a3ed65909dbc2e1be") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/formsandsurfaces/maiden_hair_fern_v1_7-6-2012/zoomify/";
+        tileSource.setDimensions(22092, 22025);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+    if (image._id == "555f46623ed65909dbc2e1c1") {
+        var tileSource = new GigamacroSource ();
+        tileSource.Prefix = "http://www.gigamacro.com/content/gigamacro/nancy_plants_7-28-2014/zoomify/";
+        tileSource.setDimensions(40687, 69306);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+    // It is really time to implement this in the database ...
 
 
     cache.SetImageData(image);
