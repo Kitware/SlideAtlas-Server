@@ -219,7 +219,6 @@ function NotesWidget() {
         })
         .focusout(function() {
             console.log("focusout");
-            self.TextEntry.offKeyboardFocus();
             EVENT_MANAGER.FocusIn();
         })
         .keypress(function() { NOTES_WIDGET.Modified(); })
@@ -929,8 +928,14 @@ Note.prototype.Save = function(callback) {
     });
 }
 
-
+// I am changing the select behavior.  Children will show their view, but
+// will not become active unless they have their own text / html.
 Note.prototype.Select = function() {
+    if ( this.Parent && this.Text == "") {
+        this.Parent.Select();
+        this.DisplayView();
+        return;
+    }
 
     // Save Text Entry into note before selecting a new note.
     NOTES_WIDGET.RecordTextChanges();
@@ -1036,7 +1041,7 @@ Note.prototype.DisplayGUI = function(div) {
             this.LinkButton.click(function(){self.LinkCallback();});
         }
 
-        if (this.DeleteButton) { 
+        if (this.DeleteButton) {
             this.DeleteButton.click(function(){self.DeleteCallback();});
         }
     }
