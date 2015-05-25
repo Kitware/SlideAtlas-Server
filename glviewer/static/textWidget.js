@@ -610,6 +610,7 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
   this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
   
   this.Dialog.Show(true);
+  this.Dialog.TextInput.focus();
 }
 
 TextWidget.prototype.DialogApplyCallback = function () {
