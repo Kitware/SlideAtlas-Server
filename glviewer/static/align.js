@@ -1404,6 +1404,10 @@ DistanceMap.prototype.AddPolyline = function (pline) {
         m1 = m2;
     }
 
+    if (pline.Closed && points.length > 2) {
+        this.AddEdge(m2,m0);
+    }
+
     // There is a chance this could fail if there are no pixels between two
     // edges.  Maybe get the mask from the thresholded image. 
     if (pline.Closed && points.length > 2 && false) {
@@ -1446,6 +1450,24 @@ DistanceMap.prototype.AddPolyline = function (pline) {
             this.AddSeedToQueue(seed[0], seed[1]-1);
             this.AddSeedToQueue(seed[0], seed[1]+1);
         }
+    }
+}
+
+
+DistanceMap.prototype.Fill = function (ix,iy) {
+    if ( ! this.Queue) {
+        this.Queue = new MapQueue(this.Dimensions[0] +
+                                  this.Dimensions[1]);
+    }
+    this.Queue.Push([ix,iy]);
+    var xMax = this.Dimensions[0]-1;
+    var yMax = this.Dimensions[1]-1;
+    var seed, idx;
+    while ( (seed = this.Queue.Shift()) != null) {
+        if (seed[0] > 0) { this.AddSeedToQueue(seed[0]-1, seed[1])};
+        if (seed[0] < xMax) { this.AddSeedToQueue(seed[0]+1, seed[1])};
+        if (seed[1] > 0) { this.AddSeedToQueue(seed[0], seed[1]-1)};
+        if (seed[1] < yMax) { this.AddSeedToQueue(seed[0], seed[1]+1)};
     }
 }
 
