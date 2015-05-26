@@ -397,15 +397,13 @@ NotesWidget.prototype.InsertCameraLink = function() {
 
 function showChildNote(childId) {
     parentNote = NOTES_WIDGET.GetCurrentNote();
+    if (NOTES_WIDGET.TextNote) {
+        parentNote = NOTES_WIDGET.TextNote;
+    }
     for (var idx = 0; idx < parentNote.Children.length; ++idx) {
         var childNote = parentNote.Children[idx];
         if (childNote.Id == childId) {
-            if (childNote.Text != "") {
-                childNote.Select();
-            } else {
-                // Just set the veiw, but do not change the current note.
-                childNote.DisplayView();
-            }
+            childNote.Select();
         }
     }
 }
@@ -931,11 +929,6 @@ Note.prototype.Save = function(callback) {
 // I am changing the select behavior.  Children will show their view, but
 // will not become active unless they have their own text / html.
 Note.prototype.Select = function() {
-    if ( this.Parent && this.Text == "") {
-        this.Parent.Select();
-        this.DisplayView();
-        return;
-    }
 
     // Save Text Entry into note before selecting a new note.
     NOTES_WIDGET.RecordTextChanges();
@@ -1002,8 +995,15 @@ Note.prototype.Select = function() {
         this.DisplayView();
     }
 
-    // Put the note into the details section.
-    NOTES_WIDGET.TextEntry.html(this.Text);
+    // To support the html note text links, do not show empty text.
+    // Fallback to parent note text / html if necessary.
+    var textNote = this;
+    while ( textNote.Parent && textNote.Text == "") {
+        textNote = textNote.Parent;
+    }
+    
+    NOTES_WIDGET.TextEntry.html(textNote.Text);
+    NOTES_WIDGET.TextNote = textNote;
 }
 
 Note.prototype.RecordAnnotations = function() {
@@ -1401,10 +1401,10 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
     }
 }
 
-
+// I separated the note display text/html from the selected note.
 NotesWidget.prototype.RecordTextChanges = function () {
-    if (this.SelectedNote) {
-        this.SelectedNote.Text = this.TextEntry.html();
+    if (this.TextNote) {
+        this.TextNote.Text = this.TextEntry.html();
     }
 }
 
