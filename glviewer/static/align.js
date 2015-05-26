@@ -1680,6 +1680,8 @@ function GetImageData(view) {
     data.Camera.DeepCopy(view.Camera);
     data.__proto__ = new ImageData();
     data.IncX = 4;
+    data.width = width;
+    data.height = height;
     data.IncY = data.IncX * data.width;
     return data;
 }
