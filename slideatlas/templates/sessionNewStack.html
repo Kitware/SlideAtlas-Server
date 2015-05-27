@@ -510,6 +510,8 @@ function save() {
     // Just save the roll too.
     // We could put the information in the widget
 
+    $('body').css({'cursor':'wait'});
+
     if (STACK_ITEMS.length == 0) { return; }
 
     var stackObj = [];
@@ -550,13 +552,18 @@ function save() {
             data: {"input" :  JSON.stringify( args )},
             success:
                 function save_success (data, status) {
+                    $('body').css({'cursor':'auto'});
                     // Redirect to stack: problem, getting back to session.
                     //window.location.href = "/webgl-viewer?edit=true&view="+data._id;
                     var d = new Date();
                     window.location.href = "/sessions?sessid="+SESSION_ID+"&reload="+d.getTime();
                     },
-                  error: function() { alert( "AJAX - error: sessios_save_stack" ); }
-           });
+            error: 
+                function() {
+                    $('body').css({'cursor':'auto'});
+                    alert( "AJAX - error: sessios_save_stack" ); 
+                }
+            });
 }
 
 

@@ -349,6 +349,11 @@ PolylineWidget.prototype.Deactivate = function() {
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
+
+    if (this.Shape.Points.length < 2) {
+        this.RemoveFromViewer();
+    }
+
     eventuallyRender();
 }
 
@@ -822,3 +827,55 @@ PolylineWidget.prototype.ComputeLength = function() {
     return length;
 }
 
+
+PolylineWidget.prototype.PointInside = function(ox,oy) {
+    if (this.Shape.Closed == false) {
+        return false;
+    }
+    var x,y;
+    var max = this.Shape.Points.length - 1;
+    var xPos = 0;
+    var xNeg = 0;
+    //var yCount = 0;
+    var pt0 = this.Shape.Points[max];
+    pt0 = [pt0[0]-ox, pt0[1]-oy];
+    for (var idx = 0; idx <= max; ++idx) {
+        var pt1 = this.Shape.Points[idx];
+        pt1 = [pt1[0]-ox, pt1[1]-oy];
+        var k;
+        k = (pt1[1] - pt0[1]);
+        if ( k != 0 ) {
+            k = -pt0[1] / k;
+            if ( k > 0 && k <= 1) {
+                // Edge crosses the axis.  Find the intersection.
+                x = pt0[0] + k*(pt1[0]-pt0[0]);
+                if (x > 0) { xPos += 1; }
+                if (x < 0) { xNeg += 1; }
+            }
+        }
+        pt0 = pt1;
+    }
+
+    if ((xPos % 2) && (xNeg % 2)) {
+        return true
+    }
+    return false;
+}
+
+// Save images with centers inside the polyline.
+PolylineWidget.prototype.Sample = function(dim, spacing, skip, root, count) {
+    var bds = this.Shape.GetBounds();
+    var ctx = this.Viewer.MainView.Context2d;
+    for (var y = bds[2]; y < bds[3]; y += skip) {
+        for (var x = bds[0]; x < bds[1]; x += skip) {
+            if (this.PointInside(x,y)) {
+                ip = this.Viewer.ConvertPointWorldToViewer(x,y);
+                ip[0] = Math.round(ip[0] - dim/2);
+                ip[1] = Math.round(ip[1] - dim/2);
+                var data = ctx.getImageData(ip[0],ip[1],dim,dim);
+                DownloadImageData(data, root+"_"+count+".png");
+                ++count;
+            }
+        }
+    }
+}

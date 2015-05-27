@@ -6,6 +6,8 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
+import pdb
+
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -475,9 +477,10 @@ def savenote(db, note, user):
     # The client must set the _ids of the notes / children
     # to keep them the same.
     oldNote = db["views"].find_one({"_id":note["_id"]})
-    if 'Children ' in oldNote:
+    if 'Children' in oldNote:
+        #pdb.set_trace()
         for child in oldNote["Children"] :
-            if isinstance(child,ObjectId) :
+            if not child in childrenRefs :
                 db["views"].remove({"_id":child})
 
     return db["views"].save(note)
