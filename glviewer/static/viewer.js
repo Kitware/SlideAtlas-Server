@@ -449,45 +449,44 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 }
 
 
- Viewer.prototype.SaveLargeImage2 = function(view, fileName,
-                                             width, height, stack,
-                                             finishedCallback) {
-     var sectionFileName = fileName;
-     if (stack) {
-         var note = NOTES_WIDGET.GetCurrentNote();
-         var idx = fileName.indexOf('.');
-         if (idx < 0) {
-             sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
-         } else {
-             sectionFileName = fileName.substring(0, idx) +
-                               ZERO_PAD(note.StartIndex, 4) +
-                               fileName.substring(idx, fileName.length);
-         }
-     }
-     console.log(sectionFileName + " " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+Viewer.prototype.SaveLargeImage2 = function(view, fileName,
+                                            width, height, stack,
+                                            finishedCallback) {
+    var sectionFileName = fileName;
+    if (stack) {
+        var note = NOTES_WIDGET.GetCurrentNote();
+        var idx = fileName.indexOf('.');
+        if (idx < 0) {
+            sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
+        } else {
+            sectionFileName = fileName.substring(0, idx) +
+                ZERO_PAD(note.StartIndex, 4) +
+                fileName.substring(idx, fileName.length);
+        }
+    }
+    console.log(sectionFileName + " " + LOAD_QUEUE.length + " " + LOADING_COUNT);
 
+    view.DrawTiles();
+    if (this.AnnotationVisibility) {
+        this.MainView.DrawShapes();
+        for(i in this.WidgetList){
+            this.WidgetList[i].Draw(view, this.AnnotationVisibility);
+        }
+    }
 
-     view.DrawTiles();
-     if (this.AnnotationVisibility) {
-         this.MainView.DrawShapes();
-         for(i in this.WidgetList){
-             this.WidgetList[i].Draw(view, this.AnnotationVisibility);
-         }
-     }
+    view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
+    if (stack) {
+        var note = NOTES_WIDGET.GetCurrentNote();
+        if (note.StartIndex < note.ViewerRecords.length-1) {
+            NAVIGATION_WIDGET.NextNote();
+            this.SaveLargeImage(fileName, width, height, stack,
+                                finishedCallback);
+            return;
+        }
+    }
 
-     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
-     if (stack) {
-         var note = NOTES_WIDGET.GetCurrentNote();
-         if (note.StartIndex < note.ViewerRecords.length-1) {
-             NAVIGATION_WIDGET.NextNote();
-             this.SaveLargeImage(fileName, width, height, stack,
-                                 finishedCallback);
-             return;
-         }
-     }
-
-     finishedCallback();
- }
+    finishedCallback();
+}
 
  // This method waits until all tiles are loaded before saving.
  var SAVE_FINISH_CALLBACK;

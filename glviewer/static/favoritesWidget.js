@@ -8,27 +8,32 @@ var FAVORITES_GUI;
 // I intend to have only one object
 function FavoritesWidget() {
 
-  this.FavoritesBar = new FavoritesBar();
-  
-  if(!MOBILE_DEVICE){
-    var self = this;
-    this.MenuFavoriteButton =
-      $('<img>')
-        .appendTo(VIEW_PANEL)
-        .css({'position': 'absolute',
-              'height': '35px',
-              'width': '35px',
-              'left': '0px',
-              'bottom': '0px',
-              'padding' : '5px',
-              'opacity': '0.6',
-              'z-index': '7'})
-        .attr('src',"webgl-viewer/static/favorite-star.png")
-        .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
-    this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites");
-  }
+    this.FavoritesBar = new FavoritesBar();
 
-  LoadFavorites();
+    if(!MOBILE_DEVICE){
+        var self = this;
+        this.MenuFavoriteButton =
+            $('<img>')
+            .appendTo(VIEW_PANEL)
+            .css({'position': 'absolute',
+                  'height': '35px',
+                  'width': '35px',
+                  'left': '0px',
+                  'bottom': '0px',
+                  'padding' : '5px',
+                  'opacity': '0.6',
+                  '-moz-user-select': 'none',
+                  '-webkit-user-select': 'none',
+                  'z-index': '7'})
+            .attr('src',"webgl-viewer/static/favorite-star.png")
+            .attr('draggable','false')
+            .on("dragstart", function() {return false;})
+            .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
+
+        this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites");
+    }
+
+    LoadFavorites();
 }
 
 FavoritesWidget.prototype.resize = function(width){

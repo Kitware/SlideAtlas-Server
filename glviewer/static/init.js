@@ -620,7 +620,10 @@ function handleResize() {
 
     // we set the left border to leave space for the notes window.
     var viewPanelLeft = 0;
-    if (NOTES_WIDGET) { viewPanelLeft = width * NOTES_WIDGET.WidthFraction;}
+    if (NOTES_WIDGET) { 
+        viewPanelLeft = NOTES_WIDGET.Width;
+        NOTES_WIDGET.Resize(viewPanelLeft,height);
+    }
     var viewPanelWidth = width - viewPanelLeft;
     // The remaining width is split between the two viewers.
     var width1 = viewPanelWidth * VIEWER1_FRACTION;
@@ -865,8 +868,6 @@ function StartScene(scene) {
     handleResize();
     eventuallyRender();
 }
-
-
 
 
 

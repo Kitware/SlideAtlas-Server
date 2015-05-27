@@ -30,11 +30,12 @@
 // that children that do not have their own text, show the text of their
 // parent.  I will probably hide children without text in the top display.
 // TODO:
+// Add user note feature. When no edit, have another editable field.
+// A way to get permalink to notes. (for Brown) (LinkCallback)
+// Save notes panel state (opened, closed, width) in mongo.
+// ??? Link notes better in html ??? Saving edited html is the problem here.
 // Make browser back arrow undo link (will this cause tiles to reload (note
-// panel to disapear?)
-// Split curent note for view and text ??? Might be a good idea.
-// Make the text window bigger.
-// Make text window bottom justified (with format buttons handled properly).
+//     panel to disapear?)
 
 
 
@@ -68,34 +69,6 @@ function InitNotesWidget() {
 function NotesWidget() {
     var self = this;
 
-    // For animating the display of the notes window (DIV).
-    this.WidthFraction = 0.0;
-    this.Visibilty = false;
-
-    // Root of the note tree.
-    this.RootNote;
-
-    // Iterator is used to implement the next and previous note buttons.
-    this.Iterator;
-    // For clearing selected GUI setting.
-    this.SelectedNote;
-
-    // GUI elements
-    this.Window;
-    this.NoteTreeDiv;
-    this.NewButton;
-    // We need this flag so cancel will get rid of a pending new note.
-    // User can be editing an old note, or a new note.
-    this.EditNew = false;
-    // Have any notes been modified (and need to be saved to the database)?
-    this.ModifiedFlag = false;
-
-    // It would be nice to animate the transition
-    // It would be nice to integrate all animation in a flexible utility.
-    this.AnimationLastTime;
-    this.AnimationDuration;
-    this.AnimationTarget;
-
     this.Window = $('<div>').appendTo('body')
         .css({
             'background-color': 'white',
@@ -103,20 +76,51 @@ function NotesWidget() {
             'top' : '0%',
             'left' : '0%',
             'height' : '100%',
-            'width': '20%',
             'z-index': '2'})
         .hide()
+        .attr('draggable','false')
+        .on("dragstart", function() {return false;})
         .attr('id', 'NoteWindow');
 
+    //--------------------------------------------------------------------------
+
+    // TODO: Move the resize animation outside of this widget.
+    // It would be more elegant if this widget was size passive.
+
+    // It would be nice to animate the transition
+    // It would be nice to integrate all animation in a flexible utility.
+    this.AnimationLastTime;
+    this.AnimationDuration;
+    this.AnimationTarget;
+    // For animating the display of the notes window (DIV).
+    this.Width = 0;
+    this.Visibilty = false;
+    this.Dragging = false;
 
     if ( ! MOBILE_DEVICE) {
+        this.ResizeNoteWindowEdge = $('<div>')
+            .appendTo(VIEW_PANEL)
+            .css({'position': 'absolute',
+                  'height': '100%',
+                  'width': '3px',
+                  'top' : '0px',
+                  'left' : '0px',
+                  'background': '#BDF',
+                  'z-index': '10',
+                  'cursor': 'col-resize'})
+            .hover(function () {$(this).css({'background':'#9BF'});},
+                   function () {$(this).css({'background':'#BDF'});})
+            .mousedown(function () {
+                self.StartDrag();
+            });
+
         this.OpenNoteWindowButton = $('<img>')
             .appendTo(VIEW_PANEL)
             .css({'position': 'absolute',
                   'height': '20px',
                   'width': '20px',
                   'top' : '0px',
-                  'left' : '0px',
+                  'left' : '3px',
                   'opacity': '0.6',
                   '-moz-user-select': 'none',
                   '-webkit-user-select': 'none',
@@ -148,49 +152,74 @@ function NotesWidget() {
 
     }
 
+    //--------------------------------------------------------------------------
 
-    if (EDIT) {
-        var buttonWrapper =
-            $('<div>')
-            .appendTo(this.Window)
-            .css({'width': '100%',
-                  'height': '40px',
-                  'border-bottom':'1px solid #B0B0B0'});
-        this.NewButton =
-            $('<button>')
-            .appendTo(buttonWrapper)
-            .text("New")
-            .css({'color' : '#278BFF',
-                  'font-size': '18px',
-                  'margin': '5px'})
-            .click(function(){self.NewCallback();});
-        this.SaveButton =
-            $('<button>')
-            .appendTo(buttonWrapper)
-            .text("Save")
-            .css({'color' : '#278BFF',
-                  'font-size': '18px',
-                  'margin': '5px'})
-            .click(function(){self.SaveCallback();});
-        /*this.RandomButton = $('<button>').appendTo(this.PopupMenu)
-          .hide()
-          .text("Randomize")
-          .css({'color' : '#278BFF', 'width':'100%','font-size': '18px'})
-          .click(function(){self.RandomCallback();});
-        */
-    }
 
-    this.NoteTreeDiv = $('<div>')
+
+    // Root of the note tree.
+    this.RootNote;
+
+    // Iterator is used to implement the next and previous note buttons.
+    this.Iterator;
+    // For clearing selected GUI setting.
+    this.SelectedNote;
+
+    // GUI elements
+    this.Window;
+    this.NoteTreeDiv;
+
+    this.TextTab = $('<div>')
         .appendTo(this.Window)
+        .text("Text")
+        .css({'color': '#000',
+              'border-color': '#BBB #BBB #FFF #BBB',
+              'position': 'relative',
+              'top': '1px',
+              'padding' : '2px 7px 2px 7px',
+              'margin'  : '5px 0px 0px 5px',
+              'display': 'inline-block',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-radius': '5px 5px 0px 0px',
+              'position': 'relative',
+              'z-index' : '5'})
+        .click(function(){
+            self.ShowTextTab();
+        })
+
+    this.LinksTab = $('<div>')
+        .appendTo(this.Window)
+        .text("Links")
+        .css({'color': '#AAA',
+              'border-color': '#BBB',
+              'position': 'relative',
+              'top': '1px',
+              'padding' : '2px 7px 2px 7px',
+              'margin'  : '5px 0px 0px 5px',
+              'display': 'inline-block',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-radius': '5px 5px 0px 0px',
+              'position': 'relative',
+              'z-index' : '5'})
+        .click(function(){
+            self.ShowLinksTab();
+        });
+
+
+    this.LinksDiv = $('<div>')
+        .appendTo(this.Window)
+        .hide()
         .css({'width': '100%',
-              'height': '40%',
-              'top' : '0px',
               'overflow': 'auto',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-color': '#BBB',
+              'top' : '0px',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'})
         .attr('id', 'NoteTree');
-
 
     // The next three elements are to handle the addition of comments.
     // Currently placeholders.
@@ -199,30 +228,12 @@ function NotesWidget() {
     this.TextDiv = $('<div>')
         .appendTo(this.Window)
         .css({'box-sizing': 'border-box',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-color': '#BBB',
               'width': '100%',
-              'height': '50%',
               'bottom': '0px',
               'padding': '3px'});
-
-    this.TextEntry = $('<div>')
-        .appendTo(this.TextDiv)
-        .attr('contenteditable', "true")
-        .css({'box-sizing': 'border-box',
-              'width': '100%',
-              'height': '100%',
-              'border-style': 'solid',
-              'background': '#ffffff',
-              'overflow': 'auto',
-              'resize': 'none'})
-        .focusin(function() {
-            EVENT_MANAGER.FocusOut();
-        })
-        .focusout(function() {
-            console.log("focusout");
-            EVENT_MANAGER.FocusIn();
-        })
-        .keypress(function() { NOTES_WIDGET.Modified(); })
-        .attr('readonly', 'readonly');
 
     if (EDIT) { // Ideally everyone should be able to take notes (saved separately).
      this.CameraButton = $('<img>')
@@ -359,6 +370,25 @@ function NotesWidget() {
         });
     }
 
+    this.TextEntry = $('<div>')
+        .appendTo(this.TextDiv)
+        .attr('contenteditable', "true")
+        .css({'box-sizing': 'border-box',
+              'width': '100%',
+              'height': '100%',
+              'border-style': 'solid',
+              'background': '#ffffff',
+              'overflow': 'auto',
+              'resize': 'none'})
+        .focusin(function() {
+            EVENT_MANAGER.FocusOut();
+        })
+        .focusout(function() {
+            console.log("focusout");
+            EVENT_MANAGER.FocusIn();
+        })
+        .attr('readonly', 'readonly');
+
     if (EDIT) {
         this.TextEntry.removeAttr('readonly');
         this.TextEntry.css({'border-style': 'inset',
@@ -376,6 +406,69 @@ function NotesWidget() {
     this.Iterator = this.RootNote.NewIterator();
 }
 
+//------------------------------------------------------------------------------
+NotesWidget.prototype.StartDrag = function () {
+    this.Dragging = true;
+    console.log("Start drag");
+    $('body').bind('mousemove',NotesWidgetResizeDrag);
+    $('body').bind('mouseup', NotesWidgetResizeStopDrag);
+    $('body').css({'cursor': 'col-resize'});
+}
+NotesWidgetResizeDrag = function (e) {
+    NOTES_WIDGET.SetWidth(e.pageX - 1);
+    if (NOTES_WIDGET.Width < 200) {
+        NotesWidgetResizeStopDrag();
+        NOTES_WIDGET.ToggleNotesWindow();
+    }
+
+    console.log("drag");
+}
+NotesWidgetResizeStopDrag = function () {
+    console.log("Stop drag");
+    $('body').unbind('mousemove',NotesWidgetResizeDrag);
+    $('body').unbind('mouseup', NotesWidgetResizeStopDrag);
+    $('body').css({'cursor': 'auto'});
+}
+//------------------------------------------------------------------------------
+
+
+
+
+NotesWidget.prototype.ShowLinksTab = function() {
+    this.LinksDiv.show();
+    this.LinksTab.css({'color': '#000',
+                       'border-color': '#BBB #BBB #FFF #BBB'});
+    this.TextDiv.hide();
+    this.TextTab.css({'color': '#AAA',
+                      'border-color': '#BBB'});
+}
+
+NotesWidget.prototype.ShowTextTab = function() {
+    this.LinksDiv.hide();
+    this.LinksTab.css({'color': '#AAA',
+                       'border-color': '#BBB'});
+    this.TextDiv.show();
+    this.TextTab.css({'color': '#000',
+                      'border-color': '#BBB #BBB #FFF #BBB'});
+    // Height is not set properly when text panel is hidden.
+    handleResize();
+}
+
+NotesWidget.prototype.SetWidth = function(width) {
+    this.Width = width;
+    this.Window.width(width);
+    handleResize();
+}
+
+// Necessary to set the height.
+NotesWidget.prototype.Resize = function(width, height) {
+    var pos = this.TextEntry.offset();
+    this.TextEntry.height(height - pos.top - 5);
+    pos = this.LinksDiv.offset();
+    this.LinksDiv.height(height - pos.top);
+}
+
+
 NotesWidget.prototype.InsertCameraLink = function() {
     var text = window.getSelection().toString();
     // Create a child note.
@@ -386,12 +479,22 @@ NotesWidget.prototype.InsertCameraLink = function() {
     childNote.Save(
         function (note) {
             var id = note.Id;
-            var htmlText = '<font color="blue" onclick="showChildNote(\''+id+'\')">' +text+ '</font>';
+            // I think I want to change this to add the links when reading;
+            // Easy to add the links,  harder to take them out.
+            var htmlText = '<font color="blue" onclick="showChildNote(\''+id+'\')" onmouseover="overLink(this)" onmouseout="outLink(this)">' +text+ '</font>';
             document.execCommand('insertHTML',false, htmlText);
             // Save the parent too, or the child may be orphaned.
             NOTES_WIDGET.RecordTextChanges();
             parentNote.Save();
         });
+}
+
+function overLink(link) {
+    link.style.background = "#DDF";
+}
+
+function outLink(link) {
+    link.style.background = "#FFF";
 }
 
 
@@ -574,34 +677,32 @@ NoteIterator.prototype.ToEnd = function() {
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
 function Note () {
-  var self = this;
+    var self = this;
 
-  this.User = GetUser(); // Reset by flask.
-  var d = new Date();
-  this.Date = d.getTime(); // Also reset later.
-  this.Type = "Note";
+    this.User = GetUser(); // Reset by flask.
+    var d = new Date();
+    this.Date = d.getTime(); // Also reset later.
+    this.Type = "Note";
 
+    this.Title = "";
+    this.Text = "";
+    // Upto two for dual view.
+    this.ViewerRecords = [];
 
-  this.Title = "";
-  this.Text = "";
-  // Upto two for dual view.
-  this.ViewerRecords = [];
+    // ParentNote (it would be nice to make the session a note too).
+    this.Parent = null;
 
-  // ParentNote (it would be nice to make the session a note too).
-  this.Parent = null;
+    // Sub notes
+    this.Children = [];
+    this.ChildrenVisibility = true;
 
-  // Sub notes
-  this.Children = [];
-  this.ChildrenVisibility = true;
-
-  // GUI elements.
-  this.Div =
-    $('<div>').attr({'class':'note'})
+    // GUI elements.
+    this.Div = $('<div>')
+        .attr({'class':'note'})
         .css({'position':'relative'})
         .sortable('disable');
 
-  this.Icon =
-    $('<img>')
+    this.Icon = $('<img>')
         .css({'height': '20px',
               'width': '20x',
               'float':'left',
@@ -611,70 +712,116 @@ function Note () {
         .appendTo(this.Div)
         .sortable('disable')
         .attr('draggable','false')
-        .on("dragstart", function() {
-            return false;});
+        .on("dragstart", function() {return false;});
 
+    this.TitleDiv = $('<div>')
+        .appendTo(this.Div)
+        .hover(
+            function() {
+                self.TitleEntry.css({'color':'#33D'});
+                if (NOTES_WIDGET.SelectedNote == self) {
+                    self.ButtonsDiv.show();
+                }
+            },
+            function() {
+                self.TitleEntry.css({'color':'#3AF'});
+                self.ButtonsDiv.hide();
+            });
 
-  // I could reuse this menu, but this is easy for callbacks
-  this.IconMenuDiv =
-    $('<div>').appendTo(this.Div)
-      .hide()
-      .css({'position': 'absolute',
-            'left': '0px',
-            'margin-top':'20px',
-            'top' : '0px',
-            'width' : '80px',
-            'z-index': '1',
-            'background-color': '#F0F0F0',
-            'padding': '5px',
-            'border-color': '#B0B0B0',
-            'border-radius': '8px',
-            'border-style': 'solid',
-            'border-width':'1px'});
-  this.TitleDiv = $('<div>')
-        .css({'font-size': '18px',
-               'margin-left':'20px',
-               'color':'#379BFF',})
+    this.ButtonsDiv = $('<div>')
+        .appendTo(this.TitleDiv)
+        .css({'float':'right'})
+        .hide();
+    this.TitleEntry = $('<div>')
+        .appendTo(this.TitleDiv)
         .text(this.Title)
+        .css({'font-size': '18px',
+              'margin-left':'20px',
+              'color':'#379BFF',})
+        .click(function() {
+            self.Select();
+            self.ButtonsDiv.show();
+        });
+
+    if (EDIT) {
+        this.CameraButton = $('<img>')
+            .appendTo(this.ButtonsDiv)
+            .attr('src',"webgl-viewer/static/camera.png")
+            .css({
+                'width':'12px',
+                'height':'12px',
+                'padding' : '1px',
+                'margin-right' : '1px',
+                'opacity':'0.5',
+                'border': '1px solid #AAA',
+                'border-radius': '3px'})
+            .click(function () {
+                self.RecordView();
+                self.Save();
+            });
+        this.AddButton = $('<img>')
+            .appendTo(this.ButtonsDiv)
+            .attr('src',"webgl-viewer/static/page_add.png")
+            .css({
+                'width':'12px',
+                'height':'12px',
+                'padding' : '1px',
+                'margin-right' : '1px',
+                'opacity':'0.5',
+                'border': '1px solid #AAA',
+                'border-radius': '3px'})
+            .click(function () {
+                NOTES_WIDGET.NewCallback();
+            });
+        this.RemoveButton = $('<img>')
+            .appendTo(this.ButtonsDiv)
+            .hide()
+            .attr('src',"webgl-viewer/static/remove.png")
+            .css({
+                'width':'12px',
+                'height':'12px',
+                'padding' : '1px',
+                'margin-right' : '1px',
+                'opacity':'0.5',
+                'border': '1px solid #AAA',
+                'border-radius': '3px'})
+            .click(function () {
+                self.DeleteCallback();
+            });
+    }
+
+    if (this.HideAnnotations && this.HiddenTitle) {
+        this.TitleEntry.text(this.HiddenTitle);
+    }
+
+
+    if (EDIT) {
+        this.TitleEntry
+            .attr('contenteditable', "true")
+            .focusin(function() { self.TitleFocusInCallback(); })
+            .focusout(function() { self.TitleFocusOutCallback(); })
+    }
+
+
+    // The div should attached even if nothing is in it.
+    // A child may appear and UpdateChildrenGui called.
+    // If we could tell is was removed, UpdateChildGUI could append it.
+    this.ChildrenDiv = $('<div>')
+        .css({'margin-left':'15px'})
         .appendTo(this.Div);
-  if (this.HideAnnotations && this.HiddenTitle) {
-      this.TitleDiv.text(this.HiddenTitle);
-  }
 
-
-  if (EDIT) {
-    this.TitleDiv
-      .attr('contenteditable', "true")
-      .focusin(function() { self.TitleFocusInCallback(); })
-      .focusout(function() { self.TitleFocusOutCallback(); })
-  } else {
-    this.TitleDiv.click(function() {self.Select()})
-  }
-
-  // The div should attached even if nothing is in it.
-  // A child may appear and UpdateChildrenGui called.
-  // If we could tell is was removed, UpdateChildGUI could append it.
-  this.ChildrenDiv = $('<div>').css({'margin-left':'15px'})
-                               .appendTo(this.Div);
-
-  // This is for stack notes (which could be a subclass).
-  this.StartIndex = 0;
-  this.ActiveCorrelation = undefined;
-  this.StackDivs = [];
+    // This is for stack notes (which could be a subclass).
+    this.StartIndex = 0;
+    this.ActiveCorrelation = undefined;
+    this.StackDivs = [];
 }
 
 Note.prototype.SetParent = function(parent) {
-  var self = this;
-  this.Parent = parent;
-  if (parent) {
-    this.DeleteButton =
-      $('<button>').appendTo(this.IconMenuDiv)
-        .text("delete")
-        .css({'color' : '#278BFF',
-              'font-size': '14px',
-              'border-radius': '3px',
-              'width':'100%'});
-  }
+    var self = this;
+    this.Parent = parent;
+    if (parent && EDIT) {
+        this.RemoveButton.show();
+    }
 }
 
 Note.prototype.TitleFocusInCallback = function() {
@@ -685,77 +832,45 @@ Note.prototype.TitleFocusInCallback = function() {
 
 
 Note.prototype.TitleFocusOutCallback = function() {
-  // Allow the viewer to process arrow keys.
-  EVENT_MANAGER.FocusIn();
-  var text = this.TitleDiv.text();
-  if (this.Title != text && ! this.HideAnnotations) {
-    this.Title = text;
-    NOTES_WIDGET.Modified();
-  }
-  if (this.HiddenTitle != text && this.HideAnnotations) {
-    this.HiddenTitle = text;
-    NOTES_WIDGET.Modified();
-  }
-}
-
-
-Note.prototype.IconEnterCallback = function() {
-  if (EDIT) {
-    this.IconMenuDiv.fadeIn(1000);
-  }
-}
-
-Note.prototype.IconLeaveCallback = function() {
-  if (EDIT) {
-    var self = this;
-    this.HideIconMenuTimerId = setTimeout(
-      function() {
-        self.HideIconMenuTimerId = 0;
-        self.IconMenuDiv.hide();
-      },
-      300);
-  }
-}
-
-Note.prototype.IconMenuEnterCallback = function() {
-  if (this.HideIconMenuTimerId) {
-    clearTimeout(this.HideIconMenuTimerId);
-    this.HideIconMenuTimerId = 0;
-  }
-}
-
-Note.prototype.IconMenuLeaveCallback = function() {
-  this.IconMenuDiv.hide();
+    // Allow the viewer to process arrow keys.
+    EVENT_MANAGER.FocusIn();
+    var text = this.TitleEntry.text();
+    if (this.Title != text && ! this.HideAnnotations) {
+        this.Title = text;
+        this.Save();
+    }
+    if (this.HiddenTitle != text && this.HideAnnotations) {
+        this.HiddenTitle = text;
+        this.Save();
+    }
 }
 
 Note.prototype.LinkCallback = function() {
-  this.IconMenuDiv.hide();
   LINK_DIV.html("slide-atlas.org/webgl-viewer?view="+this.Id);
   LINK_DIV.show();
 }
 
 Note.prototype.DeleteCallback = function() {
-  this.IconMenuDiv.hide();
-  var parent = this.Parent;
-  if (parent == null) {
-    return;
-  }
+    var parent = this.Parent;
+    if (parent == null) {
+        return;
+    }
 
-  if (NOTES_WIDGET.Iterator.GetNote() == this) {
-    // Move the current note off this note.
-    // There is always a previous.
-    NAVIGATION_WIDGET.PreviousNote();
-  }
+    if (NOTES_WIDGET.Iterator.GetNote() == this) {
+        // Move the current note off this note.
+        // There is always a previous.
+        NAVIGATION_WIDGET.PreviousNote();
+    }
 
-  // Get rid of the note.
-  var index = parent.Children.indexOf(this);
-  parent.Children.splice(index, 1);
-  this.Parent = null;
+    // Get rid of the note.
+    var index = parent.Children.indexOf(this);
+    parent.Children.splice(index, 1);
+    this.Parent = null;
 
-  NOTES_WIDGET.Modified();
+    parent.Save();
 
-  // Redraw the GUI.
-  parent.UpdateChildrenGUI();
+    // Redraw the GUI.
+    parent.UpdateChildrenGUI();
 }
 
 Note.prototype.UserCanEdit = function() {
@@ -851,19 +966,19 @@ Note.prototype.UpdateChildrenGUI = function() {
 // the childrenDiv jquery element.
 // I could use jQuery.data(div,"note",this) or store the index in an attribute.
 Note.prototype.ReorderChildren = function() {
-  var newChildren = [];
-  var children = this.ChildrenDiv.children();
-  for (var newIndex = 0; newIndex < children.length; ++newIndex) {
-    var oldIndex = $(children[newIndex]).data('index');
-    var note = this.Children[oldIndex];
-    note.Div.data("index", newIndex);
-    if (newIndex != oldIndex) {
-      NOTES_WIDGET.Modified();
+    var newChildren = [];
+    var children = this.ChildrenDiv.children();
+    for (var newIndex = 0; newIndex < children.length; ++newIndex) {
+        var oldIndex = $(children[newIndex]).data('index');
+        var note = this.Children[oldIndex];
+        note.Div.data("index", newIndex);
+        if (newIndex != oldIndex) {
+            this.Save();
+        }
+        newChildren.push(note);
     }
-    newChildren.push(note);
-  }
 
-  this.Children = newChildren;
+    this.Children = newChildren;
 }
 
 
@@ -954,13 +1069,13 @@ Note.prototype.Select = function() {
     // Handle the note that is being unselected.
     // Clear the selected background of the deselected note.
     if (NOTES_WIDGET.SelectedNote) {
-        NOTES_WIDGET.SelectedNote.TitleDiv.css({'background':'white'});
+        NOTES_WIDGET.SelectedNote.TitleEntry.css({'background':'white'});
     }
 
 
     NOTES_WIDGET.SelectedNote = this;
     // Indicate which note is selected.
-    this.TitleDiv.css({'background':'#f0f0f0'});
+    this.TitleEntry.css({'background':'#f0f0f0'});
 
     if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
@@ -983,10 +1098,6 @@ Note.prototype.Select = function() {
         // First view is set by viewer record camera.
         // Second is set relative to the first.
         this.SynchronizeViews(0);
-        // We do not support inserting sections in a stack right now.
-        if (NOTES_WIDGET.NewButton) {
-            NOTES_WIDGET.NewButton.hide();
-        }
     } else {
         if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
         // Clear the sync callback.
@@ -1001,9 +1112,14 @@ Note.prototype.Select = function() {
     while ( textNote.Parent && textNote.Text == "") {
         textNote = textNote.Parent;
     }
-    
+
     NOTES_WIDGET.TextEntry.html(textNote.Text);
     NOTES_WIDGET.TextNote = textNote;
+    if (textNote.Text == "") {
+        NOTES_WIDGET.ShowLinksTab();
+    } else {
+        NOTES_WIDGET.ShowTextTab();
+    }
 }
 
 Note.prototype.RecordAnnotations = function() {
@@ -1022,25 +1138,19 @@ Note.prototype.DisplayGUI = function(div) {
     var self = this;
 
     if (this.HideAnnotations && this.HiddenTitle) {
-        this.TitleDiv.text(this.HiddenTitle);
+        this.TitleEntry.text(this.HiddenTitle);
     } else {
-        this.TitleDiv.text(this.Title);
+        this.TitleEntry.text(this.Title);
     }
 
     // Changing a div "parent/appendTo" removes all event bindings like click.
     // I would like to find a better solution to redraw.
     this.Icon
         .click(function() {self.Select()})
-        .mouseenter(function() { self.IconEnterCallback(); })
-        .mouseleave(function() { self.IconLeaveCallback(); });
     if (EDIT) {
-        this.IconMenuDiv
-            .mouseenter(function() { self.IconMenuEnterCallback(); })
-            .mouseleave(function() { self.IconMenuLeaveCallback(); });
         if (this.LinkButton) {
             this.LinkButton.click(function(){self.LinkCallback();});
         }
-
         if (this.DeleteButton) {
             this.DeleteButton.click(function(){self.DeleteCallback();});
         }
@@ -1105,9 +1215,9 @@ Note.prototype.Load = function(obj){
     delete this._id;
 
     if (this.HideAnnotations && this.HiddenTitle) {
-        this.TitleDiv.text(this.HiddenTitle);
+        this.TitleEntry.text(this.HiddenTitle);
     } else {
-        this.TitleDiv.text(this.Title);
+        this.TitleEntry.text(this.Title);
     }
 
     for (var i = 0; i < this.Children.length; ++i) {
@@ -1126,16 +1236,6 @@ Note.prototype.Load = function(obj){
             this.ViewerRecords[i] = new ViewerRecord();
             this.ViewerRecords[i].Load(obj);
         }
-    }
-
-    if (this.Id) {
-        this.LinkButton =
-            $('<button>').appendTo(this.IconMenuDiv)
-            .text("link")
-            .css({'color' : '#278BFF',
-                  'font-size': '14px',
-                  'border-radius': '3px',
-                  'width':'100%'});
     }
 
     // Hack to fix timing (Load after select)
@@ -1463,17 +1563,6 @@ NotesWidget.prototype.SaveUserNote = function() {
   NAVIGATION_WIDGET.NextNote();
 }
 
-
-NotesWidget.prototype.Modified = function() {
-  window.onbeforeunload =
-    function () {
-      return "Some changes have not been saved to the database.";
-    }
-  this.ModifiedFlag = true;
-  this.SaveButton.css({'color' : '#E00'});
-}
-
-
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
     var note = new Note();
@@ -1514,20 +1603,20 @@ NotesWidget.prototype.SaveBrownNote = function() {
 
 
 NotesWidget.prototype.ToggleNotesWindow = function() {
-  this.Visibilty = ! this.Visibilty;
-  RecordState();
+    this.Visibilty = ! this.Visibilty;
+    RecordState();
 
-  if (this.Visibilty) {
-    this.AnimationCurrent = this.WidthFraction;
-    this.AnimationTarget = 0.2;
-  } else {
-    this.Window.hide();
-    this.AnimationCurrent = this.WidthFraction;
-    this.AnimationTarget = 0.0;
-  }
-  this.AnimationLastTime = new Date().getTime();
-  this.AnimationDuration = 1000.0;
-  this.AnimateNotesWindow();
+    if (this.Visibilty) {
+        this.AnimationCurrent = this.Width;
+        this.AnimationTarget = 300;
+    } else {
+        this.Window.hide();
+        this.AnimationCurrent = this.Width;
+        this.AnimationTarget = 0;
+    }
+    this.AnimationLastTime = new Date().getTime();
+    this.AnimationDuration = 1000.0;
+    this.AnimateNotesWindow();
 }
 
 
@@ -1552,28 +1641,14 @@ NotesWidget.prototype.SaveCallback = function() {
     var self = this;
     var d = new Date();
 
-    this.RootNote.Save(
-        function (note) {
-            self.SaveButton.css({'color' : '#278BFF'});
-            self.ModifiedFlag = false;
-            window.onbeforeunload = null;
-        });
+    this.RootNote.Save();
 }
-
-NotesWidget.prototype.CheckForSave = function() {
-  if (this.ModifiedFlag) {
-    var message = "Save changes in database?\n\nPress Cancel to discard changes.";
-    if (confirm(message)) { SaveCallback(); }
-  }
-  return true;
-}
-
 
 NotesWidget.prototype.AnimateNotesWindow = function() {
   var timeStep = new Date().getTime() - this.AnimationLastTime;
   if (timeStep > this.AnimationDuration) {
     // end the animation.
-    this.WidthFraction = this.AnimationTarget;
+    this.SetWidth(this.AnimationTarget);
     handleResize();
     if (this.Visibilty) {
       this.CloseNoteWindowButton.show();
@@ -1591,9 +1666,8 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 
   // update
   this.AnimationDuration *= (1.0-k);
-  this.WidthFraction += (this.AnimationTarget-this.WidthFraction) * k;
+  this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
 
-  handleResize();
   draw();
   var self = this;
   requestAnimFrame(function () {self.AnimateNotesWindow();});
@@ -1602,8 +1676,8 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
   this.TextEntry.html(this.RootNote.Text);
-  this.NoteTreeDiv.empty();
-  this.RootNote.DisplayGUI(this.NoteTreeDiv);
+  this.LinksDiv.empty();
+  this.RootNote.DisplayGUI(this.LinksDiv);
   this.RootNote.Select();
 }
 
@@ -1618,21 +1692,20 @@ NotesWidget.prototype.LoadViewId = function(viewId) {
 }
 
 
-
 // Add a user note to the currently selected notes children.
 NotesWidget.prototype.NewCallback = function() {
+    var note = this.Iterator.GetNote();
     var childIdx = 0;
-    var currentNote = this.Iterator.GetNote();
-    var parentNote = this.Iterator.GetParentNote();
-    if (parentNote) {
-        childIdx = parentNote.Children.indexOf(currentNote)+1;
-    } else {
-        parentNote = currentNote;
+    if (note.Parent) {
+        var idx = note.Children.indexOf(note);
+        if (idx >= 0) {
+            childIdx = idx+1;
+            note = note.Parent;
+        }
     }
-
     // Create a new note.
-    var childNote = parentNote.NewChild(childIdx, "New Note");
-    this.Modified();
+    var childNote = note.NewChild(childIdx, "New Note");
+    note.Save();
     childNote.Select();
 }
 
