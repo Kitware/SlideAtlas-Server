@@ -30,22 +30,8 @@
 // that children that do not have their own text, show the text of their
 // parent.  I will probably hide children without text in the top display.
 // TODO:
-// Add link / note to top or bottom? Ask bev.
-// Get highlight hyperlink when note is selected working.
-//     Text cannot be selected when hidden.  I would have to select the
-//     text when Text tabe is clicked.....
-// Some feed back when cam button is pressed.
-
+// Deleting a note should delete the usernote.
 // Deleting a hyper link should delete its note. (test)
-// Save USer note with main notes.
-// Load user notes.
-
-
-
-// Hyperlink selection background color (and color) should not be saved in
-//   the note / database.
-// Insert a link image when nothing selected. (Where? current location or end).
-
 
 // Maybe have a "Add" at the bottom of the link list.
 // Move deleted links to trash instead of deleting. (Undo delete)
@@ -55,6 +41,16 @@
 // ??? Link notes better in html ??? Saving edited html is the problem here.
 // Make browser back arrow undo link (will this cause tiles to reload (note
 //     panel to disapear?)
+
+// NOTE:
+// -Add link / note to top or bottom? Ask bev.
+// -I Could not highlight hyperlink when note is selected.
+//     Text cannot be selected when hidden.  I would have to select the
+//     text when Text tabe is clicked.....
+// -Hyperlink selection background color (and color) should not be saved in
+//     the note / database.
+
+
 
 
 
