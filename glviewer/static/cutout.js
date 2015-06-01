@@ -21,6 +21,25 @@
 // for debugging
 var CUTOUT_VIEW;
 
+
+function DownloadImageData(data, filename) {
+    // THe only way I know if is to put in into a canvas.
+
+    // Construct a view to render the image on the client.
+    var width =  data.width;
+    var height =  data.height;
+    var viewport = [0,0, width, height];
+
+    var view = new View();
+    view.InitializeViewport(viewport, 1, true);
+    view.Canvas.attr("width", width);
+    view.Canvas.attr("height", height);
+    view.Context2d.putImageData(data, 0, 0);
+    
+    view.Canvas[0].toBlob(function(blob) {saveAs(blob, filename);}, "image/png");    
+}
+
+
 function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
                         returnCallback) {
     // Construct a view to render the image on the client.
@@ -78,8 +97,8 @@ GetCutoutImage2 = function(view, returnCallback) {
 // height = height in screen pixels of the returned div image.
 // request = (optional) bounds of cropped image in slide pixel units.
 //           if request is not defined, it defaults to the whole image bounds.
-// Events are funny,  The mouse position is realtive to the bounds of
-// all the tiles.  click and bounds are callback functions to make
+// Events are funny,  The mouse position is realtive to
+// the tiles.  click and bounds are callback functions to make
 // interaction simpler.
 function  CutoutThumb(image, height, request) {
     if ( ! request) {
