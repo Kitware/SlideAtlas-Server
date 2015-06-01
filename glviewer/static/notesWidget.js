@@ -30,6 +30,15 @@
 // that children that do not have their own text, show the text of their
 // parent.  I will probably hide children without text in the top display.
 // TODO:
+// Bug: Tabs do not look right (bottom should be white / z_index?)
+// Bug: only the last child added can be selected by the title.
+//      only the last child added shows the delete and camera buttons.
+//      This only happens when editing.  Loading a saved view/note works
+//      fine.
+// Bug: Note title not being saved.
+// Bug: Type "test" reload (not saved).
+
+
 // Deleting a note should delete the usernote.
 // Deleting a hyper link should delete its note. (test)
 

@@ -52,7 +52,7 @@ function GigamacroSource () {
     // x, y, slide are integer indexes of tiles in the grid.
     this.getTileUrl = function(level, x, y, z) {
         var g = this.GridSize[level];
-        if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) { 
+        if (x < 0 || x >= g[0] || y < 0 || y >= g[1]) {
             return "";
         }
         var num = y*g[0] + x;
@@ -62,6 +62,48 @@ function GigamacroSource () {
         }
         var tileGroup = Math.floor(num / 256);
         var name = this.Prefix+"TileGroup"+tileGroup+'/'+level+'-'+x+'-'+y+".jpg";
+        return name;
+    }
+}
+
+// Our subdivision of leaves is arbitrary.
+function IIIFSource () {
+    this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
+    this.TileSize = 256;
+
+    this.setDimensions = function(xDim,yDim) {
+        this.Dimensions = [xDim, yDim];
+        this.GridSize = [];
+        this.Levels = 0;
+        while (true) {
+            var gridLevelDim = [Math.ceil(xDim/256), Math.ceil(yDim/256)];
+            this.Levels += 1;
+            if (gridLevelDim[0] == 1 && gridLevelDim[1] == 1) return;
+            xDim = xDim / 2;
+            yDim = yDim / 2;
+        }
+    }
+
+    // Higher levels are higher resolution. (0 is the root).
+    // x, y, slide are integer indexes of tiles in the grid.
+    this.getTileUrl = function(level, x, y, z) {
+        // compute the dimensions of this resolution.
+        var x0 = x * 256;
+        var y0 = y * 256;
+        var x1 = x0 + 256;
+        var y1 = y0 + 256;
+        // crop the tile
+        var res = this.Levels - level - 1;
+        var dx = this.Dimensions[0] >> res;
+        var dy = this.Dimensions[1] >> res;
+        if (x1 > dx) { x1 = dx; }
+        if (y1 > dy) { y1 = dy; }
+        dx = x1-x0;
+        dy = y1-y0;
+        // Compute the scale.
+        res = 1.0 / (1 << res);
+
+        var name = this.Prefix+"&s="+res+"&r=0&x="+x0+"&y="+y0+"&w="+dx+"&h="+dy;
         return name;
     }
 }
@@ -115,6 +157,20 @@ function FindCache(image) {
     }
     var cache = new Cache();
 
+    // Special case to link to IIIF? Harvard art..
+    //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
+    if (image._id == "556c89a83ed65909dbc2e317") {
+        var tileSource = new IIIFSource ();
+        tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
+        tileSource.setDimensions(3890,5787);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+
     // Special case to link to gigamacro.
     if (image._id == "555a1af93ed65909dbc2e19a") {
         var tileSource = new GigamacroSource ();
@@ -125,7 +181,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555a5e163ed65909dbc2e19d") {
@@ -137,7 +192,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555b66483ed65909dbc2e1a0") {
@@ -149,7 +203,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555b664d3ed65909dbc2e1a3") {
@@ -161,7 +214,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555b66523ed65909dbc2e1a6") {
@@ -173,7 +225,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555c93973ed65909dbc2e1b5") {
@@ -185,7 +236,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
     if (image._id == "555c93913ed65909dbc2e1b2") {
@@ -197,7 +247,6 @@ function FindCache(image) {
         image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
         cache.SetImageData(image);
         cache.TileSource = tileSource;
-
         return cache;
     }
 
