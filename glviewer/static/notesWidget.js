@@ -30,12 +30,27 @@
 // that children that do not have their own text, show the text of their
 // parent.  I will probably hide children without text in the top display.
 // TODO:
-// Add user note feature. When no edit, have another editable field.
+// Deleting a note should delete the usernote.
+// Deleting a hyper link should delete its note. (test)
+
+// Maybe have a "Add" at the bottom of the link list.
+// Move deleted links to trash instead of deleting. (Undo delete)
 // A way to get permalink to notes. (for Brown) (LinkCallback)
+// Indicate the current note in the text.
 // Save notes panel state (opened, closed, width) in mongo.
 // ??? Link notes better in html ??? Saving edited html is the problem here.
 // Make browser back arrow undo link (will this cause tiles to reload (note
 //     panel to disapear?)
+
+// NOTE:
+// -Add link / note to top or bottom? Ask bev.
+// -I Could not highlight hyperlink when note is selected.
+//     Text cannot be selected when hidden.  I would have to select the
+//     text when Text tabe is clicked.....
+// -Hyperlink selection background color (and color) should not be saved in
+//     the note / database.
+
+
 
 
 
@@ -49,7 +64,6 @@ function InitNotesWidget() {
     LINK_DIV = 
         $("<div>")
         .appendTo('body')
-        .attr('contenteditable', "true")
         .css({'top':'30px',
               'left': '10%',
               'position': 'absolute',
@@ -63,7 +77,325 @@ function InitNotesWidget() {
               'padding-top': '26px'})
         .hide()
         .mouseleave(function() { LINK_DIV.fadeOut(); });
+
+    if (EDIT) {
+        LINK_DIV.attr('contenteditable', "true");
+    }
 }
+
+//==============================================================================
+
+var NOTES_WIDGET_TABS = [];
+function NotesWidgetTab(parent, title) {
+    NOTES_WIDGET_TABS.push(this);
+    var self = this;
+    this.Tab = $('<div>')
+        .appendTo(parent)
+        .text(title)
+        .css({'color': '#AAA',
+              'border-color': '#BBB',
+              'position': 'relative',
+              'top': '1px',
+              'padding' : '2px 7px 2px 7px',
+              'margin'  : '5px 0px 0px 5px',
+              'display': 'inline-block',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-radius': '5px 5px 0px 0px',
+              'position': 'relative',
+              'z-index' : '5'})
+        .click(function(){
+            self.Show();
+        });
+    // Now: all tabs have to be added before divs.
+    // TODO: Make a separate tab div / tab panel object.
+    this.Div = $('<div>');
+}
+
+NotesWidgetTab.prototype.Show = function () {
+    for (var i = 0; i < NOTES_WIDGET_TABS.length; ++i) {
+        var tabPanel = NOTES_WIDGET_TABS[i];
+        tabPanel.Div.hide();
+        tabPanel.Tab.css({'color': '#AAA',
+                          'border-color': '#BBB'});
+    }
+    this.Div.show();
+    this.Tab.css({'color': '#000',
+                  'border-color': '#BBB #BBB #FFF #BBB'});
+}
+
+//==============================================================================
+
+
+function TextEditor(parent, edit) {
+    var self = this;
+    this.Parent = parent;
+    if (edit) {
+        this.AddEditButton("webgl-viewer/static/camera.png",
+                           function() {self.InsertCameraLink();});
+        this.AddEditButton("webgl-viewer/static/font_bold.png",
+                           function() {document.execCommand('bold',false,null);});
+        this.AddEditButton("webgl-viewer/static/text_italic.png",
+                           function() {document.execCommand('italic',false,null);});
+        this.AddEditButton("webgl-viewer/static/edit_underline.png",
+                           function() {document.execCommand('underline',false,null);});
+        this.AddEditButton("webgl-viewer/static/list_bullets.png",
+                           function() {document.execCommand('InsertUnorderedList',false,null);});
+        this.AddEditButton("webgl-viewer/static/list_numbers.png",
+                           function() {document.execCommand('InsertOrderedList',false,null);});
+        this.AddEditButton("webgl-viewer/static/indent_increase.png",
+                           function() {document.execCommand('indent',false,null);});
+        this.AddEditButton("webgl-viewer/static/indent_decrease.png",
+                           function() {document.execCommand('outdent',false,null);});
+        this.AddEditButton("webgl-viewer/static/alignment_left.png",
+                           function() {document.execCommand('justifyLeft',false,null);});
+        this.AddEditButton("webgl-viewer/static/alignment_center.png",
+                           function() {document.execCommand('justifyCenter',false,null);});
+        this.AddEditButton("webgl-viewer/static/edit_superscript.png",
+                           function() {document.execCommand('superscript',false,null);});
+        this.AddEditButton("webgl-viewer/static/edit_subscript.png",
+                           function() {document.execCommand('subscript',false,null);});
+    }
+
+    this.TextEntry = $('<div>')
+        .appendTo(parent)
+        .css({'box-sizing': 'border-box',
+              'width': '100%',
+              'height': '100%',
+              'border-style': 'solid',
+              'background': '#ffffff',
+              'overflow': 'auto',
+              'resize': 'none'})
+        .attr('readonly', 'readonly');
+
+    if (edit) {
+        this.Modified = false;
+        this.TextEntry
+            .attr('contenteditable', "true")
+            .removeAttr('readonly')
+            .css({'border-style': 'inset',
+                  'background': '#f5f8ff'})
+            .bind('input', function () {
+                self.Modified = true;
+            })
+            .focusin(function() {
+                EVENT_MANAGER.FocusOut();
+            })
+            .focusout(function() {
+                EVENT_MANAGER.FocusIn();
+                if (self.Modified) {
+                    self.UpdateNote();
+                    self.Modified = false;
+                }
+            });
+    } else {
+        this.TextEntry.attr('readonly', 'readonly');
+        this.TextEntry.css({'border-style': 'outset',
+                            'background': '#ffffff'});
+    }
+}
+
+
+TextEditor.prototype.AddEditButton = function(src, callback) {
+    var self = this;
+    var button = $('<img>')
+        .appendTo(this.Parent)
+        .attr('src',src)
+        .css({
+            'padding' : '1px',
+            'margin-right' : '1px',
+            'border': '1px solid #AAA',
+            'border-radius': '3px'})
+        .hover(function () {$(this).css({'background':'#CEF'});},
+               function () {$(this).css({'background':'#FFF'});})
+        .mousedown(function () {
+            $(this).css({'background':'#888'});
+        })
+        .mouseup(function () {
+            $(this).css({'background':'#CEF'});
+            (callback)();
+        });
+}
+
+
+var LINKS_WITH_NO_NAME = 0;
+TextEditor.prototype.InsertCameraLink = function() {
+    var self = this;
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
+    var noCursor = false;
+
+    // Two conditions that we have to create a selection:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        range = sel.getRangeAt(0);
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != this.TextEntry[0]) {
+            if ( ! parent) {
+                console.log("Wrong parent");
+                return;
+            }
+            parent = parent.parentNode;
+        }
+    }
+    if ( ! parent) {
+        noCursor = true;
+        // Select everything in the editor.
+        range = document.createRange();
+        range.selectNodeContents(this.TextEntry[0]);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // Add a new line at the start of the editor content.
+        var br = document.createElement('br');
+        range.insertNode(br); // selectNode?
+        // Collapse the range/cursor to the begining (false == end).
+        range.collapse(true);
+        // The collapse has no effect without this.
+        sel.removeAllRanges();
+        sel.addRange(range);
+        console.log(sel.toString());
+    }
+
+    // Check if an existing link is selected.
+    var dm = range.cloneContents();
+    if (dm.firstChild &&
+        dm.firstChild.getAttribute &&
+        (id = dm.firstChild.getAttribute("id"))) {
+        // A link is selected,  Just save a new camera for the link.
+        note = GetNoteFromId(id);
+        if (note) {
+            note.RecordView();
+            note.Save();
+            return;
+        }
+    }
+
+    // Create a new note.  Save it to get its id. Then insert the html.
+
+    // Case: cursor is in editor, but nothing selected.
+    // Use the selected text as a name for the note.
+    var text = sel.toString();
+    if (text == "") {
+        // creaste a new name. Should I number the notes?
+        ++LINKS_WITH_NO_NAME;
+        text = "link"+LINKS_WITH_NO_NAME;
+    }
+
+    // Create a child note.
+    var parentNote = this.Note;
+    if ( ! parentNote) {
+        parentNote = NOTES_WIDGET.RootNote;
+    }
+    // Put the new note at the begining of the list.
+    //var childIdx = parentNote.Children.length;  // end
+    var childIdx = 0;
+    var childNote = parentNote.NewChild(childIdx, text);
+    // We need to save the note to get its Id.
+    childNote.Save(
+        function (note) {
+            // Simply put a span tag around the text with the id of the view.
+            // It will be formated by the note hyperlink code.
+            var span = document.createElement("span");
+            // This id identifies the span as a hyperlink to this note.
+            // The note will format the link and add callbacks later.
+            span.id = note.Id;
+            if ( ! range.collapsed) {
+                // Remove the seelcted text.
+                range.extractContents(); // deleteContents(); // cloneContents
+                range.collapse(true);
+                span.appendChild( document.createTextNode(text) );
+            } else {
+                // no text selected.  What should we insert to represent a
+                // link? An image would be nice.
+                span.appendChild( document.createTextNode(" (link"+LINKS_WITH_NO_NAME+") ") );
+            }
+            range.insertNode(span);
+            // Let the not format it.
+            note.FormatHyperlink();
+            self.UpdateNote();
+            // Do not automatically select new hyperlinks.
+            // The user may want to insert one after another.
+            //note.Select();
+            if (noCursor) {
+                // Leave the selection the same as we found it.
+                // Ready for the next link.
+                sel.removeAllRanges();
+            }
+        });
+}
+
+function insertHtmlLink(id) {
+    var sel, range;
+    if (window.getSelection && (sel = window.getSelection()).rangeCount) {
+
+        var text = window.getSelection().toString();
+        range = sel.getRangeAt(0);
+
+        var dm = range.extractContents(); // deleteContents(); // cloneContents
+
+        range.collapse(true);
+
+        // Simply put a span tag around the text with the id of the view.
+        // It will be formated later.
+        var span = document.createElement("span");
+        span.id = id;
+        span.appendChild( document.createTextNode(text) );
+
+        range.insertNode(span);
+
+        // Move the caret immediately after the inserted span
+        //range.setStartAfter(span);
+        //range.collapse(true);
+        //sel.removeAllRanges();
+        //sel.addRange(range);
+    }
+}
+
+TextEditor.prototype.Resize = function(width, height) {
+    var pos;
+    pos = this.TextEntry.offset();
+    this.TextEntry.height(height - pos.top - 5);
+}
+
+TextEditor.prototype.SetHtml = function(html) {
+    this.Note = null;
+    this.TextEntry.html(html);
+}
+
+TextEditor.prototype.GetHtml = function() {
+    return this.TextEntry.html();
+}
+
+// This probably belongs in a subclass.
+// Or in the note.
+TextEditor.prototype.LoadNote = function(note) {
+    this.Note = note;
+    this.TextEntry.html(note.Text);
+    for (var i = 0; i < note.Children.length; ++i) {
+        note.Children[i].FormatHyperlink();
+    }
+}
+
+// Copy the text entry text back into the note
+// (when the textEntry changes).
+// It saves the note too.
+TextEditor.prototype.UpdateNote = function() {
+    if ( ! this.Note) {
+        // Here is a real hack.  Hard code the creation of a user note.
+        this.Note = NOTES_WIDGET.GetCurrentNote().GetUserNote();
+    }
+    this.Note.Text = this.TextEntry.html();
+    this.Note.Save();
+}
+
+
+//==============================================================================
+
+
 
 
 function NotesWidget() {
@@ -154,8 +486,6 @@ function NotesWidget() {
 
     //--------------------------------------------------------------------------
 
-
-
     // Root of the note tree.
     this.RootNote;
 
@@ -168,46 +498,14 @@ function NotesWidget() {
     this.Window;
     this.NoteTreeDiv;
 
-    this.TextTab = $('<div>')
-        .appendTo(this.Window)
-        .text("Text")
-        .css({'color': '#000',
-              'border-color': '#BBB #BBB #FFF #BBB',
-              'position': 'relative',
-              'top': '1px',
-              'padding' : '2px 7px 2px 7px',
-              'margin'  : '5px 0px 0px 5px',
-              'display': 'inline-block',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-radius': '5px 5px 0px 0px',
-              'position': 'relative',
-              'z-index' : '5'})
-        .click(function(){
-            self.ShowTextTab();
-        })
+    this.LinksTab = new NotesWidgetTab(this.Window, "Links");
+    this.TextTab = new NotesWidgetTab(this.Window, "Text");
+    this.UserTextTab = null;
+    if (! EDIT) {
+        this.UserTextTab = new NotesWidgetTab(this.Window, "Notes");
+    }
 
-    this.LinksTab = $('<div>')
-        .appendTo(this.Window)
-        .text("Links")
-        .css({'color': '#AAA',
-              'border-color': '#BBB',
-              'position': 'relative',
-              'top': '1px',
-              'padding' : '2px 7px 2px 7px',
-              'margin'  : '5px 0px 0px 5px',
-              'display': 'inline-block',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-radius': '5px 5px 0px 0px',
-              'position': 'relative',
-              'z-index' : '5'})
-        .click(function(){
-            self.ShowLinksTab();
-        });
-
-
-    this.LinksDiv = $('<div>')
+    this.LinksTab.Div
         .appendTo(this.Window)
         .hide()
         .css({'width': '100%',
@@ -220,12 +518,7 @@ function NotesWidget() {
               'color': '#303030',
               'font-size': '18px'})
         .attr('id', 'NoteTree');
-
-    // The next three elements are to handle the addition of comments.
-    // Currently placeholders.
-    // The top div wraps the text field and the submit button at the bottom
-    // of the widget.
-    this.TextDiv = $('<div>')
+    this.TextTab.Div
         .appendTo(this.Window)
         .css({'box-sizing': 'border-box',
               'border-width': '1px',
@@ -235,169 +528,24 @@ function NotesWidget() {
               'bottom': '0px',
               'padding': '3px'});
 
-    if (EDIT) { // Ideally everyone should be able to take notes (saved separately).
-     this.CameraButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/camera.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            self.InsertCameraLink();
-        });
-     this.BoldButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/font_bold.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('bold',false,null);
-        });
-     this.ItalicButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/text_italic.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('italic',false,null);
-        });
-     this.UnderlineButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/edit_underline.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('underline',false,null);
-        });
-     this.UnorderedListButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/list_bullets.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand("InsertUnorderedList", false, null);
-        });
-     this.OrderedListButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/list_numbers.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand("InsertOrderedList", false, null);
-        });
-     this.IndentButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/indent_increase.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('indent',false,null);
-        });
-     this.OutdentButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/indent_decrease.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('outdent',false,null);
-        });
-     this.AlignLeftButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/alignment_left.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('justifyLeft',false,null);
-        });
-     this.AlignCenterButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/alignment_center.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('justifyCenter',false,null);
-        });
-     this.SuperscriptButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/edit_superscript.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('superscript',false,null);
-        });
-     this.SubscriptButton = $('<img>')
-        .appendTo(this.TextDiv)
-        .attr('src',"webgl-viewer/static/edit_subscript.png")
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .click(function () {
-            document.execCommand('subscript',false,null);
-        });
+    this.TextEditor = new TextEditor(this.TextTab.Div, EDIT);
+
+
+    this.UserTextEditor = null;
+    if ( ! EDIT) {
+        this.UserTextTab.Div
+            .appendTo(this.Window)
+            .hide()
+            .css({'box-sizing': 'border-box',
+                  'border-width': '1px',
+                  'border-style': 'solid',
+                  'border-color': '#BBB',
+                  'width': '100%',
+                  'bottom': '0px',
+                  'padding': '3px'});
+        this.UserTextEditor = new TextEditor(this.UserTextTab.Div, true);
     }
 
-    this.TextEntry = $('<div>')
-        .appendTo(this.TextDiv)
-        .attr('contenteditable', "true")
-        .css({'box-sizing': 'border-box',
-              'width': '100%',
-              'height': '100%',
-              'border-style': 'solid',
-              'background': '#ffffff',
-              'overflow': 'auto',
-              'resize': 'none'})
-        .focusin(function() {
-            EVENT_MANAGER.FocusOut();
-        })
-        .focusout(function() {
-            console.log("focusout");
-            EVENT_MANAGER.FocusIn();
-        })
-        .attr('readonly', 'readonly');
-
-    if (EDIT) {
-        this.TextEntry.removeAttr('readonly');
-        this.TextEntry.css({'border-style': 'inset',
-                                    'background': '#f5f8ff'});
-    } else {
-        this.TextEntry.attr('readonly', 'readonly');
-        this.TextEntry.css({'border-style': 'solid',
-                                    'background': '#ffffff'});
-    }
 
     // This sets "this.RootNote" and "this.Iterator"
     this.LoadViewId(VIEW_ID);
@@ -409,7 +557,6 @@ function NotesWidget() {
 //------------------------------------------------------------------------------
 NotesWidget.prototype.StartDrag = function () {
     this.Dragging = true;
-    console.log("Start drag");
     $('body').bind('mousemove',NotesWidgetResizeDrag);
     $('body').bind('mouseup', NotesWidgetResizeStopDrag);
     $('body').css({'cursor': 'col-resize'});
@@ -421,10 +568,9 @@ NotesWidgetResizeDrag = function (e) {
         NOTES_WIDGET.ToggleNotesWindow();
     }
 
-    console.log("drag");
+    return false;
 }
 NotesWidgetResizeStopDrag = function () {
-    console.log("Stop drag");
     $('body').unbind('mousemove',NotesWidgetResizeDrag);
     $('body').unbind('mouseup', NotesWidgetResizeStopDrag);
     $('body').css({'cursor': 'auto'});
@@ -434,26 +580,6 @@ NotesWidgetResizeStopDrag = function () {
 
 
 
-NotesWidget.prototype.ShowLinksTab = function() {
-    this.LinksDiv.show();
-    this.LinksTab.css({'color': '#000',
-                       'border-color': '#BBB #BBB #FFF #BBB'});
-    this.TextDiv.hide();
-    this.TextTab.css({'color': '#AAA',
-                      'border-color': '#BBB'});
-}
-
-NotesWidget.prototype.ShowTextTab = function() {
-    this.LinksDiv.hide();
-    this.LinksTab.css({'color': '#AAA',
-                       'border-color': '#BBB'});
-    this.TextDiv.show();
-    this.TextTab.css({'color': '#000',
-                      'border-color': '#BBB #BBB #FFF #BBB'});
-    // Height is not set properly when text panel is hidden.
-    handleResize();
-}
-
 NotesWidget.prototype.SetWidth = function(width) {
     this.Width = width;
     this.Window.width(width);
@@ -462,53 +588,12 @@ NotesWidget.prototype.SetWidth = function(width) {
 
 // Necessary to set the height.
 NotesWidget.prototype.Resize = function(width, height) {
-    var pos = this.TextEntry.offset();
-    this.TextEntry.height(height - pos.top - 5);
-    pos = this.LinksDiv.offset();
-    this.LinksDiv.height(height - pos.top);
-}
-
-
-NotesWidget.prototype.InsertCameraLink = function() {
-    var text = window.getSelection().toString();
-    // Create a child note.
-    var parentNote = this.GetCurrentNote();
-    var childIdx = parentNote.Children.length;
-    var childNote = parentNote.NewChild(childIdx, text);
-    // We need to save the not to get its Id.
-    childNote.Save(
-        function (note) {
-            var id = note.Id;
-            // I think I want to change this to add the links when reading;
-            // Easy to add the links,  harder to take them out.
-            var htmlText = '<font color="blue" onclick="showChildNote(\''+id+'\')" onmouseover="overLink(this)" onmouseout="outLink(this)">' +text+ '</font>';
-            document.execCommand('insertHTML',false, htmlText);
-            // Save the parent too, or the child may be orphaned.
-            NOTES_WIDGET.RecordTextChanges();
-            parentNote.Save();
-        });
-}
-
-function overLink(link) {
-    link.style.background = "#DDF";
-}
-
-function outLink(link) {
-    link.style.background = "#FFF";
-}
-
-
-function showChildNote(childId) {
-    parentNote = NOTES_WIDGET.GetCurrentNote();
-    if (NOTES_WIDGET.TextNote) {
-        parentNote = NOTES_WIDGET.TextNote;
+    this.TextEditor.Resize(width,height);
+    if (this.UserTextEditor) {
+        this.UserTextEditor.Resize(width,height);
     }
-    for (var idx = 0; idx < parentNote.Children.length; ++idx) {
-        var childNote = parentNote.Children[idx];
-        if (childNote.Id == childId) {
-            childNote.Select();
-        }
-    }
+    var pos = this.LinksTab.Div.offset();
+    this.LinksTab.Div.height(height - pos.top);
 }
 
 //------------------------------------------------------------------------------
@@ -676,8 +761,15 @@ NoteIterator.prototype.ToEnd = function() {
 
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
+var NOTES = [];
 function Note () {
+    // A global list of notes so we can find a note by its id.
+    NOTES.push(this);
+    
     var self = this;
+
+    // Parallel note so any user can save notes.
+    this.UserNote = null;
 
     this.User = GetUser(); // Reset by flask.
     var d = new Date();
@@ -686,6 +778,8 @@ function Note () {
 
     this.Title = "";
     this.Text = "";
+    this.UserText = "";
+
     // Upto two for dual view.
     this.ViewerRecords = [];
 
@@ -742,6 +836,7 @@ function Note () {
             self.Select();
             self.ButtonsDiv.show();
         });
+
 
     if (EDIT) {
         this.CameraButton = $('<img>')
@@ -816,6 +911,94 @@ function Note () {
     this.StackDivs = [];
 }
 
+function GetNoteFromId(id) {
+    for (var i = 0; i < NOTES.length; ++i) {
+        var note = NOTES[i];
+        if (note.Id && note.Id == id) {
+            return note;
+        }
+    }
+    return null;
+}
+
+// Every time the "Text" is loaded, they hyper links have to be setup.
+Note.prototype.FormatHyperlink = function() {
+    var self = this;
+    if (this.Id) {
+        span = document.getElementById(this.Id);
+        if (span) {
+            $(span)
+                .click(function() { self.Select();})
+                .css({'color': '#29C'})
+                .hover(function(){ $(this).css("color", "blue");},
+                       function(){ $(this).css("color", "#29C");});
+            // Let the selection indicate the current note.
+            // this highlighting suggests the camera button will
+            // will operate on this link rather than inserting a new one.
+            //if (this == NOTES_WIDGET.SelectedNote) {
+            //    $(span).css({'background':'#CCC'});
+            //} else {
+                $(span).css({'background':'white'});
+            //}
+        }
+    }
+}
+
+// When the note is deleted, this clear associated text links.
+// However, it does not remove the span id.
+Note.prototype.ClearHyperlink = function() {
+    var self = this;
+    if (this.Id) {
+        // I think is will be best to seelct the element and then replace
+        // it with text.
+        this.SelectHyperlink();
+        var sel = window.getSelection();
+        document.execCommand('insertText', sel.toString());
+    }
+}
+
+// Programatically select the hyper link (when the note is selected).
+Note.prototype.SelectHyperlink = function () {
+    if (this.Id) {
+        var el = document.getElementById(this.Id);
+        if (el) {
+            var range = document.createRange();
+            //range.selectNodeContents(el);
+            range.selectNode(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }
+}
+
+// Programatically select the hyper link (when the note is selected).
+Note.prototype.UnselectHyperlink = function () {
+    if (this.Id) {
+        var el = document.getElementById(this.Id);
+        if (el) {
+            var range = document.createRange();
+            range.collapse(true);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }
+}
+
+
+Note.prototype.GetUserNote = function() {
+    if ( ! this.UserNote) {
+        this.UserNote = new Note();
+        this.UserNote.Parent = this;
+        this.UserNote.Type = "UserNote";
+        this.UserNote.Title = this.Title;
+        this.UserNote.RecordView();
+    }
+
+    return this.UserNote;
+}
+
 Note.prototype.SetParent = function(parent) {
     var self = this;
     this.Parent = parent;
@@ -851,10 +1034,20 @@ Note.prototype.LinkCallback = function() {
 }
 
 Note.prototype.DeleteCallback = function() {
+    if (this.Type == "UserNote") {
+        // User notes have a parent, but are also roots.
+        return;
+    }
     var parent = this.Parent;
     if (parent == null) {
         return;
     }
+
+    if ( ! window.confirm("Are you sure you want to delete this note?")) {
+        return;
+    }
+
+    this.ClearHyperlink();
 
     if (NOTES_WIDGET.Iterator.GetNote() == this) {
         // Move the current note off this note.
@@ -880,7 +1073,7 @@ Note.prototype.UserCanEdit = function() {
 Note.prototype.RecordView = function() {
     if (this.Type == "Stack") {
         // All we want to do is record the default
-        // camera of the first section (if we at 
+        // camera of the first section (if we at
         // the start of the stack).
         if (this.StartIndex == 0) {
             this.ViewerRecords[0].CopyViewer(VIEWER1);
@@ -900,7 +1093,6 @@ Note.prototype.RecordView = function() {
     }
 
 }
-
 
 Note.prototype.AddChild = function(childNote, first) {
   // Needed to get the order after a sort.
@@ -949,11 +1141,11 @@ Note.prototype.UpdateChildrenGUI = function() {
         this.Icon.attr('src',"webgl-viewer/static/dot.png");
         return;
     }
-    
+
     for (var i = 0; i < this.Children.length; ++i) {
         this.Children[i].DisplayGUI(this.ChildrenDiv);
     }
-    
+
     if (this.Children.length > 1 && this.UserCanEdit() ) {
         // Make sure the indexes are set correctly.
         for (var i = 0; i < this.Children.length; ++i) {
@@ -981,7 +1173,6 @@ Note.prototype.ReorderChildren = function() {
     this.Children = newChildren;
 }
 
-
 Note.prototype.NewIterator = function() {
   return new NoteIterator(this);
 }
@@ -998,7 +1189,6 @@ Note.prototype.Contains = function(decendent) {
   }
   return false;
 }
-
 
 // Create a new note,  add it to the parent notes children at index "childIdx".
 // The new note is not automatically selected.
@@ -1018,10 +1208,11 @@ Note.prototype.NewChild = function(childIdx, title) {
     return childNote;
 }
 
-
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback) {
+    console.log("Save note " + this.Title);
+
     var self = this;
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.Serialize(true));
@@ -1045,19 +1236,21 @@ Note.prototype.Save = function(callback) {
 // will not become active unless they have their own text / html.
 Note.prototype.Select = function() {
 
-    // Save Text Entry into note before selecting a new note.
-    NOTES_WIDGET.RecordTextChanges();
-
     // This should method should be split between Note and NotesWidget
     if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    // For when user selects a note from a list.
+    // Find the note and set a new iterator
+    // This is so the next and previous buttons will behave.
     if (NOTES_WIDGET.Iterator.GetNote() != this) {
-        // For when user selects a note from a list.
-        // Find the note and set a new iterator
-        // This is so the next and previous buttons will behave.
         var iter = NOTES_WIDGET.RootNote.NewIterator();
         while (iter.GetNote() != this) {
             if ( iter.IsEnd()) {
-                alert("Could not find note.");
+                // I am supporting hyperlinks in UserNote.
+                // They are not in the links tree yet.
+                // Hack, Just display the view.
+                this.DisplayView();
+                // Hilight the text.
+                this.SelectHyperlink();
                 return;
             }
             iter.Next();
@@ -1065,24 +1258,48 @@ Note.prototype.Select = function() {
         NOTES_WIDGET.Iterator = iter;
     }
 
+    // Display text
+    // To support the html note text links, do not show empty text.
+    // Fallback to parent note text / html if necessary.
+    var textNote = this;
+    while ( textNote.Type != "UserNote" && textNote.Parent && textNote.Text == "") {
+        textNote = textNote.Parent;
+    }
+    NOTES_WIDGET.TextEditor.LoadNote(textNote);
+    // Display user text.
+    if (NOTES_WIDGET.UserTextEditor) {
+        if (this.UserNote) {
+            NOTES_WIDGET.UserTextEditor.LoadNote(this.UserNote);
+        } else {
+            NOTES_WIDGET.UserTextEditor.SetHtml("");
+        }
+    }
 
     // Handle the note that is being unselected.
     // Clear the selected background of the deselected note.
     if (NOTES_WIDGET.SelectedNote) {
         NOTES_WIDGET.SelectedNote.TitleEntry.css({'background':'white'});
+        // Make the old hyper link normal color.
+        $('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'white'});
     }
 
-
     NOTES_WIDGET.SelectedNote = this;
+
     // Indicate which note is selected.
     this.TitleEntry.css({'background':'#f0f0f0'});
+    // This highlighting can be confused with the selection highlighting.
+    // Indicate hyperlink current note.
+    //$('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'#CCC'});
+    // Select the current hyper link
+    this.SelectHyperlink();
+
 
     if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
     if (typeof VIEWER2 !== 'undefined') {
         VIEWER2.Reset();
         // TODO:
-        // It would be nice to store the viewer configuration 
+        // It would be nice to store the viewer configuration
         // as a separate state variable.  We might want a stack
         // that defaults to a single viewer.
         SetNumberOfViews(this.ViewerRecords.length);
@@ -1104,21 +1321,6 @@ Note.prototype.Select = function() {
         VIEWER1.OnInteraction();
         VIEWER2.OnInteraction();
         this.DisplayView();
-    }
-
-    // To support the html note text links, do not show empty text.
-    // Fallback to parent note text / html if necessary.
-    var textNote = this;
-    while ( textNote.Parent && textNote.Text == "") {
-        textNote = textNote.Parent;
-    }
-
-    NOTES_WIDGET.TextEntry.html(textNote.Text);
-    NOTES_WIDGET.TextNote = textNote;
-    if (textNote.Text == "") {
-        NOTES_WIDGET.ShowLinksTab();
-    } else {
-        NOTES_WIDGET.ShowTextTab();
     }
 }
 
@@ -1238,6 +1440,15 @@ Note.prototype.Load = function(obj){
         }
     }
 
+    // Change the user not into a real object.
+    if (this.UserNote) {
+        var userObj = this.UserNote;
+        var userNote = new Note();
+        userNote.SetParent(this);
+        userNote.Load(userObj);
+        this.UserNote = userNote;
+    }
+
     // Hack to fix timing (Load after select)
     if (this == NOTES_WIDGET.RootNote) {
         NOTES_WIDGET.DisplayRootNote();
@@ -1256,7 +1467,7 @@ Note.prototype.LoadViewId = function(viewId) {
         self.Load(data);
         // This is necessary because we delay moving entry text to note.
         // It has to be initialized with the first selected note (root).
-        NOTES_WIDGET.TextEntry.html(data.Text);
+        NOTES_WIDGET.TextEditor.LoadNote(self);
     },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
@@ -1501,14 +1712,6 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
     }
 }
 
-// I separated the note display text/html from the selected note.
-NotesWidget.prototype.RecordTextChanges = function () {
-    if (this.TextNote) {
-        this.TextNote.Text = this.TextEntry.html();
-    }
-}
-
-
 NotesWidget.prototype.GetCurrentNote = function() {
   return this.Iterator.GetNote();
 }
@@ -1627,22 +1830,6 @@ NotesWidget.prototype.RandomCallback = function() {
   note.UpdateChildrenGUI();
 }
 
-NotesWidget.prototype.SaveCallback = function() {
-    // Copy the current view into the note.
-    // This used to be "Snap Shot", which was too complex.
-    this.RecordTextChanges();
-    var note = this.SelectedNote;
-    note.RecordView();
-    if (note.Type == "Stack") {
-        // Copy viewer annotation to the viewer record.
-        note.RecordAnnotations();
-    }
-
-    var self = this;
-    var d = new Date();
-
-    this.RootNote.Save();
-}
 
 NotesWidget.prototype.AnimateNotesWindow = function() {
   var timeStep = new Date().getTime() - this.AnimationLastTime;
@@ -1675,10 +1862,17 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
-  this.TextEntry.html(this.RootNote.Text);
-  this.LinksDiv.empty();
-  this.RootNote.DisplayGUI(this.LinksDiv);
-  this.RootNote.Select();
+    this.TextEditor.LoadNote(this.RootNote);
+    this.LinksTab.Div.empty();
+    this.RootNote.DisplayGUI(this.LinksTab.Div);
+    this.RootNote.Select();
+
+    // Default to old style when no text exists (for backward compatability).
+    if (this.RootNote.Text == "") {
+        NOTES_WIDGET.LinksTab.Show();
+    } else {
+        NOTES_WIDGET.TextTab.Show();
+    }
 }
 
 NotesWidget.prototype.LoadViewId = function(viewId) {

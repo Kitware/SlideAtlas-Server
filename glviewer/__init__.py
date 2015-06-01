@@ -6,7 +6,6 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
-import pdb
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -433,6 +432,15 @@ def readViewTree(db, viewId) :
                 children.append(child)
         viewObj["Children"] = children
 
+    # Read the user note.
+    # We do not have a reference to a user note.
+    # find a note with the corrent user and parent.
+    email = getattr(security.current_user, 'email', '')
+    userViewObj = db["views"].find_one({ "ParentId" : viewId, "User": email})
+    if userViewObj :
+        # It is ok to pass in an object instead of an id.
+        viewObj["UserNote"] = readViewTree(db, userViewObj)
+
     return viewObj
 
 
@@ -478,7 +486,6 @@ def savenote(db, note, user):
     # to keep them the same.
     oldNote = db["views"].find_one({"_id":note["_id"]})
     if 'Children' in oldNote:
-        #pdb.set_trace()
         for child in oldNote["Children"] :
             if not child in childrenRefs :
                 db["views"].remove({"_id":child})
