@@ -436,7 +436,9 @@ def readViewTree(db, viewId) :
     # We do not have a reference to a user note.
     # find a note with the corrent user and parent.
     email = getattr(security.current_user, 'email', '')
-    userViewObj = db["views"].find_one({ "ParentId" : viewId, "User": email})
+    userViewObj = db["views"].find_one({ "ParentId" : viewId, 
+                                         "User": email, 
+                                         "Type":"UserNote"})
     if userViewObj :
         # It is ok to pass in an object instead of an id.
         viewObj["UserNote"] = readViewTree(db, userViewObj)
