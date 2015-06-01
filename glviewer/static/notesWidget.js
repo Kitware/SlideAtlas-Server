@@ -290,9 +290,9 @@ TextEditor.prototype.InsertCameraLink = function() {
     if ( ! parentNote) {
         parentNote = NOTES_WIDGET.RootNote;
     }
-    // Put the new note at the begining of the list.
-    //var childIdx = parentNote.Children.length;  // end
-    var childIdx = 0;
+    // Put the new note at the end of the list.
+    var childIdx = parentNote.Children.length;
+    //var childIdx = 0; // begining
     var childNote = parentNote.NewChild(childIdx, text);
     // We need to save the note to get its Id.
     childNote.Save(
