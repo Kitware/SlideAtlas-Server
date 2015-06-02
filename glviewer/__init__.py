@@ -33,9 +33,13 @@ def jsonifyView(db,viewid,viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, viewid, viewobj, edit):
+def glnote(db, viewid, viewobj, edit, simple):
     email = getattr(security.current_user, 'email', '')
-    return make_response(render_template('view.html', view=viewid, user=email, edit=edit))
+    return make_response(render_template('view.html', 
+                                         view=viewid, 
+                                         user=email, 
+                                         edit=edit,
+                                         simple=simple))
 
 
 
@@ -120,6 +124,8 @@ def glview():
         result = result.replace("''", "'")
         return make_response(render_template('scene.html', scene = result))
 
+    # Simple embeddable viewer.
+    simple = request.args.get('simple', "false")
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session
@@ -139,7 +145,7 @@ def glview():
             return jsonifyView(db,viewid,viewobj)
 
         # default
-        return glnote(db,viewid,viewobj,edit)
+        return glnote(db,viewid,viewobj,edit,simple)
 
 
 @mod.route('/bookmark')

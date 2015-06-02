@@ -40,32 +40,36 @@ var I_PAD_FLAG = false;
 
 
 function detectMobile() {
-  MOBILE_DEVICE = false;
-  if ( navigator.userAgent.match(/Android/i)) {
-   MOBILE_DEVICE = "Andriod";
-  }
-  if ( navigator.userAgent.match(/webOS/i)) {
-   MOBILE_DEVICE = "webOS";
-  }
-  if ( navigator.userAgent.match(/iPhone/i)) {
-   MOBILE_DEVICE = "iPhone";
-  }
-  if ( navigator.userAgent.match(/iPad/i)) {
-   MOBILE_DEVICE = "iPad";
-   I_PAD_FLAG = true;
-  }
-  if ( navigator.userAgent.match(/iPod/i)) {
-   MOBILE_DEVICE = "iPod";
-  }
-  if ( navigator.userAgent.match(/BlackBerry/i)) {
-   MOBILE_DEVICE = "BlackBerry";
-  }
-  if ( navigator.userAgent.match(/Windows Phone/i)) {
-   MOBILE_DEVICE = "Windows Phone";
-  }
-  if (MOBILE_DEVICE) {
-    MAXIMUM_NUMBER_OF_TILES = 5000;
-  }
+    MOBILE_DEVICE = false;
+  
+    if ( navigator.userAgent.match(/Android/i)) {
+        MOBILE_DEVICE = "Andriod";
+    }
+    if ( navigator.userAgent.match(/webOS/i)) {
+        MOBILE_DEVICE = "webOS";
+    }
+    if ( navigator.userAgent.match(/iPhone/i)) {
+        MOBILE_DEVICE = "iPhone";
+    }
+    if ( navigator.userAgent.match(/iPad/i)) {
+        MOBILE_DEVICE = "iPad";
+        I_PAD_FLAG = true;
+    }
+    if ( navigator.userAgent.match(/iPod/i)) {
+        MOBILE_DEVICE = "iPod";
+    }
+    if ( navigator.userAgent.match(/BlackBerry/i)) {
+        MOBILE_DEVICE = "BlackBerry";
+    }
+    if ( navigator.userAgent.match(/Windows Phone/i)) {
+        MOBILE_DEVICE = "Windows Phone";
+    }
+    if (MOBILE_DEVICE) {
+        MAXIMUM_NUMBER_OF_TILES = 5000;
+    }
+    if (SIMPLE) {
+        MOBILE_DEVICE = "Simple";
+    }
 }
 
 
