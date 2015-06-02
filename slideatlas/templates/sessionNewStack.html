@@ -255,6 +255,8 @@ function addViewToStack(thumb) {
     var xMid = thumb.SlideX;
     var yMid = thumb.SlideY;
 
+    console.log("("+xMid+", "+yMid+")");
+
     $('#saveButton').prop('disabled',false);
 
     // Special case if the sections have already been defined.
