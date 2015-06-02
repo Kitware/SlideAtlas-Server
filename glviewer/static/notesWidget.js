@@ -104,7 +104,7 @@ function NotesWidgetTab(parent, title) {
         .css({'color': '#AAA',
               'border-color': '#BBB',
               'position': 'relative',
-              'top': '1px',
+              'top': '0.055em',
               'padding' : '2px 7px 2px 7px',
               'margin'  : '5px 0px 0px 5px',
               'display': 'inline-block',
@@ -112,24 +112,31 @@ function NotesWidgetTab(parent, title) {
               'border-style': 'solid',
               'border-radius': '5px 5px 0px 0px',
               'position': 'relative',
-              'z-index' : '5'})
+              'z-index' : '6',
+              'background': 'white'})
         .click(function(){
             self.Show();
         });
     // Now: all tabs have to be added before divs.
     // TODO: Make a separate tab div / tab panel object.
-    this.Div = $('<div>');
+    this.Div = $('<div>')
+        .css({'z-index' : '5'});
+
 }
 
 NotesWidgetTab.prototype.Show = function () {
     for (var i = 0; i < NOTES_WIDGET_TABS.length; ++i) {
         var tabPanel = NOTES_WIDGET_TABS[i];
         tabPanel.Div.hide();
+        // The z-index does not seem to be working.
+        // When the panel is zoomed, Tab looks like it is on top.
         tabPanel.Tab.css({'color': '#AAA',
+                          'z-index' : '4',
                           'border-color': '#BBB'});
     }
     this.Div.show();
     this.Tab.css({'color': '#000',
+                  'z-index' : '6',
                   'border-color': '#BBB #BBB #FFF #BBB'});
 }
 
@@ -192,15 +199,22 @@ function TextEditor(parent, edit) {
             })
             .focusout(function() {
                 EVENT_MANAGER.FocusIn();
-                if (self.Modified) {
-                    self.UpdateNote();
-                    self.Modified = false;
-                }
+                self.Save();
+            })
+            .mouseleave(function() { // back button does not cause loss of focus.
+                self.Save();
             });
     } else {
         this.TextEntry.attr('readonly', 'readonly');
         this.TextEntry.css({'border-style': 'outset',
                             'background': '#ffffff'});
+    }
+}
+
+TextEditor.prototype.Save = function() {
+    if (this.Modified) {
+        this.UpdateNote();
+        this.Modified = false;
     }
 }
 
@@ -514,7 +528,7 @@ function NotesWidget() {
         this.UserTextTab = new NotesWidgetTab(this.Window, "Notes");
     }
 
-    this.LinksTab.Div
+    this.LinksTab.Div 
         .appendTo(this.Window)
         .hide()
         .css({'width': '100%',
@@ -527,6 +541,7 @@ function NotesWidget() {
               'color': '#303030',
               'font-size': '18px'})
         .attr('id', 'NoteTree');
+
     this.TextTab.Div
         .appendTo(this.Window)
         .css({'box-sizing': 'border-box',
@@ -788,6 +803,7 @@ function Note () {
     this.Title = "";
     this.Text = "";
     this.UserText = "";
+    this.Modified = false;
 
     // Upto two for dual view.
     this.ViewerRecords = [];
@@ -818,18 +834,7 @@ function Note () {
         .on("dragstart", function() {return false;});
 
     this.TitleDiv = $('<div>')
-        .appendTo(this.Div)
-        .hover(
-            function() {
-                self.TitleEntry.css({'color':'#33D'});
-                if (NOTES_WIDGET.SelectedNote == self) {
-                    self.ButtonsDiv.show();
-                }
-            },
-            function() {
-                self.TitleEntry.css({'color':'#3AF'});
-                self.ButtonsDiv.hide();
-            });
+        .appendTo(this.Div);
 
     this.ButtonsDiv = $('<div>')
         .appendTo(this.TitleDiv)
@@ -841,11 +846,6 @@ function Note () {
         .css({'font-size': '18px',
               'margin-left':'20px',
               'color':'#379BFF',})
-        .click(function() {
-            self.Select();
-            self.ButtonsDiv.show();
-        });
-
 
     if (EDIT) {
         this.CameraButton = $('<img>')
@@ -877,6 +877,20 @@ function Note () {
             .click(function () {
                 NOTES_WIDGET.NewCallback();
             });
+        this.LinkButton = $('<img>')
+            .appendTo(this.ButtonsDiv)
+            .attr('src',"webgl-viewer/static/link.png")
+            .css({
+                'width':'12px',
+                'height':'12px',
+                'padding' : '1px',
+                'margin-right' : '1px',
+                'opacity':'0.5',
+                'border': '1px solid #AAA',
+                'border-radius': '3px'})
+            .click(function () {
+                self.LinkCallback();
+            });
         this.RemoveButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .hide()
@@ -904,6 +918,13 @@ function Note () {
             .attr('contenteditable', "true")
             .focusin(function() { self.TitleFocusInCallback(); })
             .focusout(function() { self.TitleFocusOutCallback(); })
+            .mouseleave(function() {
+                if (self.Modified) { self.Save(); }
+            })
+            .bind('input', function () {
+                self.Modified = true;
+            })
+
     }
 
 
@@ -1026,6 +1047,8 @@ Note.prototype.TitleFocusInCallback = function() {
 Note.prototype.TitleFocusOutCallback = function() {
     // Allow the viewer to process arrow keys.
     EVENT_MANAGER.FocusIn();
+    if ( ! this.Modified) { return; }
+    this.Modified = false;
     var text = this.TitleEntry.text();
     if (this.Title != text && ! this.HideAnnotations) {
         this.Title = text;
@@ -1208,6 +1231,8 @@ Note.prototype.NewChild = function(childIdx, title) {
     var d = new Date();
     childNote.Date = d.getTime(); // Temporary. Set for real by server.
     childNote.RecordView();
+    // We need to save the note to get its Id (for the link div).
+    childNote.Save();
 
     // Now insert the child after the current note.
     this.Children.splice(childIdx,0,childNote);
@@ -1244,6 +1269,10 @@ Note.prototype.Save = function(callback) {
 // I am changing the select behavior.  Children will show their view, but
 // will not become active unless they have their own text / html.
 Note.prototype.Select = function() {
+
+    if (this == NOTES_WIDGET.SelectedNote) {
+        return;
+    }
 
     // This should method should be split between Note and NotesWidget
     if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
@@ -1346,7 +1375,24 @@ Note.prototype.DisplayGUI = function(div) {
     var self = this;
     this.Div.appendTo(div);
 
-    var self = this;
+    this.TitleEntry
+        .click(function() {
+            self.Select();
+            self.ButtonsDiv.show();
+        });
+
+    this.TitleDiv
+        .hover(
+            function() {
+                self.TitleEntry.css({'color':'#33D'});
+                if (NOTES_WIDGET.SelectedNote == self) {
+                    self.ButtonsDiv.show();
+                }
+            },
+            function() {
+                self.TitleEntry.css({'color':'#3AF'});
+                self.ButtonsDiv.hide();
+            });
 
     if (this.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
