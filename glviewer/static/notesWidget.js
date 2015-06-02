@@ -578,6 +578,17 @@ function NotesWidget() {
     this.Iterator = this.RootNote.NewIterator();
 }
 
+NotesWidget.prototype.SaveCallback = function() {
+    var note = this.SelectedNote;
+    note.RecordView();
+    if (note.Type == "Stack") {
+        // Copy viewer annotation to the viewer record.
+        note.RecordAnnotations();
+    }
+
+    note.Save();
+}
+
 //------------------------------------------------------------------------------
 NotesWidget.prototype.StartDrag = function () {
     this.Dragging = true;
