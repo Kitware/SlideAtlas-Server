@@ -159,6 +159,20 @@ function FindCache(image) {
 
     // Special case to link to IIIF? Harvard art..
     //http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap&s=1&r=0&x=0&y=0&w=600&h=600
+
+    if (image._id == "556e0ad63ed65909dbc2e383") {
+        var tileSource = new IIIFSource ();
+        tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=47174896";
+        // "width":2087,"height":2550,"scale_factors":[1,2,4,8,16,32],
+        tileSource.setDimensions(2087,2550);
+        image.levels = tileSource.Levels;
+        image.dimensions = tileSource.Dimensions;
+        image.bounds = [0,image.dimensions[0]-1, 0,image.dimensions[1]-1];
+        cache.SetImageData(image);
+        cache.TileSource = tileSource;
+        return cache;
+    }
+
     if (image._id == "556c89a83ed65909dbc2e317") {
         var tileSource = new IIIFSource ();
         tileSource.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
