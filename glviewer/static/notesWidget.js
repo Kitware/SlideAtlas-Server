@@ -1519,6 +1519,12 @@ Note.prototype.Load = function(obj){
     if (this == NOTES_WIDGET.RootNote) {
         NOTES_WIDGET.DisplayRootNote();
     }
+
+    // Hack to open the notes window if we have text.
+    if (this.Text != "" && this == NOTES_WIDGET.RootNote &&
+        ! NOTES_WIDGET.Visibility) {
+        NOTES_WIDGET.ToggleNotesWindow();
+    }
 }
 
 
