@@ -1225,6 +1225,7 @@ CollectionBrowser = (function (){
                     $(this).unbind('mouseleave');
                     $(this).unbind('oncontextmenu');
                     ViewDrop(event);
+                    SCROLLING_BODY = null;
                     return false;
                 })
             .mouseleave(
@@ -1234,6 +1235,7 @@ CollectionBrowser = (function (){
                     $(this).unbind('mouseleave');
                     $(this).unbind('oncontextmenu');
                     ViewDrop(event);
+                    SCROLLING_BODY = null;
                     return false;
                 });
 
