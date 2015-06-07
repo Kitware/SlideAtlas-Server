@@ -35,12 +35,12 @@ function DownloadImageData(data, filename) {
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
     view.Context2d.putImageData(data, 0, 0);
-    
-    view.Canvas[0].toBlob(function(blob) {saveAs(blob, filename);}, "image/png");    
+
+    view.Canvas[0].toBlob(function(blob) {saveAs(blob, filename);}, "image/png");
 }
 
-
-function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
+// If file name is not null or "", this image is save to the client.
+function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
                         returnCallback) {
     // Construct a view to render the image on the client.
     var width =  dimensions[0];
@@ -66,7 +66,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
     }
 
     AddFinishedLoadingCallback(
-        function () {GetCutoutImage2(view, returnCallback);}
+        function () {GetCutoutImage2(view, fileName, returnCallback);}
     );
 
     LoadQueueUpdate();
@@ -74,18 +74,20 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll,
     console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
 }
 
-GetCutoutImage2 = function(view, returnCallback) {
+GetCutoutImage2 = function(view, fileName, returnCallback) {
     // All the tiles are loaded and waiting in the cache.
     view.DrawTiles();
     var viewport = view.GetViewport();
 
-    var ctx  = view.Context2d;
-    var data = GetImageData(view);
+    if (fileName && fileName != "") {
+        view.Canvas[0].toBlob(function(blob) {saveAs(blob, fileName);}, "image/png");
+    }
 
-    // for debugging.
-    //view.Canvas[0].toBlob(function(blob) {saveAs(blob, "cutout.png");}, "image/png");
-
-    returnCallback(data);
+    if (returnCallback) {
+        var ctx  = view.Context2d;
+        var data = GetImageData(view);
+        returnCallback(data);
+    }
 }
 
 

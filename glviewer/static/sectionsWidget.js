@@ -485,7 +485,7 @@ SectionsWidget.prototype.ProcessBounds = function(bds) {
         GetCutoutImage(this.Viewer.GetCache(),
                        [Math.round((bds[1]-bds[0])/scale), Math.round((bds[3]-bds[2])/scale)],
                        [0.5*(bds[0]+bds[1]), 0.5*(bds[2]+bds[3])],
-                       scale, 0,
+                       scale, 0, null,
                        function (data) {
                            // for debugging
                            //DrawImageData(VIEWER1, data);
