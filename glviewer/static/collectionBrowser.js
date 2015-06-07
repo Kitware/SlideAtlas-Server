@@ -1,8 +1,5 @@
 // TODO: 
-// get closed sessions in taget list.
-// execute drop into session label.
-
-
+// Scroll when dragged to the bottom or top of the screen.
 
 
 // Verify save lock works.
@@ -24,9 +21,6 @@
 // private.  I do not think it makes any instance
 // variables private either.
 
-
-// Views cannot be dropped in empty sessions.
-// Implement drop in closed session to fix this.
 
 
 // Closure namespace 
@@ -738,7 +732,7 @@ CollectionBrowser = (function (){
                         if (start > end) {
                             var tmp = start;
                             start = end;
-                            end = temp;
+                            end = tmp;
                         }
                         for (var i = start; i <= end; ++i) {
                             AddSelected(session.Views[i]);
@@ -1213,7 +1207,7 @@ CollectionBrowser = (function (){
         MESSAGE.show()
             .css({'left': (x-40),
                   'top' : (y-40)});
-        
+
 
         // Setup the events for dragging.
         $('body')
@@ -1231,6 +1225,7 @@ CollectionBrowser = (function (){
                     $(this).unbind('mouseleave');
                     $(this).unbind('oncontextmenu');
                     ViewDrop(event);
+                    SCROLLING_BODY = null;
                     return false;
                 })
             .mouseleave(
@@ -1240,9 +1235,10 @@ CollectionBrowser = (function (){
                     $(this).unbind('mouseleave');
                     $(this).unbind('oncontextmenu');
                     ViewDrop(event);
+                    SCROLLING_BODY = null;
                     return false;
                 });
-        
+
         ClearPendingImagePopup();
         return false;
     }
@@ -1267,11 +1263,68 @@ CollectionBrowser = (function (){
             .css({'left': x-40,
                   'top' : y-40});
 
+        ManageDragScroll(x,y);
+
         // Indicate where the items would be dropped.
         for (var i = 0; i < DROP_TARGETS.length; ++i) {
             DROP_TARGETS[i].UpdateDropTarget(x, y);
         }
     }
+
+    var SCROLLING_BODY = null;
+    var SCROLLING_DIRECTION = 0;
+    var SCROLLING_INTERVAL = null;
+    var SCROLLING_HEIGHT = 80;
+    function ManageDragScroll(x, y) {
+        // Which browser is the mouse over?
+        var pos, found = null;
+        for (var i = 0; i < BROWSERS.length && ! found; ++i) {
+            var body = BROWSERS[0].CollectionItemList;
+            pos = body.offset();
+            if (x > pos.left && y > pos.top) {
+                if (x < pos.left + body.width() &&
+                    y < pos.top + body.height()) {
+                    found = body;
+                }
+            }
+        }
+        x = x - pos.left;
+        y = y - pos.top;
+
+        // Handle choosing the direction.
+        SCROLLING_DIRECTION = 0;
+        if (found) {
+            if (y < SCROLLING_HEIGHT) {
+                SCROLLING_DIRECTION = y-SCROLLING_HEIGHT;
+            } else if (y > found.height() - SCROLLING_HEIGHT) {
+                SCROLLING_DIRECTION = y-found.height()+SCROLLING_HEIGHT;
+            } else {
+                found = null;
+            }
+        }
+
+        if (SCROLLING_BODY == found) {
+            // Nothing has changed.
+            return;
+        }
+        SCROLLING_BODY = found;
+
+        if (SCROLLING_BODY &&  ! SCROLLING_INTERVAL) {
+            // Add a new scrolling interval.
+            SCROLLING_INTERVAL = setInterval(function() {
+                if (SCROLLING_BODY) {
+                    var y = SCROLLING_BODY.scrollTop();
+                    SCROLLING_BODY.scrollTop(y+SCROLLING_DIRECTION);
+                } else {
+                    clearInterval(SCROLLING_INTERVAL);
+                    SCROLLING_INTERVAL = null;
+                }
+            }, 100);
+            return;
+        }
+    }
+
+
 
     function ViewDrop(event) {
         var copy = (event.which == 3) || event.ctrlKey;

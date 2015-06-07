@@ -223,21 +223,8 @@ TextEditor.prototype.AddEditButton = function(src, callback) {
     var self = this;
     var button = $('<img>')
         .appendTo(this.Parent)
-        .attr('src',src)
-        .css({
-            'padding' : '1px',
-            'margin-right' : '1px',
-            'border': '1px solid #AAA',
-            'border-radius': '3px'})
-        .hover(function () {$(this).css({'background':'#CEF'});},
-               function () {$(this).css({'background':'#FFF'});})
-        .mousedown(function () {
-            $(this).css({'background':'#888'});
-        })
-        .mouseup(function () {
-            $(this).css({'background':'#CEF'});
-            (callback)();
-        });
+        .addClass('editButton')
+        .attr('src',src);
 }
 
 
@@ -856,20 +843,17 @@ function Note () {
         .text(this.Title)
         .css({'font-size': '18px',
               'margin-left':'20px',
-              'color':'#379BFF',})
+              'color':'#379BFF',});
 
     if (EDIT) {
         this.CameraButton = $('<img>')
             .appendTo(this.ButtonsDiv)
+            .addClass('editButton')
             .attr('src',"webgl-viewer/static/camera.png")
             .css({
                 'width':'12px',
                 'height':'12px',
-                'padding' : '1px',
-                'margin-right' : '1px',
-                'opacity':'0.5',
-                'border': '1px solid #AAA',
-                'border-radius': '3px'})
+                'opacity':'0.8'})
             .click(function () {
                 self.RecordView();
                 self.Save();
@@ -877,28 +861,22 @@ function Note () {
         this.AddButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/page_add.png")
+            .addClass('editButton')
             .css({
                 'width':'12px',
                 'height':'12px',
-                'padding' : '1px',
-                'margin-right' : '1px',
-                'opacity':'0.5',
-                'border': '1px solid #AAA',
-                'border-radius': '3px'})
+                'opacity':'0.5'})
             .click(function () {
                 NOTES_WIDGET.NewCallback();
             });
         this.LinkButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/link.png")
+            .addClass('editButton')
             .css({
                 'width':'12px',
                 'height':'12px',
-                'padding' : '1px',
-                'margin-right' : '1px',
-                'opacity':'0.5',
-                'border': '1px solid #AAA',
-                'border-radius': '3px'})
+                'opacity':'1.0'})
             .click(function () {
                 self.LinkCallback();
             });
@@ -906,14 +884,11 @@ function Note () {
             .appendTo(this.ButtonsDiv)
             .hide()
             .attr('src',"webgl-viewer/static/remove.png")
+            .addClass('editButton')
             .css({
                 'width':'12px',
                 'height':'12px',
-                'padding' : '1px',
-                'margin-right' : '1px',
-                'opacity':'0.5',
-                'border': '1px solid #AAA',
-                'border-radius': '3px'})
+                'opacity':'0.5'})
             .click(function () {
                 self.DeleteCallback();
             });
