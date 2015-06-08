@@ -224,7 +224,8 @@ TextEditor.prototype.AddEditButton = function(src, callback) {
     var button = $('<img>')
         .appendTo(this.Parent)
         .addClass('editButton')
-        .attr('src',src);
+        .attr('src',src)
+        .click(callback);
 }
 
 
@@ -1047,8 +1048,17 @@ Note.prototype.TitleFocusOutCallback = function() {
 }
 
 Note.prototype.LinkCallback = function() {
-  LINK_DIV.html("slide-atlas.org/webgl-viewer?view="+this.Id);
-  LINK_DIV.show();
+    var text = "slide-atlas.org/webgl-viewer?view="+this.Id;
+    LINK_DIV.html(text);
+    LINK_DIV.show();
+    // Select the text so it is easy to copy.
+    var range = document.createRange();
+    range.selectNodeContents(LINK_DIV[0]);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Try to copy to the clipboard.
+    document.execCommand('copy',false,null);
 }
 
 Note.prototype.DeleteCallback = function() {
