@@ -112,6 +112,13 @@ function getPermalink(viewName, viewId, viewUrl) {
                     }
                 }
             });
+            // We cannot select text until after the dialog is visible, so
+            // hack a timer to select after half a second.
+            setTimeout(function() {
+                $(".bootbox-body input").select();
+                // Try to copy to the clipboard.
+                document.execCommand('copy',false,null);
+            }, 500);
         }
     });
 }
