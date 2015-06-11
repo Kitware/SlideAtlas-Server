@@ -11,111 +11,110 @@ var LASSO_WIDGET_WAITING = 2;
 
 
 function LassoWidget (viewer, newFlag) {
-  if (viewer == null) {
-    return;
-  }
-
-  this.Dialog = new Dialog(this);
-  // Customize dialog for a lasso.
-  this.Dialog.Title.text('Lasso Annotation Editor');
-  // Color
-  this.Dialog.ColorDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ColorLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ColorDiv)
-      .text("Color:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ColorInput =
-    $('<input type="color">')
-      .appendTo(this.Dialog.ColorDiv)
-      .val('#30ff00')
-      .css({'display':'table-cell'});
-
-  // Line Width
-  this.Dialog.LineWidthDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.LineWidthLabel =
-    $('<div>')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .text("Line Width:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.LineWidthInput =
-    $('<input type="number">')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .css({'display':'table-cell'})
-      .keypress(function(event) { return event.keyCode != 13; });
-
-  // Area
-  this.Dialog.AreaDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.AreaLabel =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .text("Area:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.Area =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .css({'display':'table-cell'});
-
-
-  // Get default properties.
-  if (localStorage.LassoWidgetDefaults) {
-    var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
-    if (defaults.Color) {
-      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    if (viewer == null) {
+        return;
     }
-    if (defaults.LineWidth) {
-      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    // Customize dialog for a lasso.
+    this.Dialog.Title.text('Lasso Annotation Editor');
+    // Color
+    this.Dialog.ColorDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ColorLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ColorDiv)
+        .text("Color:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ColorInput =
+        $('<input type="color">')
+        .appendTo(this.Dialog.ColorDiv)
+        .val('#30ff00')
+        .css({'display':'table-cell'});
+
+    // Line Width
+    this.Dialog.LineWidthDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.LineWidthLabel =
+        $('<div>')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .text("Line Width:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.LineWidthInput =
+        $('<input type="number">')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .css({'display':'table-cell'})
+        .keypress(function(event) { return event.keyCode != 13; });
+
+    // Area
+    this.Dialog.AreaDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.AreaLabel =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .text("Area:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.Area =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .css({'display':'table-cell'});
+
+    // Get default properties.
+    if (localStorage.LassoWidgetDefaults) {
+        var defaults = JSON.parse(localStorage.LassoWidgetDefaults);
+        if (defaults.Color) {
+            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+        }
+        if (defaults.LineWidth) {
+            this.Dialog.LineWidthInput.val(defaults.LineWidth);
+        }
     }
-  }
 
+    this.Viewer = viewer;
+    this.Popup = new WidgetPopup(this);
+    this.Viewer.WidgetList.push(this);
 
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  this.Viewer.WidgetList.push(this);
+    this.Cursor = $('<img>').appendTo('body')
+        .css({
+            'position': 'absolute',
+            'height': '28px',
+            'z-index': '1'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/select_lasso.png");
 
-  this.Cursor = $('<img>').appendTo('body')
-      .css({
-        'position': 'absolute',
-        'height': '28px',
-        'z-index': '1'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/select_lasso.png");
+    var self = this;
+    // I am trying to stop images from getting move events and displaying a circle/slash.
+    // This did not work.  preventDefault did not either.
+    //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
+    //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
+    //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
+    //.preventDefault();
 
-  var self = this;
-  // I am trying to stop images from getting move events and displaying a circle/slash.
-  // This did not work.  preventDefault did not either.
-  //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
-  //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-  //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
-  //.preventDefault();
+    this.Loop = new Polyline();
+    this.Loop.OutlineColor = [0.0, 0.0, 0.0];
+    this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
+    this.Loop.FixedSize = false;
+    this.Loop.LineWidth = 0;
+    this.Loop.Closed = true;
+    this.Stroke = false;
 
-  this.Loop = new Polyline();
-  this.Loop.OutlineColor = [0.0, 0.0, 0.0];
-  this.Loop.SetOutlineColor(this.Dialog.ColorInput.val());
-  this.Loop.FixedSize = false;
-  this.Loop.LineWidth = 0;
-  this.Loop.Closed = true;  
-  this.Stroke = false;
+    this.ActiveCenter = [0,0];
 
-  this.ActiveCenter = [0,0];
-
-  this.State = LASSO_WIDGET_DRAWING;
-  if ( ! newFlag) {
-      this.State = LASSO_WIDGET_WAITING;
-      this.Cursor.hide();
-  }
+    this.State = LASSO_WIDGET_DRAWING;
+    if ( ! newFlag) {
+        this.State = LASSO_WIDGET_WAITING;
+        this.Cursor.hide();
+    }
 }
 
 
