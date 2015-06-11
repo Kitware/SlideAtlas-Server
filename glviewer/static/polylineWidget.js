@@ -19,170 +19,169 @@ var POLYLINE_WIDGET_PROPERTIES_DIALOG = 6;
 
 
 function PolylineWidget (viewer, newFlag) {
-  if (viewer === undefined) {
-    return;
-  }
+    if (viewer === undefined) {
+        return;
+    }
 
-  // Circle is to show an active vertex.
-  this.Circle = new Circle();
-  this.Shape = new Polyline();
+    // Circle is to show an active vertex.
+    this.Circle = new Circle();
+    this.Shape = new Polyline();
 
-  this.Dialog = new Dialog(this);
-  // Customize dialog for a lasso.
-  this.Dialog.Title.text('Lasso Annotation Editor');
-  // Color
-  this.Dialog.ColorDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ColorLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ColorDiv)
-      .text("Color:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ColorInput =
-    $('<input type="color">')
-      .appendTo(this.Dialog.ColorDiv)
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    // Customize dialog for a lasso.
+    this.Dialog.Title.text('Lasso Annotation Editor');
+    // Color
+    this.Dialog.ColorDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ColorLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ColorDiv)
+        .text("Color:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ColorInput =
+        $('<input type="color">')
+        .appendTo(this.Dialog.ColorDiv)
       .val('#30ff00')
-      .css({'display':'table-cell'});
+        .css({'display':'table-cell'});
 
-  // closed check
-  this.Dialog.ClosedDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ClosedLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ClosedDiv)
-      .text("Closed:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ClosedInput =
-    $('<input type="checkbox">')
-      .appendTo(this.Dialog.ClosedDiv)
-      .attr('checked', 'false')
-      .css({'display': 'table-cell'});
+    // closed check
+    this.Dialog.ClosedDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ClosedLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ClosedDiv)
+        .text("Closed:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ClosedInput =
+        $('<input type="checkbox">')
+        .appendTo(this.Dialog.ClosedDiv)
+        .attr('checked', 'false')
+        .css({'display': 'table-cell'});
 
-  // Line Width
-  this.Dialog.LineWidthDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.LineWidthLabel =
-    $('<div>')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .text("Line Width:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.LineWidthInput =
-    $('<input type="number">')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .css({'display':'table-cell'})
-      .keypress(function(event) { return event.keyCode != 13; });
+    // Line Width
+    this.Dialog.LineWidthDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.LineWidthLabel =
+        $('<div>')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .text("Line Width:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.LineWidthInput =
+        $('<input type="number">')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .css({'display':'table-cell'})
+        .keypress(function(event) { return event.keyCode != 13; });
 
-  // Length
-  this.Dialog.LengthDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.LengthLabel =
-    $('<div>')
-      .appendTo(this.Dialog.LengthDiv)
-      .text("Length:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.Length =
-    $('<div>')
-      .appendTo(this.Dialog.LengthDiv)
-      .css({'display':'table-cell'});
+    // Length
+    this.Dialog.LengthDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.LengthLabel =
+        $('<div>')
+        .appendTo(this.Dialog.LengthDiv)
+        .text("Length:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.Length =
+        $('<div>')
+        .appendTo(this.Dialog.LengthDiv)
+        .css({'display':'table-cell'});
 
-  // Area
-  this.Dialog.AreaDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.AreaLabel =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .text("Area:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.Area =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .css({'display':'table-cell'});
+    // Area
+    this.Dialog.AreaDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.AreaLabel =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .text("Area:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.Area =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .css({'display':'table-cell'});
 
-
-  // Get default properties.
-  this.LineWidth = 10.0;
-  this.Shape.Closed = false;
-  if (localStorage.PolylineWidgetDefaults) {
-    var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
-    if (defaults.Color) {
-      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    // Get default properties.
+    this.LineWidth = 10.0;
+    this.Shape.Closed = false;
+    if (localStorage.PolylineWidgetDefaults) {
+        var defaults = JSON.parse(localStorage.PolylineWidgetDefaults);
+        if (defaults.Color) {
+            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+        }
+        if (defaults.ClosedLoop !== undefined) {
+            this.Shape.Closed = defaults.ClosedLoop;
+        }
+        if (defaults.LineWidth) {
+            this.LineWidth = defaults.LineWidth;
+            this.Dialog.LineWidthInput.val(this.LineWidth);
+        }
     }
-    if (defaults.ClosedLoop !== undefined) {
-      this.Shape.Closed = defaults.ClosedLoop;
+
+    this.Circle.FillColor = [1.0, 1.0, 0.2];
+    this.Circle.OutlineColor = [0.0,0.0,0.0];
+    this.Circle.FixedSize = false;
+    this.Circle.ZOffset = -0.05;
+
+    this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+    this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+    this.Shape.FixedSize = false;
+
+    this.Viewer = viewer;
+    this.Popup = new WidgetPopup(this);
+    var cam = viewer.MainView.Camera;
+    var viewport = viewer.MainView.Viewport;
+
+    this.Viewer.WidgetList.push(this);
+
+    // Set line thickness using viewer. (5 pixels).
+    // The Line width of the shape switches to 0 (single line)
+    // when the actual line with is too thin.
+    this.Shape.LineWidth =this.LineWidth;
+    this.Circle.Radius = this.LineWidth;
+    this.Circle.UpdateBuffers();
+
+    if (newFlag) {
+        this.State = POLYLINE_WIDGET_NEW;
+        this.Shape.Active = true;
+        this.ActiveVertex = -1;
+        this.Viewer.ActivateWidget(this);
+    } else {
+        this.State = POLYLINE_WIDGET_WAITING;
+        this.Circle.Visibility = false;
+        this.ActiveVertex == -1;
     }
-    if (defaults.LineWidth) {
-      this.LineWidth = defaults.LineWidth;
-      this.Dialog.LineWidthInput.val(this.LineWidth);
-    }
-  }
+    this.ActiveMidpoint = -1;
 
-  this.Circle.FillColor = [1.0, 1.0, 0.2];
-  this.Circle.OutlineColor = [0.0,0.0,0.0];
-  this.Circle.FixedSize = false;
-  this.Circle.ZOffset = -0.05;
+    // Set some default values for bounds.
+    var cam = viewer.GetCamera();
+    var radius = cam.Height / 4;
+    this.Bounds = [cam.FocalPoint[0]-radius, cam.FocalPoint[0]+radius,
+                   cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
+    this.UpdateCircleRadius();
 
-  this.Shape.OutlineColor = [0.0, 0.0, 0.0];
-  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-  this.Shape.FixedSize = false;
+    // Lets save the zoom level (sort of).
+    // Load will overwrite this for existing annotations.
+    // This will allow us to expand annotations into notes.
+    this.CreationCamera = viewer.GetCamera().Serialize;
 
+    // Set to be the width of a pixel.
+    this.MinLine = 1.0;
 
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  var cam = viewer.MainView.Camera;
-  var viewport = viewer.MainView.Viewport;
-
-  this.Viewer.WidgetList.push(this);
-
-  // Set line thickness using viewer. (5 pixels).
-  // The Line width of the shape switches to 0 (single line)
-  // when the actual line with is too thin.
-  this.Shape.LineWidth =this.LineWidth;
-  this.Circle.Radius = this.LineWidth;
-  this.Circle.UpdateBuffers();
-
-  if (newFlag) {
-    this.State = POLYLINE_WIDGET_NEW;
-    this.Shape.Active = true;
-    this.ActiveVertex = -1;
-    this.Viewer.ActivateWidget(this);
-  } else {
-    this.State = POLYLINE_WIDGET_WAITING;
-    this.Circle.Visibility = false;
-    this.ActiveVertex == -1;
-  }
-  this.ActiveMidpoint = -1;
-
-  // Set some default values for bounds.
-  var cam = viewer.GetCamera();
-  var radius = cam.Height / 4;
-  this.Bounds = [cam.FocalPoint[0]-radius, cam.FocalPoint[0]+radius,
-                 cam.FocalPoint[1]-radius, cam.FocalPoint[1]+radius];
-  this.UpdateCircleRadius();
-
-  // Lets save the zoom level (sort of).
-  // Load will overwrite this for existing annotations.
-  // This will allow us to expand annotations into notes.
-  this.CreationCamera = viewer.GetCamera().Serialize;
-
-  // Set to be the width of a pixel.
-  this.MinLine = 1.0;
-
-  eventuallyRender();
+    eventuallyRender();
 }
 
 // This is called whenever the shape changes.

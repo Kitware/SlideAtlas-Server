@@ -19,81 +19,82 @@ var PENCIL_WIDGET_WAITING = 2;
 
 
 function PencilWidget (viewer, newFlag) {
-  if (viewer == null) {
-    return;
-  }
+    if (viewer == null) {
+        return;
+    }
 
-  this.Dialog = new Dialog(this);
-  // Customize dialog for a pencil.
-  this.Dialog.Title.text('Pencil Annotation Editor');
-  // Color
-  this.Dialog.ColorDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ColorLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ColorDiv)
-      .text("Color:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ColorInput =
-    $('<input type="color">')
-      .appendTo(this.Dialog.ColorDiv)
-      .val('#30ff00')
-      .css({'display':'table-cell'});
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    // Customize dialog for a pencil.
+    this.Dialog.Title.text('Pencil Annotation Editor');
+    // Color
+    this.Dialog.ColorDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ColorLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ColorDiv)
+        .text("Color:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ColorInput =
+        $('<input type="color">')
+        .appendTo(this.Dialog.ColorDiv)
+        .val('#30ff00')
+        .css({'display':'table-cell'});
 
-  // Line Width
-  this.Dialog.LineWidthDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.LineWidthLabel =
-    $('<div>')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .text("Line Width:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.LineWidthInput =
-    $('<input type="number">')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .css({'display':'table-cell'})
-      .keypress(function(event) { return event.keyCode != 13; });
+    // Line Width
+    this.Dialog.LineWidthDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.LineWidthLabel =
+        $('<div>')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .text("Line Width:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.LineWidthInput =
+        $('<input type="number">')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .css({'display':'table-cell'})
+        .keypress(function(event) { return event.keyCode != 13; });
 
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  this.Viewer.WidgetList.push(this);
+    this.Viewer = viewer;
+    this.Popup = new WidgetPopup(this);
+    this.Viewer.WidgetList.push(this);
 
-  this.Cursor = $('<img>').appendTo('body')
-      .css({
-        'position': 'absolute',
-        'height': '28px',
-        'z-index': '1'})
-      .attr('type','image')
-      .attr('src',"webgl-viewer/static/Pencil-icon.png");
+    this.Cursor = $('<img>').appendTo('body')
+        .css({
+            'position': 'absolute',
+            'height': '28px',
+            'z-index': '1'})
+        .attr('type','image')
+        .attr('src',"webgl-viewer/static/Pencil-icon.png");
 
-  var self = this;
-  // I am trying to stop images from getting move events and displaying a circle/slash.
-  // This did not work.  preventDefault did not either.
-  //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
-  //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-  //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
-  //.preventDefault();
+    var self = this;
+    // I am trying to stop images from getting move events and displaying a circle/slash.
+    // This did not work.  preventDefault did not either.
+    //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
+    //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
+    //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
+    //.preventDefault();
 
-  this.Shapes = [];
+    this.Shapes = [];
 
-  this.ActiveCenter = [0,0];
+    this.ActiveCenter = [0,0];
 
-  this.State = PENCIL_WIDGET_DRAWING;
-  if ( ! newFlag) {
-      this.State = PENCIL_WIDGET_WAITING;
-      this.Cursor.hide();
-  }
+    this.State = PENCIL_WIDGET_DRAWING;
+    if ( ! newFlag) {
+        this.State = PENCIL_WIDGET_WAITING;
+        this.Cursor.hide();
+    }
 
-  // Lets save the zoom level (sort of).
-  // Load will overwrite this for existing annotations.
-  // This will allow us to expand annotations into notes.
-  this.CreationCamera = viewer.GetCamera().Serialize;
+    // Lets save the zoom level (sort of).
+    // Load will overwrite this for existing annotations.
+    // This will allow us to expand annotations into notes.
+    this.CreationCamera = viewer.GetCamera().Serialize;
 }
 
 

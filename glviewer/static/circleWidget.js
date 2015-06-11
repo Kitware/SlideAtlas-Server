@@ -14,109 +14,109 @@ var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving ev
 var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 function CircleWidget (viewer, newFlag) {
-  this.Dialog = new Dialog(this);
-  // Customize dialog for a circle.
-  this.Dialog.Title.text('Circle Annotation Editor');
-  // Color
-  this.Dialog.ColorDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ColorLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ColorDiv)
-      .text("Color:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ColorInput =
-    $('<input type="color">')
-      .appendTo(this.Dialog.ColorDiv)
-      .val('#30ff00')
-      .css({'display':'table-cell'});
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    // Customize dialog for a circle.
+    this.Dialog.Title.text('Circle Annotation Editor');
+    // Color
+    this.Dialog.ColorDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ColorLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ColorDiv)
+        .text("Color:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ColorInput =
+        $('<input type="color">')
+        .appendTo(this.Dialog.ColorDiv)
+        .val('#30ff00')
+        .css({'display':'table-cell'});
 
-  // Line Width
-  this.Dialog.LineWidthDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.LineWidthLabel =
-    $('<div>')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .text("Line Width:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.LineWidthInput =
-    $('<input type="number">')
-      .appendTo(this.Dialog.LineWidthDiv)
-      .css({'display':'table-cell'})
-      .keypress(function(event) { return event.keyCode != 13; });
+    // Line Width
+    this.Dialog.LineWidthDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.LineWidthLabel =
+        $('<div>')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .text("Line Width:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.LineWidthInput =
+        $('<input type="number">')
+        .appendTo(this.Dialog.LineWidthDiv)
+        .css({'display':'table-cell'})
+        .keypress(function(event) { return event.keyCode != 13; });
 
-  // Area
-  this.Dialog.AreaDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.AreaLabel =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .text("Area:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.Area =
-    $('<div>')
-      .appendTo(this.Dialog.AreaDiv)
-      .css({'display':'table-cell'});
+    // Area
+    this.Dialog.AreaDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.AreaLabel =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .text("Area:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.Area =
+        $('<div>')
+        .appendTo(this.Dialog.AreaDiv)
+        .css({'display':'table-cell'});
 
-  // Get default properties.
-  if (localStorage.CircleWidgetDefaults) {
-    var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
-    if (defaults.Color) {
-      this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+    // Get default properties.
+    if (localStorage.CircleWidgetDefaults) {
+        var defaults = JSON.parse(localStorage.CircleWidgetDefaults);
+        if (defaults.Color) {
+            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+        }
+        if (defaults.LineWidth) {
+            this.Dialog.LineWidthInput.val(defaults.LineWidth);
+        }
     }
-    if (defaults.LineWidth) {
-      this.Dialog.LineWidthInput.val(defaults.LineWidth);
+
+    this.Tolerance = 0.05;
+    if (MOBILE_DEVICE) {
+        this.Tolerance = 0.1;
     }
-  }
 
-  this.Tolerance = 0.05;
-  if (MOBILE_DEVICE) {
-    this.Tolerance = 0.1;
-  }
+    if (viewer == null) {
+        return;
+    }
 
-  if (viewer == null) {
-    return;
-  }
+    // Lets save the zoom level (sort of).
+    // Load will overwrite this for existing annotations.
+    // This will allow us to expand annotations into notes.
+    this.CreationCamera = viewer.GetCamera().Serialize();
 
-  // Lets save the zoom level (sort of).
-  // Load will overwrite this for existing annotations.
-  // This will allow us to expand annotations into notes.
-  this.CreationCamera = viewer.GetCamera().Serialize();
+    this.Viewer = viewer;
+    this.Popup = new WidgetPopup(this);
+    var cam = viewer.MainView.Camera;
+    var viewport = viewer.MainView.Viewport;
+    this.Shape = new Circle();
+    this.Shape.Origin = [0,0];
+    this.Shape.OutlineColor = [0.0,0.0,0.0];
+    this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+    this.Shape.Radius = 50*cam.Height/viewport[3];
+    this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
+    this.Shape.FixedSize = false;
 
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  var cam = viewer.MainView.Camera;
-  var viewport = viewer.MainView.Viewport;
-  this.Shape = new Circle();
-  this.Shape.Origin = [0,0];
-  this.Shape.OutlineColor = [0.0,0.0,0.0];
-  this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
-  this.Shape.Radius = 50*cam.Height/viewport[3];
-  this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
-  this.Shape.FixedSize = false;
+    this.Viewer.WidgetList.push(this);
 
-  this.Viewer.WidgetList.push(this);
+    // Note: If the user clicks before the mouse is in the
+    // canvas, this will behave odd.
 
-  // Note: If the user clicks before the mouse is in the
-  // canvas, this will behave odd.
+    if (newFlag) {
+        this.State = CIRCLE_WIDGET_NEW;
+        this.Viewer.ActivateWidget(this);
+        return;
+    }
 
-  if (newFlag) {
-    this.State = CIRCLE_WIDGET_NEW;
-    this.Viewer.ActivateWidget(this);
-    return;
-  }
-
-  this.State = CIRCLE_WIDGET_WAITING;
-
+    this.State = CIRCLE_WIDGET_WAITING;
 }
 
 CircleWidget.prototype.Draw = function(view) {
