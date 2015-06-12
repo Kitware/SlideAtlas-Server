@@ -1,7 +1,5 @@
 //==============================================================================
 // TODO:
-// - Get dual view working.
-// - Use the proper aspect ratio.
 // - render the note text.
 // - Resize the view area to fit the note text.
 // - Edit mode.
@@ -33,35 +31,52 @@ function presentationHandleResize() {
     // Presentation specific stuff
     height = height - PRESENTATION_DIV.height();
 
-    var vHeight = height * 0.8;
-    var vWidth = width * 0.8;
-    if (PRESENTATION_NOTE) {
-        var cam = PRESENTATION_NOTE.ViewerRecords[0].Camera;
-        var scale = vHeight / cam.Height;
-        var vWidth = scale * cam.Width;
-        if (vWidth > width * 0.8) {
-            vWidth = width * 0.8;
-            scale = vWidth / cam.Width;
-            vHeight = scale * cam.Height;
-        }
-    }
-
-    var viewPanelLeft = (width-vWidth) / 2;
-    var viewPanelTop = (height - vHeight) / 2;
-
     // Setup the view panel div to be the same as the two viewers.
-    VIEW_PANEL.css({'left':   viewPanelLeft+'px',
-                    'width':  vWidth+'px',
-                    'top':    viewPanelTop+'px',
-                    'height': vHeight+'px'});
+    VIEW_PANEL.css({'left':   '0px',
+                    'width':  width+'px',
+                    'top':    '0px',
+                    'height': height+'px'});
 
-    // TODO: Make a multi-view object.
-    if (VIEWER1) {
-      VIEWER1.SetViewport([0, 0, vWidth, vHeight]);
-      eventuallyRender();
+    // Now position the viewers in the view panel.
+    var record;
+    if ( ! PRESENTATION_NOTE) { return; }
+    if (PRESENTATION_NOTE.ViewerRecords.length == 1) {
+        record = PRESENTATION_NOTE.ViewerRecords[0];
+        PresentationPlaceViewer(VIEWER1, record, [0,0,width,height]);
+        // Poor way to hide a viewer.
+        PresentationPlaceViewer(VIEWER2, record, [width,0,0,height]);
+    }
+    if (PRESENTATION_NOTE.ViewerRecords.length > 1) {
+        var halfWidth = width / 2;
+        record = PRESENTATION_NOTE.ViewerRecords[0];
+        PresentationPlaceViewer(VIEWER1, record, [0,0,halfWidth,height]);
+        record = PRESENTATION_NOTE.ViewerRecords[1];
+        PresentationPlaceViewer(VIEWER2, record, [halfWidth,0,halfWidth,height]);
     }
 }
 
+
+// Adds a margin, and keeps the aspect ratio of view.
+function PresentationPlaceViewer(viewer, record, viewport) {
+    var vWidth = viewport[2] * 0.8;
+    var vHeight = viewport[3] * 0.8;
+    var cam = record.Camera;
+    var scale = vHeight / cam.Height;
+    var vWidth = scale * cam.Width;
+    if (vWidth > viewport[2] * 0.8) {
+        vWidth = viewport[2] * 0.8;
+        scale = vWidth / cam.Width;
+        vHeight = scale * cam.Height;
+    }
+
+    var vLeft = viewport[0] + (viewport[2]-vWidth) / 2;
+    var vTop =  viewport[1] + (viewport[3]-vHeight) / 2;
+
+    if (viewer) {
+      viewer.SetViewport([vLeft, vTop, vWidth, vHeight]);
+      eventuallyRender();
+    }
+}
 
 
 //==============================================================================
@@ -71,7 +86,6 @@ function presentationHandleResize() {
 // Main function called by the default view.html template
 function StartPresentation() {
     MOBILE_DEVICE = "Simple";
-    EDIT = false;
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.
@@ -83,7 +97,7 @@ function StartPresentation() {
             'height': '100%',
             'top' : '0px',
             'left' : '0px',
-            'z-index': '1'
+            'z-index': '-1'
         });
 
     VIEW_PANEL = $('<div>')
@@ -127,29 +141,18 @@ function StartPresentation() {
             'background': '#444',
             'font-family': 'Arial'});
 
-    PRESENTATION_LIST = $('<ol>')
-        .css({
-            'font-size': '150%',
-            'background-color': '#DDD',
-            'font-family': 'Arial'})
-        .appendTo(PRESENTATION_DIV);
-    var item;
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Water");
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Juice");
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Wine");
+    PRESENTATION_LIST = new TextEditor(PRESENTATION_DIV, EDIT);
+    PRESENTATION_LIST.TextEntry.css({'height':'150px'});
 
-
+    // Add the viewers.
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
     VIEWER1 = initView([0,0, width, height]);
     VIEWER1.ViewerIndex = 0;
+
+    VIEWER2 = initView([width, 0, 0, height]);
+    VIEWER2.ViewerIndex = 0;
 
     PRESENTATION_ROOT = new Note();
     PRESENTATION_ROOT.LoadViewId(VIEW_ID,
@@ -170,7 +173,6 @@ function StartPresentation() {
     document.onkeydown = PresentationHandleKeyDown;
     document.onkeyup = PresentationHandleKeyUp;
 
-
     eventuallyRender();
 }
 
@@ -179,6 +181,11 @@ function PresentationHandleKeyDown(event) {
 
 }
 function PresentationHandleKeyUp(event) {
+    // Hack to keep the slides from changing when editing.
+    if ( ! EVENT_MANAGER.HasFocus) {
+        return true;
+    }
+
     if (event.keyCode == "32" || // space
         event.keyCode == "34" || // page down
         event.keyCode == "78" || // n
@@ -210,8 +217,18 @@ function PresentationSetSlide(index){
     PRESENTATION_TITLE.text("Slide: " + (index+1))
     var note = PRESENTATION_ROOT.Children[index];
     PRESENTATION_NOTE = note;
-    VIEWER1.Reset();
+    // Text
+    PRESENTATION_LIST.LoadNote(note);
+    // Views
     if (note.ViewerRecords.length > 0) {
+        VIEWER1.Reset();
         note.ViewerRecords[0].Apply(VIEWER1);
+        DUAL_VIEW = false;
+    }
+    if (note.ViewerRecords.length > 1) {
+        VIEWER2.Reset();
+        note.ViewerRecords[1].Apply(VIEWER2);
+        // TODO: Get rid of this global variable.
+        DUAL_VIEW = true;
     }
 }

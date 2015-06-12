@@ -108,6 +108,24 @@ mod = Blueprint('glviewer', __name__,
 #@security.login_required
 def glview():
 
+    # See if the user is requesting a view or session
+    viewid = request.args.get('view', None)
+    # See if editing will be enabled.
+    edit = request.args.get('edit', "false")
+    # default, simple or presentation
+    style = request.args.get('style', "default")
+
+    # handle presentation with a different template.
+    if  style == "presentation" :
+        if viewid :
+            db = models.ImageStore._get_db()
+            viewobj = readViewTree(db, viewid)
+            email = getattr(security.current_user, 'email', '')
+            return make_response(render_template('presentation.html',
+                                                 view=viewid,
+                                                 edit=edit,
+                                                 user=email))
+
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
     """
@@ -124,12 +142,6 @@ def glview():
         result = result.replace("''", "'")
         return make_response(render_template('scene.html', scene = result))
 
-    # Simple embeddable viewer.
-    style = request.args.get('style', "default")
-    # See if editing will be enabled.
-    edit = request.args.get('edit', "false")
-    # See if the user is requesting a view or session
-    viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
 
@@ -147,24 +159,6 @@ def glview():
         # default
         return glnote(db,viewid,viewobj,edit,style)
 
-
-@mod.route('/presentation')
-#@security.login_required
-def presentation():
-
-    """
-    - /presentation?view=10239094124
-    """
-    # See if the user is requesting a view or session
-    viewid = request.args.get('view', None)
-
-    if viewid :
-        db = models.ImageStore._get_db()
-        viewobj = readViewTree(db, viewid)
-        email = getattr(security.current_user, 'email', '')
-        return make_response(render_template('presentation.html',
-                                             view=viewid,
-                                             user=email))
 
 @mod.route('/bookmark')
 #@security.login_required

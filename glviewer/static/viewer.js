@@ -86,8 +86,10 @@ function Viewer (viewport) {
     this.GuiElements = [];
     
     this.InteractionListeners = [];
-    
-    this.InitializeZoomGui();
+
+    if ( ! MOBILE_DEVICE || MOBILE_DEVICE != "Simple") {
+        this.InitializeZoomGui();
+    }
 
     // For stack correlations.
     this.StackCorrelations = undefined;
@@ -371,6 +373,7 @@ Viewer.prototype.InitializeZoomGui = function() {
 }
 
 Viewer.prototype.UpdateZoomGui = function() {
+    if ( ! this.ZoomDisplay) { return; }
     var camHeight = this.GetCamera().Height;
     var windowHeight = this.GetViewport()[3];
     // Assume image scanned at 40x
@@ -716,99 +719,98 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
    this.GuiElements.push(element);
  }
 
- // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
- // I intend this method to get called when the window resizes.
- // TODO: Redo all this overview viewport junk.
- Viewer.prototype.SetViewport = function(viewport) {
+// ORIGIN SEEMS TO BE BOTTOM LEFT !!!
+// I intend this method to get called when the window resizes.
+// TODO: Redo all this overview viewport junk.
+// viewport: [left, top, width, height]
+Viewer.prototype.SetViewport = function(viewport) {
 
-     // I am working to depreciate GUI elements.
-     // The browser / css should place gui elements.
-     for (var i = 0; i < this.GuiElements.length; ++i) {
-         var element = this.GuiElements[i];
-         var object;
-         if ('Object' in element) {
-             object = element.Object;
-         } else if ('Id' in element) {
-             object = $(element.Id);
-         } else {
-             continue;
-         }
+    // I am working to depreciate GUI elements.
+    // The browser / css should place gui elements.
+    for (var i = 0; i < this.GuiElements.length; ++i) {
+        var element = this.GuiElements[i];
+        var object;
+        if ('Object' in element) {
+            object = element.Object;
+        } else if ('Id' in element) {
+            object = $(element.Id);
+        } else {
+            continue;
+        }
 
-         // When the viewports are too small, large elements overlap ....
-         // This stomps on the dual view arrow elementts visibility.
-         // We would need our own visibility state ...
-         //if (viewport[2] < 300 || viewport[3] < 300) {
-         //  object.hide();
-         //} else {
-         //  object.show();
-         //}
+        // When the viewports are too small, large elements overlap ....
+        // This stomps on the dual view arrow elementts visibility.
+        // We would need our own visibility state ...
+        //if (viewport[2] < 300 || viewport[3] < 300) {
+        //  object.hide();
+        //} else {
+        //  object.show();
+        //}
 
-         if ('Bottom' in element) {
-             var pos = element.Bottom.toString() + "px";
-             object.css({
-                 'bottom' : pos});
-         } else if ('Top' in element) {
-             var pos = element.Top.toString() + "px";
-             object.css({
-                 'top' : pos});
-         }
+        if ('Bottom' in element) {
+            var pos = element.Bottom.toString() + "px";
+            object.css({
+                'bottom' : pos});
+        } else if ('Top' in element) {
+            var pos = element.Top.toString() + "px";
+            object.css({
+                'top' : pos});
+        }
 
-         if ('Left' in element) {
-             var pos = viewport[0] + element.Left;
-             pos = pos.toString() + "px";
-             object.css({
-                 'left' : pos});
-         } else if ('Right' in element) {
-             var pos = viewport[0] + viewport[2] - element.Right;
-             pos = pos.toString() + "px";
-             object.css({
-                 'left' : pos});
-         }
-     }
+        if ('Left' in element) {
+            var pos = viewport[0] + element.Left;
+            pos = pos.toString() + "px";
+            object.css({
+                'left' : pos});
+        } else if ('Right' in element) {
+            var pos = viewport[0] + viewport[2] - element.Right;
+            pos = pos.toString() + "px";
+            object.css({
+                'left' : pos});
+        }
+    }
 
+    if (viewport[2] <= 10) {
+        this.MainView.CanvasDiv.hide();
+        if (this.OverView) {
+            this.OverView.CanvasDiv.hide();
+        }
+        return;
+    }
+    this.MainView.CanvasDiv.show();
+    if (this.OverView) {
+        this.OverView.CanvasDiv.show();
+    }
+    this.MainView.SetViewport(viewport);
+    this.MainView.Camera.ComputeMatrix();
 
-     if (viewport[2] <= 10) {
-         this.MainView.CanvasDiv.hide();
-         if (this.OverView) {
-             this.OverView.CanvasDiv.hide();
-         }
-         return;
-     }
-     this.MainView.CanvasDiv.show();
-     if (this.OverView) {
-         this.OverView.CanvasDiv.show();
-     }
-     this.MainView.SetViewport(viewport);
-     this.MainView.Camera.ComputeMatrix();
+    // I do not know the way the viewport is used to place
+    // this overview.  It should be like other widgets
+    // and be placed relative to the parent.
+    if (this.OverView) {
+        var area = viewport[2]*viewport[3];
+        var bounds = this.GetOverViewBounds();
+        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
+        // size of overview
+        var h = Math.sqrt(area*this.OverViewScale/aspect);
+        var w = h*aspect;
+        // Limit size
+        if (h > viewport[3]/2) {
+            h = viewport[3]/2;
+            var w = h*aspect;
+            this.OverViewScale = w*h/area;
+        }
+        // center of overview
+        var radius = Math.sqrt(h*h+w*w)/2;
+        // Construct the viewport.
+        this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
+                             viewport[1]+radius-h/2,
+                             w, h];
 
-
-     // I do not know the way the viewport is used to place
-     // this overview.  It should be like other widgets
-     // and be placed relative to the parent.
-     if (this.OverView) {
-         var area = viewport[2]*viewport[3];
-         var bounds = this.GetOverViewBounds();
-         var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
-         // size of overview
-         var h = Math.sqrt(area*this.OverViewScale/aspect);
-         var w = h*aspect;
-         // Limit size
-         if (h > viewport[3]/2) {
-             h = viewport[3]/2;
-             var w = h*aspect;
-             this.OverViewScale = w*h/area;
-         }
-         // center of overview
-         var radius = Math.sqrt(h*h+w*w)/2;
-         // Construct the viewport.
-         this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
-                              viewport[1]+radius-h/2,
-                              w, h];
-
-         this.OverView.SetViewport(this.OverViewport);
-         this.OverView.Camera.ComputeMatrix();
-     }
- }
+        this.OverView.SetViewport(this.OverViewport);
+        this.OverView.Camera.ComputeMatrix();
+    }
+}
 
  Viewer.prototype.GetViewport = function() {
    return this.MainView.Viewport;

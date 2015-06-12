@@ -179,7 +179,7 @@ function TextEditor(parent, edit) {
         .appendTo(parent)
         .css({'box-sizing': 'border-box',
               'width': '100%',
-              'height': '100%',
+              'height':'100%',
               'border-style': 'solid',
               'background': '#ffffff',
               'overflow': 'auto',
