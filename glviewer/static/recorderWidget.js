@@ -125,50 +125,51 @@ ViewerRecord.prototype.Serialize = function (viewer) {
 
 
 ViewerRecord.prototype.Apply = function (viewer) {
-  // If a widget is active, then just inactivate it.
-  // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
-  if (viewer.ActiveWidget) {
-    // Hackish way to deactivate.
-    viewer.ActiveWidget.SetActive(false);
-  }
+    // If a widget is active, then just inactivate it.
+    // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
+    if (viewer.ActiveWidget) {
+        // Hackish way to deactivate.
+        viewer.ActiveWidget.SetActive(false);
+    }
 
-  var cache = viewer.GetCache();
-  if ( ! cache || this.Image._id != cache.Image._id) {
-    var newCache = FindCache(this.Image);
-    viewer.SetCache(newCache);
-  }
+    var cache = viewer.GetCache();
+    if ( ! cache || this.Image._id != cache.Image._id) {
+        var newCache = FindCache(this.Image);
+        viewer.SetCache(newCache);
+    }
 
-  viewer.SetOverViewBounds(this.OverviewBounds);
+    viewer.SetOverViewBounds(this.OverviewBounds);
 
-  if (this.Camera !== undefined && this.Transform === undefined) {
-      var cameraRecord = this.Camera;
-      viewer.GetCamera().Load(cameraRecord);
-      if (viewer.OverView) {
-          viewer.OverView.Camera.Roll = cameraRecord.Roll;
-          viewer.OverView.Camera.ComputeMatrix();
-      }
-      viewer.UpdateZoomGui();
-      viewer.UpdateCamera();
-  }
+    if (this.Camera !== undefined && this.Transform === undefined) {
+        var cameraRecord = this.Camera;
+        viewer.GetCamera().Load(cameraRecord);
+        if (viewer.OverView) {
+            viewer.OverView.Camera.Roll = cameraRecord.Roll;
+            viewer.OverView.Camera.ComputeMatrix();
+        }
+        viewer.UpdateZoomGui();
+        viewer.UpdateCamera();
+    }
 
-  if (this.AnnotationVisibility != undefined) {
-    viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
-  }
-  if (this.Annotations != undefined) {
-      // TODO: Fix this.  Keep actual widgets in the records / notes.
-      // For now lets just do the easy thing and recreate all the annotations.
-      viewer.WidgetList = [];
-      viewer.ShapeList = [];
-      for (var i = 0; i < this.Annotations.length; ++i) {
-          var widget = viewer.LoadWidget(this.Annotations[i]);
-          // Until we do the above todo.  This is the messy way of removing
-          // empty widgets (widgets that did not load properly).
-          if (widget.Type == "sections" && widget.IsEmpty()) {
-              this.Annotations.splice(i,1);
-              --i;
-          }
-      }
-  }
+    // TODO: Get rid of this hack.
+    if (viewer.AnnotationWidget && this.AnnotationVisibility != undefined) {
+        viewer.AnnotationWidget.SetVisibility(this.AnnotationVisibility);
+    }
+    if (this.Annotations != undefined) {
+        // TODO: Fix this.  Keep actual widgets in the records / notes.
+        // For now lets just do the easy thing and recreate all the annotations.
+        viewer.WidgetList = [];
+        viewer.ShapeList = [];
+        for (var i = 0; i < this.Annotations.length; ++i) {
+            var widget = viewer.LoadWidget(this.Annotations[i]);
+            // Until we do the above todo.  This is the messy way of removing
+            // empty widgets (widgets that did not load properly).
+            if (widget.Type == "sections" && widget.IsEmpty()) {
+                this.Annotations.splice(i,1);
+                --i;
+            }
+        }
+    }
 }
 
 

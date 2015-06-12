@@ -41,7 +41,7 @@ var I_PAD_FLAG = false;
 
 function detectMobile() {
     MOBILE_DEVICE = false;
-  
+
     if ( navigator.userAgent.match(/Android/i)) {
         MOBILE_DEVICE = "Andriod";
     }
@@ -67,11 +67,10 @@ function detectMobile() {
     if (MOBILE_DEVICE) {
         MAXIMUM_NUMBER_OF_TILES = 5000;
     }
-    if (SIMPLE) {
+    if (STYLE == "simple") {
         MOBILE_DEVICE = "Simple";
     }
 }
-
 
 
 // This global is used in every class that renders something.
@@ -579,13 +578,6 @@ function ShowAnnotationEditMenu(x, y) {
 }
 
 
-$(window).bind('orientationchange', function(event) {
-    //alert(window.innerWidth + " " + VIEWER1.MainView.Canvas[0].parentNode.clientWidth + " " + window.innerHeight + " " + VIEWER1.MainView.Canvas[0].parentNode.clientHeight);
-    handleResize();
-});
-
-
-
 // Getting resize right was a major pain.
 function handleResize() {
     var width = CANVAS.width();
@@ -720,7 +712,7 @@ var VIEW_MENU;
 
 // Main function called by the default view.html template
 function StartView() {
-    var dia = new Dialog();
+    //ar dia = new Dialog();
     detectMobile();
     $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
@@ -762,6 +754,10 @@ function StartView() {
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();
+
+    $(window).bind('orientationchange', function(event) {
+        handleResize();
+    });
 
     $(window).resize(function() {
         handleResize();

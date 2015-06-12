@@ -179,7 +179,7 @@ function TextEditor(parent, edit) {
         .appendTo(parent)
         .css({'box-sizing': 'border-box',
               'width': '100%',
-              'height': '100%',
+              'height':'100%',
               'border-style': 'solid',
               'background': '#ffffff',
               'overflow': 'auto',
@@ -667,11 +667,13 @@ function NotesWidget() {
               'padding': '3px'});
 
     // This is the button for the links tab div, but do not add it yet.
-    this.AddViewButton = $('<button>')
-        .appendTo(this.LinksTab.Div)
-        .css({'border-radius': '4px',
-              'margin': '1em'})
-        .text("+ New View");
+    if (EDIT) {
+        this.AddViewButton = $('<button>')
+            .appendTo(this.LinksTab.Div)
+            .css({'border-radius': '4px',
+                  'margin': '1em'})
+            .text("+ New View");
+    }
 
     // Now for the text tab:
     this.TextEditor = new TextEditor(this.TextTab.Div, EDIT);
@@ -736,11 +738,11 @@ NotesWidgetResizeStopDrag = function () {
 
 
 
-
 NotesWidget.prototype.SetWidth = function(width) {
     this.Width = width;
     this.Window.width(width);
-    handleResize();
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
 }
 
 // Necessary to set the height.
@@ -1643,21 +1645,10 @@ Note.prototype.Load = function(obj){
         userNote.Load(userObj);
         this.UserNote = userNote;
     }
-
-    // Hack to fix timing (Load after select)
-    if (this == NOTES_WIDGET.RootNote) {
-        NOTES_WIDGET.DisplayRootNote();
-    }
-
-    // Hack to open the notes window if we have text.
-    if (this.Text != "" && this == NOTES_WIDGET.RootNote &&
-        ! NOTES_WIDGET.Visibility && ! MOBILE_DEVICE) {
-        NOTES_WIDGET.ToggleNotesWindow();
-    }
 }
 
 
-Note.prototype.LoadViewId = function(viewId) {
+Note.prototype.LoadViewId = function(viewId, callback) {
   var self = this;
   $.ajax({
     type: "get",
@@ -1666,9 +1657,9 @@ Note.prototype.LoadViewId = function(viewId) {
            "viewid": viewId},
     success: function(data,status) { 
         self.Load(data);
-        // This is necessary because we delay moving entry text to note.
-        // It has to be initialized with the first selected note (root).
-        NOTES_WIDGET.TextEditor.LoadNote(self);
+        if (callback) {
+            (callback)();
+        }
     },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
@@ -1750,7 +1741,7 @@ Note.prototype.DisplayView = function() {
     if (this.Type == "Stack") {
         var idx0 = this.StartIndex;
         var idx1 = idx0 + 1;
-        
+
         if (this.ViewerRecords.length > idx0) {
             this.ViewerRecords[idx0].Apply(VIEWER1);
         }
@@ -1759,7 +1750,6 @@ Note.prototype.DisplayView = function() {
         }
         return;
     }
-
 
     // Two views should always exist.  Check anyway (for now).
     SetNumberOfViews(this.ViewerRecords.length);
@@ -2033,32 +2023,35 @@ NotesWidget.prototype.RandomCallback = function() {
 
 
 NotesWidget.prototype.AnimateNotesWindow = function() {
-  var timeStep = new Date().getTime() - this.AnimationLastTime;
-  if (timeStep > this.AnimationDuration) {
-    // end the animation.
-    this.SetWidth(this.AnimationTarget);
-    handleResize();
-    if (this.Visibilty) {
-      this.CloseNoteWindowButton.show();
-      this.OpenNoteWindowButton.hide();
-      this.Window.fadeIn();
-    } else {
-      this.CloseNoteWindowButton.hide();
-      this.OpenNoteWindowButton.show();
+    var timeStep = new Date().getTime() - this.AnimationLastTime;
+    if (timeStep > this.AnimationDuration) {
+        // end the animation.
+        this.SetWidth(this.AnimationTarget);
+        // Hack to recompute viewports
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+
+        if (this.Visibilty) {
+            this.CloseNoteWindowButton.show();
+            this.OpenNoteWindowButton.hide();
+            this.Window.fadeIn();
+        } else {
+            this.CloseNoteWindowButton.hide();
+            this.OpenNoteWindowButton.show();
+        }
+        draw();
+        return;
     }
+
+    var k = timeStep / this.AnimationDuration;
+
+    // update
+    this.AnimationDuration *= (1.0-k);
+    this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
+
     draw();
-    return;
-  }
-
-  var k = timeStep / this.AnimationDuration;
-
-  // update
-  this.AnimationDuration *= (1.0-k);
-  this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
-
-  draw();
-  var self = this;
-  requestAnimFrame(function () {self.AnimateNotesWindow();});
+    var self = this;
+    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Called when a new slide/view is loaded.
@@ -2069,29 +2062,40 @@ NotesWidget.prototype.DisplayRootNote = function() {
     this.RootNote.Select();
 
     // Add an obvious way to add a link / view to the root note.
-    this.AddViewButton
-        .appendTo(this.LinksTab.Div)
-        .click(function () {
-            var parentNote = NOTES_WIDGET.RootNote;
-            var childIdx = parentNote.Children.length;
-            var childNote = parentNote.NewChild(childIdx, "New View");
-            childNote.Save(); // Gets the id for the child.
-            parentNote.Save();
-        });
+    if (EDIT) {
+        this.AddViewButton
+            .appendTo(this.LinksTab.Div)
+            .click(function () {
+                var parentNote = NOTES_WIDGET.RootNote;
+                var childIdx = parentNote.Children.length;
+                var childNote = parentNote.NewChild(childIdx, "New View");
+                childNote.Save(); // Gets the id for the child.
+                parentNote.Save();
+            });
+    }
 
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
-        NOTES_WIDGET.LinksTab.Show();
+        this.LinksTab.Show();
     } else {
-        NOTES_WIDGET.TextTab.Show();
+        this.TextTab.Show();
+        // Hack to open the notes window if we have text.
+        if ( ! this.Visibility && ! MOBILE_DEVICE) {
+            this.ToggleNotesWindow();
+        }
     }
 }
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
+    var self = this;
     VIEW_ID = viewId;
     this.RootNote = new Note();
     if (typeof(viewId) != "undefined" && viewId != "") {
-        this.RootNote.LoadViewId(viewId);
+        this.RootNote.LoadViewId(
+            viewId,
+            function () {
+                self.DisplayRootNote();
+            });
     }
     // Since loading the view is asynchronous,
     // the this.RootNote is not complete at this point.
