@@ -33,13 +33,13 @@ def jsonifyView(db,viewid,viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, viewid, viewobj, edit, simple):
+def glnote(db, viewid, viewobj, edit, style):
     email = getattr(security.current_user, 'email', '')
     return make_response(render_template('view.html', 
                                          view=viewid, 
                                          user=email, 
                                          edit=edit,
-                                         simple=simple))
+                                         style=style))
 
 
 
@@ -125,7 +125,7 @@ def glview():
         return make_response(render_template('scene.html', scene = result))
 
     # Simple embeddable viewer.
-    simple = request.args.get('simple', "false")
+    style = request.args.get('style', "default")
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
     # See if the user is requesting a view or session
@@ -145,8 +145,26 @@ def glview():
             return jsonifyView(db,viewid,viewobj)
 
         # default
-        return glnote(db,viewid,viewobj,edit,simple)
+        return glnote(db,viewid,viewobj,edit,style)
 
+
+@mod.route('/presentation')
+#@security.login_required
+def presentation():
+
+    """
+    - /presentation?view=10239094124
+    """
+    # See if the user is requesting a view or session
+    viewid = request.args.get('view', None)
+
+    if viewid :
+        db = models.ImageStore._get_db()
+        viewobj = readViewTree(db, viewid)
+        email = getattr(security.current_user, 'email', '')
+        return make_response(render_template('presentation.html',
+                                             view=viewid,
+                                             user=email))
 
 @mod.route('/bookmark')
 #@security.login_required
@@ -157,10 +175,10 @@ def bookmark():
     key = request.args.get('key', "0295cf24-6d51-4ce8-a923-772ebc71abb5")
     # find the view and the db
 
-
     return jsonify({"key" : key })
 
-
+    # Simple embeddable viewer.
+    style = request.args.get('style', "default")
     # See if editing will be enabled.
     edit = request.args.get('edit', False)
     # See if the user is requesting a view or session
@@ -177,7 +195,7 @@ def bookmark():
             return jsonifyView(db,viewid,viewobj)
 
         # default
-        return glnote(db,viewid,viewobj,edit)
+        return glnote(db,viewid,viewobj,edit,style)
 
 
 # get all the children notes for a parent (authored by a specific user).

@@ -669,7 +669,8 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
          }
      }
      // Change the overview to fit the new image dimensions.
-     handleResize();
+     // TODO: Get rid of this hack.
+     $(window).trigger('resize');
  }
 
  Viewer.prototype.GetCache = function() {
@@ -2074,7 +2075,9 @@ function colorNameToHex(color)
          this.RotateIcon.show();
      }
 
-     handleResize();
+     // TODO: Get rid of this hack.
+     $(window).trigger('resize');
+
      return false;
 }
 
@@ -2091,7 +2094,9 @@ Viewer.prototype.HandleOverViewMouseWheel = function(event) {
 	  } else if (tmp < 0) {
         this.OverViewScale /= 1.2;
     }
-    handleResize();
+    
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
 
     return true;
 }
