@@ -103,6 +103,7 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
 
 function clipboard(viewId) {
     var saveUrl = "../../webgl-viewer/saveusernote";
+    viewId = event.currentTarget.id;
     $.ajax({
         type: "post",
         url: saveUrl,
