@@ -38,24 +38,6 @@
         </div>
     </div>
 
-    <script>
-        function clipboard(viewId) {
-            $.ajax({
-                type: "post",
-                url: "../../webgl-viewer/saveusernote",
-                data: {"view": viewId},
-                success:
-                    function(data,status) {
-                        var im = document.getElementById(viewId);
-                        im.src = "../../webgl-viewer/static/clipboard_star_on.png";
-                    },
-                error: function() {
-                    alert( "AJAX - error() : saveusernote 11" );
-                },
-            });
-        }
-    </script>
-
     <div class="row" ng-show="results.length == 0 && !loading">
         <p> No results for "{{ query }}".
         <p> Please say "Show me blood" from microphone input to trigger voice search for "blood".
@@ -79,7 +61,7 @@
                        id="{{ares._id}}"
                        class="clipboard"
                        src="../../webgl-viewer/static/clipboard_star.png"
-                       style="float:right"
+                       style="float:right; width:18px"
                        onclick="clipboard('{{ares._id}}')"> 
                     </img>
                 </td>
