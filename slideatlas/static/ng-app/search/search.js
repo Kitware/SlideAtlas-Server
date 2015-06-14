@@ -101,8 +101,9 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
 });
 
 
-function clipboard(viewId) {
+function clipboard(self) {
     var saveUrl = "../../webgl-viewer/saveusernote";
+    // viewId = self.id; // not tested
     viewId = event.currentTarget.id;
     $.ajax({
         type: "post",
