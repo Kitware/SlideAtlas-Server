@@ -99,3 +99,22 @@ module.controller('SearchCtrl', function ($scope, $location, $http, filterFilter
     annyang.init($scope.commands);
     annyang.start();
 });
+
+
+function clipboard(viewId) {
+    var saveUrl = "../../webgl-viewer/saveusernote";
+    $.ajax({
+        type: "post",
+        url: saveUrl,
+        data: {"view": viewId},
+        success:
+        function(data,status) {
+            var im = document.getElementById(viewId);
+            im.src = "../../webgl-viewer/static/clipboard_star_on.png";
+        },
+        error: function() {
+            alert( "AJAX - error() : saveusernote 11" );
+        },
+    });
+}
+
