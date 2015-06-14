@@ -6,6 +6,7 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
+import pdb
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -314,6 +315,25 @@ def getcomment():
 # It has a bad name which can be changed later.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    # special case.  Just passed a view id to copy.
+    if request.form.has_key('view') :
+        # copy a view to the clipboard.
+        viewId = request.form['view']
+        note = admindb["views"].find_one({ "_id" : ObjectId(viewId) })
+        note["Type"] = "Favorite"
+        note["User"] = getattr(security.current_user, 'id', '')
+        note["ParentId"] = note["_id"]
+        note.pop("_id", None)
+        if not note.has_key("Thumb") :
+            r = note["ViewerRecords"][0]
+            src = "http://slide-atlas.org/thumb?db="+(str)(r["Database"])+"&img="+(str)(r["Image"])
+            note["Thumb"] = src
+        noteId = admindb["views"].save(note)
+        # TODO: Add it to a clipboard session.
+        return str(noteId)
 
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
@@ -338,9 +358,6 @@ def saveusernote():
     if request.form.has_key('thumb') :
         thumbStr = request.form['thumb']
         note["Thumb"] = thumbStr
-
-    # Saving notes in admin db now.
-    admindb = models.ImageStore._get_db()
 
     noteId = admindb[collectionStr].save(note)
     return str(noteId)

@@ -1,8 +1,10 @@
 //==============================================================================
 // TODO:
-// - render the note text.
+// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html !!!!!!!!!!!!!!!
+// - control the size of the text.
+// - Convert a session to a presentation.
 // - Resize the view area to fit the note text.
-// - Edit mode.
+// - Edit mode: resize views
 
 
 //==============================================================================
@@ -83,8 +85,22 @@ function PresentationPlaceViewer(viewer, record, viewport) {
 
 
 
-// Main function called by the default view.html template
-function StartPresentation() {
+// Main function called by the presentation.html template
+function PresentationMain(viewId) {
+    // We need to get the view so we know how to initialize the app.
+    var rootNote = new Note();
+    // Sanity check
+    if (typeof(viewId) == "undefined" && viewId == "") { return; }
+
+    rootNote.LoadViewId(viewId,
+                        function () {PresentationMain2(rootNote);});
+}
+
+function PresentationMain2(rootNote) {
+    if (rootNote.Type != "Presentation") {
+        rootNote.Type = "Presentation";
+        rootNote.Save();
+    }
     MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
@@ -154,12 +170,9 @@ function StartPresentation() {
     VIEWER2 = initView([width, 0, 0, height]);
     VIEWER2.ViewerIndex = 0;
 
-    PRESENTATION_ROOT = new Note();
-    PRESENTATION_ROOT.LoadViewId(VIEW_ID,
-                                 function () {
-                                     PresentationSetSlide(0);
-                                 });
-
+    PRESENTATION_ROOT = rootNote;
+    PresentationSetSlide(0);
+    
     $(window).resize(function() {
         presentationHandleResize();
     }).trigger('resize');

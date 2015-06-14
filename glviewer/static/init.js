@@ -616,7 +616,7 @@ function handleResize() {
 
     // we set the left border to leave space for the notes window.
     var viewPanelLeft = 0;
-    if (NOTES_WIDGET) { 
+    if (NOTES_WIDGET) {
         viewPanelLeft = NOTES_WIDGET.Width;
         NOTES_WIDGET.Resize(viewPanelLeft,height);
     }
@@ -629,8 +629,8 @@ function handleResize() {
         // HACK:  view positioning is half managed by browser (VIEW_PANEL)
         // and half by this resize viewport chain.  I want to get rid of the
         // viewport completely, but until then, I have to manage both.
-        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create 
-        // a separate webgl canvas for each view because thay cannot share 
+        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create
+        // a separate webgl canvas for each view because thay cannot share
         // texture images.
         CANVAS.css({"left":viewPanelLeft});
     }
@@ -711,8 +711,26 @@ function cancelContextMenu(e) {
 var VIEW_MENU;
 
 // Main function called by the default view.html template
-function StartView() {
-    //ar dia = new Dialog();
+function Main(viewId) {
+    // We need to get the view so we know how to initialize the app.
+    var rootNote = new Note();
+    // Sanity check
+    if (typeof(viewId) == "undefined" && viewId == "") { return; }
+
+    rootNote.LoadViewId(viewId,
+                        function () {Main2(rootNote);});
+}
+
+// This serializes loading a bit, but we need to know what type the note is
+// so we can coustomize the webApp.  The server could pass the type to us.
+// It might speed up loading.
+// Note is the same as a view.
+function Main2(rootNote) {
+    if (STYLE == "default" && rootNote.Type == "Presentation") {
+        PresentationMain2(rootNote);
+        return;
+    }
+
     detectMobile();
     $(body).css({'overflow-x':'hidden'});
     // Just to see if webgl is supported:
@@ -739,7 +757,7 @@ function StartView() {
     InitViews();
     InitViewBrowser();
     InitDualViewWidget();
-    InitNotesWidget();
+    InitNotesWidget(rootNote);
     InitRecorderWidget();
 
     // Do not let guests create favorites.

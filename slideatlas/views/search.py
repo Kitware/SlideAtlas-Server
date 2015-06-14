@@ -46,7 +46,7 @@ def query_json_endpoint():
     # Filter for matching views
     col_view = models.View._get_collection()
     col_view.ensure_index(
-        [("Title", "text"), ("Text", "text")], name="titletext")
+        [("Titl", "text"), ("Text", "text")], name="titletext")
     selected_views = col_view.find(
         {'$text': {"$search": terms}},
         {'score': {"$meta": "textScore"}, "Title": 1, "Text": 1, "thumbs.macro": 1})

@@ -1,7 +1,6 @@
 // Stacks and notes are both in this file.  I should clean this up and make separate classes
 // that possibly share a superclass.
 
-
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
 // Notes within the same level are ordered.
@@ -52,7 +51,7 @@
 //     panel to disapear?)
 
 // NOTE:
-// -Add link / note to top or bottom? Ask bev.
+// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html !!!!!!!!!!!!!!!
 // -I Could not highlight hyperlink when note is selected.
 //     Text cannot be selected when hidden.  I would have to select the
 //     text when Text tabe is clicked.....
@@ -66,11 +65,11 @@
 var LINk_DIV;
 
 // Time to make this an object to get rid of all these global variables.
-function InitNotesWidget() {
+function InitNotesWidget(rootNote) {
     NOTES_WIDGET = new NotesWidget();
-    
+
     // Popup div to display permalink.
-    LINK_DIV = 
+    LINK_DIV =
         $("<div>")
         .appendTo('body')
         .css({'top':'30px',
@@ -90,6 +89,8 @@ function InitNotesWidget() {
     if (EDIT) {
         LINK_DIV.attr('contenteditable', "true");
     }
+
+    NOTES_WIDGET.SetRootNote(rootNote);
 }
 
 //==============================================================================
@@ -149,6 +150,8 @@ function TextEditor(parent, edit) {
     if (edit) {
         this.AddEditButton("webgl-viewer/static/camera.png", "link view",
                            function() {self.InsertCameraLink();});
+        this.AddEditButton("webgl-viewer/static/link.png", "link URL",
+                           function() {self.InsertUrlLink();});
         this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
                            function() {document.execCommand('bold',false,null);});
         this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
@@ -171,8 +174,17 @@ function TextEditor(parent, edit) {
                            function() {document.execCommand('superscript',false,null);});
         this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
                            function() {document.execCommand('subscript',false,null);});
-        this.AddEditButton("webgl-viewer/static/link.png", "link URL",
-                           function() {self.InsertUrlLink();});
+        this.AddEditButton("webgl-viewer/static/font_increase.png", "large font", 
+                           function(){
+                               document.execCommand('fontSize',false,'5');
+                               self.ChangeBulletSize('1.5em');
+                           });
+        this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font", 
+                           function() {
+                               document.execCommand('fontSize',false,'2');
+                               self.ChangeBulletSize('0.9em');
+                           });
+
     }
 
     this.TextEntry = $('<div>')
@@ -286,6 +298,24 @@ TextEditor.prototype.GetSelectionRange = function() {
 
     return range;
 }
+
+// execCommand fontSize does change bullet size.
+// This is a work around.
+TextEditor.prototype.ChangeBulletSize = function(sizeString) {
+    var self = this;
+    var sel = window.getSelection();
+    // This call will clear the selected text if it is not in this editor.
+    var range = this.GetSelectionRange();
+    var listItems = $('li');
+    for (var i = 0; i < listItems.length; ++i) {
+        var item = listItems[i];
+        if (range.isPointInRange(item,0) || 
+            range.isPointInRange(item,1)) {
+            $(item).css({'font-size':sizeString});
+        }
+    }
+}
+
 
 TextEditor.prototype.InsertUrlLink = function() {
     var self = this;
@@ -693,14 +723,15 @@ function NotesWidget() {
                   'padding': '3px'});
         this.UserTextEditor = new TextEditor(this.UserTextTab.Div, true);
     }
-
-
-    // This sets "this.RootNote" and "this.Iterator"
-    this.LoadViewId(VIEW_ID);
-    // Setup the iterator using the view as root.
-    // Bookmarks (sub notes) are loaded next.
-    this.Iterator = this.RootNote.NewIterator();
 }
+
+
+NotesWidget.prototype.SetRootNote = function(rootNote) {
+    this.RootNote = rootNote;
+    this.Iterator = this.RootNote.NewIterator();
+    this.DisplayRootNote();
+}
+
 
 NotesWidget.prototype.SaveCallback = function() {
     var note = this.SelectedNote;
@@ -2002,7 +2033,7 @@ NotesWidget.prototype.ToggleNotesWindow = function() {
 
     if (this.Visibilty) {
         this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 300;
+        this.AnimationTarget = 325;
     } else {
         this.Window.hide();
         this.AnimationCurrent = this.Width;
@@ -2084,21 +2115,6 @@ NotesWidget.prototype.DisplayRootNote = function() {
             this.ToggleNotesWindow();
         }
     }
-}
-
-NotesWidget.prototype.LoadViewId = function(viewId) {
-    var self = this;
-    VIEW_ID = viewId;
-    this.RootNote = new Note();
-    if (typeof(viewId) != "undefined" && viewId != "") {
-        this.RootNote.LoadViewId(
-            viewId,
-            function () {
-                self.DisplayRootNote();
-            });
-    }
-    // Since loading the view is asynchronous,
-    // the this.RootNote is not complete at this point.
 }
 
 
