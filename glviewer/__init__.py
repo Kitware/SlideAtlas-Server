@@ -6,8 +6,6 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
-import pdb
-
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
