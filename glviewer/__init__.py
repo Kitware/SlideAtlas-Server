@@ -6,8 +6,6 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
-import pdb
-
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -401,18 +399,15 @@ def getfavoriteviews():
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
-
-    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', ''), "Type": "Favorite"})
+    # get a list of the favorite view ids.
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', ''), "Type": "Favorite"},{"_id":True})
     viewArray = []
-    for viewObj in viewItr:
+    for viewId in viewItr:
+        viewObj = readViewTree(admindb, viewId["_id"])
+        # There should be no legacy views, but keep the check just in case.
         if "Type" in viewObj:
-            viewObj["_id"] = str(viewObj["_id"])
-            viewObj["User"] = str(viewObj["User"])
-            if viewObj.has_key("ParentId") :
-                viewObj["ParentId"] = str(viewObj["ParentId"])
-            addviewimage(viewObj, "")
             convertViewToPixelCoordinateSystem(viewObj)
-        viewArray.append(viewObj)
+            viewArray.append(viewObj)
 
     data = {'viewArray': viewArray}
     return jsonify(data)
@@ -554,40 +549,10 @@ def saveviewnotes():
     viewObj = readViewTree(db, viewObj)
     return jsonify(viewObj)
 
-
-# Replace the image reference with an image object.
-def addviewimage(viewObj, imgdb):
-    for record in viewObj["ViewerRecords"]:
-        # database and object (and server) should be packaged into a reference object.
-        # database has some improper entries.  Image object is embedded in view.
-        if isinstance(record["Image"], dict) :
-            imgid = record["Image"]["_id"]
-            imgdb = record["Image"]["database"]
-        else :
-            imgid = record["Image"]
-        if record.has_key("Database") :
-            imgdb = record["Database"]
-
-        database = models.ImageStore.objects.get_or_404(id=imgdb)
-        db = database.to_pymongo()
-        imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
-        imgObj["_id"] = str(imgObj["_id"])
-        if imgObj.has_key("thumb") :
-            imgObj["thumb"] = None
-        imgObj["database"] = imgdb
-        if not imgObj.has_key("bounds") :
-            imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
-        convertImageToPixelCoordinateSystem(imgObj)
-        record["Image"] = imgObj
-
-    if viewObj.has_key("Children") :
-        for child in viewObj["Children"]:
-            addviewimage(child, imgdb)
-
 @mod.route('/gettrackingdata')
 def gettrackingdata():
     admindb = models.ImageStore._get_db()
-
+    
     viewItr = admindb['tracking'].find({"User": getattr(security.current_user, 'id', '')})
     viewArray = []
     for viewObj in viewItr:
@@ -629,6 +594,7 @@ def getview():
 
     viewObj = readViewTree(db, viewid)
     # I am giving the viewer the responsibility of hiding stuff.
+    # copy the hide annotation from the session to the view.
     viewObj["HideAnnotations"] = False
     if sessid :
         sessObj = models.Session.objects.with_id(sessid)

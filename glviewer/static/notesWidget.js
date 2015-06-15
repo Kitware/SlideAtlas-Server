@@ -1,4 +1,3 @@
-// Stacks and notes are both in this file.  I should clean this up and make separate classes
 // that possibly share a superclass.
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.

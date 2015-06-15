@@ -465,112 +465,9 @@ var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
 var NOTES_WIDGET;
-
-
-//==============================================================================
-// hack a presentation mode:
-// presentation object?
-var PRESENTATION = false;
-
-var PRESENTATION_DIV;
-var PRESENTATION_LIST;
-var PRESENTATION_TITLE;
-
-function PresentationOn() {
-    PRESENTATION = true;
-
-
-    PRESENTATION_DIV = $('<div>')
-        .appendTo('body')
-        .css({
-            'bottom':'0em',
-            'position':'fixed',
-            'left':'0em',
-            'right':'0em',
-            'width': 'auto',
-            'background-color': '#DFF'});
-
-    PRESENTATION_TITLE = $('<h1>')
-        .appendTo(PRESENTATION_DIV)
-        .text("Slide: 1")
-        .css({
-            'top': '.3em',
-            'bottom': '0px',
-            'padding-top': '1em',
-            'padding-bottom': '0em',
-            'padding-left': '3.3em',
-            'min-height': '2.3em',
-            'color': 'white',
-            'font-size': '160%',
-            'line-height': '1.1em',
-            'background': '#444',
-            'font-family': 'Arial'});
-
-    PRESENTATION_LIST = $('<ol>')
-        .css({
-            'font-size': '150%',
-            'background-color': '#DDD',
-            'font-family': 'Arial'})
-        .appendTo(PRESENTATION_DIV);
-    var item;
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Water");
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Juice");
-    item = $('<li>')
-        .appendTo(PRESENTATION_LIST)
-        .text("Wine");
-
-    handleResize();
-}
-
-function PresentationHandleResize(width, height) {
-    var viewPanelTop = height * 0.1;
-    //var viewPanelBottom = PRESENTATION_LIST.position().top;
-    var viewPanelHeight = height / 2;
-
-    // we set the left border to leave space for the notes window.
-    var viewPanelLeft = width * 0.2;
-    var viewPanelWidth = width * 0.6;
-    // The remaining width is split between the two viewers.
-    var width1 = viewPanelWidth * VIEWER1_FRACTION;
-    var width2 = viewPanelWidth - width1;
-
-    if (GL) {
-        // HACK:  view positioning is half managed by browser (VIEW_PANEL)
-        // and half by this resize viewport chain.  I want to get rid of the
-        // viewport completely, but until then, I have to manage both.
-        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create 
-        // a separate webgl canvas for each view because thay cannot share 
-        // texture images.
-        CANVAS.css({"left":viewPanelLeft});
-    }
-
-    // Setup the view panel div to be the same as the two viewers.
-    VIEW_PANEL.css({'left':   viewPanelLeft+'px',
-                    'width':  viewPanelWidth+'px',
-                    'top':    viewPanelTop+'px',
-                    'height': viewPanelHeight+'px'});
-
-    // TODO: Make a multi-view object.
-    if (VIEWER1) {
-      VIEWER1.SetViewport([0, 0, width1, viewPanelHeight]);
-      eventuallyRender();
-    }
-    if (VIEWER2) {
-      VIEWER2.SetViewport([width1, 0, width2, viewPanelHeight]);
-      eventuallyRender();
-    }
-}
-
-
+var PRESENTATION = null;
 
 //==============================================================================
-
-
-
 
 
 // hack to avoid an undefined error (until we unify annotation stuff).
@@ -596,7 +493,7 @@ function handleResize() {
     }
 
     if (PRESENTATION) {
-        PresentationHandleResize(width, height);
+        PRESENTATION.HandleResize(width, height);
         return;
     }
 
@@ -727,7 +624,7 @@ function Main(viewId) {
 // Note is the same as a view.
 function Main2(rootNote) {
     if (STYLE == "default" && rootNote.Type == "Presentation") {
-        PresentationMain2(rootNote);
+        PRESENTATION = new Presentation(rootNote, EDIT);
         return;
     }
 

@@ -62,7 +62,7 @@
                        class="clipboard"
                        src="../../webgl-viewer/static/clipboard_star.png"
                        style="float:right; width:18px"
-                       onclick='clipboard("{{ares._id}}")'> 
+                       onclick="clipboard(this)"> 
                     </img>
                 </td>
                 <td><a href="/view?viewid={{ares._id}}">  <span ng-bind-html="ares.Title | highlight:query.split(' ')"></span></a>
