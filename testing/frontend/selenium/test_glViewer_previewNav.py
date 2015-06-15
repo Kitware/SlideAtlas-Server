@@ -30,19 +30,20 @@ class glViewer_nav_Tests(unittest.TestCase):
     tab_widget = driver.find_element_by_id("dualWidgetLeft")
     if tab_widget.is_displayed():
       tab_widget.click()
+      time.sleep(5)
 
 
   @classmethod
   def tearDownClass(cls):
     global driver
-    driver.close()
+    driver.quit()
 
   def test_01_rotation(self):
     global driver
     nav_widget = driver.find_element_by_xpath('//*[@id="body"]/div[4]/div[5]')
     rot_pic = nav_widget.find_element_by_tag_name("img")
     old_style = nav_widget.get_attribute("style")
-    ActionChains(driver).move_to_element(rot_pic).click_and_hold(rot_pic).move_by_offset(-50, 0).release().perform()
+    ActionChains(driver).move_to_element(rot_pic).drag_and_drop_by_offset(rot_pic, -50, 50).perform()
     time.sleep(2)
     self.assertTrue(nav_widget.get_attribute("style") != old_style)
 
@@ -64,7 +65,7 @@ if __name__ == "__main__":
   parser.add_argument("-r",dest = 'webroot' , required=True, help ="Web root of the Slide-Atlas instance to test: eg 'http://localhost:8080/'")
   result = vars(parser.parse_args())
   # Use global driver to access viewer page of Slide-Atlas
-
+  # This test remains in the Firefox web driver because of https://code.google.com/p/chromedriver/issues/detail?id=841
   driver = webdriver.Firefox()
   driver.get(result['webroot'] + "webgl-viewer?db=5074589002e31023d4292d83&view=544f92d6dd98b515418f3302")
   # Run test(s)
