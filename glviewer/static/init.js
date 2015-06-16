@@ -622,6 +622,7 @@ function Main(style,sessId,viewId) {
         }
         rootNote.Title = title;
         rootNote.HiddenTitle = title;
+        rootNote.Text = "Author";
         rootNote.Type = "Presentation";
         // Get the new notes id.
         rootNote.Save(function (note) {
