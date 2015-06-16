@@ -12,14 +12,14 @@ function View () {
 
     // connectome : default section so we cen set cache
     this.Section = new Section;
-    
+
     // connectome: remove Cache ivar.
     this.Camera = new Camera();
     this.Tiles = []; // Not really used
     this.OutlineColor = [0,0.5,0];
     this.OutlineMatrix = mat4.create();
     this.OutlineCamMatrix = mat4.create();
-    
+
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');

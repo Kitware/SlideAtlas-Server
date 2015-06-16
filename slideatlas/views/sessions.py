@@ -182,7 +182,6 @@ def session_new_stack(session):
                            session=session,
                            session_son=session_son)
 
-
 ################################################################################
 def deepcopyview(view_id):
     if view_id is None:

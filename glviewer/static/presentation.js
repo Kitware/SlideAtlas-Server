@@ -1,6 +1,6 @@
 //==============================================================================
 // TODO:
-// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html !!!!!!!!!!!!!!!
+// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html
 // - control the size of the text.
 // - Convert a session to a presentation.
 // - Resize the view area to fit the note text.
@@ -12,15 +12,14 @@
 // presentation object?
 
 
-
+// Only called by the presentation html file.
+// Getting rid of this.
 // Main function called by the presentation.html template
 function PresentationMain(viewId) {
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
-    // Sanity check
-    if (typeof(viewId) == "undefined" && viewId == "") { return; }
 
-    rootNote.LoadViewId(
+     rootNote.LoadViewId(
         viewId,
         function () {
             PRESENTATION = new Presentation(rootNote, EDIT);
@@ -63,8 +62,7 @@ function Presentation(rootNote, edit) {
             'position':'fixed',
             'left':'0em',
             'right':'0em',
-            'width': 'auto',
-            'background-color': '#DFF'});
+            'width': 'auto'});
 
     this.EditPanel = null;
     if (edit) {
@@ -78,123 +76,11 @@ function Presentation(rootNote, edit) {
                 'right':'26%',
                 'width': '25%',
                 'height': '100%'});
-        this.InitEditPanel();
-        this.SlideDiv = $('<div>')
-            .appendTo(this.WindowDiv)
-            .css({
-                'position' : 'absolute',
-                'top': '0%',
-                'left': '25%',
-                'width': '75%',
-                'height': '100%',
-                'border': '1px solid #AAA'});
-    } else {
-        this.SlideDiv = $('<div>')
-            .appendTo(this.WindowDiv)
-            .css({
-                'width': '100%',
-                'height': '100%',
-            });
+        this.MakeEditPanel();
     }
 
-    this.ViewPanel = $('<div>')
-            .appendTo(this.SlideDiv)
-            .css({'background':'#FFF',
-                  'position': 'absolute',
-                  'top': '0px',
-                  'bottom': '300px',
-                  'width': '100%',
-                  'height': 'auto'});
-    VIEW_PANEL = this.ViewPanel;
-
-    this.BottomDiv = $('<div>')
-        .appendTo(this.SlideDiv)
-        .css({'position': 'absolute',
-              'bottom':'0px',
-              'width':'100%',
-              'height':'300px'});
-
-    this.Title = $('<h1>')
-        .appendTo(this.BottomDiv)
-        .text("Slide: 1")
-        .css({
-            'top': '.3em',
-            'bottom': '0px',
-            'padding-top': '1em',
-            'padding-bottom': '0em',
-            'padding-left': '3.3em',
-            'min-height': '2.3em',
-            'color': 'white',
-            'font-size': '160%',
-            'line-height': '1.1em',
-            'background': '#444',
-            'font-family': 'Arial'});
-
-    this.List = new TextEditor(this.BottomDiv, edit);
-    this.List.TextEntry.css({'vertical-align' : 'bottom',
-                             'height': 'auto',
-                             'width': 'auto',
-                             'left':'0px',
-                             'right':'0px',
-                             'min-height': '150px'});
-
-    // Add the viewers.
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    var halfWidth = width/2;
-    VIEWER1 = initView([0,0, width, height]);
-    VIEWER2 = initView([width, 0, 0, height]);
-
-    if (edit) {
-        VIEWER1.OnInteraction(function () {self.RecordView1();});
-        VIEWER2.OnInteraction(function () {self.RecordView2();});
-        this.RemoveView1Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
-            .attr('src',"webgl-viewer/static/remove.png")
-            .prop('title', "remove view")
-            .addClass('editButton')
-            .css({'position':'absolute',
-                  'width':'12px',
-                  'height':'12px',
-                  'z-index':'5'})
-            .click(function () {
-                self.Note.ViewerRecords.splice(0,1);
-                // Hack to reload viewer records.
-                self.GotoSlide(self.Index);
-            });
-        this.RemoveView2Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
-            .attr('src',"webgl-viewer/static/remove.png")
-            .prop('title', "remove view")
-            .addClass('editButton')
-            .css({'position':'absolute',
-                  'width':'12px',
-                  'height':'12px',
-                  'z-index':'5'})
-            .click(function () {
-                self.Note.ViewerRecords.splice(1,1);
-                // Hack to reposition viewers.
-                self.HandleResize();
-            });
-        // Temporary way to delete a slide.
-        this.DeleteSlideButton = $('<img>')
-            .appendTo(this.ViewPanel)
-            .attr('src',"webgl-viewer/static/remove.png")
-            .prop('title', "delete slide")
-            .addClass('editButton')
-            .css({'position':'absolute',
-                  'width':'12px',
-                  'height':'12px',
-                  'left':'0px',
-                  'right':'0px',
-                  'z-index':'5'})
-            .click(function () {
-                // Hack to reload viewer records.
-                self.DeleteSlide(self.Index);
-            });
-    }
+    this.TitlePage = new TitlePage(this.WindowDiv, edit);
+    this.SlidePage = new SlidePage(this.WindowDiv, edit);
 
     this.RootNote = rootNote;
     this.GotoSlide(0);
@@ -216,7 +102,9 @@ function Presentation(rootNote, edit) {
 }
 
 
-Presentation.prototype.InitEditPanel = function () {
+
+
+Presentation.prototype.MakeEditPanel = function () {
     this.SlidesTab = new NotesWidgetTab(this.EditDiv, "Slides");
     this.ClipboardTab = new NotesWidgetTab(this.EditDiv, "Clipboard");
     this.SearchTab = new NotesWidgetTab(this.EditDiv, "Search");
@@ -266,6 +154,7 @@ Presentation.prototype.InitEditPanel = function () {
         .click(function () { self.ClipboardDeleteAll(); })
         .text("Remove All");
     this.ClipboardDiv = $('<div>')
+        .css({'overflow_y':'auto'})
         .appendTo(this.ClipboardTab.Div);
 
     $.ajax({
@@ -276,7 +165,8 @@ Presentation.prototype.InitEditPanel = function () {
                 self.LoadClipboardCallback(data);
             } else { alert("ajax failed - get favorite views 2"); }
         },
-        error: function() { alert( "AJAX - error() : getfavoriteviews 2" ); },
+        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
+        },
     });
 
     this.SearchTab.Div 
@@ -368,6 +258,11 @@ Presentation.prototype.AddViewCallback = function(idx) {
         record.Camera.Width = record.Camera.Height*1.62;
     }
     this.Note.ViewerRecords.push(record);
+    // The root needs a record to show up in the session.
+    if (this.RootNote.ViewerRecords.length == 0) {
+        this.RootNote.ViewerRecords.push(record);
+    }
+
     // Hack to reload viewer records.
     this.GotoSlide(this.Index);
 }
@@ -392,42 +287,7 @@ Presentation.prototype.HandleResize = function() {
               'height': height+'px'});
 
     // Now position the viewers in the view panel.
-    width = this.ViewPanel.width();
-    height = this.ViewPanel.height();
-
-    var record;
-    if ( ! this.Note) { return; }
-    if (this.Note.ViewerRecords.length == 0) {
-        // Poor way to hide a viewer.
-        VIEWER1.SetViewport([0, 0, 0, height]);
-        if (this.RemoveView1Button) {this.RemoveView1Button.hide();}
-        // Poor way to hide a viewer.
-        VIEWER2.SetViewport([0, 0, 0, height]);
-        if (this.RemoveView2Button) {this.RemoveView2Button.hide();}
-    }
-    if (this.Note.ViewerRecords.length == 1) {
-        record = this.Note.ViewerRecords[0];
-        this.PlaceViewer(VIEWER1, record, [0,0,width,height]);
-        if (this.RemoveView1Button) {this.RemoveView1Button.show();}
-        // Poor way to hide a viewer.
-        VIEWER2.SetViewport([width, 0, 0, height]);
-        if (this.RemoveView2Button) {this.RemoveView2Button.hide();}
-    }
-    if (this.Note.ViewerRecords.length > 1) {
-        var halfWidth = width / 2;
-        record = this.Note.ViewerRecords[0];
-        this.PlaceViewer(VIEWER1, record, [0,0,halfWidth,height]);
-        if (this.RemoveView1Button) {this.RemoveView1Button.show();}
-        record = this.Note.ViewerRecords[1];
-        this.PlaceViewer(VIEWER2, record, [halfWidth,0,halfWidth,height]);
-        if (this.RemoveView2Button) {this.RemoveView2Button.show();}
-    }
-    if (EDIT) {
-        var viewport = VIEWER1.GetViewport();
-        this.RemoveView1Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
-        viewport = VIEWER2.GetViewport();
-        this.RemoveView2Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
-    }
+    this.SlidePage.ResizeViews();
 }
 
 
@@ -464,8 +324,192 @@ Presentation.prototype.HandleKeyUp = function(event) {
 }
 
 
+Presentation.prototype.Save = function (){
+    this.SaveButton.css({'color':'#F00'});
+    this.RootNote.Save(
+        function() {
+            PRESENTATION.SaveButton.css({'color':'#000'});
+        });
+}
+
+
+Presentation.prototype.DeleteSlide = function (index){
+    var maxIdx = this.RootNote.Children.length;
+    if (index < 1 || index > maxIdx) {
+        return;
+    }
+    if (this.Index > index || this.Index == maxIdx) {
+        // Handles the case where we are on the last slide.
+        // Move to the previous rather then the next.
+        this.Index -= 1;
+    }
+    this.RootNote.Children.splice(index-1,1);
+    this.GotoSlide(this.Index);
+}
+
+
+Presentation.prototype.InsertNewSlide = function (){
+    var idx = this.Index+1;
+    var note = new Note();
+    this.RootNote.Children.splice(idx-1,0,note);
+    this.GotoSlide(idx);
+}
+
+// 0->Root/titlePage
+// Childre/slidesn start at index 1
+Presentation.prototype.GotoSlide = function (index){
+    if (index < 0 || index > this.RootNote.Children.length) {
+        return;
+    }
+    this.Index = index;
+    if (index == 0) {
+        this.SlidePage.Div.hide();
+        this.Note = this.RootNote;
+        this.TitlePage.DisplayNote(this.Note);
+        return;
+    }
+    this.TitlePage.Div.hide();
+    this.Note = this.RootNote.Children[index-1];
+    this.SlidePage.DisplayNote(index, this.Note);
+}
+
+
+
+//==============================================================================
+
+// TODO:
+// Get rid of the width dependency on edit
+function SlidePage(parent, edit) {
+    this.Records = []; // views.
+
+    this.Div = $('<div>')
+        .appendTo(parent)
+        .hide()
+        .css({
+            'position' : 'absolute',
+            'width': '100%',
+            'height': '100%',
+            'border': '1px solid #AAA'});
+    if (edit) {
+        // get rid of this.
+        // parent should resize, and this object should just follow.
+        this.Div
+            .css({
+                'top': '0%',
+                'left': '25%',
+                'width': '75%'});
+    }
+
+    this.ViewPanel = $('<div>')
+            .appendTo(this.Div)
+            .css({'background':'#FFF',
+                  'position': 'absolute',
+                  'top': '0px',
+                  'bottom': '300px',
+                  'width': '100%',
+                  'height': 'auto'});
+    VIEW_PANEL = this.ViewPanel;
+
+    this.BottomDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position': 'absolute',
+              'bottom':'0px',
+              'width':'100%',
+              'height':'300px'});
+
+    this.TitleBar = $('<div>')
+        .appendTo(this.BottomDiv)
+        .css({'position':'absolute',
+              'top': '0px',
+              'height': '80px',
+              'line-height': '80px',
+              'width':'100%',
+              'padding-left': '3.3em',
+              'color': 'white',
+              'font-size': '160%',
+              'background': '#444',
+              'font-family': 'Arial'});
+    this.Title = $('<span>')
+        .appendTo(this.TitleBar)
+        .css({'display':'inline-block',
+              'vertical-align':'middle',
+              'line-height':'normal'})
+        .text("Slide: 1");
+
+    this.TextDiv = $('<div>')
+        .appendTo(this.BottomDiv)
+        .css({'position':'absolute',
+              'height': '210px',
+              'bottom': '5px',
+              'width': '100%'});
+    this.List = new TextEditor(this.TextDiv, edit);
+
+    // Add the viewers.
+    var width = CANVAS.innerWidth();
+    var height = CANVAS.innerHeight();
+    var halfWidth = width/2;
+    VIEWER1 = initView([0,0, width, height]);
+    VIEWER2 = initView([width, 0, 0, height]);
+
+    VIEWER1.MainView.Canvas.css({'box-shadow': '10px 10px 5px #AAA'});
+    VIEWER2.MainView.Canvas.css({'box-shadow': '10px 10px 5px #AAA'});
+
+
+    if (edit) {
+        VIEWER1.OnInteraction(function () {self.RecordView1();});
+        VIEWER2.OnInteraction(function () {self.RecordView2();});
+        this.RemoveView1Button = $('<img>')
+            .appendTo(this.ViewPanel)
+            .hide()
+            .attr('src',"webgl-viewer/static/remove.png")
+            .prop('title', "remove view")
+            .addClass('editButton')
+            .css({'position':'absolute',
+                  'width':'12px',
+                  'height':'12px',
+                  'z-index':'5'})
+            .click(function () {
+                PRESENTATION.Note.ViewerRecords.splice(0,1);
+                // Hack to reload viewer records.
+                PRESENTATION.GotoSlide(PRESENTATION.Index);
+            });
+        this.RemoveView2Button = $('<img>')
+            .appendTo(this.ViewPanel)
+            .hide()
+            .attr('src',"webgl-viewer/static/remove.png")
+            .prop('title', "remove view")
+            .addClass('editButton')
+            .css({'position':'absolute',
+                  'width':'12px',
+                  'height':'12px',
+                  'z-index':'5'})
+            .click(function () {
+                PRESENTATION.Note.ViewerRecords.splice(1,1);
+                // Hack to reposition viewers.
+                PRESENTATION.HandleResize();
+            });
+        // Temporary way to delete a this.
+        this.DeleteSlideButton = $('<img>')
+            .appendTo(this.ViewPanel)
+            .attr('src',"webgl-viewer/static/remove.png")
+            .prop('title', "delete slide")
+            .addClass('editButton')
+            .css({'position':'absolute',
+                  'width':'12px',
+                  'height':'12px',
+                  'left':'0px',
+                  'right':'0px',
+                  'z-index':'5'})
+            .click(function () {
+                // Hack to reload viewer records.
+                PRESENTATION.DeleteSlide(self.Index);
+            });
+    }
+}
+
+
 // Adds a margin, and keeps the aspect ratio of view.
-Presentation.prototype.PlaceViewer = function(viewer, record, viewport) {
+SlidePage.prototype.PlaceViewer = function(viewer, record, viewport) {
     var vWidth = viewport[2] * 0.8;
     var vHeight = viewport[3] * 0.8;
     var cam = record.Camera;
@@ -487,65 +531,203 @@ Presentation.prototype.PlaceViewer = function(viewer, record, viewport) {
 }
 
 
-Presentation.prototype.Save = function (){
-    this.SaveButton.css({'color':'#F00'});
-    this.RootNote.Save(
-        function() {
-            PRESENTATION.SaveButton.css({'color':'#000'});
-        });
+// Records == views.
+SlidePage.prototype.ResizeViews = function ()
+{
+    var width = this.ViewPanel.width();
+    var height = this.ViewPanel.height();
+
+    var numRecords = this.Records.length;
+    var record;
+
+    if (numRecords == 0) {
+        // Poor way to hide a viewer.
+        VIEWER1.SetViewport([0, 0, 0, height]);
+        // Poor way to hide a viewer.
+        VIEWER2.SetViewport([0, 0, 0, height]);
+    }
+    if (numRecords == 1) {
+        record = this.Records[0];
+        this.PlaceViewer(VIEWER1, record, [0,0,width,height]);
+        // Poor way to hide a viewer.
+        VIEWER2.SetViewport([0, 0, 0, height]);
+    }
+    if (numRecords > 1) {
+        var halfWidth = width / 2;
+        record = this.Records[0];
+        this.PlaceViewer(VIEWER1, record, [0,0,halfWidth,height]);
+        record = this.Records[1];
+        this.PlaceViewer(VIEWER2, record, [halfWidth,0,halfWidth,height]);
+    }
+    if (EDIT) {
+        if (numRecords == 0) {
+            this.RemoveView1Button.hide();
+            this.RemoveView2Button.hide();
+        }
+        if (numRecords == 1) {
+            this.RemoveView1Button.show();
+            this.RemoveView2Button.hide();
+        }
+        if (numRecords == 2) {
+            this.RemoveView1Button.show();
+            this.RemoveView2Button.show();
+        }
+        var viewport = VIEWER1.GetViewport();
+        this.RemoveView1Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
+        viewport = VIEWER2.GetViewport();
+        this.RemoveView2Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
+    }
 }
 
 
-Presentation.prototype.DeleteSlide = function (index){
-    var maxIdx = this.RootNote.Children.length - 1;
-    if (index < 0 || index > maxIdx) {
-        return;
-    }
-    if (this.Index > index || this.Index == maxIdx) {
-        // Handles the case where we are on the last slide.
-        // Move to the previous rather then the next.
-        this.Index -= 1;
-    }
-    this.RootNote.Children.splice(index,1);
-    this.GotoSlide(this.Index);
-}
+SlidePage.prototype.DisplayNote = function (index, note) {
+    this.Div.show();
+    VIEWER1.Reset();
+    VIEWER2.Reset();
+    this.Records = note.ViewerRecords; // save this for resizing.
 
-
-Presentation.prototype.InsertNewSlide = function (index){
-    var idx = this.Index+1;
-    var note = new Note();
-    this.RootNote.Children.splice(idx,0,note);
-    this.GotoSlide(idx);
-}
-
-
-Presentation.prototype.GotoSlide = function (index){
-    if (index < 0 || index >= this.RootNote.Children.length) {
-        return;
-    }
-    this.Index = index;
-    this.Title.text("Slide: " + (index+1))
-    var note = this.RootNote.Children[index];
-    this.Note = note;
+    this.Title.text("Slide: " + index)
     // Text
     this.List.LoadNote(note);
     // Views
-    if (note.ViewerRecords.length == 0) {
-        VIEWER1.Reset();
-        VIEWER2.Reset();
+    if (this.Records.length == 0) {
         DUAL_VIEW = false;
     }
-    if (note.ViewerRecords.length > 0) {
-        VIEWER1.Reset();
-        note.ViewerRecords[0].Apply(VIEWER1);
+    if (this.Records.length > 0) {
+        this.Records[0].Apply(VIEWER1);
         DUAL_VIEW = false;
     }
-    if (note.ViewerRecords.length > 1) {
-        VIEWER2.Reset();
-        note.ViewerRecords[1].Apply(VIEWER2);
+    if (this.Records.length > 1) {
+        this.Records[1].Apply(VIEWER2);
         // TODO: Get rid of this global variable.
         DUAL_VIEW = true;
     }
     VIEWER1.CopyrightWrapper.hide();
     VIEWER2.CopyrightWrapper.hide();
 }
+
+
+//==============================================================================
+
+// TODO:
+// Get rid of the width dependency on edit.
+function TitlePage (parent, edit) {
+    this.Div = $('<div>')
+        .appendTo(parent)
+        .css({
+            'position' : 'absolute',
+            'width': '100%',
+            'height': '100%',
+            'border': '1px solid #AAA'});
+    if (edit) {
+        this.Div
+            .css({
+                'top': '0%',
+                'left': '25%',
+                'width': '75%'});
+    }
+
+    this.TopBar = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'top': '0%',
+              'height': '2%',
+              'left': '13%',
+              'right': '3%',
+              'background':'#DDF1FD'});
+
+    this.Image = $('<img>')
+        .appendTo(this.Div)
+        .attr('src', 'static/img/SlideAtlas_home.jpg')
+        .css({'position':'absolute',
+              'top': '46%',
+              'height':'50%',
+              'left': '13%',
+              'box-shadow': '10px 10px 5px #888'});
+
+    this.TitleBar = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'top': '18%',
+              'bottom': '58%',
+              'left': '0%',
+              'right': '3%',
+              'background':'#073E87',
+              'font-color':'#FFF'});
+    this.Title = $('<span>')
+        .appendTo(this.TitleBar)
+        .attr('contenteditable', 'true')
+        .css({'position':'absolute',
+              'top': '1em',
+              'min-height':'3em',
+              'min-width':'10em',
+              'left': '13%'});
+
+    this.AuthorBar = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'top': '42%',
+              'bottom': '0%',
+              'left': '62%',
+              'right': '3%',
+              'background':'#E9F5FE',
+              'font-color':'#888',
+              'padding-left':'2em'});
+    this.AuthorText = $('<span>')
+        .appendTo(this.AuthorBar)
+        .attr('contenteditable', 'true')
+        .css({'position':'absolute',
+              'top': '2em'});
+
+    if (edit) {
+        var self = this;
+        this.Title
+            .focusin(function() { EVENT_MANAGER.FocusOut(); })
+            .focusout(
+                function() {
+                    EVENT_MANAGER.FocusIn();
+                    if (PRESENTATION)
+                        PRESENTATION.Note.HiddenTitle = self.Title.html();
+                });
+        this.AuthorText
+            .focusin(function() {
+                EVENT_MANAGER.FocusOut();
+            })
+            .focusout(
+                function() {
+                    EVENT_MANAGER.FocusIn();
+                    if (PRESENTATION)
+                        PRESENTATION.Note.Text = self.AuthorText.html();
+                });
+    }
+}
+
+TitlePage.prototype.DisplayNote = function (note) {
+    this.Div.show();
+    this.Title.html(note.HiddenTitle);
+    this.AuthorText.html(note.Text);
+
+    var sel = window.getSelection();
+    var range;
+    range = document.createRange();
+    range.noCursor = true;
+    range.selectNodeContents(this.Title[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    document.execCommand('foreColor', false, "#FFF");
+    document.execCommand('fontSize', false, '6');
+    document.execCommand('fontName', false, 'Arial');
+
+    range.selectNodeContents(this.AuthorText[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    document.execCommand('fontSize', false, '5');
+    document.execCommand('fontName', false, 'Arial');
+
+    sel.removeAllRanges();
+    this.Title.blur();
+    this.AuthorText.blur();
+}
+

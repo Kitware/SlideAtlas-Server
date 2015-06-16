@@ -216,6 +216,7 @@ shape has visibility and
   var USER = "{{user}}";
   // A view has the same structure as a note.
   var VIEW_ID = "{{view}}";
+  var SESS_ID = "{{sess}}";
   var EDIT = {{edit}}; // Temporary way to hide editing.
   var STYLE = "{{style}}"; // One option (simple) for now.
   var SESSIONS_URL = "{{url_for('session.sessions_view')}}";
@@ -228,7 +229,7 @@ shape has visibility and
   $(document).ready(function() {
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
-      Main(VIEW_ID);
+      Main(STYLE,SESS_ID,VIEW_ID);
   });
 
 </script>
