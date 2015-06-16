@@ -1,4 +1,5 @@
 import os
+import sys
 
 from openslide_reader import OpenslideReader
 import subprocess
@@ -130,6 +131,18 @@ class PreprocessReaderTif(PreprocessReader):
         # assert that ext is as expected
         assert ext in [".tif", ".tiff"]
 
+        # try reading from the openslidereader first
+        try:
+            tempreader = OpenslideReader()
+            tempreader.set_input_params(params)
+            logger.info("No preprocess needed")
+            return params["fname"]
+
+        except Exception as e:
+#             print str(type(e))
+            pass
+            # continue
+
         output1 = os.path.join(dirname, name + "_tiled.tif")
         lock_path = os.path.join(dirname, filename + ".lock")
 
@@ -154,7 +167,7 @@ class PreprocessReaderTif(PreprocessReader):
 
 if __name__ == "__main__":
     reader = PreprocessReaderTif()
-    reader.set_input_params({"fname": "/home/local/KHQ/dhanannjay.deo/data/tif/try.tif"})
+    reader.set_input_params({"fname": sys.argv[1]})
     logger.debug('%s', reader.name)
     # i = reader.get_tile(26000, 83000)
     # i.save("tile.jpg")
