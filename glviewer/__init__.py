@@ -6,7 +6,6 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
-
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -33,13 +32,13 @@ def jsonifyView(db,viewid,viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, viewid, viewobj, edit, simple):
+def glnote(db, viewid, viewobj, edit, style):
     email = getattr(security.current_user, 'email', '')
     return make_response(render_template('view.html', 
                                          view=viewid, 
                                          user=email, 
                                          edit=edit,
-                                         simple=simple))
+                                         style=style))
 
 
 
@@ -107,6 +106,25 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 #@security.login_required
 def glview():
+    # if a presentation sets the sessid, but not the view,
+    # I will create a new presenation object.
+    sessid = request.args.get('sess', None)
+
+    # See if the user is requesting a view or session
+    viewid = request.args.get('view', None)
+    # See if editing will be enabled.
+    edit = request.args.get('edit', "false")
+    # default, simple or presentation
+    style = request.args.get('style', "default")
+
+    # handle presentation with a different template.
+    if  style == "presentation" :
+        email = getattr(security.current_user, 'email', '')
+        return make_response(render_template('view.html',
+                                             sess=sessid,
+                                             view=viewid,
+                                             edit=edit,
+                                             user=email))
 
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
@@ -124,12 +142,6 @@ def glview():
         result = result.replace("''", "'")
         return make_response(render_template('scene.html', scene = result))
 
-    # Simple embeddable viewer.
-    simple = request.args.get('simple', "false")
-    # See if editing will be enabled.
-    edit = request.args.get('edit', "false")
-    # See if the user is requesting a view or session
-    viewid = request.args.get('view', None)
     # get all the metadata to display a view in the webgl viewer.
     ajax = request.args.get('json', None)
 
@@ -145,7 +157,7 @@ def glview():
             return jsonifyView(db,viewid,viewobj)
 
         # default
-        return glnote(db,viewid,viewobj,edit,simple)
+        return glnote(db,viewid,viewobj,edit,style)
 
 
 @mod.route('/bookmark')
@@ -157,10 +169,10 @@ def bookmark():
     key = request.args.get('key', "0295cf24-6d51-4ce8-a923-772ebc71abb5")
     # find the view and the db
 
-
     return jsonify({"key" : key })
 
-
+    # Simple embeddable viewer.
+    style = request.args.get('style', "default")
     # See if editing will be enabled.
     edit = request.args.get('edit', False)
     # See if the user is requesting a view or session
@@ -177,7 +189,7 @@ def bookmark():
             return jsonifyView(db,viewid,viewobj)
 
         # default
-        return glnote(db,viewid,viewobj,edit)
+        return glnote(db,viewid,viewobj,edit,style)
 
 
 # get all the children notes for a parent (authored by a specific user).
@@ -227,6 +239,19 @@ def glsetimagebounds():
 
     return "Success"
 
+
+# Temp end point to add a view to a session.
+# views should belong to only a single session.
+@mod.route('/session-add-view', methods=['GET', 'POST'])
+def glsessionaddview():
+    sessid = request.form['sess']  # for post
+    viewid = request.form['view']  # for post
+
+    session = models.Session.objects.get_or_404(id=sessid)
+    session.views.append(ObjectId(viewid))
+    session.save()
+
+    return "Success"
 
 
 # This method saves transformations and/or annotations (whatever exists in data.
@@ -302,6 +327,25 @@ def getcomment():
 # It has a bad name which can be changed later.
 @mod.route('/saveusernote', methods=['GET', 'POST'])
 def saveusernote():
+    # Saving notes in admin db now.
+    admindb = models.ImageStore._get_db()
+
+    # special case.  Just passed a view id to copy.
+    if request.form.has_key('view') :
+        # copy a view to the clipboard.
+        viewId = request.form['view']
+        note = admindb["views"].find_one({ "_id" : ObjectId(viewId) })
+        note["Type"] = "Favorite"
+        note["User"] = getattr(security.current_user, 'id', '')
+        note["ParentId"] = note["_id"]
+        note.pop("_id", None)
+        if not note.has_key("Thumb") :
+            r = note["ViewerRecords"][0]
+            src = "http://slide-atlas.org/thumb?db="+(str)(r["Database"])+"&img="+(str)(r["Image"])
+            note["Thumb"] = src
+        noteId = admindb["views"].save(note)
+        # TODO: Add it to a clipboard session.
+        return str(noteId)
 
     noteStr = request.form['note'] # for post
     collectionStr = request.form['col'] # for post
@@ -326,9 +370,6 @@ def saveusernote():
     if request.form.has_key('thumb') :
         thumbStr = request.form['thumb']
         note["Thumb"] = thumbStr
-
-    # Saving notes in admin db now.
-    admindb = models.ImageStore._get_db()
 
     noteId = admindb[collectionStr].save(note)
     return str(noteId)
@@ -372,18 +413,15 @@ def getfavoriteviews():
 
     # Saving notes in admin db now.
     admindb = models.ImageStore._get_db()
-
-    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', ''), "Type": "Favorite"})
+    # get a list of the favorite view ids.
+    viewItr = admindb[collectionStr].find({"User": getattr(security.current_user, 'id', ''), "Type": "Favorite"},{"_id":True})
     viewArray = []
-    for viewObj in viewItr:
+    for viewId in viewItr:
+        viewObj = readViewTree(admindb, viewId["_id"])
+        # There should be no legacy views, but keep the check just in case.
         if "Type" in viewObj:
-            viewObj["_id"] = str(viewObj["_id"])
-            viewObj["User"] = str(viewObj["User"])
-            if viewObj.has_key("ParentId") :
-                viewObj["ParentId"] = str(viewObj["ParentId"])
-            addviewimage(viewObj, "")
             convertViewToPixelCoordinateSystem(viewObj)
-        viewArray.append(viewObj)
+            viewArray.append(viewObj)
 
     data = {'viewArray': viewArray}
     return jsonify(data)
@@ -525,40 +563,10 @@ def saveviewnotes():
     viewObj = readViewTree(db, viewObj)
     return jsonify(viewObj)
 
-
-# Replace the image reference with an image object.
-def addviewimage(viewObj, imgdb):
-    for record in viewObj["ViewerRecords"]:
-        # database and object (and server) should be packaged into a reference object.
-        # database has some improper entries.  Image object is embedded in view.
-        if isinstance(record["Image"], dict) :
-            imgid = record["Image"]["_id"]
-            imgdb = record["Image"]["database"]
-        else :
-            imgid = record["Image"]
-        if record.has_key("Database") :
-            imgdb = record["Database"]
-
-        database = models.ImageStore.objects.get_or_404(id=imgdb)
-        db = database.to_pymongo()
-        imgObj = db["images"].find_one({ "_id" : ObjectId(imgid) })
-        imgObj["_id"] = str(imgObj["_id"])
-        if imgObj.has_key("thumb") :
-            imgObj["thumb"] = None
-        imgObj["database"] = imgdb
-        if not imgObj.has_key("bounds") :
-            imgObj["bounds"] = [0,imgObj["dimensions"][0], 0,imgObj["dimensions"][1]]
-        convertImageToPixelCoordinateSystem(imgObj)
-        record["Image"] = imgObj
-
-    if viewObj.has_key("Children") :
-        for child in viewObj["Children"]:
-            addviewimage(child, imgdb)
-
 @mod.route('/gettrackingdata')
 def gettrackingdata():
     admindb = models.ImageStore._get_db()
-
+    
     viewItr = admindb['tracking'].find({"User": getattr(security.current_user, 'id', '')})
     viewArray = []
     for viewObj in viewItr:
@@ -600,6 +608,7 @@ def getview():
 
     viewObj = readViewTree(db, viewid)
     # I am giving the viewer the responsibility of hiding stuff.
+    # copy the hide annotation from the session to the view.
     viewObj["HideAnnotations"] = False
     if sessid :
         sessObj = models.Session.objects.with_id(sessid)

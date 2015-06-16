@@ -1,7 +1,7 @@
 
 
-function Dialog(widget) {
-  this.Overlay = 
+function Dialog(callback) {
+  this.Overlay =
     $('<div>')
       .appendTo('body')
       .css({
@@ -19,7 +19,7 @@ function Dialog(widget) {
         'z-index': '101'})
       .hide();
 
-  this.Dialog = 
+  this.Dialog =
     $('<div>')
       .appendTo('body')
       .css({
@@ -37,7 +37,7 @@ function Dialog(widget) {
         'font-family': 'Verdana',
         'font-size': '10pt'});
 
-  this.Table = 
+  this.Table =
     $('<table>')
       .appendTo(this.Dialog)
         .css({
@@ -47,7 +47,7 @@ function Dialog(widget) {
             'cellspacing': '0'});
 
   this.Row1 = $('<tr>').appendTo(this.Table);
-  this.Title = 
+  this.Title =
     $('<td>')
       .appendTo(this.Row1)
       .css({
@@ -57,7 +57,7 @@ function Dialog(widget) {
         'color': 'White',
         'font-weight':'bold'})
       .text("Title");
-  this.CloseButton = 
+  this.CloseButton =
     $('<td>')
       .appendTo(this.Row1)
       .css({
@@ -81,7 +81,7 @@ function Dialog(widget) {
   this.Space2b = $('<td>').appendTo(this.Row2).html("&nbsp");
 
   this.Row3 = $("<tr>").appendTo(this.Table);
-  this.Body = 
+  this.Body =
     $("<td colspan='2'>")
       .appendTo(this.Row3)
       .css({'padding-left': '15px',
@@ -92,7 +92,7 @@ function Dialog(widget) {
   this.Space4b = $('<td>').appendTo(this.Row4).html("&nbsp");
 
   this.Row5 = $("<tr>").appendTo(this.Table);
-  this.ApplyDiv = 
+  this.ApplyDiv =
     $("<td colspan='2'>")
       .appendTo(this.Row5)
       .css({'text-align': 'center'});
@@ -100,19 +100,12 @@ function Dialog(widget) {
     $('<button>')
         .appendTo(this.ApplyDiv)
         .text("Apply")
-        .css({'margin-bottom': '6px'});
-
-    // Closure to pass a stupid parameter to the callback
-    var self = this;
-    (function () {
-        self.ApplyButton.click(function (e) {
-            widget.DialogApplyCallback();
-            // This "self" trick does not work :( with multiple dialogs.
-            // however "widget" does work.  Let widget handle hiding the dialog.
-            //self.Hide();
+        .css({'margin-bottom': '6px'})
+        .click(function (e) {
+            (callback)();
             self.Hide();
-            e.preventDefault(); });
-    })();
+            e.preventDefault();
+        });
 }
 
 

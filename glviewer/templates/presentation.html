@@ -1,7 +1,7 @@
 <!doctype html>
 
 <head>
-  <title>SlideAtlas Viewer</title>
+  <title>SlideAtlas Presentation</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
@@ -47,8 +47,8 @@
 
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='toolTip.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='presentation.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
@@ -133,95 +133,14 @@ shape has visibility and
 <!---->
 <script>
     window.PLUGINS = window.PLUGINS || {};
-  </script>
-
-{% for plugin in config.SLIDEATLAS_ENABLED_PLUGINS %}
-  <!-- Loop over all enabled plugins instead of if else -->
-  <script type="text/javascript" src="{{ url_for(plugin + '.static', filename='plugin.js') }}"></script>
-  <script>
-    window.PLUGINS["{{ plugin }}"] = new window["plugin_{{plugin}}"]();
-  </script>
-{% endfor %}
-
-<script id="shader-poly-fs" type="x-shader/x-fragment">
-  precision mediump float;
-  uniform vec3 uColor;
-  void main(void) {
-   gl_FragColor = vec4(uColor, 1.0);
-   //gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
-  }
 </script>
-<script id="shader-poly-vs" type="x-shader/x-vertex">
-  attribute vec3 aVertexPosition;
-  uniform mat4 uMVMatrix;
-  uniform mat4 uPMatrix;
-  void main(void) {
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-  }
-</script>
-<script id="shader-tile-fs" type="x-shader/x-fragment">
-  #ifdef GL_ES
-  precision highp float;
-  #endif
 
-  uniform sampler2D uSampler;
-  varying vec2 vTextureCoord;
-
-  void main(void) {
-    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  }
-</script>
-<script id="shader-tile-vs" type="x-shader/x-vertex">
-  attribute vec3 aVertexPosition;
-  attribute vec2 aTextureCoord;
-
-  uniform mat4 uMVMatrix;
-  uniform mat4 uPMatrix;
-  uniform mat3 uNMatrix;
-  varying vec2 vTextureCoord;
-
-  void main(void) {
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-    vTextureCoord = aTextureCoord;
-  }
-</script>
-<script id="shader-text-fs" type="x-shader/x-fragment">
-  precision mediump float;
-
-  varying vec2 vTextureCoord;
-  uniform sampler2D uSampler;
-  uniform vec3 uColor;
-
-  void main(void) {
-    vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-    // Use the image pixel value as transparency.
-    gl_FragColor = vec4(uColor, textureColor.rgb[0]);
-  }
-</script>
-<script id="shader-text-vs" type="x-shader/x-vertex">
-  attribute vec3 aVertexPosition;
-  attribute vec2 aTextureCoord;
-
-  uniform mat4 uMVMatrix;
-  uniform mat4 uPMatrix;
-
-  varying vec2 vTextureCoord;
-  void main(void) {
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-    vTextureCoord = aTextureCoord;
-  }
-</script> <!---->
 <script type="text/javascript">
-  var TEMPLATE = "view.html";
+  var TEMPLATE = "presentation.html";
   var USER = "{{user}}";
-  // A view has the same structure as a note.
   var VIEW_ID = "{{view}}";
   var SESS_ID = "{{sess}}";
-  var EDIT = {{edit}}; // Temporary way to hide editing.
-  var STYLE = "{{style}}"; // One option (simple) for now.
-  var SESSIONS_URL = "{{url_for('session.sessions_view')}}";
-  var IMAGE_PATH_URL = "{{ url_for('glviewer.static', filename='') }}";
-  var MENU_IMAGE_URL = "{{ url_for('glviewer.static', filename='Menu.jpg')}}";
+  var EDIT = {{edit}};
 
 
   //********************************************************
@@ -229,7 +148,7 @@ shape has visibility and
   $(document).ready(function() {
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
-      Main(STYLE,SESS_ID,VIEW_ID);
+      PresentationMain(VIEW_ID);
   });
 
 </script>

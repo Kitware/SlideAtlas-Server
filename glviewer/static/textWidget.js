@@ -32,170 +32,170 @@ function TextWidget (viewer, string) {
 
 
   // create and cuystomize the dialog properties popup.
-  this.Dialog = new Dialog(this);
-  this.Dialog.Title.text('Text Annotation Editor');
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    this.Dialog.Title.text('Text Annotation Editor');
   
-  this.Dialog.TextInput =
-    $('<textarea>')
-      .appendTo(this.Dialog.Body)
-      .css({'width': '100%'});
+    this.Dialog.TextInput =
+        $('<textarea>')
+        .appendTo(this.Dialog.Body)
+        .css({'width': '100%'});
   
-  this.Dialog.FontDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.FontLabel = 
-    $('<div>')
-      .appendTo(this.Dialog.FontDiv)
-      .text("Font (px):")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.FontInput =
-    $('<input type="number">')
-      .appendTo(this.Dialog.FontDiv)
-      .val('12')
-      .css({'display':'table-cell'});
+    this.Dialog.FontDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.FontLabel = 
+        $('<div>')
+        .appendTo(this.Dialog.FontDiv)
+        .text("Font (px):")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.FontInput =
+        $('<input type="number">')
+        .appendTo(this.Dialog.FontDiv)
+        .val('12')
+        .css({'display':'table-cell'});
+
+    this.Dialog.ColorDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.ColorLabel =
+        $('<div>')
+        .appendTo(this.Dialog.ColorDiv)
+        .text("Color:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.ColorInput =
+        $('<input type="color">')
+        .appendTo(this.Dialog.ColorDiv)
+        .val('#30ff00')
+        .css({'display':'table-cell'});
   
-  this.Dialog.ColorDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.ColorLabel =
-    $('<div>')
-      .appendTo(this.Dialog.ColorDiv)
-      .text("Color:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.ColorInput =
-    $('<input type="color">')
-      .appendTo(this.Dialog.ColorDiv)
-      .val('#30ff00')
-      .css({'display':'table-cell'});
-  
-  this.Dialog.VisibilityModeDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.VisibilityModeLabel =
-    $('<div>')
-      .appendTo(this.Dialog.VisibilityModeDiv)
-      .text("Visibility:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.VisibilityModeInputButtons =
-    $('<div>')
-      .appendTo(this.Dialog.VisibilityModeDiv)
-      //.text("VisibilityMode")
-      .attr('checked', 'false')
-      .css({'display': 'table-cell'});
+    this.Dialog.VisibilityModeDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.VisibilityModeLabel =
+        $('<div>')
+        .appendTo(this.Dialog.VisibilityModeDiv)
+        .text("Visibility:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.VisibilityModeInputButtons =
+        $('<div>')
+        .appendTo(this.Dialog.VisibilityModeDiv)
+    //.text("VisibilityMode")
+        .attr('checked', 'false')
+        .css({'display': 'table-cell'});
       
-  this.Dialog.VisibilityModeInputs = []; 
-  this.Dialog.VisibilityModeInputs[0] = 
-    $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
-      .appendTo(this.Dialog.VisibilityModeInputButtons)
-      .attr('checked', 'false')
-      
-  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
-  
-  this.Dialog.VisibilityModeInputs[1] = 
-    $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
-      .appendTo(this.Dialog.VisibilityModeInputButtons)
-      .attr('checked', 'false')
-      
-  $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
-  
-  this.Dialog.VisibilityModeInputs[2] = 
-    $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
-      .appendTo(this.Dialog.VisibilityModeInputButtons)
-      .attr('checked', 'true')
-  
-  this.Dialog.BackgroundDiv =
-    $('<div>')
-      .appendTo(this.Dialog.Body)
-      .css({'display':'table-row'});
-  this.Dialog.BackgroundLabel =
-    $('<div>')
-      .appendTo(this.Dialog.BackgroundDiv)
-      .text("Background:")
-      .css({'display':'table-cell',
-            'text-align': 'left'});
-  this.Dialog.BackgroundInput =
-    $('<input type="checkbox">')
-      .appendTo(this.Dialog.BackgroundDiv)
-      //.text("Background")
-      .attr('checked', 'true')
-      .css({'display': 'table-cell'});
+    this.Dialog.VisibilityModeInputs = []; 
+    this.Dialog.VisibilityModeInputs[0] = 
+        $('<input type="radio" name="visibilityoptions" value="0">Text only</input>')
+        .appendTo(this.Dialog.VisibilityModeInputButtons)
+        .attr('checked', 'false')
 
-  // Create the hover popup for deleting and showing properties dialog.
-  this.Viewer = viewer;
-  this.Popup = new WidgetPopup(this);
-  // Text widgets are created with the dialog open (to set the string).
-  // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
-  this.State = TEXT_WIDGET_WAITING;
-  this.CursorLocation = 0; // REMOVE
+    $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
 
-  var cam = this.Viewer.MainView.Camera;
+    this.Dialog.VisibilityModeInputs[1] = 
+        $('<input type="radio" name="visibilityoptions" value="1">Arrow only, text on hover</input>')
+        .appendTo(this.Dialog.VisibilityModeInputButtons)
+        .attr('checked', 'false')
 
-  this.Text = new Text();
-  this.Text.String = string;
-  this.Text.UpdateBuffers(); // Needed to get the bounds.
-  this.Text.Color = [0.0, 0.0, 1.0];
-  this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
-                      0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
+    $('<br>').appendTo(this.Dialog.VisibilityModeInputButtons);
 
+    this.Dialog.VisibilityModeInputs[2] = 
+        $('<input type="radio" name="visibilityoptions" value="2">Arrow and text visible</input>')
+        .appendTo(this.Dialog.VisibilityModeInputButtons)
+        .attr('checked', 'true')
 
-  // I would like to setup the ancoh in the middle of the screen,
-  // And have the Anchor in the middle of the text.
-  this.Text.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
+    this.Dialog.BackgroundDiv =
+        $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'display':'table-row'});
+    this.Dialog.BackgroundLabel =
+        $('<div>')
+        .appendTo(this.Dialog.BackgroundDiv)
+        .text("Background:")
+        .css({'display':'table-cell',
+              'text-align': 'left'});
+    this.Dialog.BackgroundInput =
+        $('<input type="checkbox">')
+        .appendTo(this.Dialog.BackgroundDiv)
+    //.text("Background")
+        .attr('checked', 'true')
+        .css({'display': 'table-cell'});
 
-  // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
-  this.Arrow = new Arrow();
-  this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
-  this.Arrow.Length = 50;
-  this.Arrow.Width = 10;
-  this.Arrow.UpdateBuffers();
-  this.Arrow.Visibility = true;
-  this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
-  this.Arrow.FillColor = [0,0,1];
-  this.Arrow.OutlineColor = [1,1,0];
-  this.Arrow.ZOffset = 0.2;
-  this.Arrow.UpdateBuffers();
+    // Create the hover popup for deleting and showing properties dialog.
+    this.Viewer = viewer;
+    this.Popup = new WidgetPopup(this);
+    // Text widgets are created with the dialog open (to set the string).
+    // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
+    this.State = TEXT_WIDGET_WAITING;
+    this.CursorLocation = 0; // REMOVE
 
-  viewer.WidgetList.push(this);
-  this.ActiveReason = 1;
+    var cam = this.Viewer.MainView.Camera;
 
-  // It is odd the way the Anchor is set.  Leave the above for now.
-  this.SetTextOffset(50,0);
+    this.Text = new Text();
+    this.Text.String = string;
+    this.Text.UpdateBuffers(); // Needed to get the bounds.
+    this.Text.Color = [0.0, 0.0, 1.0];
+    this.Text.Anchor = [0.5*(this.Text.PixelBounds[0]+this.Text.PixelBounds[1]),
+                        0.5*(this.Text.PixelBounds[2]+this.Text.PixelBounds[3])];
 
-  // Get default properties.
-  this.VisibilityMode = 2;
-  this.Text.BackgroundFlag = true;
-  this.Dialog.BackgroundInput.prop('checked', true);
-  var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
-  if (localStorage.TextWidgetDefaults) {
-    var defaults = JSON.parse(localStorage.TextWidgetDefaults);
-    if (defaults.Color) {
-      hexcolor = ConvertColorToHex(defaults.Color);
+    // I would like to setup the ancoh in the middle of the screen,
+    // And have the Anchor in the middle of the text.
+    this.Text.Position = [cam.FocalPoint[0], cam.FocalPoint[1]];
+
+    // The anchor shape could be put into the text widget, but I might want a thumb tack anchor.
+    this.Arrow = new Arrow();
+    this.Arrow.Origin = this.Text.Position; // note: both point to the same memory now.
+    this.Arrow.Length = 50;
+    this.Arrow.Width = 10;
+    this.Arrow.UpdateBuffers();
+    this.Arrow.Visibility = true;
+    this.Arrow.Orientation = 45.0; // in degrees, counter clockwise, 0 is left
+    this.Arrow.FillColor = [0,0,1];
+    this.Arrow.OutlineColor = [1,1,0];
+    this.Arrow.ZOffset = 0.2;
+    this.Arrow.UpdateBuffers();
+
+    viewer.WidgetList.push(this);
+    this.ActiveReason = 1;
+
+    // It is odd the way the Anchor is set.  Leave the above for now.
+    this.SetTextOffset(50,0);
+
+    // Get default properties.
+    this.VisibilityMode = 2;
+    this.Text.BackgroundFlag = true;
+    this.Dialog.BackgroundInput.prop('checked', true);
+    var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+    if (localStorage.TextWidgetDefaults) {
+        var defaults = JSON.parse(localStorage.TextWidgetDefaults);
+        if (defaults.Color) {
+            hexcolor = ConvertColorToHex(defaults.Color);
+        }
+        if (defaults.FontSize) {
+            // font size was wrongly saved as a string.
+            this.Text.Size = parseFloat(defaults.FontSize);
+        }
+        if (defaults.BackgroundFlag !== undefined) {
+            this.Text.BackgroundFlag = defaults.BackgroundFlag;
+        }
+        if (defaults.VisibilityMode !== undefined) {
+            this.SetVisibilityMode(defaults.VisibilityMode);
+        }
     }
-    if (defaults.FontSize) {
-      // font size was wrongly saved as a string.
-      this.Text.Size = parseFloat(defaults.FontSize);
-    }
-    if (defaults.BackgroundFlag !== undefined) {
-      this.Text.BackgroundFlag = defaults.BackgroundFlag;
-    }
-    if (defaults.VisibilityMode !== undefined) {
-      this.SetVisibilityMode(defaults.VisibilityMode);
-    }
-  }
-  this.Text.Color = hexcolor;
-  this.Arrow.SetFillColor(hexcolor);
-  this.Arrow.ChooseOutlineColor();
+    this.Text.Color = hexcolor;
+    this.Arrow.SetFillColor(hexcolor);
+    this.Arrow.ChooseOutlineColor();
 
-  // Lets save the zoom level (sort of).
-  // Load will overwrite this for existing annotations.
-  // This will allow us to expand annotations into notes.
-  this.CreationCamera = viewer.GetCamera().Serialize();
+    // Lets save the zoom level (sort of).
+    // Load will overwrite this for existing annotations.
+    // This will allow us to expand annotations into notes.
+    this.CreationCamera = viewer.GetCamera().Serialize();
 }
 
 // Three state visibility so text can be hidden during calss questions.

@@ -1,6 +1,4 @@
-// Stacks and notes are both in this file.  I should clean this up and make separate classes
 // that possibly share a superclass.
-
 
 // Notes can be nested (tree structure) to allow for student questions, comments or discussion.
 // Sessions could be notes.
@@ -52,7 +50,7 @@
 //     panel to disapear?)
 
 // NOTE:
-// -Add link / note to top or bottom? Ask bev.
+// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html !!!!!!!!!!!!!!!
 // -I Could not highlight hyperlink when note is selected.
 //     Text cannot be selected when hidden.  I would have to select the
 //     text when Text tabe is clicked.....
@@ -66,11 +64,11 @@
 var LINk_DIV;
 
 // Time to make this an object to get rid of all these global variables.
-function InitNotesWidget() {
+function InitNotesWidget(rootNote) {
     NOTES_WIDGET = new NotesWidget();
-    
+
     // Popup div to display permalink.
-    LINK_DIV = 
+    LINK_DIV =
         $("<div>")
         .appendTo('body')
         .css({'top':'30px',
@@ -88,8 +86,11 @@ function InitNotesWidget() {
         .mouseleave(function() { LINK_DIV.fadeOut(); });
 
     if (EDIT) {
-        LINK_DIV.attr('contenteditable', "true");
+        LINK_DIV.attr('contented\itable', "true");
     }
+
+    NOTES_WIDGET.SetRootNote(rootNote);
+    $(window).trigger('resize');
 }
 
 //==============================================================================
@@ -147,37 +148,50 @@ function TextEditor(parent, edit) {
     var self = this;
     this.Parent = parent;
     if (edit) {
-        this.AddEditButton("webgl-viewer/static/camera.png",
+        this.AddEditButton("webgl-viewer/static/camera.png", "link view",
                            function() {self.InsertCameraLink();});
-        this.AddEditButton("webgl-viewer/static/font_bold.png",
+        this.AddEditButton("webgl-viewer/static/link.png", "link URL",
+                           function() {self.InsertUrlLink();});
+        this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
                            function() {document.execCommand('bold',false,null);});
-        this.AddEditButton("webgl-viewer/static/text_italic.png",
+        this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
                            function() {document.execCommand('italic',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_underline.png",
+        this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
                            function() {document.execCommand('underline',false,null);});
-        this.AddEditButton("webgl-viewer/static/list_bullets.png",
+        this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
                            function() {document.execCommand('InsertUnorderedList',false,null);});
-        this.AddEditButton("webgl-viewer/static/list_numbers.png",
+        this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
                            function() {document.execCommand('InsertOrderedList',false,null);});
-        this.AddEditButton("webgl-viewer/static/indent_increase.png",
+        this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
                            function() {document.execCommand('indent',false,null);});
-        this.AddEditButton("webgl-viewer/static/indent_decrease.png",
+        this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
                            function() {document.execCommand('outdent',false,null);});
-        this.AddEditButton("webgl-viewer/static/alignment_left.png",
+        this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
                            function() {document.execCommand('justifyLeft',false,null);});
-        this.AddEditButton("webgl-viewer/static/alignment_center.png",
+        this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
                            function() {document.execCommand('justifyCenter',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_superscript.png",
+        this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
                            function() {document.execCommand('superscript',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_subscript.png",
+        this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
                            function() {document.execCommand('subscript',false,null);});
+        this.AddEditButton("webgl-viewer/static/font_increase.png", "large font", 
+                           function(){
+                               document.execCommand('fontSize',false,'5');
+                               self.ChangeBulletSize('1.5em');
+                           });
+        this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font", 
+                           function() {
+                               document.execCommand('fontSize',false,'2');
+                               self.ChangeBulletSize('0.9em');
+                           });
+
     }
 
     this.TextEntry = $('<div>')
         .appendTo(parent)
         .css({'box-sizing': 'border-box',
               'width': '100%',
-              'height': '100%',
+              'height':'100%',
               'border-style': 'solid',
               'background': '#ffffff',
               'overflow': 'auto',
@@ -219,57 +233,209 @@ TextEditor.prototype.Save = function() {
 }
 
 
-TextEditor.prototype.AddEditButton = function(src, callback) {
+TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
     var self = this;
     var button = $('<img>')
+    if (tooltip) {
+        //button = $('<img title="'+tooltip+'">')
+        button.prop('title', tooltip);
+    }
+    button
         .appendTo(this.Parent)
         .addClass('editButton')
         .attr('src',src)
         .click(callback);
 }
 
-
-var LINKS_WITH_NO_NAME = 0;
-TextEditor.prototype.InsertCameraLink = function() {
-    var self = this;
+// Get the selection in this editor.  Returns a range.
+// If not, the range is collapsed at the 
+// end of the text and a new line is added.
+TextEditor.prototype.GetSelectionRange = function() {
     var sel = window.getSelection();
     var range;
     var parent = null;
-    var noCursor = false;
 
-    // Two conditions that we have to create a selection:
+    // Two conditions when we have to create a selection:
     // nothing selected, and something selected in wrong parent.
     // use parent as a flag.
     if (sel.rangeCount > 0) {
+        // Something is selected
         range = sel.getRangeAt(0);
+        range.noCursor = false;
         // Make sure the selection / cursor is in this editor.
         parent = range.commonAncestorContainer;
         // I could use jquery .parents(), but I bet this is more efficient.
         while (parent && parent != this.TextEntry[0]) {
-            if ( ! parent) {
-                console.log("Wrong parent");
-                return;
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
             }
-            parent = parent.parentNode;
         }
     }
     if ( ! parent) {
-        noCursor = true;
         // Select everything in the editor.
         range = document.createRange();
+        range.noCursor = true;
         range.selectNodeContents(this.TextEntry[0]);
         sel.removeAllRanges();
         sel.addRange(range);
-        // Add a new line at the start of the editor content.
+        // Collapse the range/cursor to the end (true == start).
+        range.collapse(false);
+        // Add a new line at the end of the editor content.
         var br = document.createElement('br');
         range.insertNode(br); // selectNode?
-        // Collapse the range/cursor to the begining (false == end).
-        range.collapse(true);
+        range.collapse(false);
         // The collapse has no effect without this.
         sel.removeAllRanges();
         sel.addRange(range);
-        console.log(sel.toString());
+        //console.log(sel.toString());
     }
+
+    return range;
+}
+
+// execCommand fontSize does change bullet size.
+// This is a work around.
+TextEditor.prototype.ChangeBulletSize = function(sizeString) {
+    var self = this;
+    var sel = window.getSelection();
+    // This call will clear the selected text if it is not in this editor.
+    var range = this.GetSelectionRange();
+    var listItems = $('li');
+    for (var i = 0; i < listItems.length; ++i) {
+        var item = listItems[i];
+        if (range.isPointInRange(item,0) || 
+            range.isPointInRange(item,1)) {
+            $(item).css({'font-size':sizeString});
+        }
+    }
+}
+
+
+TextEditor.prototype.InsertUrlLink = function() {
+    var self = this;
+    var sel = window.getSelection();
+    // This call will clear the selected text if it is not in this editor.
+    var range = this.GetSelectionRange();
+    var selectedText = sel.toString();
+
+    if ( ! this.UrlDialog) {
+        var self = this;
+        var dialog = new Dialog(function() {
+            self.InsertUrlLinkAccept();
+        });
+        this.UrlDialog = dialog;
+        dialog.Dialog.css({'width':'40em'});
+        dialog.Title.text("Paste URL link");
+        dialog.TextDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'display':'table-row',
+                  'width':'100%'});
+        dialog.TextLabel =
+            $('<div>')
+            .appendTo(dialog.TextDiv)
+            .text("Text to display:")
+            .css({'display':'table-cell',
+                  'height':'2em',
+                  'text-align': 'left'});
+        dialog.TextInput =
+            $('<input>')
+            .appendTo(dialog.TextDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell',
+                  'width':'25em'});
+
+        dialog.UrlDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'display':'table-row'});
+        dialog.UrlLabel =
+            $('<div>')
+            .appendTo(dialog.UrlDiv)
+            .text("URL link:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        dialog.UrlInput =
+            $('<input>')
+            .appendTo(dialog.UrlDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell',
+                  'width':'25em'})
+            .bind('input', function () {
+                var url = self.UrlDialog.UrlInput.val();
+                if (self.UrlDialog.LastUrl == self.UrlDialog.TextInput.val()) {
+                    // The text is same as the URL. Keep them synchronized.
+                    self.UrlDialog.TextInput.val(url);
+                }
+                self.UrlDialog.LastUrl = url;
+                // Deactivate the apply button if the url is blank.
+                if (url == "") {
+                    self.UrlDialog.ApplyButton.attr("disabled", true);
+                } else {
+                    self.UrlDialog.ApplyButton.attr("disabled", false);
+                }
+            });
+
+    }
+
+    // We have to save the range/selection because user interaction with
+    // the dialog clears the text entry selection.
+    this.UrlDialog.SelectionRange = range;
+    this.UrlDialog.TextInput.val(selectedText);
+    this.UrlDialog.UrlInput.val("");
+    this.UrlDialog.LastUrl = "";
+    this.UrlDialog.ApplyButton.attr("disabled", true);
+    this.UrlDialog.Show(true);
+}
+
+TextEditor.prototype.InsertUrlLinkAccept = function() {
+    var sel = window.getSelection();
+    var range = this.UrlDialog.SelectionRange;
+
+    // Simply put a span tag around the text with the id of the view.
+    // It will be formated by the note hyperlink code.
+    var link = document.createElement("a");
+    link.href = this.UrlDialog.UrlInput.val();
+    link.target = "_blank";
+
+    // It might be nice to have an id to get the href for modification.
+    //span.id = note.Id;
+
+    // Replace or insert the text.
+    if ( ! range.collapsed) {
+        // Remove the seelcted text.
+        range.extractContents(); // deleteContents(); // cloneContents
+        range.collapse(true);
+    }
+    var linkText = this.UrlDialog.TextInput.val();
+    if (linkText == "") {
+        linkText = this.UrlDialog.UrlInput.val();
+    }
+    link.appendChild( document.createTextNode(linkText) );
+
+    range.insertNode(link);
+    if (range.noCursor) {
+        // Leave the selection the same as we found it.
+        // Ready for the next link.
+        sel.removeAllRanges();
+    }
+    this.UpdateNote();
+}
+
+// This global variable is an attempt to enumerate generated
+// names for links.  The flaw is it always starts over when page is
+// loaded. It does not detect links from previous edits.
+var LINKS_WITH_NO_NAME = 0;
+TextEditor.prototype.InsertCameraLink = function() {
+    var self = this;
+    var sel = window.getSelection();
+    var range = this.GetSelectionRange();
 
     // Check if an existing link is selected.
     var dm = range.cloneContents();
@@ -325,45 +491,18 @@ TextEditor.prototype.InsertCameraLink = function() {
                 span.appendChild( document.createTextNode(" (link"+LINKS_WITH_NO_NAME+") ") );
             }
             range.insertNode(span);
-            // Let the not format it.
+            // Let the note format it.
             note.FormatHyperlink();
             self.UpdateNote();
             // Do not automatically select new hyperlinks.
             // The user may want to insert one after another.
             //note.Select();
-            if (noCursor) {
+            if (range.noCursor) {
                 // Leave the selection the same as we found it.
                 // Ready for the next link.
                 sel.removeAllRanges();
             }
         });
-}
-
-function insertHtmlLink(id) {
-    var sel, range;
-    if (window.getSelection && (sel = window.getSelection()).rangeCount) {
-
-        var text = window.getSelection().toString();
-        range = sel.getRangeAt(0);
-
-        var dm = range.extractContents(); // deleteContents(); // cloneContents
-
-        range.collapse(true);
-
-        // Simply put a span tag around the text with the id of the view.
-        // It will be formated later.
-        var span = document.createElement("span");
-        span.id = id;
-        span.appendChild( document.createTextNode(text) );
-
-        range.insertNode(span);
-
-        // Move the caret immediately after the inserted span
-        //range.setStartAfter(span);
-        //range.collapse(true);
-        //sel.removeAllRanges();
-        //sel.addRange(range);
-    }
 }
 
 TextEditor.prototype.Resize = function(width, height) {
@@ -389,6 +528,8 @@ TextEditor.prototype.LoadNote = function(note) {
     for (var i = 0; i < note.Children.length; ++i) {
         note.Children[i].FormatHyperlink();
     }
+    
+    this.MakeLinksClickable();
 }
 
 // Copy the text entry text back into the note
@@ -401,8 +542,24 @@ TextEditor.prototype.UpdateNote = function() {
     }
     this.Note.Text = this.TextEntry.html();
     this.Note.Save();
+
+    this.MakeLinksClickable();
 }
 
+// Link are not active in content editable divs.
+// Work around this.
+TextEditor.prototype.MakeLinksClickable = function() {
+    if (EDIT) {
+        links = $("a");
+        for (var i = 0; i < links.length; ++i) {
+            var link = links[i];
+            $(link)
+                .click(function() {
+                    window.open(this.href,'_blank');
+                })
+        }
+    }
+}
 
 //==============================================================================
 
@@ -507,9 +664,8 @@ function NotesWidget() {
 
     // GUI elements
     this.Window;
-    this.NoteTreeDiv;
 
-    this.LinksTab = new NotesWidgetTab(this.Window, "Links");
+    this.LinksTab = new NotesWidgetTab(this.Window, "Views");
     this.TextTab = new NotesWidgetTab(this.Window, "Text");
     this.UserTextTab = null;
     if (! EDIT) {
@@ -540,6 +696,16 @@ function NotesWidget() {
               'bottom': '0px',
               'padding': '3px'});
 
+    // This is the button for the links tab div, but do not add it yet.
+    if (EDIT) {
+        this.AddViewButton = $('<button>')
+            .appendTo(this.LinksTab.Div)
+            .css({'border-radius': '4px',
+                  'margin': '1em'})
+            .text("+ New View");
+    }
+
+    // Now for the text tab:
     this.TextEditor = new TextEditor(this.TextTab.Div, EDIT);
 
 
@@ -557,14 +723,15 @@ function NotesWidget() {
                   'padding': '3px'});
         this.UserTextEditor = new TextEditor(this.UserTextTab.Div, true);
     }
-
-
-    // This sets "this.RootNote" and "this.Iterator"
-    this.LoadViewId(VIEW_ID);
-    // Setup the iterator using the view as root.
-    // Bookmarks (sub notes) are loaded next.
-    this.Iterator = this.RootNote.NewIterator();
 }
+
+
+NotesWidget.prototype.SetRootNote = function(rootNote) {
+    this.RootNote = rootNote;
+    this.Iterator = this.RootNote.NewIterator();
+    this.DisplayRootNote();
+}
+
 
 NotesWidget.prototype.SaveCallback = function() {
     var note = this.SelectedNote;
@@ -602,11 +769,11 @@ NotesWidgetResizeStopDrag = function () {
 
 
 
-
 NotesWidget.prototype.SetWidth = function(width) {
     this.Width = width;
     this.Window.width(width);
-    handleResize();
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
 }
 
 // Necessary to set the height.
@@ -851,6 +1018,7 @@ function Note () {
             .appendTo(this.ButtonsDiv)
             .addClass('editButton')
             .attr('src',"webgl-viewer/static/camera.png")
+            .prop('title', "capture view")
             .css({
                 'width':'12px',
                 'height':'12px',
@@ -863,6 +1031,7 @@ function Note () {
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/page_add.png")
             .addClass('editButton')
+            .prop('title', "add view")
             .css({
                 'width':'12px',
                 'height':'12px',
@@ -873,6 +1042,7 @@ function Note () {
         this.LinkButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/link.png")
+            .prop('title', "show url")
             .addClass('editButton')
             .css({
                 'width':'12px',
@@ -885,6 +1055,7 @@ function Note () {
             .appendTo(this.ButtonsDiv)
             .hide()
             .attr('src',"webgl-viewer/static/remove.png")
+            .prop('title', "delete")
             .addClass('editButton')
             .css({
                 'width':'12px',
@@ -901,17 +1072,20 @@ function Note () {
 
 
     if (EDIT) {
+        this.Modified = false;
         this.TitleEntry
             .attr('contenteditable', "true")
-            .focusin(function() { self.TitleFocusInCallback(); })
-            .focusout(function() { self.TitleFocusOutCallback(); })
-            .mouseleave(function() {
-                if (self.Modified) { self.Save(); }
-            })
             .bind('input', function () {
                 self.Modified = true;
             })
-
+            .focusin(function() { self.TitleFocusInCallback(); })
+            .focusout(function() { self.TitleFocusOutCallback(); })
+            .mouseleave(function() {
+                if (self.Modified) {
+                    self.Title = self.TitleEntry.text();
+                    self.Save();
+                }
+            });
     }
 
 
@@ -1057,6 +1231,7 @@ Note.prototype.LinkCallback = function() {
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
+    
     // Try to copy to the clipboard.
     document.execCommand('copy',false,null);
 }
@@ -1071,7 +1246,7 @@ Note.prototype.DeleteCallback = function() {
         return;
     }
 
-    if ( ! window.confirm("Are you sure you want to delete this note?")) {
+    if ( ! window.confirm("Are you sure you want to delete this view?")) {
         return;
     }
 
@@ -1267,6 +1442,8 @@ Note.prototype.Save = function(callback) {
 Note.prototype.Select = function() {
 
     if (this == NOTES_WIDGET.SelectedNote) {
+        // Just reset the camera.
+        this.DisplayView();
         return;
     }
 
@@ -1499,21 +1676,10 @@ Note.prototype.Load = function(obj){
         userNote.Load(userObj);
         this.UserNote = userNote;
     }
-
-    // Hack to fix timing (Load after select)
-    if (this == NOTES_WIDGET.RootNote) {
-        NOTES_WIDGET.DisplayRootNote();
-    }
-
-    // Hack to open the notes window if we have text.
-    if (this.Text != "" && this == NOTES_WIDGET.RootNote &&
-        ! NOTES_WIDGET.Visibility && ! MOBILE_DEVICE) {
-        NOTES_WIDGET.ToggleNotesWindow();
-    }
 }
 
 
-Note.prototype.LoadViewId = function(viewId) {
+Note.prototype.LoadViewId = function(viewId, callback) {
   var self = this;
   $.ajax({
     type: "get",
@@ -1522,9 +1688,9 @@ Note.prototype.LoadViewId = function(viewId) {
            "viewid": viewId},
     success: function(data,status) { 
         self.Load(data);
-        // This is necessary because we delay moving entry text to note.
-        // It has to be initialized with the first selected note (root).
-        NOTES_WIDGET.TextEditor.LoadNote(self);
+        if (callback) {
+            (callback)();
+        }
     },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
@@ -1606,7 +1772,7 @@ Note.prototype.DisplayView = function() {
     if (this.Type == "Stack") {
         var idx0 = this.StartIndex;
         var idx1 = idx0 + 1;
-        
+
         if (this.ViewerRecords.length > idx0) {
             this.ViewerRecords[idx0].Apply(VIEWER1);
         }
@@ -1615,7 +1781,6 @@ Note.prototype.DisplayView = function() {
         }
         return;
     }
-
 
     // Two views should always exist.  Check anyway (for now).
     SetNumberOfViews(this.ViewerRecords.length);
@@ -1868,7 +2033,7 @@ NotesWidget.prototype.ToggleNotesWindow = function() {
 
     if (this.Visibilty) {
         this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 300;
+        this.AnimationTarget = 325;
     } else {
         this.Window.hide();
         this.AnimationCurrent = this.Width;
@@ -1889,32 +2054,35 @@ NotesWidget.prototype.RandomCallback = function() {
 
 
 NotesWidget.prototype.AnimateNotesWindow = function() {
-  var timeStep = new Date().getTime() - this.AnimationLastTime;
-  if (timeStep > this.AnimationDuration) {
-    // end the animation.
-    this.SetWidth(this.AnimationTarget);
-    handleResize();
-    if (this.Visibilty) {
-      this.CloseNoteWindowButton.show();
-      this.OpenNoteWindowButton.hide();
-      this.Window.fadeIn();
-    } else {
-      this.CloseNoteWindowButton.hide();
-      this.OpenNoteWindowButton.show();
+    var timeStep = new Date().getTime() - this.AnimationLastTime;
+    if (timeStep > this.AnimationDuration) {
+        // end the animation.
+        this.SetWidth(this.AnimationTarget);
+        // Hack to recompute viewports
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+
+        if (this.Visibilty) {
+            this.CloseNoteWindowButton.show();
+            this.OpenNoteWindowButton.hide();
+            this.Window.fadeIn();
+        } else {
+            this.CloseNoteWindowButton.hide();
+            this.OpenNoteWindowButton.show();
+        }
+        draw();
+        return;
     }
+
+    var k = timeStep / this.AnimationDuration;
+
+    // update
+    this.AnimationDuration *= (1.0-k);
+    this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
+
     draw();
-    return;
-  }
-
-  var k = timeStep / this.AnimationDuration;
-
-  // update
-  this.AnimationDuration *= (1.0-k);
-  this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
-
-  draw();
-  var self = this;
-  requestAnimFrame(function () {self.AnimateNotesWindow();});
+    var self = this;
+    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Called when a new slide/view is loaded.
@@ -1924,19 +2092,42 @@ NotesWidget.prototype.DisplayRootNote = function() {
     this.RootNote.DisplayGUI(this.LinksTab.Div);
     this.RootNote.Select();
 
+    // Add an obvious way to add a link / view to the root note.
+    if (EDIT) {
+        this.AddViewButton
+            .appendTo(this.LinksTab.Div)
+            .click(function () {
+                var parentNote = NOTES_WIDGET.RootNote;
+                var childIdx = parentNote.Children.length;
+                var childNote = parentNote.NewChild(childIdx, "New View");
+                childNote.Save(); // Gets the id for the child.
+                parentNote.Save();
+            });
+    }
+
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
-        NOTES_WIDGET.LinksTab.Show();
+        this.LinksTab.Show();
     } else {
-        NOTES_WIDGET.TextTab.Show();
+        this.TextTab.Show();
+        // Hack to open the notes window if we have text.
+        if ( ! this.Visibility && ! MOBILE_DEVICE) {
+            this.ToggleNotesWindow();
+        }
     }
 }
+
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
     VIEW_ID = viewId;
     this.RootNote = new Note();
     if (typeof(viewId) != "undefined" && viewId != "") {
-        this.RootNote.LoadViewId(viewId);
+        this.RootNote.LoadViewId(
+            viewId,
+            function () {
+                NOTES_WIDGET.DisplayRootNote();
+            }
+        );
     }
     // Since loading the view is asynchronous,
     // the this.RootNote is not complete at this point.
@@ -1955,7 +2146,7 @@ NotesWidget.prototype.NewCallback = function() {
         }
     }
     // Create a new note.
-    var childNote = note.NewChild(childIdx, "New Note");
+    var childNote = note.NewChild(childIdx, "New View");
     note.Save();
     childNote.Select();
 }
