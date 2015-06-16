@@ -691,39 +691,86 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
    }
  }
 
- Viewer.prototype.HideGuiElements = function() {
-   for (var i = 0; i < this.GuiElements.length; ++i) {
-     var element = this.GuiElements[i];
-     if ('Object' in element) {
-       element.Object.hide();
-     } else if ('Id' in element) {
-       $(element.Id).hide();
-     }
-   }
- }
+Viewer.prototype.HideGuiElements = function() {
+    for (var i = 0; i < this.GuiElements.length; ++i) {
+        var element = this.GuiElements[i];
+        if ('Object' in element) {
+            element.Object.hide();
+        } else if ('Id' in element) {
+            $(element.Id).hide();
+        }
+    }
+}
 
- // legacy
- Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
-   var element = {};
-   element.Id = idString;
-   element[relativeX] = x;
-   element[relativeY] = y;
-   this.GuiElements.push(element);
- }
+// legacy
+Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
+    var element = {};
+    element.Id = idString;
+    element[relativeX] = x;
+    element[relativeY] = y;
+    this.GuiElements.push(element);
+}
 
- Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
-   var element = {};
-   element.Object = object;
-   element[relativeX] = x;
-   element[relativeY] = y;
-   this.GuiElements.push(element);
- }
+Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
+    var element = {};
+    element.Object = object;
+    element[relativeX] = x;
+    element[relativeY] = y;
+    this.GuiElements.push(element);
+}
 
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
 // TODO: Redo all this overview viewport junk.
 // viewport: [left, top, width, height]
 Viewer.prototype.SetViewport = function(viewport) {
+
+    if (viewport[2] <= 10) {
+        this.MainView.CanvasDiv.hide();
+        if (this.OverView) {
+            this.OverView.CanvasDiv.hide();
+        }
+        return;
+    }
+    this.MainView.CanvasDiv.show();
+    if (this.OverView) {
+        this.OverView.CanvasDiv.show();
+    }
+    this.MainView.SetViewport(viewport);
+    this.MainView.Camera.ComputeMatrix();
+
+    // I do not know the way the viewport is used to place
+    // this overview.  It should be like other widgets
+    // and be placed relative to the parent.
+    if (this.OverView) {
+        var area = viewport[2]*viewport[3];
+        var bounds = this.GetOverViewBounds();
+        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
+        // size of overview
+        var h = Math.sqrt(area*this.OverViewScale/aspect);
+        var w = h*aspect;
+        // Limit size
+        if (h > viewport[3]/2) {
+            h = viewport[3]/2;
+            var w = h*aspect;
+            this.OverViewScale = w*h/area;
+        }
+        // center of overview
+        var radius = Math.sqrt(h*h+w*w)/2;
+        // Construct the viewport.
+        this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
+                             viewport[1]+radius-h/2,
+                             w, h];
+
+        this.OverView.SetViewport(this.OverViewport);
+        this.OverView.Camera.ComputeMatrix();
+    }
+
+    this.PlaceGuiElements();
+}
+
+Viewer.prototype.PlaceGuiElements = function() {
+    var viewport = this.GetViewport();
 
     // I am working to depreciate GUI elements.
     // The browser / css should place gui elements.
@@ -769,74 +816,33 @@ Viewer.prototype.SetViewport = function(viewport) {
                 'left' : pos});
         }
     }
+}
 
-    if (viewport[2] <= 10) {
-        this.MainView.CanvasDiv.hide();
-        if (this.OverView) {
-            this.OverView.CanvasDiv.hide();
-        }
-        return;
-    }
-    this.MainView.CanvasDiv.show();
+Viewer.prototype.GetViewport = function() {
+    return this.MainView.Viewport;
+}
+
+// To fix a bug in the perk and elmer uploader.
+Viewer.prototype.ToggleMirror = function() {
+    this.MainView.Camera.Mirror = ! this.MainView.Camera.Mirror;
     if (this.OverView) {
-        this.OverView.CanvasDiv.show();
-    }
-    this.MainView.SetViewport(viewport);
-    this.MainView.Camera.ComputeMatrix();
-
-    // I do not know the way the viewport is used to place
-    // this overview.  It should be like other widgets
-    // and be placed relative to the parent.
-    if (this.OverView) {
-        var area = viewport[2]*viewport[3];
-        var bounds = this.GetOverViewBounds();
-        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
-        // size of overview
-        var h = Math.sqrt(area*this.OverViewScale/aspect);
-        var w = h*aspect;
-        // Limit size
-        if (h > viewport[3]/2) {
-            h = viewport[3]/2;
-            var w = h*aspect;
-            this.OverViewScale = w*h/area;
-        }
-        // center of overview
-        var radius = Math.sqrt(h*h+w*w)/2;
-        // Construct the viewport.
-        this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
-                             viewport[1]+radius-h/2,
-                             w, h];
-
-        this.OverView.SetViewport(this.OverViewport);
-        this.OverView.Camera.ComputeMatrix();
+        this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
     }
 }
 
- Viewer.prototype.GetViewport = function() {
-   return this.MainView.Viewport;
- }
+// Same as set camera but use animation
+Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
- // To fix a bug in the perk and elmer uploader.
- Viewer.prototype.ToggleMirror = function() {
-   this.MainView.Camera.Mirror = ! this.MainView.Camera.Mirror;
-   if (this.OverView) {
-     this.OverView.Camera.Mirror = ! this.OverView.Camera.Mirror;
-   }
- }
+    this.ZoomTarget = height;
+    // Compute traslate target to keep position in the same place.
+    this.TranslateTarget[0] = center[0];
+    this.TranslateTarget[1] = center[1];
+    this.RollTarget = rotation;
 
- // Same as set camera but use animation
- Viewer.prototype.AnimateCamera = function(center, rotation, height) {
-
-   this.ZoomTarget = height;
-   // Compute traslate target to keep position in the same place.
-   this.TranslateTarget[0] = center[0];
-   this.TranslateTarget[1] = center[1];
-   this.RollTarget = rotation;
-
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   eventuallyRender();
- }
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    eventuallyRender();
+}
 
  // This sets the overview camera from the main view camera.
  // The user can change the mainview camera and then call this method.

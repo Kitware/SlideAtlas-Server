@@ -86,10 +86,11 @@ function InitNotesWidget(rootNote) {
         .mouseleave(function() { LINK_DIV.fadeOut(); });
 
     if (EDIT) {
-        LINK_DIV.attr('contenteditable', "true");
+        LINK_DIV.attr('contented\itable', "true");
     }
 
     NOTES_WIDGET.SetRootNote(rootNote);
+    $(window).trigger('resize');
 }
 
 //==============================================================================
@@ -2114,6 +2115,22 @@ NotesWidget.prototype.DisplayRootNote = function() {
             this.ToggleNotesWindow();
         }
     }
+}
+
+
+NotesWidget.prototype.LoadViewId = function(viewId) {
+    VIEW_ID = viewId;
+    this.RootNote = new Note();
+    if (typeof(viewId) != "undefined" && viewId != "") {
+        this.RootNote.LoadViewId(
+            viewId,
+            function () {
+                NOTES_WIDGET.DisplayRootNote();
+            }
+        );
+    }
+    // Since loading the view is asynchronous,
+    // the this.RootNote is not complete at this point.
 }
 
 
