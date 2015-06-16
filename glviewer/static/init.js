@@ -706,14 +706,6 @@ function Main2(rootNote) {
 
     //CONFERENCE_WIDGET = new ConferenceWidget();
 
-    $(window).bind('orientationchange', function(event) {
-        handleResize();
-    });
-
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-
     // Events are not received by the viewers.
     //var can = VIEW_PANEL[0];
     //can.addEventListener("touchstart", handleTouchStart, false);
@@ -731,19 +723,26 @@ function Main2(rootNote) {
     // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
-    var annotationWidget1 = new AnnotationWidget(VIEWER1);
-    annotationWidget1.SetVisibility(2);
-    var annotationWidget2 = new AnnotationWidget(VIEWER2);
-    annotationWidget1.SetVisibility(2);
-    handleResize();
-    DualViewUpdateGui();
-
     if ( ! MOBILE_DEVICE) {
         InitSlideSelector();
         var viewMenu1 = new ViewEditMenu(VIEWER1);
         VIEW_MENU = viewMenu1;
         var viewMenu2 = new ViewEditMenu(VIEWER2);
-    }/**/
+    }
+
+    var annotationWidget1 = new AnnotationWidget(VIEWER1);
+    annotationWidget1.SetVisibility(2);
+    var annotationWidget2 = new AnnotationWidget(VIEWER2);
+    annotationWidget1.SetVisibility(2);
+    DualViewUpdateGui();
+
+    $(window).bind('orientationchange', function(event) {
+        handleResize();
+    });
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
 
     eventuallyRender();
 }
