@@ -456,8 +456,8 @@ function SlidePage(parent, edit) {
 
 
     if (edit) {
-        VIEWER1.OnInteraction(function () {self.RecordView1();});
-        VIEWER2.OnInteraction(function () {self.RecordView2();});
+        VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
+        VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
         this.RemoveView1Button = $('<img>')
             .appendTo(this.ViewPanel)
             .hide()
@@ -677,6 +677,8 @@ function TitlePage (parent, edit) {
         .appendTo(this.AuthorBar)
         .attr('contenteditable', 'true')
         .css({'position':'absolute',
+              'minimum-height':'4em',
+              'minimum-width':'10em',
               'top': '2em'});
 
     if (edit) {
