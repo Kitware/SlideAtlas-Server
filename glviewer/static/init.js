@@ -608,14 +608,50 @@ function cancelContextMenu(e) {
 var VIEW_MENU;
 
 // Main function called by the default view.html template
-function Main(viewId) {
+function Main(style,sessId,viewId) {
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
-    // Sanity check
-    if (typeof(viewId) == "undefined" && viewId == "") { return; }
 
-    rootNote.LoadViewId(viewId,
-                        function () {Main2(rootNote);});
+    // Hack to create a new presenation.
+    if (viewId == "" || viewId == "None") {
+        var title = window.prompt("Please enter the presentation title.",
+                                  "Presentation");
+        if (title == null) {
+            // Go back in browser?
+            return;
+        }
+        rootNote.Title = title;
+        rootNote.HiddenTitle = title;
+        rootNote.Type = "Presentation";
+        // Get the new notes id.
+        rootNote.Save(function (note) {
+            // Save the note in the session.
+            $.ajax({
+                type: "post",
+                data: {"sess" : sessId,
+                       "view" : note.Id},
+                url: "webgl-viewer/session-add-view",
+                success: function(data,status){
+                    if (status == "success") {
+                        Main2(rootNote);
+                    } else {
+                        alert("ajax failed - session-add-view");
+                    }
+                },
+                error: function() {
+                    alert( "AJAX - error() : session-add-view" );
+                },
+            });
+        });
+
+    } else {
+        if (viewId == "") {
+            alert("Missing view id");
+            return;
+        }
+        rootNote.LoadViewId(viewId,
+                            function () {Main2(rootNote);});
+    }
 }
 
 // This serializes loading a bit, but we need to know what type the note is
@@ -623,7 +659,7 @@ function Main(viewId) {
 // It might speed up loading.
 // Note is the same as a view.
 function Main2(rootNote) {
-    if (STYLE == "default" && rootNote.Type == "Presentation") {
+    if (STYLE == "Presentation" || rootNote.Type == "Presentation") {
         PRESENTATION = new Presentation(rootNote, EDIT);
         return;
     }
@@ -694,7 +730,6 @@ function Main2(rootNote) {
 
     // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
-
 
     var annotationWidget1 = new AnnotationWidget(VIEWER1);
     annotationWidget1.SetVisibility(2);

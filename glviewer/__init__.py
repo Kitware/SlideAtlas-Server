@@ -106,6 +106,9 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 #@security.login_required
 def glview():
+    # if a presentation sets the sessid, but not the view,
+    # I will create a new presenation object.
+    sessid = request.args.get('sess', None)
 
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
@@ -116,14 +119,12 @@ def glview():
 
     # handle presentation with a different template.
     if  style == "presentation" :
-        if viewid :
-            db = models.ImageStore._get_db()
-            viewobj = readViewTree(db, viewid)
-            email = getattr(security.current_user, 'email', '')
-            return make_response(render_template('presentation.html',
-                                                 view=viewid,
-                                                 edit=edit,
-                                                 user=email))
+        email = getattr(security.current_user, 'email', '')
+        return make_response(render_template('view.html',
+                                             sess=sessid,
+                                             view=viewid,
+                                             edit=edit,
+                                             user=email))
 
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
@@ -238,6 +239,19 @@ def glsetimagebounds():
 
     return "Success"
 
+
+# Temp end point to add a view to a session.
+# views should belong to only a single session.
+@mod.route('/session-add-view', methods=['GET', 'POST'])
+def glsessionaddview():
+    sessid = request.form['sess']  # for post
+    viewid = request.form['view']  # for post
+
+    session = models.Session.objects.get_or_404(id=sessid)
+    session.views.append(ObjectId(viewid))
+    session.save()
+
+    return "Success"
 
 
 # This method saves transformations and/or annotations (whatever exists in data.
