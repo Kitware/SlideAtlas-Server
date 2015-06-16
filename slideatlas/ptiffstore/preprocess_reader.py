@@ -82,7 +82,7 @@ class PreprocessReaderJp2(PreprocessReader):
                 # Additional LD_LIBRARY_PATH
                 environ = os.environ.copy()
 
-                if not "LD_LIBRARY_PATH" in environ:
+                if "LD_LIBRARY_PATH" not in environ:
                     environ["LD_LIBRARY_PATH"] = ""
 
                 environ["LD_LIBRARY_PATH"] = self.kakadu_dir + ":" + environ["LD_LIBRARY_PATH"]
@@ -99,9 +99,62 @@ class PreprocessReaderJp2(PreprocessReader):
         return output2
 
 
+class PreprocessReaderTif(PreprocessReader):
+    """
+    uses vips to convert tiff into tiled format if not already
+    files to tiled tiff which are then absorbed by OpenslideReader
+    """
+
+    def __init__(self, kakadu_dir=None):
+        # logger.info('PreprocessReaderJp2 init')
+        self.kakadu_dir = kakadu_dir
+        super(PreprocessReaderTif, self).__init__()
+
+    def pre_process(self, params):
+        """
+        Converts the files
+
+        First pass is to create striped tiff using kakadu if available
+        and second pass is to convert to tiled tiff.
+
+        A third file path is used for lock, if the lock can be acquired
+        and the output is not ready then create it.  If the lock cannot
+        be acquired then perhaps other process is processing it.
+
+        TODO: Decide when to declare not possible ?
+        """
+        # Split the requested filename
+        dirname, filename = os.path.split(params["fname"])
+        name, ext = os.path.splitext(filename)
+
+        # assert that ext is as expected
+        assert ext in [".tif", ".tiff"]
+
+        output1 = os.path.join(dirname, name + "_tiled.tif")
+        lock_path = os.path.join(dirname, filename + ".lock")
+
+        lock = LockFile(lock_path)
+        # logger.info('waiting for lock')
+        lock.acquire()
+        # If the file is missing then create it
+        if not os.path.exists(output1):
+            # Make sure the processing lock can be acquired
+            logger.info('processing')
+            logger.info('# Convert to tiled tiff')
+
+            params = ["vips", "tiffsave", params["fname"], output1,
+                      "--compression=jpeg", "--tile", "--tile-width=256",
+                      "--tile-height=256", "--bigtiff"]
+
+            subprocess.call(params)
+
+        lock.release()
+        return output1
+
+
 if __name__ == "__main__":
-    reader = PreprocessReaderJp2()
-    reader.set_input_params({"fname": "/home/dhan/Downloads/jp2/Bretagne2.j2k"})
+    reader = PreprocessReaderTif()
+    reader.set_input_params({"fname": "/home/local/KHQ/dhanannjay.deo/data/tif/try.tif"})
     logger.debug('%s', reader.name)
     # i = reader.get_tile(26000, 83000)
     # i.save("tile.jpg")
