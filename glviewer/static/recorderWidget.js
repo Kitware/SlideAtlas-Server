@@ -30,37 +30,41 @@ function ViewerRecord () {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
-  if ( ! obj.Camera) {
-      var bds = obj.Image.bounds;
-      if (bds) {
-          obj.Camera = {FocalPoint: [(bds[0]+bds[1])/2, (bds[2]+bds[3])/2],
-                        Height: bds[3]-bds[2],
-                        Roll: 0};
-      }
-  }
-
-  for (ivar in obj) {
-      this[ivar] = obj[ivar];
-  }
-
-  if (! this.OverviewBounds) {
-      this.OverviewBounds = this.Image.bounds;
-  }
-
-  if (this.Annotations) {
-    for (var i = 0; i < this.Annotations.length; ++ i) {
-      var a = this.Annotations[i];
-      if (a && a.color) {
-        a.color = ConvertColor(a.color);
-      }
+    for (ivar in obj) {
+        this[ivar] = obj[ivar];
     }
-  }
 
-  if (this.Transform) {
-      var t = new PairTransformation;
-      t.Load(this.Transform);
-      this.Transform = t;
-  }
+    if ( ! obj.Camera) {
+        var bds = obj.Image.bounds;
+        if (bds) {
+            obj.Camera = {FocalPoint: [(bds[0]+bds[1])/2, (bds[2]+bds[3])/2],
+                          Height: bds[3]-bds[2],
+                          Width: bds[1]-bds[0],
+                          Roll: 0};
+        }
+    }
+    if ( this.Camera.Width === undefined) {
+        this.Camera.Width = this.Camera.Height * 1.62;
+    }
+
+    if (! this.OverviewBounds) {
+        this.OverviewBounds = this.Image.bounds;
+    }
+
+    if (this.Annotations) {
+        for (var i = 0; i < this.Annotations.length; ++ i) {
+            var a = this.Annotations[i];
+            if (a && a.color) {
+                a.color = ConvertColor(a.color);
+            }
+        }
+    }
+
+    if (this.Transform) {
+        var t = new PairTransformation;
+        t.Load(this.Transform);
+        this.Transform = t;
+    }
 }
 
 

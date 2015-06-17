@@ -1,10 +1,10 @@
 //==============================================================================
 // TODO:
 // - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html
-// - control the size of the text.
-// - Convert a session to a presentation.
 // - Resize the view area to fit the note text.
 // - Edit mode: resize views
+// - Allow views to go full screen.
+// - Sortable slides in slide div.
 
 
 //==============================================================================
@@ -31,6 +31,8 @@ function PresentationMain(viewId) {
 
 function Presentation(rootNote, edit) {
     var self = this;
+    this.Edit = edit;
+
     if (rootNote.Type != "Presentation") {
         rootNote.Type = "Presentation";
         rootNote.Save();
@@ -64,8 +66,7 @@ function Presentation(rootNote, edit) {
             'right':'0em',
             'width': 'auto'});
 
-    this.EditPanel = null;
-    if (edit) {
+    if (this.Edit) {
         this.EditDiv = $('<div>')
             .appendTo(this.WindowDiv)
             .css({
@@ -101,7 +102,29 @@ function Presentation(rootNote, edit) {
     eventuallyRender();
 }
 
+Presentation.prototype.FullScreen = function () {
+    var elem = document.body;
 
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+    }
+}
+
+
+Presentation.prototype.EditOff = function () {
+    if (EDIT && this.Edit) {
+        this.Edit = false;
+        this.EditDiv.hide();
+        this.TitlePage.EditOff();
+        this.SlidePage.EditOff();
+    }
+}
 
 
 Presentation.prototype.MakeEditPanel = function () {
@@ -122,19 +145,69 @@ Presentation.prototype.MakeEditPanel = function () {
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
-    this.InsertSlideButton = $('<button>')
+    this.ShowButton = $('<img>')
         .appendTo(this.SlidesTab.Div)
-        .click(function () { self.InsertNewSlide();})
-        .text("New Slide");
-    this.ShowButton = $('<button>')
-        .appendTo(this.SlidesTab.Div)
-        .click(function () { alert("Show");})
-        .text("Show");
-    this.SaveButton = $('<button>')
-        .appendTo(this.SlidesTab.Div)
+        .prop('title', "present")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/slide_show.png')
         .css({'float':'right'})
-        .click(function () { self.Save();})
-        .text("Save");
+        .click(function () { 
+            self.EditOff(); 
+            self.HandleResize();
+            self.FullScreen();
+        });
+    this.TimerButton = $('<img>')
+        .appendTo(this.SlidesTab.Div)
+        .prop('title', "present timed")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/timer.png')
+        .css({'float':'right'})
+        .click(function () {
+            self.EditOff();
+            self.HandleResize();
+            self.FullScreen();
+            EVENT_MANAGER.FocusOut();
+            var dialog = $('<div>')
+                .dialog({
+                    modal: true,
+                    resizable:false,
+                    position: {
+                        my: "left top",
+                        at: "left top",
+                        of: window
+                    },
+                    buttons: {
+                        "Start": function () {
+                                     var duration = parseInt(self.DurationInput.val());
+                                     self.TimerCallback(duration*1000);
+                                     $(this).dialog("destroy");
+                                 },
+                    }
+                });
+            self.DurationLabel = $('<label>')
+                .appendTo(dialog)
+                .text("Seconds:");
+            self.DurationInput = $('<input type="number" min="1" step="1">')
+                .appendTo(dialog)
+                .val(30)
+                .css({'width':'4em'});
+                
+        });
+    this.SaveButton = $('<img>')
+        .appendTo(this.SlidesTab.Div)
+        .prop('title', "save")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/save22.png')
+        .css({'float':'right'})
+        .click(function () { self.Save();});
+    this.InsertSlideButton = $('<img>')
+        .appendTo(this.SlidesTab.Div)
+        .prop('title', "new slide")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/new_window.png')
+        .css({'float':'right'})
+        .click(function () { self.InsertNewSlide();});
+
 
     this.ClipboardTab.Div 
         .appendTo(this.EditDiv)
@@ -209,9 +282,41 @@ Presentation.prototype.MakeEditPanel = function () {
               'width':'100%',
               'overflow-y':'auto'});
 
-    this.ClipboardTab.Show();
+    this.SlidesTab.Open();
 }
 
+Presentation.prototype.TimerCallback = function(duration) {
+    if (this.Index == this.RootNote.Children.length) {
+        this.GotoSlide(0);
+        // stop
+        return;
+    }   
+
+    this.GotoSlide(this.Index+1);
+
+    // Hack to get rid of anwers.
+    // Select everything in the editor.
+    var editor = this.SlidePage.List.TextEntry[0];
+    $(editor).attr('contenteditable', 'true');
+    var sel = window.getSelection();
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // remove bold formating
+    document.execCommand('bold',false,null);
+    document.execCommand('bold',false,null);
+    // remove the selection
+    range.collapse(false);
+    // The collapse has no effect without this.
+    sel.removeAllRanges();
+    sel.addRange(range);
+    $(editor).attr('contenteditable', 'false');
+
+    // Wait before advancing.
+    var self = this;
+    setTimeout(function(){ self.TimerCallback(duration);}, duration);
+}
 
 Presentation.prototype.SearchCallback = function() {
     var self = this;
@@ -266,7 +371,6 @@ Presentation.prototype.LoadSearchResults = function(data) {
                 self.AddViewCallback2(this.id);
             });
     }
-    
 }
 
 Presentation.prototype.MakeDataUri = function(aview) {
@@ -325,7 +429,7 @@ Presentation.prototype.ClipboardDeleteAll = function() {
 
 
 Presentation.prototype.RecordView1 = function() {
-    if (this.Note && 
+    if (this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
         this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
@@ -334,7 +438,7 @@ Presentation.prototype.RecordView1 = function() {
 
 
 Presentation.prototype.RecordView2 = function() {
-    if (this.Note && 
+    if (this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
         this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
@@ -347,9 +451,6 @@ Presentation.prototype.AddViewCallback = function(idx) {
     this.ClipboardViews[idx];
     var record = new ViewerRecord();
     record.Load(this.ClipboardViews[idx].ViewerRecords[0]);
-    if (record.Camera.Width == undefined) {
-        record.Camera.Width = record.Camera.Height*1.62;
-    }
     this.Note.ViewerRecords.push(record);
     // The root needs a record to show up in the session.
     if (this.RootNote.ViewerRecords.length == 0) {
@@ -365,9 +466,6 @@ Presentation.prototype.AddViewCallback2 = function(id) {
     var note = new Note();
     note.LoadViewId(id, function () {
         var record = note.ViewerRecords[0];
-        if (record.Camera.Width == undefined) {
-            record.Camera.Width = record.Camera.Height*1.62;
-        }
         self.Note.ViewerRecords.push(record);
         // The root needs a record to show up in the session.
         if (self.RootNote.ViewerRecords.length == 0) {
@@ -437,6 +535,10 @@ Presentation.prototype.HandleKeyUp = function(event) {
 
 
 Presentation.prototype.Save = function (){
+    if (this.Index == 0) { 
+        this.TitlePage.UpdateEdits();
+        this.SlidePage.UpdateEdits();
+    }
     this.SaveButton.css({'color':'#F00'});
     this.RootNote.Save(
         function() {
@@ -473,6 +575,14 @@ Presentation.prototype.GotoSlide = function (index){
     if (index < 0 || index > this.RootNote.Children.length) {
         return;
     }
+    if (this.Edit) {
+        if (this.Index == 0) {
+            this.TitlePage.UpdateEdits();
+        } else {
+            this.SlidePage.UpdateEdits();
+        }
+    }
+
     this.Index = index;
     if (index == 0) {
         this.SlidePage.Div.hide();
@@ -492,6 +602,9 @@ Presentation.prototype.GotoSlide = function (index){
 // TODO:
 // Get rid of the width dependency on edit
 function SlidePage(parent, edit) {
+    var self = this;
+    this.Edit = edit;
+    this.Note = null;
     this.Records = []; // views.
 
     this.Div = $('<div>')
@@ -567,7 +680,13 @@ function SlidePage(parent, edit) {
     VIEWER2.MainView.Canvas.css({'box-shadow': '10px 10px 5px #AAA'});
 
 
-    if (edit) {
+    if (this.Edit) {
+        this.AnnotationWidget1 = new AnnotationWidget(VIEWER1);
+        this.AnnotationWidget1.SetVisibility(2);
+
+        this.AnnotationWidget2 = new AnnotationWidget(VIEWER2);
+        this.AnnotationWidget2.SetVisibility(2);
+
         VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
         VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
         this.RemoveView1Button = $('<img>')
@@ -616,6 +735,65 @@ function SlidePage(parent, edit) {
                 // Hack to reload viewer records.
                 PRESENTATION.DeleteSlide(self.Index);
             });
+
+        // Setup view resizing.
+        VIEWER1.MainView.CanvasDiv.resizable();
+        // For a method to get called when resize stops.
+        // Gets call on other mouse ups, but this is ok.
+        VIEWER1.MainView.CanvasDiv
+            .mouseup(function () {
+                VIEWER1.Focus = true;
+                self.UpdateEdits();
+                PRESENTATION.HandleResize();
+            });
+        VIEWER1.MainView.CanvasDiv
+            .resize(function () {
+                VIEWER1.Focus = false;
+                var vp = VIEWER1.GetViewport();
+                vp[2] = $(this).width();
+                vp[3] = $(this).height();
+                VIEWER1.SetViewport(vp);
+                eventuallyRender();
+                return false;
+            });
+
+        VIEWER2.MainView.CanvasDiv.resizable();
+        // For a method to get called when resize stops.
+        // Gets call on other mouse ups, but this is ok.
+        VIEWER2.MainView.CanvasDiv
+            .mouseup(function () {
+                VIEWER2.Focus = true;
+                self.UpdateEdits();
+                PRESENTATION.HandleResize();
+            });
+        VIEWER2.MainView.CanvasDiv
+            .resize(function () {
+                VIEWER2.Focus = false;
+                var vp = VIEWER2.GetViewport();
+                vp[2] = $(this).width();
+                vp[3] = $(this).height();
+                VIEWER2.SetViewport(vp);
+                eventuallyRender();
+                return false;
+            });
+    }
+}
+
+SlidePage.prototype.EditOff = function () {
+    if (EDIT && this.Edit) {
+        this.Edit = false;
+        this.Div.css({'width': '100%', 'left': '0px'});
+        this.AnnotationWidget1.hide();
+        this.AnnotationWidget2.hide();
+        VIEWER1.OnInteraction();
+        VIEWER2.OnInteraction();
+        this.RemoveView1Button.hide();
+        this.RemoveView2Button.hide();
+        this.DeleteSlideButton.hide();
+        this.List.EditOff();
+        // This causes the viewers to look transparent.
+        //VIEWER1.MainView.CanvasDiv.resizable('disable');
+        //VIEWER2.MainView.CanvasDiv.resizable('disable');
     }
 }
 
@@ -671,18 +849,25 @@ SlidePage.prototype.ResizeViews = function ()
         record = this.Records[1];
         this.PlaceViewer(VIEWER2, record, [halfWidth,0,halfWidth,height]);
     }
-    if (EDIT) {
+    if (this.Edit) {
         if (numRecords == 0) {
+            // TODO: View shoulw have hide/show methods and manage this.
             this.RemoveView1Button.hide();
+            this.AnnotationWidget1.hide();
             this.RemoveView2Button.hide();
+            this.AnnotationWidget2.hide();
         }
         if (numRecords == 1) {
             this.RemoveView1Button.show();
+            this.AnnotationWidget1.show();
             this.RemoveView2Button.hide();
+            this.AnnotationWidget2.hide();
         }
         if (numRecords == 2) {
             this.RemoveView1Button.show();
+            this.AnnotationWidget1.show();
             this.RemoveView2Button.show();
+            this.AnnotationWidget2.show();
         }
         var viewport = VIEWER1.GetViewport();
         this.RemoveView1Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
@@ -694,6 +879,7 @@ SlidePage.prototype.ResizeViews = function ()
 
 SlidePage.prototype.DisplayNote = function (index, note) {
     this.Div.show();
+    this.Note = note;
     VIEWER1.Reset();
     VIEWER2.Reset();
     this.Records = note.ViewerRecords; // save this for resizing.
@@ -719,14 +905,34 @@ SlidePage.prototype.DisplayNote = function (index, note) {
 }
 
 
+// We need to copy the annotation (maybe view in the future)
+// Interaction does not actach all annotation changes.
+SlidePage.prototype.UpdateEdits = function () {
+    if (this.Note &&
+        this.Note.ViewerRecords.length > 0 &&
+        this.Note.ViewerRecords[0]) {
+        this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
+    }
+
+    if (this.Note &&
+        this.Note.ViewerRecords.length > 1 &&
+        this.Note.ViewerRecords[1]) {
+        this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
+    }
+}
+
+
 //==============================================================================
 
 // TODO:
 // Get rid of the width dependency on edit.
 function TitlePage (parent, edit) {
+    this.Edit = edit;
+    this.Note = null;
     this.Div = $('<div>')
         .appendTo(parent)
         .css({
+            'background':'#FFF',
             'position' : 'absolute',
             'width': '100%',
             'height': '100%',
@@ -793,30 +999,36 @@ function TitlePage (parent, edit) {
               'minimum-width':'10em',
               'top': '2em'});
 
-    if (edit) {
+    if (this.Edit) {
         var self = this;
         this.Title
             .focusin(function() { EVENT_MANAGER.FocusOut(); })
-            .focusout(
-                function() {
-                    EVENT_MANAGER.FocusIn();
-                    if (PRESENTATION)
-                        PRESENTATION.Note.HiddenTitle = self.Title.html();
-                });
+            .focusout(function() { EVENT_MANAGER.FocusIn(); });
         this.AuthorText
-            .focusin(function() {
-                EVENT_MANAGER.FocusOut();
-            })
-            .focusout(
-                function() {
-                    EVENT_MANAGER.FocusIn();
-                    if (PRESENTATION)
-                        PRESENTATION.Note.Text = self.AuthorText.html();
-                });
+            .focusin(function() { EVENT_MANAGER.FocusOut(); })
+            .focusout(function() { EVENT_MANAGER.FocusIn(); });
     }
 }
 
+
+TitlePage.prototype.EditOff = function () {
+    if (EDIT && this.Edit) {
+        this.Edit = false;
+        this.Div.css({'width': '100%', 'left': '0px'});
+        this.Title.attr('readonly', 'readonly')
+            .unbind('focusin')
+            .unbind('focusout')
+            .blur();
+        this.AuthorText.attr('readonly', 'readonly')
+            .unbind('focusin')
+            .unbind('focusout')
+            .blur();
+    }
+}
+
+
 TitlePage.prototype.DisplayNote = function (note) {
+    this.Note = note;
     this.Div.show();
     this.Title.html(note.HiddenTitle);
     this.AuthorText.html(note.Text);
@@ -843,5 +1055,13 @@ TitlePage.prototype.DisplayNote = function (note) {
     sel.removeAllRanges();
     this.Title.blur();
     this.AuthorText.blur();
+}
+
+
+TitlePage.prototype.UpdateEdits = function () {
+    if (this.Note) {
+        this.Note.Text = this.AuthorText.html();
+        this.Note.HiddenTitle = this.Title.html();
+    }
 }
 
