@@ -169,11 +169,12 @@ Presentation.prototype.MakeEditPanel = function () {
         },
     });
 
-    this.SearchTab.Div 
+    this.SearchTab.Div
         .appendTo(this.EditDiv)
         .hide()
-        .css({'width': '100%',
-              'min-height':'50%',
+        .css({'position':'relative',
+              'width': '100%',
+              'min-height':'95%',
               'overflow': 'auto',
               'border-width': '1px',
               'border-style': 'solid',
@@ -182,8 +183,100 @@ Presentation.prototype.MakeEditPanel = function () {
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
+    this.SearchForm = $('<form>')
+        .appendTo(this.SearchTab.Div)
+        .css({'width':'100%',
+              'display':'table'})
+        .submit(function(e) {PRESENTATION.SearchCallback(); return false;});
+    this.SearchLabel = $('<span>')
+        .appendTo(this.SearchForm)
+        .css({'display':'table-cell',
+              'padding':'8px',
+              'width':'3.5em'})
+        .text("Search:");
+    this.SearchInput = $('<input>')
+        .appendTo(this.SearchForm)
+        .css({'width':'95%',
+              'display':'table-cell',
+              'border':'2px inset #CCC'})
+        .focusin(function() { EVENT_MANAGER.FocusOut(); })
+        .focusout(function() { EVENT_MANAGER.FocusIn(); });
+    this.SearchResults = $('<div>')
+        .appendTo(this.SearchTab.Div)
+        .css({'position':'absolute',
+              'top':'2em',
+              'bottom':'0px',
+              'width':'100%',
+              'overflow-y':'auto'});
 
     this.ClipboardTab.Show();
+}
+
+
+Presentation.prototype.SearchCallback = function() {
+    var self = this;
+    var terms = this.SearchInput.val();
+    $.ajax({
+        type: "get",
+        url: "/query",
+        data: {'terms': terms},
+        success: function(data,status){
+            self.LoadSearchResults(data);
+        },
+        error: function() { alert( "AJAX - error() : query" );},
+    });
+}
+
+
+Presentation.prototype.LoadSearchResults = function(data) {
+    var self = this;
+    this.SearchResults.empty();
+
+    // Lets get the collection too.
+    var collectionTitles = {};
+    var collections = data.selected_and_accessible_views_in_collections;
+    for (var i = 0; i < collections.length; ++i) {
+        var collection = collections[i];
+        for (var j = 0; j < collection.sessions.length; ++j) {
+            var session = collection.sessions[j];
+            var collectionTitle = session.collection_label;
+            for (var k = 0; k < session.views.length; ++k) {
+                var viewId = session.views[k];
+                collectionTitles[viewId] = collectionTitle;
+            }
+        }
+    }
+
+    // These are in order of best match.
+    for (prop in data.selected_and_accessible_views) {
+        var aview = data.selected_and_accessible_views[prop];
+        var collectionTitle = collectionTitles[prop];
+        var thumb = $('<img>')
+            .appendTo(this.SearchResults)
+            .attr('src', this.MakeDataUri(aview))
+            .prop('title', aview.Title + '\n' + collectionTitle)
+            .css({'float':'left',
+                  'margin':'5px',
+                  'border': '1px solid #AAA',
+                  'height': '60px'})
+            .attr('id', aview._id)
+            .hover(function(){$(this).css({'border-color':'#00F'});},
+                   function(){$(this).css({'border-color':'#AAA'});})
+            .click(function(){
+                self.AddViewCallback2(this.id);
+            });
+    }
+    
+}
+
+Presentation.prototype.MakeDataUri = function(aview) {
+    // Makes a data-uri for macro thumbs if supplied, or else refers
+    // to url endpoint
+    if(aview.thumbs && aview.thumbs.macro && aview.thumbs.macro.length > 0) {
+        return "data:image/jpeg;base64," + aview.thumbs.macro;
+    } else {
+        return "/viewthumb?viewid=" +aview._id + "&binary=1";
+    }
 }
 
 
@@ -265,6 +358,25 @@ Presentation.prototype.AddViewCallback = function(idx) {
 
     // Hack to reload viewer records.
     this.GotoSlide(this.Index);
+}
+
+Presentation.prototype.AddViewCallback2 = function(id) {
+    var self = this;
+    var note = new Note();
+    note.LoadViewId(id, function () {
+        var record = note.ViewerRecords[0];
+        if (record.Camera.Width == undefined) {
+            record.Camera.Width = record.Camera.Height*1.62;
+        }
+        self.Note.ViewerRecords.push(record);
+        // The root needs a record to show up in the session.
+        if (self.RootNote.ViewerRecords.length == 0) {
+            self.RootNote.ViewerRecords.push(record);
+        }
+
+        // Hack to reload viewer records.
+        self.GotoSlide(self.Index);
+    });
 }
 
 
