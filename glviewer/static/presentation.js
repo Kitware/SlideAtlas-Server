@@ -575,7 +575,9 @@ Presentation.prototype.GotoSlide = function (index){
     if (index < 0 || index > this.RootNote.Children.length) {
         return;
     }
-    if (this.Edit) {
+    // Insert view calls Goto with the same index.
+    // We do not want to overwrite the new view with a blank viewer.
+    if (this.Edit && index != this.Index) {
         if (this.Index == 0) {
             this.TitlePage.UpdateEdits();
         } else {
