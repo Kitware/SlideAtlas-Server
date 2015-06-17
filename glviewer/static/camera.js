@@ -9,6 +9,7 @@ function Camera () {
     this.Roll = 0;
     this.Matrix = mat4.create();
     this.Height = 256.0 * 64.0;
+    this.Width = this.Height * 1.62;
     this.FocalPoint = [128.0*64.0, 128.0*64.0, 10.0];
     this.ComputeMatrix();
     // for drawing the view bounds.
@@ -18,7 +19,7 @@ function Camera () {
     this.Mirror = false;
 
     // Placeholders
-    this.ViewportWidth = 100;
+    this.ViewportWidth = 162;
     this.ViewportHeight = 100;
 }
 
@@ -26,6 +27,7 @@ Camera.prototype.DeepCopy = function (inCam) {
     this.ZRange = inCam.ZRange.slice(0);
     this.Roll = inCam.Roll;
     this.Height = inCam.Height;
+    this.Width = inCam.Width;
     this.FocalPoint = inCam.FocalPoint.slice(0);
     this.ViewportWidth = inCam.ViewportWidth;
     this.ViewportHeight = inCam.ViewportHeight;
@@ -33,12 +35,13 @@ Camera.prototype.DeepCopy = function (inCam) {
 }
 
 Camera.prototype.SetViewport = function (viewport) {
-  if (10*viewport[3] < viewport[2]) {
-    //alert("Unusual viewport " + viewport[3]);
-    return;
-  }
-  this.ViewportWidth = viewport[2];
-  this.ViewportHeight = viewport[3];
+    if (10*viewport[3] < viewport[2]) {
+        //alert("Unusual viewport " + viewport[3]);
+        return;
+    }
+    this.ViewportWidth = viewport[2];
+    this.ViewportHeight = viewport[3];
+    this.Width = this.Height * this.ViewportWidth / this.ViewportHeight;
 }
 
 
@@ -52,12 +55,18 @@ Camera.prototype.Serialize = function () {
 }
 
 Camera.prototype.Load = function (obj) {
-  this.FocalPoint[0] = obj.FocalPoint[0];
-  this.FocalPoint[1] = obj.FocalPoint[1];
-  this.Roll = obj.Roll;
-  this.Height = obj.Height;
-  // Width is computed from height and aspect.
-  this.ComputeMatrix();
+    this.FocalPoint[0] = obj.FocalPoint[0];
+    this.FocalPoint[1] = obj.FocalPoint[1];
+    this.Roll = obj.Roll;
+    this.Height = obj.Height;
+    if (obj.Width) {
+        this.Width = obj.Width;
+    } else {
+        this.Width = this.Height * 1.62;
+    }
+
+    // Width is computed from height and aspect.
+    this.ComputeMatrix();
 }
 
 
@@ -181,16 +190,18 @@ Camera.prototype.GetHeight = function () {
 
 
 Camera.prototype.SetHeight = function (height) {
-  if (isNaN(height)) {
-    console.log("Camera 3");
-    return;
-  }
-  this.Height = height;
+    if (isNaN(height)) {
+        console.log("Camera 3");
+        return;
+    }
+    // Width tracks height.
+    this.Width = this.Width * height/this.Height;
+    this.Height = height;
 }
 
 
 Camera.prototype.GetWidth = function () {
-  return this.Height * this.ViewportWidth / this.ViewportHeight;
+    return this.Width;
 }
 
 
