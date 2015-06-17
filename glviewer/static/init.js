@@ -729,13 +729,13 @@ function Main2(rootNote) {
         var viewMenu1 = new ViewEditMenu(VIEWER1);
         VIEW_MENU = viewMenu1;
         var viewMenu2 = new ViewEditMenu(VIEWER2);
-    }
 
-    var annotationWidget1 = new AnnotationWidget(VIEWER1);
-    annotationWidget1.SetVisibility(2);
-    var annotationWidget2 = new AnnotationWidget(VIEWER2);
-    annotationWidget1.SetVisibility(2);
-    DualViewUpdateGui();
+        var annotationWidget1 = new AnnotationWidget(VIEWER1);
+        annotationWidget1.SetVisibility(2);
+        var annotationWidget2 = new AnnotationWidget(VIEWER2);
+        annotationWidget1.SetVisibility(2);
+        DualViewUpdateGui();
+    }
 
     $(window).bind('orientationchange', function(event) {
         handleResize();

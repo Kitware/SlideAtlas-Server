@@ -116,16 +116,30 @@ function NotesWidgetTab(parent, title) {
               'z-index' : '6',
               'background': 'white'})
         .click(function(){
-            self.Show();
+            self.Open();
         });
     // Now: all tabs have to be added before divs.
     // TODO: Make a separate tab div / tab panel object.
     this.Div = $('<div>')
         .css({'z-index' : '5'});
-
+    this.IsOpen = false;
 }
 
-NotesWidgetTab.prototype.Show = function () {
+// Show hide the tool tab button
+NotesWidgetTab.prototype.show = function() {
+    this.Tab.show();
+    if (this.IsOpen) {
+        this.Div.show();
+    }
+}
+
+NotesWidgetTab.prototype.hide = function() {
+    this.Tab.hide()
+    this.Div.hide();
+}
+
+NotesWidgetTab.prototype.Open = function () {
+    this.IsOpen = true;
     for (var i = 0; i < NOTES_WIDGET_TABS.length; ++i) {
         var tabPanel = NOTES_WIDGET_TABS[i];
         tabPanel.Div.hide();
@@ -147,7 +161,9 @@ NotesWidgetTab.prototype.Show = function () {
 function TextEditor(parent, edit) {
     var self = this;
     this.Parent = parent;
+    this.Edit = edit;
     if (edit) {
+        this.EditButtons = [];
         this.AddEditButton("webgl-viewer/static/camera.png", "link view",
                            function() {self.InsertCameraLink();});
         this.AddEditButton("webgl-viewer/static/link.png", "link URL",
@@ -232,10 +248,27 @@ TextEditor.prototype.Save = function() {
     }
 }
 
+TextEditor.prototype.EditOff = function() {
+    if ( ! this.Edit) { return;}
+
+    for (var i = 0; i < this.EditButtons.length; ++i) {
+        this.EditButtons[i].hide();
+    }
+    
+    this.TextEntry
+        .attr('contenteditable', 'false')
+        .css({'border-style': 'outset',
+              'background': '#ffffff'})
+        .unbind('input')
+        .unbind('focusin')
+        .unbind('focusout')
+        .unbind('mouseleave')
+        .blur();
+}
 
 TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
     var self = this;
-    var button = $('<img>')
+    var button = $('<img>');
     if (tooltip) {
         //button = $('<img title="'+tooltip+'">')
         button.prop('title', tooltip);
@@ -245,6 +278,7 @@ TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
         .addClass('editButton')
         .attr('src',src)
         .click(callback);
+    this.EditButtons.push(button);
 }
 
 // Get the selection in this editor.  Returns a range.
@@ -2107,9 +2141,9 @@ NotesWidget.prototype.DisplayRootNote = function() {
 
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
-        this.LinksTab.Show();
+        this.LinksTab.Open();
     } else {
-        this.TextTab.Show();
+        this.TextTab.Open();
         // Hack to open the notes window if we have text.
         if ( ! this.Visibility && ! MOBILE_DEVICE) {
             this.ToggleNotesWindow();

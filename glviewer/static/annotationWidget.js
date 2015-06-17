@@ -15,126 +15,132 @@ function AnnotationWidget (viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
     viewer.AnnotationWidget = this;
-    
-    if ( ! MOBILE_DEVICE) {
-        this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
-        viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
-        new ToolTip(this.Tab.Div, "Annotation");
 
+    this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
+    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
+    new ToolTip(this.Tab.Div, "Annotation");
 
-        this.Tab.Panel.css({'width': '108px',
-                            'left': '-38px'});
-        this.VisibilityDiv = $('<div>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.9',
-                  'overflow': 'hidden',
-                  'position': 'relative'})
-            .click(function(){self.ToggleVisibility();});
-        this.VisibilityImage = $('<img>')
-            .appendTo(this.VisibilityDiv)
-            .css({'height': '56px',
-                  'opacity': '0.6',
-                  'position': 'relative'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
+    this.Tab.Panel.css({'width': '108px',
+                        'left': '-38px'});
+    this.VisibilityDiv = $('<div>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.9',
+              'overflow': 'hidden',
+              'position': 'relative'})
+        .click(function(){self.ToggleVisibility();});
+    this.VisibilityImage = $('<img>')
+        .appendTo(this.VisibilityDiv)
+        .css({'height': '56px',
+              'opacity': '0.6',
+              'position': 'relative'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
-        this.TextButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/Text.gif")
-            .click(function(){self.NewText();});
-        this.CircleButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/Circle.gif")
-            .click(function(){self.NewCircle();});
-        this.PolylineButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/FreeForm.gif")
-            .click(function(){self.NewPolyline();});
-        this.PencilButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
-            .click(function(){self.NewPencil();});
-        this.LassoButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/select_lasso.png")
-            .click(function(){self.NewLasso();});
-        this.SectionsButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/sections.png")
-            .click(function(){self.DetectSections();});
-        /*this.FillButton = $('<img>')
-            .appendTo(this.Tab.Panel)
-            .css({'height': '28px',
-                  'opacity': '0.6',
-                  'margin': '1px',
-                  'border-style': 'outset',
-                  'border-radius': '4px',
-                  'border-thickness':'2px'})
-            .attr('type','image')
-            .attr('src',"/webgl-viewer/static/brush1.jpg")
-            .click(function(){self.NewFill();});
-            */
-    }
+    this.TextButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/Text.gif")
+        .click(function(){self.NewText();});
+    this.CircleButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/Circle.gif")
+        .click(function(){self.NewCircle();});
+    this.PolylineButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/FreeForm.gif")
+        .click(function(){self.NewPolyline();});
+    this.PencilButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
+        .click(function(){self.NewPencil();});
+    this.LassoButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/select_lasso.png")
+        .click(function(){self.NewLasso();});
+    this.SectionsButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .css({'height': '28px',
+              'opacity': '0.6',
+              'margin': '1px',
+              'border-style': 'outset',
+              'border-radius': '4px',
+              'border-thickness':'2px'})
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/sections.png")
+        .click(function(){self.DetectSections();});
+    /*this.FillButton = $('<img>')
+      .appendTo(this.Tab.Panel)
+      .css({'height': '28px',
+      'opacity': '0.6',
+      'margin': '1px',
+      'border-style': 'outset',
+      'border-radius': '4px',
+      'border-thickness':'2px'})
+      .attr('type','image')
+      .attr('src',"/webgl-viewer/static/brush1.jpg")
+      .click(function(){self.NewFill();});
+    */
+}
+
+// Show hide the tool tab button
+AnnotationWidget.prototype.show = function() {
+    this.Tab.show()
+}
+
+AnnotationWidget.prototype.hide = function() {
+    this.Tab.hide()
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
-  if (this.Viewer.GetAnnotationVisibility() == visibility) {
-    return;
-  }
-  if (this.VisibilityImage) {
-    if (visibility == ANNOTATION_OFF) {
-        this.VisibilityImage.css({'top': '-30px'});
-    } else {
-        this.VisibilityImage.css({'top': '1px'});
+    if (this.Viewer.GetAnnotationVisibility() == visibility) {
+        return;
     }
-  }
+    if (this.VisibilityImage) {
+        if (visibility == ANNOTATION_OFF) {
+            this.VisibilityImage.css({'top': '-30px'});
+        } else {
+            this.VisibilityImage.css({'top': '1px'});
+        }
+    }
 
-  this.Viewer.SetAnnotationVisibility(visibility);
+    this.Viewer.SetAnnotationVisibility(visibility);
 
-  eventuallyRender();
+    eventuallyRender();
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {

@@ -21,6 +21,9 @@ var INTERACTION_ICON_ROTATE = 6;
 function Viewer (viewport) {
     var self = this;
 
+    // Hack to stop receiving events.
+    this.Focus = true
+
     this.HistoryFlag = false;
     
     // Interaction state:
@@ -264,29 +267,29 @@ Viewer.prototype.RollMove = function (e) {
  }
 
 
- Viewer.prototype.GetMainCanvas = function() {
-     return this.MainView.Canvas;
- }
+Viewer.prototype.GetMainCanvas = function() {
+    return this.MainView.Canvas;
+}
 
- // A way to have a method called every time the camera changes.
- // Will be used for synchronizing viewers for stacks.
- Viewer.prototype.OnInteraction = function(callback) {
-     // How should we remove listners?
-     // Global clear for now.
-     if ( ! callback) {
-         this.InteractionListeners = [];
-     } else {
-         this.InteractionListeners.push(callback);
-     }
- }
+// A way to have a method called every time the camera changes.
+// Will be used for synchronizing viewers for stacks.
+Viewer.prototype.OnInteraction = function(callback) {
+    // How should we remove listners?
+    // Global clear for now.
+    if ( ! callback) {
+        this.InteractionListeners = [];
+    } else {
+        this.InteractionListeners.push(callback);
+    }
+}
 
 
- Viewer.prototype.TriggerInteraction = function() {
-     for (var i = 0; i < this.InteractionListeners.length; ++i) {
-         callback = this.InteractionListeners[i];
-         callback();
-     }
- }
+Viewer.prototype.TriggerInteraction = function() {
+    for (var i = 0; i < this.InteractionListeners.length; ++i) {
+        callback = this.InteractionListeners[i];
+        callback();
+    }
+}
 
 
 Viewer.prototype.InitializeZoomGui = function() {
@@ -374,7 +377,7 @@ Viewer.prototype.InitializeZoomGui = function() {
 
 Viewer.prototype.UpdateZoomGui = function() {
     if ( ! this.ZoomDisplay) { return; }
-    var camHeight = this.GetCamera().Height;
+    var camHeight = this.GetCamera().GetHeight();
     var windowHeight = this.GetViewport()[3];
     // Assume image scanned at 40x
     var zoomValue = 40.0 * windowHeight / camHeight;
@@ -426,6 +429,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     view.Canvas.attr("width", width);
     view.Canvas.attr("height", height);
     var newCam = view.Camera;
+
     newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
     newCam.Roll = cam.Roll;
     newCam.Height = cam.Height;
@@ -1537,6 +1541,8 @@ Viewer.prototype.AddShape = function(shape) {
 
 
  Viewer.prototype.HandleMouseDown = function(event) {
+     if ( ! this.Focus) {return;}
+
      this.FireFoxWhich = event.which;
      event.preventDefault(); // Keep browser from selecting images.
      EVENT_MANAGER.RecordMouseDown(event);
@@ -1592,6 +1598,7 @@ Viewer.prototype.AddShape = function(shape) {
  }
 
  Viewer.prototype.HandleMouseUp = function(event) {
+
      this.FireFoxWhich = 0;
      EVENT_MANAGER.RecordMouseUp(event);
 
@@ -1630,6 +1637,8 @@ Viewer.prototype.AddShape = function(shape) {
 
 
  Viewer.prototype.HandleMouseMove = function(event) {
+     if ( ! this.Focus) {return;}
+
      event.preventDefault(); // Keep browser from selecting images.
      if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
      this.ComputeMouseWorld(event);

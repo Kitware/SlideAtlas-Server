@@ -55,11 +55,23 @@ Tab = (function () {
                 'padding': '2px 2px 0px 2px'});
 
         Tabs.push(this);
+
+        // I need to maintain this state even when the whole tab is not
+        // visible.
+        this.PanelOpen = false;
+    }
+
+
+    Tab.prototype.show = function() {
+        this.Div.show();
+    }
+    Tab.prototype.hide = function() {
+        this.Div.hide();
     }
 
 
     Tab.prototype.TogglePanel = function() {
-        if (this.Panel.is(":visible")) {
+        if (this.PanelOpen) {
             this.PanelOff();
         } else {
             this.PanelOn();
@@ -68,7 +80,8 @@ Tab = (function () {
 
 
     Tab.prototype.PanelOn = function() {
-        if (this.Panel.is(":visible")) { return; }
+        if (this.PanelOpen) { return; }
+        this.PanelOpen = true;
 
         // position returns 0 if panel is hidden.
         this.Panel.show();
@@ -96,6 +109,7 @@ Tab = (function () {
     }
 
     Tab.prototype.PanelOff = function() {
+        this.PanelOpen = false;
         this.Panel.hide();
         this.Button.css({'border-color': '#BBB',
                          'border-radius': '5px',

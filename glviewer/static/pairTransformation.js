@@ -294,10 +294,12 @@ PairTransformation.prototype.ForwardTransformCamera = function(camIn, camOut) {
     camOut.FocalPoint = this.ForwardTransform(camIn.FocalPoint, camIn.Height / 2);
     camOut.Roll = camIn.Roll + this.DeltaRoll;
     camOut.Height = camIn.Height;
+    camOut.Width = camIn.Width;
 }
 
 PairTransformation.prototype.ReverseTransformCamera = function(camIn, camOut) {
     camOut.FocalPoint = this.ReverseTransform(camIn.FocalPoint, camIn.Height / 2);
     camOut.Roll = camIn.Roll + this.DeltaRoll;
     camOut.Height = camIn.Height;
+    camOut.Width = camIn.Width;
 }

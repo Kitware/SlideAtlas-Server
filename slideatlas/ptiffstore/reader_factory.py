@@ -4,13 +4,11 @@ Introspect the system to know which readers are available
 
 """
 from .pil_reader import PilReader
-from .openslide_reader import OpenslideReader
-from .preprocess_reader import PreprocessReader
 
-import sys
 import os
 import logging
 logger = logging.getLogger('slideatlas')
+
 
 class ReaderFactory(object):
 
@@ -34,13 +32,17 @@ class ReaderFactory(object):
         if ext in ["bif"]:
             from slideatlas.ptiffstore.bif_reader import BifReader
             reader = BifReader()
-        elif ext in ["svs", "ndpi", "scn", "tif"]:
+        elif ext in ["svs", "ndpi", "scn"]:
             from slideatlas.ptiffstore.openslide_reader import OpenslideReader
             reader = OpenslideReader()
         elif ext in ["jpg", "png"]:
             reader = PilReader()
+        elif ext in ["tif", "tiff"]:
+            # needs vips
+            from slideatlas.ptiffstore.preprocess_reader import PreprocessReaderTif
+            reader = PreprocessReaderTif()
         elif ext in ["jp2", "j2k"]:
-            # formats that need conversion using outside utilities
+            # needs GDAL and benefits from kakadu
             from slideatlas.ptiffstore.preprocess_reader import PreprocessReaderJp2
             kakadu_dir = extra["kakadu_dir"] if "kakadu_dir" in extra else None
             reader = PreprocessReaderJp2(kakadu_dir=kakadu_dir)
@@ -48,7 +50,7 @@ class ReaderFactory(object):
             logger.error('Unknown extension: %s', ext)
             return None
 
-        reader.set_input_params({'fname' : fname})
+        reader.set_input_params({'fname': fname})
         return reader
 
 if __name__ == "__main__":
