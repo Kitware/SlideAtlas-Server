@@ -2141,9 +2141,9 @@ NotesWidget.prototype.DisplayRootNote = function() {
 
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
-        this.LinksTab.Show();
+        this.LinksTab.Open();
     } else {
-        this.TextTab.Show();
+        this.TextTab.Open();
         // Hack to open the notes window if we have text.
         if ( ! this.Visibility && ! MOBILE_DEVICE) {
             this.ToggleNotesWindow();
