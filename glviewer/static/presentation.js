@@ -80,6 +80,34 @@ function Presentation(rootNote, edit) {
         this.MakeEditPanel();
     }
 
+    // Float the two slide show buttons in the upper right corner.
+    this.ShowButton = $('<img>')
+        .appendTo(this.WindowDiv)
+        .prop('title', "present")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/slide_show.png')
+        .css({'position':'absolute',
+              'top':'2px',
+              'right':'0px',
+              'width':'20px',
+              'z-index':'5'})
+        .click(function () {
+            self.FullScreen();
+        });
+    this.TimerButton = $('<img>')
+        .appendTo(this.WindowDiv)
+        .prop('title', "present timed")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/timer.png')
+        .css({'position':'absolute',
+              'top':'2px',
+              'right':'26px',
+              'width':'20px',
+              'z-index':'5'})
+        .click(function () {
+            self.StartTimerShow();
+        });
+
     this.TitlePage = new TitlePage(this.WindowDiv, edit);
     this.SlidePage = new SlidePage(this.WindowDiv, edit);
 
@@ -102,8 +130,53 @@ function Presentation(rootNote, edit) {
     eventuallyRender();
 }
 
+
+Presentation.prototype.StartTimerShow = function () {
+    var self = this;
+    EVENT_MANAGER.FocusOut();
+    var dialog = $('<div>')
+        .dialog({
+            modal: false,
+            resizable:false,
+            position: {
+                my: "left top",
+                at: "left top",
+                of: window
+            },
+            beforeClose: function() {
+                //document.onkeydown = function(e) {self.HandleKeyDown(e);};
+                //document.onkeyup = function(e) {self.HandleKeyUp(e);};
+                EVENT_MANAGER.FocusIn();
+            },
+            buttons: {
+                "Start": function () {
+                    self.FullScreen();
+                    // Change seconds to milliseconds
+                    var duration = parseInt(self.DurationInput.val())*1000;
+                    // Also linger on the current slide.
+                    setTimeout(function(){ self.TimerCallback(duration);}, duration);
+                    // Should we just close and resuse the dialog?
+                    $(this).dialog("destroy");
+                }
+            }
+        });
+    this.DurationLabel = $('<label>')
+        .appendTo(dialog)
+        .text("Seconds:");
+    this.DurationInput = $('<input type="number" min="1" step="1">')
+        .appendTo(dialog)
+        .val(30)
+        .css({'width':'4em'});
+}
+
+
 Presentation.prototype.FullScreen = function () {
     var elem = document.body;
+
+    this.EditOff();
+    this.HandleResize();
+    this.ShowButton.hide();
+    this.TimerButton.hide();
 
     if (elem.requestFullscreen) {
         elem.requestFullscreen();
@@ -114,6 +187,18 @@ Presentation.prototype.FullScreen = function () {
     } else if (elem.webkitRequestFullscreen) {
         elem.webkitRequestFullscreen();
     }
+
+    // detect when we leav full screen.
+    $(elem).bind(
+        'webkitfullscreenchange mozfullscreenchange fullscreenchange',
+        function(e) {
+            var state = document.fullScreen || document.mozFullScreen ||
+                document.webkitIsFullScreen;
+            var event = state ? 'FullscreenOn' : 'FullscreenOff';
+            
+            // Now do something interesting
+            alert('Event: ' + event);
+        });
 }
 
 
@@ -145,54 +230,6 @@ Presentation.prototype.MakeEditPanel = function () {
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
-    this.ShowButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
-        .prop('title', "present")
-        .addClass('editButton')
-        .attr('src','webgl-viewer/static/slide_show.png')
-        .css({'float':'right'})
-        .click(function () { 
-            self.EditOff(); 
-            self.HandleResize();
-            self.FullScreen();
-        });
-    this.TimerButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
-        .prop('title', "present timed")
-        .addClass('editButton')
-        .attr('src','webgl-viewer/static/timer.png')
-        .css({'float':'right'})
-        .click(function () {
-            self.EditOff();
-            self.HandleResize();
-            self.FullScreen();
-            EVENT_MANAGER.FocusOut();
-            var dialog = $('<div>')
-                .dialog({
-                    modal: true,
-                    resizable:false,
-                    position: {
-                        my: "left top",
-                        at: "left top",
-                        of: window
-                    },
-                    buttons: {
-                        "Start": function () {
-                                     var duration = parseInt(self.DurationInput.val());
-                                     self.TimerCallback(duration*1000);
-                                     $(this).dialog("destroy");
-                                 },
-                    }
-                });
-            self.DurationLabel = $('<label>')
-                .appendTo(dialog)
-                .text("Seconds:");
-            self.DurationInput = $('<input type="number" min="1" step="1">')
-                .appendTo(dialog)
-                .val(30)
-                .css({'width':'4em'});
-                
-        });
     this.SaveButton = $('<img>')
         .appendTo(this.SlidesTab.Div)
         .prop('title', "save")
@@ -286,9 +323,13 @@ Presentation.prototype.MakeEditPanel = function () {
 }
 
 Presentation.prototype.TimerCallback = function(duration) {
-    if (this.Index == this.RootNote.Children.length) {
+    if (this.Index == this.GetNumberOfSlides() - 1) {
         this.GotoSlide(0);
         // stop
+        // var self = this;
+        //document.onkeydown = function(e) {self.HandleKeyDown(e);};
+        //document.onkeyup = function(e) {self.HandleKeyUp(e);};
+        EVENT_MANAGER.FocusIn();
         return;
     }   
 
@@ -306,6 +347,9 @@ Presentation.prototype.TimerCallback = function(duration) {
     // remove bold formating
     document.execCommand('bold',false,null);
     document.execCommand('bold',false,null);
+    // Hide annotations
+    this.SlidePage.AnnotationWidget1.SetVisibility(false);
+    this.SlidePage.AnnotationWidget2.SetVisibility(false);
     // remove the selection
     range.collapse(false);
     // The collapse has no effect without this.
@@ -321,14 +365,20 @@ Presentation.prototype.TimerCallback = function(duration) {
 Presentation.prototype.SearchCallback = function() {
     var self = this;
     var terms = this.SearchInput.val();
+
+    this.SearchTab.Div.css({'cursor':'progress'});
     $.ajax({
         type: "get",
         url: "/query",
         data: {'terms': terms},
         success: function(data,status){
             self.LoadSearchResults(data);
+            self.SearchTab.Div.css({'cursor':'default'});
         },
-        error: function() { alert( "AJAX - error() : query" );},
+        error: function() { 
+            alert( "AJAX - error() : query" );
+            self.SearchTab.Div.css({'cursor':'default'});
+        },
     });
 }
 
@@ -429,7 +479,7 @@ Presentation.prototype.ClipboardDeleteAll = function() {
 
 
 Presentation.prototype.RecordView1 = function() {
-    if (this.Note &&
+    if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
         this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
@@ -438,7 +488,7 @@ Presentation.prototype.RecordView1 = function() {
 
 
 Presentation.prototype.RecordView2 = function() {
-    if (this.Note &&
+    if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
         this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
@@ -529,26 +579,29 @@ Presentation.prototype.HandleKeyUp = function(event) {
         this.GotoSetSlide(0);
     }
     if (event.keyCode == "35") { // end
-        this.GotoSlide(this.RootNote.Children.length - 1);
+        this.GotoSlide(this.GetNumberOfSlides() - 1);
     }
 }
 
 
 Presentation.prototype.Save = function (){
-    if (this.Index == 0) { 
+    var self = this;
+    if (this.Index == 0) {
         this.TitlePage.UpdateEdits();
         this.SlidePage.UpdateEdits();
     }
-    this.SaveButton.css({'color':'#F00'});
+    //this.SaveButton.css({'color':'#F00'});
+    this.WindowDiv.css({'cursor':'progress'});
     this.RootNote.Save(
         function() {
-            PRESENTATION.SaveButton.css({'color':'#000'});
+            //PRESENTATION.SaveButton.css({'color':'#000'});
+            self.SearchTab.Div.css({'cursor':'default'});
         });
 }
 
 
 Presentation.prototype.DeleteSlide = function (index){
-    var maxIdx = this.RootNote.Children.length;
+    var maxIdx = this.GetNumberOfSlides() - 1;
     if (index < 1 || index > maxIdx) {
         return;
     }
@@ -572,7 +625,7 @@ Presentation.prototype.InsertNewSlide = function (){
 // 0->Root/titlePage
 // Childre/slidesn start at index 1
 Presentation.prototype.GotoSlide = function (index){
-    if (index < 0 || index > this.RootNote.Children.length) {
+    if (index < 0 || index >= this.GetNumberOfSlides()) {
         return;
     }
     // Insert view calls Goto with the same index.
@@ -593,8 +646,35 @@ Presentation.prototype.GotoSlide = function (index){
         return;
     }
     this.TitlePage.Div.hide();
-    this.Note = this.RootNote.Children[index-1];
+    this.Note = this.GetSlide(index);
     this.SlidePage.DisplayNote(index, this.Note);
+}
+
+
+Presentation.prototype.GetNumberOfSlides = function (){
+    return this.RootNote.Children.length + 1;
+}
+
+
+Presentation.prototype.GetSlide = function (idx){
+    if (idx < 0 || idx > this.RootNote.Children.length) {
+        return null;
+    }
+    if (idx == 0) {
+        return this.RootNote;
+    }
+    return this.RootNote.Children[idx-1];
+}
+
+
+Presentation.prototype.UpdateSlideTab = function (){
+    // Add the title page 
+
+
+    for (var i = 1; i < this.GetNumberOfSlides; ++i) {
+        var slide = this.GetSlide(i);
+        
+    }
 }
 
 
@@ -635,6 +715,7 @@ function SlidePage(parent, edit) {
                   'bottom': '300px',
                   'width': '100%',
                   'height': 'auto'});
+    // TODO: Get rid of this global variable.
     VIEW_PANEL = this.ViewPanel;
 
     this.BottomDiv = $('<div>')
@@ -666,6 +747,7 @@ function SlidePage(parent, edit) {
     this.TextDiv = $('<div>')
         .appendTo(this.BottomDiv)
         .css({'position':'absolute',
+              'padding-left':'2em',
               'height': '210px',
               'bottom': '5px',
               'width': '100%'});
@@ -1018,10 +1100,12 @@ TitlePage.prototype.EditOff = function () {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
         this.Title.attr('readonly', 'readonly')
+            .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();
         this.AuthorText.attr('readonly', 'readonly')
+            .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();

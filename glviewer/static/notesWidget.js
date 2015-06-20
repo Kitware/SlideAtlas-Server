@@ -257,6 +257,7 @@ TextEditor.prototype.EditOff = function() {
     
     this.TextEntry
         .attr('contenteditable', 'false')
+        .attr('spellcheck', 'false')
         .css({'border-style': 'outset',
               'background': '#ffffff'})
         .unbind('input')
