@@ -329,10 +329,10 @@
             </ul>
             {% endif %}
             <br>
+            {% if security.EditSessionRequirement(session).can() %}
             <h2>
                 <span>{{ session_son.views|length }} Images</span>
                 <div class="pull-right">
-                    {% if security.EditSessionRequirement(session).can() %}
                     <a href="{{ url_for('.session_new_stack', session=session) }}">
                         <button class="btn btn-primary badge">
                             <i class="glyphicon glyphicon-plus"></i>
@@ -345,9 +345,9 @@
                             <span> Presentation</span>
                         </button>
                     </a>
-                    {% endif %}
                 </div>
             </h2>
+            {% endif %}
 
             {% if is_session_admin %}
             <div class="flow-drop" ondragenter="jQuery(this).addClass('flow-dragover');" ondragend="jQuery(this).removeClass('flow-dragover');" ondrop="jQuery(this).removeClass('flow-dragover');">

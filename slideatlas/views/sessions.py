@@ -12,7 +12,6 @@ from slideatlas.api import apiv2
 from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
-
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -184,6 +183,7 @@ def session_new_stack(session):
 
 ################################################################################
 def deepcopyview(view_id):
+
     if view_id is None:
         return None
     admin_db = models.ImageStore._get_db()
@@ -191,11 +191,15 @@ def deepcopyview(view_id):
     if view is None:
         return None
     # copy children
+    # Also replace references to children in the html text.
     if 'Children' in view:
         new_children = []
         for child in view['Children']:
             new_child = deepcopyview(child)
             if new_child is not None:
+                # Replace the old id with the new id in the text.
+                view["Text"] = view["Text"].replace(str(child),str(new_child))
+                # Replace the reference in the chilren array.
                 new_children.append(new_child)
         view['Children'] = new_children
 
