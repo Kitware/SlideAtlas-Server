@@ -5,6 +5,7 @@
 // - Edit mode: resize views
 // - Allow views to go full screen.
 // - Sortable slides in slide div.
+// - Stop the timer when we leave full screen. Turn editing back on if EDIT.
 
 
 //==============================================================================
@@ -194,10 +195,10 @@ Presentation.prototype.FullScreen = function () {
         function(e) {
             var state = document.fullScreen || document.mozFullScreen ||
                 document.webkitIsFullScreen;
-            var event = state ? 'FullscreenOn' : 'FullscreenOff';
-            
-            // Now do something interesting
-            alert('Event: ' + event);
+            var event = state ? 'FullScreenOn' : 'FullScreenOff';
+
+            // TODO: Stop the timer when we leave full screen.
+            // Turn editing back on if EDIT.
         });
 }
 
@@ -324,11 +325,8 @@ Presentation.prototype.MakeEditPanel = function () {
 
 Presentation.prototype.TimerCallback = function(duration) {
     if (this.Index == this.GetNumberOfSlides() - 1) {
+        // Stop but stay in full screen mode.
         this.GotoSlide(0);
-        // stop
-        // var self = this;
-        //document.onkeydown = function(e) {self.HandleKeyDown(e);};
-        //document.onkeyup = function(e) {self.HandleKeyUp(e);};
         EVENT_MANAGER.FocusIn();
         return;
     }   
@@ -369,13 +367,13 @@ Presentation.prototype.SearchCallback = function() {
     this.SearchTab.Div.css({'cursor':'progress'});
     $.ajax({
         type: "get",
-        url: "/query",
+        url: "/webgl-viewer/query",
         data: {'terms': terms},
         success: function(data,status){
             self.LoadSearchResults(data);
             self.SearchTab.Div.css({'cursor':'default'});
         },
-        error: function() { 
+        error: function() {
             alert( "AJAX - error() : query" );
             self.SearchTab.Div.css({'cursor':'default'});
         },
@@ -386,40 +384,38 @@ Presentation.prototype.SearchCallback = function() {
 Presentation.prototype.LoadSearchResults = function(data) {
     var self = this;
     this.SearchResults.empty();
-
-    // Lets get the collection too.
-    var collectionTitles = {};
-    var collections = data.selected_and_accessible_views_in_collections;
-    for (var i = 0; i < collections.length; ++i) {
-        var collection = collections[i];
-        for (var j = 0; j < collection.sessions.length; ++j) {
-            var session = collection.sessions[j];
-            var collectionTitle = session.collection_label;
-            for (var k = 0; k < session.views.length; ++k) {
-                var viewId = session.views[k];
-                collectionTitles[viewId] = collectionTitle;
-            }
-        }
-    }
+    this.SearchData = data.images;
 
     // These are in order of best match.
-    for (prop in data.selected_and_accessible_views) {
-        var aview = data.selected_and_accessible_views[prop];
-        var collectionTitle = collectionTitles[prop];
-        var thumb = $('<img>')
+    for (var i = 0; i < data.images.length; ++i) {
+        imgObj = data.images[i];
+
+        var imageDiv = $('<div>')
             .appendTo(this.SearchResults)
-            .attr('src', this.MakeDataUri(aview))
-            .prop('title', aview.Title + '\n' + collectionTitle)
             .css({'float':'left',
                   'margin':'5px',
-                  'border': '1px solid #AAA',
-                  'height': '60px'})
-            .attr('id', aview._id)
+                  'border': '1px solid #AAA'})
+            .attr('id', imgObj._id)
+            .data('index', i)
             .hover(function(){$(this).css({'border-color':'#00F'});},
                    function(){$(this).css({'border-color':'#AAA'});})
             .click(function(){
-                self.AddViewCallback2(this.id);
+                self.AddImageCallback($(this).data('index'));
             });
+
+        var image  = {img       : imgObj._id,
+                      db        : imgObj.database,
+                      levels    : imgObj.levels,
+                      tile_size : imgObj.TileSize,
+                      bounds    : imgObj.bounds,
+                      label     : imgObj.label};
+        var thumb = new CutoutThumb(image, 100);
+        thumb.Div.appendTo(imageDiv)
+        var labelDiv = $('<div>')
+            .css({'font-size':'50%'})
+            .appendTo(imageDiv)
+            .text(imgObj.label); // Should really have the image label.
+
     }
 }
 
@@ -511,20 +507,35 @@ Presentation.prototype.AddViewCallback = function(idx) {
     this.GotoSlide(this.Index);
 }
 
-Presentation.prototype.AddViewCallback2 = function(id) {
-    var self = this;
+Presentation.prototype.AddImageCallback = function(index) {
+    var image = this.SearchData[index];
     var note = new Note();
-    note.LoadViewId(id, function () {
-        var record = note.ViewerRecords[0];
-        self.Note.ViewerRecords.push(record);
-        // The root needs a record to show up in the session.
-        if (self.RootNote.ViewerRecords.length == 0) {
-            self.RootNote.ViewerRecords.push(record);
-        }
+    var record = new ViewerRecord();
+    note.ViewerRecords[0] = record;
+    record.OverViewBounds = image.bounds;
+    record.Image = image;
+    record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
+                                 (image.bounds[2]+image.bounds[3])/2, 0],
+                     Roll: 0,
+                     Height: (image.bounds[3]-image.bounds[2]),
+                     Width : (image.bounds[1]-image.bounds[0])};
 
-        // Hack to reload viewer records.
-        self.GotoSlide(self.Index);
-    });
+    this.Note.ViewerRecords.push(record);
+    // The root needs a record to show up in the session.
+    if (this.RootNote.ViewerRecords.length == 0) {
+        this.RootNote.ViewerRecords.push(record);
+    }
+
+    // Hack: Since GotoSlide copies the viewer to the record,
+    // We first have to push the new record to the view.
+    if (this.Note.ViewerRecords.length == 1) {
+        this.Note.ViewerRecords[0].Apply(VIEWER1);
+    } else if (this.Note.ViewerRecords.length == 2) {
+        this.Note.ViewerRecords[1].Apply(VIEWER2);
+    }
+
+    // Hack to reload viewer records.
+    this.GotoSlide(this.Index);
 }
 
 
@@ -680,7 +691,6 @@ Presentation.prototype.UpdateSlideTab = function (){
 
 
 //==============================================================================
-
 // TODO:
 // Get rid of the width dependency on edit
 function SlidePage(parent, edit) {
@@ -774,12 +784,13 @@ function SlidePage(parent, edit) {
         VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
         VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
         this.RemoveView1Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
+            .appendTo(VIEWER1.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
+                  'right':'0px',
+                  'top':'0px',
                   'width':'12px',
                   'height':'12px',
                   'z-index':'5'})
@@ -789,12 +800,13 @@ function SlidePage(parent, edit) {
                 PRESENTATION.GotoSlide(PRESENTATION.Index);
             });
         this.RemoveView2Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
+            .appendTo(VIEWER2.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
+                  'right':'0px',
+                  'top':'0px',
                   'width':'12px',
                   'height':'12px',
                   'z-index':'5'})
@@ -861,7 +873,43 @@ function SlidePage(parent, edit) {
                 return false;
             });
     }
+    // Give the option for full screen
+    // on each of the viewers.
+    this.FullScreenView1Button = $('<img>')
+        .appendTo(VIEWER1.MainView.CanvasDiv)
+        .attr('src',"webgl-viewer/static/fullscreen.png")
+        .prop('title', "fullscreen")
+        .css({'position':'absolute',
+              'left':'-7px',
+              'top':'-7px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.FullScreenView(VIEWER1);
+        });
+    this.FullScreenView2Button = $('<img>')
+        .appendTo(VIEWER2.MainView.CanvasDiv)
+        .attr('src',"webgl-viewer/static/fullscreen.png")
+        .prop('title', "fullscreen")
+        .css({'position':'absolute',
+              'left':'-7px',
+              'top':'-7px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.FullScreenView(VIEWER2);
+        });
 }
+
+
+SlidePage.prototype.FullScreenView = function (viewer) {
+    alert("Fullscreen views are not working yet.");
+}
+
 
 SlidePage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
@@ -935,28 +983,19 @@ SlidePage.prototype.ResizeViews = function ()
     }
     if (this.Edit) {
         if (numRecords == 0) {
-            // TODO: View shoulw have hide/show methods and manage this.
-            this.RemoveView1Button.hide();
+            // TODO: View should have hide/show methods and manage this.
             this.AnnotationWidget1.hide();
-            this.RemoveView2Button.hide();
             this.AnnotationWidget2.hide();
         }
         if (numRecords == 1) {
-            this.RemoveView1Button.show();
             this.AnnotationWidget1.show();
-            this.RemoveView2Button.hide();
             this.AnnotationWidget2.hide();
         }
         if (numRecords == 2) {
-            this.RemoveView1Button.show();
             this.AnnotationWidget1.show();
-            this.RemoveView2Button.show();
             this.AnnotationWidget2.show();
         }
-        var viewport = VIEWER1.GetViewport();
-        this.RemoveView1Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
-        viewport = VIEWER2.GetViewport();
-        this.RemoveView2Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
+        var viewport = VIEWER2.GetViewport();
     }
 }
 

@@ -52,6 +52,7 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
               'width' : viewport[2]+"px",
               'top'   : viewport[1]+"px",
               'height': viewport[3]+"px",
+              'background': '#FFF',
               '-moz-user-select': 'none',
               '-webkit-user-select': 'none',
               'z-index': layer.toString()});

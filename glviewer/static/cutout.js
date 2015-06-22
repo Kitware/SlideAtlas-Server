@@ -23,7 +23,7 @@ var CUTOUT_VIEW;
 
 
 function DownloadImageData(data, filename) {
-    // THe only way I know if is to put in into a canvas.
+    // The only way I know if is to put in into a canvas.
 
     // Construct a view to render the image on the client.
     var width =  data.width;
@@ -115,13 +115,26 @@ function  CutoutThumb(image, height, request) {
               'height': this.Height + 'px',
               'overflow': 'hidden',
               'position': 'relative'});
-    // Cropp the request so we do not ask for tiles that do not exist.
-    var levelReq = [Math.max(request[0],image.bounds[0]),
+    // Crop the request so we do not ask for tiles that do not exist.
+    var levelReq;
+    if (image.bounds) {
+        levelReq = [Math.max(request[0],image.bounds[0]),
                     Math.min(request[1],image.bounds[1]),
                     Math.max(request[2],image.bounds[2]),
                     Math.min(request[3],image.bounds[3])];
+    } else {
+        levelReq = [Math.max(request[0],0), request[1],
+                    Math.max(request[2],0), request[3]];
+    }
 
-    // pick the level to use.
+    
+    // Size of each tile.
+    var tileDim = 256;
+    if (image.tile_size) {
+        tileDim = image.tile_size;
+    }
+
+    // Pick the level to use.
     this.Level = 0; // 0 = leaves
     while ((levelReq[3]-levelReq[2]) > this.Height && 
            this.Level < image.levels-1) {

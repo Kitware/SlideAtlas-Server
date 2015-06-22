@@ -1,3 +1,4 @@
+from operator import itemgetter
 from bson import ObjectId
 from flask import Blueprint, request, render_template, make_response, current_app
 from slideatlas import models, security
@@ -5,6 +6,7 @@ import json
 from slideatlas.common_utils import jsonify
 import re
 import urllib2
+import pdb
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -158,6 +160,62 @@ def glview():
 
         # default
         return glnote(db,viewid,viewobj,edit,style)
+
+
+
+# Query for images.  Avoids all the complications of views.
+# we still search views because they have all the meta data.
+# the views just vote on which image is most relavant.
+@mod.route('/query')
+#@security.login_required
+def image_query():
+    """
+    - /query?words=[]
+    """
+    terms = request.args.get('terms', "").split()
+    db = models.ImageStore._get_db()
+
+    # I do not think the $text seach can work on individual fields
+    # so I can not weight them separatly.  I would like title
+    # to have more weight that text.
+    db["views"].ensure_index(
+        [("Title", "text"), ("Text", "text")], name="titletext")
+
+    # build up a list of images.
+    imgDict = dict()
+    # I may need to search the terms separatly and add the weights
+    # if the weigths do not properly increase for matches of multiple terms.
+    # build up a list of images.
+    # search titles (pretty important).
+    for term in terms:
+        viewCursor = db["views"].find( { '$text': { '$search': term }},
+            {'score': {"$meta": "textScore"}, "ViewerRecords": 1})
+        for view in viewCursor:
+            for record in view["ViewerRecords"]:
+                imgId = record["Image"];
+                if not imgDict.has_key(str(imgId)):
+                    database = models.ImageStore.objects.get_or_404(id=ObjectId(record["Database"]))
+                    imgdb = database.to_pymongo()
+                    imgObj = imgdb["images"].find_one({"_id":imgId},
+                                                      {"TileSize":True,"levels":True,"bounds":True,"label":True,"dimensions":True,"components":True})
+                    if imgObj != None:
+                        imgObj["_id"] = str(imgId)
+                        imgObj["database"] = str(record["Database"])
+                        imgDict[str(imgId)] = imgObj
+                        imgObj["score"] = view["score"];
+                        # give extra score to iamges that have the term in
+                        # their labels.
+                        for t in terms:
+                            if imgObj["label"].lower().find(t.lower()) != -1 :
+                                imgObj["score"] += 2.0;
+                else:
+                    imgObj["score"] += view["score"];
+
+    data = dict()
+    data["images"] = sorted(imgDict.values(), key=itemgetter('score'), reverse=True)
+    return jsonify(data)
+
+
 
 
 @mod.route('/bookmark')

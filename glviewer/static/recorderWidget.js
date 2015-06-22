@@ -24,6 +24,8 @@
 // information about current note, I am using ViewerRecord as a shared object.
 
 function ViewerRecord () {
+    this.AnnotationVisibility = 0;
+    this.Annotations = [];
 }
 
 // I am still trying to figure out a good pattern for loading

@@ -1457,18 +1457,23 @@ Note.prototype.Save = function(callback) {
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.Serialize(true));
     var d = new Date();
+    $('body').css({'cursor':'progress'});
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
         data: {"note" : noteObj,
                "date" : d.getTime()},
         success: function(data,status) {
+            $('body').css({'cursor':'default'});
             self.Id = data._id;
             if (callback) {
                 (callback)(self);
             }
         },
-        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+        error: function() { 
+            $('body').css({'cursor':'default'});
+            alert( "AJAX - error() : saveviewnotes" ); 
+        },
     });
 }
 
@@ -1626,44 +1631,55 @@ Note.prototype.DisplayGUI = function(div) {
 
 
 Note.prototype.Serialize = function(includeChildren) {
-  var obj = {};
-  obj.SessionId = localStorage.sessionId;
-  obj.Type = this.Type;
-  obj.User = this.User;
-  obj.Date = this.Date;
+    var obj = {};
+    obj.SessionId = localStorage.sessionId;
+    obj.Type = this.Type;
+    obj.User = this.User;
+    obj.Date = this.Date;
 
-  if (this.Id) {
-    obj._id = this.Id;
-  }
-  // I would like to put the session as parent, but this would be an inclomplete reference.
-  // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
-  if (this.Parent) {
-    obj.ParentId = this.Parent.Id;
-  }
-  obj.Title = this.Title;
-  obj.HiddenTitle = this.HiddenTitle;
-  obj.Text = this.Text;
-  // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = [];
-
-  // The database wants an image id, not an embedded iamge object.
-  //  The server should really take care of this since if
-  for (var i = 0; i < this.ViewerRecords.length; ++i) {
-    if(!this.ViewerRecords[i].Image) continue;
-    var record = this.ViewerRecords[i].Serialize();
-    obj.ViewerRecords.push(record);
-  }
-
-  // upper left pixel
-  obj.CoordinateSystem = "Pixel";
-
-  if (includeChildren) {
-    obj.Children = [];
-    for (var i = 0; i < this.Children.length; ++i) {
-      obj.Children.push(this.Children[i].Serialize(includeChildren));
+    if (this.Id) {
+        obj._id = this.Id;
     }
-  }
-  return obj;
+    // I would like to put the session as parent, but this would be an inclomplete reference.
+    // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
+    if (this.Parent) {
+        obj.ParentId = this.Parent.Id;
+    }
+    obj.Title = this.Title;
+    obj.HiddenTitle = this.HiddenTitle;
+
+    obj.Text = this.Text;
+    // The server handles copying views and the code is a pain.
+    // I would rather have the client copy notes since is can now
+    // save them one by one and get ids for new notes.
+    // However,  until I make this change, I need a simple way of copying
+    // a note and not messing up the references in the text.
+    // Code the links in the html as indexes.
+    //for (var i = 0; i < this.Children.length; ++i) {
+    //    var Child
+    //}
+
+    // We should probably serialize the ViewerRecords too.
+    obj.ViewerRecords = [];
+
+    // The database wants an image id, not an embedded iamge object.
+    //  The server should really take care of this since if
+    for (var i = 0; i < this.ViewerRecords.length; ++i) {
+        if(!this.ViewerRecords[i].Image) continue;
+        var record = this.ViewerRecords[i].Serialize();
+        obj.ViewerRecords.push(record);
+    }
+
+    // upper left pixel
+    obj.CoordinateSystem = "Pixel";
+
+    if (includeChildren) {
+        obj.Children = [];
+        for (var i = 0; i < this.Children.length; ++i) {
+            obj.Children.push(this.Children[i].Serialize(includeChildren));
+        }
+    }
+    return obj;
 }
 
 // This method of loading is causing a pain.
