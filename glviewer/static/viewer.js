@@ -435,7 +435,8 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
     newCam.Roll = cam.Roll;
-    newCam.Height = cam.Height;
+    newCam.Height = cam.GetHeight();
+    newCam.Width = cam.GetWidth();
     newCam.ComputeMatrix();
 
     // Load only the tiles we need.
