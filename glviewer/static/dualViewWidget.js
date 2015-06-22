@@ -10,16 +10,7 @@ function InitDualViewWidget() {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
             .appendTo(VIEW_PANEL)
-            .css({
-                'opacity': '0.4',
-                'position': 'absolute',
-                'height': '20px',
-                'width': '20x',
-                'top' : '0px',
-                'right' : '0%',
-                '-moz-user-select': 'none',
-                '-webkit-user-select': 'none',
-                'z-index': '4'})
+            .addClass("sa-view-dualview-div")
             .attr('id', 'dualWidgetLeft')
             .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
             .click(function(){ToggleDualView();})
@@ -30,16 +21,7 @@ function InitDualViewWidget() {
 
         $('<img>').appendTo(VIEW_PANEL)
             .hide()
-            .css({
-                'opacity': '0.4',
-                'position': 'absolute',
-                'height': '20px',
-                'width': '20px',
-                'top' : '0px',
-                'left' : '50%',
-                '-moz-user-select': 'none',
-                '-webkit-user-select': 'none',
-                'z-index': '4'})
+            .addClass("sa-view-dualview-img")
             .attr('id', 'dualWidgetRight')
             .attr('src',"webgl-viewer/static/dualArrowRight2.png")
             .click(function(){ToggleDualView();})
@@ -175,10 +157,7 @@ function ShowImage(img) {
   //document.body.appendChild(img);
   var disp = 
     $('<img>').appendTo(VIEW_PANEL)
-      .css({'position': 'absolute',
-            'left': '50px',
-            'top' : '50px',
-            'z-index': '3'})
+      .addClass("sa-active")
       .attr('src',img.src);
 }
 

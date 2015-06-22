@@ -107,7 +107,7 @@ function GetViewId () {
   return "";
 }
 
-// WebGL Initialization
+// WebGL Initializationf
 
 function doesBrowserSupportWebGL(canvas) {
     try {
@@ -126,14 +126,7 @@ function doesBrowserSupportWebGL(canvas) {
 function initGL() {
 
     // Add a new canvas.
-    CANVAS = $('<canvas>').appendTo('body').css({
-        'position': 'absolute',
-        'width': '100%',
-        'height': '100%',
-        'top' : '0px',
-        'left' : '0px',
-        'z-index': '1'
-    }); // class='fillin nodoubleclick'
+    CANVAS = $('<canvas>').appendTo('body').addClass("sa-view-canvas"); // class='fillin nodoubleclick'
     //this.canvas.onselectstart = function() {return false;};
     //this.canvas.onmousedown = function() {return false;};
     GL = CANVAS[0].getContext("webgl") || CANVAS[0].getContext("experimental-webgl");
@@ -147,14 +140,7 @@ function initGL() {
 
     VIEW_PANEL = $('<div>')
         .appendTo('body')
-        .css({
-            'position': 'absolute',
-            'width': '100%',
-            'height': '100%',
-            'top' : '0px',
-            'left' : '0px',
-            'z-index': '3'
-        });
+        .addClass("sa-view-canvas-panel")
 }
 
 
@@ -378,25 +364,11 @@ function initGC() {
 
     // Add a new canvas.
     CANVAS = $('<div>')
-        .appendTo('body').css({
-            'position': 'absolute',
-            'width': '100%',
-            'height': '100%',
-            'top' : '0px',
-            'left' : '0px',
-            'z-index': '1'
-        });
+        .appendTo('body').addClass("sa-view-canvas");
 
     VIEW_PANEL = $('<div>')
         .appendTo('body')
-        .css({
-            'position': 'absolute',
-            'width': '100%',
-            'height': '100%',
-            'top' : '0px',
-            'left' : '0px',
-            'z-index': '3'
-        });
+        .addClass("sa-view-canvas-panel");
 }
 
 
@@ -668,7 +640,7 @@ function Main2(rootNote) {
     }
 
     detectMobile();
-    $(body).css({'overflow-x':'hidden'});
+    $(body).addClass("sa-view-body");
     // Just to see if webgl is supported:
     //var testCanvas = document.getElementById("gltest");
 
@@ -760,7 +732,7 @@ function StartScene(scene) {
     var dia = new Dialog();
     detectMobile();
     //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
-    $('body').css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
+    $('body').addClass("sa-view-body");
 
     // Just to see if webgl is supported:
     var testCanvas = document.getElementById("gltest");

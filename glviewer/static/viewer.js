@@ -60,14 +60,7 @@ function Viewer (viewport) {
             $('<img>')
             .appendTo(this.OverView.CanvasDiv)
             .attr("src", "/webgl-viewer/static/rotate.png")
-            .css({'width':'40px',
-                  'position':'absolute',
-                  'right':'-20px',
-                  'top':'-20px',
-                  'opacity':'0.6',
-                  'z-index':'1',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none'})
+            .addClass("sa-view-rotate")
             .mouseenter(function (e) {self.RollEnter(e);})
             .mouseleave(function (e) {self.RollLeave(e);})
             .mousedown( function (e) {self.RollDown(e);})
@@ -194,23 +187,18 @@ function Viewer (viewport) {
 
     this.CopyrightWrapper = $('<div>')
         .appendTo(this.MainView.CanvasDiv)
-        .css({'position':'absolute',
-              'opacity' :'0.3',
-              'bottom'  :'1px',
-              'left'    :'100px',
-              'z-index' : '4'});
-
+        .addClass("sa-view-copyright");
 }
 
 // These should be in an overview widget class.
 Viewer.prototype.RollEnter = function (e) {
     this.RotateIconHover = true;
-    this.RotateIcon.css({'opacity':'1.0'});
+    this.RotateIcon.addClass("sa-active");
 }
 Viewer.prototype.RollLeave = function (e) {
     this.RotateIconHover = false;
     if ( ! this.RotateIconDrag) {
-        this.RotateIcon.css({'opacity':'0.6'});
+        this.RotateIcon.removeClass("sa-active");
     }
 }
 Viewer.prototype.RollDown = function (e) {
@@ -263,7 +251,7 @@ Viewer.prototype.RollMove = function (e) {
  Viewer.prototype.RollUp = function (e) {
      this.RotateIconDrag = false;
      if ( ! this.RotateIconHover) {
-         this.RotateIcon.css({'opacity':'0.6'});
+         this.RotateIcon.addClass("sa-active");
      }
 
      return false;
@@ -302,25 +290,12 @@ Viewer.prototype.InitializeZoomGui = function() {
     // TODO: Get rid of this Gui object stuff and just rely on css positioning.
     this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
     this.ZoomTab.Panel
-        .css({'left': '-25px',
-              'width': '55px',
-              'padding': '0px 2px'});
+        .addClass("sa-view-zoom-panel");
 
     // Put the magnification factor inside the magnify glass icon.
     this.ZoomDisplay = $('<div>')
         .appendTo(this.ZoomTab.Div)
-        .css({
-            'opacity': '0.9',
-            'position': 'absolute',
-            'height':  '20px',
-            'width':   '100%',
-            'text-align' : 'center',
-            'color' : '#000',
-            'top' : '10px',
-            'left' : '1px',
-            'font-size':'10px',
-            'z-index': '10',
-            'pointer-events': 'none'})
+        .addClass("sa-view-zoom-text")
         .html("");
 
 
@@ -331,27 +306,10 @@ Viewer.prototype.InitializeZoomGui = function() {
     var self = this;
     this.ZoomDiv = $('<div>')
         .appendTo(this.ZoomTab.Panel)
-        .css({
-            'opacity': '0.6',
-            'background-color': '#fff',
-            'height': '104px',
-            'width': '54px',
-            'margin-top': '2px',
-            'border-style'  : 'solid',
-            'border-width'  : '1px',
-            'border-radius' : '27px',
-            'border-color'  : '#AAA',
-            'z-index': '2'});
+        .addClass("sa-view-zoom-panel-div");
     this.ZoomInButton = $('<img>')
         .appendTo(this.ZoomDiv)
-        .css({
-            'opacity': '0.6',
-            'position': 'absolute',
-            'height': '50px',
-            'width': '50px',
-            'top' : '4px',
-            'right' : '4px',
-            'z-index': '2'})
+        .addClass("sa-view-zoom-button sa-zoom-in")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/zoomin2.png")
         .click(function(){ self.AnimateZoom(0.5);})
@@ -360,13 +318,7 @@ Viewer.prototype.InitializeZoomGui = function() {
             return false;});
 
     this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
-        .css({
-            'opacity': '0.6',
-            'position': 'absolute',
-            'height': '50px',
-            'width': '50px',
-            'bottom' : '2px',
-            'right' : '4px'})
+        .addClass("sa-view-zoom-button sa-zoom-out")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/zoomout2.png")
         .click(function(){self.AnimateZoom(2.0);})
@@ -1790,7 +1742,7 @@ Viewer.prototype.AddShape = function(shape) {
                  .appendTo(SAVING_IMAGE.Body)
                  .attr("src", "/webgl-viewer/static/circular.gif")
                  .attr("alt", "waiting...")
-                 .css({'width':'40px'});
+                 .addClass("sa-view-save")
              SAVING_IMAGE.ApplyButton.hide();
              SAVING_IMAGE.SavingFlag = false;
              SAVING_IMAGE.Count = 0;
@@ -1997,12 +1949,10 @@ function colorNameToHex(color)
      if ((Math.abs(hw-nx) < 5 && ny < hh) ||
          (Math.abs(hh-ny) < 5 && nx < hw)) {
          this.OverViewActive = true;
-         this.OverView.CanvasDiv.css({
-             'border-color': '#FF0'});
+         this.OverView.CanvasDiv.addClass("sa-view-overview-canvas sa-active");
      } else {
          this.OverViewActive = false;
-         this.OverView.CanvasDiv.css({
-             'border-color': '#AAA'});
+         this.OverView.CanvasDiv.removeClass("sa-view-overview-canvas sa-active");
      }
      //return this.OverViewActive;
  }

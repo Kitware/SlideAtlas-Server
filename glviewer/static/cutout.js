@@ -112,13 +112,12 @@ function  CutoutThumb(image, height, request) {
     this.Width = Math.ceil(height * (request[1]-request[0]) / (request[3]-request[2]));
     this.Div = $('<div>')
         .css({'width' : this.Width + 'px',
-              'height': this.Height + 'px',
-              'overflow': 'hidden',
-              'position': 'relative'});
+              'height': this.Height + 'px'  })
+        .addClass("sa-view-cutout-thumb-div");
     // Crop the request so we do not ask for tiles that do not exist.
     var levelReq;
     if (image.bounds) {
-        levelReq = [Math.max(request[0],image.bounds[0]),
+      var levelReq = [Math.max(request[0],image.bounds[0]),
                     Math.min(request[1],image.bounds[1]),
                     Math.max(request[2],image.bounds[2]),
                     Math.min(request[3],image.bounds[3])];
@@ -189,8 +188,8 @@ function  CutoutThumb(image, height, request) {
                 .attr("src", "/tile?img="+image.img+"&db="+image.db+"&name=t"+tileName+".jpg")
                 .attr("alt", image.label)
                 .css({"left": left.toString()+"px",
-                      "top":  top.toString()+"px",
-                      "position" : "absolute"});
+                      "top":  top.toString()+"px"})
+                .addClass("sa-view-cutout-thumb-tile");
         }
     }
 }

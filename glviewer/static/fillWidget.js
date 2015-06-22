@@ -22,34 +22,32 @@ function FillWidget (viewer, newFlag) {
     this.Dialog.ColorDiv =
         $('<div>')
         .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
+        .addClass("sa-view-fill-div");
     this.Dialog.ColorLabel =
         $('<div>')
         .appendTo(this.Dialog.ColorDiv)
         .text("Color:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
+        .addClass("sa-view-fill-label");
     this.Dialog.ColorInput =
         $('<input type="color">')
         .appendTo(this.Dialog.ColorDiv)
         .val('#30ff00')
-        .css({'display':'table-cell'});
+        .addClass("sa-view-fill-input");
 
     // Line Width
     this.Dialog.LineWidthDiv =
         $('<div>')
         .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
+        .addClass("sa-view-fill-div");
     this.Dialog.LineWidthLabel =
         $('<div>')
         .appendTo(this.Dialog.LineWidthDiv)
         .text("Line Width:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
+        .addClass("sa-view-fill-label");
     this.Dialog.LineWidthInput =
         $('<input type="number">')
         .appendTo(this.Dialog.LineWidthDiv)
-        .css({'display':'table-cell'})
+        .addClass("sa-view-fill-input")
         .keypress(function(event) { return event.keyCode != 13; });
 
     this.Popup = new WidgetPopup(this);
@@ -57,10 +55,7 @@ function FillWidget (viewer, newFlag) {
     this.Viewer.WidgetList.push(this);
 
     this.Cursor = $('<img>').appendTo('body')
-        .css({
-            'position': 'absolute',
-            'height': '28px',
-            'z-index': '1'})
+        .addClass("sa-view-fill-cursor")
         .attr('type','image')
         .attr('src',"webgl-viewer/static/brush1.jpg");
 

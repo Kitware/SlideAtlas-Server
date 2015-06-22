@@ -1,0 +1,688 @@
+/* 
+*  Start CSS for Viewer of SlideAtlas
+*
+*  First section styles the top level menu buttons an
+*
+ */
+
+ 
+.sa-view-annotation-modal-div {display: table-row;}
+.sa-view-annotation-modal-input {
+    display: table-cell;
+}
+
+.sa-view-annotation-modal-input-label{
+    display:table-cell;
+    text-align: left;
+}
+ 
+.sa-view-body{
+ overflow-x: hidden;
+ overflow-y: hidden
+}
+.sa-view-div{
+    z-index: 5;
+    position: absolute
+}
+ 
+.sa-view-button {
+    height: 28px;
+    padding: 2px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    border-color: #BBB;
+    opacity: 0.6;
+    background-color: #FFF;
+    position: relative;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    z-index: 5;
+}
+
+.sa-view-canvas-panel {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top : 0px;
+    left : 0px;
+    z-index: 3
+}
+.sa-view-button.sa-active {
+    border-color: #FFF #BBB #BBB #BBB;
+    border-radius: 0px 0px 5px 5px;
+    opacity: 1;
+}
+
+.sa-view-panel {
+    background-color: white;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: #BBB;
+    position: absolute;
+    bottom: 37px;
+    left: -5px;
+    z-index: 4;
+    padding: 2px 2px 0px 2px;
+}
+
+.sa-view-panel.sa-active {
+    border-color: #FFF #BBB #BBB #BBB;
+    border-radius: 0px 0px 5px 5px;
+    opacity: 1;
+}
+
+.sa-view-rotate {
+    width:40px;
+    position:absolute;
+    right:-20px;
+    top:-20px;
+    opacity:0.6;
+    z-index:16;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+}
+
+.sa-view-canvas-div {
+    position: absolute;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #AAA;
+    /*left: viewport[0]+"px";
+    width: viewport[2]+"px";
+    top: viewport[1]+"px";
+    height: viewport[3]+"px";*/
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    z-index: layer.toString()
+}
+.sa-view-dialog-div{
+    display: none;
+    position: fixed;
+    width: 380px;
+    top: 50%;
+    left: 50%;
+    margin-left: -190px;
+    margin-top: -100px;
+    background-color: #ffffff;
+    border: 2px solid #336699;
+    padding: 0px;
+    z-index: 102;
+    font-family: Verdana;
+    font-size: 10pt;
+}
+.sa-view-dialog-table {
+    width: 100%;
+    border-spacing: 0px;
+    cellpadding: 3;
+    cellspacing: 0;
+}
+
+.sa-view-dialog-title {
+    border-bottom: solid 2px #336699;
+    background-color: #336699;
+    padding: 4px;
+    color: White;
+    font-weight:bold
+}
+
+.sa-view-dialog-close {
+    border-bottom: solid 2px #336699;
+    background-color: #336699;
+    padding: 4px;
+    font-weight: bold;
+    color: White;
+    text-align: right;
+    text-decoration: none;
+}
+.sa-view-dialog-body {
+    padding-left: 15px;
+    display: block;
+}
+.sa-view-dialog-apply-div {text-align: center;}
+.sa-view-dialog-apply-button {margin-bottom: 6px}
+.sa-view-canvas{
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top : 0px;
+        left : 0px;
+        z-index: 1
+}
+
+.sa-view-rotate.sa-active{ opacity:1.0;}
+.sa-view-copyright {
+    position:absolute;
+    opacity :0.3;
+    bottom  :1px;
+    left    :100px;
+    z-index : 4;
+}
+
+.sa-view-save { width: 40px;}
+
+.sa-view-overview-canvas { border-color: #AAA;}
+.sa-view-overview-canvas.sa-active { border-color: #FF0;}
+
+.sa-view-note {
+    opacity: 0.9;
+    position: absolute;
+    height:  20px;
+    width:   100%;
+    text-align : center;
+    color : #000;
+    top : 23px;
+    left : 0px;
+    font-size:10px;
+    z-index: 10;
+    pointer-events: none;
+}
+/*
+*  Start Collection browser section
+*/
+
+.sa-view-browser-item{ background-color: #FFF}
+.sa-view-browser-item.sa-active{ background-color: #CDF}
+.sa-view-browser-message{
+    position: fixed;
+    font-size : 200%;
+    font-weight: bold;
+    z-index: 2
+}
+
+.sa-view-browser-div {
+    height: 20px;
+    width:  100%;
+    position: relative;
+    border: 1px solid #CCC
+}
+
+.sa-view-browser-list {
+    list-style: none;
+    margin-left: 0.5em;
+    margin-top: 0;
+    position:   relative;
+    padding:    0;
+    height:     100%;
+    overflow-y: auto
+}
+
+.sa-view-browser-item {left:o}
+.sa-view-icon {height: 15px}
+.sa-view-browser-session-list {
+    list-style: none;
+    margin-left: 2em;
+    padding-left: 0
+}
+.sa-view-browser-view-item {
+    float: left;
+    list-style-type: none;
+    margin: 2px;
+    border: 2px solid #CCC;
+    padding: 2px;
+    border-color: #CCC
+}
+.sa-view-browser-view-item.sa-active {border-color: #333}
+.sa-view-browser-view-label {
+    color: #333;
+    font-size: 11px;
+    display: block
+}
+
+.sa-view-browser-view-list {
+    list-style: none;
+    width:auto;
+    margin-top: 0;
+    padding: 0;
+    outline: 1px solid transparent;
+    margin-left: 2em
+}
+.sa-view-browser-view-item {
+    margin: 2px;
+    padding: 2px
+}
+
+.sa-view-browser-view-img {width:40px}
+
+
+/*
+*  Start dual view section
+*/
+.sa-view-dualview-div {
+    opacity: 0.4;
+    position: absolute;
+    height: 20px;
+    width: 20x;
+    top : 0px;
+    right : 0%;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    z-index: 4;
+}
+
+.sa-view-dualview-img {
+    opacity: 0.4;
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    top : 0px;
+    left : 50%;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    z-index: 4;
+}
+
+.sa-view-dualview-img.sa-active{
+    position: absolute;
+    left: 50px;
+    top : 50px;
+    z-index: 3;
+}
+
+/*
+*  Start block of the Annotation CSS
+*
+*  Annotation panel has "sa-inactive" to account for the
+*  turning OFF of annotations; rather than ON
+*
+*/
+.sa-view-annotation-panel {
+    width: 108px;
+    left: -38px;
+}
+
+.sa-view-annotation-vis {
+    height: 28px;
+    opacity: 0.9;
+    overflow: hidden;
+    position: relative;
+}
+
+.sa-view-annotation-vis-img {
+    height: 56px;
+    opacity: 0.6;
+    position: relative;
+    top: 1px;
+}
+
+.sa-view-annotation-vis-img.sa-inactive {
+    top: -30px;
+}
+.sa-view-annotation-button {
+    height: 28px;
+    opacity: 0.6;
+    margin: 1px;
+    border-style: outset;
+    border-radius: 4px;
+    border-thickness: 2px;
+}
+
+@media only screen and (max-device-width: 480px) {
+  .sa-view-annotation-button {
+      height: 60px;
+      width: 60px;
+      opacity: 0.6;
+      margin: 1px;
+      padding: 5px;
+  }
+    
+  .sa-view-annotation-div{
+      position: absolute;
+      right : 110px;
+      bottom : 100px;
+      z-index: 5;
+  }
+
+}
+.sa-view-annotation-button.sa-active {
+    border-style: inset;
+    opacity: 1.0;
+}
+/* End Annotation block */
+
+/*
+*  Begin Navigation block
+*/
+
+.sa-view-navigation-panel {
+    left: -45px;
+    width: 200px;
+    height: 50px;
+    padding: 0px 2px;
+}
+
+.sa-view-navigation-div {
+    left: 50px;
+    bottom: 0px;
+}
+
+.sa-view-navigation-button {
+    height: 40px;
+    width: 40px;
+    padding: 5px;
+    opacity: 0.2;
+}
+/* Done to change the width on small screens    */
+@media only screen and (max-device-width: 480px) {
+    .sa-view-navigation-div {
+        position: absolute;
+        left: 50px;
+        bottom: 20px;
+        z-index: 5;
+    }
+    .sa-view-navigation-button {
+        height: 60px;
+        width: 60px;
+        padding: 5px;
+        opacity: 0.2;
+    }
+
+}
+
+.sa-view-navigation-button.sa-active { opacity: 0.5; }
+/* End Navigation block */
+
+/*
+*  Begin Edit Menu block
+*/
+
+.sa-view-edit-panel {
+    left: -78px;
+    width: 170px;
+    padding: 0px 2px;
+}
+
+.sa-view-edit-button{
+    margin: 2px 0px;
+    width: 100%;
+}
+
+.sa-view-edit-download {
+
+}
+
+/* End edit menu block */
+
+/*
+*  Begin zoom block
+*/
+.sa-view-zoom-panel {
+    left: -25px;
+    width: 55px;
+    padding: 0px 2px;
+}
+
+.sa-view-zoom-panel-div {
+    opacity: 0.6;
+    background-color: #fff;
+    height: 104px;
+    width: 54px;
+    margin-top: 2px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 27px;
+    border-color: #AAA;
+    z-index: 2;
+}
+.sa-view-zoom-text {
+    opacity: 0.9;
+    position: absolute;
+    height:  20px;
+    width:   100%;
+    text-align: center;
+    color: #000;
+    top: 10px;
+    left: 1px;
+    font-size:10px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.sa-view-zoom-button {
+    opacity: 0.6;
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    right: 4px;
+    z-index: 2;
+}
+
+.sa-view-zoom-button.sa-zoom-in { top: 4px; }
+.sa-view-zoom-button.sa-zoom-out { bottom: 2px; }
+
+/*
+*  Begin Conference block
+*/
+
+
+.sa-view-conference-div {
+    left: 250px;
+    bottom: 0px;
+}
+
+.sa-view-conference-panel {
+    width: auto;
+    left: 2px;
+    right: 62px;
+    height: 110px;
+}
+
+.sa-view-conference-button {
+    border-color: #BBB;
+    border-radius: 5px;
+    opacity: 0.6;
+}
+
+.sa-view-conference-button.sa-active {
+    border-color: #FFF #BBB #BBB #BBB;
+    border-radius: 0px 0px 5px 5px;
+    opacity: 1;
+}
+/*
+*  Begin Cutout block
+*/
+.sa-view-cutout-div {
+    background-color: white;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    border-color: #BBB;
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    z-index: 10;
+    text-align: left;
+    color: #303030;
+    font-size: 20px;
+}
+
+.sa-view-cutout-button {margin: 10px;}
+.sa-view-cutout-label{
+    display: inline-block;
+    margin: 10px
+}
+.sa-view-cutout-thumb-div {
+    overflow: hidden;
+    position: relative
+}
+
+.sa-view-cutout-thumb-tile{ position: absolute;}
+
+/*
+*  Begin Fill Widget block
+*/
+.sa-view-fill-div {display: table-row;}
+.sa-view-fill-input {
+    display: table-cell;
+}
+
+.sa-view-fill-input-label{
+    display:table-cell;
+    text-align: left;
+}
+
+.sa-view-fill-cursor {
+    position: absolute;
+    height: 28px;
+    z-index: 1;
+}
+
+/*
+*  Begin Fill Widget block
+*/
+
+.sa-view-favorites-div {
+    position: absolute;
+    height: 160px;
+    width: 100%;
+    left: 0px;
+    bottom: 0px;
+    background-color: rgba(0;0;0;.6);
+    overflow: visible;
+    z-index: 6;
+}
+              
+.sa-view-favorites-icon {
+    left: 0px;
+    height: size;
+    width: size;
+    float: left;
+    margin-top: 50px;
+    padding : 5px;
+    opacity: 0.6;
+}
+
+.sa-view-favorites-button {
+    position: absolute;
+    height: 35px;
+    width: 35px;
+    left: 0px;
+    bottom: 0px;
+    padding: 5px;
+    opacity: 0.6;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    z-index: 7
+}
+
+.sa-view-favorites-img-list{
+    float: left;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
+    height: 100%
+}
+            
+.sa-view-favorites-callback-div{
+    position: relative;
+    height: 110px;
+    margin: 10px;
+    display: inline-block;
+    border: 5px solid rgba(0;0;255;1);
+    background-color: rgba(255;0;0;1)
+}
+
+.sa-view-favorites-callback-img{
+  opacity: 1.0
+}
+
+.sa-view-favorites-callback-del {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    background-color: #ff0000;
+    z-index: 3
+}
+
+@media only screen and (max-device-width: 480px) {
+  .sa-view-favorites-button {margin-top: 25px;}
+}
+
+/*
+*  Start of gallery.js 
+*/
+.sa-view-gallery-panel {
+    height: 100%;
+    width: auto
+}
+
+.sa-view-gallery-div {
+    padding:    0;
+    border:     1px solid #CCC;
+    height:     100%;
+    list-style: none;
+    overflow-y: auto
+}
+
+.sa-view-gallery-item {
+    float: left;
+    margin: 2px;
+    border: 2px solid #CCC;
+    padding: 2px;
+    border-color: #CCC;
+}
+
+.sa-view-gallery-item.sa-active {
+    border-color: #333
+}
+
+.sa-view-gallery-item-div {
+    color: #333;
+    font-size: 11px
+}
+
+/*
+*  start of imageBrowser 
+*/
+
+.sa-view-imageBrowser-img {height: 50px}
+
+/*
+*  start of LassoWidget 
+*/
+
+.sa-view-lasso-cursor{
+    position: absolute;
+    height: 28px;
+    z-index: 1
+}
+
+/*
+*  start of loader.js
+*/
+
+.sa-view-progress-bar {
+    "position":"absolute";
+     "z-index" : "2";
+     "bottom"     : "0px";
+     "left"    : "0px";
+     "height"  : "3px";
+     "width"   : "50%";
+     "background-color" : "#404060"
+}
+
+/*
+*  start of Align.js section
+*/
+
+.sa-view-align-histogram-div {
+    position: fixed;
+    background-color: #ffffff;
+    border: 2px solid #336699;
+    padding: 0px;
+    z-index: 102
+}
+
+.sa-view-align-histogram-canvas {
+    width : 100%;
+    height: 100%
+}
+
+.sa-view-align-waiting{
+    width:80px;
+    position: fixed;
+    left: 100px;
+    top: 100px;
+    z-index:4
+}

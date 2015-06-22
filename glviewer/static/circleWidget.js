@@ -22,51 +22,48 @@ function CircleWidget (viewer, newFlag) {
     this.Dialog.ColorDiv =
         $('<div>')
         .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
+        .addClass("sa-view-annotation-modal-div");
     this.Dialog.ColorLabel =
         $('<div>')
         .appendTo(this.Dialog.ColorDiv)
         .text("Color:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
+        .addClass("sa-view-annotation-modal-input-label");
     this.Dialog.ColorInput =
         $('<input type="color">')
         .appendTo(this.Dialog.ColorDiv)
         .val('#30ff00')
-        .css({'display':'table-cell'});
+        .addClass("sa-view-annotation-modal-input");
 
     // Line Width
     this.Dialog.LineWidthDiv =
         $('<div>')
         .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
+        .addClass("sa-view-annotation-modal-div");
     this.Dialog.LineWidthLabel =
         $('<div>')
         .appendTo(this.Dialog.LineWidthDiv)
         .text("Line Width:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
+        .addClass("sa-view-annotation-modal-input-label");
     this.Dialog.LineWidthInput =
         $('<input type="number">')
         .appendTo(this.Dialog.LineWidthDiv)
-        .css({'display':'table-cell'})
+        .addClass("sa-view-annotation-modal-input")
         .keypress(function(event) { return event.keyCode != 13; });
 
     // Area
     this.Dialog.AreaDiv =
         $('<div>')
         .appendTo(this.Dialog.Body)
-        .css({'display':'table-row'});
+        .addClass("sa-view-annotation-modal-div");
     this.Dialog.AreaLabel =
         $('<div>')
         .appendTo(this.Dialog.AreaDiv)
         .text("Area:")
-        .css({'display':'table-cell',
-              'text-align': 'left'});
+        .addClass("sa-view-annotation-modal-input-label");
     this.Dialog.Area =
         $('<div>')
         .appendTo(this.Dialog.AreaDiv)
-        .css({'display':'table-cell'});
+        .addClass("sa-view-annotation-modal-input");
 
     // Get default properties.
     if (localStorage.CircleWidgetDefaults) {

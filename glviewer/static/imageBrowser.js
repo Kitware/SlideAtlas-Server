@@ -78,7 +78,7 @@ function ImageBrowserAddSessionViews(sessionData) {
           .click(function(){ImageBrowserImageCallback(this);});
       $('<img>').appendTo(item)
           .attr('src', "/thumb?db="+image.db+"&img="+image.img)
-          .css({'height': '50px'});
+          .addClass("sa-view-imageBrowser-img")
       $('<span>').appendTo(item)
           .text(image.label);
       }
