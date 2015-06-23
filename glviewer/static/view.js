@@ -44,6 +44,7 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     // 2d canvas
     // Add a new canvas.
     this.CanvasDiv = $('<div>')
+        .addClass('view')
         .css({'position': 'absolute',
               'border-style': 'solid',
               'border-width': '1px',

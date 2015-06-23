@@ -124,6 +124,8 @@ function Presentation(rootNote, edit) {
     document.onkeydown = function(e) {self.HandleKeyDown(e);};
     document.onkeyup = function(e) {self.HandleKeyUp(e);};
 
+    this.UpdateSlidesTab();
+
     $(window).resize(function() {
         self.HandleResize();
     }).trigger('resize');
@@ -222,13 +224,7 @@ Presentation.prototype.MakeEditPanel = function () {
 
     this.SlidesTab.Div 
         .appendTo(this.EditDiv)
-        .css({'width': '100%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
-              'text-align': 'left',
+        .css({'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
     this.SaveButton = $('<img>')
@@ -245,18 +241,19 @@ Presentation.prototype.MakeEditPanel = function () {
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
         .click(function () { self.InsertNewSlide();});
-
+    // The div that will hold the list of slides.
+    this.SlidesDiv = $('<div>')
+        .appendTo(this.SlidesTab.Div)
+        .css({'position':'absolute',
+              'width':'100%',
+              'top':'32px',
+              'bottom':'3px',
+              'overflow-y':'auto'});
 
     this.ClipboardTab.Div 
         .appendTo(this.EditDiv)
         .hide()
-        .css({'width': '100%',
-              'min-height':'50%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
+        .css({'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
@@ -283,14 +280,7 @@ Presentation.prototype.MakeEditPanel = function () {
     this.SearchTab.Div
         .appendTo(this.EditDiv)
         .hide()
-        .css({'position':'relative',
-              'width': '100%',
-              'min-height':'95%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
+        .css({'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
@@ -631,6 +621,7 @@ Presentation.prototype.InsertNewSlide = function (){
     var note = new Note();
     this.RootNote.Children.splice(idx-1,0,note);
     this.GotoSlide(idx);
+    this.UpdateSlidesTab();
 }
 
 // 0->Root/titlePage
@@ -642,6 +633,8 @@ Presentation.prototype.GotoSlide = function (index){
     // Insert view calls Goto with the same index.
     // We do not want to overwrite the new view with a blank viewer.
     if (this.Edit && index != this.Index) {
+        // Save any GUI changesinto the note before 
+        // we move to the next slide.
         if (this.Index == 0) {
             this.TitlePage.UpdateEdits();
         } else {
@@ -649,16 +642,27 @@ Presentation.prototype.GotoSlide = function (index){
         }
     }
 
+
     this.Index = index;
-    if (index == 0) {
+    if (index == 0) { // Title page
         this.SlidePage.Div.hide();
         this.Note = this.RootNote;
         this.TitlePage.DisplayNote(this.Note);
-        return;
+    } else { // Slide page
+        this.TitlePage.Div.hide();
+        this.Note = this.GetSlide(index);
+        this.SlidePage.DisplayNote(index, this.Note);
     }
-    this.TitlePage.Div.hide();
-    this.Note = this.GetSlide(index);
-    this.SlidePage.DisplayNote(index, this.Note);
+    // Start preloading the next slide.
+    if (index < this.RootNote.Children.length) {
+        var nextNote = this.RootNote.Children[index];
+        if (nextNote.ViewerRecords.length > 0) {
+            nextNote.ViewerRecords[0].LoadTiles(VIEWER1.GetViewport());
+        }
+        if (nextNote.ViewerRecords.length > 1) {
+            nextNote.ViewerRecords[1].LoadTiles(VIEWER2.GetViewport());
+        }
+    }
 }
 
 
@@ -678,13 +682,26 @@ Presentation.prototype.GetSlide = function (idx){
 }
 
 
-Presentation.prototype.UpdateSlideTab = function (){
+Presentation.prototype.UpdateSlidesTab = function (){
     // Add the title page 
+    this.SlidesDiv.empty();
 
-
-    for (var i = 1; i < this.GetNumberOfSlides; ++i) {
-        var slide = this.GetSlide(i);
-        
+    for (var i = 0; i < this.GetNumberOfSlides(); ++i) {
+        //var slide = this.GetSlide(i);
+        var slideDiv = $('<div>')
+            .appendTo(this.SlidesDiv)
+            .css({'padding-left':'1.5em',
+                  'padding-right':'1.5em',
+                  'margin': '5px',
+                  'border':'2px outset #CCC'})
+            .text("Slide " + i)
+            .data("index",i)
+            .hover(
+                function() {$(this).css({'background':'#EEE'});},
+                function() {$(this).css({'background':'#FFF'});})
+            .click(function () {
+                PRESENTATION.GotoSlide($(this).data("index"));
+            });
     }
 }
 
@@ -695,6 +712,7 @@ Presentation.prototype.UpdateSlideTab = function (){
 // Get rid of the width dependency on edit
 function SlidePage(parent, edit) {
     var self = this;
+    this.FullWindowView = null;
     this.Edit = edit;
     this.Note = null;
     this.Records = []; // views.
@@ -875,39 +893,77 @@ function SlidePage(parent, edit) {
     }
     // Give the option for full screen
     // on each of the viewers.
-    this.FullScreenView1Button = $('<img>')
+    this.FullWindowView1Button = $('<img>')
         .appendTo(VIEWER1.MainView.CanvasDiv)
-        .attr('src',"webgl-viewer/static/fullscreen.png")
-        .prop('title', "fullscreen")
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
         .css({'position':'absolute',
-              'left':'-7px',
-              'top':'-7px',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
               'opacity':'0.5',
               'z-index':'-1'})
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.FullScreenView(VIEWER1);
+            self.SetFullWindowView(VIEWER1);
         });
-    this.FullScreenView2Button = $('<img>')
+    this.FullWindowView2Button = $('<img>')
         .appendTo(VIEWER2.MainView.CanvasDiv)
-        .attr('src',"webgl-viewer/static/fullscreen.png")
-        .prop('title', "fullscreen")
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
         .css({'position':'absolute',
-              'left':'-7px',
-              'top':'-7px',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
               'opacity':'0.5',
               'z-index':'-1'})
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.FullScreenView(VIEWER2);
+            self.SetFullWindowView(VIEWER2);
+        });
+
+
+    this.FullWindowViewOffButton = $('<img>')
+        .appendTo(this.ViewPanel)
+        .hide()
+        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .prop('title', "full window off")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'2px',
+              'top':'2px',
+              'opacity':'0.5',
+              'z-index':'1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindowView(null);
         });
 }
 
 
-SlidePage.prototype.FullScreenView = function (viewer) {
-    alert("Fullscreen views are not working yet.");
+SlidePage.prototype.SetFullWindowView = function (viewer) {
+    if (viewer) {
+        PRESENTATION.EditOff();
+        this.FullWindowViewOffButton.show();
+        this.FullWindowView1Button.hide();
+        this.FullWindowView2Button.hide();
+        this.BottomDiv.hide();
+        this.ViewPanel.css({'height':'100%'});
+    } else {
+        this.FullWindowViewOffButton.hide();
+        this.FullWindowView1Button.show();
+        this.FullWindowView2Button.show();
+        this.BottomDiv.show();
+        this.ViewPanel.css({
+            'bottom': '300px',
+            'height': 'auto'});
+
+    }
+    this.FullWindowView = viewer;
+    this.ResizeViews();
 }
 
 
@@ -958,6 +1014,13 @@ SlidePage.prototype.ResizeViews = function ()
 {
     var width = this.ViewPanel.width();
     var height = this.ViewPanel.height();
+    if (this.FullWindowView) {
+        VIEWER1.SetViewport([0, 0, 0, height]);
+        VIEWER2.SetViewport([0, 0, 0, height]);
+        this.FullWindowView.SetViewport([0,0,width,height]);
+        eventuallyRender();
+        return;
+    }
 
     var numRecords = this.Records.length;
     var record;

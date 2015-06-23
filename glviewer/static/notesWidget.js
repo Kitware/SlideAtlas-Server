@@ -121,7 +121,15 @@ function NotesWidgetTab(parent, title) {
     // Now: all tabs have to be added before divs.
     // TODO: Make a separate tab div / tab panel object.
     this.Div = $('<div>')
-        .css({'z-index' : '5'});
+        .css({'position':'absolute',
+              'top':'29px',
+              'bottom':'3px',
+              'left':'3px',
+              'right':'3px',
+              'border-width': '1px',
+              'border-style': 'solid',
+              'border-color': '#BBB',
+              'z-index' : '5'});
     this.IsOpen = false;
 }
 
@@ -710,12 +718,7 @@ function NotesWidget() {
     this.LinksTab.Div 
         .appendTo(this.Window)
         .hide()
-        .css({'width': '100%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'top' : '0px',
+        .css({'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'})
