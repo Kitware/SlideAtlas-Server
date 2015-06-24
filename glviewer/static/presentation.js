@@ -68,16 +68,6 @@ function Presentation(rootNote, edit) {
             'width': 'auto'});
 
     if (this.Edit) {
-        this.EditDiv = $('<div>')
-            .appendTo(this.WindowDiv)
-            .css({
-                'background':'#FFF',
-                'position' : 'absolute',
-                'top': '0%',
-                'left': '0%',
-                'right':'26%',
-                'width': '25%',
-                'height': '100%'});
         this.MakeEditPanel();
     }
 
@@ -208,7 +198,7 @@ Presentation.prototype.FullScreen = function () {
 Presentation.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
-        this.EditDiv.hide();
+        this.EditTabs.Div.hide();
         this.TitlePage.EditOff();
         this.SlidePage.EditOff();
     }
@@ -216,54 +206,54 @@ Presentation.prototype.EditOff = function () {
 
 
 Presentation.prototype.MakeEditPanel = function () {
-    this.SlidesTab = new NotesWidgetTab(this.EditDiv, "Slides");
-    this.ClipboardTab = new NotesWidgetTab(this.EditDiv, "Clipboard");
-    this.SearchTab = new NotesWidgetTab(this.EditDiv, "Search");
+    this.EditTabs = new TabbedDiv(this.WindowDiv);
+    this.EditTabs.Div.css({'width':'25%'})
+
+    this.SlidesDiv = this.EditTabs.NewTabDiv("Slides");
+    this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
+    this.SearchDiv = this.EditTabs.NewTabDiv("Search");
 
     var self = this;
 
-    this.SlidesTab.Div 
-        .appendTo(this.EditDiv)
+    this.SlidesDiv
         .css({'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
     this.SaveButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
+        .appendTo(this.SlidesDiv)
         .prop('title', "save")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/save22.png')
         .css({'float':'right'})
         .click(function () { self.Save();});
     this.InsertSlideButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
+        .appendTo(this.SlidesDiv)
         .prop('title', "new slide")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
         .click(function () { self.InsertNewSlide();});
     // The div that will hold the list of slides.
-    this.SlidesDiv = $('<div>')
-        .appendTo(this.SlidesTab.Div)
+    this.SlideList = $('<div>')
+        .appendTo(this.SlidesDiv)
         .css({'position':'absolute',
               'width':'100%',
               'top':'32px',
               'bottom':'3px',
               'overflow-y':'auto'});
 
-    this.ClipboardTab.Div 
-        .appendTo(this.EditDiv)
-        .hide()
+    this.ClipboardDiv 
         .css({'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
     this.ClearButton = $('<button>')
-        .appendTo(this.ClipboardTab.Div)
+        .appendTo(this.ClipboardDiv)
         .click(function () { self.ClipboardDeleteAll(); })
         .text("Remove All");
     this.ClipboardDiv = $('<div>')
         .css({'overflow_y':'auto'})
-        .appendTo(this.ClipboardTab.Div);
+        .appendTo(this.ClipboardDiv);
 
     $.ajax({
         type: "get",
@@ -277,40 +267,13 @@ Presentation.prototype.MakeEditPanel = function () {
         },
     });
 
-    this.SearchTab.Div
-        .appendTo(this.EditDiv)
-        .hide()
-        .css({'overflow': 'auto',
-              'text-align': 'left',
-              'color': '#303030',
-              'font-size': '18px'});
-    this.SearchForm = $('<form>')
-        .appendTo(this.SearchTab.Div)
-        .css({'width':'100%',
-              'display':'table'})
-        .submit(function(e) {PRESENTATION.SearchCallback(); return false;});
-    this.SearchLabel = $('<span>')
-        .appendTo(this.SearchForm)
-        .css({'display':'table-cell',
-              'padding':'8px',
-              'width':'3.5em'})
-        .text("Search:");
-    this.SearchInput = $('<input>')
-        .appendTo(this.SearchForm)
-        .css({'width':'95%',
-              'display':'table-cell',
-              'border':'2px inset #CCC'})
-        .focusin(function() { EVENT_MANAGER.FocusOut(); })
-        .focusout(function() { EVENT_MANAGER.FocusIn(); });
-    this.SearchResults = $('<div>')
-        .appendTo(this.SearchTab.Div)
-        .css({'position':'absolute',
-              'top':'2em',
-              'bottom':'0px',
-              'width':'100%',
-              'overflow-y':'auto'});
+    this.SearchPanel = new SearchPanel(
+        this.SearchDiv,
+        function (imageObj) {
+            self.AddImageCallback(imageObj);
+        });
 
-    this.SlidesTab.Open();
+    this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
 
 Presentation.prototype.TimerCallback = function(duration) {
@@ -349,76 +312,6 @@ Presentation.prototype.TimerCallback = function(duration) {
     var self = this;
     setTimeout(function(){ self.TimerCallback(duration);}, duration);
 }
-
-Presentation.prototype.SearchCallback = function() {
-    var self = this;
-    var terms = this.SearchInput.val();
-
-    this.SearchTab.Div.css({'cursor':'progress'});
-    $.ajax({
-        type: "get",
-        url: "/webgl-viewer/query",
-        data: {'terms': terms},
-        success: function(data,status){
-            self.LoadSearchResults(data);
-            self.SearchTab.Div.css({'cursor':'default'});
-        },
-        error: function() {
-            alert( "AJAX - error() : query" );
-            self.SearchTab.Div.css({'cursor':'default'});
-        },
-    });
-}
-
-
-Presentation.prototype.LoadSearchResults = function(data) {
-    var self = this;
-    this.SearchResults.empty();
-    this.SearchData = data.images;
-
-    // These are in order of best match.
-    for (var i = 0; i < data.images.length; ++i) {
-        imgObj = data.images[i];
-
-        var imageDiv = $('<div>')
-            .appendTo(this.SearchResults)
-            .css({'float':'left',
-                  'margin':'5px',
-                  'border': '1px solid #AAA'})
-            .attr('id', imgObj._id)
-            .data('index', i)
-            .hover(function(){$(this).css({'border-color':'#00F'});},
-                   function(){$(this).css({'border-color':'#AAA'});})
-            .click(function(){
-                self.AddImageCallback($(this).data('index'));
-            });
-
-        var image  = {img       : imgObj._id,
-                      db        : imgObj.database,
-                      levels    : imgObj.levels,
-                      tile_size : imgObj.TileSize,
-                      bounds    : imgObj.bounds,
-                      label     : imgObj.label};
-        var thumb = new CutoutThumb(image, 100);
-        thumb.Div.appendTo(imageDiv)
-        var labelDiv = $('<div>')
-            .css({'font-size':'50%'})
-            .appendTo(imageDiv)
-            .text(imgObj.label); // Should really have the image label.
-
-    }
-}
-
-Presentation.prototype.MakeDataUri = function(aview) {
-    // Makes a data-uri for macro thumbs if supplied, or else refers
-    // to url endpoint
-    if(aview.thumbs && aview.thumbs.macro && aview.thumbs.macro.length > 0) {
-        return "data:image/jpeg;base64," + aview.thumbs.macro;
-    } else {
-        return "/viewthumb?viewid=" +aview._id + "&binary=1";
-    }
-}
-
 
 Presentation.prototype.LoadClipboardCallback = function(sessionData) {
     var self = this;
@@ -497,8 +390,8 @@ Presentation.prototype.AddViewCallback = function(idx) {
     this.GotoSlide(this.Index);
 }
 
-Presentation.prototype.AddImageCallback = function(index) {
-    var image = this.SearchData[index];
+// Callback from search.
+Presentation.prototype.AddImageCallback = function(image) {
     var note = new Note();
     var record = new ViewerRecord();
     note.ViewerRecords[0] = record;
@@ -596,7 +489,7 @@ Presentation.prototype.Save = function (){
     this.RootNote.Save(
         function() {
             //PRESENTATION.SaveButton.css({'color':'#000'});
-            self.SearchTab.Div.css({'cursor':'default'});
+            self.SearchDiv.css({'cursor':'default'});
         });
 }
 
@@ -684,12 +577,12 @@ Presentation.prototype.GetSlide = function (idx){
 
 Presentation.prototype.UpdateSlidesTab = function (){
     // Add the title page 
-    this.SlidesDiv.empty();
+    this.SlideList.empty();
 
     for (var i = 0; i < this.GetNumberOfSlides(); ++i) {
         //var slide = this.GetSlide(i);
         var slideDiv = $('<div>')
-            .appendTo(this.SlidesDiv)
+            .appendTo(this.SlideList)
             .css({'padding-left':'1.5em',
                   'padding-right':'1.5em',
                   'margin': '5px',
@@ -1252,4 +1145,117 @@ TitlePage.prototype.UpdateEdits = function () {
         this.Note.HiddenTitle = this.Title.html();
     }
 }
+
+
+
+//==============================================================================
+function SearchPanel(parent, callback) {
+    var self = this;
+    this.UserCallback = callback;
+    this.Parent = parent;
+
+    // List of image data needed for callback.
+    this.SearchData = [];
+
+    // TODO:
+    // User should probably be formating the parent.
+    parent
+        .css({'overflow': 'auto',
+              'text-align': 'left',
+              'color': '#303030',
+              'font-size': '18px'});
+    this.SearchForm = $('<form>')
+        .appendTo(parent)
+        .css({'width':'100%',
+              'display':'table'})
+        .submit(function(e) {self.SearchCallback(); return false;});
+    this.SearchLabel = $('<span>')
+        .appendTo(this.SearchForm)
+        .css({'display':'table-cell',
+              'padding':'8px',
+              'width':'3.5em'})
+        .text("Search:");
+    this.SearchInput = $('<input>')
+        .appendTo(this.SearchForm)
+        .css({'width':'95%',
+              'display':'table-cell',
+              'border':'2px inset #CCC'})
+        .focusin(function() { EVENT_MANAGER.FocusOut(); })
+        .focusout(function() { EVENT_MANAGER.FocusIn(); });
+    this.SearchResults = $('<div>')
+        .appendTo(parent)
+        .css({'position':'absolute',
+              'top':'2em',
+              'bottom':'0px',
+              'width':'100%',
+              'overflow-y':'auto'});
+}
+
+
+SearchPanel.prototype.SearchCallback = function() {
+    var self = this;
+    var terms = this.SearchInput.val();
+
+    this.Parent.css({'cursor':'progress'});
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/query",
+        data: {'terms': terms},
+        success: function(data,status){
+            self.LoadSearchResults(data);
+            self.Parent.css({'cursor':'default'});
+        },
+        error: function() {
+            alert( "AJAX - error() : query" );
+            self.Parent.css({'cursor':'default'});
+        },
+    });
+}
+
+
+SearchPanel.prototype.LoadSearchResults = function(data) {
+    var self = this;
+    this.SearchResults.empty();
+    this.SearchData = data.images;
+
+    // These are in order of best match.
+    for (var i = 0; i < data.images.length; ++i) {
+        imgObj = data.images[i];
+
+        var imageDiv = $('<div>')
+            .appendTo(this.SearchResults)
+            .css({'float':'left',
+                  'margin':'5px',
+                  'border': '1px solid #AAA'})
+            .attr('id', imgObj._id)
+            .data('index', i)
+            .hover(function(){$(this).css({'border-color':'#00F'});},
+                   function(){$(this).css({'border-color':'#AAA'});})
+            .click(function(){
+                self.SelectCallback($(this).data('index'));
+            });
+
+        var image  = {img       : imgObj._id,
+                      db        : imgObj.database,
+                      levels    : imgObj.levels,
+                      tile_size : imgObj.TileSize,
+                      bounds    : imgObj.bounds,
+                      label     : imgObj.label};
+        var thumb = new CutoutThumb(image, 100);
+        thumb.Div.appendTo(imageDiv)
+        var labelDiv = $('<div>')
+            .css({'font-size':'50%'})
+            .appendTo(imageDiv)
+            .text(imgObj.label); // Should really have the image label.
+    }
+}
+
+SearchPanel.prototype.SelectCallback = function(index) {
+    // Search data is just a list of image objects.
+    if (this.UserCallback && index >=0 && index<this.SearchData.length) {
+        (this.UserCallback)(this.SearchData[index]);
+    }
+}
+
+
 

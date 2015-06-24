@@ -21,6 +21,8 @@ function ZERO_PAD(i, n) {
 // initials shaders and some buffers we need and to render.
 
 var ROOT_DIV;
+var VIEW_BROWSER;
+
 
 // globals (for now)
 var imageProgram;
@@ -689,7 +691,7 @@ function Main2(rootNote) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
     InitViews();
-    InitViewBrowser();
+    VIEW_BROWSER = new ViewBrowser();
     InitDualViewWidget();
     InitNotesWidget(rootNote);
     InitRecorderWidget();
