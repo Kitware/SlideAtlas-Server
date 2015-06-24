@@ -95,7 +95,7 @@
     height: viewport[3]+"px";*/
     -moz-user-select: none;
     -webkit-user-select: none;
-    z-index: layer.toString()
+    z-index: 1;
 }
 .sa-view-dialog-div{
     display: none;
@@ -538,15 +538,15 @@
     width: 100%;
     left: 0px;
     bottom: 0px;
-    background-color: rgba(0;0;0;.6);
+    background-color: rgba(0,0,0,.6);
     overflow: visible;
     z-index: 6;
 }
               
 .sa-view-favorites-icon {
     left: 0px;
-    height: size;
-    width: size;
+    height: 40px;
+    width: 40px;
     float: left;
     margin-top: 50px;
     padding : 5px;
@@ -579,8 +579,8 @@
     height: 110px;
     margin: 10px;
     display: inline-block;
-    border: 5px solid rgba(0;0;255;1);
-    background-color: rgba(255;0;0;1)
+    border: 5px solid rgba(0,0,255,1);
+    background-color: rgba(255,0,0,1)
 }
 
 .sa-view-favorites-callback-img{
