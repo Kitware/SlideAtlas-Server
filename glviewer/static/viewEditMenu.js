@@ -30,7 +30,7 @@ function ViewEditMenu (viewer) {
         .text("Load Slide")
         .css({'margin':'2px 0px',
               'width' : '100%'})
-        .click(function(){self.Tab.PanelOff(); ShowViewBrowser(self.Viewer);});
+        .click(function(){self.Tab.PanelOff(); VIEW_BROWSER.Open(self.Viewer);});
     if (EDIT) {
         $('<button>')
             .appendTo(this.Tab.Panel)
