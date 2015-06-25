@@ -49,14 +49,13 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
 
     var view = new View();
     CUTOUT_VIEW = view;
-    view.InitializeViewport(viewport, 1, true);
     view.SetCache(cache);
-    view.Canvas.attr("width", width);
-    view.Canvas.attr("height", height);
+    view.InitializeViewport(viewport, 1, true);
     var newCam = view.Camera;
     newCam.SetFocalPoint(focalPoint[0], focalPoint[1]);
-    newCam.Roll = roll;
-    newCam.Height = height*scale;
+    newCam.SetRoll(roll);
+    newCam.SetHeight(height*scale);
+    // TODO:  Hide matrix computation.  Make it automatic.
     newCam.ComputeMatrix();
 
     // Load only the tiles we need.
