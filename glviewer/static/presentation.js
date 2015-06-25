@@ -242,31 +242,11 @@ Presentation.prototype.MakeEditPanel = function () {
               'bottom':'3px',
               'overflow-y':'auto'});
 
-    this.ClipboardDiv 
-        .css({'overflow': 'auto',
-              'text-align': 'left',
-              'color': '#303030',
-              'font-size': '18px'});
-    this.ClearButton = $('<button>')
-        .appendTo(this.ClipboardDiv)
-        .click(function () { self.ClipboardDeleteAll(); })
-        .text("Remove All");
-    this.ClipboardDiv = $('<div>')
-        .css({'overflow_y':'auto'})
-        .appendTo(this.ClipboardDiv);
-
-    $.ajax({
-        type: "get",
-        url: "webgl-viewer/getfavoriteviews",
-        success: function(data,status){
-            if (status == "success") {
-                self.LoadClipboardCallback(data);
-            } else { alert("ajax failed - get favorite views 2"); }
-        },
-        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
-        },
-    });
-
+    this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardDiv,
+        function (viewObj) {
+            self.AddViewCallback(viewObj);
+        });
     this.SearchPanel = new SearchPanel(
         this.SearchDiv,
         function (imageObj) {
@@ -313,49 +293,6 @@ Presentation.prototype.TimerCallback = function(duration) {
     setTimeout(function(){ self.TimerCallback(duration);}, duration);
 }
 
-Presentation.prototype.LoadClipboardCallback = function(sessionData) {
-    var self = this;
-    this.ClipboardDiv.empty();
-    this.ClipboardViews = sessionData.viewArray;
-
-    for (var i = 0; i < this.ClipboardViews.length; ++i) {
-        var view = this.ClipboardViews[i];
-        var thumb = $('<img>')
-            .appendTo(this.ClipboardDiv)
-            .attr('src', view.Thumb)
-            .prop('title', view.Title)
-            .css({'float':'left',
-                  'margin':'5px',
-                  'border': '1px solid #AAA',
-                  'height': '60px'})
-            .attr('index', i)
-            .hover(function(){$(this).css({'border-color':'#00F'});},
-                   function(){$(this).css({'border-color':'#AAA'});})
-            .click(function(){
-                self.AddViewCallback(parseInt(this.getAttribute("index")));
-            });
-    }
-}
-
-Presentation.prototype.ClipboardDeleteAll = function() {
-    var self = this;
-    this.ClipboardDiv.empty();
-
-    for (var i = 0; i < this.ClipboardViews.length; ++i) {
-        $.ajax({
-            type: "post",
-            url: "/webgl-viewer/deleteusernote",
-            data: {"noteId": this.ClipboardViews[i]._id,
-                   "col" : "views"},//"favorites"
-            success: function(data,status) {
-            },
-            error: function() {
-                alert( "AJAX - error() : deleteusernote" );
-            },
-        });
-    }
-}
-
 
 Presentation.prototype.RecordView1 = function() {
     if (this.Edit && this.Note &&
@@ -375,11 +312,9 @@ Presentation.prototype.RecordView2 = function() {
 }
 
 
-// TODO: Separate the viewer records (maybe also children).
-Presentation.prototype.AddViewCallback = function(idx) {
-    this.ClipboardViews[idx];
+Presentation.prototype.AddViewCallback = function(viewObj) {
     var record = new ViewerRecord();
-    record.Load(this.ClipboardViews[idx].ViewerRecords[0]);
+    record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
     // The root needs a record to show up in the session.
     if (this.RootNote.ViewerRecords.length == 0) {
@@ -1257,5 +1192,87 @@ SearchPanel.prototype.SelectCallback = function(index) {
     }
 }
 
+//==============================================================================
+
+function ClipboardPanel(parent, callback) {
+    var self = this;
+    this.UserCallback = callback;
+
+    parent
+        .css({'overflow': 'auto',
+              'text-align': 'left',
+              'color': '#303030',
+              'font-size': '18px'});
+    this.ClearButton = $('<button>')
+        .appendTo(parent)
+        .click(function () { self.ClipboardDeleteAll(); })
+        .text("Remove All");
+    this.ClipboardDiv = $('<div>')
+        .css({'overflow_y':'auto'})
+        .appendTo(parent);
+
+    $.ajax({
+        type: "get",
+        url: "webgl-viewer/getfavoriteviews",
+        success: function(data,status){
+            if (status == "success") {
+                self.LoadClipboardCallback(data);
+            } else { alert("ajax failed - get favorite views 2"); }
+        },
+        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
+        },
+    });
+}
+
+ClipboardPanel.prototype.LoadClipboardCallback = function(sessionData) {
+    var self = this;
+    this.ClipboardDiv.empty();
+    this.ClipboardViews = sessionData.viewArray;
+
+    for (var i = 0; i < this.ClipboardViews.length; ++i) {
+        var view = this.ClipboardViews[i];
+        var thumb = $('<img>')
+            .appendTo(this.ClipboardDiv)
+            .attr('src', view.Thumb)
+            .prop('title', view.Title)
+            .css({'float':'left',
+                  'margin':'5px',
+                  'border': '1px solid #AAA',
+                  'height': '60px'})
+            .attr('index', i)
+            .hover(function(){$(this).css({'border-color':'#00F'});},
+                   function(){$(this).css({'border-color':'#AAA'});})
+            .click(function(){
+                self.ClickViewCallback(parseInt(this.getAttribute("index")));
+            });
+    }
+}
+
+
+ClipboardPanel.prototype.ClickViewCallback = function(idx) {
+    if (this.UserCallback && idx >= 0 && idx < this.ClipboardViews.length) {
+        (this.UserCallback)(this.ClipboardViews[idx]);
+    }
+}
+
+
+ClipboardPanel.prototype.ClipboardDeleteAll = function() {
+    var self = this;
+    this.ClipboardDiv.empty();
+
+    for (var i = 0; i < this.ClipboardViews.length; ++i) {
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/deleteusernote",
+            data: {"noteId": this.ClipboardViews[i]._id,
+                   "col" : "views"},//"favorites"
+            success: function(data,status) {
+            },
+            error: function() {
+                alert( "AJAX - error() : deleteusernote" );
+            },
+        });
+    }
+}
 
 

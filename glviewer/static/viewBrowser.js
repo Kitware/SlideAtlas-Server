@@ -3,9 +3,6 @@
 // I am changing this to be more about selecting an image.
 // I am also making this into a dialog object. (not based on the dialog class).
 
-// When the menu first is shown, this gets set to remeber which viewer to change.
-var ACTIVE_VIEWER;
-var VIEW_BROWSER_INFO;
 
 
 function ViewBrowser() {
@@ -14,46 +11,46 @@ function ViewBrowser() {
     this.Div = $('<div>')
         .appendTo(VIEW_PANEL)
         .hide().css({
-            'background-color': 'white',
-            'opacity': '0.9',
-            'border-radius': '5px',
-            'position': 'absolute',
-            'top' : '10%',
-            'height' : '80%',
-            'left' : '20%',
-            'width': '60%',
-            'z-index': '7',
+            'position'  : 'absolute',
+            'top'       : '5%',
+            'height'    : '80%',
+            'left'      : '10%',
+            'width'     : '70%',
+            'padding'   : '5%',
+            'z-index'   : '7',
             'text-align': 'left',
-            'color': '#303030',
-            'font-size': '20px',
-            'overflow': 'scroll'})
-        .attr('id', 'viewBrowser')
-        .mouseleave(function () {$('#viewBrowser').hide();});
+            'color'     : '#303030'})
+        .mouseleave(function () {self.Div.fadeOut();});
 
     this.TabbedDiv = new TabbedDiv(this.Div);
     this.BrowserDiv = this.TabbedDiv.NewTabDiv("Browser");
+    this.BrowserDiv.css({'overflow-y':'auto'});
     this.SearchDiv = this.TabbedDiv.NewTabDiv("Search");
     this.ClipboardDiv = this.TabbedDiv.NewTabDiv("Clipboard");
 
     this.SearchPanel = new SearchPanel(
         this.SearchDiv,
         function (imageObj) {
-            self.AddImageCallback(imageObj);
+            self.SelectImage(imageObj);
         });
 
+    this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardDiv,
+        function (viewObj) {
+            self.SelectView(viewObj);
+        });
 
+    this.Viewer = null;
+    this.BrowserInfo = null;
     this.ReloadViewBrowserInfo();
 }
 
 // Open the dialog. (ShowViewBrowser).
 ViewBrowser.prototype.Open = function(viewer) {
-    ACTIVE_VIEWER = viewer;
-    if ( ! ACTIVE_VIEWER) { return; }
+    this.Viewer = viewer;
+    if ( ! viewer) { return; }
 
-    $('#viewBrowser').show();
-}
-
-ViewBrowser.prototype.AddImageCallback = function(image) {
+    this.Div.show();
 }
 
 ViewBrowser.prototype.ReloadViewBrowserInfo = function() {
@@ -62,19 +59,19 @@ ViewBrowser.prototype.ReloadViewBrowserInfo = function() {
     $.get("/sessions?json=true",
           function(data,status){
               if (status == "success") {
-                  VIEW_BROWSER_INFO = data;
+                  self.BrowserInfo = data;
                   // I might want to open a session to avoid an extra click.
                   // I might want to sort the sessions to put the recent at the top.
-                  self.LoadViewBrowserGUI(data);
+                  self.LoadGUI(data);
               } else { alert("ajax failed."); }
           });
 }
 
-ViewBrowser.prototype.LoadViewBrowserGUI = function() {
+ViewBrowser.prototype.LoadGUI = function() {
     var self = this;
-    var data = VIEW_BROWSER_INFO;
-    $('#viewBrowser').empty();
-    groupList = $('<ul>').appendTo('#viewBrowser')
+    var data = this.BrowserInfo;
+    this.BrowserDiv.empty();
+    groupList = $('<ul>').appendTo(this.BrowserDiv)
 
     for (i=0; i < data.sessions.length; ++i) {
         var group = data.sessions[i];
@@ -85,12 +82,12 @@ ViewBrowser.prototype.LoadViewBrowserGUI = function() {
             $('<li>').appendTo(sessionList)
                 .text(session.label)
                 .attr('db', session.sessdb).attr('sessid', session.sessid)
-                .bind('click', function(){self.ViewBrowserSessionCallback(this);});
+                .bind('click', function(){self.SessionClickCallback(this);});
         }
     }
 }
 
-ViewBrowser.prototype.ViewBrowserSessionCallback = function(obj) {
+ViewBrowser.prototype.SessionClickCallback = function(obj) {
     var self = this;
     // No closing yet.
     // Already open. disable iopening twice.
@@ -101,12 +98,12 @@ ViewBrowser.prototype.ViewBrowserSessionCallback = function(obj) {
     $.get("/sessions?json=true"+"&sessid="+$(obj).attr('sessid'),
           function(data,status){
               if (status == "success") {
-                  self.ViewBrowserAddSessionViews(data);
+                  self.AddSessionViews(data);
               } else { alert("ajax failed."); }
           });
 }
 
-ViewBrowser.prototype.ViewBrowserAddSessionViews = function(sessionData) {
+ViewBrowser.prototype.AddSessionViews = function(sessionData) {
     var self = this;
     var sessionItem = $("[sessid="+sessionData.sessid+"]");
     var viewList = $('<ul>').appendTo(sessionItem)
@@ -117,7 +114,7 @@ ViewBrowser.prototype.ViewBrowserAddSessionViews = function(sessionData) {
           .attr('db', image.db)
           .attr('sessid', sessionData.sessid)
           .attr('viewid', image.view)
-          .click(function(){self.ViewBrowserImageCallback(this);});
+          .click(function(){self.ViewClickCallback(this);});
       $('<img>').appendTo(item)
           .attr('src', "/thumb?db="+image.db+"&img="+image.img)
           .css({'height': '50px'});
@@ -126,13 +123,12 @@ ViewBrowser.prototype.ViewBrowserAddSessionViews = function(sessionData) {
       }
 }
 
-ViewBrowser.prototype.ViewBrowserImageCallback = function(obj) {
+ViewBrowser.prototype.ViewClickCallback = function(obj) {
     var self = this;
-    $('#viewBrowser').hide();
 
     // null implies the user wants an empty view.
     if (obj == null) {
-        ACTIVE_VIEWER.SetCache(null);
+        this.Viewer.SetCache(null);
         eventuallyRender();
         return;
     }
@@ -140,25 +136,32 @@ ViewBrowser.prototype.ViewBrowserImageCallback = function(obj) {
     var db = $(obj).attr('db');
     var viewid = $(obj).attr('viewid');
 
+    // Ok, so we only have the viewId at this point.
+    // We need to get the view object to get the image id.
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
         data: {"sessid": $(obj).attr('sessid'),
                "viewid": $(obj).attr('viewid'),
                "db"  : $(obj).attr('db')},
-        success: function(data,status) { self.ViewBrowserLoadImage(data);},
+        success: function(data,status) {
+            self.SelectView(data);
+        },
         error: function() { alert( "AJAX - error() : getview (browser)" ); },
     });
 }
 
-ViewBrowser.prototype.ViewBrowserLoadImage = function(viewData) {
-    // If we want to take origin and spacing into account, then we need to change tile geometry computation.
-    var imgobj = viewData.ViewerRecords[0].Image;
+ViewBrowser.prototype.SelectView = function(viewObj) {
+    this.SelectImage(viewObj.ViewerRecords[0].Image);
+}
+
+ViewBrowser.prototype.SelectImage = function(imgobj) {
+    this.Div.fadeOut();
     var source = FindCache(imgobj);
 
     // We have to get rid of annotation which does not apply to the new image.
-    ACTIVE_VIEWER.Reset();
-    ACTIVE_VIEWER.SetCache(source);    
+    this.Viewer.Reset();
+    this.Viewer.SetCache(source);    
 
     RecordState();
 

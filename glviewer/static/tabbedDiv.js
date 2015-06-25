@@ -31,6 +31,11 @@ function TabbedDiv(parent) {
 TabbedDiv.prototype.NewTabDiv = function (title) {
     var tabPanel = new TabPanel(this, title);
     this.TabPanels.push(tabPanel);
+    // First panel added should be open by default.
+    if (this.TabPanels.length == 1) {
+        this.ShowTabPanel(tabPanel);
+    }
+
     return tabPanel.Div;
 }
 
@@ -106,7 +111,8 @@ function TabPanel(tabbedDiv, title) {
               'border-width': '1px',
               'border-style': 'solid',
               'border-color': '#BBB',
-              'z-index' : '5'});
+              'z-index' : '5',
+              'background': 'white'})
 
     // I do not think this flag is used or needed.
     this.IsOpen = false;
