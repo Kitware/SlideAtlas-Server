@@ -15,8 +15,11 @@ function ViewEditMenu (viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
     this.Tab = new Tab("/webgl-viewer/static/Menu.jpg", "editTab");
+    this.Tab.Div.css({'right':'99px',
+                      'bottom':'0px'});
     // I think we can get rid of this "GuiObject" stuff.
     // css positioning can handle it now.
+    // I would have to use the canvas div as parent. 
     viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 99);
     new ToolTip(this.Tab.Div, "View Menu");
 
