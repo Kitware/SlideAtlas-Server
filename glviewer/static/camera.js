@@ -194,15 +194,31 @@ Camera.prototype.SetHeight = function (height) {
         console.log("Camera 3");
         return;
     }
-    // Width tracks height.
-    this.Width = this.Width * height/this.Height;
     this.Height = height;
+    // Width tracks height.
+    this.Width = height * this.ViewportWidth / this.ViewportHeight;
 }
 
 
 Camera.prototype.GetWidth = function () {
     return this.Width;
 }
+
+
+Camera.prototype.SetWidth = function (width) {
+    if (isNaN(width)) {
+        console.log("Camera 4");
+        return;
+    }
+    this.Width = width;
+    // Width tracks height.
+    this.Height = width * this.ViewportHeight / this.ViewportWidth;
+}
+
+Camera.prototype.SetRoll = function (roll) {
+    this.Roll = roll;
+}
+
 
 
 // Slide coordinates.

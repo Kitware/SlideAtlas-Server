@@ -1654,6 +1654,8 @@ function ImageData() {
 
 ImageData.prototype.GetIntensity = function (x,y) {
     if (! this.data) { return 0;}
+    x = Math.round(x);
+    y = Math.round(y);
     var idx = x*this.IncX + y*this.IncY;
     return (this.data[idx] + this.data[idx+1] + this.data[idx+2]) / 3;
 }
@@ -3059,6 +3061,7 @@ function testDeformableAlign(spacing) {
 // hagfish
 // I either have to keep the camera with the contour, or translate the
 // contour into worl coordinate points.  The second sounds easier.
+
 
 
 

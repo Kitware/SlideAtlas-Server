@@ -64,6 +64,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
               'height':'100%'});
+    // Css is not enough.  Canvas needs these for rendering.
+    this.Canvas.attr("width", viewport[2]);
+    this.Canvas.attr("height", viewport[3]);
 }
 
 View.prototype.appendTo = function(j) {
