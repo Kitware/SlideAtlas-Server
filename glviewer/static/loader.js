@@ -34,13 +34,7 @@ function InitProgressBar () {
   if (PROGRESS_BAR) { return;}
   PROGRESS_BAR = $("<div>")
    .appendTo('body')
-   .css({"position":"absolute",
-         "z-index" : "2",
-         "bottom"     : "0px",
-         "left"    : "0px",
-         "height"  : "3px",
-         "width"   : "50%",
-         "background-color" : "#404060"});
+   .addClass("sa-view-progress-bar");
 }
 
 

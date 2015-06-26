@@ -18,29 +18,20 @@ function MobileAnnotationWidget() {
   var self = this;
   this.Div =
     $('<div>').appendTo('body')
-              .css({'position': 'absolute',
-                    'right' : right,
-                    'bottom' : bottom,
-                    'z-index': '5'});
+              .addClass("sa-view-annotation-div ui-responsive")
 
   // I cannot get touch events that start in the image to continue in
   // the document / viewer.  Press to place, then interact to position.
   this.CircleButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
+              .addClass("sa-view-annotation-button")
               .attr('src',"webgl-viewer/static/Circle128.jpg")
               .click(function(){self.CircleCallback();});
   this.CircleTip = new ToolTip(this.CircleButton, "Circle Annotation");
 
   this.TextButton =
     $('<img>').appendTo(this.Div)
-              .css({'height': size,
-                    'width': size,
-                    'padding' : '5px',
-                    'opacity': '0.6'})
+              .addClass("sa-view-annotation-button")
               .attr('src',"webgl-viewer/static/Text128.jpg")
               .click(function(){self.TextCallback();});
   this.TextTip = new ToolTip(this.TextButton, "Text Annotation");

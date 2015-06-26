@@ -45,18 +45,8 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     // Add a new canvas.
     this.CanvasDiv = $('<div>')
         .addClass('view')
-        .css({'position': 'absolute',
-              'border-style': 'solid',
-              'border-width': '1px',
-              'border-color': '#AAA',
-              'left'  : viewport[0]+"px",
-              'width' : viewport[2]+"px",
-              'top'   : viewport[1]+"px",
-              'height': viewport[3]+"px",
-              'background': '#FFF',
-              '-moz-user-select': 'none',
-              '-webkit-user-select': 'none',
-              'z-index': layer.toString()});
+        .addClass("sa-view-canvas-div")
+
     if ( ! hide) {
         this.CanvasDiv.appendTo(VIEW_PANEL)
     }

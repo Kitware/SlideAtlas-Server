@@ -5,9 +5,7 @@
 function Gallery() {
     var self = this;
     this.ImagePanel = $('<div>')
-        .css({
-            'height': '100%',
-            'width': 'auto'});
+        .addClass("sa-view-gallery-panel");
     this.CollectionLabel = $('<label>')
         .appendTo(this.ImagePanel)
         .text("Collection");
@@ -32,12 +30,7 @@ function Gallery() {
         .text("Submit");
     this.GalleryDiv = $('<ul>')
         .appendTo(this.ImagePanel)
-        .css({
-            'padding':    '0',
-            'border':     '1px solid #CCC',
-            'height':     '100%',
-            'list-style': 'none',
-            'overflow-y': 'auto'});
+        .addClass("sa-view-gallery-div");
 
     this.Collections = [];
     this.DefaultCollectionLabel = "";
@@ -197,13 +190,10 @@ Gallery.prototype.LoadImages = function(data, imgdb) {
             .data('imgdb', imgdb)
             .data('imgid', imgObj._id)
             .data("label", imgObj.label)
-            .css({'float': 'left',
-                  'margin': '2px',
-                  'border': '2px solid #CCC',
-                  'padding': '2px'})
+            .addClass("sa-view-gallery-item")
             .hover(
-                function () {$(this).css({'border-color': '#333'});},
-                function () {$(this).css({'border-color': '#CCC'});})
+                function () {$(this).addClass("sa-active")},
+                function () {$(this).removeClass("sa-active")});
             .mousedown(function(event) {
                 // TODO: Make this a callback
                 self.SelectCallback($(this).data('imgdb'),
@@ -220,8 +210,7 @@ Gallery.prototype.LoadImages = function(data, imgdb) {
         var labelDiv = $('<div>')
             .appendTo(listItem)
             .text(data.Images[i].label)
-            .css({'color': '#333',
-                  'font-size': '11px'});
+            .addClass("sa-view-gallery-item-div");
 
     }
     this.FilterInput.autocomplete({source: labelStrings});
@@ -240,13 +229,10 @@ Gallery.prototype.LoadSession = function(data) {
         labelStrings.push(data.session.views[i].label);
         var listItem = $('<li>')
             .appendTo(this.GalleryDiv)
-            .css({'float': 'left',
-                  'margin': '2px',
-                  'border': '2px solid #CCC',
-                  'padding': '2px'})
+            .addClass("sa-view-gallery-item")
             .hover(
-                function () {$(this).css({'border-color': '#333'});},
-                function () {$(this).css({'border-color': '#CCC'});});
+                function () {$(this).addClass("sa-active")},
+                function () {$(this).removeClass("sa-active")});
         var image = $('<img>')
             .appendTo(listItem)
             .attr("copy",  1)
@@ -266,8 +252,7 @@ Gallery.prototype.LoadSession = function(data) {
         var labelDiv = $('<div>')
             .appendTo(listItem)
             .text(data.images[i].label)
-            .css({'color': '#333',
-                  'font-size': '11px'});
+            .addClass("sa-view-gallery-item-div");
     }
 
     this.FilterInput.autocomplete({source: labelStrings});

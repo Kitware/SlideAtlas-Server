@@ -722,16 +722,11 @@ function HistogramPlot (left, top, width, height) {
 
     this.Div = $('<div>')
         .appendTo('body')
-        .css({'position': 'fixed',
-              'background-color': '#ffffff',
-              'border': '2px solid #336699',
-              'padding': '0px',
-              'z-index': '102'});
+        .addClass("sa-view-align-histogram-div");
 
     this.Canvas = $('<canvas>')
         .appendTo(this.Div)
-        .css({'width' : '100%',
-              'height': '100%'});
+        .addClass("sa-view-align-histogram-canvas");
     this.Context = this.Canvas[0].getContext("2d");
 
     this.SetSize(left,top, width, height);
@@ -2501,11 +2496,7 @@ function DeformableAlignViewers() {
             .attr("src", "/webgl-viewer/static/circular.gif")
             .attr("alt", "waiting...")
             .hide()
-            .css({'width':'80px',
-                  'position': 'fixed',
-                  'left': '100px',
-                  'top': '100px',
-                  'z-index':'4'});
+            .addClass("sa-view-align-waiting");
     }
 
     WAITING

@@ -42,46 +42,24 @@ function NavigationWidget() {
         this.Tab.Panel = 
             $('<div>').appendTo('body')
                       .hide()
-                      .css({'position': 'absolute',
-                            'left' : left,
-                            'bottom' : bottom,
-                            'z-index': '5'});
+                      .addClass("sa-view-navigation-div ui-responsive");
     } else {
         this.Tab = new Tab("/webgl-viewer/static/nav.png", "navigationTab");
         new ToolTip(this.Tab.Div, "Navigation");
-        this.Tab.Div.css({'left': '50px',
-                          'bottom': '0px'});
-        this.Tab.Panel
-            .css({'left': '-45px',
-                  'width': '200px',
-                  'height': '50px',
-                  'padding': '0px 2px'});
+        this.Tab.Div.addClass("sa-view-navigation-div");
+        this.Tab.Panel.addClass("sa-view-navigation-panel");
 
         // Put the stack display in the navigation button
         this.NoteDisplay = $('<div>')
             .appendTo(this.Tab.Div)
-            .css({
-                'opacity': '0.9',
-                'position': 'absolute',
-                'height':  '20px',
-                'width':   '100%',
-                'text-align' : 'center',
-                'color' : '#000',
-                'top' : '23px',
-                'left' : '0px',
-                'font-size':'10px',
-                'z-index': '10',
-                'pointer-events': 'none'})
+            .addClass("sa-view-note")
             .html("");
     }
 
 
     this.PreviousSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
-        .css({'height': size,
-              'width': size,
-              'padding' : '5px',
-              'opacity': '0.6'})
+        .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/previousSlide.png")
         .click(function(){self.PreviousSlide();});
     this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, 
@@ -89,10 +67,7 @@ function NavigationWidget() {
 
     this.PreviousNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
-        .css({'height': size,
-              'width': size,
-              'padding' : '5px',
-              'opacity': '0.6'})
+        .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/previousNote.png")
         .click(function(){self.PreviousNote();});
     this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, 
@@ -100,10 +75,7 @@ function NavigationWidget() {
 
     this.NextNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
-        .css({'height': size,
-              'width': size,
-              'padding' : '5px',
-              'opacity': '0.6'})
+        .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/nextNote.png")
         .click(function(){self.NextNote();});
     this.NextNoteTip = new ToolTip(this.NextNoteButton, 
@@ -111,10 +83,7 @@ function NavigationWidget() {
 
     this.NextSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
-        .css({'height': size,
-              'width': size,
-              'padding' : '5px',
-              'opacity': '0.6'})
+        .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/nextSlide.png")
         .click(function(){self.NextSlide();});
     this.NextSlideTip = new ToolTip(this.NextSlideButton, 
@@ -173,50 +142,50 @@ NavigationWidget.prototype.Update = function() {
   if (note.Type == "Stack") {
       // Next note refers to ViewerRecords.
       if (note.StartIndex > 0) {
-          this.PreviousNoteButton.css({'opacity': '0.5'});
+          this.PreviousNoteButton.addClass("sa-active");
           this.PreviousNoteTip.SetActive(true);
       } else {
-          this.PreviousNoteButton.css({'opacity': '0.2'});
+          this.PreviousNoteButton.removeClass("sa-active");
           this.PreviousNoteTip.SetActive(false);
       }
       if (note.StartIndex < note.ViewerRecords.length - 1) {
-          this.NextNoteButton.css({'opacity': '0.5'});
+          this.NextNoteButton.addClass("sa-active");
           this.NextNoteTip.SetActive(true);
       } else {
-          this.NextNoteButton.css({'opacity': '0.2'});
+          this.NextNoteButton.removeClass("sa-active");
           this.NextNoteTip.SetActive(false);
       }
   } else {
       // Next note refers to children.
       if (NOTES_WIDGET.Iterator.IsStart()) {
-          this.PreviousNoteButton.css({'opacity': '0.2'});
+          this.PreviousNoteButton.removeClass("sa-active");
           this.PreviousNoteTip.SetActive(false);
       } else {
-          this.PreviousNoteButton.css({'opacity': '0.5'});
+          this.PreviousNoteButton.addClass("sa-active");
           this.PreviousNoteTip.SetActive(true);
       }
       if (NOTES_WIDGET.Iterator.IsEnd()) {
-          this.NextNoteButton.css({'opacity': '0.2'});
+          this.NextNoteButton.removeClass("sa-active");
           this.NextNoteTip.SetActive(false);
       } else {
-          this.NextNoteButton.css({'opacity': '0.5'});
+          this.NextNoteButton.addClass("sa-active");
           this.NextNoteTip.SetActive(true);
       }
   }
 
   // Disable and enable prev/next slide buttons so we cannot go past the end.
   if (this.SlideIndex <= 0) {
-    this.PreviousSlideButton.css({'opacity': '0.2'});
+    this.PreviousSlideButton.removeClass("sa-active");
     this.PreviousSlideTip.SetActive(false);
   } else {
-    this.PreviousSlideButton.css({'opacity': '0.5'});
+    this.PreviousSlideButton.addClass("sa-active");
     this.PreviousSlideTip.SetActive(true);
   }
   if (this.SlideIndex >= this.Session.length-1) {
-    this.NextSlideButton.css({'opacity': '0.2'});
+    this.NextSlideButton.removeClass("sa-active");
     this.NextSlideTip.SetActive(false);
   } else {
-    this.NextSlideButton.css({'opacity': '0.5'});
+    this.NextSlideButton.addClass("sa-active")
     this.NextSlideTip.SetActive(true);
   }
 }

@@ -4,70 +4,29 @@ function Dialog(callback) {
   this.Overlay =
     $('<div>')
       .appendTo('body')
-      .css({
-        'position': 'fixed',
-        'top': '0',
-        'right': '0',
-        'bottom': '0',
-        'left': '0',
-        'height': '100%',
-        'width': '100%',
-        'margin': '0',
-        'padding': '0',
-        'background': '#000000',
-        'opacity': '.25',
-        'z-index': '101'})
+      .addClass("sa-view-dialog-div")
       .hide();
 
   this.Dialog =
     $('<div>')
       .appendTo('body')
-      .css({
-        'display': 'none',
-        'position': 'fixed',
-        'width': '380px',
-        'top': '50%',
-        'left': '50%',
-        'margin-left': '-190px',
-        'margin-top': '-100px',
-        'background-color': '#ffffff',
-        'border': '2px solid #336699',
-        'padding': '0px',
-        'z-index': '102',
-        'font-family': 'Verdana',
-        'font-size': '10pt'});
+      .addClass("sa-view-dialog-div");
 
   this.Table =
     $('<table>')
       .appendTo(this.Dialog)
-        .css({
-            'width': '100%',
-            'border-spacing': '0px',
-            'cellpadding': '3',
-            'cellspacing': '0'});
+        .addClass("sa-view-dialog-table");
 
   this.Row1 = $('<tr>').appendTo(this.Table);
   this.Title =
     $('<td>')
       .appendTo(this.Row1)
-      .css({
-        'border-bottom': 'solid 2px #336699',
-        'background-color': '#336699',
-        'padding': '4px',
-        'color': 'White',
-        'font-weight':'bold'})
+      .addClass("sa-view-dialog-title")
       .text("Title");
   this.CloseButton =
     $('<td>')
       .appendTo(this.Row1)
-      .css({
-        'border-bottom': 'solid 2px #336699',
-        'background-color': '#336699',
-        'padding': '4px',
-        'font-weight': 'bold',
-        'color': 'White',
-        'text-align': 'right',
-        'text-decoration': 'none'})
+      .addClass("sa-view-dialog-close")
         .text("Close");
 
     // Closure to pass a stupid parameter to the callback
@@ -84,8 +43,7 @@ function Dialog(callback) {
   this.Body =
     $("<td colspan='2'>")
       .appendTo(this.Row3)
-      .css({'padding-left': '15px',
-            'display': 'block'});
+      .addClass("sa-view-dialog-body");
 
   this.Row4 = $('<tr>').appendTo(this.Table);
   this.Space4a = $('<td>').appendTo(this.Row4).html("&nbsp");
@@ -95,12 +53,12 @@ function Dialog(callback) {
   this.ApplyDiv =
     $("<td colspan='2'>")
       .appendTo(this.Row5)
-      .css({'text-align': 'center'});
+      .addClass("sa-view-dialog-apply-div")
   this.ApplyButton =
     $('<button>')
         .appendTo(this.ApplyDiv)
         .text("Apply")
-        .css({'margin-bottom': '6px'})
+        .addClass("sa-view-dialog-apply-button")
         .click(function (e) {
             (callback)();
             self.Hide();

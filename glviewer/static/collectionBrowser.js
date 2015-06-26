@@ -475,13 +475,13 @@ CollectionBrowser = (function (){
             }
         }
         SELECTED.push(view);
-        view.Item.css({"background-color": "#CDF"});
+        view.Item.addClass("sa-view-browser-item sa-active");
         view.ViewData.Selected = true;
     }
 
     function RemoveSelected(view) {
         view.ViewData.Selected = false;
-        view.Item.css({"background-color": "#FFF"});
+        view.Item.removeClass('sa-active');
         // Remove the item from the selected list.
         var index = SELECTED.indexOf(view);
         if (index > -1) {
@@ -493,7 +493,7 @@ CollectionBrowser = (function (){
     // Sets the SELECTED list to empty and removes highlighting from items.
     function ClearSelected() {
         for (var i = 0; i < SELECTED.length; ++i) {
-            SELECTED[i].Item.css({"background-color": "#FFF"});
+            SELECTED[i].Item.removeClass("sa-active");
             SELECTED[i].ViewData.Selected = false;
         }
         SELECTED = [];
@@ -508,10 +508,7 @@ CollectionBrowser = (function (){
         $('<div>').appendTo('body')
               .hide()
               .text("Move")
-              .css({'position': 'fixed',
-                    'font-size' : '200%',
-                    'font-weight': 'bold',
-                    'z-index': '2'});
+              .addClass("sa-view-browser-message");
 
     $('body')[0].oncontextmenu = function () {return false;};
 
@@ -525,22 +522,13 @@ CollectionBrowser = (function (){
             .css({'height': '100%'});
         this.OptionBar = $('<div>')
             .appendTo(this.Div)
-            .css({'height': '20px',
-                  'width':  '100%',
-                  'position': 'relative',
-                  'border': '1px solid #CCC'});
+            .addClass("sa-view-browser-div");
         
         this.Collections = [];
 
         this.CollectionItemList = $('<ul>')
             .appendTo(this.Div)
-            .css({'list-style': 'none',
-                  'margin-left': '0.5em',
-                  'margin-top': '0',
-                  'position':   'relative',
-                  'padding':    '0',
-                  'height':     '100%',
-                  'overflow-y': 'auto'});
+            .addClass("sa-view-browser-list");
         
         this.DefaultCollectionLabel = "";
         this.SelectedSession = undefined;
@@ -614,19 +602,17 @@ CollectionBrowser = (function (){
 
         this.ListItem = $('<li>')
             .appendTo(ul)
-            .css({'left':'o'});
+            .addClass("sa-view-browser-item");
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.ListItem)
             .attr('src',"/webgl-viewer/static/plus.png")
-            .css({'height': '15px'});
+            .addClass("sa-view-icon");
         $('<span>')
             .appendTo(this.ListItem)
             .text(collectionObject.Label);
         this.SessionList = $('<ul>')
             .appendTo(this.ListItem)
-            .css({'list-style': 'none',
-                  'margin-left': '2em',
-                  'padding-left': '0'})
+            .addClass("sa-view-browser-session-list")
             .hide();
         this.SessionListOpen = false;
 
@@ -682,14 +668,10 @@ CollectionBrowser = (function (){
         // Make a draggable list item
         this.Item = $('<li>')
             .appendTo(session.ViewList)
-            .css({'float': 'left',
-                  'list-style-type': 'none',
-                  'margin': '2px',
-                  'border': '2px solid #CCC',
-                  'padding': '2px'})
+            .addClass("sa-view-browser-view-item")
             .hover(
-                function () {$(this).css({'border-color': '#333'});},
-                function () {$(this).css({'border-color': '#CCC'});})
+                function () {$(this).addClass("sa-active")},
+                function () {$(this).removeClass("sa-active")})
             .mousedown(
                 function(event){
                     event.preventDefault();
@@ -758,9 +740,7 @@ CollectionBrowser = (function (){
         var labelDiv = $('<div>')
             .appendTo(this.Item)
             .text(viewObject.Label)
-            .css({'color': '#333',
-                  'font-size': '11px',
-                  'display': 'block'});
+            .addClass("sa-view-browser-view-label");
         // Stuff I used to save in data
         // My hack to have the dom events call View menthod.
         this.Item[0].View = this;
@@ -792,7 +772,7 @@ CollectionBrowser = (function (){
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.Body)
             .attr('src',"/webgl-viewer/static/plus.png")
-            .css({'height': '15px'});
+            .addClass("sa-view-icon")
         this.SessionLabel = $('<span>')
             .appendTo(this.Body)
             .text(sessionObject.Label);
@@ -801,12 +781,7 @@ CollectionBrowser = (function (){
 
         this.ViewList = $('<ul>')
             .appendTo(this.Body)
-            .css({'list-style': 'none',
-                  'width':'auto',
-                  'margin-top': '0',
-                  'padding': '0',
-                  'outline': '1px solid transparent',
-                  'margin-left': '2em'})
+            .addClass("sa-view-browser-view-list")
             .hide();
         this.ViewListOpen = false;
         
@@ -878,14 +853,13 @@ CollectionBrowser = (function (){
             // Throw a waiting icon until the meta data arrives.
             var listItem = $('<li>')
                 .appendTo(this.ViewList)
-                .css({'margin': '2px',
-                      'padding': '2px'});
+                .addClass("sa-view-browser-view-item");
             
             var image = $('<img>')
                 .appendTo(listItem)
                 .attr("src", "/webgl-viewer/static/circular.gif")
                 .attr("alt", "waiting...")
-                .css({'width':'40px'});
+                .addClass("sa-view-browser-view-img");
             return;
         }
 
