@@ -230,3 +230,60 @@ Polyline.prototype.UpdateBuffers = function() {
     }
   }
 }
+
+
+
+
+// Saves images centered at spots on the edge.
+// Roll is set to put the edge horizontal.
+// Step is in screen pixel units
+// Count is the starting index for file name generation.
+Polyline.prototype.SampleEdge = function(viewer, dim, step, count) {
+    var cam = viewer.GetCamera();
+    var scale = cam.GetHeight() / cam.ViewportHeight;
+    // Convert the step from screen pixels to world.
+    step *= scale;
+    var cache = viewer.GetCache();
+    var dimensions = [dim,dim];
+    // Distance between edge p0 to next sample point.
+    var remaining = step/2;
+    // Recursive to serialize asynchronous cutouts.
+    this.RecursiveSampleEdge(this.Points.length-1,0,remaining,step,count,
+                             cache,dimensions,scale);
+}
+Polyline.prototype.RecursiveSampleEdge = function(i0,i1,remaining,step,count,
+                                                  cache,dimensions,scale) {
+    var pt0 = this.Points[i0];
+    var pt1 = this.Points[i1];
+    // Compute the length of the edge.
+    var dx = pt1[0]-pt0[0];
+    var dy = pt1[1]-pt0[1];
+    var length = Math.sqrt(dx*dx +dy*dy);
+    // Take steps along the edge (size 'step')
+    if (remaining > length) {
+        // We passed over this edge. Move to the next edge.
+        remaining = remaining - length;
+        i0 = i1;
+        i1 += 1;
+        // Test for terminating condition.
+        if (i1 < this.Points.length) {
+            this.RecursiveSampleEdge(i0,i1,remaining,step, count,
+                                     cache,dimensions,scale);
+        }
+    } else {
+        var self = this;
+        // Compute the sampel point and tangent on this edge.
+        var edgeAngle = -Math.atan2(dy,dx);
+        var k = remaining / length;
+        var x = pt0[0] + k*(pt1[0]-pt0[0]);
+        var y = pt0[1] + k*(pt1[1]-pt0[1]);
+        // Save an image at this sample point.
+        GetCutoutImage(cache,dimensions,[x,y],scale,edgeAngle,"edge"+count+".png",
+                       function () {
+                           ++count;
+                           remaining += step;
+                           self.RecursiveSampleEdge(i0,i1,remaining,step,count,
+                                                    cache,dimensions,scale);
+                       });
+    }
+}
