@@ -906,3 +906,15 @@ PolylineWidget.prototype.DownloadStack = function(x, y, dim, spacing, root) {
         GetCutoutImage(cache, dim, [x,y], levelSpacing, 0, root+i+".png", null);
     }
 }
+
+
+
+
+// Saves images centered at spots on the edge.
+// Roll is set to put the edge horizontal.
+// Step is in screen pixel units
+PolylineWidget.prototype.SampleEdge = function(dim, step, count) {
+    this.Shape.SampleEdge(this.Viewer,dim,step,count);
+}
+
+
