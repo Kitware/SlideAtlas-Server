@@ -40,6 +40,13 @@ function DownloadImageData(data, filename) {
 }
 
 // If file name is not null or "", this image is save to the client.
+// cache: The image/tile source.
+// dimensions: size of the image in pixels [xDim,yDim]
+// focalPoint: Center of the image in world / slide coordinates.
+// scale:  Size of a pixel in world coordinates.
+// roll: in radians?
+// fileName: name of file to download. (null, or "" means do not download).
+// returnCallback:  function to call (with data as argument) when done.
 function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
                         returnCallback) {
     // Construct a view to render the image on the client.
