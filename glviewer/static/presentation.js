@@ -5,6 +5,7 @@
 // - Edit mode: resize views
 // - Allow views to go full screen.
 // - Sortable slides in slide div.
+// - Stop the timer when we leave full screen. Turn editing back on if EDIT.
 
 
 //==============================================================================
@@ -67,18 +68,36 @@ function Presentation(rootNote, edit) {
             'width': 'auto'});
 
     if (this.Edit) {
-        this.EditDiv = $('<div>')
-            .appendTo(this.WindowDiv)
-            .css({
-                'background':'#FFF',
-                'position' : 'absolute',
-                'top': '0%',
-                'left': '0%',
-                'right':'26%',
-                'width': '25%',
-                'height': '100%'});
         this.MakeEditPanel();
     }
+
+    // Float the two slide show buttons in the upper right corner.
+    this.ShowButton = $('<img>')
+        .appendTo(this.WindowDiv)
+        .prop('title', "present")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/slide_show.png')
+        .css({'position':'absolute',
+              'top':'2px',
+              'right':'0px',
+              'width':'20px',
+              'z-index':'5'})
+        .click(function () {
+            self.FullScreen();
+        });
+    this.TimerButton = $('<img>')
+        .appendTo(this.WindowDiv)
+        .prop('title', "present timed")
+        .addClass('editButton')
+        .attr('src','webgl-viewer/static/timer.png')
+        .css({'position':'absolute',
+              'top':'2px',
+              'right':'26px',
+              'width':'20px',
+              'z-index':'5'})
+        .click(function () {
+            self.StartTimerShow();
+        });
 
     this.TitlePage = new TitlePage(this.WindowDiv, edit);
     this.SlidePage = new SlidePage(this.WindowDiv, edit);
@@ -95,6 +114,8 @@ function Presentation(rootNote, edit) {
     document.onkeydown = function(e) {self.HandleKeyDown(e);};
     document.onkeyup = function(e) {self.HandleKeyUp(e);};
 
+    this.UpdateSlidesTab();
+
     $(window).resize(function() {
         self.HandleResize();
     }).trigger('resize');
@@ -102,8 +123,53 @@ function Presentation(rootNote, edit) {
     eventuallyRender();
 }
 
+
+Presentation.prototype.StartTimerShow = function () {
+    var self = this;
+    EVENT_MANAGER.FocusOut();
+    var dialog = $('<div>')
+        .dialog({
+            modal: false,
+            resizable:false,
+            position: {
+                my: "left top",
+                at: "left top",
+                of: window
+            },
+            beforeClose: function() {
+                //document.onkeydown = function(e) {self.HandleKeyDown(e);};
+                //document.onkeyup = function(e) {self.HandleKeyUp(e);};
+                EVENT_MANAGER.FocusIn();
+            },
+            buttons: {
+                "Start": function () {
+                    self.FullScreen();
+                    // Change seconds to milliseconds
+                    var duration = parseInt(self.DurationInput.val())*1000;
+                    // Also linger on the current slide.
+                    setTimeout(function(){ self.TimerCallback(duration);}, duration);
+                    // Should we just close and resuse the dialog?
+                    $(this).dialog("destroy");
+                }
+            }
+        });
+    this.DurationLabel = $('<label>')
+        .appendTo(dialog)
+        .text("Seconds:");
+    this.DurationInput = $('<input type="number" min="1" step="1">')
+        .appendTo(dialog)
+        .val(30)
+        .css({'width':'4em'});
+}
+
+
 Presentation.prototype.FullScreen = function () {
     var elem = document.body;
+
+    this.EditOff();
+    this.HandleResize();
+    this.ShowButton.hide();
+    this.TimerButton.hide();
 
     if (elem.requestFullscreen) {
         elem.requestFullscreen();
@@ -114,13 +180,25 @@ Presentation.prototype.FullScreen = function () {
     } else if (elem.webkitRequestFullscreen) {
         elem.webkitRequestFullscreen();
     }
+
+    // detect when we leav full screen.
+    $(elem).bind(
+        'webkitfullscreenchange mozfullscreenchange fullscreenchange',
+        function(e) {
+            var state = document.fullScreen || document.mozFullScreen ||
+                document.webkitIsFullScreen;
+            var event = state ? 'FullScreenOn' : 'FullScreenOff';
+
+            // TODO: Stop the timer when we leave full screen.
+            // Turn editing back on if EDIT.
+        });
 }
 
 
 Presentation.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
-        this.EditDiv.hide();
+        this.EditTabs.Div.hide();
         this.TitlePage.EditOff();
         this.SlidePage.EditOff();
     }
@@ -128,167 +206,61 @@ Presentation.prototype.EditOff = function () {
 
 
 Presentation.prototype.MakeEditPanel = function () {
-    this.SlidesTab = new NotesWidgetTab(this.EditDiv, "Slides");
-    this.ClipboardTab = new NotesWidgetTab(this.EditDiv, "Clipboard");
-    this.SearchTab = new NotesWidgetTab(this.EditDiv, "Search");
+    this.EditTabs = new TabbedDiv(this.WindowDiv);
+    this.EditTabs.Div.css({'width':'25%'})
+
+    this.SlidesDiv = this.EditTabs.NewTabDiv("Slides");
+    this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
+    this.SearchDiv = this.EditTabs.NewTabDiv("Search");
 
     var self = this;
 
-    this.SlidesTab.Div 
-        .appendTo(this.EditDiv)
-        .css({'width': '100%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
-              'text-align': 'left',
+    this.SlidesDiv
+        .css({'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
-    this.ShowButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
-        .prop('title', "present")
-        .addClass('editButton')
-        .attr('src','webgl-viewer/static/slide_show.png')
-        .css({'float':'right'})
-        .click(function () { 
-            self.EditOff(); 
-            self.HandleResize();
-            self.FullScreen();
-        });
-    this.TimerButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
-        .prop('title', "present timed")
-        .addClass('editButton')
-        .attr('src','webgl-viewer/static/timer.png')
-        .css({'float':'right'})
-        .click(function () {
-            self.EditOff();
-            self.HandleResize();
-            self.FullScreen();
-            EVENT_MANAGER.FocusOut();
-            var dialog = $('<div>')
-                .dialog({
-                    modal: true,
-                    resizable:false,
-                    position: {
-                        my: "left top",
-                        at: "left top",
-                        of: window
-                    },
-                    buttons: {
-                        "Start": function () {
-                                     var duration = parseInt(self.DurationInput.val());
-                                     self.TimerCallback(duration*1000);
-                                     $(this).dialog("destroy");
-                                 },
-                    }
-                });
-            self.DurationLabel = $('<label>')
-                .appendTo(dialog)
-                .text("Seconds:");
-            self.DurationInput = $('<input type="number" min="1" step="1">')
-                .appendTo(dialog)
-                .val(30)
-                .css({'width':'4em'});
-                
-        });
     this.SaveButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
+        .appendTo(this.SlidesDiv)
         .prop('title', "save")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/save22.png')
         .css({'float':'right'})
         .click(function () { self.Save();});
     this.InsertSlideButton = $('<img>')
-        .appendTo(this.SlidesTab.Div)
+        .appendTo(this.SlidesDiv)
         .prop('title', "new slide")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
         .click(function () { self.InsertNewSlide();});
-
-
-    this.ClipboardTab.Div 
-        .appendTo(this.EditDiv)
-        .hide()
-        .css({'width': '100%',
-              'min-height':'50%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
-              'text-align': 'left',
-              'color': '#303030',
-              'font-size': '18px'});
-    this.ClearButton = $('<button>')
-        .appendTo(this.ClipboardTab.Div)
-        .click(function () { self.ClipboardDeleteAll(); })
-        .text("Remove All");
-    this.ClipboardDiv = $('<div>')
-        .css({'overflow_y':'auto'})
-        .appendTo(this.ClipboardTab.Div);
-
-    $.ajax({
-        type: "get",
-        url: "webgl-viewer/getfavoriteviews",
-        success: function(data,status){
-            if (status == "success") {
-                self.LoadClipboardCallback(data);
-            } else { alert("ajax failed - get favorite views 2"); }
-        },
-        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
-        },
-    });
-
-    this.SearchTab.Div
-        .appendTo(this.EditDiv)
-        .hide()
-        .css({'position':'relative',
-              'width': '100%',
-              'min-height':'95%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'bottom' : '0px',
-              'text-align': 'left',
-              'color': '#303030',
-              'font-size': '18px'});
-    this.SearchForm = $('<form>')
-        .appendTo(this.SearchTab.Div)
-        .css({'width':'100%',
-              'display':'table'})
-        .submit(function(e) {PRESENTATION.SearchCallback(); return false;});
-    this.SearchLabel = $('<span>')
-        .appendTo(this.SearchForm)
-        .css({'display':'table-cell',
-              'padding':'8px',
-              'width':'3.5em'})
-        .text("Search:");
-    this.SearchInput = $('<input>')
-        .appendTo(this.SearchForm)
-        .css({'width':'95%',
-              'display':'table-cell',
-              'border':'2px inset #CCC'})
-        .focusin(function() { EVENT_MANAGER.FocusOut(); })
-        .focusout(function() { EVENT_MANAGER.FocusIn(); });
-    this.SearchResults = $('<div>')
-        .appendTo(this.SearchTab.Div)
+    // The div that will hold the list of slides.
+    this.SlideList = $('<div>')
+        .appendTo(this.SlidesDiv)
         .css({'position':'absolute',
-              'top':'2em',
-              'bottom':'0px',
               'width':'100%',
+              'top':'32px',
+              'bottom':'3px',
               'overflow-y':'auto'});
 
-    this.SlidesTab.Open();
+    this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardDiv,
+        function (viewObj) {
+            self.AddViewCallback(viewObj);
+        });
+    this.SearchPanel = new SearchPanel(
+        this.SearchDiv,
+        function (imageObj) {
+            self.AddImageCallback(imageObj);
+        });
+
+    this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
 
 Presentation.prototype.TimerCallback = function(duration) {
-    if (this.Index == this.RootNote.Children.length) {
+    if (this.Index == this.GetNumberOfSlides() - 1) {
+        // Stop but stay in full screen mode.
         this.GotoSlide(0);
-        // stop
+        EVENT_MANAGER.FocusIn();
         return;
     }   
 
@@ -306,6 +278,9 @@ Presentation.prototype.TimerCallback = function(duration) {
     // remove bold formating
     document.execCommand('bold',false,null);
     document.execCommand('bold',false,null);
+    // Hide annotations
+    this.SlidePage.AnnotationWidget1.SetVisibility(false);
+    this.SlidePage.AnnotationWidget2.SetVisibility(false);
     // remove the selection
     range.collapse(false);
     // The collapse has no effect without this.
@@ -318,118 +293,9 @@ Presentation.prototype.TimerCallback = function(duration) {
     setTimeout(function(){ self.TimerCallback(duration);}, duration);
 }
 
-Presentation.prototype.SearchCallback = function() {
-    var self = this;
-    var terms = this.SearchInput.val();
-    $.ajax({
-        type: "get",
-        url: "/query",
-        data: {'terms': terms},
-        success: function(data,status){
-            self.LoadSearchResults(data);
-        },
-        error: function() { alert( "AJAX - error() : query" );},
-    });
-}
-
-
-Presentation.prototype.LoadSearchResults = function(data) {
-    var self = this;
-    this.SearchResults.empty();
-
-    // Lets get the collection too.
-    var collectionTitles = {};
-    var collections = data.selected_and_accessible_views_in_collections;
-    for (var i = 0; i < collections.length; ++i) {
-        var collection = collections[i];
-        for (var j = 0; j < collection.sessions.length; ++j) {
-            var session = collection.sessions[j];
-            var collectionTitle = session.collection_label;
-            for (var k = 0; k < session.views.length; ++k) {
-                var viewId = session.views[k];
-                collectionTitles[viewId] = collectionTitle;
-            }
-        }
-    }
-
-    // These are in order of best match.
-    for (prop in data.selected_and_accessible_views) {
-        var aview = data.selected_and_accessible_views[prop];
-        var collectionTitle = collectionTitles[prop];
-        var thumb = $('<img>')
-            .appendTo(this.SearchResults)
-            .attr('src', this.MakeDataUri(aview))
-            .prop('title', aview.Title + '\n' + collectionTitle)
-            .css({'float':'left',
-                  'margin':'5px',
-                  'border': '1px solid #AAA',
-                  'height': '60px'})
-            .attr('id', aview._id)
-            .hover(function(){$(this).css({'border-color':'#00F'});},
-                   function(){$(this).css({'border-color':'#AAA'});})
-            .click(function(){
-                self.AddViewCallback2(this.id);
-            });
-    }
-}
-
-Presentation.prototype.MakeDataUri = function(aview) {
-    // Makes a data-uri for macro thumbs if supplied, or else refers
-    // to url endpoint
-    if(aview.thumbs && aview.thumbs.macro && aview.thumbs.macro.length > 0) {
-        return "data:image/jpeg;base64," + aview.thumbs.macro;
-    } else {
-        return "/viewthumb?viewid=" +aview._id + "&binary=1";
-    }
-}
-
-
-Presentation.prototype.LoadClipboardCallback = function(sessionData) {
-    var self = this;
-    this.ClipboardDiv.empty();
-    this.ClipboardViews = sessionData.viewArray;
-
-    for (var i = 0; i < this.ClipboardViews.length; ++i) {
-        var view = this.ClipboardViews[i];
-        var thumb = $('<img>')
-            .appendTo(this.ClipboardDiv)
-            .attr('src', view.Thumb)
-            .prop('title', view.Title)
-            .css({'float':'left',
-                  'margin':'5px',
-                  'border': '1px solid #AAA',
-                  'height': '60px'})
-            .attr('index', i)
-            .hover(function(){$(this).css({'border-color':'#00F'});},
-                   function(){$(this).css({'border-color':'#AAA'});})
-            .click(function(){
-                self.AddViewCallback(parseInt(this.getAttribute("index")));
-            });
-    }
-}
-
-Presentation.prototype.ClipboardDeleteAll = function() {
-    var self = this;
-    this.ClipboardDiv.empty();
-
-    for (var i = 0; i < this.ClipboardViews.length; ++i) {
-        $.ajax({
-            type: "post",
-            url: "/webgl-viewer/deleteusernote",
-            data: {"noteId": this.ClipboardViews[i]._id,
-                   "col" : "views"},//"favorites"
-            success: function(data,status) {
-            },
-            error: function() {
-                alert( "AJAX - error() : deleteusernote" );
-            },
-        });
-    }
-}
-
 
 Presentation.prototype.RecordView1 = function() {
-    if (this.Note &&
+    if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
         this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
@@ -438,7 +304,7 @@ Presentation.prototype.RecordView1 = function() {
 
 
 Presentation.prototype.RecordView2 = function() {
-    if (this.Note &&
+    if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
         this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
@@ -446,11 +312,9 @@ Presentation.prototype.RecordView2 = function() {
 }
 
 
-// TODO: Separate the viewer records (maybe also children).
-Presentation.prototype.AddViewCallback = function(idx) {
-    this.ClipboardViews[idx];
+Presentation.prototype.AddViewCallback = function(viewObj) {
     var record = new ViewerRecord();
-    record.Load(this.ClipboardViews[idx].ViewerRecords[0]);
+    record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
     // The root needs a record to show up in the session.
     if (this.RootNote.ViewerRecords.length == 0) {
@@ -461,20 +325,35 @@ Presentation.prototype.AddViewCallback = function(idx) {
     this.GotoSlide(this.Index);
 }
 
-Presentation.prototype.AddViewCallback2 = function(id) {
-    var self = this;
+// Callback from search.
+Presentation.prototype.AddImageCallback = function(image) {
     var note = new Note();
-    note.LoadViewId(id, function () {
-        var record = note.ViewerRecords[0];
-        self.Note.ViewerRecords.push(record);
-        // The root needs a record to show up in the session.
-        if (self.RootNote.ViewerRecords.length == 0) {
-            self.RootNote.ViewerRecords.push(record);
-        }
+    var record = new ViewerRecord();
+    note.ViewerRecords[0] = record;
+    record.OverViewBounds = image.bounds;
+    record.Image = image;
+    record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
+                                 (image.bounds[2]+image.bounds[3])/2, 0],
+                     Roll: 0,
+                     Height: (image.bounds[3]-image.bounds[2]),
+                     Width : (image.bounds[1]-image.bounds[0])};
 
-        // Hack to reload viewer records.
-        self.GotoSlide(self.Index);
-    });
+    this.Note.ViewerRecords.push(record);
+    // The root needs a record to show up in the session.
+    if (this.RootNote.ViewerRecords.length == 0) {
+        this.RootNote.ViewerRecords.push(record);
+    }
+
+    // Hack: Since GotoSlide copies the viewer to the record,
+    // We first have to push the new record to the view.
+    if (this.Note.ViewerRecords.length == 1) {
+        this.Note.ViewerRecords[0].Apply(VIEWER1);
+    } else if (this.Note.ViewerRecords.length == 2) {
+        this.Note.ViewerRecords[1].Apply(VIEWER2);
+    }
+
+    // Hack to reload viewer records.
+    this.GotoSlide(this.Index);
 }
 
 
@@ -529,26 +408,29 @@ Presentation.prototype.HandleKeyUp = function(event) {
         this.GotoSetSlide(0);
     }
     if (event.keyCode == "35") { // end
-        this.GotoSlide(this.RootNote.Children.length - 1);
+        this.GotoSlide(this.GetNumberOfSlides() - 1);
     }
 }
 
 
 Presentation.prototype.Save = function (){
-    if (this.Index == 0) { 
+    var self = this;
+    if (this.Index == 0) {
         this.TitlePage.UpdateEdits();
         this.SlidePage.UpdateEdits();
     }
-    this.SaveButton.css({'color':'#F00'});
+    //this.SaveButton.css({'color':'#F00'});
+    this.WindowDiv.css({'cursor':'progress'});
     this.RootNote.Save(
         function() {
-            PRESENTATION.SaveButton.css({'color':'#000'});
+            //PRESENTATION.SaveButton.css({'color':'#000'});
+            self.SearchDiv.css({'cursor':'default'});
         });
 }
 
 
 Presentation.prototype.DeleteSlide = function (index){
-    var maxIdx = this.RootNote.Children.length;
+    var maxIdx = this.GetNumberOfSlides() - 1;
     if (index < 1 || index > maxIdx) {
         return;
     }
@@ -567,17 +449,20 @@ Presentation.prototype.InsertNewSlide = function (){
     var note = new Note();
     this.RootNote.Children.splice(idx-1,0,note);
     this.GotoSlide(idx);
+    this.UpdateSlidesTab();
 }
 
 // 0->Root/titlePage
 // Childre/slidesn start at index 1
 Presentation.prototype.GotoSlide = function (index){
-    if (index < 0 || index > this.RootNote.Children.length) {
+    if (index < 0 || index >= this.GetNumberOfSlides()) {
         return;
     }
     // Insert view calls Goto with the same index.
     // We do not want to overwrite the new view with a blank viewer.
     if (this.Edit && index != this.Index) {
+        // Save any GUI changesinto the note before 
+        // we move to the next slide.
         if (this.Index == 0) {
             this.TitlePage.UpdateEdits();
         } else {
@@ -585,26 +470,77 @@ Presentation.prototype.GotoSlide = function (index){
         }
     }
 
+
     this.Index = index;
-    if (index == 0) {
+    if (index == 0) { // Title page
         this.SlidePage.Div.hide();
         this.Note = this.RootNote;
         this.TitlePage.DisplayNote(this.Note);
-        return;
+    } else { // Slide page
+        this.TitlePage.Div.hide();
+        this.Note = this.GetSlide(index);
+        this.SlidePage.DisplayNote(index, this.Note);
     }
-    this.TitlePage.Div.hide();
-    this.Note = this.RootNote.Children[index-1];
-    this.SlidePage.DisplayNote(index, this.Note);
+    // Start preloading the next slide.
+    if (index < this.RootNote.Children.length) {
+        var nextNote = this.RootNote.Children[index];
+        if (nextNote.ViewerRecords.length > 0) {
+            nextNote.ViewerRecords[0].LoadTiles(VIEWER1.GetViewport());
+        }
+        if (nextNote.ViewerRecords.length > 1) {
+            nextNote.ViewerRecords[1].LoadTiles(VIEWER2.GetViewport());
+        }
+    }
+}
+
+
+Presentation.prototype.GetNumberOfSlides = function (){
+    return this.RootNote.Children.length + 1;
+}
+
+
+Presentation.prototype.GetSlide = function (idx){
+    if (idx < 0 || idx > this.RootNote.Children.length) {
+        return null;
+    }
+    if (idx == 0) {
+        return this.RootNote;
+    }
+    return this.RootNote.Children[idx-1];
+}
+
+
+Presentation.prototype.UpdateSlidesTab = function (){
+    // Add the title page 
+    this.SlideList.empty();
+
+    for (var i = 0; i < this.GetNumberOfSlides(); ++i) {
+        //var slide = this.GetSlide(i);
+        var slideDiv = $('<div>')
+            .appendTo(this.SlideList)
+            .css({'padding-left':'1.5em',
+                  'padding-right':'1.5em',
+                  'margin': '5px',
+                  'border':'2px outset #CCC'})
+            .text("Slide " + i)
+            .data("index",i)
+            .hover(
+                function() {$(this).css({'background':'#EEE'});},
+                function() {$(this).css({'background':'#FFF'});})
+            .click(function () {
+                PRESENTATION.GotoSlide($(this).data("index"));
+            });
+    }
 }
 
 
 
 //==============================================================================
-
 // TODO:
 // Get rid of the width dependency on edit
 function SlidePage(parent, edit) {
     var self = this;
+    this.FullWindowView = null;
     this.Edit = edit;
     this.Note = null;
     this.Records = []; // views.
@@ -635,6 +571,7 @@ function SlidePage(parent, edit) {
                   'bottom': '300px',
                   'width': '100%',
                   'height': 'auto'});
+    // TODO: Get rid of this global variable.
     VIEW_PANEL = this.ViewPanel;
 
     this.BottomDiv = $('<div>')
@@ -666,6 +603,7 @@ function SlidePage(parent, edit) {
     this.TextDiv = $('<div>')
         .appendTo(this.BottomDiv)
         .css({'position':'absolute',
+              'padding-left':'2em',
               'height': '210px',
               'bottom': '5px',
               'width': '100%'});
@@ -692,12 +630,13 @@ function SlidePage(parent, edit) {
         VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
         VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
         this.RemoveView1Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
+            .appendTo(VIEWER1.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
+                  'right':'0px',
+                  'top':'0px',
                   'width':'12px',
                   'height':'12px',
                   'z-index':'5'})
@@ -707,12 +646,13 @@ function SlidePage(parent, edit) {
                 PRESENTATION.GotoSlide(PRESENTATION.Index);
             });
         this.RemoveView2Button = $('<img>')
-            .appendTo(this.ViewPanel)
-            .hide()
+            .appendTo(VIEWER2.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
+                  'right':'0px',
+                  'top':'0px',
                   'width':'12px',
                   'height':'12px',
                   'z-index':'5'})
@@ -779,7 +719,81 @@ function SlidePage(parent, edit) {
                 return false;
             });
     }
+    // Give the option for full screen
+    // on each of the viewers.
+    this.FullWindowView1Button = $('<img>')
+        .appendTo(VIEWER1.MainView.CanvasDiv)
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindowView(VIEWER1);
+        });
+    this.FullWindowView2Button = $('<img>')
+        .appendTo(VIEWER2.MainView.CanvasDiv)
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindowView(VIEWER2);
+        });
+
+
+    this.FullWindowViewOffButton = $('<img>')
+        .appendTo(this.ViewPanel)
+        .hide()
+        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .prop('title', "full window off")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'2px',
+              'top':'2px',
+              'opacity':'0.5',
+              'z-index':'1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindowView(null);
+        });
 }
+
+
+SlidePage.prototype.SetFullWindowView = function (viewer) {
+    if (viewer) {
+        PRESENTATION.EditOff();
+        this.FullWindowViewOffButton.show();
+        this.FullWindowView1Button.hide();
+        this.FullWindowView2Button.hide();
+        this.BottomDiv.hide();
+        this.ViewPanel.css({'height':'100%'});
+    } else {
+        this.FullWindowViewOffButton.hide();
+        this.FullWindowView1Button.show();
+        this.FullWindowView2Button.show();
+        this.BottomDiv.show();
+        this.ViewPanel.css({
+            'bottom': '300px',
+            'height': 'auto'});
+
+    }
+    this.FullWindowView = viewer;
+    this.ResizeViews();
+}
+
 
 SlidePage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
@@ -828,6 +842,13 @@ SlidePage.prototype.ResizeViews = function ()
 {
     var width = this.ViewPanel.width();
     var height = this.ViewPanel.height();
+    if (this.FullWindowView) {
+        VIEWER1.SetViewport([0, 0, 0, height]);
+        VIEWER2.SetViewport([0, 0, 0, height]);
+        this.FullWindowView.SetViewport([0,0,width,height]);
+        eventuallyRender();
+        return;
+    }
 
     var numRecords = this.Records.length;
     var record;
@@ -853,28 +874,19 @@ SlidePage.prototype.ResizeViews = function ()
     }
     if (this.Edit) {
         if (numRecords == 0) {
-            // TODO: View shoulw have hide/show methods and manage this.
-            this.RemoveView1Button.hide();
+            // TODO: View should have hide/show methods and manage this.
             this.AnnotationWidget1.hide();
-            this.RemoveView2Button.hide();
             this.AnnotationWidget2.hide();
         }
         if (numRecords == 1) {
-            this.RemoveView1Button.show();
             this.AnnotationWidget1.show();
-            this.RemoveView2Button.hide();
             this.AnnotationWidget2.hide();
         }
         if (numRecords == 2) {
-            this.RemoveView1Button.show();
             this.AnnotationWidget1.show();
-            this.RemoveView2Button.show();
             this.AnnotationWidget2.show();
         }
-        var viewport = VIEWER1.GetViewport();
-        this.RemoveView1Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
-        viewport = VIEWER2.GetViewport();
-        this.RemoveView2Button.css({'left':viewport[0]+'px', 'top':viewport[1]+'px'});
+        var viewport = VIEWER2.GetViewport();
     }
 }
 
@@ -1018,10 +1030,12 @@ TitlePage.prototype.EditOff = function () {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
         this.Title.attr('readonly', 'readonly')
+            .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();
         this.AuthorText.attr('readonly', 'readonly')
+            .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();
@@ -1066,4 +1080,199 @@ TitlePage.prototype.UpdateEdits = function () {
         this.Note.HiddenTitle = this.Title.html();
     }
 }
+
+
+
+//==============================================================================
+function SearchPanel(parent, callback) {
+    var self = this;
+    this.UserCallback = callback;
+    this.Parent = parent;
+
+    // List of image data needed for callback.
+    this.SearchData = [];
+
+    // TODO:
+    // User should probably be formating the parent.
+    parent
+        .css({'overflow': 'auto',
+              'text-align': 'left',
+              'color': '#303030',
+              'font-size': '18px'});
+    this.SearchForm = $('<form>')
+        .appendTo(parent)
+        .css({'width':'100%',
+              'display':'table'})
+        .submit(function(e) {self.SearchCallback(); return false;});
+    this.SearchLabel = $('<span>')
+        .appendTo(this.SearchForm)
+        .css({'display':'table-cell',
+              'padding':'8px',
+              'width':'3.5em'})
+        .text("Search:");
+    this.SearchInput = $('<input>')
+        .appendTo(this.SearchForm)
+        .css({'width':'95%',
+              'display':'table-cell',
+              'border':'2px inset #CCC'})
+        .focusin(function() { EVENT_MANAGER.FocusOut(); })
+        .focusout(function() { EVENT_MANAGER.FocusIn(); });
+    this.SearchResults = $('<div>')
+        .appendTo(parent)
+        .css({'position':'absolute',
+              'top':'2em',
+              'bottom':'0px',
+              'width':'100%',
+              'overflow-y':'auto'});
+}
+
+
+SearchPanel.prototype.SearchCallback = function() {
+    var self = this;
+    var terms = this.SearchInput.val();
+
+    this.Parent.css({'cursor':'progress'});
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/query",
+        data: {'terms': terms},
+        success: function(data,status){
+            self.LoadSearchResults(data);
+            self.Parent.css({'cursor':'default'});
+        },
+        error: function() {
+            alert( "AJAX - error() : query" );
+            self.Parent.css({'cursor':'default'});
+        },
+    });
+}
+
+
+SearchPanel.prototype.LoadSearchResults = function(data) {
+    var self = this;
+    this.SearchResults.empty();
+    this.SearchData = data.images;
+
+    // These are in order of best match.
+    for (var i = 0; i < data.images.length; ++i) {
+        imgObj = data.images[i];
+
+        var imageDiv = $('<div>')
+            .appendTo(this.SearchResults)
+            .css({'float':'left',
+                  'margin':'5px',
+                  'border': '1px solid #AAA'})
+            .attr('id', imgObj._id)
+            .data('index', i)
+            .hover(function(){$(this).css({'border-color':'#00F'});},
+                   function(){$(this).css({'border-color':'#AAA'});})
+            .click(function(){
+                self.SelectCallback($(this).data('index'));
+            });
+
+        var image  = {img       : imgObj._id,
+                      db        : imgObj.database,
+                      levels    : imgObj.levels,
+                      tile_size : imgObj.TileSize,
+                      bounds    : imgObj.bounds,
+                      label     : imgObj.label};
+        var thumb = new CutoutThumb(image, 100);
+        thumb.Div.appendTo(imageDiv)
+        var labelDiv = $('<div>')
+            .css({'font-size':'50%'})
+            .appendTo(imageDiv)
+            .text(imgObj.label); // Should really have the image label.
+    }
+}
+
+SearchPanel.prototype.SelectCallback = function(index) {
+    // Search data is just a list of image objects.
+    if (this.UserCallback && index >=0 && index<this.SearchData.length) {
+        (this.UserCallback)(this.SearchData[index]);
+    }
+}
+
+//==============================================================================
+
+function ClipboardPanel(parent, callback) {
+    var self = this;
+    this.UserCallback = callback;
+
+    parent
+        .css({'overflow': 'auto',
+              'text-align': 'left',
+              'color': '#303030',
+              'font-size': '18px'});
+    this.ClearButton = $('<button>')
+        .appendTo(parent)
+        .click(function () { self.ClipboardDeleteAll(); })
+        .text("Remove All");
+    this.ClipboardDiv = $('<div>')
+        .css({'overflow_y':'auto'})
+        .appendTo(parent);
+
+    $.ajax({
+        type: "get",
+        url: "webgl-viewer/getfavoriteviews",
+        success: function(data,status){
+            if (status == "success") {
+                self.LoadClipboardCallback(data);
+            } else { alert("ajax failed - get favorite views 2"); }
+        },
+        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
+        },
+    });
+}
+
+ClipboardPanel.prototype.LoadClipboardCallback = function(sessionData) {
+    var self = this;
+    this.ClipboardDiv.empty();
+    this.ClipboardViews = sessionData.viewArray;
+
+    for (var i = 0; i < this.ClipboardViews.length; ++i) {
+        var view = this.ClipboardViews[i];
+        var thumb = $('<img>')
+            .appendTo(this.ClipboardDiv)
+            .attr('src', view.Thumb)
+            .prop('title', view.Title)
+            .css({'float':'left',
+                  'margin':'5px',
+                  'border': '1px solid #AAA',
+                  'height': '60px'})
+            .attr('index', i)
+            .hover(function(){$(this).css({'border-color':'#00F'});},
+                   function(){$(this).css({'border-color':'#AAA'});})
+            .click(function(){
+                self.ClickViewCallback(parseInt(this.getAttribute("index")));
+            });
+    }
+}
+
+
+ClipboardPanel.prototype.ClickViewCallback = function(idx) {
+    if (this.UserCallback && idx >= 0 && idx < this.ClipboardViews.length) {
+        (this.UserCallback)(this.ClipboardViews[idx]);
+    }
+}
+
+
+ClipboardPanel.prototype.ClipboardDeleteAll = function() {
+    var self = this;
+    this.ClipboardDiv.empty();
+
+    for (var i = 0; i < this.ClipboardViews.length; ++i) {
+        $.ajax({
+            type: "post",
+            url: "/webgl-viewer/deleteusernote",
+            data: {"noteId": this.ClipboardViews[i]._id,
+                   "col" : "views"},//"favorites"
+            success: function(data,status) {
+            },
+            error: function() {
+                alert( "AJAX - error() : deleteusernote" );
+            },
+        });
+    }
+}
+
 

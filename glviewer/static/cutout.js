@@ -23,7 +23,7 @@ var CUTOUT_VIEW;
 
 
 function DownloadImageData(data, filename) {
-    // THe only way I know if is to put in into a canvas.
+    // The only way I know if is to put in into a canvas.
 
     // Construct a view to render the image on the client.
     var width =  data.width;
@@ -40,6 +40,13 @@ function DownloadImageData(data, filename) {
 }
 
 // If file name is not null or "", this image is save to the client.
+// cache: The image/tile source.
+// dimensions: size of the image in pixels [xDim,yDim]
+// focalPoint: Center of the image in world / slide coordinates.
+// scale:  Size of a pixel in world coordinates.
+// roll: in radians?
+// fileName: name of file to download. (null, or "" means do not download).
+// returnCallback:  function to call (with data as argument) when done.
 function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
                         returnCallback) {
     // Construct a view to render the image on the client.
@@ -49,14 +56,13 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
 
     var view = new View();
     CUTOUT_VIEW = view;
-    view.InitializeViewport(viewport, 1, true);
     view.SetCache(cache);
-    view.Canvas.attr("width", width);
-    view.Canvas.attr("height", height);
+    view.InitializeViewport(viewport, 1, true);
     var newCam = view.Camera;
     newCam.SetFocalPoint(focalPoint[0], focalPoint[1]);
-    newCam.Roll = roll;
-    newCam.Height = height*scale;
+    newCam.SetRoll(roll);
+    newCam.SetHeight(height*scale);
+    // TODO:  Hide matrix computation.  Make it automatic.
     newCam.ComputeMatrix();
 
     // Load only the tiles we need.
@@ -115,13 +121,26 @@ function  CutoutThumb(image, height, request) {
               'height': this.Height + 'px',
               'overflow': 'hidden',
               'position': 'relative'});
-    // Cropp the request so we do not ask for tiles that do not exist.
-    var levelReq = [Math.max(request[0],image.bounds[0]),
+    // Crop the request so we do not ask for tiles that do not exist.
+    var levelReq;
+    if (image.bounds) {
+        levelReq = [Math.max(request[0],image.bounds[0]),
                     Math.min(request[1],image.bounds[1]),
                     Math.max(request[2],image.bounds[2]),
                     Math.min(request[3],image.bounds[3])];
+    } else {
+        levelReq = [Math.max(request[0],0), request[1],
+                    Math.max(request[2],0), request[3]];
+    }
 
-    // pick the level to use.
+    
+    // Size of each tile.
+    var tileDim = 256;
+    if (image.tile_size) {
+        tileDim = image.tile_size;
+    }
+
+    // Pick the level to use.
     this.Level = 0; // 0 = leaves
     while ((levelReq[3]-levelReq[2]) > this.Height && 
            this.Level < image.levels-1) {

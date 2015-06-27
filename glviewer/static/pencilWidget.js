@@ -65,30 +65,16 @@ function PencilWidget (viewer, newFlag) {
     this.Popup = new WidgetPopup(this);
     this.Viewer.WidgetList.push(this);
 
-    this.Cursor = $('<img>').appendTo('body')
-        .css({
-            'position': 'absolute',
-            'height': '28px',
-            'z-index': '1'})
-        .attr('type','image')
-        .attr('src',"webgl-viewer/static/Pencil-icon.png");
-
     var self = this;
-    // I am trying to stop images from getting move events and displaying a circle/slash.
-    // This did not work.  preventDefault did not either.
-    //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
-    //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-    //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
-    //.preventDefault();
-
     this.Shapes = [];
-
     this.ActiveCenter = [0,0];
-
     this.State = PENCIL_WIDGET_DRAWING;
+    this.Viewer.MainView.CanvasDiv.css(
+        {'cursor':'url(/webgl-viewer/static/Pencil-icon.png) 0 24,crosshair'});
+
     if ( ! newFlag) {
         this.State = PENCIL_WIDGET_WAITING;
-        this.Cursor.hide();
+        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
     }
 
     // Lets save the zoom level (sort of).
@@ -153,7 +139,7 @@ PencilWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 
 PencilWidget.prototype.Deactivate = function() {
     this.Popup.StartHideTimer();
-    this.Cursor.hide();
+    this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
     this.Viewer.DeactivateWidget(this);
     this.State = PENCIL_WIDGET_WAITING;
     for (var i = 0; i < this.Shapes.length; ++i) {
@@ -213,9 +199,6 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
     var x = event.offsetX;
     var y = event.offsetY;
 
-    // Move the pencil icon to follow the mouse.
-    this.Cursor.css({'left': (x+4), 'top': (y-32)});
-    
     if (event.which == 1 && this.State == PENCIL_WIDGET_DRAWING) {
         var shape = this.Shapes[this.Shapes.length-1];
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);

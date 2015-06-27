@@ -49,7 +49,7 @@ def query_json_endpoint():
         [("Title", "text"), ("Text", "text")], name="titletext")
     selected_views = col_view.find(
         {'$text': {"$search": terms}},
-        {'score': {"$meta": "textScore"}, "Title": 1, "Text": 1, "thumbs.macro": 1})
+        {'score': {"$meta": "textScore"}, "ViewerRecords": 1, "Title": 1, "Text": 1, "thumbs.macro": 1})
 
     # Sort according to score
     selected_views.sort([('score', {'$meta': 'textScore'})])

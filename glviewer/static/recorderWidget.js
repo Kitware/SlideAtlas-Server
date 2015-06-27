@@ -24,6 +24,8 @@
 // information about current note, I am using ViewerRecord as a shared object.
 
 function ViewerRecord () {
+    this.AnnotationVisibility = 0;
+    this.Annotations = [];
 }
 
 // I am still trying to figure out a good pattern for loading
@@ -173,6 +175,24 @@ ViewerRecord.prototype.Apply = function (viewer) {
                 --i;
             }
         }
+    }
+}
+
+// This is a helper method to start preloading tiles for an up coming view.
+ViewerRecord.prototype.LoadTiles = function (viewport) {
+    var cache = FindCache(this.Image);
+    // TODO:  I do not like the fact that we are keeping a serialized
+    // version of the camera in the record object.  It should be a real 
+    // camera that is serialized when it is saved.
+    var cam = new Camera();
+    cam.Load(this.Camera);
+    cam.SetViewport(viewport);
+    cam.ComputeMatrix();
+
+    // Load only the tiles we need.
+    var tiles = cache.ChooseTiles(cam, 0, []);
+    for (var i = 0; i < tiles.length; ++i) {
+        LoadQueueAddTile(tiles[i]);
     }
 }
 

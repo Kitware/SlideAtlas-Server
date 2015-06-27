@@ -296,7 +296,7 @@ function addViewToStack(thumb) {
     dims[0] = Math.floor(dims[0]);
     dims[1] = Math.floor(dims[1]);
     // We do not have the view data to get roll.
-    GetCutoutImage(cache, dims, fp, scale, 0,
+    GetCutoutImage(cache, dims, fp, scale, 0, null,
         function (data) {
             // Use has clicked on a section. Make sure the threshold
             // is above the pixel value.

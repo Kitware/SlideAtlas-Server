@@ -13,3 +13,5 @@
 .editButton:active {
   background-color: #888;
 }
+
+.view:focus {outline:0; !important;}

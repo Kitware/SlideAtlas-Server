@@ -15,8 +15,11 @@ function ViewEditMenu (viewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
     this.Tab = new Tab("/webgl-viewer/static/Menu.jpg", "editTab");
+    this.Tab.Div.css({'right':'99px',
+                      'bottom':'0px'});
     // I think we can get rid of this "GuiObject" stuff.
     // css positioning can handle it now.
+    // I would have to use the canvas div as parent. 
     viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 99);
     new ToolTip(this.Tab.Div, "View Menu");
 
@@ -30,7 +33,7 @@ function ViewEditMenu (viewer) {
         .text("Load Slide")
         .css({'margin':'2px 0px',
               'width' : '100%'})
-        .click(function(){self.Tab.PanelOff(); ShowViewBrowser(self.Viewer);});
+        .click(function(){self.Tab.PanelOff(); VIEW_BROWSER.Open(self.Viewer);});
     if (EDIT) {
         $('<button>')
             .appendTo(this.Tab.Panel)
@@ -359,9 +362,41 @@ var DownloadImage = (function () {
         // Two dialogs.
         // Dialog to choose dimensions and initiate download.
         // A dialog to cancel the download while waiting for tiles.
+        var CancelDownloadCallback = function () {
+            if ( DOWNLOAD_WIDGET.Viewer) {
+                // We are in the middle of rendering.
+                // This method was called by the cancel dialog.
+                DOWNLOAD_WIDGET.Viewer.CancelLargeImage();
+                DOWNLOAD_WIDGET.Viewer = undefined;
+                // The dialog hides itself.
+            }
+        }
+        var StartDownloadCallback = function () {
+            // Trigger the process to start rendering the image.
+            DOWNLOAD_WIDGET.Viewer = VIEWER;
+            var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
+            var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
+            var stack = DOWNLOAD_WIDGET.DimensionDialog.StackCheckbox.prop('checked');
+
+            // Show the dialog that empowers the user to cancel while rendering.
+            DOWNLOAD_WIDGET.CancelDialog.Show(1);
+            // We need a finished callback to hide the cancel dialog.
+            if (stack) {
+                DOWNLOAD_WIDGET.CancelDialog.StackMessage.show();
+            } else {
+                DOWNLOAD_WIDGET.CancelDialog.StackMessage.hide();
+            }
+            VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
+                                  function () {
+                                      // Rendering has finished.
+                                      // The user can no longer cancel.
+                                      DOWNLOAD_WIDGET.Viewer = undefined;
+                                      DOWNLOAD_WIDGET.CancelDialog.Hide();
+                                  });
+        }
 
         
-        var d = new Dialog(DOWNLOAD_WIDGET);
+        var d = new Dialog(StartDownloadCallback);
         DOWNLOAD_WIDGET.DimensionDialog = d;
         d.Title.text('Download Image');
         
@@ -548,7 +583,7 @@ var DownloadImage = (function () {
             .appendTo(d.ProportionsDiv)
             .css({'display':'inline'})
             .prop('checked', true);
-        
+
 
         d.StackDiv =
             $('<div>')
@@ -573,10 +608,10 @@ var DownloadImage = (function () {
 
         // A dialog to cancel the download before we get all the tiles
         // needed to render thie image.
-        d = new Dialog(DOWNLOAD_WIDGET);
+        d = new Dialog(CancelDownloadCallback);
         DOWNLOAD_WIDGET.CancelDialog = d;
         d.Title.text('Processing');
-        
+
         d.WaitingImage = $('<img>')
             .appendTo(d.Body)
             .attr("src", "/webgl-viewer/static/circular.gif")
@@ -590,37 +625,6 @@ var DownloadImage = (function () {
 
         d.ApplyButton.text("Cancel");
 
-        DOWNLOAD_WIDGET.DialogApplyCallback = function () {
-            if ( DOWNLOAD_WIDGET.Viewer) {
-                // We are in the middle of rendering.
-                // This method was called by the cancel dialog.
-                DOWNLOAD_WIDGET.Viewer.CancelLargeImage();
-                DOWNLOAD_WIDGET.Viewer = undefined;
-                // The dialog hides itself.
-            } else {
-                // Trigger the process to start rendering the image.
-                DOWNLOAD_WIDGET.Viewer = VIEWER;
-                var width = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxWidthInput.val());
-                var height = parseInt(DOWNLOAD_WIDGET.DimensionDialog.PxHeightInput.val());
-                var stack = DOWNLOAD_WIDGET.DimensionDialog.StackCheckbox.prop('checked');
-
-                // Show the dialog that empowers the user to cancel while rendering.
-                DOWNLOAD_WIDGET.CancelDialog.Show(1);
-                // We need a finished callback to hide the cancel dialog.
-                if (stack) {
-                    DOWNLOAD_WIDGET.CancelDialog.StackMessage.show();
-                } else {
-                   DOWNLOAD_WIDGET.CancelDialog.StackMessage.hide();
-                }
-                VIEWER.SaveLargeImage("slide-atlas.png", width, height, stack,
-                                      function () {
-                                          // Rendering has finished.
-                                          // The user can no longer cancel.
-                                          DOWNLOAD_WIDGET.Viewer = undefined;
-                                          DOWNLOAD_WIDGET.CancelDialog.Hide();
-                                      });
-            }
-        }
     }
 
     function PxWidthChanged () {

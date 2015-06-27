@@ -44,6 +44,7 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     // 2d canvas
     // Add a new canvas.
     this.CanvasDiv = $('<div>')
+        .addClass('view')
         .css({'position': 'absolute',
               'border-style': 'solid',
               'border-width': '1px',
@@ -52,6 +53,7 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
               'width' : viewport[2]+"px",
               'top'   : viewport[1]+"px",
               'height': viewport[3]+"px",
+              'background': '#FFF',
               '-moz-user-select': 'none',
               '-webkit-user-select': 'none',
               'z-index': layer.toString()});
@@ -62,6 +64,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
               'height':'100%'});
+    // Css is not enough.  Canvas needs these for rendering.
+    this.Canvas.attr("width", viewport[2]);
+    this.Canvas.attr("height", viewport[3]);
 }
 
 View.prototype.appendTo = function(j) {

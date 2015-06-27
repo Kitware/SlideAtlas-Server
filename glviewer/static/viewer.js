@@ -65,7 +65,7 @@ function Viewer (viewport) {
                   'right':'-20px',
                   'top':'-20px',
                   'opacity':'0.6',
-                  'z-index':'16',
+                  'z-index':'1',
                   '-moz-user-select': 'none',
                   '-webkit-user-select': 'none'})
             .mouseenter(function (e) {self.RollEnter(e);})
@@ -75,6 +75,9 @@ function Viewer (viewport) {
             .on("dragstart", function() {
                 return false;
             });
+        // Try to make the overview be on top of the rotate icon
+        // It should receive events before the rotate icon.
+        this.OverView.CanvasDiv.css({'z-index':'2'});
     }
     this.ZoomTarget = this.MainView.Camera.GetHeight();
     this.RollTarget = this.MainView.Camera.Roll;
@@ -432,7 +435,8 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
 
     newCam.SetFocalPoint(cam.FocalPoint[0], cam.FocalPoint[1]);
     newCam.Roll = cam.Roll;
-    newCam.Height = cam.Height;
+    newCam.Height = cam.GetHeight();
+    newCam.Width = cam.GetWidth();
     newCam.ComputeMatrix();
 
     // Load only the tiles we need.

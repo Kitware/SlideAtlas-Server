@@ -95,68 +95,6 @@ function InitNotesWidget(rootNote) {
 
 //==============================================================================
 
-var NOTES_WIDGET_TABS = [];
-function NotesWidgetTab(parent, title) {
-    NOTES_WIDGET_TABS.push(this);
-    var self = this;
-    this.Tab = $('<div>')
-        .appendTo(parent)
-        .text(title)
-        .css({'color': '#AAA',
-              'border-color': '#BBB',
-              'position': 'relative',
-              'top': '0.055em',
-              'padding' : '2px 7px 2px 7px',
-              'margin'  : '5px 0px 0px 5px',
-              'display': 'inline-block',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-radius': '5px 5px 0px 0px',
-              'position': 'relative',
-              'z-index' : '6',
-              'background': 'white'})
-        .click(function(){
-            self.Open();
-        });
-    // Now: all tabs have to be added before divs.
-    // TODO: Make a separate tab div / tab panel object.
-    this.Div = $('<div>')
-        .css({'z-index' : '5'});
-    this.IsOpen = false;
-}
-
-// Show hide the tool tab button
-NotesWidgetTab.prototype.show = function() {
-    this.Tab.show();
-    if (this.IsOpen) {
-        this.Div.show();
-    }
-}
-
-NotesWidgetTab.prototype.hide = function() {
-    this.Tab.hide()
-    this.Div.hide();
-}
-
-NotesWidgetTab.prototype.Open = function () {
-    this.IsOpen = true;
-    for (var i = 0; i < NOTES_WIDGET_TABS.length; ++i) {
-        var tabPanel = NOTES_WIDGET_TABS[i];
-        tabPanel.Div.hide();
-        // The z-index does not seem to be working.
-        // When the panel is zoomed, Tab looks like it is on top.
-        tabPanel.Tab.css({'color': '#AAA',
-                          'z-index' : '4',
-                          'border-color': '#BBB'});
-    }
-    this.Div.show();
-    this.Tab.css({'color': '#000',
-                  'z-index' : '6',
-                  'border-color': '#BBB #BBB #FFF #BBB'});
-}
-
-//==============================================================================
-
 
 function TextEditor(parent, edit) {
     var self = this;
@@ -257,6 +195,7 @@ TextEditor.prototype.EditOff = function() {
     
     this.TextEntry
         .attr('contenteditable', 'false')
+        .attr('spellcheck', 'false')
         .css({'border-style': 'outset',
               'background': '#ffffff'})
         .unbind('input')
@@ -697,65 +636,39 @@ function NotesWidget() {
     this.SelectedNote;
 
     // GUI elements
-    this.Window;
-
-    this.LinksTab = new NotesWidgetTab(this.Window, "Views");
-    this.TextTab = new NotesWidgetTab(this.Window, "Text");
-    this.UserTextTab = null;
+    this.TabbedWindow = new TabbedDiv(this.Window);
+    this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
+    this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
+    this.UserTextDiv = null;
     if (! EDIT) {
-        this.UserTextTab = new NotesWidgetTab(this.Window, "Notes");
+        this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes");
     }
 
-    this.LinksTab.Div 
-        .appendTo(this.Window)
-        .hide()
-        .css({'width': '100%',
-              'overflow': 'auto',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'top' : '0px',
+    this.LinksDiv
+        .css({'overflow': 'auto',
               'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'})
         .attr('id', 'NoteTree');
 
-    this.TextTab.Div
-        .appendTo(this.Window)
-        .css({'box-sizing': 'border-box',
-              'border-width': '1px',
-              'border-style': 'solid',
-              'border-color': '#BBB',
-              'width': '100%',
-              'bottom': '0px',
-              'padding': '3px'});
+    // no longer needed, but interesting: 'box-sizing': 'border-box'
 
     // This is the button for the links tab div, but do not add it yet.
     if (EDIT) {
         this.AddViewButton = $('<button>')
-            .appendTo(this.LinksTab.Div)
+            .appendTo(this.LinksDiv)
             .css({'border-radius': '4px',
                   'margin': '1em'})
             .text("+ New View");
     }
 
     // Now for the text tab:
-    this.TextEditor = new TextEditor(this.TextTab.Div, EDIT);
+    this.TextEditor = new TextEditor(this.TextDiv, EDIT);
 
 
     this.UserTextEditor = null;
     if ( ! EDIT) {
-        this.UserTextTab.Div
-            .appendTo(this.Window)
-            .hide()
-            .css({'box-sizing': 'border-box',
-                  'border-width': '1px',
-                  'border-style': 'solid',
-                  'border-color': '#BBB',
-                  'width': '100%',
-                  'bottom': '0px',
-                  'padding': '3px'});
-        this.UserTextEditor = new TextEditor(this.UserTextTab.Div, true);
+        this.UserTextEditor = new TextEditor(this.UserTextDiv, true);
     }
 }
 
@@ -816,8 +729,8 @@ NotesWidget.prototype.Resize = function(width, height) {
     if (this.UserTextEditor) {
         this.UserTextEditor.Resize(width,height);
     }
-    var pos = this.LinksTab.Div.offset();
-    this.LinksTab.Div.height(height - pos.top);
+    var pos = this.LinksDiv.offset();
+    this.LinksDiv.height(height - pos.top);
 }
 
 //------------------------------------------------------------------------------
@@ -1456,18 +1369,23 @@ Note.prototype.Save = function(callback) {
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.Serialize(true));
     var d = new Date();
+    $('body').css({'cursor':'progress'});
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
         data: {"note" : noteObj,
                "date" : d.getTime()},
         success: function(data,status) {
+            $('body').css({'cursor':'default'});
             self.Id = data._id;
             if (callback) {
                 (callback)(self);
             }
         },
-        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+        error: function() { 
+            $('body').css({'cursor':'default'});
+            alert( "AJAX - error() : saveviewnotes" ); 
+        },
     });
 }
 
@@ -1625,44 +1543,55 @@ Note.prototype.DisplayGUI = function(div) {
 
 
 Note.prototype.Serialize = function(includeChildren) {
-  var obj = {};
-  obj.SessionId = localStorage.sessionId;
-  obj.Type = this.Type;
-  obj.User = this.User;
-  obj.Date = this.Date;
+    var obj = {};
+    obj.SessionId = localStorage.sessionId;
+    obj.Type = this.Type;
+    obj.User = this.User;
+    obj.Date = this.Date;
 
-  if (this.Id) {
-    obj._id = this.Id;
-  }
-  // I would like to put the session as parent, but this would be an inclomplete reference.
-  // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
-  if (this.Parent) {
-    obj.ParentId = this.Parent.Id;
-  }
-  obj.Title = this.Title;
-  obj.HiddenTitle = this.HiddenTitle;
-  obj.Text = this.Text;
-  // We should probably serialize the ViewerRecords too.
-  obj.ViewerRecords = [];
-
-  // The database wants an image id, not an embedded iamge object.
-  //  The server should really take care of this since if
-  for (var i = 0; i < this.ViewerRecords.length; ++i) {
-    if(!this.ViewerRecords[i].Image) continue;
-    var record = this.ViewerRecords[i].Serialize();
-    obj.ViewerRecords.push(record);
-  }
-
-  // upper left pixel
-  obj.CoordinateSystem = "Pixel";
-
-  if (includeChildren) {
-    obj.Children = [];
-    for (var i = 0; i < this.Children.length; ++i) {
-      obj.Children.push(this.Children[i].Serialize(includeChildren));
+    if (this.Id) {
+        obj._id = this.Id;
     }
-  }
-  return obj;
+    // I would like to put the session as parent, but this would be an inclomplete reference.
+    // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
+    if (this.Parent) {
+        obj.ParentId = this.Parent.Id;
+    }
+    obj.Title = this.Title;
+    obj.HiddenTitle = this.HiddenTitle;
+
+    obj.Text = this.Text;
+    // The server handles copying views and the code is a pain.
+    // I would rather have the client copy notes since is can now
+    // save them one by one and get ids for new notes.
+    // However,  until I make this change, I need a simple way of copying
+    // a note and not messing up the references in the text.
+    // Code the links in the html as indexes.
+    //for (var i = 0; i < this.Children.length; ++i) {
+    //    var Child
+    //}
+
+    // We should probably serialize the ViewerRecords too.
+    obj.ViewerRecords = [];
+
+    // The database wants an image id, not an embedded iamge object.
+    //  The server should really take care of this since if
+    for (var i = 0; i < this.ViewerRecords.length; ++i) {
+        if(!this.ViewerRecords[i].Image) continue;
+        var record = this.ViewerRecords[i].Serialize();
+        obj.ViewerRecords.push(record);
+    }
+
+    // upper left pixel
+    obj.CoordinateSystem = "Pixel";
+
+    if (includeChildren) {
+        obj.Children = [];
+        for (var i = 0; i < this.Children.length; ++i) {
+            obj.Children.push(this.Children[i].Serialize(includeChildren));
+        }
+    }
+    return obj;
 }
 
 // This method of loading is causing a pain.
@@ -2122,14 +2051,14 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
     this.TextEditor.LoadNote(this.RootNote);
-    this.LinksTab.Div.empty();
-    this.RootNote.DisplayGUI(this.LinksTab.Div);
+    this.LinksDiv.empty();
+    this.RootNote.DisplayGUI(this.LinksDiv);
     this.RootNote.Select();
 
     // Add an obvious way to add a link / view to the root note.
     if (EDIT) {
         this.AddViewButton
-            .appendTo(this.LinksTab.Div)
+            .appendTo(this.LinksDiv)
             .click(function () {
                 var parentNote = NOTES_WIDGET.RootNote;
                 var childIdx = parentNote.Children.length;
@@ -2141,9 +2070,9 @@ NotesWidget.prototype.DisplayRootNote = function() {
 
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
-        this.LinksTab.Open();
+        this.TabbedWindow.ShowTabDiv(this.LinksDiv);
     } else {
-        this.TextTab.Open();
+        this.TabbedWindow.ShowTabDiv(this.TextDiv);
         // Hack to open the notes window if we have text.
         if ( ! this.Visibility && ! MOBILE_DEVICE) {
             this.ToggleNotesWindow();
