@@ -28,8 +28,11 @@ function TabbedDiv(parent) {
 }
 
 // I want to hide the TabPanel object, so I return the div.
-TabbedDiv.prototype.NewTabDiv = function (title) {
-    var tabPanel = new TabPanel(this, title);
+TabbedDiv.prototype.NewTabDiv = function (label, helpString) {
+    var tabPanel = new TabPanel(this, label);
+    if (helpString) {
+        tabPanel.Tab.prop('title', helpString);
+    }
     this.TabPanels.push(tabPanel);
     // First panel added should be open by default.
     if (this.TabPanels.length == 1) {
