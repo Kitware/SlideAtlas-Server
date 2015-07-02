@@ -21,49 +21,26 @@ function FavoritesBar(){
 
   this.FavoritesList =
     $('<div>').appendTo('body')
-              .css({
-                'position': 'absolute',
-                'height': '160px',
-                'width': '100%',
-                'left': '0px',
-                'bottom': '0px',
-                //'padding': '5px',
-                //'opacity': '0.6',
-                'background-color': 'rgba(0,0,0,.6)',
-                'overflow': 'visible',
-                'z-index': '6'
-              })
+              .addClass("sa-view-favorites-div")
               .hide();
 
   this.SaveFavoriteButton =
     $('<img>')
       .appendTo(this.FavoritesList)
-      .css({'left': '0px',
-            'height': size,
-            'width': size,
-            'float': 'left',
-            'margin-top': '50px',
-            'padding' : '5px',
-            'opacity': '0.6'})
+      .addClass("sa-view-favorites-icon")
       .attr('src',"webgl-viewer/static/saveNew.png")
       .click(function(){SaveFavorite();});
   this.TextTip = new ToolTip(this.SaveFavoriteButton, "Save Favorite");
   
   if(MOBILE_DEVICE){
     this.SaveFavoriteButton
-        .css({
-          'margin-top': '25px'
-        });
+        .addClass("sa-view-favorites-button");
   }
 
   this.ImageList =
     $('<div>')
       .appendTo(this.FavoritesList)
-      .css({'float': 'left',
-            'overflow-x': 'scroll',
-            'overflow-y': 'hidden',
-            'white-space': 'nowrap',
-            'height': '100%'});
+      .addClass("sa-view-favorites-img-list")
   
   VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
 
@@ -99,9 +76,9 @@ function SaveFavorite() {
   NOTES_WIDGET.SaveBrownNote();
   // Hide shifts the other buttons to the left to fill the gap.
   var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
-  button.css({'opacity': '0.0'});
+  button.addClass("sa-inactive");
   setTimeout(function(){
-               button.css({'opacity': '0.6'});
+               button.removeClass("sa-inactive");
              }, 500); // one half second
 
   //ShowImage(CreateThumbnailImage(110));
@@ -131,17 +108,7 @@ function LoadFavoritesCallback(sessionData) {
 
   for (var i = 0; i < sessionData.viewArray.length; ++i) {
     var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
-                            .css({
-                              'position': 'relative',
-                              'height': '110px',
-                              //'width': '90px',
-                              'margin': '10px',
-                              'display': 'inline-block',
-                              //'background-color': '#0000ff',
-                              'border': '5px solid rgba(0,0,255,1)',
-                              'background-color': 'rgba(255,0,0,1)'
-                              //'opacity': '1.0'
-                            });
+                            .addClass("sa-view-favorites-callback-div");
 
 
     //var db = sessionData.viewArray[i].ViewerRecords[0].Database;
@@ -153,22 +120,13 @@ function LoadFavoritesCallback(sessionData) {
                          .attr('src', thumb)
                          .attr('height', '110px')
                          //.attr('width', '80px')
-                         .css({
-                           //'margin': '5px',
-                           'opacity': '1.0'
-                         })
+                         .addClass("sa-view-favorites-callback-img")
                          .attr('index', i)
                          .click(function(){ loadFavorite(this); });
 
     var del = $('<div>').appendTo(favorite)
                         .html("X")
-                        .css({
-                          'position': 'absolute',
-                          'top': '0px',
-                          'left': '0px',
-                          'background-color': '#ff0000',
-                          'z-index': '3'
-                        })
+                        .addClass("sa-view-favorites-callback-del")
                         .attr('index', i)
                         .click(function(){ deleteFavorite(this); });
   }

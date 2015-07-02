@@ -25,28 +25,16 @@ function CutoutWidget (viewer) {
     var self = this;
     this.Div = $('<div>')
         .appendTo(VIEW_PANEL)
-        .css({
-            'background-color': 'white',
-            'border-width': '1px',
-            'border-style': 'solid',
-            'border-radius': '5px',
-            'border-color': '#BBB',
-            'position': 'absolute',
-            'bottom' : '2px',
-            'left' : '2px',
-            'z-index': '10',
-            'text-align': 'left',
-            'color': '#303030',
-            'font-size': '20px'});
+        .addClass("sa-view-cutout-div");
     $('<button>')
         .appendTo(this.Div)
         .text("Cancel")
-        .css({'margin':'10px'})
+        .addClass("sa-view-cutout-button")
         .click(function(){self.Cancel();});
     $('<button>')
         .appendTo(this.Div)
         .text("Download")
-        .css({'margin':'10px'})
+        .addClass("sa-view-cutout-button")
         .click(function(){self.Accept();});
 
     this.Select = $('<select>')
@@ -65,8 +53,7 @@ function CutoutWidget (viewer) {
         .text("svs");
 
     this.Label = $('<div>')
-        .css({'display': 'inline-block',
-              'margin': '10px'})
+        .addClass("sa-view-cutout-label")
         .appendTo(this.Div);
     this.UpdateBounds();
     this.HandleMouseUp();

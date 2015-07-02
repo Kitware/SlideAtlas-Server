@@ -913,8 +913,29 @@ PolylineWidget.prototype.DownloadStack = function(x, y, dim, spacing, root) {
 // Saves images centered at spots on the edge.
 // Roll is set to put the edge horizontal.
 // Step is in screen pixel units
-PolylineWidget.prototype.SampleEdge = function(dim, step, count) {
-    this.Shape.SampleEdge(this.Viewer,dim,step,count);
+PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
+    this.Shape.SampleEdge(this.Viewer,dim,step,count,callback);
 }
 
+
+function DownloadTheano(widgetIdx, angleIdx) {
+    EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
+    VIEWER1.WidgetList[widgetIdx].SampleEdge(
+        64,4,EDGE_COUNT,
+        function () {
+            setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
+        });
+}
+
+
+function DownloadTheano2(widgetIdx, angleIdx) {
+    ++angleIdx;
+    if (angleIdx >= 24) {
+        angleIdx = 0;
+        ++widgetIdx;
+    }
+    if (widgetIdx < VIEWER1.WidgetList.length) {
+        DownloadTheano(widgetIdx, angleIdx);
+    }
+}
 

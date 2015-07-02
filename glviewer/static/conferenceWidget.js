@@ -28,15 +28,11 @@ function ConferenceWidget () {
         this.Tab = new Tab("/webgl-viewer/static/conference1.png", "conferenceTab");
         new ToolTip(this.Tab.Div, "Conference");
         this.Tab.Div
-            .css({'left': '250px',
-                  'bottom': '0px'});
+            .addClass("sa-view-conference-div");
         // Needs to be a child of view panel to fill 100%.
         this.Tab.Panel
             .appendTo(VIEW_PANEL)
-            .css({'width': 'auto',
-                  'left': '2px',
-                  'right': '62px',
-                  'height': '110px'});
+            .addClass("sa-view-conference-panel");
         //this.View = new View();
 
 
@@ -47,14 +43,10 @@ function ConferenceWidget () {
 ConferenceWidget.prototype.TogglePanel = function() {
     this.Panel.toggle();
     if (this.Panel.is(":visible")) {
-        this.TabButton.css({'border-color': '#FFF #BBB #BBB #BBB',
-                            'border-radius': '0px 0px 5px 5px',
-                            'opacity': '1'});
+        this.TabButton.addClass("sa-active");
     } else {
         // Should we deactivate any active widget tool?
-        this.TabButton.css({'border-color': '#BBB',
-                            'border-radius': '5px',
-                            'opacity': '0.6'});
+        this.TabButton.removeClass("sa-active");
     }
 }
 

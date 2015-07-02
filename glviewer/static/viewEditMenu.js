@@ -23,52 +23,43 @@ function ViewEditMenu (viewer) {
     viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 99);
     new ToolTip(this.Tab.Div, "View Menu");
 
-    this.Tab.Panel
-        .css({'left': '-78px',
-              'width': '170px',
-              'padding': '0px 2px'});
+    this.Tab.Panel.addClass("sa-view-edit-panel");
 
     $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Load Slide")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.Tab.PanelOff(); VIEW_BROWSER.Open(self.Viewer);});
     if (EDIT) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Save View")
-            .css({'margin':'2px 0px',
-                  'width' : '100%'})
+            .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
     $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Download Image")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.Tab.PanelOff(); DownloadImage(self.Viewer);});
     $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Slide Info")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.ShowSlideInformation();});
 
     // Test for showing coverage of view histor.
     this.HistoryMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
         .text("History On")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.ToggleHistory();});
 
     // Initial slide show feature.
     this.SlideShowMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
         .text("Presentation")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.ConvertToPresentation();});
 
     // Hack until we have some sort of scale.
@@ -76,19 +67,16 @@ function ViewEditMenu (viewer) {
         .appendTo(this.Tab.Panel)
         .text("Copy Zoom")
         .hide()
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.CopyZoom();});
     $('<button>').appendTo(this.Tab.Panel)
         .text("Flip Horizontal")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){self.FlipHorizontal();});
 
     $('<button>').appendTo(this.Tab.Panel)
         .text("Download image from server")
-        .css({'margin':'2px 0px',
-              'width' : '100%'})
+        .addClass("sa-view-edit-button")
         .click(function(){
             self.Tab.PanelOff();
             // When the circle button is pressed, create the widget.
@@ -103,10 +91,7 @@ function ViewEditMenu (viewer) {
                 // console.log("Adding menu for " + plugin);
                 $('<button>').appendTo(that.Tab.Panel)
                     .text(window.PLUGINS[plugin].button_text)
-                    .css({
-                        'margin': '2px 0px',
-                        'width': '100%'
-                    })
+                    .addClass("sa-view-edit-button")
                     .click(function () {
                         window.PLUGINS[plugin].Init();
                     });
@@ -119,14 +104,12 @@ function ViewEditMenu (viewer) {
     if (EDIT) {
         $('<button>').appendTo(this.Tab.Panel)
             .text("Save Overview Bounds")
-            .css({'margin':'2px 0px',
-                  'width' : '100%'})
+            .addClass("sa-view-edit-button")
             .click(function(){self.SetViewBounds();});
     } else {
         $('<button>').appendTo(this.Tab.Panel)
             .text("Set Overview Bounds")
-            .css({'margin':'2px 0px',
-                  'width' : '100%'})
+            .addClass("sa-view-edit-button")
             .click(function(){self.SetViewBounds();});
     }
 
@@ -134,8 +117,7 @@ function ViewEditMenu (viewer) {
         $('<button>').appendTo(this.Tab.Panel)
             .text("Detect Tissue Sections")
             .hide()
-            .css({'margin':'2px 0px',
-                  'width' : '100%'})
+            .addClass("sa-view-edit-button")
             .click(function(){self.DetectTissueSections();});
 }
 

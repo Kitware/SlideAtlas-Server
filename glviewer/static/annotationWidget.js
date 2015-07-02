@@ -19,80 +19,54 @@ function AnnotationWidget (viewer) {
     this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
     viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
     new ToolTip(this.Tab.Div, "Annotation");
-
-    this.Tab.Panel.css({'width': '108px',
-                        'left': '-38px'});
+    this.Tab.Panel.addClass("sa-view-annotation-panel");
     this.VisibilityDiv = $('<div>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.9',
-              'overflow': 'hidden',
-              'position': 'relative'})
+        .addClass("sa-view-annotation-vis")
         .click(function(){self.ToggleVisibility();});
     this.VisibilityImage = $('<img>')
         .appendTo(this.VisibilityDiv)
-        .css({'height': '56px',
-              'opacity': '0.6',
-              'position': 'relative'})
+        .addClass('sa-view-annotation-vis-img')
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
 
     this.TextButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.6',
-              'margin': '1px',
-              'border-style': 'outset',
-              'border-radius': '4px',
-              'border-thickness':'2px'})
+        .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/Text.gif")
         .click(function(){self.NewText();});
     this.CircleButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.6',
-              'margin': '1px',
-              'border-style': 'outset',
-              'border-radius': '4px',
-              'border-thickness':'2px'})
+        .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/Circle.gif")
         .click(function(){self.NewCircle();});
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.6',
-              'margin': '1px',
-              'border-style': 'outset',
-              'border-radius': '4px',
-              'border-thickness':'2px'})
+        .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/FreeForm.gif")
         .click(function(){self.NewPolyline();});
     this.PencilButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.6',
-              'margin': '1px',
-              'border-style': 'outset',
-              'border-radius': '4px',
-              'border-thickness':'2px'})
+        .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
         .click(function(){self.NewPencil();});
     this.LassoButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .css({'height': '28px',
-              'opacity': '0.6',
-              'margin': '1px',
-              'border-style': 'outset',
-              'border-radius': '4px',
-              'border-thickness':'2px'})
+        .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',"/webgl-viewer/static/select_lasso.png")
         .click(function(){self.NewLasso();});
     this.SectionsButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button")
+        .attr('type','image')
+        .attr('src',"/webgl-viewer/static/sections.png")
+        .click(function(){self.DetectSections();});
+    /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
               'opacity': '0.6',
@@ -101,20 +75,9 @@ function AnnotationWidget (viewer) {
               'border-radius': '4px',
               'border-thickness':'2px'})
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/sections.png")
-        .click(function(){self.DetectSections();});
-    /*this.FillButton = $('<img>')
-      .appendTo(this.Tab.Panel)
-      .css({'height': '28px',
-      'opacity': '0.6',
-      'margin': '1px',
-      'border-style': 'outset',
-      'border-radius': '4px',
-      'border-thickness':'2px'})
-      .attr('type','image')
-      .attr('src',"/webgl-viewer/static/brush1.jpg")
-      .click(function(){self.NewFill();});
-    */
+        .attr('src',"/webgl-viewer/static/brush1.jpg")
+        .click(function(){self.NewFill();});
+        */
 }
 
 // Show hide the tool tab button
@@ -163,14 +126,10 @@ AnnotationWidget.prototype.ToggleVisibility = function() {
 AnnotationWidget.prototype.TogglePanel = function() {
     this.Panel.toggle();
     if (this.Panel.is(":visible")) {
-        this.TabButton.css({'border-color': '#FFF #BBB #BBB #BBB',
-                            'border-radius': '0px 0px 5px 5px',
-                            'opacity': '1'});
+        this.TabButton.addClass("sa-active");
     } else {
         // Should we deactivate any active widget tool?
-        this.TabButton.css({'border-color': '#BBB',
-                            'border-radius': '5px',
-                            'opacity': '0.6'});
+        this.TabButton.removeClass("sa-active");
     }
 }
 
@@ -235,8 +194,7 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
         widget.Deactivate();
     }
     button.Pressed = true;
-    button.css({'border-style': 'inset',
-                'opacity': '1.0'});
+    button.addClass("sa-active");
 
     this.SetVisibility(ANNOTATION_ON);
     widget = new WidgetType(this.Viewer, true);
@@ -245,8 +203,7 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     // Button remains "pressed" until the circle deactivates.
     widget.DeactivateCallback = 
         function () {
-            button.css({'border-style': 'outset',
-                        'opacity': '0.6'});
+            button.removeClass("sa-active");
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }
@@ -267,8 +224,7 @@ AnnotationWidget.prototype.DetectSections = function() {
         widget.Deactivate();
     }
     button.Pressed = true;
-    button.css({'border-style': 'inset',
-                'opacity': '1.0'});
+    button.addClass("sa-active");
 
     // See if a SectionsWidget already exists.
     var widget = null;
@@ -285,8 +241,7 @@ AnnotationWidget.prototype.DetectSections = function() {
         widget.ComputeSections();
         if (widget.IsEmpty()) {
             widget.RemoveFromViewer();
-            button.css({'border-style': 'outset',
-                        'opacity': '0.6'});
+            button.removeClass('sa-active');
             button.Pressed = false;
             return;
         }
@@ -295,8 +250,7 @@ AnnotationWidget.prototype.DetectSections = function() {
     widget.SetActive(true);
     widget.DeactivateCallback = 
         function () {
-            button.css({'border-style': 'outset',
-                        'opacity': '0.6'});
+            button.removeClass('sa-active');
             widget.DeactivateCallback = undefined;
             button.Pressed = false;
         }

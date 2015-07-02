@@ -233,12 +233,17 @@ Polyline.prototype.UpdateBuffers = function() {
 
 
 
-
+// GLOBAL To Position the orientatation of the edge.
+var EDGE_COUNT = 0;
+var EDGE_ANGLE = (2*Math.PI) * 0/24;
+var EDGE_OFFSET = 0; // In screen pixels.
+var EDGE_ROOT = "edge";
+var EDGE_DELAY = 200;
 // Saves images centered at spots on the edge.
 // Roll is set to put the edge horizontal.
 // Step is in screen pixel units
 // Count is the starting index for file name generation.
-Polyline.prototype.SampleEdge = function(viewer, dim, step, count) {
+Polyline.prototype.SampleEdge = function(viewer, dim, step, count, callback) {
     var cam = viewer.GetCamera();
     var scale = cam.GetHeight() / cam.ViewportHeight;
     // Convert the step from screen pixels to world.
@@ -249,10 +254,10 @@ Polyline.prototype.SampleEdge = function(viewer, dim, step, count) {
     var remaining = step/2;
     // Recursive to serialize asynchronous cutouts.
     this.RecursiveSampleEdge(this.Points.length-1,0,remaining,step,count,
-                             cache,dimensions,scale);
+                             cache,dimensions,scale, callback);
 }
 Polyline.prototype.RecursiveSampleEdge = function(i0,i1,remaining,step,count,
-                                                  cache,dimensions,scale) {
+                                                  cache,dimensions,scale, callback) {
     var pt0 = this.Points[i0];
     var pt1 = this.Points[i1];
     // Compute the length of the edge.
@@ -268,22 +273,36 @@ Polyline.prototype.RecursiveSampleEdge = function(i0,i1,remaining,step,count,
         // Test for terminating condition.
         if (i1 < this.Points.length) {
             this.RecursiveSampleEdge(i0,i1,remaining,step, count,
-                                     cache,dimensions,scale);
+                                     cache,dimensions,scale, callback);
+        } else {
+            (callback)();
         }
     } else {
         var self = this;
-        // Compute the sampel point and tangent on this edge.
-        var edgeAngle = -Math.atan2(dy,dx);
+        // Compute the sample point and tangent on this edge.
+        var edgeAngle = -Math.atan2(dy,dx) + EDGE_ANGLE;
         var k = remaining / length;
         var x = pt0[0] + k*(pt1[0]-pt0[0]);
         var y = pt0[1] + k*(pt1[1]-pt0[1]);
+        // Normal (should be out if loop is clockwise).
+        var nx = -dy;
+        var ny = dx;
+        var mag = Math.sqrt(nx*nx + ny*ny);
+        nx = (nx / mag) * EDGE_OFFSET * scale;
+        ny = (ny / mag) * EDGE_OFFSET * scale;
+
         // Save an image at this sample point.
-        GetCutoutImage(cache,dimensions,[x,y],scale,edgeAngle,"edge"+count+".png",
-                       function () {
-                           ++count;
-                           remaining += step;
-                           self.RecursiveSampleEdge(i0,i1,remaining,step,count,
-                                                    cache,dimensions,scale);
+        GetCutoutImage(cache,dimensions,[x+nx,y+ny],scale,
+                       edgeAngle,EDGE_ROOT+count+".png",
+                       function() {
+                           setTimeout(
+                               function () {
+                                   ++count;
+                                   EDGE_COUNT = count;
+                                   remaining += step;
+                                   self.RecursiveSampleEdge(i0,i1,remaining,step,count,
+                                                            cache,dimensions,scale,callback);
+                               }, EDGE_DELAY);
                        });
     }
 }

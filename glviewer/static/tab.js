@@ -13,26 +13,14 @@ Tab = (function () {
         this.Div = $('<div>')
             .appendTo(VIEW_PANEL)
             .attr('id', tabID)
-            .css({'z-index' : '5',
-                  'position': 'absolute'});
+            .addClass('sa-view-div');
 
         // Button has to have the border (not the tab) to be covered by Div.
         this.Button = $('<img>')
             .appendTo(this.Div)
             .attr('type','image')
             .attr('src',imageSrc)
-            .css({'height': '28px',
-                  'padding' : '2px',
-                  'border-width': '1px',
-                  'border-style': 'solid',
-                  'border-radius': '5px',
-                  'border-color': '#BBB',
-                  'opacity': '0.6',
-                  'background-color': '#FFF',
-                  'position': 'relative',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index' : '5'})
+            .addClass("sa-view-button")
             .click(function(){self.TogglePanel();})
             .attr('draggable','false')
             .on("dragstart", function() {
@@ -42,17 +30,7 @@ Tab = (function () {
         this.Panel = $('<div>')
             .appendTo(this.Div)
             .hide()
-            .css({
-                'background-color': 'white',
-                'border-style': 'solid',
-                'border-width': '1px',
-                'border-radius': '5px',
-                'border-color': '#BBB',
-                'position': 'absolute',
-                'bottom': '37px',
-                'left':  '-5px',
-                'z-index': '4',
-                'padding': '2px 2px 0px 2px'});
+            .addClass("sa-view-panel");
 
         Tabs.push(this);
 
@@ -103,17 +81,13 @@ Tab = (function () {
         }
 
         // Make the tab look like it is part of the panel.
-        this.Button.css({'border-color': '#FFF #BBB #BBB #BBB',
-                         'border-radius': '0px 0px 5px 5px',
-                         'opacity': '1'});
+        this.Button.addClass("sa-active")
     }
 
     Tab.prototype.PanelOff = function() {
         this.PanelOpen = false;
         this.Panel.hide();
-        this.Button.css({'border-color': '#BBB',
-                         'border-radius': '5px',
-                         'opacity': '0.6'});
+        this.Button.removeClass("sa-active")
     }
 
 

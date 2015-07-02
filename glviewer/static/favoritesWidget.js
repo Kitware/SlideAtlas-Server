@@ -15,16 +15,7 @@ function FavoritesWidget() {
         this.MenuFavoriteButton =
             $('<img>')
             .appendTo(VIEW_PANEL)
-            .css({'position': 'absolute',
-                  'height': '35px',
-                  'width': '35px',
-                  'left': '0px',
-                  'bottom': '0px',
-                  'padding' : '5px',
-                  'opacity': '0.6',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index': '7'})
+            .addClass("sa-view-favorites-button")
             .attr('src',"webgl-viewer/static/favorite-star.png")
             .attr('draggable','false')
             .on("dragstart", function() {return false;})

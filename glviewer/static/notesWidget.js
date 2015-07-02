@@ -86,7 +86,7 @@ function InitNotesWidget(rootNote) {
         .mouseleave(function() { LINK_DIV.fadeOut(); });
 
     if (EDIT) {
-        LINK_DIV.attr('contented\itable', "true");
+        LINK_DIV.attr('contenteditable', "true");
     }
 
     NOTES_WIDGET.SetRootNote(rootNote);
@@ -639,10 +639,21 @@ function NotesWidget() {
     this.TabbedWindow = new TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = null;
-    if (! EDIT) {
-        this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes");
-    }
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "personal notes");
+
+    // Hack in a save button.
+    this.SaveButton =
+      $('<img>')
+        .appendTo(this.TabbedWindow.TabDiv)
+        .css({'float': 'right',
+              'height':'24px',
+              'margin-right':'20px',
+              'opacity':'0.7'})
+        .prop('title', "save to database")
+        .attr('src',"webgl-viewer/static/save.png")
+        .addClass('editButton')
+        .click(function(){self.SaveCallback();});    
+
 
     this.LinksDiv
         .css({'overflow': 'auto',
@@ -664,12 +675,8 @@ function NotesWidget() {
 
     // Now for the text tab:
     this.TextEditor = new TextEditor(this.TextDiv, EDIT);
-
-
-    this.UserTextEditor = null;
-    if ( ! EDIT) {
-        this.UserTextEditor = new TextEditor(this.UserTextDiv, true);
-    }
+    // Private notes.
+    this.UserTextEditor = new TextEditor(this.UserTextDiv, true);
 }
 
 
