@@ -193,7 +193,7 @@ Gallery.prototype.LoadImages = function(data, imgdb) {
             .addClass("sa-view-gallery-item")
             .hover(
                 function () {$(this).addClass("sa-active")},
-                function () {$(this).removeClass("sa-active")});
+                function () {$(this).removeClass("sa-active")})
             .mousedown(function(event) {
                 // TODO: Make this a callback
                 self.SelectCallback($(this).data('imgdb'),
