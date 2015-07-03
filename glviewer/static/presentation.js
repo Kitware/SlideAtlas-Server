@@ -294,16 +294,12 @@ Presentation.prototype.TimerCallback = function(duration) {
 }
 
 
-Presentation.prototype.RecordView1 = function() {
+Presentation.prototype.RecordViews = function() {
     if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
         this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
     }
-}
-
-
-Presentation.prototype.RecordView2 = function() {
     if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
@@ -607,7 +603,10 @@ function SlidePage(parent, edit) {
               'height': '210px',
               'bottom': '5px',
               'width': '100%'});
-    this.List = new TextEditor(this.TextDiv, edit);
+    this.List = new TextEditor(this.TextDiv);
+    if ( ! edit) {
+        this.List.EditOff();
+    }
 
     // Add the viewers.
     var width = CANVAS.innerWidth();
@@ -627,8 +626,7 @@ function SlidePage(parent, edit) {
         this.AnnotationWidget2 = new AnnotationWidget(VIEWER2);
         this.AnnotationWidget2.SetVisibility(2);
 
-        VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
-        VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
+        AddRecordStateCallback(function () {PRESENTATION.RecordViews();});
         this.RemoveView1Button = $('<img>')
             .appendTo(VIEWER1.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")

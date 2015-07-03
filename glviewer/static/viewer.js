@@ -132,15 +132,16 @@ function Viewer (viewport) {
     can.addEventListener(
         "touchmove", 
         function(event){
-            self.TriggerInteraction();
             EVENT_MANAGER.HandleTouchMove(event, self);
+            self.TriggerInteraction();
         }, 
         false);
     can.addEventListener(
-        "touchend", 
+        "touchend",
         function(event){
             EVENT_MANAGER.HandleTouchEnd(event, self);
-        }, 
+            self.TriggerInteraction();
+        },
         false);
 
 
@@ -247,15 +248,15 @@ Viewer.prototype.RollMove = function (e) {
  }
 
 // TODO: Events are a pain because most are handled by parent.
-// Time to make the overview a real widget.
- Viewer.prototype.RollUp = function (e) {
-     this.RotateIconDrag = false;
-     if ( ! this.RotateIconHover) {
-         this.RotateIcon.addClass("sa-active");
-     }
+// Time to make the overview a real widget?
+Viewer.prototype.RollUp = function (e) {
+    this.RotateIconDrag = false;
+    if ( ! this.RotateIconHover) {
+        this.RotateIcon.addClass("sa-active");
+    }
 
-     return false;
- }
+    return false;
+}
 
 
 Viewer.prototype.GetMainCanvas = function() {
