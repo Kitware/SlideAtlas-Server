@@ -178,6 +178,27 @@
     z-index: 10;
     pointer-events: none;
 }
+
+.sa-ul {
+    list-style-type: none;
+    margin-left: 0px;
+    margin-right: 0px;
+    padding-left: 20px;
+    padding-right: 0px
+}
+
+.sa-title {
+    font-size: 18px;
+    margin-left: 2px;
+    color: #379BFF
+}
+
+.sa-sort-handle {
+    cursor: ns-resize
+}
+
+
+
 /*
 *  Start Collection browser section
 */

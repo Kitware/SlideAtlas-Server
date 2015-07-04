@@ -698,10 +698,8 @@ function NotesWidget() {
     this.TabbedWindow = new TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
     this.LinksRoot = $('<ul>')
-        .css({'margin-left':'0px',
-              'margin-right':'0px',
-              'padding-left':'20px',
-              'padding-right':'0px'})
+        .addClass('sa-ul')
+        .css({'padding-left':'0px'})
         .appendTo(this.LinksDiv);
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
     this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "prival notes");
@@ -1095,21 +1093,30 @@ function Note () {
 
     // GUI elements.
     this.Div = $('<li>')
-        .attr({'class':'note'})
-        .css({'position':'relative'});
+        .attr({'class':'note'});
+
     this.TitleDiv = $('<div>')
+        .css({'position':'relative'})
         .appendTo(this.Div);
+
+    this.SortHandle = $('<span>')
+        .appendTo(this.TitleDiv)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
+              'opacity':'0.5'})
+        .addClass('ui-icon ui-icon-bullet');
+
 
     this.ButtonsDiv = $('<div>')
         .appendTo(this.TitleDiv)
         .css({'float':'right'})
         .hide();
     this.TitleEntry = $('<div>')
+        .css({'margin-left':'20px'})
         .appendTo(this.TitleDiv)
         .text(this.Title)
-        .css({'font-size': '18px',
-              'margin-left':'20px',
-              'color':'#379BFF',});
+        .addClass('sa-title');
 
     if (EDIT) {
         this.AddButton = $('<img>')
@@ -1170,16 +1177,16 @@ function Note () {
     // A child may appear and UpdateChildrenGui called.
     // If we could tell is was removed, UpdateChildGUI could append it.
     this.ChildrenDiv = $('<ul>')
-        .css({'margin-left':'0px',
-              'margin-right':'0px',
-              'padding-left':'20px',
-              'padding-right':'0px'})
-        .appendTo(this.Div)
-        .disableSelection();
+        .addClass('sa-ul')
+        .appendTo(this.Div);
 
     if (EDIT) {
         this.ChildrenDiv
-            .sortable({update: function( event, ui ) {self.SortCallback();} });
+            .sortable({update: function(event,ui){self.SortCallback();},
+                       handle: ".ui-icon"});
+    } else {
+        this.ChildrenDiv
+            .disableSelection();
     }
 
     // This is for stack notes (which could be a subclass).
@@ -1426,8 +1433,7 @@ Note.prototype.UpdateChildrenGUI = function() {
         this.StackDivs = [];
         for (var i = 0; i < this.ViewerRecords.length; ++i) {
             var sectionDiv = $('<div>')
-                .attr({'class':'note'})
-                .css({'position':'relative'})
+                .addClass('note')
                 .appendTo(this.ChildrenDiv);
             if (this.HideAnnotations) {
                 sectionDiv.text(i.toString())
@@ -1451,6 +1457,11 @@ Note.prototype.UpdateChildrenGUI = function() {
         this.Children[i].DisplayGUI(this.ChildrenDiv);
         // Indexes used for sorting.
         this.Children[i].Div.data("index", i);
+        if (this.Children.length > 1) {
+            this.Children[i].SortHandle.addClass('sa-sort-handle');
+        } else {
+            this.Children[i].SortHandle.removeClass('sa-sort-handle');
+        }
     }
 }
 
