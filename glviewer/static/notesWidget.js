@@ -1157,19 +1157,7 @@ function Note () {
     if (EDIT) {
         this.Modified = false;
         this.TitleEntry
-            .attr('contenteditable', "true")
-            .bind('input', function () {
-                self.Modified = true;
-            })
-            .focusin(function() { self.TitleFocusInCallback(); })
-            .focusout(function() { self.TitleFocusOutCallback(); })
-            .mouseleave(function() {
-                if (self.Modified) {
-                    self.Modified = false;
-                    self.Title = self.TitleEntry.text();
-                    NOTES_WIDGET.MarkAsModified();
-                }
-            });
+            .attr('contenteditable', "true");
     }
 
 
@@ -1317,6 +1305,11 @@ Note.prototype.TitleFocusInCallback = function() {
 
 
 Note.prototype.TitleFocusOutCallback = function() {
+    if (self.Modified) {
+        self.Modified = false;
+        self.Title = self.TitleEntry.text();
+        NOTES_WIDGET.MarkAsModified();
+    }
     // Allow the viewer to process arrow keys.
     EVENT_MANAGER.FocusIn();
     if ( ! this.Modified) { return; }
@@ -1665,7 +1658,20 @@ Note.prototype.DisplayGUI = function(div) {
         .click(function() {
             self.Select();
             self.ButtonsDiv.show();
+        })
+        .bind('input', function () {
+            self.Modified = true;
+        })
+        .focusin(function() { self.TitleFocusInCallback(); })
+        .focusout(function() { self.TitleFocusOutCallback(); })
+        .mouseleave(function() {
+            if (self.Modified) {
+                self.Modified = false;
+                self.Title = self.TitleEntry.text();
+                NOTES_WIDGET.MarkAsModified();
+            }
         });
+    
 
     this.TitleDiv
         .hover(
