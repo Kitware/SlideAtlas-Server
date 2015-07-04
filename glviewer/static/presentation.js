@@ -295,20 +295,21 @@ Presentation.prototype.TimerCallback = function(duration) {
     setTimeout(function(){ self.TimerCallback(duration);}, duration);
 }
 
-
-Presentation.prototype.RecordViews = function() {
+Presentation.prototype.RecordView1 = function() {
     if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
         this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
     }
+}
+
+Presentation.prototype.RecordView2 = function() {
     if (this.Edit && this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
         this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
     }
 }
-
 
 Presentation.prototype.AddViewCallback = function(viewObj) {
     var record = new ViewerRecord();
@@ -628,8 +629,9 @@ function SlidePage(parent, edit) {
         this.AnnotationWidget2 = new AnnotationWidget(VIEWER2);
         this.AnnotationWidget2.SetVisibility(2);
 
-        AddRecordStateCallback(function () {PRESENTATION.RecordViews();});
-        this.RemoveView1Button = $('<img>')
+        VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
+        VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
+                this.RemoveView1Button = $('<img>')
             .appendTo(VIEWER1.MainView.CanvasDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
@@ -759,9 +761,10 @@ function SlidePage(parent, edit) {
         .attr('src',"webgl-viewer/static/fullscreenOff.png")
         .prop('title', "full window off")
         .css({'position':'absolute',
-              'width':'12px',
-              'left':'2px',
-              'top':'2px',
+              'background':'#FFF',
+              'width':'16px',
+              'left':'1px',
+              'top':'1px',
               'opacity':'0.5',
               'z-index':'1'})
         .hover(function(){$(this).css({'opacity':'1.0'});},
