@@ -32,10 +32,6 @@ function ViewerRecord () {
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
 ViewerRecord.prototype.Load = function(obj) {
-    for (ivar in obj) {
-        this[ivar] = obj[ivar];
-    }
-
     if ( ! obj.Camera) {
         var bds = obj.Image.bounds;
         if (bds) {
@@ -45,6 +41,11 @@ ViewerRecord.prototype.Load = function(obj) {
                           Roll: 0};
         }
     }
+
+    for (ivar in obj) {
+        this[ivar] = obj[ivar];
+    }
+
     if ( this.Camera.Width === undefined) {
         this.Camera.Width = this.Camera.Height * 1.62;
     }
