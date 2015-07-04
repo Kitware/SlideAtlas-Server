@@ -114,7 +114,9 @@ function Presentation(rootNote, edit) {
     document.onkeydown = function(e) {self.HandleKeyDown(e);};
     document.onkeyup = function(e) {self.HandleKeyUp(e);};
 
-    this.UpdateSlidesTab();
+    if (EDIT) {
+        this.UpdateSlidesTab();
+    }
 
     $(window).resize(function() {
         self.HandleResize();
