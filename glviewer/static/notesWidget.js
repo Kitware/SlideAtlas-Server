@@ -465,6 +465,7 @@ TextEditor.prototype.InsertCameraLink = function() {
         note = GetNoteFromId(id);
         if (note) {
             note.RecordView();
+            // TODO:  Different for user note and Primary note.
             note.Save();
             return;
         }
@@ -696,8 +697,14 @@ function NotesWidget() {
     // GUI elements
     this.TabbedWindow = new TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
+    this.LinksRoot = $('<ul>')
+        .css({'margin-left':'0px',
+              'margin-right':'0px',
+              'padding-left':'20px',
+              'padding-right':'0px'})
+        .appendTo(this.LinksDiv);
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "personal notes");
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "prival notes");
 
     if (EDIT) {
         // Hack in a save button.
@@ -1060,7 +1067,7 @@ var NOTES = [];
 function Note () {
     // A global list of notes so we can find a note by its id.
     NOTES.push(this);
-    
+
     var self = this;
 
     // Parallel note so any user can save notes.
@@ -1087,23 +1094,9 @@ function Note () {
     this.ChildrenVisibility = true;
 
     // GUI elements.
-    this.Div = $('<div>')
+    this.Div = $('<li>')
         .attr({'class':'note'})
-        .css({'position':'relative'})
-        .sortable('disable');
-
-    this.Icon = $('<img>')
-        .css({'height': '20px',
-              'width': '20x',
-              'float':'left',
-              '-moz-user-select': 'none',
-              '-webkit-user-select': 'none'})
-        .attr('src',"webgl-viewer/static/dot.png")
-        .appendTo(this.Div)
-        .sortable('disable')
-        .attr('draggable','false')
-        .on("dragstart", function() {return false;});
-
+        .css({'position':'relative'});
     this.TitleDiv = $('<div>')
         .appendTo(this.Div);
 
@@ -1176,15 +1169,42 @@ function Note () {
     // The div should attached even if nothing is in it.
     // A child may appear and UpdateChildrenGui called.
     // If we could tell is was removed, UpdateChildGUI could append it.
-    this.ChildrenDiv = $('<div>')
-        .css({'margin-left':'15px'})
-        .appendTo(this.Div);
+    this.ChildrenDiv = $('<ul>')
+        .css({'margin-left':'0px',
+              'margin-right':'0px',
+              'padding-left':'20px',
+              'padding-right':'0px'})
+        .appendTo(this.Div)
+        .disableSelection();
+
+    if (EDIT) {
+        this.ChildrenDiv
+            .sortable({update: function( event, ui ) {self.SortCallback();} });
+    }
 
     // This is for stack notes (which could be a subclass).
     this.StartIndex = 0;
     this.ActiveCorrelation = undefined;
     this.StackDivs = [];
 }
+
+// So this is a real pain.  I need to get the order of the notes from
+// the childrenDiv jquery element.
+Note.prototype.SortCallback = function() {
+    var newChildren = [];
+    var children = this.ChildrenDiv.children();
+    for (var newIndex = 0; newIndex < children.length; ++newIndex) {
+        var oldIndex = $(children[newIndex]).data('index');
+        var note = this.Children[oldIndex];
+        note.Div.data("index", newIndex);
+        newChildren.push(note);
+    }
+
+    this.Children = newChildren;
+    this.UpdateChildrenGUI();
+    NOTES_WIDGET.MarkAsModified();
+}
+
 
 function GetNoteFromId(id) {
     for (var i = 0; i < NOTES.length; ++i) {
@@ -1424,39 +1444,14 @@ Note.prototype.UpdateChildrenGUI = function() {
 
     // Notes
     if (this.Children.length == 0) {
-        this.Icon.attr('src',"webgl-viewer/static/dot.png");
         return;
     }
 
     for (var i = 0; i < this.Children.length; ++i) {
         this.Children[i].DisplayGUI(this.ChildrenDiv);
+        // Indexes used for sorting.
+        this.Children[i].Div.data("index", i);
     }
-
-    if (this.Children.length > 1 && this.UserCanEdit() ) {
-        // Make sure the indexes are set correctly.
-        for (var i = 0; i < this.Children.length; ++i) {
-            this.Children[i].Div.data("index", i);
-        }
-    }
-}
-
-// So this is a real pain.  I need to get the order of the notes from
-// the childrenDiv jquery element.
-// I could use jQuery.data(div,"note",this) or store the index in an attribute.
-Note.prototype.ReorderChildren = function() {
-    var newChildren = [];
-    var children = this.ChildrenDiv.children();
-    for (var newIndex = 0; newIndex < children.length; ++newIndex) {
-        var oldIndex = $(children[newIndex]).data('index');
-        var note = this.Children[oldIndex];
-        note.Div.data("index", newIndex);
-        if (newIndex != oldIndex) {
-            this.Save();
-        }
-        newChildren.push(note);
-    }
-
-    this.Children = newChildren;
 }
 
 Note.prototype.NewIterator = function() {
@@ -1652,7 +1647,6 @@ Note.prototype.RecordAnnotations = function() {
 
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
-    // Put an icon to the left of the text.
     var self = this;
     this.Div.appendTo(div);
 
@@ -1683,8 +1677,6 @@ Note.prototype.DisplayGUI = function(div) {
 
     // Changing a div "parent/appendTo" removes all event bindings like click.
     // I would like to find a better solution to redraw.
-    this.Icon
-        .click(function() {self.Select()})
     if (EDIT) {
         // Removing and adding removes the callbacks.
         this.AddButton
@@ -2215,8 +2207,8 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
     this.TextEditor.LoadNote(this.RootNote);
-    this.LinksDiv.empty();
-    this.RootNote.DisplayGUI(this.LinksDiv);
+    this.LinksRoot.empty();
+    this.RootNote.DisplayGUI(this.LinksRoot);
     this.RootNote.Select();
 
     // Add an obvious way to add a link / view to the root note.
