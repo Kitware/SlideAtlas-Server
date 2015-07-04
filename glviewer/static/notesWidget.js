@@ -85,6 +85,9 @@ function InitNotesWidget(rootNote) {
         .hide()
         .mouseleave(function() { LINK_DIV.fadeOut(); });
 
+    // There is not option to show the link when EDIT is not on,
+    // so this really does nothing.  Editable is probably necessary
+    // for selection to copy.
     if (EDIT) {
         LINK_DIV.attr('contenteditable', "true");
     }
@@ -96,103 +99,118 @@ function InitNotesWidget(rootNote) {
 //==============================================================================
 
 
-function TextEditor(parent, edit) {
+function TextEditor(parent) {
     var self = this;
     this.Parent = parent;
-    this.Edit = edit;
-    if (edit) {
-        this.EditButtons = [];
-        this.AddEditButton("webgl-viewer/static/camera.png", "link view",
-                           function() {self.InsertCameraLink();});
-        this.AddEditButton("webgl-viewer/static/link.png", "link URL",
-                           function() {self.InsertUrlLink();});
-        this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
-                           function() {document.execCommand('bold',false,null);});
-        this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
-                           function() {document.execCommand('italic',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
-                           function() {document.execCommand('underline',false,null);});
-        this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
-                           function() {document.execCommand('InsertUnorderedList',false,null);});
-        this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
-                           function() {document.execCommand('InsertOrderedList',false,null);});
-        this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
-                           function() {document.execCommand('indent',false,null);});
-        this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
-                           function() {document.execCommand('outdent',false,null);});
-        this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
-                           function() {document.execCommand('justifyLeft',false,null);});
-        this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
-                           function() {document.execCommand('justifyCenter',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
-                           function() {document.execCommand('superscript',false,null);});
-        this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
-                           function() {document.execCommand('subscript',false,null);});
-        this.AddEditButton("webgl-viewer/static/font_increase.png", "large font", 
-                           function(){
-                               document.execCommand('fontSize',false,'5');
-                               self.ChangeBulletSize('1.5em');
-                           });
-        this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font", 
-                           function() {
-                               document.execCommand('fontSize',false,'2');
-                               self.ChangeBulletSize('0.9em');
-                           });
+    this.Edit = true;
+    // The user can set this to save the note automatically.
+    this.ChangeCallback = null;
 
-    }
+    this.EditButtons = [];
+    this.AddEditButton("webgl-viewer/static/camera.png", "link view",
+                       function() {self.InsertCameraLink();});
+    this.AddEditButton("webgl-viewer/static/link.png", "link URL",
+                       function() {self.InsertUrlLink();});
+    this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
+                       function() {document.execCommand('bold',false,null);});
+    this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
+                       function() {document.execCommand('italic',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
+                       function() {document.execCommand('underline',false,null);});
+    this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
+                       function() {document.execCommand('InsertUnorderedList',false,null);});
+    this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
+                       function() {document.execCommand('InsertOrderedList',false,null);});
+    this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
+                       function() {document.execCommand('indent',false,null);});
+    this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
+                       function() {document.execCommand('outdent',false,null);});
+    this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
+                       function() {document.execCommand('justifyLeft',false,null);});
+    this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
+                       function() {document.execCommand('justifyCenter',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
+                       function() {document.execCommand('superscript',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
+                       function() {document.execCommand('subscript',false,null);});
+    this.AddEditButton("webgl-viewer/static/font_increase.png", "large font", 
+                       function(){
+                           document.execCommand('fontSize',false,'5');
+                           self.ChangeBulletSize('1.5em');
+                       });
+    this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font", 
+                       function() {
+                           document.execCommand('fontSize',false,'2');
+                           self.ChangeBulletSize('0.9em');
+                       });
 
     this.TextEntry = $('<div>')
         .appendTo(parent)
+        .attr('contenteditable', "true")
+        .removeAttr('readonly')
         .css({'box-sizing': 'border-box',
               'width': '100%',
               'height':'100%',
               'border-style': 'solid',
-              'background': '#ffffff',
               'overflow': 'auto',
-              'resize': 'none'})
-        .attr('readonly', 'readonly');
+              'resize': 'none',
+              'border-style': 'inset',
+              'background': '#f5f8ff'})
+        .bind('input', function () {
+                // Leave events are not triggering.
+            self.EventuallyUpdate();
+        })
+        .focusin(function() {
+            EVENT_MANAGER.FocusOut();
+        })
+        .focusout(function() {
+            EVENT_MANAGER.FocusIn();
+            self.Update();
+        })
+        // Mouse leave events are not triggering.
+        .mouseleave(function() { // back button does not cause loss of focus.
+            self.Update();
+        });
 
-    if (edit) {
-        this.Modified = false;
-        this.TextEntry
-            .attr('contenteditable', "true")
-            .removeAttr('readonly')
-            .css({'border-style': 'inset',
-                  'background': '#f5f8ff'})
-            .bind('input', function () {
-                self.Modified = true;
-            })
-            .focusin(function() {
-                EVENT_MANAGER.FocusOut();
-            })
-            .focusout(function() {
-                EVENT_MANAGER.FocusIn();
-                self.Save();
-            })
-            .mouseleave(function() { // back button does not cause loss of focus.
-                self.Save();
-            });
-    } else {
-        this.TextEntry.attr('readonly', 'readonly');
-        this.TextEntry.css({'border-style': 'outset',
-                            'background': '#ffffff'});
-    }
+    this.UpdateTimer = null;
+    this.RecordView1Timer = null;
+    this.RecordView2Timer = null;
+
 }
 
-TextEditor.prototype.Save = function() {
-    if (this.Modified) {
-        this.UpdateNote();
-        this.Modified = false;
+TextEditor.prototype.Change = function(callback) {
+    this.ChangeCallback = callback;
+}
+
+TextEditor.prototype.EventuallyUpdate = function() {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer);
+        this.UpdateTimer = null;
     }
+    var self = this;
+    this.UpdateTimer = setTimeout(function () { self.UpdateNote() }, 5000);
+}
+
+TextEditor.prototype.Update = function() {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer);
+        this.UpdateTimer = null;
+    } else {
+        // I am using the timer as a modified flag.
+        // Call update note to force an update.
+        return;
+    }
+    this.UpdateNote();
 }
 
 TextEditor.prototype.EditOff = function() {
     if ( ! this.Edit) { return;}
+    this.Edit = false;
 
     for (var i = 0; i < this.EditButtons.length; ++i) {
         this.EditButtons[i].hide();
     }
-    
+
     this.TextEntry
         .attr('contenteditable', 'false')
         .attr('spellcheck', 'false')
@@ -203,6 +221,34 @@ TextEditor.prototype.EditOff = function() {
         .unbind('focusout')
         .unbind('mouseleave')
         .blur();
+}
+
+TextEditor.prototype.EditOn = function() {
+    if (this.Edit) { return;}
+    this.Edit = true;
+
+    for (var i = 0; i < this.EditButtons.length; ++i) {
+        this.EditButtons[i].show();
+    }
+
+    this.TextEntry
+        .attr('contenteditable', "true")
+        .removeAttr('readonly')
+        .css({'border-style': 'inset',
+              'background': '#f5f8ff'})
+        .bind('input', function () {
+            self.Modified = true;
+        })
+        .focusin(function() {
+            EVENT_MANAGER.FocusOut();
+        })
+        .focusout(function() {
+            EVENT_MANAGER.FocusIn();
+            self.Update();
+        })
+        .mouseleave(function() { // back button does not cause loss of focus.
+            self.Update();
+        });
 }
 
 TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
@@ -419,6 +465,7 @@ TextEditor.prototype.InsertCameraLink = function() {
         note = GetNoteFromId(id);
         if (note) {
             note.RecordView();
+            // TODO:  Different for user note and Primary note.
             note.Save();
             return;
         }
@@ -485,6 +532,10 @@ TextEditor.prototype.Resize = function(width, height) {
 }
 
 TextEditor.prototype.SetHtml = function(html) {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer());
+        this.Update();
+    }
     this.Note = null;
     this.TextEntry.html(html);
 }
@@ -496,6 +547,10 @@ TextEditor.prototype.GetHtml = function() {
 // This probably belongs in a subclass.
 // Or in the note.
 TextEditor.prototype.LoadNote = function(note) {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer());
+        this.Update();
+    }
     this.Note = note;
     this.TextEntry.html(note.Text);
     for (var i = 0; i < note.Children.length; ++i) {
@@ -509,12 +564,15 @@ TextEditor.prototype.LoadNote = function(note) {
 // (when the textEntry changes).
 // It saves the note too.
 TextEditor.prototype.UpdateNote = function() {
+    this.UpdateTimer = null;
     if ( ! this.Note) {
         // Here is a real hack.  Hard code the creation of a user note.
         this.Note = NOTES_WIDGET.GetCurrentNote().GetUserNote();
     }
     this.Note.Text = this.TextEntry.html();
-    this.Note.Save();
+    if (this.ChangeCallback) {
+        (this.ChangeCallback)();
+    }
 
     this.MakeLinksClickable();
 }
@@ -523,6 +581,8 @@ TextEditor.prototype.UpdateNote = function() {
 // Work around this.
 TextEditor.prototype.MakeLinksClickable = function() {
     if (EDIT) {
+        // This is only necesary when div is editable.
+        // Links work the same in both situations with this.
         links = $("a");
         for (var i = 0; i < links.length; ++i) {
             var link = links[i];
@@ -537,11 +597,10 @@ TextEditor.prototype.MakeLinksClickable = function() {
 //==============================================================================
 
 
-
-
 function NotesWidget() {
     var self = this;
 
+    this.Modified = false;
     this.Window = $('<div>').appendTo('body')
         .css({
             'background-color': 'white',
@@ -638,22 +697,30 @@ function NotesWidget() {
     // GUI elements
     this.TabbedWindow = new TabbedDiv(this.Window);
     this.LinksDiv = this.TabbedWindow.NewTabDiv("Views");
+    this.LinksRoot = $('<ul>')
+        .addClass('sa-ul')
+        .css({'padding-left':'0px'})
+        .appendTo(this.LinksDiv);
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "personal notes");
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "prival notes");
 
-    // Hack in a save button.
-    this.SaveButton =
-      $('<img>')
-        .appendTo(this.TabbedWindow.TabDiv)
-        .css({'float': 'right',
-              'height':'24px',
-              'margin-right':'20px',
-              'opacity':'0.7'})
-        .prop('title', "save to database")
-        .attr('src',"webgl-viewer/static/save.png")
-        .addClass('editButton')
-        .click(function(){self.SaveCallback();});    
+    if (EDIT) {
+        // Hack in a save button.
+        this.SaveButton =
+            $('<img>')
+            .appendTo(this.TabbedWindow.TabDiv)
+            .css({'float': 'right',
+                  'height':'22px',
+                  'margin-right':'20px',
+                  'opacity':'0.7'})
+            .prop('title', "save to databse")
+            .attr('src',"webgl-viewer/static/save22.png")
+            .addClass('editButton')
+            .click(function(){self.SaveCallback();});
 
+        VIEWER1.OnInteraction(function () {self.RecordView1();});
+        VIEWER2.OnInteraction(function () {self.RecordView2();});
+    }
 
     this.LinksDiv
         .css({'overflow': 'auto',
@@ -664,38 +731,127 @@ function NotesWidget() {
 
     // no longer needed, but interesting: 'box-sizing': 'border-box'
 
-    // This is the button for the links tab div, but do not add it yet.
+    // This is the button for the links tab div.
     if (EDIT) {
         this.AddViewButton = $('<button>')
             .appendTo(this.LinksDiv)
             .css({'border-radius': '4px',
                   'margin': '1em'})
-            .text("+ New View");
+            .text("+ New View")
     }
 
     // Now for the text tab:
-    this.TextEditor = new TextEditor(this.TextDiv, EDIT);
+    this.TextEditor = new TextEditor(this.TextDiv);
+    if ( ! EDIT) {
+        this.TextEditor.EditOff();
+    } else {
+        this.TextEditor.Change(
+            function () {
+                self.MarkAsModified();
+            });
+    }
     // Private notes.
     this.UserTextEditor = new TextEditor(this.UserTextDiv, true);
+    this.UserTextEditor.Change(
+        function () {
+            self.UserTextEditor.Note.Save();
+        });
+}
+
+
+NotesWidget.prototype.RecordView1 = function() {
+    if (this.RecordView1Timer) {
+        clearTimeout(this.RecordView1Timer);
+    }
+    var self = this;
+    this.RecordView1Timer = setTimeout(function () { self.RecordView1b() }, 1000);
+}
+
+NotesWidget.prototype.RecordView1b = function() {
+    this.RecordView1Timer = null;
+    var note = this.GetCurrentNote();
+    if (note && note.ViewerRecords.length > 0 && note.ViewerRecords[0]) {
+        note.ViewerRecords[0].CopyViewer(VIEWER1);
+        this.MarkAsModified();
+        console.log("Record View 1");
+    }
+}
+
+
+NotesWidget.prototype.RecordView2 = function() {
+    if (this.RecordView2Timer) {
+        clearTimeout(this.RecordView2Timer);
+    }
+    var self = this;
+    this.RecordView2Timer = setTimeout(function () { self.RecordView2b() }, 1000);
+}
+
+NotesWidget.prototype.RecordView2b = function() {
+    this.RecordView2Timer = null;
+    var note = this.GetCurrentNote();
+    if (note && note.ViewerRecords.length > 1 && note.ViewerRecords[1]) {
+        note.ViewerRecords[1].CopyViewer(VIEWER2);
+        this.MarkAsModified();
+    }
+}
+
+
+NotesWidget.prototype.MarkAsModified = function() {
+    this.SaveButton.attr('src',"webgl-viewer/static/save.png");
+    this.Modified = true;
 }
 
 
 NotesWidget.prototype.SetRootNote = function(rootNote) {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer);
+        this.Update();
+    }
     this.RootNote = rootNote;
     this.Iterator = this.RootNote.NewIterator();
     this.DisplayRootNote();
 }
 
 
+NotesWidget.prototype.EditOn = function() {
+    this.SaveButton
+        .prop('title', "save to database")
+        .attr('src',"webgl-viewer/static/save22.png")
+        .click(function(){self.SaveCallback();});
+    this.AddViewButton.show();
+    this.TextEditor.EditOn();
+}
+
+NotesWidget.prototype.EditOff = function() {
+    this.SaveButton
+        .prop('title', "edit view")
+        .attr('src',"webgl-viewer/static/text_edit.png")
+        .click(function(){self.EditOn();});
+    this.AddViewButton.hide();
+    this.TextEditor.EditOff();
+
+    /*
+    .. note camera buttons....
+        .. note title entry (content editable.) ....
+        .. note remove button ...
+        .. link and delete button ...
+        .. Stack stuff ...
+    */
+
+}
+
 NotesWidget.prototype.SaveCallback = function() {
-    var note = this.SelectedNote;
-    note.RecordView();
+    var note = this.RootNote;
     if (note.Type == "Stack") {
         // Copy viewer annotation to the viewer record.
         note.RecordAnnotations();
     }
 
-    note.Save();
+    var self = this;
+    note.Save(function () {
+        self.Modified = false;
+        self.SaveButton.attr('src',"webgl-viewer/static/save22.png");
+    });
 }
 
 //------------------------------------------------------------------------------
@@ -909,7 +1065,7 @@ var NOTES = [];
 function Note () {
     // A global list of notes so we can find a note by its id.
     NOTES.push(this);
-    
+
     var self = this;
 
     // Parallel note so any user can save notes.
@@ -936,51 +1092,33 @@ function Note () {
     this.ChildrenVisibility = true;
 
     // GUI elements.
-    this.Div = $('<div>')
-        .attr({'class':'note'})
-        .css({'position':'relative'})
-        .sortable('disable');
-
-    this.Icon = $('<img>')
-        .css({'height': '20px',
-              'width': '20x',
-              'float':'left',
-              '-moz-user-select': 'none',
-              '-webkit-user-select': 'none'})
-        .attr('src',"webgl-viewer/static/dot.png")
-        .appendTo(this.Div)
-        .sortable('disable')
-        .attr('draggable','false')
-        .on("dragstart", function() {return false;});
+    this.Div = $('<li>')
+        .attr({'class':'note'});
 
     this.TitleDiv = $('<div>')
+        .css({'position':'relative'})
         .appendTo(this.Div);
+
+    this.SortHandle = $('<span>')
+        .appendTo(this.TitleDiv)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
+              'opacity':'0.5'})
+        .addClass('ui-icon ui-icon-bullet');
+
 
     this.ButtonsDiv = $('<div>')
         .appendTo(this.TitleDiv)
         .css({'float':'right'})
         .hide();
     this.TitleEntry = $('<div>')
+        .css({'margin-left':'20px'})
         .appendTo(this.TitleDiv)
         .text(this.Title)
-        .css({'font-size': '18px',
-              'margin-left':'20px',
-              'color':'#379BFF',});
+        .addClass('sa-title');
 
     if (EDIT) {
-        this.CameraButton = $('<img>')
-            .appendTo(this.ButtonsDiv)
-            .addClass('editButton')
-            .attr('src',"webgl-viewer/static/camera.png")
-            .prop('title', "capture view")
-            .css({
-                'width':'12px',
-                'height':'12px',
-                'opacity':'0.8'})
-            .click(function () {
-                self.RecordView();
-                self.Save();
-            });
         this.AddButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/page_add.png")
@@ -989,10 +1127,7 @@ function Note () {
             .css({
                 'width':'12px',
                 'height':'12px',
-                'opacity':'0.5'})
-            .click(function () {
-                NOTES_WIDGET.NewCallback();
-            });
+                'opacity':'0.5'});
         this.LinkButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/link.png")
@@ -1001,10 +1136,7 @@ function Note () {
             .css({
                 'width':'12px',
                 'height':'12px',
-                'opacity':'1.0'})
-            .click(function () {
-                self.LinkCallback();
-            });
+                'opacity':'1.0'});
         this.RemoveButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .hide()
@@ -1014,10 +1146,7 @@ function Note () {
             .css({
                 'width':'12px',
                 'height':'12px',
-                'opacity':'0.5'})
-            .click(function () {
-                self.DeleteCallback();
-            });
+                'opacity':'0.5'});
     }
 
     if (this.HideAnnotations && this.HiddenTitle) {
@@ -1036,8 +1165,9 @@ function Note () {
             .focusout(function() { self.TitleFocusOutCallback(); })
             .mouseleave(function() {
                 if (self.Modified) {
+                    self.Modified = false;
                     self.Title = self.TitleEntry.text();
-                    self.Save();
+                    NOTES_WIDGET.MarkAsModified();
                 }
             });
     }
@@ -1046,15 +1176,42 @@ function Note () {
     // The div should attached even if nothing is in it.
     // A child may appear and UpdateChildrenGui called.
     // If we could tell is was removed, UpdateChildGUI could append it.
-    this.ChildrenDiv = $('<div>')
-        .css({'margin-left':'15px'})
+    this.ChildrenDiv = $('<ul>')
+        .addClass('sa-ul')
         .appendTo(this.Div);
+
+    if (EDIT) {
+        this.ChildrenDiv
+            .sortable({update: function(event,ui){self.SortCallback();},
+                       handle: ".ui-icon"});
+    } else {
+        this.ChildrenDiv
+            .disableSelection();
+    }
 
     // This is for stack notes (which could be a subclass).
     this.StartIndex = 0;
     this.ActiveCorrelation = undefined;
     this.StackDivs = [];
 }
+
+// So this is a real pain.  I need to get the order of the notes from
+// the childrenDiv jquery element.
+Note.prototype.SortCallback = function() {
+    var newChildren = [];
+    var children = this.ChildrenDiv.children();
+    for (var newIndex = 0; newIndex < children.length; ++newIndex) {
+        var oldIndex = $(children[newIndex]).data('index');
+        var note = this.Children[oldIndex];
+        note.Div.data("index", newIndex);
+        newChildren.push(note);
+    }
+
+    this.Children = newChildren;
+    this.UpdateChildrenGUI();
+    NOTES_WIDGET.MarkAsModified();
+}
+
 
 function GetNoteFromId(id) {
     for (var i = 0; i < NOTES.length; ++i) {
@@ -1217,10 +1374,9 @@ Note.prototype.DeleteCallback = function() {
     parent.Children.splice(index, 1);
     this.Parent = null;
 
-    parent.Save();
-
     // Redraw the GUI.
     parent.UpdateChildrenGUI();
+    NOTES_WIDGET.MarkAsModified();
 }
 
 Note.prototype.UserCanEdit = function() {
@@ -1277,8 +1433,7 @@ Note.prototype.UpdateChildrenGUI = function() {
         this.StackDivs = [];
         for (var i = 0; i < this.ViewerRecords.length; ++i) {
             var sectionDiv = $('<div>')
-                .attr({'class':'note'})
-                .css({'position':'relative'})
+                .addClass('note')
                 .appendTo(this.ChildrenDiv);
             if (this.HideAnnotations) {
                 sectionDiv.text(i.toString())
@@ -1295,39 +1450,19 @@ Note.prototype.UpdateChildrenGUI = function() {
 
     // Notes
     if (this.Children.length == 0) {
-        this.Icon.attr('src',"webgl-viewer/static/dot.png");
         return;
     }
 
     for (var i = 0; i < this.Children.length; ++i) {
         this.Children[i].DisplayGUI(this.ChildrenDiv);
-    }
-
-    if (this.Children.length > 1 && this.UserCanEdit() ) {
-        // Make sure the indexes are set correctly.
-        for (var i = 0; i < this.Children.length; ++i) {
-            this.Children[i].Div.data("index", i);
+        // Indexes used for sorting.
+        this.Children[i].Div.data("index", i);
+        if (this.Children.length > 1) {
+            this.Children[i].SortHandle.addClass('sa-sort-handle');
+        } else {
+            this.Children[i].SortHandle.removeClass('sa-sort-handle');
         }
     }
-}
-
-// So this is a real pain.  I need to get the order of the notes from
-// the childrenDiv jquery element.
-// I could use jQuery.data(div,"note",this) or store the index in an attribute.
-Note.prototype.ReorderChildren = function() {
-    var newChildren = [];
-    var children = this.ChildrenDiv.children();
-    for (var newIndex = 0; newIndex < children.length; ++newIndex) {
-        var oldIndex = $(children[newIndex]).data('index');
-        var note = this.Children[oldIndex];
-        note.Div.data("index", newIndex);
-        if (newIndex != oldIndex) {
-            this.Save();
-        }
-        newChildren.push(note);
-    }
-
-    this.Children = newChildren;
 }
 
 Note.prototype.NewIterator = function() {
@@ -1406,6 +1541,18 @@ Note.prototype.Select = function() {
         return;
     }
 
+    // Flush the timers before moving to another view.
+    if (this.RecordView1Timer) {
+        clearTimeout(this.RecordView1Timer);
+        this.RecordView1Timer = null;
+        this.RecordView1b();
+    }
+    if (this.RecordView2Timer) {
+        clearTimeout(this.RecordView2Timer);
+        this.RecordView2Timer = null;
+        this.RecordView2b();
+    }        
+
     // This should method should be split between Note and NotesWidget
     if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
     // For when user selects a note from a list.
@@ -1475,6 +1622,17 @@ Note.prototype.Select = function() {
         SetNumberOfViews(this.ViewerRecords.length);
     }
 
+
+    // Clear the sync callback.
+    VIEWER1.OnInteraction();
+    VIEWER2.OnInteraction();
+    if (EDIT) {
+        // These record changes in the viewers to the notes.
+        var self = this;
+        VIEWER1.OnInteraction(function () {NOTES_WIDGET.RecordView1();});
+        VIEWER2.OnInteraction(function () {NOTES_WIDGET.RecordView2();});
+    }
+
     if (this.Type == "Stack") {
         if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
         // Select only gets called when the stack is first loaded.
@@ -1487,9 +1645,6 @@ Note.prototype.Select = function() {
         this.SynchronizeViews(0);
     } else {
         if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
-        // Clear the sync callback.
-        VIEWER1.OnInteraction();
-        VIEWER2.OnInteraction();
         this.DisplayView();
     }
 }
@@ -1503,7 +1658,6 @@ Note.prototype.RecordAnnotations = function() {
 
 // No clearing.  Just draw this notes GUI in a div.
 Note.prototype.DisplayGUI = function(div) {
-    // Put an icon to the left of the text.
     var self = this;
     this.Div.appendTo(div);
 
@@ -1534,16 +1688,22 @@ Note.prototype.DisplayGUI = function(div) {
 
     // Changing a div "parent/appendTo" removes all event bindings like click.
     // I would like to find a better solution to redraw.
-    this.Icon
-        .click(function() {self.Select()})
     if (EDIT) {
-        if (this.LinkButton) {
-            this.LinkButton.click(function(){self.LinkCallback();});
-        }
-        if (this.DeleteButton) {
-            this.DeleteButton.click(function(){self.DeleteCallback();});
-        }
+        // Removing and adding removes the callbacks.
+        this.AddButton
+            .click(function () {
+                NOTES_WIDGET.NewCallback();
+            });
+        this.LinkButton
+            .click(function () {
+                self.LinkCallback();
+            });
+        this.RemoveButton
+            .click(function () {
+                self.DeleteCallback();
+        });
     }
+
     this.UpdateChildrenGUI();
 }
 
@@ -2058,8 +2218,8 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
 // Called when a new slide/view is loaded.
 NotesWidget.prototype.DisplayRootNote = function() {
     this.TextEditor.LoadNote(this.RootNote);
-    this.LinksDiv.empty();
-    this.RootNote.DisplayGUI(this.LinksDiv);
+    this.LinksRoot.empty();
+    this.RootNote.DisplayGUI(this.LinksRoot);
     this.RootNote.Select();
 
     // Add an obvious way to add a link / view to the root note.
@@ -2070,8 +2230,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
                 var parentNote = NOTES_WIDGET.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
-                childNote.Save(); // Gets the id for the child.
-                parentNote.Save();
+                childNote.Select();
             });
     }
 

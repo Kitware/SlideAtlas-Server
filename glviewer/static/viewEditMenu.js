@@ -55,13 +55,6 @@ function ViewEditMenu (viewer) {
         .addClass("sa-view-edit-button")
         .click(function(){self.ToggleHistory();});
 
-    // Initial slide show feature.
-    this.SlideShowMenuItem = $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("Presentation")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.ConvertToPresentation();});
-
     // Hack until we have some sort of scale.
     this.CopyZoomMenuItem = $('<button>')
         .appendTo(this.Tab.Panel)
@@ -148,17 +141,6 @@ ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
     NOTES_WIDGET.SaveCallback();
 }
-
-// Change type to presentation, save and reload page.
-ViewEditMenu.prototype.ConvertToPresentation = function() {
-    this.Tab.PanelOff();
-    //var note = NOTES_WIDGET.SelectedNote;
-    //note.Type = "Presentation";
-    //NOTES_WIDGET.SaveCallback();
-    //window.location.href = "/webgl-viewer?view="+note.Id;
-    PresentationOn();
-}
-
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
     var cam = viewer.GetCamera();

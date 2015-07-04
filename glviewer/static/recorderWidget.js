@@ -333,47 +333,47 @@ function NewPageRecord() {
 
 
 var RECORD_TIMER_ID = 0;
-
 function RecordStateCallback() {
-  // Timer called this method.  Timer id is no longer valid.
-  RECORD_TIMER_ID = 0;
-  // Redo is an option after undo, until we save a new state.
-  REDO_STACK = [];
 
-  // Create a new note.
-  var note = new Note();
-  note.RecordView();
+    // Timer called this method.  Timer id is no longer valid.
+    RECORD_TIMER_ID = 0;
+    // Redo is an option after undo, until we save a new state.
+    REDO_STACK = [];
 
-  // The note will want to know its context
-  // The stack viewer does not have  notes widget.
-  if ( typeof NOTES_WIDGET !== 'undefined') {
-    parentNote = NOTES_WIDGET.GetCurrentNote();
-    if ( ! parentNote.Id) {
-      //  Note is not loaded yet.
-      // Wait some more
-      RecordState();
-      return;
+    // Create a new note.
+    var note = new Note();
+    note.RecordView();
+
+    // The note will want to know its context
+    // The stack viewer does not have  notes widget.
+    if ( typeof NOTES_WIDGET !== 'undefined') {
+        parentNote = NOTES_WIDGET.GetCurrentNote();
+        if ( ! parentNote.Id) {
+            //  Note is not loaded yet.
+            // Wait some more
+            RecordState();
+            return;
+        }
+        // ParentId should be depreciated.
+        note.ParentId = parentNote.Id;
+        note.SetParent(parentNote);
     }
-    // ParentId should be depreciated.
-    note.ParentId = parentNote.Id;
-    note.SetParent(parentNote);
-  }
-  // Save the note in the admin database for this specific user.
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/saveusernote",
-    data: {"note": JSON.stringify(note.Serialize(false)),
-           "col" : "tracking",
-           "type": "Record"},
-    success: function(data,status) {
-      note.Id = data;
-    },
-    error: function() {
-      //alert( "AJAX - error() : saveusernote" );
-    },
-  });
+    // Save the note in the admin database for this specific user.
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveusernote",
+        data: {"note": JSON.stringify(note.Serialize(false)),
+               "col" : "tracking",
+               "type": "Record"},
+        success: function(data,status) {
+            note.Id = data;
+        },
+        error: function() {
+            //alert( "AJAX - error() : saveusernote" );
+        },
+    });
 
-  TIME_LINE.push(note);
+    TIME_LINE.push(note);
 }
 
 
@@ -389,10 +389,6 @@ function RecordState() {
   // Start a record timer.
   RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
 }
-
-
-
-
 
 var GET_RECORDS;
 function GetRecords() {
@@ -417,44 +413,41 @@ var RECORD_TIMER_ID = 0;
 // I still do not compress scroll wheel zoom, so I am putting a timer event
 // to collapse recording to lest than oner per second.
 function RecordState() {
-  // Delete the previous pending record timer
-  if (RECORD_TIMER_ID) {
-    clearTimeout(RECORD_TIMER_ID);
-    RECORD_TIMER_ID = 0;
-  }
-  // Start a record timer.
-  RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
+    // Delete the previous pending record timer
+    if (RECORD_TIMER_ID) {
+        clearTimeout(RECORD_TIMER_ID);
+        RECORD_TIMER_ID = 0;
+    }
+    // Start a record timer.
+    RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
 }
-
-
-
 
 
 // Move the state back in time.
 function UndoState() {
-  if (TIME_LINE.length > 1) {
-    // We need at least 2 states to undo.  The last state gets removed,
-    // the second to last get applied.
-    var recordNote = TIME_LINE.pop();
-    REDO_STACK.push(recordNote);
+    if (TIME_LINE.length > 1) {
+        // We need at least 2 states to undo.  The last state gets removed,
+        // the second to last get applied.
+        var recordNote = TIME_LINE.pop();
+        REDO_STACK.push(recordNote);
 
-    // Get the new end state
-    recordNote = TIME_LINE[TIME_LINE.length-1];
-    // Now change the page to the state at the end of the timeline.
-    recordNote.DisplayView();
-  }
+        // Get the new end state
+        recordNote = TIME_LINE[TIME_LINE.length-1];
+        // Now change the page to the state at the end of the timeline.
+        recordNote.DisplayView();
+    }
 }
 
 // Move the state forward in time.
 function RedoState() {
-  if (REDO_STACK.length == 0) {
-    return;
-  }
-  var recordNote = REDO_STACK.pop();
-  TIME_LINE.push(recordNote);
+    if (REDO_STACK.length == 0) {
+        return;
+    }
+    var recordNote = REDO_STACK.pop();
+    TIME_LINE.push(recordNote);
 
-  // Now change the page to the state at the end of the timeline.
-  recordNote.DisplayView();
+    // Now change the page to the state at the end of the timeline.
+    recordNote.DisplayView();
 }
 
 

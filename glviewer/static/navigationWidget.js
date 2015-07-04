@@ -45,7 +45,7 @@ function NavigationWidget() {
                       .addClass("sa-view-navigation-div ui-responsive");
     } else {
         this.Tab = new Tab("/webgl-viewer/static/nav.png", "navigationTab");
-        new ToolTip(this.Tab.Div, "Navigation");
+        this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");
 
@@ -61,33 +61,29 @@ function NavigationWidget() {
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/previousSlide.png")
+        .prop('title', "Previous Slide. (page-up)")
         .click(function(){self.PreviousSlide();});
-    this.PreviousSlideTip = new ToolTip(this.PreviousSlideButton, 
-                                        "Previous Slide. (page-up)");
 
     this.PreviousNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/previousNote.png")
+        .prop('title', "Previous Note. (p)")
         .click(function(){self.PreviousNote();});
-    this.PreviousNoteTip = new ToolTip(this.PreviousNoteButton, 
-                                       "Previous Note. (p)");
 
     this.NextNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/nextNote.png")
+        .prop('title',"Next Note, (n, space)")
         .click(function(){self.NextNote();});
-    this.NextNoteTip = new ToolTip(this.NextNoteButton, 
-                                   "Next Note, (n, space)");
 
     this.NextSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
         .attr('src',"webgl-viewer/static/nextSlide.png")
+        .prop('title',"Next Slide. (page-down)")
         .click(function(){self.NextSlide();});
-    this.NextSlideTip = new ToolTip(this.NextSlideButton, 
-                                    "Next Slide. (page-down)");
 
     this.CopyrightWrapper =
         $('<div>').appendTo(VIEW_PANEL)
@@ -143,50 +139,38 @@ NavigationWidget.prototype.Update = function() {
       // Next note refers to ViewerRecords.
       if (note.StartIndex > 0) {
           this.PreviousNoteButton.addClass("sa-active");
-          this.PreviousNoteTip.SetActive(true);
       } else {
           this.PreviousNoteButton.removeClass("sa-active");
-          this.PreviousNoteTip.SetActive(false);
       }
       if (note.StartIndex < note.ViewerRecords.length - 1) {
           this.NextNoteButton.addClass("sa-active");
-          this.NextNoteTip.SetActive(true);
       } else {
           this.NextNoteButton.removeClass("sa-active");
-          this.NextNoteTip.SetActive(false);
       }
   } else {
       // Next note refers to children.
       if (NOTES_WIDGET.Iterator.IsStart()) {
           this.PreviousNoteButton.removeClass("sa-active");
-          this.PreviousNoteTip.SetActive(false);
       } else {
           this.PreviousNoteButton.addClass("sa-active");
-          this.PreviousNoteTip.SetActive(true);
       }
       if (NOTES_WIDGET.Iterator.IsEnd()) {
           this.NextNoteButton.removeClass("sa-active");
-          this.NextNoteTip.SetActive(false);
       } else {
           this.NextNoteButton.addClass("sa-active");
-          this.NextNoteTip.SetActive(true);
       }
   }
 
   // Disable and enable prev/next slide buttons so we cannot go past the end.
   if (this.SlideIndex <= 0) {
     this.PreviousSlideButton.removeClass("sa-active");
-    this.PreviousSlideTip.SetActive(false);
   } else {
     this.PreviousSlideButton.addClass("sa-active");
-    this.PreviousSlideTip.SetActive(true);
   }
   if (this.SlideIndex >= this.Session.length-1) {
     this.NextSlideButton.removeClass("sa-active");
-    this.NextSlideTip.SetActive(false);
   } else {
     this.NextSlideButton.addClass("sa-active")
-    this.NextSlideTip.SetActive(true);
   }
 }
 
@@ -256,7 +240,7 @@ NavigationWidget.prototype.NextNote = function() {
     if (iterator.IsEnd()) {
         // If we have no more notes, then move to the next slide.
         this.NextSlide();
-        return; 
+        return;
     }
 
     // This is such a good idea I am doing it with children notes too.
@@ -273,8 +257,8 @@ NavigationWidget.prototype.PreviousSlide = function() {
     EVENT_MANAGER.CursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
-    if (EDIT) {
-        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the previous slide?");
+    if (NOTES_WIDGET.Modified) {
+        check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         this.SlideIndex -= 1;
@@ -289,8 +273,8 @@ NavigationWidget.prototype.NextSlide = function() {
     EVENT_MANAGER.CursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
-    if (EDIT) {
-        //check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
+    if (NOTES_WIDGET.Modified) {
+        check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
         this.SlideIndex += 1;
