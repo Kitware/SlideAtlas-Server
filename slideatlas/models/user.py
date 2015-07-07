@@ -85,7 +85,8 @@ class User(ModelDocument, UserMixin):
                     self.permissions,
                     chain.from_iterable(group.permissions
                                         for group in chain(
-                                            [PublicGroup.get],
+                                            # temporary change: logged-in users can't see public content
+                                            # [PublicGroup.get],
                                             self.groups
                                         )
                     )
