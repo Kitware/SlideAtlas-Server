@@ -38,31 +38,9 @@
 {% block scripts %}
     {{ super() }}
 
-    <script>
-        document.addEventListener("DOMContentLoaded", theDomHasLoaded, false);
-        function theDomHasLoaded(e) {
-            if (localStorage.scrollTop) {
-                var s = parseInt(localStorage.scrollTop);
-                document.getElementsByTagName("body")[0].scrollTop = s;
-                // since I cannot stop the scrollTop = 0 from rendering
-                // I might as well animate
-                //$('body').animate({scrollTop: s});
-            }
-        }
-        window.addEventListener("load", pageFullyLoaded, false);
-        function pageFullyLoaded (e) {
-            document.getElementsByTagName("body")[0].onscroll =
-                function () {
-                    var s = document.getElementsByTagName("body")[0].scrollTop;
-                    localStorage.scrollTop = s.toString();
-                }
-        }
-    </script>
-
     {% if is_admin %}
         {# TODO: These standard scripts will be included higher up in the inheritance  #}
         <script src="/static/thirdparty/bootbox/4.2.0/bootbox.min.js"></script>
-
         <script src="/static/js/sessions.js"></script>
         <script>
                 $(".sa-session-create").click(function() {
@@ -91,6 +69,28 @@
                         }
                     });
         </script>
+
+        <script>
+            $( document ).ready(function() {
+                if (localStorage.scrollTop) {
+                    var s = parseInt(localStorage.scrollTop);
+                    $('body').scrollTop(s);
+                    console.log("get scroll " + s);
+                }
+                // Why does this scroll function get reset?  User timeout hack.
+                setTimeout(function(){
+                    $('body')[0].onscroll =
+                        function () {
+                            var s = $('body').scrollTop();
+                            var str = s.toString();
+                            localStorage.scrollTop = str;
+                            console.log("set scroll " + str);
+                        }
+                }, 500);
+            });
+        </script>
+
+
     {% endif %}
 {% endblock scripts %}
 

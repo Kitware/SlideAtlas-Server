@@ -133,14 +133,12 @@ function Viewer (viewport) {
         "touchmove", 
         function(event){
             EVENT_MANAGER.HandleTouchMove(event, self);
-            self.TriggerInteraction();
         }, 
         false);
     can.addEventListener(
         "touchend",
         function(event){
             EVENT_MANAGER.HandleTouchEnd(event, self);
-            self.TriggerInteraction();
         },
         false);
 
@@ -242,7 +240,6 @@ Viewer.prototype.RollMove = function (e) {
     this.RotateIconX = x;
     this.RotateIconY = y;
 
-    this.TriggerInteraction();
 
     return false;
  }
@@ -919,74 +916,79 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
  }
 
 
- Viewer.prototype.RemoveWidget = function(widget) {
-   if (widget.Viewer == null) {
-     return;
-   }
-   widget.Viewer = null;
-   var idx = this.WidgetList.indexOf(widget);
-   if(idx!=-1) {
-     this.WidgetList.splice(idx, 1);
-   }
- }
-
-
-
- // Load a widget from a json object (origin MongoDB).
- Viewer.prototype.LoadWidget = function(obj) {
-     var widget;
-     switch(obj.type){
-     case "lasso":
-         widget = new LassoWidget(this, false);
-         break;
-     case "pencil":
-         widget = new PencilWidget(this, false);
-         break;
-     case "text":
-         widget = new TextWidget(this, "");
-         break;
-     case "circle":
-         widget = new CircleWidget(this, false);
-         break;
-     case "polyline":
-         widget = new PolylineWidget(this, false);
-         break;
-     case "stack_section":
-         widget = new StackSectionWidget(this);
-         break;
-     case "sections":
-         widget = new SectionsWidget(this);
-         break;
-     }
-     widget.Load(obj);
-     return widget;
+Viewer.prototype.AddWidget = function(widget) {
+    widget.Viewer = this;
+    this.WidgetList.push(widget);
 }
 
- // I am doing a dance because I expect widget SetActive to call this,
- // but this calls widget SetActive.
- // The widget is the only object to call these methods.
- // A widget cannot call this if another widget is active.
- // The widget deals with its own activation and deactivation.
- Viewer.prototype.ActivateWidget = function(widget) {
-   if (this.ActiveWidget == widget) {
-     return;
-   }
-   this.ActiveWidget = widget;
- }
-
- Viewer.prototype.DeactivateWidget = function(widget) {
-   if (this.ActiveWidget != widget || widget == null) {
-     // Do nothing if the widget is not active.
-     return;
-   }
-   this.ActiveWidget = null;
- }
+Viewer.prototype.RemoveWidget = function(widget) {
+    if (widget.Viewer == null) {
+        return;
+    }
+    widget.Viewer = null;
+    var idx = this.WidgetList.indexOf(widget);
+    if(idx!=-1) {
+        this.WidgetList.splice(idx, 1);
+    }
+}
 
 
 
- Viewer.prototype.DegToRad = function(degrees) {
-   return degrees * Math.PI / 180;
- }
+// Load a widget from a json object (origin MongoDB).
+Viewer.prototype.LoadWidget = function(obj) {
+    var widget;
+    switch(obj.type){
+    case "lasso":
+        widget = new LassoWidget(this, false);
+        break;
+    case "pencil":
+        widget = new PencilWidget(this, false);
+        break;
+    case "text":
+        widget = new TextWidget(this, "");
+        break;
+    case "circle":
+        widget = new CircleWidget(this, false);
+         break;
+    case "polyline":
+        widget = new PolylineWidget(this, false);
+        break;
+    case "stack_section":
+        widget = new StackSectionWidget(this);
+        break;
+    case "sections":
+        widget = new SectionsWidget(this);
+        break;
+    }
+    widget.Load(obj);
+    return widget;
+}
+
+// I am doing a dance because I expect widget SetActive to call this,
+// but this calls widget SetActive.
+// The widget is the only object to call these methods.
+// A widget cannot call this if another widget is active.
+// The widget deals with its own activation and deactivation.
+Viewer.prototype.ActivateWidget = function(widget) {
+    if (this.ActiveWidget == widget) {
+        return;
+    }
+    this.ActiveWidget = widget;
+}
+
+Viewer.prototype.DeactivateWidget = function(widget) {
+    if (this.ActiveWidget != widget || widget == null) {
+        // Do nothing if the widget is not active.
+        return;
+    }
+    this.ActiveWidget = null;
+}
+
+
+
+Viewer.prototype.DegToRad = function(degrees) {
+    return degrees * Math.PI / 180;
+}
 
 
 Viewer.prototype.Draw = function() {
@@ -996,6 +998,9 @@ Viewer.prototype.Draw = function() {
     if ( ! this.MainView.Section) {
         return;
     }
+
+    // Easiest place to make sure interaction events are triggered.
+    this.TriggerInteraction();
 
     this.ConstrainCamera();
     // Should the camera have the viewport in them?
@@ -1061,85 +1066,84 @@ Viewer.prototype.AddShape = function(shape) {
     this.MainView.AddShape(shape);
 }
 
- Viewer.prototype.Animate = function() {
-   if (this.AnimateDuration <= 0.0) {
-     return;
-   }
-   var timeNow = new Date().getTime();
-   if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
-     // We have past the target. Just set the target values.
-     this.MainView.Camera.SetHeight(this.ZoomTarget);
-     this.MainView.Camera.Roll = this.RollTarget;
-     if (this.OverView) {
-         //this.OverView.Camera.Roll = this.RollTarget;
-         var roll = this.RollTarget;
-         this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
-         this.OverView.Camera.Roll = 0;
-         this.OverView.Camera.ComputeMatrix();
-     }
-     this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
-                                        this.TranslateTarget[1]);
-     this.UpdateZoomGui();
-     // Save the state when the animation is finished.
-     RecordState();
-   } else {
-     // Interpolate
-     var currentHeight = this.MainView.Camera.GetHeight();
-     var currentCenter = this.MainView.Camera.GetFocalPoint();
-     var currentRoll   = this.MainView.Camera.Roll;
-     this.MainView.Camera.SetHeight(
-           currentHeight + (this.ZoomTarget-currentHeight)
-             *(timeNow-this.AnimateLast)/this.AnimateDuration);
-     this.MainView.Camera.Roll
-       = currentRoll + (this.RollTarget-currentRoll)
-             *(timeNow-this.AnimateLast)/this.AnimateDuration;
-     if (this.OverView) {
-         //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
-         var roll = this.MainView.Camera.Roll;
-         this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
-         this.OverView.Camera.Roll = 0;
-         this.OverView.Camera.ComputeMatrix();
-     }
-     this.MainView.Camera.SetFocalPoint(
-         currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
-             *(timeNow-this.AnimateLast)/this.AnimateDuration,
-         currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
-             *(timeNow-this.AnimateLast)/this.AnimateDuration);
-     // We are not finished yet.
-     // Schedule another render
-     eventuallyRender();
-   }
-   this.MainView.Camera.ComputeMatrix();
-   if (this.OverView) {
-     this.OverView.Camera.ComputeMatrix();
-   }
-   this.AnimateDuration -= (timeNow-this.AnimateLast);
-   this.AnimateLast = timeNow;
-   // Synchronize cameras is necessary
-   this.TriggerInteraction();
- }
+Viewer.prototype.Animate = function() {
+    if (this.AnimateDuration <= 0.0) {
+        return;
+    }
+    var timeNow = new Date().getTime();
+    if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
+        // We have past the target. Just set the target values.
+        this.MainView.Camera.SetHeight(this.ZoomTarget);
+        this.MainView.Camera.Roll = this.RollTarget;
+        if (this.OverView) {
+            //this.OverView.Camera.Roll = this.RollTarget;
+            var roll = this.RollTarget;
+            this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
+            this.OverView.Camera.Roll = 0;
+            this.OverView.Camera.ComputeMatrix();
+        }
+        this.MainView.Camera.SetFocalPoint(this.TranslateTarget[0],
+                                           this.TranslateTarget[1]);
+        this.UpdateZoomGui();
+        // Save the state when the animation is finished.
+        RecordState();
+    } else {
+        // Interpolate
+        var currentHeight = this.MainView.Camera.GetHeight();
+        var currentCenter = this.MainView.Camera.GetFocalPoint();
+        var currentRoll   = this.MainView.Camera.Roll;
+        this.MainView.Camera.SetHeight(
+            currentHeight + (this.ZoomTarget-currentHeight)
+                *(timeNow-this.AnimateLast)/this.AnimateDuration);
+        this.MainView.Camera.Roll
+            = currentRoll + (this.RollTarget-currentRoll)
+            *(timeNow-this.AnimateLast)/this.AnimateDuration;
+        if (this.OverView) {
+            //this.OverView.Camera.Roll = this.MainView.Camera.Roll;
+            var roll = this.MainView.Camera.Roll;
+            this.OverView.CanvasDiv.css({'transform':'rotate('+roll+'rad'});
+            this.OverView.Camera.Roll = 0;
+            this.OverView.Camera.ComputeMatrix();
+        }
+        this.MainView.Camera.SetFocalPoint(
+            currentCenter[0] + (this.TranslateTarget[0]-currentCenter[0])
+                *(timeNow-this.AnimateLast)/this.AnimateDuration,
+            currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
+                *(timeNow-this.AnimateLast)/this.AnimateDuration);
+        // We are not finished yet.
+        // Schedule another render
+        eventuallyRender();
+    }
+    this.MainView.Camera.ComputeMatrix();
+    if (this.OverView) {
+        this.OverView.Camera.ComputeMatrix();
+    }
+    this.AnimateDuration -= (timeNow-this.AnimateLast);
+    this.AnimateLast = timeNow;
+    // Synchronize cameras is necessary
+}
 
- Viewer.prototype.OverViewPlaceCamera = function(x, y) {
-   if ( ! this.OverView) {
-     return;
-   }
-   // Compute focal point from inverse overview camera.
-   x = x/this.OverView.Viewport[2];
-   y = y/this.OverView.Viewport[3];
-   x = (x*2.0 - 1.0)*this.OverView.Camera.Matrix[15];
-   y = (1.0 - y*2.0)*this.OverView.Camera.Matrix[15];
-   var m = this.OverView.Camera.Matrix;
-   var det = m[0]*m[5] - m[1]*m[4];
-   var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
-   var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
+Viewer.prototype.OverViewPlaceCamera = function(x, y) {
+    if ( ! this.OverView) {
+        return;
+    }
+    // Compute focal point from inverse overview camera.
+    x = x/this.OverView.Viewport[2];
+    y = y/this.OverView.Viewport[3];
+    x = (x*2.0 - 1.0)*this.OverView.Camera.Matrix[15];
+    y = (1.0 - y*2.0)*this.OverView.Camera.Matrix[15];
+    var m = this.OverView.Camera.Matrix;
+    var det = m[0]*m[5] - m[1]*m[4];
+    var xNew = (x*m[5]-y*m[4]+m[4]*m[13]-m[5]*m[12]) / det;
+    var yNew = (y*m[0]-x*m[1]-m[0]*m[13]+m[1]*m[12]) / det;
 
-   // Animate to get rid of jerky panning (overview to low resolution).
-   this.TranslateTarget[0] = xNew;
-   this.TranslateTarget[1] = yNew;
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 100.0;
-   eventuallyRender();
- }
+    // Animate to get rid of jerky panning (overview to low resolution).
+    this.TranslateTarget[0] = xNew;
+    this.TranslateTarget[1] = yNew;
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 100.0;
+    eventuallyRender();
+}
 
 
 
