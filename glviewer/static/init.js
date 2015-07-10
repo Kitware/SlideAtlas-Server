@@ -347,8 +347,6 @@ function tick() {
 // I still need to make the zoom buttons relative to the viewport
 // Also the callback (zoom) cannot be hardcoded to VIEWER1!!!!!
 function initView(viewport) {
-  var viewer = new Viewer(viewport);
-  EVENT_MANAGER.AddViewer(viewer);
 
   return viewer;
 }
@@ -526,9 +524,20 @@ function InitViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
-    VIEWER1 = initView([0,0, width, height]);
+    var viewerDiv1 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER1 = viewerDiv1[0].saViewer;
+    // TODO: Get rid of the viewer index.
     VIEWER1.ViewerIndex = 0;
-    VIEWER2 = initView([0,0, width, height]);
+
+    var viewerDiv2 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER2 = viewerDiv2[0].saViewer;
+    // TODO: Get rid of the viewer index.
     VIEWER2.ViewerIndex = 1;
 
     handleResize();
@@ -725,8 +734,8 @@ function Main2(rootNote) {
 
 
 
-
-
+// TODO: Remove
+// Obsolete.
 // Main function called by the default view.html template
 function StartScene(scene) {
     var dia = new Dialog();
@@ -768,9 +777,14 @@ function StartScene(scene) {
 
     scene.getTileUrl = eval(scene.getTileUrl);
 
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    VIEWER1 = new Viewer([0,0, width, height]);
+    var viewerDiv1 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER1 = viewerDiv1[0].saViewer;
+    // TODO: Get rid of the viewer index.
+    VIEWER1.ViewerIndex = 0;
+
     VIEWER1.SetCache(cache);
 
     // Event manager will be going away.

@@ -1,4 +1,46 @@
 //==============================================================================
+// jQuery extension for a full window div.
+// parent must be the body?  Maybe not.  Lets see if a full height is better.
+// I think position should be set to fixed or absolute.
+
+
+jQuery.prototype.saFullHeight = function() {
+    this.css({'top':'0px'});
+    this.addClass('sa-full-height');
+    //for (var i = 0; i < this.length; ++i) {
+        // I want to put the resize event on "this[i]",
+        // but, I am afrain in might not get trigerend always, or
+        // setting the height would cause recursive calls to resize.
+    //}
+
+    $(window).resize(
+        function() {
+            var height = window.innerHeight;
+            $('.sa-full-height')
+                .css({'top':    '0px',
+                      'height': height+'px'});
+            // Hack until I can figure out why the resize event is not
+            // firing for descendants.
+            // This did not work.  It also triggered resize on the window
+            // causeing infinite recusion.
+            //$('.sa-resize').trigger('resize');
+            var elements = $('.sa-resize');
+            for (var i = 0; i < elements.length; ++i) {
+                elements[i].onresize();
+            }
+        })
+        .trigger('resize');
+
+    return this;
+}
+
+
+
+
+
+
+
+//==============================================================================
 // TODO:
 // - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html
 // - Resize the view area to fit the note text.
@@ -54,26 +96,45 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-
     // This is necessary for some reason.
     EVENT_MANAGER = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
         .css({
-            'bottom':'0em',
             'position':'fixed',
-            'left':'0em',
-            'right':'0em',
-            'width': 'auto'});
+            'left':'0px',
+            'width': '100%'})
+        .saFullHeight();
+
+    this.PresentationDiv = $('<div>')
+        .appendTo(this.WindowDiv)
+        .css({'position':'absolute',
+              'top':'0px',
+              'left':'0px',
+              'width':'100%',
+              'height':'100%'});
 
     if (this.Edit) {
-        this.MakeEditPanel();
+        // I am trying a new pattern.  Jquery UI seems to use it.
+        // Modify a div after it is created.  That way the creator has full
+        // standard access to jquery methods.
+        this.LeftPanel = $('<div>')
+            .appendTo(this.WindowDiv)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'right':'0px',
+                  'height':'100%',
+                  'width':'25%'});
+        this.MakeEditPanel(this.LeftPanel);
+        this.PresentationDiv
+            .css({'left':'25%',
+                  'width':'75%'});
     }
 
     // Float the two slide show buttons in the upper right corner.
     this.ShowButton = $('<img>')
-        .appendTo(this.WindowDiv)
+        .appendTo(this.PresentationDiv)
         .prop('title', "present")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/slide_show.png')
@@ -86,7 +147,7 @@ function Presentation(rootNote, edit) {
             self.FullScreen();
         });
     this.TimerButton = $('<img>')
-        .appendTo(this.WindowDiv)
+        .appendTo(this.PresentationDiv)
         .prop('title', "present timed")
         .addClass('editButton')
         .attr('src','webgl-viewer/static/timer.png')
@@ -99,8 +160,8 @@ function Presentation(rootNote, edit) {
             self.StartTimerShow();
         });
 
-    this.TitlePage = new TitlePage(this.WindowDiv, edit);
-    this.SlidePage = new SlidePage(this.WindowDiv, edit);
+    this.TitlePage = new TitlePage(this.PresentationDiv, edit);
+    this.SlidePage = new SlidePage(this.PresentationDiv, edit);
 
     this.RootNote = rootNote;
     this.GotoSlide(0);
@@ -117,10 +178,6 @@ function Presentation(rootNote, edit) {
     if (EDIT) {
         this.UpdateSlidesTab();
     }
-
-    $(window).resize(function() {
-        self.HandleResize();
-    }).trigger('resize');
 
     eventuallyRender();
 }
@@ -207,9 +264,10 @@ Presentation.prototype.EditOff = function () {
 }
 
 
-Presentation.prototype.MakeEditPanel = function () {
-    this.EditTabs = new TabbedDiv(this.WindowDiv);
-    this.EditTabs.Div.css({'width':'25%'})
+Presentation.prototype.MakeEditPanel = function (parent) {
+    this.EditTabs = new TabbedDiv(parent);
+    this.EditTabs.Div.css({'width':'100%',
+                          'height':'100%'})
 
     this.SlidesDiv = this.EditTabs.NewTabDiv("Slides");
     this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
@@ -353,29 +411,6 @@ Presentation.prototype.AddImageCallback = function(image) {
 
     // Hack to reload viewer records.
     this.GotoSlide(this.Index);
-}
-
-
-// Getting resize right was a major pain.
-Presentation.prototype.HandleResize = function() {
-    var width = CANVAS.width();
-    var height = CANVAS.height();
-
-    if(height == 0){
-      height = window.innerHeight;
-    }
-
-    // Presentation specific stuff
-
-    // Setup the view panel div to be the same as the two viewers.
-    this.WindowDiv
-        .css({'left':   '0px',
-              'width':  width+'px',
-              'top':    '0px',
-              'height': height+'px'});
-
-    // Now position the viewers in the view panel.
-    this.SlidePage.ResizeViews();
 }
 
 
@@ -535,8 +570,6 @@ Presentation.prototype.UpdateSlidesTab = function (){
 
 
 //==============================================================================
-// TODO:
-// Get rid of the width dependency on edit
 function SlidePage(parent, edit) {
     var self = this;
     this.FullWindowView = null;
@@ -547,20 +580,16 @@ function SlidePage(parent, edit) {
     this.Div = $('<div>')
         .appendTo(parent)
         .hide()
+        .addClass('sa-resize') // hack to get resize triggered.
         .css({
             'position' : 'absolute',
             'width': '100%',
             'height': '100%',
             'border': '1px solid #AAA'});
-    if (edit) {
-        // get rid of this.
-        // parent should resize, and this object should just follow.
-        this.Div
-            .css({
-                'top': '0%',
-                'left': '25%',
-                'width': '75%'});
-    }
+    this.Div[0].onresize=
+        function(){
+            self.ResizeViews();
+        };
 
     this.ViewPanel = $('<div>')
             .appendTo(this.Div)
@@ -612,15 +641,24 @@ function SlidePage(parent, edit) {
     }
 
     // Add the viewers.
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    var halfWidth = width/2;
-    VIEWER1 = initView([0,0, width, height]);
-    VIEWER2 = initView([width, 0, 0, height]);
+    this.ViewDiv1 = $('<div>')
+        .appendTo(this.ViewPanel)
+        .css({'position':'absolute',
+              'box-shadow': '10px 10px 5px #AAA'});
+    // Make the viewer look like jquery
+    //this.ViewDiv1.viewer({overview:false});
+    this.ViewDiv1.saViewer();
+    // TODO: Get rid of this global
+    VIEWER1 = this.ViewDiv1[0].saViewer;
 
-    VIEWER1.MainView.Canvas.css({'box-shadow': '10px 10px 5px #AAA'});
-    VIEWER2.MainView.Canvas.css({'box-shadow': '10px 10px 5px #AAA'});
-
+    this.ViewDiv2 = $('<div>')
+        .appendTo(this.ViewPanel)
+        .css({'position':'absolute',
+              'box-shadow': '10px 10px 5px #AAA'});
+    // Make the viewer look like jquery
+    this.ViewDiv2.saViewer();
+    // TODO: Get rid of this global
+    VIEWER2 = this.ViewDiv2[0].saViewer;
 
     if (this.Edit) {
         this.AnnotationWidget1 = new AnnotationWidget(VIEWER1);
@@ -681,16 +719,16 @@ function SlidePage(parent, edit) {
             });
 
         // Setup view resizing.
-        VIEWER1.MainView.CanvasDiv.resizable();
+        this.ViewDiv1.resizable();
         // For a method to get called when resize stops.
         // Gets call on other mouse ups, but this is ok.
-        VIEWER1.MainView.CanvasDiv
+        this.ViewDiv1
             .mouseup(function () {
                 VIEWER1.Focus = true;
                 self.UpdateEdits();
                 PRESENTATION.HandleResize();
             });
-        VIEWER1.MainView.CanvasDiv
+        this.ViewDiv1
             .resize(function () {
                 VIEWER1.Focus = false;
                 var vp = VIEWER1.GetViewport();
@@ -701,10 +739,10 @@ function SlidePage(parent, edit) {
                 return false;
             });
 
-        VIEWER2.MainView.CanvasDiv.resizable();
+        this.ViewDiv2.resizable();
         // For a method to get called when resize stops.
         // Gets call on other mouse ups, but this is ok.
-        VIEWER2.MainView.CanvasDiv
+        this.ViewDiv2
             .mouseup(function () {
                 VIEWER2.Focus = true;
                 self.UpdateEdits();
@@ -724,7 +762,7 @@ function SlidePage(parent, edit) {
     // Give the option for full screen
     // on each of the viewers.
     this.FullWindowView1Button = $('<img>')
-        .appendTo(VIEWER1.MainView.CanvasDiv)
+        .appendTo(this.ViewDiv1)
         .attr('src',"webgl-viewer/static/fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
@@ -940,9 +978,6 @@ SlidePage.prototype.UpdateEdits = function () {
 
 
 //==============================================================================
-
-// TODO:
-// Get rid of the width dependency on edit.
 function TitlePage (parent, edit) {
     this.Edit = edit;
     this.Note = null;
@@ -954,13 +989,6 @@ function TitlePage (parent, edit) {
             'width': '100%',
             'height': '100%',
             'border': '1px solid #AAA'});
-    if (edit) {
-        this.Div
-            .css({
-                'top': '0%',
-                'left': '25%',
-                'width': '75%'});
-    }
 
     this.TopBar = $('<div>')
         .appendTo(this.Div)

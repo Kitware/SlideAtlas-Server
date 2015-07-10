@@ -1,4 +1,30 @@
 //==============================================================================
+// Attempting to make the viewer a jqueryUI widget.
+// args = {overview:true, zoomWidget:true}
+jQuery.prototype.saViewer = function(args) {
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saViewer) {
+            var viewer = new Viewer($(this[i]), args);
+            // Add the viewer as an instance variable to the dom object.
+            this[i].saViewer = viewer;
+            // TODO: Get rid of the event manager.
+            EVENT_MANAGER.AddViewer(viewer);
+        }
+        // TODO:  If the viewer is already created, just reformat the
+        // viewer with new parameters. (image info ...)
+        // Separate out the args from the constructor.
+    }
+    // I am uncertain what the API should be:
+    // - jQueryUI like with control through arguments.
+    // - Object oriented
+    //   - Access to viewer object through the dom element
+    //   - Access to viewer object through the jQuery list/selector.
+    return this;
+}
+
+
+
+//==============================================================================
 
 // TODO: Fix
 // Add stack option to Save large image GUI.
@@ -17,15 +43,19 @@ var INTERACTION_OVERVIEW = 4;
 var INTERACTION_OVERVIEW_DRAG = 5;
 var INTERACTION_ICON_ROTATE = 6;
 
-
-function Viewer (viewport) {
+// See the top of the file for description of args.
+function Viewer (parent, args) {
+    args = args || {};
     var self = this;
+
+    // TODO: Get rid of this viewport stuff
+    var viewport = [0,0,100,100];
 
     // Hack to stop receiving events.
     this.Focus = true
 
     this.HistoryFlag = false;
-    
+
     // Interaction state:
     // What to do for mouse move or mouse up.
     this.InteractionState = INTERACTION_NONE;
@@ -34,12 +64,13 @@ function Viewer (viewport) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new View();
+    this.MainView = new View(parent);
     this.MainView.InitializeViewport(viewport, 1);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
-    if ( ! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
+
+    if ( args.overview && (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad")) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
@@ -86,7 +117,7 @@ function Viewer (viewport) {
     
     this.InteractionListeners = [];
 
-    if ( ! MOBILE_DEVICE || MOBILE_DEVICE != "Simple") {
+    if (args.zoomWidget && ( ! MOBILE_DEVICE || MOBILE_DEVICE != "Simple")) {
         this.InitializeZoomGui();
     }
 
