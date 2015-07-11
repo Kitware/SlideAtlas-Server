@@ -148,7 +148,7 @@ PencilWidget.prototype.Deactivate = function() {
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
-    eventuallyRender();
+    this.Viewer.EventuallyRender();
 }
 
 PencilWidget.prototype.HandleMouseDown = function(event) {
@@ -204,7 +204,7 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
-        eventuallyRender();
+        this.Viewer.EventuallyRender();
         return;
     }
     
@@ -274,7 +274,7 @@ PencilWidget.prototype.SetActive = function(flag) {
       this.Shapes[i].Active = true;
     }
     this.PlacePopup();
-    eventuallyRender();
+    this.Viewer.EventuallyRender();
   } else {
     this.Deactivate();
     this.Viewer.DeactivateWidget(this);
@@ -310,7 +310,7 @@ PencilWidget.prototype.DialogApplyCallback = function() {
   }
   this.SetActive(false);
   RecordState();
-  eventuallyRender();
+  this.Viewer.EventuallyRender();
 }
 
 

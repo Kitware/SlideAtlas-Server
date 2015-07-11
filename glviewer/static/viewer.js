@@ -1,30 +1,4 @@
 //==============================================================================
-// Attempting to make the viewer a jqueryUI widget.
-// args = {overview:true, zoomWidget:true}
-jQuery.prototype.saViewer = function(args) {
-    for (var i = 0; i < this.length; ++i) {
-        if ( ! this[i].saViewer) {
-            var viewer = new Viewer($(this[i]), args);
-            // Add the viewer as an instance variable to the dom object.
-            this[i].saViewer = viewer;
-            // TODO: Get rid of the event manager.
-            EVENT_MANAGER.AddViewer(viewer);
-        }
-        // TODO:  If the viewer is already created, just reformat the
-        // viewer with new parameters. (image info ...)
-        // Separate out the args from the constructor.
-    }
-    // I am uncertain what the API should be:
-    // - jQueryUI like with control through arguments.
-    // - Object oriented
-    //   - Access to viewer object through the dom element
-    //   - Access to viewer object through the jQuery list/selector.
-    return this;
-}
-
-
-
-//==============================================================================
 
 // TODO: Fix
 // Add stack option to Save large image GUI.
@@ -47,7 +21,9 @@ var INTERACTION_ICON_ROTATE = 6;
 function Viewer (parent, args) {
     args = args || {};
     var self = this;
-
+    // I am moving the eventually render feature into viewers.
+    this.Drawing = false;
+    this.RenderPending = false;
     // TODO: Get rid of this viewport stuff
     var viewport = [0,0,100,100];
 
@@ -220,6 +196,18 @@ function Viewer (parent, args) {
         .addClass("sa-view-copyright");
 }
 
+Viewer.prototype.EventuallyRender = function() {
+    if (! this.RenderPending) {
+        this.RenderPending = true;
+        var self = this;
+        requestAnimFrame(
+            function() {
+            self.RenderPending = false;
+            self.Draw();
+            });
+    }
+}
+
 // These should be in an overview widget class.
 Viewer.prototype.RollEnter = function (e) {
     this.RotateIconHover = true;
@@ -266,7 +254,7 @@ Viewer.prototype.RollMove = function (e) {
 
     this.MainView.Camera.Roll -= r;
     this.UpdateCamera();
-    eventuallyRender();
+    this.EventuallyRender();
     
     this.RotateIconX = x;
     this.RotateIconY = y;
@@ -394,7 +382,7 @@ Viewer.prototype.CancelLargeImage = function() {
     // We also need to stop the request for pending tiles.
     ClearQueue();
      // Incase some of the queued tiles were for normal rendering.
-    eventuallyRender();
+    this.EventuallyRender();
 }
 
 
@@ -437,7 +425,7 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
     console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
 
     // Needed to trigger loading.
-    //eventuallyRender();
+    //this.EventuallyRender();
 }
 
 
@@ -492,7 +480,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
              }
          }
      );
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
 
@@ -506,7 +494,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
              self.SaveStackImage(fileNameRoot); 
          }
      );
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
  Viewer.prototype.SaveStackImage = function(fileNameRoot) {
@@ -521,7 +509,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
                  self.SaveStackImage(fileNameRoot); 
              }
          );
-         eventuallyRender();
+         this.EventuallyRender();
      }
  }
  //-----
@@ -622,7 +610,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
    if (this.OverView) {
        this.OverView.Section = section;
    }
-   eventuallyRender();
+   this.EventuallyRender();
  }
 
 
@@ -830,7 +818,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    eventuallyRender();
+    this.EventuallyRender();
 }
 
  // This sets the overview camera from the main view camera.
@@ -863,7 +851,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
      this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
 
      this.UpdateCamera();
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
  Viewer.prototype.GetCamera = function() {
@@ -900,7 +888,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   eventuallyRender();
+   this.EventuallyRender();
  }
 
  Viewer.prototype.AnimateZoom = function(factor) {
@@ -917,7 +905,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   eventuallyRender();
+   this.EventuallyRender();
  }
 
  Viewer.prototype.AnimateRoll = function(dRoll) {
@@ -930,7 +918,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   eventuallyRender();
+   this.EventuallyRender();
  }
 
  Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
@@ -943,7 +931,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   eventuallyRender();
+   this.EventuallyRender();
  }
 
 
@@ -1023,6 +1011,18 @@ Viewer.prototype.DegToRad = function(degrees) {
 
 
 Viewer.prototype.Draw = function() {
+    // I do not think this is actaully necessary.
+    // I was worried about threads, but javascript does not work that way.
+    if (this.Drawing) { return; }
+    this.Drawing = true;
+
+    if (GL) {
+      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    }
+
+    // This just changes the camera based on the current time.
+    this.Animate();
+
     //console.time("ViewerDraw");
 
     // connectome
@@ -1083,6 +1083,7 @@ Viewer.prototype.Draw = function() {
     // Here to trigger FINISHED_LOADING_CALLBACK
     LoadQueueUpdate();
     //console.timeEnd("ViewerDraw");
+    this.Drawing = false;
 }
 
 // Makes the viewer clean to setup a new slide...
@@ -1143,7 +1144,7 @@ Viewer.prototype.Animate = function() {
                 *(timeNow-this.AnimateLast)/this.AnimateDuration);
         // We are not finished yet.
         // Schedule another render
-        eventuallyRender();
+        this.EventuallyRender();
     }
     this.MainView.Camera.ComputeMatrix();
     if (this.OverView) {
@@ -1173,7 +1174,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
     this.TranslateTarget[1] = yNew;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 100.0;
-    eventuallyRender();
+    this.EventuallyRender();
 }
 
 
@@ -1198,7 +1199,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          cam.Roll = 0.0;
          cam.SetHeight(bds[3]-bds[2]);
          cam.ComputeMatrix();
-         eventuallyRender();
+         this.EventuallyRender();
          // Return value hides navigation widget
          return true;
      }
@@ -1264,7 +1265,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      var cam = this.GetCamera();
      cam.Translate( -dx, -dy, 0);
      cam.ComputeMatrix();
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
  Viewer.prototype.HandleTouchRotate = function(event) {
@@ -1331,7 +1332,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          cam2.Roll = cam.Roll;
          cam2.ComputeMatrix();
      }
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
  Viewer.prototype.HandleTouchPinch = function(event) {
@@ -1409,7 +1410,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      cam.FocalPoint[1] = y;
      cam.SetHeight(cam.GetHeight() / scale);
      cam.ComputeMatrix();
-     eventuallyRender();
+     this.EventuallyRender();
  }
 
  Viewer.prototype.HandleTouchEnd = function(event) {
@@ -1461,7 +1462,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      }
      // I think the problem with the ipad is thie asynchronous render.
      // Maybe two renders occur at the same time.
-     //eventuallyRender();
+     //this.EventuallyRender();
      draw();
 
      // Decay the momentum.
@@ -1712,7 +1713,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      }
      // The only interaction that does not go through animate camera.
      this.TriggerInteraction();
-     eventuallyRender();
+     this.EventuallyRender();
      return false; // trying to keep the browser from selecting images
  }
 
@@ -1761,7 +1762,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
      this.AnimateLast = new Date().getTime();
      this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     eventuallyRender();
+     this.EventuallyRender();
      return true;
  }
 
@@ -1828,7 +1829,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          //this.MainView.Camera.Reset();
          this.MainView.Camera.ComputeMatrix();
          this.ZoomTarget = this.MainView.Camera.GetHeight();
-         eventuallyRender();
+         this.EventuallyRender();
          return false;
      }
 
@@ -1845,7 +1846,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         eventuallyRender();
+         this.EventuallyRender();
          return false;
      } else if (event.keyCode == 40) {
          // Down cursor key
@@ -1860,7 +1861,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         eventuallyRender();
+         this.EventuallyRender();
          return false;
      } else if (event.keyCode == 37) {
          // Left cursor key
@@ -1875,7 +1876,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         eventuallyRender();
+         this.EventuallyRender();
          return false;
      } else if (event.keyCode == 39) {
          // Right cursor key
@@ -1890,7 +1891,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         eventuallyRender();
+         this.EventuallyRender();
          return false;
      }
      return true;

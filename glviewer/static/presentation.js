@@ -1,48 +1,6 @@
-//==============================================================================
-// jQuery extension for a full window div.
-// parent must be the body?  Maybe not.  Lets see if a full height is better.
-// I think position should be set to fixed or absolute.
-
-
-jQuery.prototype.saFullHeight = function() {
-    this.css({'top':'0px'});
-    this.addClass('sa-full-height');
-    //for (var i = 0; i < this.length; ++i) {
-        // I want to put the resize event on "this[i]",
-        // but, I am afrain in might not get trigerend always, or
-        // setting the height would cause recursive calls to resize.
-    //}
-
-    $(window).resize(
-        function() {
-            var height = window.innerHeight;
-            $('.sa-full-height')
-                .css({'top':    '0px',
-                      'height': height+'px'});
-            // Hack until I can figure out why the resize event is not
-            // firing for descendants.
-            // This did not work.  It also triggered resize on the window
-            // causeing infinite recusion.
-            //$('.sa-resize').trigger('resize');
-            var elements = $('.sa-resize');
-            for (var i = 0; i < elements.length; ++i) {
-                elements[i].onresize();
-            }
-        })
-        .trigger('resize');
-
-    return this;
-}
-
-
-
-
-
-
 
 //==============================================================================
 // TODO:
-// - !!!!!!!!!!!!!!!!!!!!!! Copy note needs to change ids in html
 // - Resize the view area to fit the note text.
 // - Edit mode: resize views
 // - Allow views to go full screen.
@@ -178,8 +136,6 @@ function Presentation(rootNote, edit) {
     if (EDIT) {
         this.UpdateSlidesTab();
     }
-
-    eventuallyRender();
 }
 
 
@@ -353,22 +309,7 @@ Presentation.prototype.TimerCallback = function(duration) {
     setTimeout(function(){ self.TimerCallback(duration);}, duration);
 }
 
-Presentation.prototype.RecordView1 = function() {
-    if (this.Edit && this.Note &&
-        this.Note.ViewerRecords.length > 0 &&
-        this.Note.ViewerRecords[0]) {
-        this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
-    }
-}
-
-Presentation.prototype.RecordView2 = function() {
-    if (this.Edit && this.Note &&
-        this.Note.ViewerRecords.length > 1 &&
-        this.Note.ViewerRecords[1]) {
-        this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
-    }
-}
-
+// Adds a view to the current slide.
 Presentation.prototype.AddViewCallback = function(viewObj) {
     var record = new ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
@@ -404,9 +345,10 @@ Presentation.prototype.AddImageCallback = function(image) {
     // Hack: Since GotoSlide copies the viewer to the record,
     // We first have to push the new record to the view.
     if (this.Note.ViewerRecords.length == 1) {
-        this.Note.ViewerRecords[0].Apply(VIEWER1);
+        // TODO: jquery arg
+        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
     } else if (this.Note.ViewerRecords.length == 2) {
-        this.Note.ViewerRecords[1].Apply(VIEWER2);
+        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
     // Hack to reload viewer records.
@@ -487,7 +429,7 @@ Presentation.prototype.InsertNewSlide = function (){
 }
 
 // 0->Root/titlePage
-// Childre/slidesn start at index 1
+// Childre/slides start at index 1
 Presentation.prototype.GotoSlide = function (index){
     if (index < 0 || index >= this.GetNumberOfSlides()) {
         return;
@@ -495,7 +437,7 @@ Presentation.prototype.GotoSlide = function (index){
     // Insert view calls Goto with the same index.
     // We do not want to overwrite the new view with a blank viewer.
     if (this.Edit && index != this.Index) {
-        // Save any GUI changesinto the note before 
+        // Save any GUI changesinto the note before
         // we move to the next slide.
         if (this.Index == 0) {
             this.TitlePage.UpdateEdits();
@@ -503,7 +445,6 @@ Presentation.prototype.GotoSlide = function (index){
             this.SlidePage.UpdateEdits();
         }
     }
-
 
     this.Index = index;
     if (index == 0) { // Title page
@@ -518,11 +459,15 @@ Presentation.prototype.GotoSlide = function (index){
     // Start preloading the next slide.
     if (index < this.RootNote.Children.length) {
         var nextNote = this.RootNote.Children[index];
+        // TODO: Better arg for LoadTiles.
+        // Should I pass in the jquery selection or viewer.
         if (nextNote.ViewerRecords.length > 0) {
-            nextNote.ViewerRecords[0].LoadTiles(VIEWER1.GetViewport());
+            // Hack: What size viewer will we be using?
+            nextNote.ViewerRecords[0].LoadTiles([0,0,400,300]);
         }
         if (nextNote.ViewerRecords.length > 1) {
-            nextNote.ViewerRecords[1].LoadTiles(VIEWER2.GetViewport());
+            // Hack: What size viewer will we be using?
+            nextNote.ViewerRecords[1].LoadTiles([0,0,400,300]);
         }
     }
 }
@@ -641,36 +586,36 @@ function SlidePage(parent, edit) {
     }
 
     // Add the viewers.
-    this.ViewDiv1 = $('<div>')
+    this.ViewerDiv1 = $('<div>')
         .appendTo(this.ViewPanel)
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA'});
     // Make the viewer look like jquery
-    //this.ViewDiv1.viewer({overview:false});
-    this.ViewDiv1.saViewer();
-    // TODO: Get rid of this global
-    VIEWER1 = this.ViewDiv1[0].saViewer;
+    //this.ViewerDiv1.viewer({overview:false});
+    this.ViewerDiv1.saViewer();
 
-    this.ViewDiv2 = $('<div>')
+    this.ViewerDiv2 = $('<div>')
         .appendTo(this.ViewPanel)
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA'});
     // Make the viewer look like jquery
-    this.ViewDiv2.saViewer();
-    // TODO: Get rid of this global
-    VIEWER2 = this.ViewDiv2[0].saViewer;
+    this.ViewerDiv2.saViewer();
 
     if (this.Edit) {
-        this.AnnotationWidget1 = new AnnotationWidget(VIEWER1);
+        // TODO: Better API (jquery) for adding widgets.
+        this.AnnotationWidget1 = new AnnotationWidget(
+            this.ViewerDiv1[0].saViewer);
         this.AnnotationWidget1.SetVisibility(2);
 
-        this.AnnotationWidget2 = new AnnotationWidget(VIEWER2);
+        this.AnnotationWidget2 = new AnnotationWidget(
+            this.ViewerDiv2[0].saViewer);
         this.AnnotationWidget2.SetVisibility(2);
 
-        VIEWER1.OnInteraction(function () {PRESENTATION.RecordView1();});
-        VIEWER2.OnInteraction(function () {PRESENTATION.RecordView2();});
-                this.RemoveView1Button = $('<img>')
-            .appendTo(VIEWER1.MainView.CanvasDiv)
+        // TODO: Move this to bind in jquery.  (not sure how to do this yet)
+        this.ViewerDiv1[0].saViewer.OnInteraction(function () {self.RecordView1();});
+        this.ViewerDiv2[0].saViewer.OnInteraction(function () {self.RecordView2();});
+        this.RemoveView1Button = $('<img>')
+            .appendTo(this.ViewerDiv1)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
@@ -686,7 +631,7 @@ function SlidePage(parent, edit) {
                 PRESENTATION.GotoSlide(PRESENTATION.Index);
             });
         this.RemoveView2Button = $('<img>')
-            .appendTo(VIEWER2.MainView.CanvasDiv)
+            .appendTo(this.ViewerDiv1)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
@@ -719,50 +664,50 @@ function SlidePage(parent, edit) {
             });
 
         // Setup view resizing.
-        this.ViewDiv1.resizable();
+        this.ViewerDiv1.resizable();
         // For a method to get called when resize stops.
         // Gets call on other mouse ups, but this is ok.
-        this.ViewDiv1
+        this.ViewerDiv1
             .mouseup(function () {
-                VIEWER1.Focus = true;
+                this.saViewer.Focus = true;
                 self.UpdateEdits();
                 PRESENTATION.HandleResize();
             });
-        this.ViewDiv1
+        this.ViewerDiv1
             .resize(function () {
-                VIEWER1.Focus = false;
-                var vp = VIEWER1.GetViewport();
+                this.saViewer.Focus = false;
+                var vp = this.saViewer.GetViewport();
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
-                VIEWER1.SetViewport(vp);
-                eventuallyRender();
+                this.saViewer.SetViewport(vp);
+                this.saViewer.EventuallyRender();
                 return false;
             });
 
-        this.ViewDiv2.resizable();
+        this.ViewerDiv2.resizable();
         // For a method to get called when resize stops.
         // Gets call on other mouse ups, but this is ok.
-        this.ViewDiv2
+        this.ViewerDiv2
             .mouseup(function () {
-                VIEWER2.Focus = true;
+                this.saViewer.Focus = true;
                 self.UpdateEdits();
                 PRESENTATION.HandleResize();
             });
-        VIEWER2.MainView.CanvasDiv
+        this.ViewerDiv2
             .resize(function () {
-                VIEWER2.Focus = false;
-                var vp = VIEWER2.GetViewport();
+                this.saViewer.Focus = false;
+                var vp = this.saViewer.GetViewport();
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
-                VIEWER2.SetViewport(vp);
-                eventuallyRender();
+                this.saViewer.SetViewport(vp);
+                this.saViewer.EventuallyRender();
                 return false;
             });
     }
     // Give the option for full screen
     // on each of the viewers.
     this.FullWindowView1Button = $('<img>')
-        .appendTo(this.ViewDiv1)
+        .appendTo(this.ViewerDiv1)
         .attr('src',"webgl-viewer/static/fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
@@ -774,10 +719,10 @@ function SlidePage(parent, edit) {
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.SetFullWindowView(VIEWER1);
+            self.SetFullWindowView(this.ViewerDiv1);
         });
     this.FullWindowView2Button = $('<img>')
-        .appendTo(VIEWER2.MainView.CanvasDiv)
+        .appendTo(this.ViewerDiv2)
         .attr('src',"webgl-viewer/static/fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
@@ -789,7 +734,7 @@ function SlidePage(parent, edit) {
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.SetFullWindowView(VIEWER2);
+            self.SetFullWindowView(this.ViewerDiv2);
         });
 
 
@@ -813,8 +758,8 @@ function SlidePage(parent, edit) {
 }
 
 
-SlidePage.prototype.SetFullWindowView = function (viewer) {
-    if (viewer) {
+SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
+    if (viewerDiv) {
         PRESENTATION.EditOff();
         this.FullWindowViewOffButton.show();
         this.FullWindowView1Button.hide();
@@ -831,8 +776,26 @@ SlidePage.prototype.SetFullWindowView = function (viewer) {
             'height': 'auto'});
 
     }
-    this.FullWindowView = viewer;
+    this.FullWindowView = viewerDiv;
     this.ResizeViews();
+}
+
+
+SlidePage.prototype.RecordView1 = function() {
+    if (this.Edit && this.Note &&
+        this.Note.ViewerRecords.length > 0 &&
+        this.Note.ViewerRecords[0]) {
+        this.Note.ViewerRecords[0].CopyViewer(this.ViewerDiv1[0].saViewer);
+    }
+}
+
+
+SlidePage.prototype.RecordView2 = function() {
+    if (this.Edit && this.Note &&
+        this.Note.ViewerRecords.length > 1 &&
+        this.Note.ViewerRecords[1]) {
+        this.Note.ViewerRecords[1].CopyViewer(this.ViewerDiv2[0].saViewer);
+    }
 }
 
 
@@ -842,8 +805,9 @@ SlidePage.prototype.EditOff = function () {
         this.Div.css({'width': '100%', 'left': '0px'});
         this.AnnotationWidget1.hide();
         this.AnnotationWidget2.hide();
-        VIEWER1.OnInteraction();
-        VIEWER2.OnInteraction();
+        // Clear the event callbacks
+        this.ViewerDiv1[0].saViewer.OnInteraction();
+        this.ViewerDiv1[0].saViewer.OnInteraction();
         this.RemoveView1Button.hide();
         this.RemoveView2Button.hide();
         this.DeleteSlideButton.hide();
@@ -856,7 +820,7 @@ SlidePage.prototype.EditOff = function () {
 
 
 // Adds a margin, and keeps the aspect ratio of view.
-SlidePage.prototype.PlaceViewer = function(viewer, record, viewport) {
+SlidePage.prototype.PlaceViewer = function(viewerDiv, record, viewport) {
     var vWidth = viewport[2] * 0.8;
     var vHeight = viewport[3] * 0.8;
     var cam = record.Camera;
@@ -871,9 +835,9 @@ SlidePage.prototype.PlaceViewer = function(viewer, record, viewport) {
     var vLeft = viewport[0] + (viewport[2]-vWidth) / 2;
     var vTop =  viewport[1] + (viewport[3]-vHeight) / 2;
 
-    if (viewer) {
-        viewer.SetViewport([vLeft, vTop, vWidth, vHeight]);
-        eventuallyRender();
+    if (viewerDiv) {
+        viewerDiv[0].saViewer.SetViewport([vLeft, vTop, vWidth, vHeight]);
+        viewerDiv[0].saViewer.EventuallyRender();
     }
 }
 
@@ -884,10 +848,10 @@ SlidePage.prototype.ResizeViews = function ()
     var width = this.ViewPanel.width();
     var height = this.ViewPanel.height();
     if (this.FullWindowView) {
-        VIEWER1.SetViewport([0, 0, 0, height]);
-        VIEWER2.SetViewport([0, 0, 0, height]);
-        this.FullWindowView.SetViewport([0,0,width,height]);
-        eventuallyRender();
+        this.ViewerDiv1[0].saViewer.SetViewport([0, 0, 0, height]);
+        this.ViewerDiv2[0].saViewer.SetViewport([0, 0, 0, height]);
+        this.FullWindowView[0].saViewer.SetViewport([0,0,width,height]);
+        this.FullWindowView[0].saViewer.EventuallyRender();
         return;
     }
 
@@ -896,22 +860,22 @@ SlidePage.prototype.ResizeViews = function ()
 
     if (numRecords == 0) {
         // Poor way to hide a viewer.
-        VIEWER1.SetViewport([0, 0, 0, height]);
+        this.ViewerDiv1[0].saViewer.SetViewport([0, 0, 0, height]);
         // Poor way to hide a viewer.
-        VIEWER2.SetViewport([0, 0, 0, height]);
+        this.ViewerDiv2[0].saViewer.SetViewport([0, 0, 0, height]);
     }
     if (numRecords == 1) {
         record = this.Records[0];
-        this.PlaceViewer(VIEWER1, record, [0,0,width,height]);
+        this.PlaceViewer(this.ViewerDiv1, record, [0,0,width,height]);
         // Poor way to hide a viewer.
-        VIEWER2.SetViewport([0, 0, 0, height]);
+        this.ViewerDiv2[0].saViewer.SetViewport([0, 0, 0, height]);
     }
     if (numRecords > 1) {
         var halfWidth = width / 2;
         record = this.Records[0];
-        this.PlaceViewer(VIEWER1, record, [0,0,halfWidth,height]);
+        this.PlaceViewer(this.ViewerDiv1, record, [0,0,halfWidth,height]);
         record = this.Records[1];
-        this.PlaceViewer(VIEWER2, record, [halfWidth,0,halfWidth,height]);
+        this.PlaceViewer(this.ViewerDiv2, record, [halfWidth,0,halfWidth,height]);
     }
     if (this.Edit) {
         if (numRecords == 0) {
@@ -927,7 +891,6 @@ SlidePage.prototype.ResizeViews = function ()
             this.AnnotationWidget1.show();
             this.AnnotationWidget2.show();
         }
-        var viewport = VIEWER2.GetViewport();
     }
 }
 
@@ -935,8 +898,8 @@ SlidePage.prototype.ResizeViews = function ()
 SlidePage.prototype.DisplayNote = function (index, note) {
     this.Div.show();
     this.Note = note;
-    VIEWER1.Reset();
-    VIEWER2.Reset();
+    this.ViewerDiv1[0].saViewer.Reset();
+    this.ViewerDiv2[0].saViewer.Reset();
     this.Records = note.ViewerRecords; // save this for resizing.
 
     this.Title.text("Slide: " + index)
@@ -947,16 +910,16 @@ SlidePage.prototype.DisplayNote = function (index, note) {
         DUAL_VIEW = false;
     }
     if (this.Records.length > 0) {
-        this.Records[0].Apply(VIEWER1);
+        this.Records[0].Apply(this.ViewerDiv1[0].saViewer);
         DUAL_VIEW = false;
     }
     if (this.Records.length > 1) {
-        this.Records[1].Apply(VIEWER2);
+        this.Records[1].Apply(this.ViewerDiv2[0].saViewer);
         // TODO: Get rid of this global variable.
         DUAL_VIEW = true;
     }
-    VIEWER1.CopyrightWrapper.hide();
-    VIEWER2.CopyrightWrapper.hide();
+    this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
+    this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
 }
 
 
@@ -966,13 +929,13 @@ SlidePage.prototype.UpdateEdits = function () {
     if (this.Note &&
         this.Note.ViewerRecords.length > 0 &&
         this.Note.ViewerRecords[0]) {
-        this.Note.ViewerRecords[0].CopyViewer(VIEWER1);
+        this.Note.ViewerRecords[0].CopyViewer(this.ViewerDiv1[0].saViewer);
     }
 
     if (this.Note &&
         this.Note.ViewerRecords.length > 1 &&
         this.Note.ViewerRecords[1]) {
-        this.Note.ViewerRecords[1].CopyViewer(VIEWER2);
+        this.Note.ViewerRecords[1].CopyViewer(this.ViewerDiv2[0].saViewer);
     }
 }
 

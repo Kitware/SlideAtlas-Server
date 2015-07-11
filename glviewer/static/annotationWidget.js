@@ -103,7 +103,7 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     this.Viewer.SetAnnotationVisibility(visibility);
 
-    eventuallyRender();
+    this.Viewer.EventuallyRender();
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {

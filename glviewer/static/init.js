@@ -324,7 +324,9 @@ function initImageTileBuffers() {
 
 
 
-
+// TODO: Get rid of this as legacy.
+// I put an eveutallyRender method in the viewer, but have not completely
+// converted code yet.
 // Stuff for drawing
 var RENDER_PENDING = false;
 function eventuallyRender() {
@@ -555,10 +557,12 @@ function draw() {
     }
 
     // This just changes the camera based on the current time.
-    VIEWER1.Animate();
-    if (DUAL_VIEW) { VIEWER2.Animate(); }
-    VIEWER1.Draw();
-    if (DUAL_VIEW) { VIEWER2.Draw(); }
+    if (VIEWER1) {
+        VIEWER1.Animate();
+        if (DUAL_VIEW) { VIEWER2.Animate(); }
+        VIEWER1.Draw();
+    }
+    if (VIEWER2 && DUAL_VIEW) { VIEWER2.Draw(); }
     DRAWING = false;
 }
 
