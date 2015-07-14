@@ -2065,8 +2065,10 @@ Note.prototype.SynchronizeViews = function (refViewerIdx) {
     // Overview cameras need to be updated.
     if (refViewerIdx == 0) {
         VIEWER2.UpdateCamera();
+        VIEWER2.EventuallyRender(false);
     } else {
         VIEWER1.UpdateCamera();
+        VIEWER1.EventuallyRender(false);
     }
 }
 

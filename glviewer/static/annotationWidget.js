@@ -16,9 +16,15 @@ function AnnotationWidget (viewer) {
     this.Viewer = viewer;
     viewer.AnnotationWidget = this;
 
-    this.Tab = new Tab("/webgl-viewer/static/pencil3Up.png", "annotationTab");
-    viewer.AddGuiObject(this.Tab.Div, "Bottom", 0, "Right", 140);
-    new ToolTip(this.Tab.Div, "Annotation");
+    this.Tab = new Tab(viewer.GetDiv(),
+                       "/webgl-viewer/static/pencil3Up.png",
+                       "annotationTab");
+    this.Tab.Div
+        .css({'position':'absolute',
+              'bottom':'0px',
+              'right':'140px'})
+        .prop('title', "Annotation");
+
     this.Tab.Panel.addClass("sa-view-annotation-panel");
     this.VisibilityDiv = $('<div>')
         .appendTo(this.Tab.Panel)
@@ -103,7 +109,7 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     this.Viewer.SetAnnotationVisibility(visibility);
 
-    eventuallyRender();
+    this.Viewer.EventuallyRender(true);
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {

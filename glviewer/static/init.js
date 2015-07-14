@@ -324,7 +324,9 @@ function initImageTileBuffers() {
 
 
 
-
+// TODO: Get rid of this as legacy.
+// I put an eveutallyRender method in the viewer, but have not completely
+// converted code yet.
 // Stuff for drawing
 var RENDER_PENDING = false;
 function eventuallyRender() {
@@ -347,8 +349,6 @@ function tick() {
 // I still need to make the zoom buttons relative to the viewport
 // Also the callback (zoom) cannot be hardcoded to VIEWER1!!!!!
 function initView(viewport) {
-  var viewer = new Viewer(viewport);
-  EVENT_MANAGER.AddViewer(viewer);
 
   return viewer;
 }
@@ -526,9 +526,20 @@ function InitViews() {
     var width = CANVAS.innerWidth();
     var height = CANVAS.innerHeight();
     var halfWidth = width/2;
-    VIEWER1 = initView([0,0, width, height]);
+    var viewerDiv1 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER1 = viewerDiv1[0].saViewer;
+    // TODO: Get rid of the viewer index.
     VIEWER1.ViewerIndex = 0;
-    VIEWER2 = initView([0,0, width, height]);
+
+    var viewerDiv2 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER2 = viewerDiv2[0].saViewer;
+    // TODO: Get rid of the viewer index.
     VIEWER2.ViewerIndex = 1;
 
     handleResize();
@@ -546,10 +557,12 @@ function draw() {
     }
 
     // This just changes the camera based on the current time.
-    VIEWER1.Animate();
-    if (DUAL_VIEW) { VIEWER2.Animate(); }
-    VIEWER1.Draw();
-    if (DUAL_VIEW) { VIEWER2.Draw(); }
+    if (VIEWER1) {
+        VIEWER1.Animate();
+        if (DUAL_VIEW) { VIEWER2.Animate(); }
+        VIEWER1.Draw();
+    }
+    if (VIEWER2 && DUAL_VIEW) { VIEWER2.Draw(); }
     DRAWING = false;
 }
 
@@ -725,8 +738,8 @@ function Main2(rootNote) {
 
 
 
-
-
+// TODO: Remove
+// Obsolete.
 // Main function called by the default view.html template
 function StartScene(scene) {
     var dia = new Dialog();
@@ -768,9 +781,14 @@ function StartScene(scene) {
 
     scene.getTileUrl = eval(scene.getTileUrl);
 
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    VIEWER1 = new Viewer([0,0, width, height]);
+    var viewerDiv1 = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .saViewer({overview:true, zoomWidget:true});
+    // TODO: Get rid of this global
+    VIEWER1 = viewerDiv1[0].saViewer;
+    // TODO: Get rid of the viewer index.
+    VIEWER1.ViewerIndex = 0;
+
     VIEWER1.SetCache(cache);
 
     // Event manager will be going away.

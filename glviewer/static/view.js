@@ -5,7 +5,7 @@
 // Views can share a cache for tiles.
 
 
-function View () {
+function View (parent) {
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -20,6 +20,7 @@ function View () {
     this.OutlineMatrix = mat4.create();
     this.OutlineCamMatrix = mat4.create();
 
+    this.CanvasDiv = parent;
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
@@ -43,7 +44,10 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     
     // 2d canvas
     // Add a new canvas.
-    this.CanvasDiv = $('<div>')
+    if ( ! this.CanvasDiv) {
+        this.CanvasDiv = $('<div>');
+    }
+    this.CanvasDiv
         .addClass('view')
         .addClass("sa-view-canvas-div")
 
@@ -59,6 +63,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Canvas.attr("height", viewport[3]);
 }
 
+
+// TODO: Get rid of these since the user can manipulate the parent / canvas
+// div which can be passed into the constructor.
 View.prototype.appendTo = function(j) {
   return this.CanvasDiv.appendTo(j);
 }

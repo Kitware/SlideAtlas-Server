@@ -27,14 +27,14 @@ function MobileAnnotationWidget() {
               .addClass("sa-view-annotation-button")
               .attr('src',"webgl-viewer/static/Circle128.jpg")
               .click(function(){self.CircleCallback();});
-  this.CircleTip = new ToolTip(this.CircleButton, "Circle Annotation");
+  this.CircleButton.prop('title', "Circle Annotation");
 
   this.TextButton =
     $('<img>').appendTo(this.Div)
               .addClass("sa-view-annotation-button")
               .attr('src',"webgl-viewer/static/Text128.jpg")
               .click(function(){self.TextCallback();});
-  this.TextTip = new ToolTip(this.TextButton, "Text Annotation");
+  this.TextButton.prop('title', "Text Annotation");
 
   this.Visibility = false;
 

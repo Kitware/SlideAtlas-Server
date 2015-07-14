@@ -39,7 +39,7 @@ WidgetPopup.prototype.DeleteCallback = function() {
   // We need to remove an item from a list.
   // shape list and widget list.
   this.Widget.RemoveFromViewer();
-  eventuallyRender();
+  this.Widget.Viewer.EventuallyRender(true);
   RecordState();
 }
 

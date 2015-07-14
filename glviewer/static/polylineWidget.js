@@ -181,7 +181,7 @@ function PolylineWidget (viewer, newFlag) {
     // Set to be the width of a pixel.
     this.MinLine = 1.0;
 
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
 }
 
 // This is called whenever the shape changes.
@@ -247,7 +247,7 @@ PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.UpdateBounds();
   this.Shape.UpdateBuffers();
 
-  eventuallyRender();
+  this.Viewer.EventuallyRender(true);
 }
 
 PolylineWidget.prototype.Serialize = function() {
@@ -353,7 +353,7 @@ PolylineWidget.prototype.Deactivate = function() {
         this.RemoveFromViewer();
     }
 
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
 }
 
 // Mouse down does nothing. Mouse up causes all state changes.
@@ -368,7 +368,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     this.ActivateVertex(-1);
     this.State = POLYLINE_WIDGET_NEW_EDGE;
     this.UpdateBounds();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
     return;
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
@@ -385,7 +385,7 @@ PolylineWidget.prototype.HandleMouseDown = function(event) {
     this.Shape.Points.push(pt);
     this.Shape.UpdateBuffers();
     this.UpdateBounds();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(true);
     return;
   }
 
@@ -445,7 +445,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
 
   if (this.State == POLYLINE_WIDGET_NEW) {
     this.Circle.Origin = pt;
-    eventuallyRender();
+    this.Viewer.EventuallyRender(true);
     return;
   }
   if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
@@ -456,7 +456,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
     var idx = this.WhichVertexShouldBeActive(pt);
     // Only the first or last vertexes will stop the new line.
     this.ActivateVertex(idx);
-    eventuallyRender();
+    this.Viewer.EventuallyRender(true);
     return;
   }
   if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
@@ -479,7 +479,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
       this.Shape.UpdateBuffers();
       this.UpdateBounds();
       this.PlacePopup();
-      eventuallyRender();
+      this.Viewer.EventuallyRender(true);
       return;
     }
     if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.which == 1) {
@@ -488,7 +488,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
       this.Circle.Origin = pt;
       this.Shape.UpdateBuffers();
       this.PlacePopup();
-      eventuallyRender();
+      this.Viewer.EventuallyRender(true);
     }
   }
 }
@@ -618,7 +618,7 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
   }
   if (vIdx < 0) {
     this.Circle.Visibility = false;
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
   } else {
     var cam = this.Viewer.MainView.Camera;
     var viewport = this.Viewer.MainView.Viewport;
@@ -628,7 +628,7 @@ PolylineWidget.prototype.ActivateVertex = function(vIdx) {
     this.Circle.Visibility = true;
     this.Circle.Origin = this.Shape.Points[vIdx];
     this.PlacePopup();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
   }
 
   this.ActiveVertex = vIdx;
@@ -655,7 +655,7 @@ PolylineWidget.prototype.SetActive = function(flag) {
     this.Shape.Active = true;
     this.Viewer.ActivateWidget(this);
     this.PlacePopup();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
   } else {
     this.Deactivate();
   }
@@ -756,7 +756,7 @@ PolylineWidget.prototype.DialogApplyCallback = function() {
   this.Shape.UpdateBuffers();
   this.SetActive(false);
   RecordState();
-  eventuallyRender();
+  this.Viewer.EventuallyRender(false);
 
   localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                         ClosedLoop: this.Shape.Closed,

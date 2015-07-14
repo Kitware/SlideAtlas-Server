@@ -7,11 +7,12 @@ Tab = (function () {
 
     // If a tabbed object is specified, only one tab for the object
     // will be allowed open at a time.
-    function Tab (imageSrc, tabID) {
+    function Tab (parent,imageSrc, tabID) {
         var self = this; // trick to set methods in callbacks.
+        parent = parent || VIEW_PANEL;
 
         this.Div = $('<div>')
-            .appendTo(VIEW_PANEL)
+            .appendTo(parent)
             .attr('id', tabID)
             .addClass('sa-view-div');
 
