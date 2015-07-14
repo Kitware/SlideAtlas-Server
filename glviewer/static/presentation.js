@@ -680,7 +680,7 @@ function SlidePage(parent, edit) {
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
                 this.saViewer.SetViewport(vp);
-                this.saViewer.EventuallyRender();
+                this.saViewer.EventuallyRender(true);
                 return false;
             });
 
@@ -700,7 +700,7 @@ function SlidePage(parent, edit) {
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
                 this.saViewer.SetViewport(vp);
-                this.saViewer.EventuallyRender();
+                this.saViewer.EventuallyRender(true);
                 return false;
             });
     }
@@ -837,7 +837,7 @@ SlidePage.prototype.PlaceViewer = function(viewerDiv, record, viewport) {
 
     if (viewerDiv) {
         viewerDiv[0].saViewer.SetViewport([vLeft, vTop, vWidth, vHeight]);
-        viewerDiv[0].saViewer.EventuallyRender();
+        viewerDiv[0].saViewer.EventuallyRender(false);
     }
 }
 
@@ -851,7 +851,7 @@ SlidePage.prototype.ResizeViews = function ()
         this.ViewerDiv1[0].saViewer.SetViewport([0, 0, 0, height]);
         this.ViewerDiv2[0].saViewer.SetViewport([0, 0, 0, height]);
         this.FullWindowView[0].saViewer.SetViewport([0,0,width,height]);
-        this.FullWindowView[0].saViewer.EventuallyRender();
+        this.FullWindowView[0].saViewer.EventuallyRender(false);
         return;
     }
 

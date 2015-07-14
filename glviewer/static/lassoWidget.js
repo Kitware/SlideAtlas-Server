@@ -169,7 +169,7 @@ LassoWidget.prototype.Deactivate = function() {
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(false);
 }
 
 LassoWidget.prototype.HandleMouseDown = function(event) {
@@ -213,7 +213,7 @@ LassoWidget.prototype.HandleMouseUp = function(event) {
       this.Stroke = false;
     }
     this.ComputeActiveCenter();
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(false);
 
     RecordState();
   }
@@ -232,7 +232,7 @@ LassoWidget.prototype.HandleMouseMove = function(event) {
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
-        this.Viewer.EventuallyRender();
+        this.Viewer.EventuallyRender(true);
         return;
     }
 
@@ -297,7 +297,7 @@ LassoWidget.prototype.SetActive = function(flag) {
     this.State = LASSO_WIDGET_ACTIVE;
     this.Loop.Active = true;
     this.PlacePopup();
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(false);
   } else {
     this.Deactivate();
     this.Viewer.DeactivateWidget(this);
@@ -338,7 +338,7 @@ LassoWidget.prototype.DialogApplyCallback = function() {
   this.Loop.UpdateBuffers();
   this.SetActive(false);
   RecordState();
-  this.Viewer.EventuallyRender();
+  this.Viewer.EventuallyRender(false);
 
   localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
 }
@@ -515,7 +515,7 @@ LassoWidget.prototype.CombineStroke = function() {
   this.ComputeActiveCenter();
 
   this.Stroke = false;
-  this.Viewer.EventuallyRender();
+  this.Viewer.EventuallyRender(true);
 }
 
 

@@ -3,48 +3,48 @@
 var FAVORITES_GUI;
 
 function FavoritesBar(){
-  var size = '40px';
-  var left = '120px';
-  var bottom = '60px';
-  if (MOBILE_DEVICE) {
-    size = '80px';
-     if (MOBILE_DEVICE == "iPhone") {
-      size = '100px';
-      bottom = '80px';
-      left = '80px';
+    var size = '40px';
+    var left = '120px';
+    var bottom = '60px';
+    if (MOBILE_DEVICE) {
+        size = '80px';
+        if (MOBILE_DEVICE == "iPhone") {
+            size = '100px';
+            bottom = '80px';
+            left = '80px';
+        }
     }
-  }
 
-  this.hidden = true;
+    this.hidden = true;
 
-  FAVORITES_GUI = this;
+    FAVORITES_GUI = this;
 
-  this.FavoritesList =
-    $('<div>').appendTo('body')
-              .addClass("sa-view-favorites-div")
-              .hide();
+    this.FavoritesList =
+        $('<div>').appendTo('body')
+        .addClass("sa-view-favorites-div")
+        .hide();
 
-  this.SaveFavoriteButton =
-    $('<img>')
-      .appendTo(this.FavoritesList)
-      .addClass("sa-view-favorites-icon")
-      .attr('src',"webgl-viewer/static/saveNew.png")
-      .click(function(){SaveFavorite();});
-  this.TextTip = new ToolTip(this.SaveFavoriteButton, "Save Favorite");
+    this.SaveFavoriteButton =
+        $('<img>')
+        .appendTo(this.FavoritesList)
+        .addClass("sa-view-favorites-icon")
+        .attr('src',"webgl-viewer/static/saveNew.png")
+        .click(function(){SaveFavorite();});
+    this.SaveFavoriteButton.prop('title', "Save Favorite");
+
+    if(MOBILE_DEVICE){
+        this.SaveFavoriteButton
+            .addClass("sa-view-favorites-button");
+    }
+
+    this.ImageList =
+        $('<div>')
+        .appendTo(this.FavoritesList)
+        .addClass("sa-view-favorites-img-list")
   
-  if(MOBILE_DEVICE){
-    this.SaveFavoriteButton
-        .addClass("sa-view-favorites-button");
-  }
+    VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
 
-  this.ImageList =
-    $('<div>')
-      .appendTo(this.FavoritesList)
-      .addClass("sa-view-favorites-img-list")
-  
-  VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
-
-  LoadFavorites();
+    LoadFavorites();
 }
 
 

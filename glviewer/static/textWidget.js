@@ -233,7 +233,7 @@ TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
   this.Text.Position[0] = mouseWorldPt[0];
   this.Text.Position[1] = mouseWorldPt[1];
   this.UpdateArrow();
-  this.Viewer.EventuallyRender();
+  this.Viewer.EventuallyRender(true);
 }
 
 
@@ -321,6 +321,7 @@ TextWidget.prototype.SetPosition = function(x, y) {
 
 // Anchor is in the middle of the bounds when the shape is not visible.
 TextWidget.prototype.SetVisibilityMode = function(mode) {
+    if (this.VisibilityMode == mode) { return; }
     this.VisibilityMode = mode;
     
     if (mode == 2 || mode == 1) { // turn glyph on
@@ -339,7 +340,7 @@ TextWidget.prototype.SetVisibilityMode = function(mode) {
         this.Text.Anchor = [(this.Text.PixelBounds[0]+this.Text.PixelBounds[1])*0.5, this.Text.PixelBounds[2]];
         this.Arrow.Visibility = false;
     }
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(true);
 }
 
 // Change orientation and length of arrow based on the anchor location.
@@ -409,7 +410,7 @@ TextWidget.prototype.HandleMouseDown = function(event) {
             } else {
                 this.State = TEXT_WIDGET_DRAG;
             }
-            this.Viewer.EventuallyRender();
+            this.Viewer.EventuallyRender(false);
         }
         return true;
     }
@@ -466,7 +467,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         this.Text.Position[1] += dy;
         this.Arrow.Origin = this.Text.Position;
         this.PlacePopup();
-        this.Viewer.EventuallyRender();
+        this.Viewer.EventuallyRender(true);
         return true;
     }
     if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
@@ -474,7 +475,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         this.Text.Anchor[1] -= EVENT_MANAGER.MouseDeltaY;
         this.UpdateArrow();
         this.PlacePopup();
-        this.Viewer.EventuallyRender();
+        this.Viewer.EventuallyRender(true);
         return true;
     }
     // We do not want to deactivate the widget while the properties dialog is showing.
@@ -523,7 +524,7 @@ TextWidget.prototype.CheckActive = function(event) {
   if (this.Arrow.Visibility && this.Arrow.PointInShape(tMouse[0]-this.Text.Anchor[0], tMouse[1]-this.Text.Anchor[1])) {
     this.ActiveReason = 1; // Hackish
     // Doulbe hack. // Does not get highlighted because widget already active.
-    this.Arrow.Active = true; this.Viewer.EventuallyRender();
+    this.Arrow.Active = true; this.Viewer.EventuallyRender(false);
     this.SetActive(true);
     return true;
   }
@@ -556,7 +557,7 @@ TextWidget.prototype.Deactivate = function() {
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(false);
 }
 
 TextWidget.prototype.SetActive = function(flag) {
@@ -581,7 +582,7 @@ TextWidget.prototype.SetActive = function(flag) {
     }
     this.Viewer.ActivateWidget(this);
     this.PlacePopup();
-    this.Viewer.EventuallyRender();
+    this.Viewer.EventuallyRender(false);
   } else {
     this.Deactivate();
   }
@@ -653,7 +654,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
 
   RecordState();
 
-  this.Viewer.EventuallyRender();
+  this.Viewer.EventuallyRender(true);
 }
 
 //Function to apply line breaks to textarea text.

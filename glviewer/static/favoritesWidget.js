@@ -21,7 +21,7 @@ function FavoritesWidget() {
             .on("dragstart", function() {return false;})
             .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
 
-        this.TextTip = new ToolTip(this.MenuFavoriteButton, "Favorites");
+        this.MenuFavoriteButton.prop('title', "Favorites");
     }
 
     LoadFavorites();

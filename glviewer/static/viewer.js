@@ -196,14 +196,18 @@ function Viewer (parent, args) {
         .addClass("sa-view-copyright");
 }
 
-Viewer.prototype.EventuallyRender = function() {
+Viewer.prototype.EventuallyRender = function(interaction) {
     if (! this.RenderPending) {
         this.RenderPending = true;
         var self = this;
         requestAnimFrame(
             function() {
-            self.RenderPending = false;
-            self.Draw();
+                self.RenderPending = false;
+                self.Draw();
+                if (interaction) {
+                    // Easiest place to make sure interaction events are triggered.
+                    self.TriggerInteraction();
+                }
             });
     }
 }
@@ -254,7 +258,7 @@ Viewer.prototype.RollMove = function (e) {
 
     this.MainView.Camera.Roll -= r;
     this.UpdateCamera();
-    this.EventuallyRender();
+    this.EventuallyRender(true);
     
     this.RotateIconX = x;
     this.RotateIconY = y;
@@ -299,13 +303,20 @@ Viewer.prototype.TriggerInteraction = function() {
     }
 }
 
+Viewer.prototype.GetDiv = function() {
+    return this.MainView.CanvasDiv;
+}
 
 Viewer.prototype.InitializeZoomGui = function() {
     // Put the zoom bottons in a tab.
-    this.ZoomTab = new Tab("/webgl-viewer/static/mag.png", "zoomTab");
-    new ToolTip(this.ZoomTab.Div, "Zoom scroll");
-    // TODO: Get rid of this Gui object stuff and just rely on css positioning.
-    this.AddGuiObject(this.ZoomTab.Div, "Bottom", 0, "Right", 37);
+    this.ZoomTab = new Tab(this.GetDiv(),
+                           "/webgl-viewer/static/mag.png",
+                           "zoomTab");
+    this.ZoomTab.Div
+        .css({'position':'absolute',
+              'bottom':'0px',
+              'right':'37px'})
+        .prop('title', "Zoom scroll");
     this.ZoomTab.Panel
         .addClass("sa-view-zoom-panel");
 
@@ -382,7 +393,7 @@ Viewer.prototype.CancelLargeImage = function() {
     // We also need to stop the request for pending tiles.
     ClearQueue();
      // Incase some of the queued tiles were for normal rendering.
-    this.EventuallyRender();
+    this.EventuallyRender(false);
 }
 
 
@@ -421,11 +432,6 @@ Viewer.prototype.SaveLargeImage = function(fileName, width, height, stack,
                                           width, height, stack,
                                           finishedCallback);}
     );
-
-    console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
-
-    // Needed to trigger loading.
-    //this.EventuallyRender();
 }
 
 
@@ -480,7 +486,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
              }
          }
      );
-     this.EventuallyRender();
+     this.EventuallyRender(false);
  }
 
 
@@ -494,7 +500,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
              self.SaveStackImage(fileNameRoot); 
          }
      );
-     this.EventuallyRender();
+     this.EventuallyRender(false);
  }
 
  Viewer.prototype.SaveStackImage = function(fileNameRoot) {
@@ -509,7 +515,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
                  self.SaveStackImage(fileNameRoot); 
              }
          );
-         this.EventuallyRender();
+         this.EventuallyRender(false);
      }
  }
  //-----
@@ -602,16 +608,16 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
  }
 
 
- Viewer.prototype.SetSection = function(section) {
-   if (section == null) {
-     return;
-   }
-   this.MainView.Section = section;
-   if (this.OverView) {
-       this.OverView.Section = section;
-   }
-   this.EventuallyRender();
- }
+Viewer.prototype.SetSection = function(section) {
+    if (section == null) {
+        return;
+    }
+    this.MainView.Section = section;
+    if (this.OverView) {
+        this.OverView.Section = section;
+    }
+    this.EventuallyRender(true);
+}
 
 
  // Change the source / cache after a viewer has been created.
@@ -818,7 +824,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-    this.EventuallyRender();
+    this.EventuallyRender(true);
 }
 
  // This sets the overview camera from the main view camera.
@@ -851,7 +857,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
      this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
 
      this.UpdateCamera();
-     this.EventuallyRender();
+     this.EventuallyRender(true);
  }
 
  Viewer.prototype.GetCamera = function() {
@@ -888,7 +894,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender();
+   this.EventuallyRender(true);
  }
 
  Viewer.prototype.AnimateZoom = function(factor) {
@@ -905,7 +911,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender();
+   this.EventuallyRender(true);
  }
 
  Viewer.prototype.AnimateRoll = function(dRoll) {
@@ -918,7 +924,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender();
+   this.EventuallyRender(true);
  }
 
  Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
@@ -931,7 +937,7 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 
    this.AnimateLast = new Date().getTime();
    this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender();
+   this.EventuallyRender(true);
  }
 
 
@@ -1029,9 +1035,6 @@ Viewer.prototype.Draw = function() {
     if ( ! this.MainView.Section) {
         return;
     }
-
-    // Easiest place to make sure interaction events are triggered.
-    this.TriggerInteraction();
 
     this.ConstrainCamera();
     // Should the camera have the viewport in them?
@@ -1144,7 +1147,7 @@ Viewer.prototype.Animate = function() {
                 *(timeNow-this.AnimateLast)/this.AnimateDuration);
         // We are not finished yet.
         // Schedule another render
-        this.EventuallyRender();
+        this.EventuallyRender(true);
     }
     this.MainView.Camera.ComputeMatrix();
     if (this.OverView) {
@@ -1174,7 +1177,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
     this.TranslateTarget[1] = yNew;
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 100.0;
-    this.EventuallyRender();
+    this.EventuallyRender(true);
 }
 
 
@@ -1265,7 +1268,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      var cam = this.GetCamera();
      cam.Translate( -dx, -dy, 0);
      cam.ComputeMatrix();
-     this.EventuallyRender();
+     this.EventuallyRender(true);
  }
 
  Viewer.prototype.HandleTouchRotate = function(event) {
@@ -1332,7 +1335,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          cam2.Roll = cam.Roll;
          cam2.ComputeMatrix();
      }
-     this.EventuallyRender();
+     this.EventuallyRender(true);
  }
 
  Viewer.prototype.HandleTouchPinch = function(event) {
@@ -1410,7 +1413,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      cam.FocalPoint[1] = y;
      cam.SetHeight(cam.GetHeight() / scale);
      cam.ComputeMatrix();
-     this.EventuallyRender();
+     this.EventuallyRender(true);
  }
 
  Viewer.prototype.HandleTouchEnd = function(event) {
@@ -1713,7 +1716,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      }
      // The only interaction that does not go through animate camera.
      this.TriggerInteraction();
-     this.EventuallyRender();
+     this.EventuallyRender(true);
      return false; // trying to keep the browser from selecting images
  }
 
@@ -1762,7 +1765,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
      this.AnimateLast = new Date().getTime();
      this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     this.EventuallyRender();
+     this.EventuallyRender(true);
      return true;
  }
 
@@ -1829,7 +1832,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          //this.MainView.Camera.Reset();
          this.MainView.Camera.ComputeMatrix();
          this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.EventuallyRender();
+         this.EventuallyRender(true);
          return false;
      }
 
@@ -1846,7 +1849,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         this.EventuallyRender();
+         this.EventuallyRender(true);
          return false;
      } else if (event.keyCode == 40) {
          // Down cursor key
@@ -1861,7 +1864,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         this.EventuallyRender();
+         this.EventuallyRender(true);
          return false;
      } else if (event.keyCode == 37) {
          // Left cursor key
@@ -1876,7 +1879,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         this.EventuallyRender();
+         this.EventuallyRender(true);
          return false;
      } else if (event.keyCode == 39) {
          // Right cursor key
@@ -1891,7 +1894,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
          this.AnimateLast = new Date().getTime();
          this.AnimateDuration = 200.0;
-         this.EventuallyRender();
+         this.EventuallyRender(true);
          return false;
      }
      return true;
