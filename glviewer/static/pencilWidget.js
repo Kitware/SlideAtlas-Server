@@ -61,6 +61,21 @@ function PencilWidget (viewer, newFlag) {
         .css({'display':'table-cell'})
         .keypress(function(event) { return event.keyCode != 13; });
 
+    this.LineWidth = 0;
+    if (localStorage.PencilWidgetDefaults) {
+        var defaults = JSON.parse(localStorage.PencilWidgetDefaults);
+        if (defaults.Color) {
+            this.Dialog.ColorInput.val(ConvertColorToHex(defaults.Color));
+        }
+        if (defaults.LineWidth) {
+            this.LineWidth = defaults.LineWidth;
+            this.Dialog.LineWidthInput.val(this.LineWidth);
+        }
+    }
+
+
+
+
     this.Viewer = viewer;
     this.Popup = new WidgetPopup(this);
     this.Viewer.WidgetList.push(this);
@@ -113,9 +128,9 @@ PencilWidget.prototype.Load = function(obj) {
   for(var n=0; n < obj.shapes.length; n++){
     var points = obj.shapes[n];
     var shape = new Polyline();
-    shape.OutlineColor = [0.9, 1.0, 0.0];
+    shape.SetOutlineColor(this.Dialog.ColorInput.val());
     shape.FixedSize = false;
-    shape.LineWidth = 0;
+    shape.LineWidth = this.LineWidth;
     this.Shapes.push(shape);
     for (var m = 0; m < points.length; ++m) {
       shape.Points[m] = [points[m][0], points[m][1]];
@@ -303,6 +318,7 @@ PencilWidget.prototype.ShowPropertiesDialog = function () {
 
 PencilWidget.prototype.DialogApplyCallback = function() {
   var hexcolor = this.Dialog.ColorInput.val();
+  this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
   for (var i = 0; i < this.Shapes.length; ++i) {
     this.Shapes[i].SetOutlineColor(hexcolor);
     this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
@@ -310,7 +326,10 @@ PencilWidget.prototype.DialogApplyCallback = function() {
   }
   this.SetActive(false);
   RecordState();
-  this.Viewer.EventuallyRender(false);
+  this.Viewer.EventuallyRender(true);
+
+  localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
+                                                      LineWidth: this.LineWidth});
 }
 
 

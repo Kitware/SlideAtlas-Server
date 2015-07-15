@@ -6,7 +6,6 @@ import json
 from slideatlas.common_utils import jsonify
 import re
 import urllib2
-import pdb
 
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
@@ -187,6 +186,7 @@ def image_query():
     # if the weigths do not properly increase for matches of multiple terms.
     # build up a list of images.
     # search titles (pretty important).
+
     for term in terms:
         viewCursor = db["views"].find( { '$text': { '$search': term }},
             {'score': {"$meta": "textScore"}, "ViewerRecords": 1})
