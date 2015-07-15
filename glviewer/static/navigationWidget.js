@@ -44,7 +44,7 @@ function NavigationWidget() {
                       .hide()
                       .addClass("sa-view-navigation-div ui-responsive");
     } else {
-        this.Tab = new Tab("/webgl-viewer/static/nav.png", "navigationTab");
+        this.Tab = new Tab(VIEW_PANEL,"/webgl-viewer/static/nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");

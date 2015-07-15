@@ -81,18 +81,7 @@ function LassoWidget (viewer, newFlag) {
     this.Popup = new WidgetPopup(this);
     this.Viewer.WidgetList.push(this);
 
-    this.Cursor = $('<img>').appendTo('body')
-        .addClass("sa-view-lasso-cursor")
-        .attr('type','image')
-        .attr('src',"/webgl-viewer/static/select_lasso.png");
-
     var self = this;
-    // I am trying to stop images from getting move events and displaying a circle/slash.
-    // This did not work.  preventDefault did not either.
-    //this.Cursor.mousedown(function (event) {self.HandleMouseDown(event);})
-    //this.Cursor.mousemove(function (event) {self.HandleMouseMove(event);})
-    //this.Cursor.mouseup(function (event) {self.HandleMouseUp(event);})
-    //.preventDefault();
 
     this.Loop = new Polyline();
     this.Loop.OutlineColor = [0.0, 0.0, 0.0];
@@ -104,10 +93,12 @@ function LassoWidget (viewer, newFlag) {
 
     this.ActiveCenter = [0,0];
 
-    this.State = LASSO_WIDGET_DRAWING;
-    if ( ! newFlag) {
+    if ( newFlag) {
+        this.State = LASSO_WIDGET_DRAWING;
+        this.Viewer.MainView.CanvasDiv.css(
+            {'cursor':'url(/webgl-viewer/static/select_lasso.png) 5 30,crosshair'});
+    } else {
         this.State = LASSO_WIDGET_WAITING;
-        this.Cursor.hide();
     }
 }
 
@@ -168,7 +159,7 @@ LassoWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 
 LassoWidget.prototype.Deactivate = function() {
     this.Popup.StartHideTimer();
-    this.Cursor.hide();
+    this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
     this.Viewer.DeactivateWidget(this);
     this.State = LASSO_WIDGET_WAITING;
     this.Loop.Active = false;
@@ -178,7 +169,7 @@ LassoWidget.prototype.Deactivate = function() {
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
 }
 
 LassoWidget.prototype.HandleMouseDown = function(event) {
@@ -222,7 +213,7 @@ LassoWidget.prototype.HandleMouseUp = function(event) {
       this.Stroke = false;
     }
     this.ComputeActiveCenter();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
 
     RecordState();
   }
@@ -236,15 +227,12 @@ LassoWidget.prototype.HandleMouseMove = function(event) {
     var x = event.offsetX;
     var y = event.offsetY;
     
-    // Move the lasso icon to follow the mouse.
-    this.Cursor.css({'left': (x+4), 'top': (y-32)});
-    
     if (event.which == 1 && this.State == LASSO_WIDGET_DRAWING) {
         var shape = this.Stroke;
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
-        eventuallyRender();
+        this.Viewer.EventuallyRender(true);
         return;
     }
 
@@ -309,7 +297,7 @@ LassoWidget.prototype.SetActive = function(flag) {
     this.State = LASSO_WIDGET_ACTIVE;
     this.Loop.Active = true;
     this.PlacePopup();
-    eventuallyRender();
+    this.Viewer.EventuallyRender(false);
   } else {
     this.Deactivate();
     this.Viewer.DeactivateWidget(this);
@@ -350,7 +338,7 @@ LassoWidget.prototype.DialogApplyCallback = function() {
   this.Loop.UpdateBuffers();
   this.SetActive(false);
   RecordState();
-  eventuallyRender();
+  this.Viewer.EventuallyRender(false);
 
   localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
 }
@@ -527,7 +515,7 @@ LassoWidget.prototype.CombineStroke = function() {
   this.ComputeActiveCenter();
 
   this.Stroke = false;
-  eventuallyRender();
+  this.Viewer.EventuallyRender(true);
 }
 
 

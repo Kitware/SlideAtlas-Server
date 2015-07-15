@@ -26,7 +26,6 @@ function ConferenceWidget () {
     
     if ( ! MOBILE_DEVICE) {
         this.Tab = new Tab("/webgl-viewer/static/conference1.png", "conferenceTab");
-        new ToolTip(this.Tab.Div, "Conference");
         this.Tab.Div
             .addClass("sa-view-conference-div");
         // Needs to be a child of view panel to fill 100%.

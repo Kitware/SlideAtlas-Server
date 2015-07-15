@@ -1,7 +1,265 @@
+//==============================================================================
+// Attempting to make the viewer a jqueryUI widget.
+// args = {overview:true, zoomWidget:true}
+jQuery.prototype.saViewer = function(args) {
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saViewer) {
+            var viewer = new Viewer($(this[i]), args);
+            // Add the viewer as an instance variable to the dom object.
+            this[i].saViewer = viewer;
+            // TODO: Get rid of the event manager.
+            EVENT_MANAGER.AddViewer(viewer);
+        }
+        // TODO:  If the viewer is already created, just reformat the
+        // viewer with new parameters. (image info ...)
+        // Separate out the args from the constructor.
+    }
+    // I am uncertain what the API should be:
+    // - jQueryUI like with control through arguments.
+    // - Object oriented
+    //   - Access to viewer object through the dom element
+    //   - Access to viewer object through the jQuery list/selector.
+    return this;
+}
+
+
+
+
+//==============================================================================
+// jQuery extension for a full window div.
+// parent must be the body?  Maybe not.  Lets see if a full height is better.
+// I think position should be set to fixed or absolute.
+
+// TODO: Convert the viewer to use this.
+
+// No args / options.
+jQuery.prototype.saFullHeight = function() {
+    this.css({'top':'0px'});
+    this.addClass('sa-full-height');
+    //for (var i = 0; i < this.length; ++i) {
+        // I want to put the resize event on "this[i]",
+        // but, I am afraid in might not get trigerend always, or
+        // setting the height would cause recursive calls to resize.
+    //}
+
+    $(window).resize(
+        function() {
+            var height = window.innerHeight;
+            $('.sa-full-height')
+                .css({'top':    '0px',
+                      'height': height+'px'});
+            // Hack until I can figure out why the resize event is not
+            // firing for descendants.
+            // This did not work.  It also triggered resize on the window
+            // causeing infinite recusion.
+            //$('.sa-resize').trigger('resize');
+            var elements = $('.sa-resize');
+            for (var i = 0; i < elements.length; ++i) {
+                elements[i].onresize();
+            }
+        })
+        .trigger('resize');
+
+    return this;
+}
+
+//==============================================================================
+// I am having such troubles setting the right panel width to fill.
+// Solution is to have this element control too divs (panel and main).
+// If the panel overlaps the main, we do not need to manage the main panel.
+// It would have to be implemented on the panel div, not the parent div.
+
+// TODO: Verify this works in a stand alone page.
+// args
+// option to specify the handle.
+// option to place panel: left, right, top, bottom.
+// Use it for the Notes panel.
+// Use it for the presentation edit panel
+// use it for dual view.
+
+function ResizePanel(parent) {
+    var self = this;
+
+    // For animating the display of the notes window (DIV).
+    this.Width = 300;
+
+    this.PanelDiv = $('<div>').appendTo(parent)
+        .css({
+            'background-color': 'white',
+            'position': 'absolute',
+            'top' : '0px',
+            'bottom':'0px',
+            'left' : '0px',
+            'width': this.width+'px'})
+        .attr('draggable','false')
+        .on("dragstart", function() {return false;});
+    this.MainDiv = $('<div>').appendTo(parent)
+        .css({
+            'position': 'absolute',
+            'top' : '0px',
+            'bottom':'0px',
+            'left' : this.Width+'px',
+            'right':'0px',
+            'border':'1px solid #AAA'})
+        .attr('draggable','false')
+        .on("dragstart", function() {return false;});
+
+    this.OpenNoteWindowButton = $('<img>')
+        .appendTo(this.MainDiv)
+        .css({'position': 'absolute',
+              'height': '20px',
+              'width': '20px',
+              'top' : '0px',
+              'left' : '3px',
+              'opacity': '0.6',
+              '-moz-user-select': 'none',
+              '-webkit-user-select': 'none',
+              'z-index': '6'})
+        .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+        .click(function(){self.ToggleNotesWindow();})
+        .attr('draggable','false')
+        .hide()
+        .on("dragstart", function() {
+            return false;});
+
+    // I have no idea why the position right does not work.
+    this.CloseNoteWindowButton = $('<img>')
+        .appendTo(this.MainDiv)
+        .css({'position': 'absolute',
+              'height': '20px',
+              'top' : '0px',
+              'left' : '-20px',
+              'opacity': '0.6',
+              '-moz-user-select': 'none',
+              '-webkit-user-select': 'none',
+              'z-index': '6'})
+        //.hide()
+        .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+        .click(function(){self.ToggleNotesWindow();})
+        .attr('draggable','false')
+        .on("dragstart", function() {
+            return false;});
+
+
+    this.Visibilty = false;
+    this.Dragging = false;
+
+    this.ResizeNoteWindowEdge = $('<div>')
+        .appendTo(VIEW_PANEL)
+        .css({'position': 'absolute',
+              'height': '100%',
+              'width': '3px',
+              'top' : '0px',
+              'left' : '0px',
+              'background': '#BDF',
+              'z-index': '10',
+              'cursor': 'col-resize'})
+        .hover(function () {$(this).css({'background':'#9BF'});},
+               function () {$(this).css({'background':'#BDF'});})
+        .mousedown(function () {
+            self.StartDrag();
+        });
+}
+
+// TODO: Remove reference to body directly
+// Maybe use parent.
+ResizePanel.prototype.StartDrag = function () {
+    this.Dragging = true;
+    $('body').bind('mousemove',this.ResizeDrag);
+    $('body').bind('mouseup', this.ResizeStopDrag);
+    $('body').css({'cursor': 'col-resize'});
+}
+
+ResizePanel.ResizeDrag = function (e) {
+    this.SetWidth(e.pageX - 1);
+    if (this.Width < 200) {
+        this.ResizeStopDrag();
+        this.ToggleNotesWindow();
+    }
+
+    return false;
+}
+ResizePanel.ResizeStopDrag = function () {
+    $('body').unbind('mousemove',this.ResizeDrag);
+    $('body').unbind('mouseup', this.ResizeStopDrag);
+    $('body').css({'cursor': 'auto'});
+}
+
+
+
+
+// TODO: Notes widget should just follow the parent.
+// Get rid of this.
+ResizePanel.prototype.SetWidth = function(width) {
+    this.Width = width;
+    this.Window.width(width);
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+}
+
+ResizePanel.prototype.AnimateNotesWindow = function() {
+    var timeStep = new Date().getTime() - this.AnimationLastTime;
+    if (timeStep > this.AnimationDuration) {
+        // end the animation.
+        this.SetWidth(this.AnimationTarget);
+        // Hack to recompute viewports
+        // TODO: Get rid of this hack.
+        $(window).trigger('resize');
+
+        if (this.Visibilty) {
+            this.CloseNoteWindowButton.show();
+            this.OpenNoteWindowButton.hide();
+            this.Window.fadeIn();
+        } else {
+            this.CloseNoteWindowButton.hide();
+            this.OpenNoteWindowButton.show();
+        }
+        draw();
+        return;
+    }
+
+    var k = timeStep / this.AnimationDuration;
+
+    // update
+    this.AnimationDuration *= (1.0-k);
+    this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
+
+    draw();
+    var self = this;
+    requestAnimFrame(function () {self.AnimateNotesWindow();});
+}
+
+ResizePanel.prototype.ToggleNotesWindow = function() {
+    this.Visibilty = ! this.Visibilty;
+    RecordState();
+
+    if (this.Visibilty) {
+        this.AnimationCurrent = this.Width;
+        this.AnimationTarget = 325;
+    } else {
+        this.Window.hide();
+        this.AnimationCurrent = this.Width;
+        this.AnimationTarget = 0;
+    }
+    this.AnimationLastTime = new Date().getTime();
+    this.AnimationDuration = 1000.0;
+    this.AnimateNotesWindow();
+}
+
+
+//==============================================================================
+
+
+
+
+
+
+
+//==============================================================================
 
 
 // RGB [Float, Float, Float] to #RRGGBB string
-function ConvertColorToHex(color) {
+var ConvertColorToHex = function(color) {
   if (typeof(color) == 'string') { return color; }
   var hexDigits = "0123456789abcdef";
   var str = "#";
@@ -21,7 +279,7 @@ function ConvertColorToHex(color) {
 
 
 // 0-f hex digit to int
-function HexDigitToInt(hex) {
+var HexDigitToInt = function(hex) {
   if (hex == '1') {
     return 1.0;
   } else if (hex == '2') {
@@ -59,7 +317,7 @@ function HexDigitToInt(hex) {
 
 // Not used at the moment.
 // Make sure the color is an array of values 0->1
-function ConvertColor(color) {
+var ConvertColor = function(color) {
   // Deal with color names.
   if ( typeof(color)=='string' && color[0] != '#') {
     var colors = {"aliceblue":"#f0f8ff","antiquewhite":"#faebd7","aqua":"#00ffff","aquamarine":"#7fffd4","azure":"#f0ffff",

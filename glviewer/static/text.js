@@ -116,6 +116,8 @@ Text.prototype.destructor=function() {
   // Get rid of the buffers?
 }
 
+// TODO: Although this only used for the webL renderer, we should really
+// Hava a callback and let the application (or widget) call eventually render.
 Text.prototype.HandleLoadedTexture = function() {
   if (GL) {
     var texture = this.Texture;
