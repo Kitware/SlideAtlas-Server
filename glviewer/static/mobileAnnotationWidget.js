@@ -4,42 +4,59 @@
 //------------------------------------------------------------------------------
 // I intend to have only one object
 function MobileAnnotationWidget() {
+    var size = '80px';
+    //var left = '620px';
+    var right = '0px';
+    var bottom = '170px';
+    if (MOBILE_DEVICE == "iPhone") {
+        size = '100px';
+        bottom = '80px';
+        left = '80px';
+    }
 
-  var size = '80px';
-  //var left = '620px';
-  var right = '0px';
-  var bottom = '170px';
-  if (MOBILE_DEVICE == "iPhone") {
-    size = '100px';
-    bottom = '80px';
-    left = '80px';
-  }
-  
-  var self = this;
-  this.Div =
-    $('<div>').appendTo('body')
-              .addClass("sa-view-annotation-div ui-responsive")
+    // TODO: The css style is not working for mobile devices. fix it.
+    // for now, hack back in the size dependancies.
 
-  // I cannot get touch events that start in the image to continue in
-  // the document / viewer.  Press to place, then interact to position.
-  this.CircleButton =
-    $('<img>').appendTo(this.Div)
-              .addClass("sa-view-annotation-button")
-              .attr('src',"webgl-viewer/static/Circle128.jpg")
-              .click(function(){self.CircleCallback();});
-  this.CircleButton.prop('title', "Circle Annotation");
+    var self = this;
+    this.Div =
+        $('<div>').appendTo(VIEWER1.GetDiv())
+        .css({'position':'absolute',
+              'right':'0px',
+              'bottom':'0px',
+              'z-index':'5'});
 
-  this.TextButton =
-    $('<img>').appendTo(this.Div)
-              .addClass("sa-view-annotation-button")
-              .attr('src',"webgl-viewer/static/Text128.jpg")
-              .click(function(){self.TextCallback();});
-  this.TextButton.prop('title', "Text Annotation");
+    //.addClass("sa-view-annotation-div ui-responsive")
 
-  this.Visibility = false;
+    // I cannot get touch events that start in the image to continue in
+    // the document / viewer.  Press to place, then interact to position.
+    this.CircleButton = $('<img>')
+        .appendTo(this.Div)
+        .css({'height': size,
+              'width': size,
+              'opacity': '0.6',
+              'margin': '1px',
+              'padding': '5px'})
+        //.addClass("sa-view-annotation-button")
+        .attr('src',"webgl-viewer/static/Circle128.jpg")
+        .click(function(){self.CircleCallback();});
+    this.CircleButton.prop('title', "Circle Annotation");
 
-  var self = this;
-  EVENT_MANAGER.OnStartInteraction( function () { self.SetVisibility(false);} );
+    this.TextButton = $('<img>')
+        .appendTo(this.Div)
+        .css({'height': size,
+              'width': size,
+              'opacity': '0.6',
+              'margin': '1px',
+              'padding': '5px'})
+        //.addClass("sa-view-annotation-button")
+        .attr('src',"webgl-viewer/static/Text128.jpg")
+        .click(function(){self.TextCallback();});
+    this.TextButton.prop('title', "Text Annotation");
+
+    this.Visibility = false;
+
+    var self = this;
+    EVENT_MANAGER.OnStartInteraction( function () { self.SetVisibility(false);} );
 }
 
 
