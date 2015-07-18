@@ -28,21 +28,18 @@ function NavigationWidget() {
     var left = '170px';
     var bottom = '10px';
     if (MOBILE_DEVICE) {
-        size = '80px';
-        bottom = '170px';
-        left = '0px';
-        if (MOBILE_DEVICE == "iPhone") {
-            size = '100px';
-            bottom = '80px';
-            left = '80px';
-        }
-        
+
         // fake a tab
         this.Tab = {};
-        this.Tab.Panel = 
-            $('<div>').appendTo('body')
-                      .hide()
-                      .addClass("sa-view-navigation-div ui-responsive");
+        this.Tab.Panel = $('<div>')
+            .appendTo(VIEWER1.GetDiv())
+            .hide()
+            //.addClass("sa-view-navigation-div ui-responsive");
+            .addClass("ui-responsive")
+            .css({'position': 'absolute',
+                  'left': '50px',
+                  'bottom': '20px',
+                  'z-index': '5'});
     } else {
         this.Tab = new Tab(VIEW_PANEL,"/webgl-viewer/static/nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
@@ -84,6 +81,26 @@ function NavigationWidget() {
         .attr('src',"webgl-viewer/static/nextSlide.png")
         .prop('title',"Next Slide. (page-down)")
         .click(function(){self.NextSlide();});
+
+    // TODO: Fix the main css file for mobile.  Hack this until fixed.
+    if (MOBILE_DEVICE) {
+        size = '80px';
+        if (MOBILE_DEVICE == "iPhone") {
+            size = '100px';
+        }
+        this.PreviousSlideButton
+            .css({'height': size,
+                  'width' : size});
+        this.PreviousNoteButton
+            .css({'height': size,
+                  'width' : size});
+        this.NextNoteButton
+            .css({'height': size,
+                  'width' : size});
+        this.NextSlideButton
+            .css({'height': size,
+                  'width' : size});
+    }
 
     this.CopyrightWrapper =
         $('<div>').appendTo(VIEW_PANEL)

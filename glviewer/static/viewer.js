@@ -93,7 +93,7 @@ function Viewer (parent, args) {
     
     this.InteractionListeners = [];
 
-    if (args.zoomWidget && ( ! MOBILE_DEVICE || MOBILE_DEVICE != "Simple")) {
+    if (args.zoomWidget && ! MOBILE_DEVICE) {
         this.InitializeZoomGui();
     }
 

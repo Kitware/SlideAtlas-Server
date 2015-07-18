@@ -482,7 +482,7 @@ function handleResize() {
     // Handle resizing of the favorites bar.
     // TODO: Make a resize callback.
     if(FAVORITES_WIDGET != undefined){
-      FAVORITES_WIDGET.resize(width);
+        FAVORITES_WIDGET.resize(width);
     }
 
     // we set the left border to leave space for the notes window.
@@ -671,18 +671,22 @@ function Main2(rootNote) {
     }
     EVENT_MANAGER = new EventManager(CANVAS);
 
+    InitViews();
+
+    // TODO: Get rid of this global variable.
     NAVIGATION_WIDGET = new NavigationWidget();
     if (MOBILE_DEVICE) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
-    InitViews();
+
     VIEW_BROWSER = new ViewBrowser();
     InitDualViewWidget();
     InitNotesWidget(rootNote);
     InitRecorderWidget();
 
     // Do not let guests create favorites.
-    if (USER != "") {
+    // TODO: Rework how favorites behave on mobile devices.
+    if (USER != "" && ! MOBILE_DEVICE) {
         FAVORITES_WIDGET = new FavoritesWidget();
         FAVORITES_WIDGET.resize(CANVAS.innerWidth());
     }
