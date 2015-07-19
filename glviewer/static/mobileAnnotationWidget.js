@@ -38,7 +38,7 @@ function MobileAnnotationWidget() {
               'padding': '5px'})
         //.addClass("sa-view-annotation-button")
         .attr('src',"webgl-viewer/static/Circle128.jpg")
-        .click(function(){self.CircleCallback();});
+        .on('touchend', function(){self.CircleCallback();});
     this.CircleButton.prop('title', "Circle Annotation");
 
     this.TextButton = $('<img>')
@@ -50,7 +50,7 @@ function MobileAnnotationWidget() {
               'padding': '5px'})
         //.addClass("sa-view-annotation-button")
         .attr('src',"webgl-viewer/static/Text128.jpg")
-        .click(function(){self.TextCallback();});
+        .on('touchend', function(){self.TextCallback();});
     this.TextButton.prop('title', "Text Annotation");
 
     this.Visibility = false;
