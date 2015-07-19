@@ -8,29 +8,38 @@ var FAVORITES_GUI;
 // I intend to have only one object
 function FavoritesWidget() {
 
-    this.FavoritesBar = new FavoritesBar();
+    this.Tab = new Tab(VIEW_PANEL,
+                       "/webgl-viewer/static/star.png",
+                       "favorites");
+    this.Tab.Div
+        .css({'position':'absolute',
+              'bottom':'0px',
+              'left':'10px'})
+        .prop('title', "Annotation");
 
-    if( ! MOBILE_DEVICE){
-        var self = this;
-        this.MenuFavoriteButton =
-            $('<img>')
-            .appendTo(VIEW_PANEL)
-            .addClass("sa-view-favorites-button")
-            .attr('src',"webgl-viewer/static/favorite-star.png")
-            .attr('draggable','false')
-            .on("dragstart", function() {return false;})
-            .click(function(){ self.FavoritesBar.ShowHideFavorites(); });
+    this.Tab.Panel
+        .css({'position':'absolute',
+              'right': '-400px',
+              'left' : '-5px',
+              'height':'160px'});
+        //.addClass("sa-view-favorites-div");
 
-        this.MenuFavoriteButton.prop('title', "Favorites");
-    }
+    this.FavoritesBar = new FavoritesBar(this.Tab.Panel);
 
     LoadFavorites();
 }
 
-FavoritesWidget.prototype.resize = function(width){
-  this.FavoritesBar.resize(width);
-}
 
+
+
+// Hack: Tabs panels are children of the tab div.
+// If I make the tab div width 100%, The other tabs do not receive events.
+// The hack solution is to keep the resize.
+FavoritesWidget.prototype.HandleResize = function(width){
+    this.Tab.Panel
+        .css({'left':'-5px',
+              'width': (width-20)+'px'});
+}
 
 
 

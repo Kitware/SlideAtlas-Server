@@ -72,7 +72,6 @@ function detectMobile() {
     if (STYLE == "simple") {
         MOBILE_DEVICE = "Simple";
     }
-    MOBILE_DEVICE = "iPad";
 }
 
 
@@ -483,7 +482,7 @@ function handleResize() {
     // Handle resizing of the favorites bar.
     // TODO: Make a resize callback.
     if(FAVORITES_WIDGET != undefined){
-        FAVORITES_WIDGET.resize(width);
+        FAVORITES_WIDGET.HandleResize(width);
     }
 
     // we set the left border to leave space for the notes window.
@@ -689,7 +688,7 @@ function Main2(rootNote) {
     // TODO: Rework how favorites behave on mobile devices.
     if (USER != "" && ! MOBILE_DEVICE) {
         FAVORITES_WIDGET = new FavoritesWidget();
-        FAVORITES_WIDGET.resize(CANVAS.innerWidth());
+        FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
     }
 
     if (MOBILE_DEVICE) {

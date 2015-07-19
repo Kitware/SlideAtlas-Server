@@ -2,27 +2,10 @@
 
 var FAVORITES_GUI;
 
-function FavoritesBar(){
-    var size = '40px';
-    var left = '120px';
-    var bottom = '60px';
-    if (MOBILE_DEVICE) {
-        size = '80px';
-        if (MOBILE_DEVICE == "iPhone") {
-            size = '100px';
-            bottom = '80px';
-            left = '80px';
-        }
-    }
-
-    this.hidden = true;
-
+function FavoritesBar(parent){
     FAVORITES_GUI = this;
 
-    this.FavoritesList =
-        $('<div>').appendTo('body')
-        .addClass("sa-view-favorites-div")
-        .hide();
+    this.FavoritesList = parent;
 
     this.SaveFavoriteButton =
         $('<img>')
@@ -40,9 +23,7 @@ function FavoritesBar(){
     this.ImageList =
         $('<div>')
         .appendTo(this.FavoritesList)
-        .addClass("sa-view-favorites-img-list")
-  
-    VIEWER1.AddGuiObject(this.FavoritesList, "Bottom", 0, "Left", 0);
+        .addClass("sa-view-favorites-img-list");
 
     LoadFavorites();
 }
@@ -106,7 +87,8 @@ function LoadFavoritesCallback(sessionData) {
 
   FAVORITES_GUI.ImageList.html("");
 
-  for (var i = 0; i < sessionData.viewArray.length; ++i) {
+  //for (var i = 0; i < sessionData.viewArray.length; ++i) {
+  for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
     var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
                             .addClass("sa-view-favorites-callback-div");
 
@@ -119,7 +101,6 @@ function LoadFavoritesCallback(sessionData) {
     var view = $('<img>').appendTo(favorite)
                          .attr('src', thumb)
                          .attr('height', '110px')
-                         //.attr('width', '80px')
                          .addClass("sa-view-favorites-callback-img")
                          .attr('index', i)
                          .click(function(){ loadFavorite(this); });
@@ -160,18 +141,6 @@ function deleteFavorite(img){
   FAVORITES_GUI.ImageList.html("");
 
   LoadFavorites();
-}
-
-FavoritesBar.prototype.resize = function(width){
-  if(MOBILE_DEVICE){
-    this.ImageList.css({
-      'width': width - 90
-    });
-  } else {
-    this.ImageList.css({
-      'width': width - 50
-    });
-  }
 }
 
 
