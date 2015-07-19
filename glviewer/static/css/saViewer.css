@@ -588,11 +588,14 @@
 }
 
 .sa-view-favorites-img-list{
-    float: left;
+    position: absolute;
+    left: 50px;
+    right: 2px;
+    top: 1px;
+    bottom: 2px;
     overflow-x: scroll;
     overflow-y: hidden;
     white-space: nowrap;
-    height: 100%
 }
             
 .sa-view-favorites-callback-div{
