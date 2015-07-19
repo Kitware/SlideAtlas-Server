@@ -22,7 +22,7 @@ function AnnotationWidget (viewer) {
     this.Tab.Div
         .css({'position':'absolute',
               'bottom':'0px',
-              'right':'140px'})
+              'right':'110px'})
         .prop('title', "Annotation");
 
     this.Tab.Panel.addClass("sa-view-annotation-panel");

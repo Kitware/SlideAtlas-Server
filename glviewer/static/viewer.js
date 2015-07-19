@@ -315,7 +315,7 @@ Viewer.prototype.InitializeZoomGui = function() {
     this.ZoomTab.Div
         .css({'position':'absolute',
               'bottom':'0px',
-              'right':'37px'})
+              'right':'7px'})
         .prop('title', "Zoom scroll");
     this.ZoomTab.Panel
         .addClass("sa-view-zoom-panel");
