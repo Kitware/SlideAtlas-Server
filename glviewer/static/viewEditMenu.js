@@ -17,7 +17,7 @@ function ViewEditMenu (viewer) {
     this.Tab = new Tab(viewer.GetDiv(),"/webgl-viewer/static/Menu.jpg", "editTab");
     this.Tab.Div
         .css({'position':'absolute',
-              'right':'77px',
+              'right':'47px',
               'bottom':'0px'})
         .prop('title', "View Menu");
 
