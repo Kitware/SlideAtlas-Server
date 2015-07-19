@@ -10,7 +10,7 @@ function FavoritesWidget() {
 
     this.FavoritesBar = new FavoritesBar();
 
-    if(!MOBILE_DEVICE){
+    if( ! MOBILE_DEVICE){
         var self = this;
         this.MenuFavoriteButton =
             $('<img>')

@@ -90,16 +90,24 @@ function NavigationWidget() {
         }
         this.PreviousSlideButton
             .css({'height': size,
-                  'width' : size});
+                  'width' : size,
+                  'opacity':'0.8'})
+            .on('touchend', function(){self.PreviousSlide();});
         this.PreviousNoteButton
             .css({'height': size,
-                  'width' : size});
+                  'width' : size,
+                  'opacity':'0.8'})
+            .on('touchend', function(){self.PreviousNote();});
         this.NextNoteButton
             .css({'height': size,
-                  'width' : size});
+                  'width' : size,
+                  'opacity':'0.8'})
+            .on('touchend', function(){self.NextNote();});
         this.NextSlideButton
             .css({'height': size,
-                  'width' : size});
+                  'width' : size,
+                  'opacity':'0.8'})
+            .on('touchend', function(){self.NextSlide();});
     }
 
     this.CopyrightWrapper =
