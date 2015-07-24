@@ -120,6 +120,7 @@ function Presentation(rootNote, edit) {
 
     this.TitlePage = new TitlePage(this.PresentationDiv, edit);
     this.SlidePage = new SlidePage(this.PresentationDiv, edit);
+    this.HtmlPage  = new HtmlPage(this.PresentationDiv, edit);
 
     this.RootNote = rootNote;
     this.GotoSlide(0);
@@ -130,7 +131,6 @@ function Presentation(rootNote, edit) {
     // The event manager still handles stack alignment.
     // This should be moved to a stack helper class.
     // Undo and redo too.
-    document.onkeydown = function(e) {self.HandleKeyDown(e);};
     document.onkeyup = function(e) {self.HandleKeyUp(e);};
 
     if (EDIT) {
@@ -141,7 +141,8 @@ function Presentation(rootNote, edit) {
 
 Presentation.prototype.StartTimerShow = function () {
     var self = this;
-    EVENT_MANAGER.FocusOut();
+    // hack to turn off key events.
+    CONTENT_EDITABLE_HAS_FOCUS = true;
     var dialog = $('<div>')
         .dialog({
             modal: false,
@@ -152,9 +153,7 @@ Presentation.prototype.StartTimerShow = function () {
                 of: window
             },
             beforeClose: function() {
-                //document.onkeydown = function(e) {self.HandleKeyDown(e);};
-                //document.onkeyup = function(e) {self.HandleKeyUp(e);};
-                EVENT_MANAGER.FocusIn();
+                CONTENT_EDITABLE_HAS_FOCUS = false;
             },
             buttons: {
                 "Start": function () {
@@ -182,7 +181,7 @@ Presentation.prototype.FullScreen = function () {
     var elem = document.body;
 
     this.EditOff();
-    this.HandleResize();
+    $(window).trigger('resize');
     this.ShowButton.hide();
     this.TimerButton.hide();
 
@@ -248,7 +247,10 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .addClass('editButton')
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
-        .click(function () { self.InsertNewSlide();});
+        .click(function () { 
+            var note = self.InsertNewSlide('HTML');
+            self.HtmlPage.InitializeNote
+        });
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
         .appendTo(this.SlidesDiv)
@@ -276,7 +278,7 @@ Presentation.prototype.TimerCallback = function(duration) {
     if (this.Index == this.GetNumberOfSlides() - 1) {
         // Stop but stay in full screen mode.
         this.GotoSlide(0);
-        EVENT_MANAGER.FocusIn();
+        CONTENT_EDITABLE_HAS_FOCUS = false;
         return;
     }   
 
@@ -357,12 +359,13 @@ Presentation.prototype.AddImageCallback = function(image) {
 
 
 Presentation.prototype.HandleKeyDown = function(event) {
+    return true;
 }
 
 
 Presentation.prototype.HandleKeyUp = function(event) {
     // Hack to keep the slides from changing when editing.
-    if ( ! EVENT_MANAGER.HasFocus) {
+    if ( CONTENT_EDITABLE_HAS_FOCUS) {
         return true;
     }
 
@@ -420,12 +423,16 @@ Presentation.prototype.DeleteSlide = function (index){
 }
 
 
-Presentation.prototype.InsertNewSlide = function (){
+Presentation.prototype.InsertNewSlide = function (type){
     var idx = this.Index+1;
     var note = new Note();
+    if (type) { note.Type = type; }
     this.RootNote.Children.splice(idx-1,0,note);
     this.GotoSlide(idx);
     this.UpdateSlidesTab();
+    if (type == 'HTML') {
+        this.HtmlPage.InitializeDiv();
+    }
 }
 
 // 0->Root/titlePage
@@ -449,12 +456,21 @@ Presentation.prototype.GotoSlide = function (index){
     this.Index = index;
     if (index == 0) { // Title page
         this.SlidePage.Div.hide();
+        this.HtmlPage.Div.hide();
         this.Note = this.RootNote;
         this.TitlePage.DisplayNote(this.Note);
     } else { // Slide page
-        this.TitlePage.Div.hide();
         this.Note = this.GetSlide(index);
-        this.SlidePage.DisplayNote(index, this.Note);
+        if (this.Note.Type = "HTML") {
+            this.TitlePage.Div.hide();
+            this.SlidePage.Div.hide();
+            this.HtmlPage.Div.show();
+            this.HtmlPage.DisplayNote(this.Note);
+        } else {
+            this.TitlePage.Div.hide();
+            this.HtmlPage.Div.hide();
+            this.SlidePage.DisplayNote(index, this.Note);
+        }
     }
     // Start preloading the next slide.
     if (index < this.RootNote.Children.length) {
@@ -644,7 +660,7 @@ function SlidePage(parent, edit) {
             .click(function () {
                 PRESENTATION.Note.ViewerRecords.splice(1,1);
                 // Hack to reposition viewers.
-                PRESENTATION.HandleResize();
+                $(window).trigger('resize');
             });
         // Temporary way to delete a this.
         this.DeleteSlideButton = $('<img>')
@@ -671,7 +687,7 @@ function SlidePage(parent, edit) {
             .mouseup(function () {
                 this.saViewer.Focus = true;
                 self.UpdateEdits();
-                PRESENTATION.HandleResize();
+                $(window).trigger('resize');
             });
         this.ViewerDiv1
             .resize(function () {
@@ -691,7 +707,7 @@ function SlidePage(parent, edit) {
             .mouseup(function () {
                 this.saViewer.Focus = true;
                 self.UpdateEdits();
-                PRESENTATION.HandleResize();
+                $(window).trigger('resize');
             });
         this.ViewerDiv2
             .resize(function () {
@@ -1010,11 +1026,11 @@ function TitlePage (parent, edit) {
     if (this.Edit) {
         var self = this;
         this.Title
-            .focusin(function() { EVENT_MANAGER.FocusOut(); })
-            .focusout(function() { EVENT_MANAGER.FocusIn(); });
+            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
+            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
         this.AuthorText
-            .focusin(function() { EVENT_MANAGER.FocusOut(); })
-            .focusout(function() { EVENT_MANAGER.FocusIn(); });
+            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
+            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
     }
 }
 
@@ -1043,6 +1059,8 @@ TitlePage.prototype.DisplayNote = function (note) {
     this.Title.html(note.HiddenTitle);
     this.AuthorText.html(note.Text);
 
+    // What is this doing?
+    // Select the title?
     var sel = window.getSelection();
     var range;
     range = document.createRange();
@@ -1050,11 +1068,14 @@ TitlePage.prototype.DisplayNote = function (note) {
     range.selectNodeContents(this.Title[0]);
     sel.removeAllRanges();
     sel.addRange(range);
-
+    // Changes it to be bigger and white
     document.execCommand('foreColor', false, "#FFF");
     document.execCommand('fontSize', false, '6');
     document.execCommand('fontName', false, 'Arial');
 
+    // Format the author text.
+    // Bad way to format.  Title page should go away and
+    // be replaced by HtmlPage.
     range.selectNodeContents(this.AuthorText[0]);
     sel.removeAllRanges();
     sel.addRange(range);
@@ -1063,6 +1084,7 @@ TitlePage.prototype.DisplayNote = function (note) {
     document.execCommand('fontName', false, 'Arial');
 
     sel.removeAllRanges();
+    // Remove focus from the two text boxes.
     this.Title.blur();
     this.AuthorText.blur();
 }
@@ -1072,6 +1094,173 @@ TitlePage.prototype.UpdateEdits = function () {
     if (this.Note) {
         this.Note.Text = this.AuthorText.html();
         this.Note.HiddenTitle = this.Title.html();
+    }
+}
+
+
+//==============================================================================
+// How to save css stuff?
+// embedded viewers will be children (what to do about multiple records, stacks?).
+// Ignore edit for now.
+function HtmlPage (parent, edit) {
+    this.Edit = edit;
+    this.Note = null;
+    // Should I make another div or just use the parent?
+    this.Div = $('<div>')
+        .appendTo(parent)
+        .hide()
+        .css({
+            'background':'#FFF',
+            'position' : 'absolute',
+            'width': '100%',
+            'height': '100%'});
+}
+
+
+HtmlPage.prototype.EditOff = function () {
+    if (EDIT && this.Edit) {
+        this.Edit = false;
+    }
+}
+
+
+HtmlPage.prototype.DisplayNote = function (note) {
+    this.Note = note;
+    this.Div.show();
+    this.Div.html(note.Text);
+}
+
+
+// Add the initial html.
+HtmlPage.prototype.InitializeDiv = function() {
+    this.Div.css({'background-color':'#E5F3FE'});
+    var titleBar = $('<div>')
+        .appendTo(this.Div)
+        .css({'background-color':'#073E87',
+              'position':'absolute',
+              'left':'0%',
+              'width':'97.5%',
+              'top':'6%',
+              'height':'14%'});
+    // Should everything be have Div as parent?
+    // Todo: make this look like jquery.
+    var titleText = this.InsertTextBox(42)
+        .css({'color':'white',
+              'left':'18%',
+              'top':'7%'})
+        .text("Title");
+
+    this.UpdateEdits();
+    this.BindElements();
+}
+
+
+HtmlPage.prototype.InsertIFrame = function(src) {
+    // iframes do not scale with css.  I have to have a resize callback.
+    var div = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left':'5%',
+              'right':'2.5%',
+              'top':'25%',
+              'bottom':'10%'});
+    var frame = $('<iframe>')
+        .appendTo(div)
+        .css({'position':'absolute',
+              'display':'block',
+              'width':'100%',
+              'height':'100%'})
+        .attr('src',src)
+        .attr('scrolling','no')
+        .addClass('sa-presentation-iframe');
+
+    this.BindElements();
+}
+
+// This could be eliminated and just use the jquery saTextEditor.
+// Interactively place the initial box.
+// First lets see if we can reposition it.
+HtmlPage.prototype.InsertTextBox = function(size) {
+    size = size || 30;
+
+    // Should everything be have Div as parent?
+    var text = $('<div>')
+        // note: parent has to be set before saTextEditor is called.
+        .appendTo(this.Div)
+        .css({'display':'inline-block',
+              'position':'absolute',
+              'overflow': 'visible',
+              // defaults
+              'left' : '18%',
+              'top'  : '50%'})
+        .addClass('sa-presentation-text')
+        .data('font-scale', size)
+        // default
+        .text("Text");
+
+    if (this.Edit) {
+        // Make this div into a text editor.
+        text.saTextEditor();
+    }
+
+    this.UpdateEdits();
+    this.BindElements();
+    return text;
+}
+
+
+// Text elements need to resize explicitly.
+HtmlPage.prototype.BindElements = function() {
+    textElements = $('.sa-presentation-text');
+    textElements.addClass('sa-resize');
+
+    // TODO: Make scalable text a jquery extension.
+    for (var i = 0; i < textElements.length; ++i) {
+        var text = textElements[i];
+        text.onresize =
+            function () {
+                scale = parseFloat($(this).data('fontScale'));
+                // Scale it relative to the window.
+                fontSize = scale * PRESENTATION.WindowDiv.height() / 500;
+                this.style.fontFamily="Verdana,sans-serif";
+                this.style.fontSize = fontSize+'px';
+            };
+        text.onresize();
+    }
+    // Similar to text, we need to scale the content.
+    frameElements = $('.sa-presentation-iframe');
+    frameElements.addClass('sa-resize');
+    for (var i = 0; i < frameElements.length; ++i) {
+        frame = frameElements[i];
+        frame.onresize =
+            function () {
+                var w = $(this).parent().width();
+                var h = $(this).parent().height();
+                scale = Math.min(h,w/1.62) / 700;
+                scaleStr = scale.toString();
+                w = (Math.floor(w/scale)).toString();
+                h = (Math.floor(h/scale)).toString();
+
+                console.log(scaleStr);
+                $(this).css({'-ms-zoom': scaleStr,
+                             '-ms-transform-origin': '0 0',
+                             '-moz-transform': 'scale('+scaleStr+')',
+                             '-moz-transform-origin': '0px 50px',
+                             '-o-transform': 'scale('+scaleStr+')',
+                             '-o-transform-origin': '0px 50px',
+                             '-webkit-transform': 'scale('+scaleStr+')',
+                             '-webkit-transform-origin': '0 0',
+                             'width':  w +'px',
+                             'height': h +'px'});
+            };
+        frame.onresize();
+    }
+}
+
+
+HtmlPage.prototype.UpdateEdits = function () {
+    if (this.Note) {
+        this.Note.Text = this.Div.html();
     }
 }
 
@@ -1109,8 +1298,8 @@ function SearchPanel(parent, callback) {
         .css({'width':'95%',
               'display':'table-cell',
               'border':'2px inset #CCC'})
-        .focusin(function() { EVENT_MANAGER.FocusOut(); })
-        .focusout(function() { EVENT_MANAGER.FocusIn(); });
+        .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
+        .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
     this.SearchResults = $('<div>')
         .appendTo(parent)
         .css({'position':'absolute',

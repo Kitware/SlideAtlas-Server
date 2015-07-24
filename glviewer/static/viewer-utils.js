@@ -63,6 +63,118 @@ jQuery.prototype.saFullHeight = function() {
     return this;
 }
 
+
+//==============================================================================
+// This makes the font scale with the height of the "window".
+jQuery.prototype.saScalableFont = function(args) {
+    for (var i = 0; i < this.length; ++i) {
+        var text = this[i]; 
+        if ( ! text.saScalableFont) {
+            var scale = 24; // default.
+            if (args && args.scale) {
+                scale = args.scale;
+            }
+            text.saScalableFont = scale;
+            text.onresize =
+                function () {
+                    scale = this.saScalableFont;
+                    // Scale it relative to the window.
+                    var height = window.innerHeight;
+                    fontSize = scale * height / 500;
+                    this.style.fontSize = fontSize+'px';
+                };
+            text.onresize();
+        }
+    }
+
+    return this;
+}
+
+
+//==============================================================================
+// Make any div into a text editor.
+// Will be used for the presentation html editor.
+jQuery.prototype.saTextEditor = function(args) {
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saTextEditor) {
+            var textEditor = new TextEditor2($(this[i]), args);
+            // Add the viewer as an instance variable to the dom object.
+            this[i].saTextEditor = textEditor;
+        }
+    }
+
+    return this;
+}
+
+// I hate to use this hack, but I need to stop other events from triggering.
+var CONTENT_EDITABLE_HAS_FOCUS = false;
+
+function TextEditor2(div, args) {
+    var self = this;
+    this.Div = div;
+    // Position the div with percentages instead of pixels.
+    this.Percentage = true;
+   
+    var pos = div.position();
+    // I think the drag handle needs to be in the parent.
+    // Then synchronize the div's position with the handle.
+    // Parent must then be realtive positioning or equivalent.
+    this.DragHandle = $('<img>')
+    // this is specific for the presentation.  I do not want gui showing up
+    // in html.
+        .appendTo(div.parent().parent())
+        .hide()
+        .prop('title', 'drag text')
+        .attr('src','webgl-viewer/static/fullscreen.png') // temp icon
+        .addClass('editButton') // this is not really a button ....
+        .css({'background':'white',
+              'position':'absolute',
+              'left'  :(pos.left-2)+'px',
+              'top'   :(pos.top-20) +'px'})
+        .draggable({
+            drag: function( event, ui ) {
+                this.saTextEditor.SetPixelPosition(ui.position.left+2,
+                                                   ui.position.top+20);}
+        });
+    // This is needed for the drag event to synchronize position of div.
+    this.DragHandle[0].saTextEditor = this;
+
+
+    div.attr('contenteditable', "true")
+        .focusin(function() {
+            CONTENT_EDITABLE_HAS_FOCUS = true;
+            // Position the handle in the proper spot.
+            // Resizing witn percentages changes it.
+            var pos = self.Div.position();
+            self.DragHandle
+                .css({'left'  :(pos.left-2)+'px',
+                      'top'   :(pos.top-20) +'px'})
+                .show();
+        })
+        .focusout(function() {
+            CONTENT_EDITABLE_HAS_FOCUS = false;
+            self.DragHandle.hide();
+        })
+}
+
+// Set in position in pixels
+TextEditor2.prototype.SetPixelPosition = function(x, y) {
+    if (this.Percentage) {
+        x = 100 * x / this.Div.parent().width();
+        y = 100 * y / this.Div.parent().height();
+        this.Div[0].style.left = x.toString()+'%';
+        this.Div[0].style.top = y.toString()+'%';
+    } else {
+        this.Div[0].style.left = x+'px';
+        this.Div[0].style.top = y+'px';
+    }
+}
+
+
+
+
+
+
 //==============================================================================
 // I am having such troubles setting the right panel width to fill.
 // Solution is to have this element control too divs (panel and main).
