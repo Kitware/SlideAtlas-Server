@@ -1190,12 +1190,14 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         .css({'display':'inline-block',
               'position':'absolute',
               'overflow': 'visible',
-              // defaults
+              'fontFamily': "Verdana,sans-serif",
+              // defaults caller can reset these.
               'left' : '18%',
               'top'  : '50%'})
         .addClass('sa-presentation-text')
-        .data('font-scale', size)
-        // default
+        // This makes the font scale with height of the window.
+        .saScalableFont({scale:size})
+        // default content
         .text("Text");
 
     if (this.Edit) {
@@ -1203,30 +1205,14 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         text.saTextEditor();
     }
 
-    this.UpdateEdits();
-    this.BindElements();
     return text;
 }
 
 
 // Text elements need to resize explicitly.
+// TODO: Activate text (saScalatFont, saTextEditor, resize) on load.
+// I could make this scalabe ifram as a jquery extension too.
 HtmlPage.prototype.BindElements = function() {
-    textElements = $('.sa-presentation-text');
-    textElements.addClass('sa-resize');
-
-    // TODO: Make scalable text a jquery extension.
-    for (var i = 0; i < textElements.length; ++i) {
-        var text = textElements[i];
-        text.onresize =
-            function () {
-                scale = parseFloat($(this).data('fontScale'));
-                // Scale it relative to the window.
-                fontSize = scale * PRESENTATION.WindowDiv.height() / 500;
-                this.style.fontFamily="Verdana,sans-serif";
-                this.style.fontSize = fontSize+'px';
-            };
-        text.onresize();
-    }
     // Similar to text, we need to scale the content.
     frameElements = $('.sa-presentation-iframe');
     frameElements.addClass('sa-resize');

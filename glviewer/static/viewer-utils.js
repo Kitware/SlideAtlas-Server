@@ -67,6 +67,7 @@ jQuery.prototype.saFullHeight = function() {
 //==============================================================================
 // This makes the font scale with the height of the "window".
 jQuery.prototype.saScalableFont = function(args) {
+    this.addClass('sa-resize'); 
     for (var i = 0; i < this.length; ++i) {
         var text = this[i]; 
         if ( ! text.saScalableFont) {
