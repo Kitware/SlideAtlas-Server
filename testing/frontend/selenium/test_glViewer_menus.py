@@ -67,7 +67,7 @@ class glViewerTests(unittest.TestCase):
   def test_09_annotationTab(self):
     global driver
     annot_tab = driver.find_element_by_id('annotationTab')
-    annot_menu = annot_tab.find_element_by_xpath('//*[@id="annotationTab"]/div')
+    annot_menu = annot_tab.find_element_by_class_name('sa-view-annotation-panel')
     annot_imgs = annot_menu.find_elements_by_tag_name("img")
     if not annot_menu.is_displayed():
       annot_tab.click()
@@ -76,7 +76,10 @@ class glViewerTests(unittest.TestCase):
       if not re.search("Text.gif", button.get_attribute("src")):
         button.click()
         time.sleep(5)
-        self.assertTrue(button.get_attribute("style") != old_style)
+        if button.get_attribute("class") == "sa-view-annotation-vis-img":
+          self.assertTrue(not button.get_attribute("style") == old_style)
+        else:
+          self.assertTrue(button.get_attribute("class") == "sa-view-annotation-button sa-active")
       # else:
         # Commenting out due to inability to close the modal window upon choosing text annotation
         # text_popup = driver.find_element_by_css_selector("#body > div:nth-child(65) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2)")
@@ -87,7 +90,7 @@ class glViewerTests(unittest.TestCase):
   def _3_editTab(self):
     global driver
     annot_tab = driver.find_element_by_id('editTab')
-    annot_menu = annot_tab.find_element_by_xpath('//*[@id="editTab"]/div')
+    annot_menu = annot_tab.find_element_by_class_name('sa-view-edit-panel')
     for button in annot_menu.find_elements_by_tag_name("button"):
       annot_tab.click()
       old_style = button.get_attribute("style")
@@ -98,7 +101,7 @@ class glViewerTests(unittest.TestCase):
   def test_04_navTab(self):
     global driver
     nav_tab = driver.find_element_by_id('navigationTab')
-    nav_menu = nav_tab.find_element_by_tag_name('div')
+    nav_menu = nav_tab.find_element_by_class_name('sa-view-navigation-panel')
     if not nav_menu.is_displayed():
       nav_tab.click()
       time.sleep(1)
@@ -114,7 +117,7 @@ class glViewerTests(unittest.TestCase):
     zoom_tabs = driver.find_elements_by_id("zoomTab")
     oldText = zoom_tabs[1].text
     zoom_tabs[1].find_element_by_tag_name("img").click()
-    annot_menu = zoom_tabs[1].find_element_by_tag_name('div')
+    annot_menu = zoom_tabs[1].find_element_by_class_name('sa-view-zoom-panel')
     for button in annot_menu.find_elements_by_tag_name("img"):
       button.click()
     time.sleep(2)
@@ -126,7 +129,7 @@ class glViewerTests(unittest.TestCase):
     editTabs = driver.find_elements_by_id("editTab")
     editTabs[1].find_element_by_tag_name("img").click()
     time.sleep(10)
-    edit_menu = editTabs[1].find_element_by_tag_name("div")
+    edit_menu = editTabs[1].find_element_by_class_name('sa-view-edit-panel')
     #for button in edit_menu.find_elements_by_tag_name('button'):
     #  if not button.is_displayed():
     #    editTabs[1].find_element_by_tag_name("img").click()
@@ -141,6 +144,7 @@ if __name__ == "__main__":
   # Use global driver to access viewer page of Slide-Atlas
   driver = webdriver.Chrome()
   driver.get(result['webroot'] + "webgl-viewer?db=5074589002e31023d4292d83&view=544f92d6dd98b515418f3302")
+  time.sleep(3)
   # Run test(s)
   suite = unittest.TestLoader().loadTestsFromTestCase(glViewerTests)
   unittest.TextTestRunner(verbosity=2).run(suite)

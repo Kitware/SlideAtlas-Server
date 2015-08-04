@@ -40,8 +40,8 @@ class glViewer_nav_Tests(unittest.TestCase):
 
   def test_01_rotation(self):
     global driver
-    nav_widget = driver.find_element_by_xpath('//*[@id="body"]/div[4]/div[5]')
-    rot_pic = nav_widget.find_element_by_tag_name("img")
+    rot_pic = driver.find_element_by_class_name("sa-view-rotate")
+    nav_widget=rot_pic.find_element_by_xpath("..")
     old_style = nav_widget.get_attribute("style")
     ActionChains(driver).move_to_element(rot_pic).drag_and_drop_by_offset(rot_pic, -50, 50).perform()
     time.sleep(2)
@@ -51,7 +51,8 @@ class glViewer_nav_Tests(unittest.TestCase):
   # Navigation widget/canvas
   def _test_02_resize(self):
     global driver
-    nav_widget = driver.find_element_by_xpath('//*[@id="body"]/div[4]/div[5]')
+    rot_pic = driver.find_element_by_class_name("sa-view-rotate")
+    nav_widget=rot_pic.find_element_by_xpath("..")
     nav_canvas = nav_widget.find_element_by_tag_name("canvas")
     old_width = nav_canvas.get_attribute("width")
     old_height = nav_canvas.get_attribute("height")
@@ -68,6 +69,7 @@ if __name__ == "__main__":
   # This test remains in the Firefox web driver because of https://code.google.com/p/chromedriver/issues/detail?id=841
   driver = webdriver.Firefox()
   driver.get(result['webroot'] + "webgl-viewer?db=5074589002e31023d4292d83&view=544f92d6dd98b515418f3302")
+  time.sleep(3)
   # Run test(s)
   suite = unittest.TestLoader().loadTestsFromTestCase(glViewer_nav_Tests)
   unittest.TextTestRunner(verbosity=2).run(suite)
