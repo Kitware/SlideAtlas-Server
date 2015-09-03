@@ -42,6 +42,7 @@ Camera.prototype.SetViewport = function (viewport) {
     this.ViewportWidth = viewport[2];
     this.ViewportHeight = viewport[3];
     this.Width = this.Height * this.ViewportWidth / this.ViewportHeight;
+    this.ComputeMatrix();
 }
 
 

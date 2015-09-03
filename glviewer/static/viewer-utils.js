@@ -1,3 +1,188 @@
+// TODO: 
+// - Make editable an option for the text editor.
+// - It woud be nice to have drag button, delete button, edit buttons
+//   add themselves to a common buttons div in arbitrary saObjects.
+
+
+
+
+//==============================================================================
+// A common parent for all sa buttons (for this element).
+// Handle showing and hiding buttons.  Internal helper.
+
+function saGetButtonsDiv(element) {
+    if ( ! element.saButtons) {
+        // Edit buttons.
+        var helper = new saButtons($(element));
+        element.saButtons = helper;
+
+    }
+
+    return element.saButtons.ButtonsDiv;
+}
+
+function saButtons (div) {
+    this.Div = div;
+    this.TimerId = -1;
+    var pos = div.position();
+    this.ButtonsDiv = $('<div>')
+        .appendTo(div.parent())
+        .addClass('sa-edit-gui') // So we can remove it when saving.
+        .hide()
+        .css({'position':'absolute',
+              'left'  :(pos.left-2)+'px',
+              'top'   :(pos.top-20) +'px',
+              'width' :'300px'}); // TODO: see if we can get rid of the width.
+    // Show the buttons on hover.
+    var self = this;
+    this.ButtonsDiv
+        .mouseenter(function () { self.ShowButtons(); })
+        .mouseleave(function () { self.HideButtons(); });
+
+    this.Div
+        .mouseenter(function () { self.ShowButtons(); })
+        .mouseleave(function () { self.HideButtons(); });
+}
+
+saButtons.prototype.PlaceButtons = function () {
+    var pos = this.Div.position();
+    this.ButtonsDiv
+        .css({'left'  :(pos.left-2)+'px',
+              'top'   :(pos.top-20) +'px'});
+}
+
+saButtons.prototype.ShowButtons = function () {
+    if (this.TimerId >= 0) {
+        clearTimeout(this.TimerId);
+        this.TimerId = -1;
+    }
+    this.PlaceButtons();
+    this.ButtonsDiv.show();
+}
+
+saButtons.prototype.HideButtons = function () {
+    if (this.TimerId < 0) {
+        var self = this;
+        this.TimerId = 
+            setTimeout(function () {self.ButtonsDiv.hide();}, 200);
+    }
+}
+
+
+function saAddButton (element, src, tooltip, callback) {
+    var buttonsDiv = saGetButtonsDiv(element);
+    var button = $('<img>')
+        .appendTo(buttonsDiv)
+        .addClass('editButton')
+        .attr('src',src);
+    if (callback) {
+        button.click(callback);
+    }
+
+    if (tooltip) {
+        button.prop('title', tooltip);
+    }
+
+    return button;
+}
+
+// Remove the buttons div.
+function saButtonsDelete (element) {
+    element.saButtons.ButtonsDiv.remove();
+}
+
+
+
+
+//==============================================================================
+// Load html into a div just like .html, but setup slide atlas jquery
+// extensions.  The state of these extensions is saved in attributes.
+// The extension type is saved as a class.
+
+jQuery.prototype.saHtml = function(string) {
+    if (string) {
+        this.html(string);
+        this.find('.sa-text-editor').saTextEditor();
+        this.find('.sa-scalable-font').saScalableFont();
+        // We need to load the note.
+        viewDivs = this.find('.sa-presentation-view');
+        viewDivs.saViewer();
+        for (var i = 0; i < viewDivs.length; ++i) {
+            $(viewDivs[i])
+            var noteId = $(viewDivs[i]).attr('sa-note-id');
+            if (noteId) {
+                // TODO: Rethink this.
+                // The viewer does not actually keep a refrence to the note.
+                // We may not even care if we load a sceond copy of the
+                // note. So when changes are made, the note is important.
+                var note = GetNoteFromId(noteId);
+                if (note) {
+                    note.ViewerRecords[0].Apply(viewDivs[i].saViewer);
+                    viewDivs[i].saNote = note;
+                }
+            }
+        }
+
+        return;
+    }
+
+    // Add an attribute to the sa-presentation-view that spcifies which
+    // view id is being displayed. The view is set programatically, not
+    // through jquery api. Also, the note may not have an id until we are
+    // ready to save.
+    var views = this.find('.sa-presentation-view');
+    for (var i = 0; i <  views.length; ++i) {
+        var note = views[i].saNote;
+        if ( ! note ) {
+            console.log("Warning: Note is not saved and has no id.");
+        } else if (note.Id) {
+            $(views[i]).attr('sa-note-id',note.Id);
+        } else if (note.TempId) {
+            $(views[i]).attr('sa-note-id',note.TempId);
+        }
+    }
+
+
+    // Get rid of the gui elements when returning the html.
+    var copy = this.clone();
+    copy.find('.sa-edit-gui').remove();
+    // Get rid of the children of the sa-presentation-view.
+    // They will be recreated by viewer when the html is loaded.
+    copy.find('.sa-presentation-view').empty();
+
+    return copy.html();
+}
+
+
+
+
+//==============================================================================
+// Just add the feature of setting width and height as percentages.
+
+jQuery.prototype.saResizable = function(args) {
+    args = args || {};
+    args.stop = function (e, ui) {
+        // change the width and height to percentages.
+        var height = $(this).height();
+        height = 100 * height / $(this).parent().height();
+        this.style.height = height.toString()+'%';
+        if (args.aspectRatio) {
+            this.style.width = '';
+        } else {
+            var width = $(this).width();
+            width = 100 * width / $(this).parent().width();
+            this.style.width = width.toString()+'%';
+        }
+    };
+
+    this.resizable(args);
+
+    return this;
+}
+
+
+
+
 //==============================================================================
 // Attempting to make the viewer a jqueryUI widget.
 // args = {overview:true, zoomWidget:true}
@@ -7,8 +192,19 @@ jQuery.prototype.saViewer = function(args) {
             var viewer = new Viewer($(this[i]), args);
             // Add the viewer as an instance variable to the dom object.
             this[i].saViewer = viewer;
+            viewer.CopyrightWrapper.hide();
             // TODO: Get rid of the event manager.
             EVENT_MANAGER.AddViewer(viewer);
+
+            // When the div resizes, we need to synch the camera and
+            // canvas.
+            this[i].onresize =
+                function () {
+                    this.saViewer.UpdateSize();
+                }
+            // Only the body seems to trigger onresize.  We need to trigger
+            // it explicitly (from the body onresize function).
+            $(this[i]).addClass('sa-resize');
         }
         // TODO:  If the viewer is already created, just reformat the
         // viewer with new parameters. (image info ...)
@@ -22,6 +218,14 @@ jQuery.prototype.saViewer = function(args) {
     return this;
 }
 
+jQuery.prototype.saRecordViewer = function() {
+    for (var i = 0; i < this.length; ++i) {
+        if (this[i].saNote && this[i].saViewer) {
+            this[i].saNote.ViewerRecords[0].CopyViewer(this[i].saViewer);            
+        }
+    }
+}
+    
 
 
 
@@ -55,7 +259,9 @@ jQuery.prototype.saFullHeight = function() {
             //$('.sa-resize').trigger('resize');
             var elements = $('.sa-resize');
             for (var i = 0; i < elements.length; ++i) {
-                elements[i].onresize();
+                if (elements[i].onresize) {
+                    elements[i].onresize();
+                }
             }
         })
         .trigger('resize');
@@ -67,18 +273,30 @@ jQuery.prototype.saFullHeight = function() {
 //==============================================================================
 // This makes the font scale with the height of the "window".
 jQuery.prototype.saScalableFont = function(args) {
-    this.addClass('sa-resize'); 
+    this.addClass('sa-scalable-font');
+    this.addClass('sa-resize');
     for (var i = 0; i < this.length; ++i) {
-        var text = this[i]; 
+        var text = this[i];
         if ( ! text.saScalableFont) {
-            var scale = 24; // default.
+            // default.
+            var scale = 24;
+            // html() saves this attribute.
+            // this will restore the scale.
+            var scaleStr = text.getAttribute('sa-font-scale');
+            if (scaleStr) {
+                scale = parseFloat(scaleStr);
+            }
+            // This overrides the previous two.
             if (args && args.scale) {
                 scale = args.scale;
             }
-            text.saScalableFont = scale;
+            text.saScalableFont = {scale: scale};
+            // I can either keep this upto data or set it when the
+            // saHtml is called. Keeping it set is more local.
+            text.setAttribute('sa-font-scale', scale.toString());
             text.onresize =
                 function () {
-                    scale = this.saScalableFont;
+                    scale = this.saScalableFont.scale;
                     // Scale it relative to the window.
                     var height = window.innerHeight;
                     fontSize = scale * height / 500;
@@ -92,10 +310,108 @@ jQuery.prototype.saScalableFont = function(args) {
 }
 
 
+
+//==============================================================================
+// draggable with a handle
+// TODO: This uses percentages now.  Exxtend with the option to position
+// with pixel units.
+
+jQuery.prototype.saDraggable = function() {
+    this.addClass('sa-draggable');
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saDraggable) {
+            var helper = new saDraggable($(this[i]));
+            // Add the helper as an instance variable to the dom object.
+            this[i].saDraggable = helper;
+        }
+    }
+
+    return this;
+}
+
+function saDraggable(div) {
+    this.Percentage = true;
+    this.Div = div;
+    var self = this;
+    var d = saAddButton(div[0], 'webgl-viewer/static/fullscreen.png', 'drag');
+    d.mousedown(
+        function (e) {
+            self.OldX = e.pageX;
+            self.OldY = e.pageY;
+            $('body').on('mousemove.saDrag',
+                      function (e) {
+                          self.Drag(e.pageX-self.OldX, e.pageY-self.OldY);
+                          self.OldX = e.pageX;
+                          self.OldY = e.pageY;
+                          return false;
+                      });
+            $('body').on('mouseup.saDrag',
+                      function (e) {
+                          $('body').off('mousemove.saDrag');
+                          $('body').off('mouseup.saDrag');
+                          return false;
+                      });
+            return false;
+        });
+}
+
+saDraggable.prototype.Drag = function(dx, dy) {
+    var pos = this.Div.position();
+
+    var x = pos.left + dx;
+    var y = pos.top + dy;
+    if (this.Percentage) {
+        x = 100 * x / this.Div.parent().width();
+        y = 100 * y / this.Div.parent().height();
+        this.Div[0].style.left = x.toString()+'%';
+        this.Div[0].style.top = y.toString()+'%';
+    } else {
+        this.Div[0].style.left = x+'px';
+        this.Div[0].style.top = y+'px';
+    }
+
+    this.Div[0].saButtons.PlaceButtons();
+}
+
+
+
+
+//==============================================================================
+// Add a delete button to the jquery objects.
+
+jQuery.prototype.saDeletable = function(args) {
+    this.addClass('sa-deletable');
+    for (var i = 0; i < this.length; ++i) {
+        var element = this[i];
+        if ( ! element.saDeletable) {
+            // for closure (save element)
+            element.saDeletable = true;
+            (function () {
+                saAddButton(element, 'webgl-viewer/static/remove.png', 'delete',
+                            function () {
+                                saButtonsDelete(element);
+                                $(element).remove();
+                            });
+            })();
+        }
+    }
+    return this;
+}
+
+
+
+
 //==============================================================================
 // Make any div into a text editor.
 // Will be used for the presentation html editor.
+// Note,  scalabe font should be set before text editor if you want scale buttons.
+// TODO: 
+// - The editor is position 'absolute' and is placed with percentages.
+//   Make pixel positioning an option
+// - use saDeletable and saDraggable and remove internal code.
+
 jQuery.prototype.saTextEditor = function(args) {
+    this.addClass('sa-text-editor');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saTextEditor) {
             var textEditor = new TextEditor2($(this[i]), args);
@@ -115,31 +431,103 @@ function TextEditor2(div, args) {
     this.Div = div;
     // Position the div with percentages instead of pixels.
     this.Percentage = true;
-   
+
     var pos = div.position();
     // I think the drag handle needs to be in the parent.
     // Then synchronize the div's position with the handle.
     // Parent must then be realtive positioning or equivalent.
     this.DragHandle = $('<img>')
-    // this is specific for the presentation.  I do not want gui showing up
-    // in html.
-        .appendTo(div.parent().parent())
+        // this is specific for the presentation.  I do not want gui showing up
+        // in html.
+        .appendTo(div.parent())
+        // so we can remove this gui from saHtml string.
+        .addClass('sa-edit-gui')
         .hide()
         .prop('title', 'drag text')
         .attr('src','webgl-viewer/static/fullscreen.png') // temp icon
-        .addClass('editButton') // this is not really a button ....
+        // this is not really a button, but I want it to be formated like
+        // the others.
+        .addClass('editButton')
         .css({'background':'white',
               'position':'absolute',
               'left'  :(pos.left-2)+'px',
               'top'   :(pos.top-20) +'px'})
         .draggable({
             drag: function( event, ui ) {
-                this.saTextEditor.SetPixelPosition(ui.position.left+2,
+                this.saTextEditor.SetPositionPixel(ui.position.left+2,
                                                    ui.position.top+20);}
         });
     // This is needed for the drag event to synchronize position of div.
     this.DragHandle[0].saTextEditor = this;
 
+    // Edit buttons.
+    this.ButtonDiv = $('<div>')
+        .appendTo(div.parent())
+        .addClass('sa-edit-gui') // So we can remove it when saving.
+        .hide()
+        .css({'position':'absolute',
+              'left'  :(pos.left+20)+'px',
+              'top'   :(pos.top-20) +'px',
+              'width' :'330px'});
+
+    this.AddEditButton("webgl-viewer/static/remove.png", "delete",
+                       function() {self.Delete();});
+    this.AddEditButton("webgl-viewer/static/link.png", "link URL",
+                       function() {self.InsertUrlLink();});
+    this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
+                       function() {
+                           console.log("bold");
+                           document.execCommand('bold',false,null);});
+    this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
+                       function() {document.execCommand('italic',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
+                       function() {document.execCommand('underline',false,null);});
+    this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
+                       function() {document.execCommand('InsertUnorderedList',false,null);});
+    this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
+                       function() {document.execCommand('InsertOrderedList',false,null);});
+    this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
+                       function() {document.execCommand('indent',false,null);});
+    this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
+                       function() {document.execCommand('outdent',false,null);});
+    this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
+                       function() {document.execCommand('justifyLeft',false,null);});
+    this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
+                       function() {document.execCommand('justifyCenter',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
+                       function() {document.execCommand('superscript',false,null);});
+    this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
+                       function() {document.execCommand('subscript',false,null);});
+    if (div.hasClass('sa-scalable-font')) {
+        this.AddEditButton("webgl-viewer/static/font_increase.png", "large font",
+                           function(){
+                               text = self.Div[0];
+                               text.saScalableFont.scale += 1;
+                               console.log("scale = " + text.saScalableFont.scale);
+                               // We need to put this in an attribute so it
+                               // gets saved in the html.
+                               text.setAttribute('sa-font-scale',
+                                                 text.saScalableFont.scale.toString());
+                               // Call the resize method to draw the text at
+                               // the new size.
+                               text.onresize();
+                               $(text).focus();
+                           });
+        this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font",
+                           function() {
+                               text = self.Div[0];
+                               text.saScalableFont.scale -= 1;
+                               console.log("scale = " + text.saScalableFont.scale);
+                               // We need to put this in an attribute so it
+                               // gets saved in the html.
+                               text.setAttribute('sa-font-scale',
+                                                 text.saScalableFont.scale.toString());
+                               // Call the resize method to draw the text at
+                               // the new size.
+                               text.onresize();
+                               $(text).focus();
+                           });
+    }
 
     div.attr('contenteditable', "true")
         .focusin(function() {
@@ -151,15 +539,212 @@ function TextEditor2(div, args) {
                 .css({'left'  :(pos.left-2)+'px',
                       'top'   :(pos.top-20) +'px'})
                 .show();
+            self.ButtonDiv
+                .css({'left'  :(pos.left+20)+'px',
+                      'top'   :(pos.top-20) +'px'})
+                .show();
+
         })
         .focusout(function() {
             CONTENT_EDITABLE_HAS_FOCUS = false;
             self.DragHandle.hide();
-        })
+            // hiding the button div here keeps the buttons from working.
+            setTimeout(
+                function () {
+                    if ( ! self.Div.is(":focus")) {
+                        self.ButtonDiv.hide();
+                    }},
+                250);
+        });
+}
+
+TextEditor2.prototype.Delete = function() {
+    this.DragHandle.remove();
+    this.ButtonDiv.remove();
+    this.Div.remove();
+}
+
+TextEditor2.prototype.InsertUrlLink = function() {
+    var self = this;
+    var sel = window.getSelection();
+    // This call will clear the selected text if it is not in this editor.
+    var range = this.GetSelectionRange();
+    var selectedText = sel.toString();
+
+    if ( ! this.UrlDialog) {
+        var self = this;
+        var dialog = new Dialog(function() {
+            self.InsertUrlLinkAccept();
+        });
+        this.UrlDialog = dialog;
+        dialog.Dialog.css({'width':'40em'});
+        dialog.Title.text("Paste URL link");
+        dialog.TextDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'display':'table-row',
+                  'width':'100%'});
+        dialog.TextLabel =
+            $('<div>')
+            .appendTo(dialog.TextDiv)
+            .text("Text to display:")
+            .css({'display':'table-cell',
+                  'height':'2em',
+                  'text-align': 'left'});
+        dialog.TextInput =
+            $('<input>')
+            .appendTo(dialog.TextDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell',
+                  'width':'25em'});
+
+        dialog.UrlDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'display':'table-row'});
+        dialog.UrlLabel =
+            $('<div>')
+            .appendTo(dialog.UrlDiv)
+            .text("URL link:")
+            .css({'display':'table-cell',
+                  'text-align': 'left'});
+        dialog.UrlInput =
+            $('<input>')
+            .appendTo(dialog.UrlDiv)
+            .val('#30ff00')
+            .css({'display':'table-cell',
+                  'width':'25em'})
+            .bind('input', function () {
+                var url = self.UrlDialog.UrlInput.val();
+                if (self.UrlDialog.LastUrl == self.UrlDialog.TextInput.val()) {
+                    // The text is same as the URL. Keep them synchronized.
+                    self.UrlDialog.TextInput.val(url);
+                }
+                self.UrlDialog.LastUrl = url;
+                // Deactivate the apply button if the url is blank.
+                if (url == "") {
+                    self.UrlDialog.ApplyButton.attr("disabled", true);
+                } else {
+                    self.UrlDialog.ApplyButton.attr("disabled", false);
+                }
+            });
+
+    }
+
+    // We have to save the range/selection because user interaction with
+    // the dialog clears the text entry selection.
+    this.UrlDialog.SelectionRange = range;
+    this.UrlDialog.TextInput.val(selectedText);
+    this.UrlDialog.UrlInput.val("");
+    this.UrlDialog.LastUrl = "";
+    this.UrlDialog.ApplyButton.attr("disabled", true);
+    this.UrlDialog.Show(true);
+}
+
+TextEditor2.prototype.InsertUrlLinkAccept = function() {
+    var sel = window.getSelection();
+    var range = this.UrlDialog.SelectionRange;
+
+    // Simply put a span tag around the text with the id of the view.
+    // It will be formated by the note hyperlink code.
+    var link = document.createElement("a");
+    link.href = this.UrlDialog.UrlInput.val();
+    link.target = "_blank";
+
+    // It might be nice to have an id to get the href for modification.
+    //span.id = note.Id;
+
+    // Replace or insert the text.
+    if ( ! range.collapsed) {
+        // Remove the seelcted text.
+        range.extractContents(); // deleteContents(); // cloneContents
+        range.collapse(true);
+    }
+    var linkText = this.UrlDialog.TextInput.val();
+    if (linkText == "") {
+        linkText = this.UrlDialog.UrlInput.val();
+    }
+    link.appendChild( document.createTextNode(linkText) );
+
+    range.insertNode(link);
+    if (range.noCursor) {
+        // Leave the selection the same as we found it.
+        // Ready for the next link.
+        sel.removeAllRanges();
+    }
+}
+
+// Get the selection in this editor.  Returns a range.
+// If not, the range is collapsed at the 
+// end of the text and a new line is added.
+TextEditor2.prototype.GetSelectionRange = function() {
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
+
+    // Two conditions when we have to create a selection:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        // Something is selected
+        range = sel.getRangeAt(0);
+        range.noCursor = false;
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != this.Div[0]) {
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
+            }
+        }
+    }
+    if ( ! parent) {
+        // Select everything in the editor.
+        range = document.createRange();
+        range.noCursor = true;
+        range.selectNodeContents(this.Div[0]);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // Collapse the range/cursor to the end (true == start).
+        range.collapse(false);
+        // Add a new line at the end of the editor content.
+        var br = document.createElement('br');
+        range.insertNode(br); // selectNode?
+        range.collapse(false);
+        // The collapse has no effect without this.
+        sel.removeAllRanges();
+        sel.addRange(range);
+        //console.log(sel.toString());
+    }
+
+    return range;
+}
+
+// TODO: Button s have to be clicked in exact center......
+TextEditor2.prototype.AddEditButton = function(src, tooltip, callback) {
+    var self = this;
+    var button = $('<img>');
+    if (tooltip) {
+        button.prop('title', tooltip);
+    }
+    button
+        .appendTo(this.ButtonDiv)
+        .addClass('editButton')
+        .attr('src',src)
+        .click(callback);
 }
 
 // Set in position in pixels
-TextEditor2.prototype.SetPixelPosition = function(x, y) {
+TextEditor2.prototype.SetPositionPixel = function(x, y) {
+    this.ButtonDiv
+        .css({'left'  :(x+20)+'px',
+              'top'   :(y-20) +'px'})
     if (this.Percentage) {
         x = 100 * x / this.Div.parent().width();
         y = 100 * y / this.Div.parent().height();
@@ -170,9 +755,6 @@ TextEditor2.prototype.SetPixelPosition = function(x, y) {
         this.Div[0].style.top = y+'px';
     }
 }
-
-
-
 
 
 
@@ -257,6 +839,7 @@ function ResizePanel(parent) {
     this.Visibilty = false;
     this.Dragging = false;
 
+    // TODO: Get rid of the reference to the global VIEW_PANEL.
     this.ResizeNoteWindowEdge = $('<div>')
         .appendTo(VIEW_PANEL)
         .css({'position': 'absolute',

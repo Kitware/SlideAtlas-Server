@@ -4,6 +4,8 @@
     margin-right : 1px;
     border: 1px solid #AAA;
     border-radius: 3px;
+    -moz-user-select: none;
+    -webkit-user-select: none;
 }
 
 .editButton:hover {

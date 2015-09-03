@@ -177,6 +177,9 @@ ViewerRecord.prototype.Apply = function (viewer) {
             }
         }
     }
+
+    // fit the canvas to the div size.
+    viewer.UpdateSize();
 }
 
 // This is a helper method to start preloading tiles for an up coming view.
@@ -335,6 +338,7 @@ function NewPageRecord() {
 
 var RECORD_TIMER_ID = 0;
 function RecordStateCallback() {
+    if (! VIEWER1 || ! VIEWER2 ) {return;}
 
     // Timer called this method.  Timer id is no longer valid.
     RECORD_TIMER_ID = 0;
@@ -382,13 +386,14 @@ function RecordStateCallback() {
 // I still do not compress scroll wheel zoom, so I am putting a timer event
 // to collapse recording to lest than oner per second.
 function RecordState() {
-  // Delete the previous pending record timer
-  if (RECORD_TIMER_ID) {
-    clearTimeout(RECORD_TIMER_ID);
-    RECORD_TIMER_ID = 0;
-  }
-  // Start a record timer.
-  RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
+    if (! VIEWER1) {return;}
+    // Delete the previous pending record timer
+    if (RECORD_TIMER_ID) {
+        clearTimeout(RECORD_TIMER_ID);
+        RECORD_TIMER_ID = 0;
+    }
+    // Start a record timer.
+    RECORD_TIMER_ID = setTimeout(function(){RecordStateCallback();}, 1000);
 }
 
 var GET_RECORDS;

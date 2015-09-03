@@ -1062,8 +1062,10 @@ NoteIterator.prototype.ToEnd = function() {
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
 var NOTES = [];
+
 function Note () {
     // A global list of notes so we can find a note by its id.
+    this.TempId = 'tmp'+NOTES.length; // hack for html views.
     NOTES.push(this);
 
     var self = this;
@@ -1202,6 +1204,10 @@ Note.prototype.SortCallback = function() {
 
 
 function GetNoteFromId(id) {
+    if (id.substr(0,3) == 'tmp') {
+        var idx = parseInt(id.substr(3));
+        return NOTES[idx];
+    }
     for (var i = 0; i < NOTES.length; ++i) {
         var note = NOTES[i];
         if (note.Id && note.Id == id) {
@@ -1210,6 +1216,37 @@ function GetNoteFromId(id) {
     }
     return null;
 }
+
+/*
+// for loading jquery views.
+function FindNote(id, note) {
+    if ( ! note) {
+        for (var i = 0; i < NOTES.length; ++i) {
+            var found = FindNote(id,NOTES[i]);
+            if (found) {
+                return found;
+            }
+        }
+        // TODO: Create and load a new note.
+        return null;
+    }
+
+    if (note.Id == id) {
+        return note;
+    }
+    for (var i = 0; i < note.Children.length; ++i) {
+        var found = FindNote(id, note.Children[i]);
+        if (found) {
+            return found;
+        }
+    }
+    return null;
+}
+*/
+
+
+
+
 
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
@@ -1377,6 +1414,9 @@ Note.prototype.UserCanEdit = function() {
 }
 
 Note.prototype.RecordView = function() {
+    // TODO: Get rid of VIEWER globals.
+    if ( ! VIEWER1) { return; }
+
     if (this.Type == "Stack") {
         // All we want to do is record the default
         // camera of the first section (if we at
@@ -1495,6 +1535,18 @@ Note.prototype.NewChild = function(childIdx, title) {
     return childNote;
 }
 
+
+Note.prototype.LoadIds = function(data) {
+    if ( ! this.Id) {
+        this.Id = data._id;
+    }
+    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
+        this.Children[i].LoadIds(data.Children[i]);
+    }
+    
+}
+
+
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback) {
@@ -1512,7 +1564,9 @@ Note.prototype.Save = function(callback) {
                "date" : d.getTime()},
         success: function(data,status) {
             $('body').css({'cursor':'default'});
-            self.Id = data._id;
+            // get the children ids too.
+            // Assumes the order of children did not change.
+            self.LoadIds(data);
             if (callback) {
                 (callback)(self);
             }

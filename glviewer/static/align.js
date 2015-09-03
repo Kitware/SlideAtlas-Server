@@ -2657,6 +2657,33 @@ function PickThresholdContaining(hist, val) {
     return bestIdx;
 }            
 
+// Threshold is choosen from the range, but not equal to the min or max.
+function PickThresholdFromRange(hist, min, max) {
+    var best = -1;
+    var bestIdx = -1;
+
+    var integral = HistogramIntegral(hist);
+    var max = integral[integral.length - 1];
+    for (idx = val; idx < hist.length-10; ++idx) {
+        // Compute a metric for a good threshold.
+        var goodness = 0;
+        // > 10%, < 90%
+        var tmp = integral[idx]/max;
+        if (tmp > 0.1 && tmp < 0.9) {
+            // Pick a gap (low point) in the histogram.
+            goodness = 1.0 / (hist[idx]+1);
+            // Pick a high value over a low value
+            goodness *= Math.exp(idx / 8);  // tried 4-8, all very similar.
+        }
+        if (goodness > best) {
+            best = goodness;
+            bestIdx = idx;
+        }
+    }
+
+    return bestIdx;
+}            
+
 
 
 // For debugging.
@@ -3051,7 +3078,23 @@ function testDeformableAlign(spacing) {
 // Find all the sections on a slide (for a stack).
 // hagfish
 // I either have to keep the camera with the contour, or translate the
-// contour into worl coordinate points.  The second sounds easier.
+// contour into world coordinate points.  The second sounds easier.
+
+
+
+// Find the best contour given an estimate of center and area..
+function FindSectionContours (data, center, area) {
+    var smooth = 2; // is this really necesary?  It is expensive.
+    SmoothDataAlphaRGB(data, smooth);
+
+    // I could estimate area from the histogram, but there maybe multiple pieces.
+    var histogram = ComputeIntensityHistogram(data, true);
+    var threshold = PickThreshold(histogram);
+
+    var contours = GetHagFishContours(data, threshold, min, max);
+
+    return contours;
+}
 
 
 

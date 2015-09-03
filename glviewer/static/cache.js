@@ -469,9 +469,12 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
     // in the rendering list.
     Prune();
 
+
     // Pick a level to display.
     //var fast = document.getElementById("fast").checked;
-    // Todo: fix this hack. (now a global variable gl).
+    // level 0 is the root.  This chooses too high a level (resolution).
+    // WHen I fixed it, the snap between levels was too noticable.
+    // THis must be a problem with creation of the pyramid!!!!!
     var canvasHeight = camera.ViewportHeight;
     var tmp = this.TileDimensions[1]*this.RootSpacing[1] / camera.Height;
     //if (fast) {
@@ -486,7 +489,16 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
     if (level >= this.Image.levels) {
         level = this.Image.levels - 1;
     }
-
+    // Alternative code
+    //var level = this.Image.levels - 1; // The highest resolution / leaves
+    //var canvasHeight = camera.ViewportHeight;
+    //// At the current level(0), each screen pixel covers this many image
+    //// pixels. If this is above 1, then we would render too many pixels.
+    //var pixelRatio = camera.Height / camera.ViewportHeight;
+    //while (pixelRatio > 1.1 && level > 0) { // a little slop.
+    //    pixelRatio = pixelRatio * 0.5;
+    //    level = level - 1;
+    //}
 
     // Compute the world bounds of camera view.
     var xMax = 0.0;
@@ -555,8 +567,8 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
     var tiles = [];
     // TODO: Make a "GetVisibleTiles" method.
     // Render all tiles from low res to high.
-    // Although this extra work, it covers up cracks.
-    // Rendering just level 0 should be enough, but that
+    // Although this is extra work, it covers up cracks.
+    // Rendering just level 0 (root) should be enough, but that
     // messed up progressive rendering logic in section.js.
     // Just do this until I unify the progressive rendering
     // Probably in this method. (check is loaded).

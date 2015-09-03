@@ -1,3 +1,11 @@
+// TODO:
+// First: content.
+// Actual title page.
+// 1: jquery iFrame.
+// 2: isolate dragable for iFrame.
+// 3: editable off option for text.
+// 4: HtmlPage not expanding during presentation.
+
 
 //==============================================================================
 // TODO:
@@ -33,6 +41,36 @@ function PresentationMain(viewId) {
 function Presentation(rootNote, edit) {
     var self = this;
     this.Edit = edit;
+
+    // TODO:
+    // Fix this. Session page needs every member view to have an image.
+    // The root needs a record to show up in the session.
+    if (rootNote.ViewerRecords.length < 1) {
+        var record = new ViewerRecord();
+        record.Load(
+            {AnnotationVisibility: 2,
+             Annotations: [],
+             Camera: {FocalPoint: [510, 519],
+                      Height: 1009,
+                      Roll: 0,
+                      Width: 1066},
+             Database: "507f34a902e31010bcdb1366",
+             Image: {TileSize: 256,
+                     _id: "55b4e5c03ed65909a84cd938",
+                     bounds: [0, 1020, 15, 1024],
+                     components: 3,
+                     database: "507f34a902e31010bcdb1366",
+                     dimensions: [1020, 1009],
+                     filename: "projection-screen.jpg",
+                     label: "projection-screen.jpg",
+                     levels: 3,
+                     origin: [0, 0, 0],
+                     spacing: [1, 1, 1],
+                     NumberOfLevels: 3,
+                     OverviewBounds: [0, 1020, 15, 1024]}
+            });
+        rootNote.ViewerRecords.push(record);
+    }
 
     if (rootNote.Type != "Presentation") {
         rootNote.Type = "Presentation";
@@ -118,6 +156,29 @@ function Presentation(rootNote, edit) {
             self.StartTimerShow();
         });
 
+
+    // TODO: Fix this.  At least hide the button for the title page,
+    // or get rid of the title page.
+    if (edit) {
+        // Temporary way to delete a this.
+        this.DeleteSlideButton = $('<img>')
+            .appendTo(this.PresentationDiv)
+            .attr('src',"webgl-viewer/static/remove.png")
+            .prop('title', "delete slide")
+            .addClass('editButton')
+            .css({'position':'absolute',
+                  'width':'12px',
+                  'height':'12px',
+                  'left':'0px',
+                  'top':'0px',
+                  'z-index':'5'})
+            .click(function () {
+                // Hack to reload viewer records.
+                self.DeleteCurentSlide();
+            });
+    }
+
+
     this.TitlePage = new TitlePage(this.PresentationDiv, edit);
     this.SlidePage = new SlidePage(this.PresentationDiv, edit);
     this.HtmlPage  = new HtmlPage(this.PresentationDiv, edit);
@@ -195,7 +256,7 @@ Presentation.prototype.FullScreen = function () {
         elem.webkitRequestFullscreen();
     }
 
-    // detect when we leav full screen.
+    // detect when we leave full screen.
     $(elem).bind(
         'webkitfullscreenchange mozfullscreenchange fullscreenchange',
         function(e) {
@@ -215,6 +276,7 @@ Presentation.prototype.EditOff = function () {
         this.EditTabs.Div.hide();
         this.TitlePage.EditOff();
         this.SlidePage.EditOff();
+        this.HtmlPage.EditOff();
     }
 }
 
@@ -247,9 +309,10 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .addClass('editButton')
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
-        .click(function () { 
-            var note = self.InsertNewSlide('HTML');
-            self.HtmlPage.InitializeNote
+        .click(function () {
+            //var note = self.InsertNewSlide('HTML');
+            //self.HtmlPage.InitializeNote
+            var note = self.InsertNewSlide('Question');
         });
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
@@ -313,13 +376,14 @@ Presentation.prototype.TimerCallback = function(duration) {
 
 // Adds a view to the current slide.
 Presentation.prototype.AddViewCallback = function(viewObj) {
+    if (this.Note.Type == "HTML") {
+        this.HtmlPage.InsertView(viewObj);
+        return;
+    }
+
     var record = new ViewerRecord();
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
-    // The root needs a record to show up in the session.
-    if (this.RootNote.ViewerRecords.length == 0) {
-        this.RootNote.ViewerRecords.push(record);
-    }
 
     // Hack to reload viewer records.
     this.GotoSlide(this.Index);
@@ -338,23 +402,22 @@ Presentation.prototype.AddImageCallback = function(image) {
                      Height: (image.bounds[3]-image.bounds[2]),
                      Width : (image.bounds[1]-image.bounds[0])};
 
-    this.Note.ViewerRecords.push(record);
     // The root needs a record to show up in the session.
+    // never executed because I add a presentation icon
     if (this.RootNote.ViewerRecords.length == 0) {
         this.RootNote.ViewerRecords.push(record);
     }
 
-    // Hack: Since GotoSlide copies the viewer to the record,
-    // We first have to push the new record to the view.
-    if (this.Note.ViewerRecords.length == 1) {
-        // TODO: jquery arg
-        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
-    } else if (this.Note.ViewerRecords.length == 2) {
-        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
+    if (this.Note.Type == "HTML") {
+        // This will be the primar path in the future.
+        this.HtmlPage.InsertViewNote(note);
+        return;
     }
-
-    // Hack to reload viewer records.
-    this.GotoSlide(this.Index);
+    if (this.Note != this.RootNote) {
+        this.SlidePage.InsertViewNote(note);
+        return;
+    }
+ 
 }
 
 
@@ -392,19 +455,28 @@ Presentation.prototype.HandleKeyUp = function(event) {
 }
 
 
-Presentation.prototype.Save = function (){
+Presentation.prototype.Save = function () {
     var self = this;
-    if (this.Index == 0) {
-        this.TitlePage.UpdateEdits();
-        this.SlidePage.UpdateEdits();
+    this.TitlePage.UpdateEdits();
+    this.SlidePage.UpdateEdits();
+    this.HtmlPage.UpdateEdits();
+
+    // Hack hack hack.  I should just hang onto the DOM for each slide
+    // rather than reloading with saHtml.  It is necessary to convert
+    // temporary not ids with real note ids.
+    for (var i = 0; i < NOTES.length; ++i) {
+        note = NOTES[i];
+        if ( ! note.Id ) {
+            note.Save(function() {
+                // This could break if save sets more than one id.
+                note.Text.replace(note.TempId, note.Id);
+                self.Save();
+            });
+            return;
+        }
     }
     //this.SaveButton.css({'color':'#F00'});
-    this.WindowDiv.css({'cursor':'progress'});
-    this.RootNote.Save(
-        function() {
-            //PRESENTATION.SaveButton.css({'color':'#000'});
-            self.SearchDiv.css({'cursor':'default'});
-        });
+    this.RootNote.Save();
 }
 
 
@@ -413,13 +485,28 @@ Presentation.prototype.DeleteSlide = function (index){
     if (index < 1 || index > maxIdx) {
         return;
     }
-    if (this.Index > index || this.Index == maxIdx) {
+    this.RootNote.Children.splice(index-1,1);
+    // The case when we are not deleting the current slide.
+    // All slides after the one deleted cahnge their index.
+    if (this.Index > index) { this.Index -= 1; }
+
+    // Case where we are deleting the current slide.
+    if (index == this.Index) {
+        // index becomes the sldie we are going to.
         // Handles the case where we are on the last slide.
         // Move to the previous rather then the next.
-        this.Index -= 1;
+        if (index == maxIdx) { --index; }
+        // force GotoSlide to
+        this.Index = -1;
+        this.GotoSlide(index);
     }
-    this.RootNote.Children.splice(index-1,1);
-    this.GotoSlide(this.Index);
+
+    this.UpdateSlidesTab();
+}
+
+
+Presentation.prototype.DeleteCurentSlide = function () {
+    this.DeleteSlide(this.Index);
 }
 
 
@@ -431,27 +518,21 @@ Presentation.prototype.InsertNewSlide = function (type){
     this.GotoSlide(idx);
     this.UpdateSlidesTab();
     if (type == 'HTML') {
-        this.HtmlPage.InitializeDiv();
+        this.HtmlPage.InitializeSlidePage();
     }
 }
 
 // 0->Root/titlePage
 // Childre/slides start at index 1
 Presentation.prototype.GotoSlide = function (index){
-    if (index < 0 || index >= this.GetNumberOfSlides()) {
+    if (index < 0 || index >= this.GetNumberOfSlides() || index == this.Index) {
         return;
     }
-    // Insert view calls Goto with the same index.
-    // We do not want to overwrite the new view with a blank viewer.
-    if (this.Edit && index != this.Index) {
-        // Save any GUI changesinto the note before
-        // we move to the next slide.
-        if (this.Index == 0) {
-            this.TitlePage.UpdateEdits();
-        } else {
-            this.SlidePage.UpdateEdits();
-        }
-    }
+
+    // Clear previous slides settings.
+    this.TitlePage.ClearNote();
+    this.SlidePage.ClearNote();
+    this.HtmlPage.ClearNote();
 
     this.Index = index;
     if (index == 0) { // Title page
@@ -461,7 +542,7 @@ Presentation.prototype.GotoSlide = function (index){
         this.TitlePage.DisplayNote(this.Note);
     } else { // Slide page
         this.Note = this.GetSlide(index);
-        if (this.Note.Type = "HTML") {
+        if (this.Note.Type == "HTML") {
             this.TitlePage.Div.hide();
             this.SlidePage.Div.hide();
             this.HtmlPage.Div.show();
@@ -596,6 +677,7 @@ function SlidePage(parent, edit) {
               'height': '210px',
               'bottom': '5px',
               'width': '100%'});
+    // List of question answers.
     this.List = new TextEditor(this.TextDiv);
     if ( ! edit) {
         this.List.EditOff();
@@ -609,6 +691,8 @@ function SlidePage(parent, edit) {
     // Make the viewer look like jquery
     //this.ViewerDiv1.viewer({overview:false});
     this.ViewerDiv1.saViewer();
+    // text needs this to compoute bounds (last hold out).
+    VIEWER1 = this.ViewerDiv1[0].saViewer;
 
     this.ViewerDiv2 = $('<div>')
         .appendTo(this.ViewPanel)
@@ -616,6 +700,8 @@ function SlidePage(parent, edit) {
               'box-shadow': '10px 10px 5px #AAA'});
     // Make the viewer look like jquery
     this.ViewerDiv2.saViewer();
+    // NotesWidget needs to get rid of this global.
+    VIEWER2 = this.ViewerDiv2[0].saViewer;
 
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
@@ -661,22 +747,6 @@ function SlidePage(parent, edit) {
                 PRESENTATION.Note.ViewerRecords.splice(1,1);
                 // Hack to reposition viewers.
                 $(window).trigger('resize');
-            });
-        // Temporary way to delete a this.
-        this.DeleteSlideButton = $('<img>')
-            .appendTo(this.ViewPanel)
-            .attr('src',"webgl-viewer/static/remove.png")
-            .prop('title', "delete slide")
-            .addClass('editButton')
-            .css({'position':'absolute',
-                  'width':'12px',
-                  'height':'12px',
-                  'left':'0px',
-                  'right':'0px',
-                  'z-index':'5'})
-            .click(function () {
-                // Hack to reload viewer records.
-                PRESENTATION.DeleteSlide(self.Index);
             });
 
         // Setup view resizing.
@@ -735,7 +805,7 @@ function SlidePage(parent, edit) {
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.SetFullWindowView(this.ViewerDiv1);
+            self.SetFullWindowView(self.ViewerDiv1);
         });
     this.FullWindowView2Button = $('<img>')
         .appendTo(this.ViewerDiv2)
@@ -750,7 +820,7 @@ function SlidePage(parent, edit) {
         .hover(function(){$(this).css({'opacity':'1.0'});},
                function(){$(this).css({'opacity':'0.5'});})
         .click(function () {
-            self.SetFullWindowView(this.ViewerDiv2);
+            self.SetFullWindowView(self.ViewerDiv2);
         });
 
 
@@ -826,7 +896,6 @@ SlidePage.prototype.EditOff = function () {
         this.ViewerDiv1[0].saViewer.OnInteraction();
         this.RemoveView1Button.hide();
         this.RemoveView2Button.hide();
-        this.DeleteSlideButton.hide();
         this.List.EditOff();
         // This causes the viewers to look transparent.
         //VIEWER1.MainView.CanvasDiv.resizable('disable');
@@ -911,6 +980,14 @@ SlidePage.prototype.ResizeViews = function ()
 }
 
 
+SlidePage.prototype.ClearNote = function () {
+    if (this.Edit && this.Note) {
+        this.UpdateEdits();
+    }
+    this.Note = null;
+}
+
+
 SlidePage.prototype.DisplayNote = function (index, note) {
     this.Div.show();
     this.Note = note;
@@ -954,6 +1031,37 @@ SlidePage.prototype.UpdateEdits = function () {
         this.Note.ViewerRecords[1].CopyViewer(this.ViewerDiv2[0].saViewer);
     }
 }
+
+
+
+
+
+
+SlidePage.prototype.InsertViewNote = function (note) {
+    if (note.ViewerRecords.length < 1) { return; }
+
+    // we just use the record for slide pages.
+    var record = note.ViewerRecords[0];
+
+    this.Note.ViewerRecords.push(record);
+
+    // Hack: Since GotoSlide copies the viewer to the record,
+    // We first have to push the new record to the view.
+    if (this.Note.ViewerRecords.length == 1) {
+        // TODO: jquery arg
+        this.Note.ViewerRecords[0].Apply(this.ViewerDiv1[0].saViewer);
+    } else if (this.Note.ViewerRecords.length == 2) {
+        this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
+    }
+
+    // ???????
+    // Hack to reload viewer records.
+    this.GotoSlide(this.Index);
+}
+
+
+
+
 
 
 //==============================================================================
@@ -1001,9 +1109,10 @@ function TitlePage (parent, edit) {
         .attr('contenteditable', 'true')
         .css({'position':'absolute',
               'top': '1em',
-              'min-height':'3em',
-              'min-width':'10em',
-              'left': '13%'});
+              //'min-height':'3em',
+              //'min-width':'10em',
+              'left': '13%'})
+        .saScalableFont({scale:'24'});
 
     this.AuthorBar = $('<div>')
         .appendTo(this.Div)
@@ -1019,9 +1128,11 @@ function TitlePage (parent, edit) {
         .appendTo(this.AuthorBar)
         .attr('contenteditable', 'true')
         .css({'position':'absolute',
-              'minimum-height':'4em',
-              'minimum-width':'10em',
-              'top': '2em'});
+              //'minimum-height':'4em',
+              //'minimum-width':'10em',
+              'top': '2em'})
+        .saScalableFont({scale:'20'});
+
 
     if (this.Edit) {
         var self = this;
@@ -1050,6 +1161,14 @@ TitlePage.prototype.EditOff = function () {
             .unbind('focusout')
             .blur();
     }
+}
+
+
+TitlePage.prototype.ClearNote = function () {
+    if (this.Edit && this.Note) {
+        this.UpdateEdits();
+    }
+    this.Note = null;
 }
 
 
@@ -1120,19 +1239,69 @@ function HtmlPage (parent, edit) {
 HtmlPage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
+        this.Div.css({'width': '100%', 'left': '0px'});
     }
+}
+
+
+HtmlPage.prototype.ClearNote = function () {
+    if (this.Edit && this.Note) {
+        this.UpdateEdits();
+    }
+    this.Note = null;
 }
 
 
 HtmlPage.prototype.DisplayNote = function (note) {
     this.Note = note;
     this.Div.show();
-    this.Div.html(note.Text);
+    // This version setsup the saTextEditor and other jquery extensions.
+    this.Div.saHtml(note.Text);
+    
+
+
+
+
+    // still needed for iframes.
+    this.BindElements();
 }
 
 
-// Add the initial html.
-HtmlPage.prototype.InitializeDiv = function() {
+// Add the initial html for a title page.
+HtmlPage.prototype.InitializeTitlePage = function() {
+    this.Div.empty();
+    this.Div[0].className = 'sa-presentation-title-page';
+    this.Div.css({'background-color':'#E5F3FE'});
+    var titleBar = $('<div>')
+        .appendTo(this.Div)
+        .css({'background-color':'#073E87',
+              'position':'absolute',
+              'left':'0%',
+              'width':'97.5%',
+              'top':'31%',
+              'height':'25%'});
+    // Should everything be have Div as parent?
+    // Todo: make this look like jquery.
+    var titleText = this.InsertTextBox(42)
+        .css({'color':'white',
+              'left':'10%',
+              'top':'40%'})
+        .text("Title");
+
+    var authorText = this.InsertTextBox(42)
+        .css({'left':'10%',
+              'width':'88%',
+              'top':'59%'})
+        .text("Author");
+
+    this.UpdateEdits();
+    this.BindElements();
+}
+
+// Add the initial html for a slide page.
+HtmlPage.prototype.InitializeSlidePage = function() {
+    this.Div.empty();
+    this.Div[0].className = 'sa-presentation-slide-page';
     this.Div.css({'background-color':'#E5F3FE'});
     var titleBar = $('<div>')
         .appendTo(this.Div)
@@ -1147,11 +1316,38 @@ HtmlPage.prototype.InitializeDiv = function() {
     var titleText = this.InsertTextBox(42)
         .css({'color':'white',
               'left':'18%',
-              'top':'7%'})
+              'top':'8%'})
         .text("Title");
 
     this.UpdateEdits();
     this.BindElements();
+}
+
+
+HtmlPage.prototype.InsertImage = function(src) {
+    // resizable makes a containing div anyway.
+    var imgDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left'    :'5%',
+              'top'     :'25%',
+              'height'  :'10%'})
+        .addClass('sa-presentation-image')
+        .saDraggable()
+        .saDeletable();
+    var img = $('<img>')
+        .appendTo(imgDiv)
+        .css({'height'  :'100%'})
+        .attr('src',src)
+        .load(function () {
+            // compute the aspect ratio.
+            var aRatio = $(this).width() / $(this).height();
+            imgDiv.saResizable({
+                aspectRatio: aRatio,
+            });
+        });
+
+    return imgDiv;
 }
 
 
@@ -1163,7 +1359,10 @@ HtmlPage.prototype.InsertIFrame = function(src) {
               'left':'5%',
               'right':'2.5%',
               'top':'25%',
-              'bottom':'10%'});
+              'bottom':'10%'})
+        .saDraggable()
+        .saDeletable()
+        .resizable();
     var frame = $('<iframe>')
         .appendTo(div)
         .css({'position':'absolute',
@@ -1175,7 +1374,9 @@ HtmlPage.prototype.InsertIFrame = function(src) {
         .addClass('sa-presentation-iframe');
 
     this.BindElements();
+    return frame;
 }
+
 
 // This could be eliminated and just use the jquery saTextEditor.
 // Interactively place the initial box.
@@ -1193,7 +1394,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'fontFamily': "Verdana,sans-serif",
               // defaults caller can reset these.
               'left' : '18%',
-              'top'  : '50%'})
+              'top'  : '90%'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:size})
@@ -1206,6 +1407,67 @@ HtmlPage.prototype.InsertTextBox = function(size) {
     }
 
     return text;
+}
+
+
+
+// Should save the view as a child notes, or viewer record?
+// For saving, it would be easy to encode the view id into the html as an
+// attribute, but what would I do with the other viewer records?  Ignore
+// them. One issue:  I have to save the new note to get the id, which is
+// necessary, for the saViewer.  Well, maybe not.  I could pass in the
+// note, and then get the id when saHtml() is called to save.
+HtmlPage.prototype.InsertView = function(viewObj) {
+    if ( ! this.Note) { 
+        return; 
+    }
+
+    // First make a copy of the view as a child.
+    var newNote = new Note();
+    newNote.Load(viewObj);
+    this.InsertViewNote(newNote);
+}
+
+
+// Helper method
+HtmlPage.prototype.InsertViewNote = function(newNote) {
+    if ( ! this.Note) { 
+        return; 
+    }
+
+    newNote.Title = "SlideView " + this.Note.Children.length;
+
+    newNote.Parent = this.Note;
+    this.Note.Children.push(newNote);
+
+    // Temporary
+    VIEW_PANEL = this.Div;
+
+    var viewerDiv = $('<div>')
+        .appendTo(this.Div)
+        .addClass('sa-presentation-view')
+        .css({'position':'absolute',
+              'box-shadow': '10px 10px 5px #AAA',
+              'left':'5%',
+              'right':'2.5%',
+              'top':'25%',
+             'bottom':'10%'})
+        .saViewer()
+        .saDeletable()
+        .saDraggable()
+        .saResizable();
+
+    // TODO: Change to set note with args.
+    // Note only the first viewer record counts.
+    newNote.ViewerRecords[0].Apply(viewerDiv[0].saViewer);
+    // Hack a link to the note so it can be saved.
+    // We do not have an id yet.  I want to delay saving and getting one.
+    // TODO: make this part of the saViewer api.
+    viewerDiv[0].saNote = newNote;
+    // hack.  THis should be an argument option.
+    viewerDiv[0].saViewer.CopyrightWrapper.hide();
+
+    return viewerDiv;
 }
 
 
@@ -1246,7 +1508,15 @@ HtmlPage.prototype.BindElements = function() {
 
 HtmlPage.prototype.UpdateEdits = function () {
     if (this.Note) {
-        this.Note.Text = this.Div.html();
+        // Record the camera position (and annotations).
+        this.Div.find('.sa-presentation-view').saRecordViewer();
+        // Doing this here forces us to save the notes
+        // TODO: This may created orphaned views. fix this be either
+        // delaying copying saHtml to note, or incrementally saving
+        // presentation to the database.
+        var htmlDiv = this.Div;
+        var note = this.Note;
+        note.Text = htmlDiv.saHtml();
     }
 }
 
