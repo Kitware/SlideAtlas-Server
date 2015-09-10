@@ -702,9 +702,9 @@ function HandleMouseUp(event) {
 
 function testSegment() {
     if (SEGMENT === undefined) {
-        SEGMENT = new Segmentation(VIEWER1);
+        SEGMENT = new Segmentation(VIEWERS[0]);
     }
-    VIEWER1.MainView.Canvas.mouseup(function () {HandleMouseUp(event);});
+    VIEWERS[0].MainView.Canvas.mouseup(function () {HandleMouseUp(event);});
 }
 
 
@@ -2201,8 +2201,8 @@ function ComputeContourShiftCurvatureHistagram(contour1, contour2) {
         YPLOT.SetSize(20, bds1[2], 100, bds1[3]-bds1[2]);
     }
 
-    MakeContourPolyline(contour1, VIEWER1);
-    MakeContourPolyline(contour2, VIEWER2);
+    MakeContourPolyline(contour1, VIEWERS[0]);
+    MakeContourPolyline(contour2, VIEWERS[1]);
 
     var hist1 = ComputeContourSpatialCurvatureHistogram(contour1, bds1[0], bds1[1], 0);
     var hist2 = ComputeContourSpatialCurvatureHistogram(contour2, bds1[0], bds1[1], 0);
@@ -2466,15 +2466,15 @@ var DEBUG_MESH1;
 var DEBUG_MESH2;
 var DEBUG_TRANS;
 function testDebug() {
-    //MakeContourPolyline(DEBUG_CONTOUR1, VIEWER1);
-    //MakeContourPolyline(DEBUG_CONTOUR2a, VIEWER2);
-    //MakeContourPolyline(DEBUG_CONTOUR2b, VIEWER1);
+    //MakeContourPolyline(DEBUG_CONTOUR1, VIEWERS[0]);
+    //MakeContourPolyline(DEBUG_CONTOUR2a, VIEWERS[1]);
+    //MakeContourPolyline(DEBUG_CONTOUR2b, VIEWERS[0]);
 
-    DEBUG_MESH1.ConvertPointsToWorld(VIEWER1);
-    VIEWER1.AddShape(DEBUG_MESH1);
+    DEBUG_MESH1.ConvertPointsToWorld(VIEWERS[0]);
+    VIEWERS[0].AddShape(DEBUG_MESH1);
 
-    DEBUG_MESH2.ConvertPointsToWorld(VIEWER2);
-    VIEWER2.AddShape(DEBUG_MESH2);
+    DEBUG_MESH2.ConvertPointsToWorld(VIEWERS[1]);
+    VIEWERS[1].AddShape(DEBUG_MESH2);
 }
 
 
@@ -2487,7 +2487,7 @@ function DeformableAlignViewers() {
         return;
     }
 
-    var viewport = VIEWER2.GetViewport();
+    var viewport = VIEWERS[1].GetViewport();
     var left = viewport[0] + (viewport[2]/2) - 40;
     var top = viewport[1] + (viewport[3]/2) - 40;
     if (WAITING === undefined) {
@@ -2510,14 +2510,14 @@ function DeformableAlignViewers() {
             // Resample contour for a smaller mesh.
             var spacing = 3;
 
-            var viewer = VIEWER1;
+            var viewer = VIEWERS[0];
             var data1 = GetImageData(viewer.MainView);
             SmoothDataAlphaRGB(data1, 2);
             var histogram1 = ComputeIntensityHistogram(data1, true);
             var threshold1 = PickThreshold(histogram1);
             var contour1 = LongestContour(data1, threshold1);
 
-            viewer = VIEWER2;
+            viewer = VIEWERS[1];
             var data2 = GetImageData(viewer.MainView);
             SmoothDataAlphaRGB(data2, 2);
             var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -2540,7 +2540,7 @@ function DeformableAlignViewers() {
             // Remove all correlations.
             //trans.Correlations = [];
             // Remove all correlations visible in the window.
-            var cam = VIEWER1.GetCamera();
+            var cam = VIEWERS[0].GetCamera();
             var bds = cam.GetBounds();
             var idx = 0;
             while (idx < trans.Correlations.length) {
@@ -2558,11 +2558,11 @@ function DeformableAlignViewers() {
             var targetNumCorrelations = 40;
             var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
             for (var i = 2; i < originalContour2.Length(); i += skip) {
-                var viewport = VIEWER1.GetViewport();
-                var pt1 = VIEWER1.ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
+                var viewport = VIEWERS[0].GetViewport();
+                var pt1 = VIEWERS[0].ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
                                                             contour2.GetPoint(i)[1]);
-                var viewport = VIEWER2.GetViewport();
-                var pt2 = VIEWER2.ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
+                var viewport = VIEWERS[1].GetViewport();
+                var pt2 = VIEWERS[1].ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
                                                             originalContour2.GetPoint(i)[1]);
                 var cor = new PairCorrelation();
                 cor.SetPoint0(pt1);
@@ -2572,7 +2572,7 @@ function DeformableAlignViewers() {
 
             console.log("Finished alignment");
             // Syncronize views
-            note.SynchronizeViews(0);
+            NOTES_WIDGET.SynchronizeViews(0, note);
 
             WAITING.hide();
 
@@ -2754,9 +2754,9 @@ function intensityHistogram(viewer, color, min, max) {
 
 // Takes around a second for r = 3;
 function testSmooth(radius) {
-    var data1 = GetImageData(VIEWER1.MainView);
+    var data1 = GetImageData(VIEWERS[0].MainView);
     SmoothDataAlphaRGB(data1,radius);
-    DrawImageData(VIEWER1, data1);
+    DrawImageData(VIEWERS[0], data1);
     delete data1;
 }
 
@@ -2767,7 +2767,7 @@ function testSmooth(radius) {
 // Some tissue has the same value as background. I would need a fill to segment background better.
 // Deep red tissue keeps blue red component from dominating.
 function testPrincipleComponentEncoding() {
-    var data1 = GetImageData(VIEWER1.MainView);
+    var data1 = GetImageData(VIEWERS[0].MainView);
     SmoothDataAlphaRGB(data1,2);
     //EncodePrincipleComponent(data1);
     var histogram1 = ComputeIntensityHistogram(data1);
@@ -2778,36 +2778,36 @@ function testPrincipleComponentEncoding() {
     EncodePrincipleComponent(data1);
 
 
-    DrawImageData(VIEWER2, data1);
+    DrawImageData(VIEWERS[1], data1);
     delete data1;
 }
 
 
 // Worked sometimes, but not always.
 function testAlignTranslationPixelMean() {
-    var data1 = GetImageData(VIEWER1.MainView);
+    var data1 = GetImageData(VIEWERS[0].MainView);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     ThresholdData(data1, threshold1);
-    //DrawImageData(VIEWER1, data1);
+    //DrawImageData(VIEWERS[0], data1);
 
-    var data2 = GetImageData(VIEWER2.MainView);
+    var data2 = GetImageData(VIEWERS[1].MainView);
     var histogram2 = ComputeIntensityHistogram(data2);
     var threshold2 = PickThreshold(histogram2);
     ThresholdData(data2, threshold2);
-    //DrawImageData(VIEWER2, data2);
+    //DrawImageData(VIEWERS[1], data2);
 
     var dx = data2.mid_x - data1.mid_x;
     var dy = data2.mid_y - data1.mid_y;
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWER1.GetCamera();
-    var viewport = VIEWER1.GetViewport();
+    var cam = VIEWERS[0].GetCamera();
+    var viewport = VIEWERS[0].GetViewport();
     dx = dx * cam.Height / viewport[3];
     dy = dy * cam.Height / viewport[3];
 
-    VIEWER1.AnimateTranslate(-dx/2, -dy/2);
-    VIEWER2.AnimateTranslate(dx/2, dy/2);
+    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
     console.log("Translate = (" + dx + ", " + dy + ")" );
 }
@@ -2821,14 +2821,14 @@ function testAlignTranslationPixelMean() {
 // Histogram of contour curvature did not work.
 // Minimize distance between two contours. (Distance map to keep distance computation fast).
 function testAlignTranslation(debug) {
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    var viewer2 = VIEWER2;
+    var viewer2 = VIEWERS[1];
     var viewport2 = viewer2.GetViewport();
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 2);
@@ -2842,19 +2842,19 @@ function testAlignTranslation(debug) {
         contour1 = DecimateContour(contour1,1);
         TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
         contour2 = DecimateContour(contour2,1);
-        MakeContourPolyline(contour1, VIEWER1);
-        MakeContourPolyline(contour2, VIEWER1);
+        MakeContourPolyline(contour1, VIEWERS[0]);
+        MakeContourPolyline(contour2, VIEWERS[0]);
     }
 
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWER1.GetCamera();
-    var viewport = VIEWER1.GetViewport();
+    var cam = VIEWERS[0].GetCamera();
+    var viewport = VIEWERS[0].GetViewport();
     var dx = trans.delta[0] * cam.Height / viewport[3];
     var dy = trans.delta[1] * cam.Height / viewport[3];
 
-    VIEWER1.AnimateTranslate(-dx/2, -dy/2);
-    VIEWER2.AnimateTranslate(dx/2, dy/2);
+    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
 
     // Ignore rotation for now.
@@ -2863,14 +2863,14 @@ function testAlignTranslation(debug) {
 }
 
 function testAlignTranslation2(debug) {
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    var viewer2 = VIEWER2;
+    var viewer2 = VIEWERS[1];
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -2883,19 +2883,19 @@ function testAlignTranslation2(debug) {
         contour1 = DecimateContour(contour1,1);
         TranslateContour(contour2,[-trans.delta[0],-trans.delta[1]]);
         contour2 = DecimateContour(contour2,1);
-        MakeContourPolyline(contour1, VIEWER1);
-        MakeContourPolyline(contour2, VIEWER1);
+        MakeContourPolyline(contour1, VIEWERS[0]);
+        MakeContourPolyline(contour2, VIEWERS[0]);
     }
 
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWER1.GetCamera();
-    var viewport = VIEWER1.GetViewport();
+    var cam = VIEWERS[0].GetCamera();
+    var viewport = VIEWERS[0].GetViewport();
     var dx = trans.delta[0] * cam.Height / viewport[3];
     var dy = trans.delta[1] * cam.Height / viewport[3];
 
-    VIEWER1.AnimateTranslate(-dx/2, -dy/2);
-    VIEWER2.AnimateTranslate(dx/2, dy/2);
+    VIEWERS[0].AnimateTranslate(-dx/2, -dy/2);
+    VIEWERS[1].AnimateTranslate(dx/2, dy/2);
 
 
     // Ignore rotation for now.
@@ -2907,23 +2907,23 @@ function testAlignTranslation2(debug) {
 
 // Moving toward deformation of contour
 function testAlignTranslation() {
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
 
-    //MakeContourPolyline(contour1, VIEWER1);
+    //MakeContourPolyline(contour1, VIEWERS[0]);
 
-    var viewer2 = VIEWER2;
+    var viewer2 = VIEWERS[1];
     var data2 = GetImageData(viewer2.MainView);
     SmoothDataAlphaRGB(data2, 5);
     var histogram2 = ComputeIntensityHistogram(data2, true);
     var threshold2 = PickThreshold(histogram2);
     var contour2 = LongestContour(data2, threshold2);
 
-    //MakeContourPolyline(contour2, VIEWER2);
+    //MakeContourPolyline(contour2, VIEWERS[1]);
 
     // Make a copy of contour2.
     //var contour2copy = new Array(contour2.length);
@@ -2951,33 +2951,33 @@ function testAlignTranslation() {
     ty = ty - (viewport2[3]*0.5);
 
     // Convert from pixels to slide coordinates
-    var cam = VIEWER1.GetCamera();
+    var cam = VIEWERS[0].GetCamera();
     var tx = tx * cam.Height / viewport2[3];
     var ty = ty * cam.Height / viewport2[3];
 
-    VIEWER2.AnimateTransform(-tx, -ty, -trans.roll);
+    VIEWERS[1].AnimateTransform(-tx, -ty, -trans.roll);
 }
 
 
 
 function testDistanceMapContour() {
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 5);
     var histogram1 = ComputeIntensityHistogram(data1);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    MakeContourPolyline(contour1, VIEWER1);
+    MakeContourPolyline(contour1, VIEWERS[0]);
 
     var bds1 = ComputeContourBounds(contour1);
     var distMap = new DistanceMap(bds1, 1);
     distMap.AddContour(contour1);
     distMap.Update();
-    distMap.Draw(VIEWER2);
+    distMap.Draw(VIEWERS[1]);
 }
 
 function testDistanceMapThreshold() {
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var ctx1 = viewer1.MainView.Context2d;
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, 2);
@@ -2990,7 +2990,7 @@ function testDistanceMapThreshold() {
     var distMap = new DistanceMap(bds1, 1);
     distMap.AddImageData(data1);
     distMap.Update();
-    distMap.Draw(VIEWER2);
+    distMap.Draw(VIEWERS[1]);
 }
 
 // Lets try the contour trick.
@@ -2998,13 +2998,13 @@ function testDistanceMapThreshold() {
 // I could perform connectivity before or after contouring.
 // lets do it after.  Scan for edge. Trace the edge. Mark pixels that have already been contoured.
 function testContour(threshold) {
-    var viewer = VIEWER1;
+    var viewer = VIEWERS[0];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var points = LongestContour(data1, threshold);
     ContourRemoveDuplicatePoints(points, 1);
     if (points.length > 1) {
-        var plWidget = MakeContourPolyline(points, VIEWER1);
+        var plWidget = MakeContourPolyline(points, VIEWERS[0]);
     }
 }
 
@@ -3017,7 +3017,7 @@ function testContourMesh(deci) {
     if (deci == undefined) {
         deci = 3;
     }
-    var viewer = VIEWER2;
+    var viewer = VIEWERS[1];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
@@ -3053,15 +3053,15 @@ function testDeformableAlign(spacing) {
     if (spacing == undefined) {
         spacing = 3;
     }
-    var viewer = VIEWER1;
+    var viewer = VIEWERS[0];
     var data1 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data1, 2);
     var histogram1 = ComputeIntensityHistogram(data1, true);
     var threshold1 = PickThreshold(histogram1);
     var contour1 = LongestContour(data1, threshold1);
-    MakeContourPolyline(contour1, VIEWER1);
+    MakeContourPolyline(contour1, VIEWERS[0]);
 
-    viewer = VIEWER2;
+    viewer = VIEWERS[1];
     var data2 = GetImageData(viewer.MainView);
     SmoothDataAlphaRGB(data2, 2);
     var histogram2 = ComputeIntensityHistogram(data2, true);
@@ -3070,7 +3070,7 @@ function testDeformableAlign(spacing) {
     ContourRemoveDuplicatePoints(contour2, spacing);
 
     DeformableAlignContours(contour1, contour2);
-    MakeContourPolyline(contour2, VIEWER1);
+    MakeContourPolyline(contour2, VIEWERS[0]);
     eventuallyRender();
 }
 
@@ -3083,7 +3083,7 @@ function testDeformableAlign(spacing) {
 
 
 // Find the best contour given an estimate of center and area..
-function FindSectionContours (data, center, area) {
+function FindSectionContour (data, center, area) {
     var smooth = 2; // is this really necesary?  It is expensive.
     SmoothDataAlphaRGB(data, smooth);
 
@@ -3181,7 +3181,7 @@ function initHagfish() {
     HAGFISH_STACK.ViewerRecords = [];
 
     LAST_HAGFISH_CONTOUR = undefined;
-    VIEWER1.WidgetList = [];
+    VIEWERS[0].WidgetList = [];
     eventuallyRender();
 }
 
@@ -3191,7 +3191,7 @@ function acceptHagfishContours() {
     VERIFIED_HAGFISH_CONTOURS = HAGFISH_CONTOURS;
     HAGFISH_CONTOURS = [];
 
-    VIEWER1.WidgetList = [];
+    VIEWERS[0].WidgetList = [];
     eventuallyRender();
     addVerifiedHagFishContours();
     console.log("Finished: adding contours.");
@@ -3201,12 +3201,12 @@ function acceptHagfishContours() {
 // We might constrain sequential contours to be similar areas.
 // This could eliminate the need for manual verification.
 function findHagFishSections(smooth, min, max) {
-    VIEWER1.WidgetList = [];
+    VIEWERS[0].WidgetList = [];
     eventuallyRender();
 
     VERIFIED_HAGFISH_CONTOURS = [];
 
-    var viewer1 = VIEWER1;
+    var viewer1 = VIEWERS[0];
     var data1 = GetImageData(viewer1.MainView);
     SmoothDataAlphaRGB(data1, smooth);
     var histogram1 = ComputeIntensityHistogram(data1, true);
@@ -3231,7 +3231,7 @@ function findHagFishSections(smooth, min, max) {
     // render the first contour red
     for (var i = 0; i < HAGFISH_CONTOURS.length; ++i) {
         var red = i / HAGFISH_CONTOURS.length;
-        HAGFISH_CONTOURS[i].MakePolyline([red,0,1.0-red], VIEWER1.MainView);
+        HAGFISH_CONTOURS[i].MakePolyline([red,0,1.0-red], VIEWERS[0].MainView);
     }
     eventuallyRender();
 }
@@ -3254,7 +3254,7 @@ function alignHagFishSections(record, contour1, contour2) {
     console.log("shift: "+(ac2[0]-c1[0])+", "+(ac2[1]-c1[1]));
 
     // I want to see the alignment for debugging.
-    alignedContour2.MakePolyline([1,0,1], VIEWER1.MainView);
+    alignedContour2.MakePolyline([1,0,1], VIEWERS[0].MainView);
 
     // Now make new correlations from the transformed contour.
     var targetNumCorrelations = 40;
@@ -3280,7 +3280,7 @@ function alignHagFishSections(record, contour1, contour2) {
 
 function addVerifiedHagFishContours() {
     for (var i = 0; i < VERIFIED_HAGFISH_CONTOURS.length; ++i) {
-        var imgData = VIEWER1.GetCache().Image;
+        var imgData = VIEWERS[0].GetCache().Image;
         var contour = VERIFIED_HAGFISH_CONTOURS[i];
         var bds = contour.GetBounds();
         var record = new ViewerRecord();
@@ -3349,8 +3349,8 @@ function getHighResHagFishContours() {
     }
     var bds = HAGFISH_CONTOURS[0].GetBounds();
     var scale = (bds[1]-bds[0])/500;
-    var roll = VIEWER1.GetCamera().Roll;
-    VIEWER1.GetImage(bds, roll, scale, getHighResHagFishContours2);
+    var roll = VIEWERS[0].GetCamera().Roll;
+    VIEWERS[0].GetImage(bds, roll, scale, getHighResHagFishContours2);
 }
 
 // We need two methods because we have to wait for tiles to stop loading.

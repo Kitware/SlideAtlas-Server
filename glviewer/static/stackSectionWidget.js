@@ -15,6 +15,9 @@
 function StackSectionWidget (viewer) {
     var self = this;
 
+    this.Thumb = null; // default click. in stack creator.
+
+
     // Active is just to turn the section yellow temporarily.
     this.Active = false;
     this.Color = [0,1,0];
@@ -153,6 +156,10 @@ StackSectionWidget.prototype.Draw = function(view) {
 }
 
 StackSectionWidget.prototype.Serialize = function() {
+    // Backing away from 'every section has a contour'.
+    if (this.Thumb) { 
+        return null;
+    }
     var obj = new Object();
     obj.type = "stack_section";
     obj.color = this.Color;
@@ -202,7 +209,6 @@ StackSectionWidget.prototype.Load = function(obj) {
     }
 }
 
-
 // We could recompute the bounds from the
 StackSectionWidget.prototype.GetCenter = function () {
     var bds = this.GetBounds();
@@ -211,6 +217,14 @@ StackSectionWidget.prototype.GetCenter = function () {
 
 // We could recompute the bounds from the
 StackSectionWidget.prototype.GetBounds = function () {
+    // Special case for simple thumb selection.
+    if (this.Thumb) {
+        var rad = this.Thumb.Height * this.Thumb.ScreenPixelSpacing / 4.0;
+        var cx = this.ThumbX;
+        var cy = this.ThumbY;
+        return [cx-rad, cx+rad, cy-rad, cy+rad];
+    }
+
     if (this.Shapes.length == 0) {
         return this.Bounds;
     }
@@ -306,6 +320,11 @@ StackSectionWidget.prototype.RigidAlign = function (section, trans) {
     // editor.
     trans[0] = (center2[0]-center1[0]);
     trans[1] = (center2[1]-center1[1]);
+
+    if (this.Thumb || section.Thumb) {
+        trans[2] = 0;
+        return;
+    }
 
     // Get the bounds of both contours.
     var bds1 = this.GetBounds();

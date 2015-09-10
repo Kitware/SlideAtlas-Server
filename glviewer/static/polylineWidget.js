@@ -882,7 +882,7 @@ PolylineWidget.prototype.Sample = function(dim, spacing, skip, root, count) {
 
 // Save images with centers inside the polyline.
 PolylineWidget.prototype.SampleStack = function(dim, spacing, skip, root, count) {
-    var cache = VIEWER1.GetCache();
+    var cache = VIEWERS[0].GetCache();
     var bds = this.Shape.GetBounds();
     for (var y = bds[2]; y < bds[3]; y += skip) {
         for (var x = bds[0]; x < bds[1]; x += skip) {
@@ -900,7 +900,7 @@ PolylineWidget.prototype.SampleStack = function(dim, spacing, skip, root, count)
 
 // Save images with centers inside the polyline.
 PolylineWidget.prototype.DownloadStack = function(x, y, dim, spacing, root) {
-    var cache = VIEWER1.GetCache();
+    var cache = VIEWERS[0].GetCache();
     for (var i = 0; i < 3; ++i) {
         levelSpacing = spacing << i;
         GetCutoutImage(cache, dim, [x,y], levelSpacing, 0, root+i+".png", null);
@@ -920,7 +920,7 @@ PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
 
 function DownloadTheano(widgetIdx, angleIdx) {
     EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
-    VIEWER1.WidgetList[widgetIdx].SampleEdge(
+    VIEWERS[0].WidgetList[widgetIdx].SampleEdge(
         64,4,EDGE_COUNT,
         function () {
             setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
@@ -934,7 +934,7 @@ function DownloadTheano2(widgetIdx, angleIdx) {
         angleIdx = 0;
         ++widgetIdx;
     }
-    if (widgetIdx < VIEWER1.WidgetList.length) {
+    if (widgetIdx < VIEWERS[0].WidgetList.length) {
         DownloadTheano(widgetIdx, angleIdx);
     }
 }

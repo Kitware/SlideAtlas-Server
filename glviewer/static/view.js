@@ -4,8 +4,13 @@
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
+var TEXT_VIEW_HACK = null;
 
 function View (parent) {
+    // Text needs a context to compute its bounds.
+    if ( ! TEXT_VIEW_HACK) {
+        TEXT_VIEW_HACK = this;
+    }
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -99,8 +104,6 @@ View.prototype.UpdateCanvasSize = function() {
 
     // TODO: Get rid of this.
     this.Viewport = [pos.left, pos.top, width, height];
-
-    console.log('size: ' + this.Viewport);
 
     // TODO: Just set the width and height of the camera.
     // There is no reason, the camera needs to know the
@@ -351,8 +354,8 @@ View.prototype.DrawCorrelations = function (correlations, pointIdx) {
         var ctx = this.Context2d;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.strokeStyle = "rgba(200,255,255,100)"; 
-        ctx.fillStyle = "rgba(255,0,0,100)"; 
+        ctx.strokeStyle = "rgba(200,255,255,100)";
+        ctx.fillStyle = "rgba(255,0,0,100)";
         for (var i = 0; i < correlations.length; ++i) {
             var wPt = correlations[i].GetPoint(pointIdx);
             var m = this.Camera.Matrix;

@@ -836,7 +836,7 @@ function ResizePanel(parent) {
             return false;});
 
 
-    this.Visibilty = false;
+    this.Visibility = false;
     this.Dragging = false;
 
     // TODO: Get rid of the reference to the global VIEW_PANEL.
@@ -902,7 +902,7 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
         // TODO: Get rid of this hack.
         $(window).trigger('resize');
 
-        if (this.Visibilty) {
+        if (this.Visibility) {
             this.CloseNoteWindowButton.show();
             this.OpenNoteWindowButton.hide();
             this.Window.fadeIn();
@@ -926,10 +926,10 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
 }
 
 ResizePanel.prototype.ToggleNotesWindow = function() {
-    this.Visibilty = ! this.Visibilty;
+    this.Visibility = ! this.Visibility;
     RecordState();
 
-    if (this.Visibilty) {
+    if (this.Visibility) {
         this.AnimationCurrent = this.Width;
         this.AnimationTarget = 325;
     } else {

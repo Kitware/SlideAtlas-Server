@@ -17,6 +17,7 @@ var INTERACTION_OVERVIEW = 4;
 var INTERACTION_OVERVIEW_DRAG = 5;
 var INTERACTION_ICON_ROTATE = 6;
 
+
 // See the top of the file for description of args.
 function Viewer (parent, args) {
     args = args || {};
@@ -99,7 +100,8 @@ function Viewer (parent, args) {
 
     // For stack correlations.
     this.StackCorrelations = undefined;
-    this.ViewerIndex = 0; // VIEWER1 has this set to 0, VIEWER2: 1
+    // This is only for drawing correlations.
+    this.RecordIndex = 0; // Only used for drawing correlations.
 
     var self = this;
     var can = this.MainView.CanvasDiv[0];
@@ -536,63 +538,27 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
 
 
 
- Viewer.prototype.GetAnnotationVisibility = function() {
-   return this.AnnotationVisibility;
- }
+Viewer.prototype.GetAnnotationVisibility = function() {
+    return this.AnnotationVisibility;
+}
 
- Viewer.prototype.SetAnnotationVisibility = function(vis) {
-   this.AnnotationVisibility = vis;
- }
-
-
-/*
- // connectome
- // TODO:
- // I do not like the global variable SECTIONS here.
- // SECTIONS should be an object of ivar.
- // The purpose of using an index arg is to preload
- // tiles from the adjacent sections.
- Viewer.prototype.SetSectionIndex = function(idx) {
-   if (idx < 0 || idx >= SECTIONS.length) {
-     return;
-   }
-   var section = SECTIONS[idx];
-   if (section == null) {
-     return;
-   }
-   if (idx > 0 && SECTIONS[idx-1]) {
-     var s = SECTIONS[idx-1];
-     s.LoadRoots();
-     // Preload the views tiles in the previous section
-     // TODO: Get ride of this hard coded global
-     s.LoadTilesInView(VIEWER1.MainView);
-   }
-   section.LoadRoots();
-   if (idx < SECTIONS.length-z1 && SECTIONS[idx+1]) {
-     var s = SECTIONS[idx+1];
-     s.LoadRoots();
-     // Preload the views tiles in the next section
-     // TODO: Get ride of this hard coded global
-     s.LoadTilesInView(VIEWER1.MainView);
-   }
-
-   this.SetSection(section);
- }
-*/
+Viewer.prototype.SetAnnotationVisibility = function(vis) {
+    this.AnnotationVisibility = vis;
+}
 
 
- Viewer.prototype.SetOverViewBounds = function(bounds) {
-     this.OverViewBounds = bounds;
-     if (this.OverView) {
-         // With the rotating overview, the overview camera
-         // never changes. Maybe this should be set in
-         // "UpdateCamera".
-         this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
-         this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
-                                            0.5*(bounds[2]+bounds[3]));
-         this.OverView.Camera.ComputeMatrix();
-     }
- }
+Viewer.prototype.SetOverViewBounds = function(bounds) {
+    this.OverViewBounds = bounds;
+    if (this.OverView) {
+        // With the rotating overview, the overview camera
+        // never changes. Maybe this should be set in
+        // "UpdateCamera".
+        this.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
+        this.OverView.Camera.SetFocalPoint(0.5*(bounds[0]+bounds[1]),
+                                           0.5*(bounds[2]+bounds[3]));
+        this.OverView.Camera.ComputeMatrix();
+    }
+}
 
  Viewer.prototype.GetOverViewBounds = function() {
      if (this.OverViewBounds) {
@@ -1104,7 +1070,7 @@ Viewer.prototype.Draw = function() {
     if (EVENT_MANAGER.CursorFlag && EDIT) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
-            this.MainView.DrawCorrelations(this.StackCorrelations, this.ViewerIndex);
+            this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
         }
     }
 
@@ -1146,7 +1112,9 @@ Viewer.prototype.Animate = function() {
                                            this.TranslateTarget[1]);
         this.UpdateZoomGui();
         // Save the state when the animation is finished.
-        RecordState();
+        if (RECORDER_WIDGET) {
+            RECORDER_WIDGET.RecordState();
+        }
     } else {
         // Interpolate
         var currentHeight = this.MainView.Camera.GetHeight();
@@ -1505,7 +1473,9 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
          this.MomentumTimerId = 0;
          if (this.InteractionState != INTERACTION_NONE) {
              this.InteractionState = INTERACTION_NONE;
-             RecordState();
+             if (RECORDER_WIDGET) {
+                 RECORDER_WIDGET.RecordState();
+             }
          }
          this.UpdateZoomGui();
      } else {
@@ -1641,7 +1611,9 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
      if (this.InteractionState != INTERACTION_NONE) {
          this.InteractionState = INTERACTION_NONE;
-         RecordState();
+         if (RECORDER_WIDGET) {
+             RECORDER_WIDGET.RecordState();
+         }
      }
 
      return false; // trying to keep the browser from selecting images

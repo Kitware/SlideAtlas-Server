@@ -19,7 +19,7 @@ function MobileAnnotationWidget() {
 
     var self = this;
     this.Div =
-        $('<div>').appendTo(VIEWER1.GetDiv())
+        $('<div>').appendTo(VIEWERS[0].GetDiv())
         .css({'position':'absolute',
               'right':'0px',
               'bottom':'0px',
@@ -64,7 +64,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
   console.log("New circle");
 
   // Hard code only a single view for now.
-  this.Viewer = VIEWER1;
+  this.Viewer = VIEWERS[0];
 
   if ( this.Viewer.ActiveWidget != undefined && widget ) {
     this.Viewer.ActiveWidget.Deactivate();
@@ -84,7 +84,7 @@ MobileAnnotationWidget.prototype.CircleCallback = function() {
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-  this.Viewer = VIEWER1;
+  this.Viewer = VIEWERS[0];
   var widget = this.Viewer.ActiveWidget;
   if ( widget ) {
     widget.Deactivate();

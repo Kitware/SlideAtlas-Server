@@ -41,6 +41,8 @@ function PresentationMain(viewId) {
 function Presentation(rootNote, edit) {
     var self = this;
     this.Edit = edit;
+    // We need this to know what to return to when a view goes full screen.
+    this.FullScreen = false;
 
     // TODO:
     // Fix this. Session page needs every member view to have an image.
@@ -140,7 +142,7 @@ function Presentation(rootNote, edit) {
               'width':'20px',
               'z-index':'5'})
         .click(function () {
-            self.FullScreen();
+            self.StartFullScreen();
         });
     this.TimerButton = $('<img>')
         .appendTo(this.PresentationDiv)
@@ -218,7 +220,7 @@ Presentation.prototype.StartTimerShow = function () {
             },
             buttons: {
                 "Start": function () {
-                    self.FullScreen();
+                    self.StartFullScreen();
                     // Change seconds to milliseconds
                     var duration = parseInt(self.DurationInput.val())*1000;
                     // Also linger on the current slide.
@@ -238,7 +240,7 @@ Presentation.prototype.StartTimerShow = function () {
 }
 
 
-Presentation.prototype.FullScreen = function () {
+Presentation.prototype.StartFullScreen = function () {
     var elem = document.body;
 
     this.EditOff();
@@ -256,16 +258,24 @@ Presentation.prototype.FullScreen = function () {
         elem.webkitRequestFullscreen();
     }
 
+    this.FullScreen = true;
+
     // detect when we leave full screen.
+    var self = this;
     $(elem).bind(
         'webkitfullscreenchange mozfullscreenchange fullscreenchange',
         function(e) {
             var state = document.fullScreen || document.mozFullScreen ||
                 document.webkitIsFullScreen;
-            var event = state ? 'FullScreenOn' : 'FullScreenOff';
-
-            // TODO: Stop the timer when we leave full screen.
-            // Turn editing back on if EDIT.
+            //var event = state ? 'FullScreenOn' : 'FullScreenOff';
+            
+            self.FullScreen = state;
+            if ( ! self.FullScreen) {
+                self.EditOn();
+                self.ShowButton.show();
+                self.TimerButton.show();
+                // TODO: Stop the timer when we leave full screen.
+            }
         });
 }
 
@@ -277,6 +287,28 @@ Presentation.prototype.EditOff = function () {
         this.TitlePage.EditOff();
         this.SlidePage.EditOff();
         this.HtmlPage.EditOff();
+        this.DeleteSlideButton.hide();
+        this.PresentationDiv
+            .css({'left':'0%',
+                  'width':'100%'});
+        this.LeftPanel.hide();
+    }
+}
+
+
+Presentation.prototype.EditOn = function () {
+    if (this.FullScreen) { return; }
+    if (EDIT && ! this.Edit) {
+        this.Edit = true;
+        this.EditTabs.Div.show();
+        this.TitlePage.EditOn();
+        this.SlidePage.EditOn();
+        this.HtmlPage.EditOn();
+        this.DeleteSlideButton.show();
+        this.PresentationDiv
+            .css({'left':'25%',
+                  'width':'75%'});
+        this.LeftPanel.show();
     }
 }
 
@@ -678,7 +710,7 @@ function SlidePage(parent, edit) {
               'bottom': '5px',
               'width': '100%'});
     // List of question answers.
-    this.List = new TextEditor(this.TextDiv);
+    this.List = new TextEditor(this.TextDiv, VIEWERS);
     if ( ! edit) {
         this.List.EditOff();
     }
@@ -691,8 +723,6 @@ function SlidePage(parent, edit) {
     // Make the viewer look like jquery
     //this.ViewerDiv1.viewer({overview:false});
     this.ViewerDiv1.saViewer();
-    // text needs this to compoute bounds (last hold out).
-    VIEWER1 = this.ViewerDiv1[0].saViewer;
 
     this.ViewerDiv2 = $('<div>')
         .appendTo(this.ViewPanel)
@@ -700,11 +730,10 @@ function SlidePage(parent, edit) {
               'box-shadow': '10px 10px 5px #AAA'});
     // Make the viewer look like jquery
     this.ViewerDiv2.saViewer();
-    // NotesWidget needs to get rid of this global.
-    VIEWER2 = this.ViewerDiv2[0].saViewer;
 
     if (this.Edit) {
         // TODO: Better API (jquery) for adding widgets.
+        // TODO: Better placement control for the widget.
         this.AnnotationWidget1 = new AnnotationWidget(
             this.ViewerDiv1[0].saViewer);
         this.AnnotationWidget1.SetVisibility(2);
@@ -729,11 +758,11 @@ function SlidePage(parent, edit) {
                   'z-index':'5'})
             .click(function () {
                 PRESENTATION.Note.ViewerRecords.splice(0,1);
-                // Hack to reload viewer records.
-                PRESENTATION.GotoSlide(PRESENTATION.Index);
+                // Redisplay the viewers
+                self.DisplayNote(PRESENTATION.Index, self.Note);
             });
         this.RemoveView2Button = $('<img>')
-            .appendTo(this.ViewerDiv1)
+            .appendTo(this.ViewerDiv2)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
@@ -745,8 +774,8 @@ function SlidePage(parent, edit) {
                   'z-index':'5'})
             .click(function () {
                 PRESENTATION.Note.ViewerRecords.splice(1,1);
-                // Hack to reposition viewers.
-                $(window).trigger('resize');
+                // Redisplay the viewers
+                self.DisplayNote(PRESENTATION.Index, self.Note);
             });
 
         // Setup view resizing.
@@ -860,6 +889,9 @@ SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
         this.ViewPanel.css({
             'bottom': '300px',
             'height': 'auto'});
+        if (EDIT) {
+            PRESENTATION.EditOn();
+        }
 
     }
     this.FullWindowView = viewerDiv;
@@ -893,13 +925,29 @@ SlidePage.prototype.EditOff = function () {
         this.AnnotationWidget2.hide();
         // Clear the event callbacks
         this.ViewerDiv1[0].saViewer.OnInteraction();
-        this.ViewerDiv1[0].saViewer.OnInteraction();
+        this.ViewerDiv2[0].saViewer.OnInteraction();
         this.RemoveView1Button.hide();
         this.RemoveView2Button.hide();
         this.List.EditOff();
         // This causes the viewers to look transparent.
-        //VIEWER1.MainView.CanvasDiv.resizable('disable');
-        //VIEWER2.MainView.CanvasDiv.resizable('disable');
+        //VIEWER.MainView.CanvasDiv.resizable('disable');
+    }
+}
+
+
+SlidePage.prototype.EditOn = function () {
+    if (EDIT &&  ! this.Edit) {
+        this.Edit = true;
+        //this.Div.css({'width': '100%', 'left': '0px'}); ???
+        this.AnnotationWidget1.show();
+        this.AnnotationWidget2.show();
+        // Set the event callbacks
+        var self = this;
+        this.ViewerDiv1[0].saViewer.OnInteraction(function () {self.RecordView1();});
+        this.ViewerDiv2[0].saViewer.OnInteraction(function () {self.RecordView2();});
+        this.RemoveView1Button.show();
+        this.RemoveView2Button.show();
+        this.List.EditOn();
     }
 }
 
@@ -999,17 +1047,11 @@ SlidePage.prototype.DisplayNote = function (index, note) {
     // Text
     this.List.LoadNote(note);
     // Views
-    if (this.Records.length == 0) {
-        DUAL_VIEW = false;
-    }
     if (this.Records.length > 0) {
         this.Records[0].Apply(this.ViewerDiv1[0].saViewer);
-        DUAL_VIEW = false;
     }
     if (this.Records.length > 1) {
         this.Records[1].Apply(this.ViewerDiv2[0].saViewer);
-        // TODO: Get rid of this global variable.
-        DUAL_VIEW = true;
     }
     this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
     this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
@@ -1054,13 +1096,8 @@ SlidePage.prototype.InsertViewNote = function (note) {
         this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
-    // ???????
-    // Hack to reload viewer records.
-    this.GotoSlide(this.Index);
+    this.DisplayNote(this.Note);
 }
-
-
-
 
 
 
@@ -1150,16 +1187,36 @@ TitlePage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
-        this.Title.attr('readonly', 'readonly')
+        this.Title
+            .attr('readonly', 'readonly')
             .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();
         this.AuthorText.attr('readonly', 'readonly')
+            .attr('readonly', 'readonly')
             .attr('spellcheck', 'false')
             .unbind('focusin')
             .unbind('focusout')
             .blur();
+    }
+}
+
+
+TitlePage.prototype.EditOn = function () {
+    if (EDIT &&  ! this.Edit) {
+        this.Edit = true;
+        //this.Div.css({'width': '100%', 'left': '0px'}); ???
+        this.Title
+            .attr('contenteditable', 'true')
+            .attr('spellcheck', 'true')
+            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
+            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+        this.AuthorText.attr('readonly', 'readonly')
+            .attr('contenteditable', 'true')
+            .attr('spellcheck', 'true')
+            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
+            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
     }
 }
 
@@ -1240,6 +1297,14 @@ HtmlPage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
+    }
+}
+
+
+HtmlPage.prototype.EditOn = function () {
+    if (EDIT &&  ! this.Edit) {
+        this.Edit = true;
+        // this.Div.css({'width': '100%', 'left': '0px'}); ???
     }
 }
 
@@ -1489,7 +1554,6 @@ HtmlPage.prototype.BindElements = function() {
                 w = (Math.floor(w/scale)).toString();
                 h = (Math.floor(h/scale)).toString();
 
-                console.log(scaleStr);
                 $(this).css({'-ms-zoom': scaleStr,
                              '-ms-transform-origin': '0 0',
                              '-moz-transform': 'scale('+scaleStr+')',

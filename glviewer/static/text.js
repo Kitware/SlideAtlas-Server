@@ -292,7 +292,7 @@ Text.prototype.UpdateBuffers = function() {
     // Hack: use a global viewer because I do not have the viewer.
     // Maybe it should be passed in as an argument, or store the context
     // as an instance variable.
-    var ctx = VIEWER1.MainView.Context2d;
+    var ctx = TEXT_VIEW_HACK.Context2d;
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.font = this.Size+'pt Calibri';

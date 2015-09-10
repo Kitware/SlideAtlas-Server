@@ -10,9 +10,11 @@
 {% block styles %}
 {# TODO: base style assumes navbar will be present #}
 {#{{ super() }}#}
-    <script src="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet"
-          href="/static/thirdparty/jquery-ui/1.10.2/jquery-ui.css">
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+
     <link type="text/css" href="/webgl-viewer/static/css/saViewer.css" rel="stylesheet" />
     <script type="text/javascript" src="/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js"></script>
     <script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
@@ -284,6 +286,14 @@ function addViewToStack(thumb) {
         }
     }
 
+    // Go back to the simple "pick the center" selection behavior. 
+    var widget = new StackSectionWidget();
+    widget.Thumb = thumb;
+    widget.ThumbX = thumb.SlideX;
+    widget.ThumbY = thumb.SlideY;
+    widget.ImageData = thumb.ImageData;
+    addSectionToStack(widget);
+    return;
 
     // Multiple selection option is not working well.
     // This mode is best done through the viewer detecting sections.
@@ -296,12 +306,12 @@ function addViewToStack(thumb) {
     var r = (imageObj.bounds[3] - imageObj.bounds[2]) / 2;
     var bds = [xMid-r,xMid+r, yMid-r,yMid+r];
     // crop to image bounds.
-    if (bds[0] < imgObj.bounds[0]) { bds[0] = imgObj.bounds[0]; }
-    if (bds[1] > imgObj.bounds[1]) { bds[1] = imgObj.bounds[1]; }
-    if (bds[2] < imgObj.bounds[2]) { bds[2] = imgObj.bounds[2]; }
-    if (bds[3] > imgObj.bounds[3]) { bds[3] = imgObj.bounds[3]; }
+    if (bds[0] < imageObj.bounds[0]) { bds[0] = imageObj.bounds[0]; }
+    if (bds[1] > imageObj.bounds[1]) { bds[1] = imageObj.bounds[1]; }
+    if (bds[2] < imageObj.bounds[2]) { bds[2] = imageObj.bounds[2]; }
+    if (bds[3] > imageObj.bounds[3]) { bds[3] = imageObj.bounds[3]; }
 
-    var fp = [xMin, yMid];
+    var fp = [xMid, yMid];
     var dims = [bds[1]-bds[0], bds[3]-bds[2]];
     var scale = 1.0;
     while (dims[0] > 1024) {
@@ -365,6 +375,10 @@ function deleteItem(item, stackSectionWidget) {
 function addViewSectionToStack(stackSectionWidget, imageObj) {
     // Hang this on the widget so we only need to keep track of one object.
     stackSectionWidget.ImageData = imageObj;
+    addSectionToStack(stackSectionWidget);
+}
+
+function addSectionToStack(stackSectionWidget) {
     STACK_ITEMS.push(stackSectionWidget);
 
     // These methods copy the ararys, so they are alright to modify.
@@ -404,7 +418,7 @@ function addViewSectionToStack(stackSectionWidget, imageObj) {
         .click(function(){
                    deleteItem(item, stackSectionWidget);
                });
-    var section = new CutoutThumb(imageObj, 100, bds)
+    var section = new CutoutThumb(stackSectionWidget.ImageData, 100, bds)
         .AppendTo(item);
     STACK_END_X += item.width() + 10;
 }
@@ -534,6 +548,9 @@ function save() {
                        roll:   roll,
                        height: bds[3]-bds[2],
                        widget: stackSectionWidget.Serialize()};
+        if ( ! itemObj.widget) {
+            delete itemObj.widget;
+        }
         stackObj.push(itemObj);
     }
 
@@ -598,7 +615,7 @@ function save() {
                 <select id="sessionList" onchange="sessionCallback(this.value)"> </select> 
             </div>
             <div class="barItem">
-                Filter: <input type="text" id="imagesearch">
+                Filter: <input id="imagesearch"/>
                 <button onclick="searchCallback()">Submit</button>
             </div>
             <div class="barItem">

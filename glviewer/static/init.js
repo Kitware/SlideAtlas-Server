@@ -1,9 +1,10 @@
+var DUAL_DISPLAY = null;
 
 
 // for debugging
 function MOVE_TO(x,y) {
-  VIEWER1.MainView.Camera.SetFocalPoint(x,y);
-  VIEWER1.MainView.Camera.ComputeMatrix();
+  DUAL_DISPLAY.Viewers[0].MainView.Camera.SetFocalPoint(x,y);
+  DUAL_DISPLAY.Viewers[0].MainView.Camera.ComputeMatrix();
   eventuallyRender();
 }
 
@@ -345,14 +346,6 @@ function tick() {
 
 
 
-// TODO:
-// I still need to make the zoom buttons relative to the viewport
-// Also the callback (zoom) cannot be hardcoded to VIEWER1!!!!!
-function initView(viewport) {
-
-  return viewer;
-}
-
 
 //==============================================================================
 // Alternative to webgl, HTML5 2d canvas
@@ -431,15 +424,13 @@ var CANVAS;
 
 var VIEW_PANEL; // div that should contain the two viewers.
 var EVENT_MANAGER;
-var VIEWER1;
-var VIEWER2;
-var DUAL_VIEW = false;
 var NAVIGATION_WIDGET;
 var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
 var NOTES_WIDGET;
 var PRESENTATION = null;
+var SAVE_BUTTON;
 
 //==============================================================================
 
@@ -492,8 +483,12 @@ function handleResize() {
         NOTES_WIDGET.Resize(viewPanelLeft,height);
     }
     var viewPanelWidth = width - viewPanelLeft;
+    // TODO: let css size the viewers.
     // The remaining width is split between the two viewers.
-    var width1 = viewPanelWidth * VIEWER1_FRACTION;
+    var width1 = viewPanelWidth;
+    if (DUAL_DISPLAY) {
+        width1 = viewPanelWidth * DUAL_DISPLAY.Viewer1Fraction;
+    }
     var width2 = viewPanelWidth - width1;
 
     if (GL) {
@@ -511,39 +506,17 @@ function handleResize() {
                     'width': viewPanelWidth+'px'});
 
     // TODO: Make a multi-view object.
-    if (VIEWER1) {
-      VIEWER1.SetViewport([0, 0, width1, height]);
-      eventuallyRender();
+    // TODO: Let css handle positioning the viewers.
+    if (DUAL_DISPLAY.Viewers[0]) {
+        DUAL_DISPLAY.Viewers[0].SetViewport([0, 0, width1, height]);
+        eventuallyRender();
     }
-    if (VIEWER2) {
-      VIEWER2.SetViewport([width1, 0, width2, height]);
-      eventuallyRender();
+    if (DUAL_DISPLAY.Viewers[1]) {
+        DUAL_DISPLAY.Viewers[1].SetViewport([width1, 0, width2, height]);
+        eventuallyRender();
     }
 }
 
-
-function InitViews() {
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
-    var halfWidth = width/2;
-    var viewerDiv1 = $('<div>')
-        .appendTo(VIEW_PANEL)
-        .saViewer({overview:true, zoomWidget:true});
-    // TODO: Get rid of this global
-    VIEWER1 = viewerDiv1[0].saViewer;
-    // TODO: Get rid of the viewer index.
-    VIEWER1.ViewerIndex = 0;
-
-    var viewerDiv2 = $('<div>')
-        .appendTo(VIEW_PANEL)
-        .saViewer({overview:true, zoomWidget:true});
-    // TODO: Get rid of this global
-    VIEWER2 = viewerDiv2[0].saViewer;
-    // TODO: Get rid of the viewer index.
-    VIEWER2.ViewerIndex = 1;
-
-    handleResize();
-}
 
 // Hack mutex. iPad2 must execute multiple draw callbacks at the same time
 // in different threads.
@@ -552,17 +525,7 @@ var DRAWING = false;
 function draw() {
     if (DRAWING) { return; }
     DRAWING = true;
-    if (GL) {
-      GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    }
-
-    // This just changes the camera based on the current time.
-    if (VIEWER1) {
-        VIEWER1.Animate();
-        if (DUAL_VIEW) { VIEWER2.Animate(); }
-        VIEWER1.Draw();
-    }
-    if (VIEWER2 && DUAL_VIEW) { VIEWER2.Draw(); }
+    DUAL_DISPLAY.Draw();
     DRAWING = false;
 }
 
@@ -642,6 +605,22 @@ function Main(style,sessId,viewId) {
     }
 }
 
+// Call back from NotesWidget.
+function NotesModified() {
+    SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
+}
+
+// This function gets called when the save button is pressed.
+function SaveCallback() {
+    // TODO: This is no longer called by a button, so change its name.
+    NOTES_WIDGET.SaveCallback(
+        function () {
+            // finished
+            SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+        });
+}
+
+
 // This serializes loading a bit, but we need to know what type the note is
 // so we can coustomize the webApp.  The server could pass the type to us.
 // It might speed up loading.
@@ -671,24 +650,49 @@ function Main2(rootNote) {
     }
     EVENT_MANAGER = new EventManager(CANVAS);
 
-    InitViews();
+    DUAL_DISPLAY = new DualViewWidget();
+    // TODO: Is this really needed here?  Try it at the end.
+    handleResize();
 
     // TODO: Get rid of this global variable.
-    NAVIGATION_WIDGET = new NavigationWidget();
+    NAVIGATION_WIDGET = new NavigationWidget(DUAL_DISPLAY);
     if (MOBILE_DEVICE) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
     VIEW_BROWSER = new ViewBrowser();
-    InitDualViewWidget();
-    InitNotesWidget(rootNote);
-    InitRecorderWidget();
+    NOTES_WIDGET = new NotesWidget(DUAL_DISPLAY);
+    NOTES_WIDGET.SetRootNote(rootNote);
+    NOTES_WIDGET.SetModifiedCallback(NotesModified);
+
+    // It handles the singlton global.
+    new RecorderWidget(DUAL_DISPLAY);
 
     // Do not let guests create favorites.
     // TODO: Rework how favorites behave on mobile devices.
     if (USER != "" && ! MOBILE_DEVICE) {
-        FAVORITES_WIDGET = new FavoritesWidget();
-        FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        if ( EDIT) {
+            // Put a save button here when editing.
+            SAVE_BUTTON = $('<img>')
+                .appendTo(VIEW_PANEL)
+                .css({'position':'absolute',
+                      'bottom':'4px',
+                      'left':'10px',
+                      'height': '28px',
+                      'z-index': '5'})
+                .prop('title', "save to databse")
+                .addClass('editButton')
+                .attr('src',"webgl-viewer/static/save22.png")
+                .click(SaveCallback);
+            for (var i = 0; i < DUAL_DISPLAY.Viewers.length; ++i) {
+                DUAL_DISPLAY.Viewers[i].OnInteraction(
+                    function () {NOTES_WIDGET.RecordView();});
+            }
+        } else {
+            // Favorites when not editing.
+            FAVORITES_WIDGET = new FavoritesWidget(DUAL_DISPLAY);
+            FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        }
     }
 
     if (MOBILE_DEVICE) {
@@ -717,15 +721,17 @@ function Main2(rootNote) {
 
     if ( ! MOBILE_DEVICE) {
         InitSlideSelector();
-        var viewMenu1 = new ViewEditMenu(VIEWER1);
+        var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
+                                         DUAL_DISPLAY.Viewers[1]);
         VIEW_MENU = viewMenu1;
-        var viewMenu2 = new ViewEditMenu(VIEWER2);
+        var viewMenu2 = new ViewEditMenu(DUAL_DISPLAY.Viewers[1],
+                                         DUAL_DISPLAY.Viewers[0]);
 
-        var annotationWidget1 = new AnnotationWidget(VIEWER1);
+        var annotationWidget1 = new AnnotationWidget(DUAL_DISPLAY.Viewers[0]);
         annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(VIEWER2);
+        var annotationWidget2 = new AnnotationWidget(DUAL_DISPLAY.Viewers[1]);
         annotationWidget1.SetVisibility(2);
-        DualViewUpdateGui();
+        DUAL_DISPLAY.UpdateGui();
     }
 
     $(window).bind('orientationchange', function(event) {
@@ -740,80 +746,6 @@ function Main2(rootNote) {
 }
 
 
-
-
-// TODO: Remove
-// Obsolete.
-// Main function called by the default view.html template
-function StartScene(scene) {
-    var dia = new Dialog();
-    detectMobile();
-    //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
-    $('body').addClass("sa-view-body");
-
-    // Just to see if webgl is supported:
-    var testCanvas = document.getElementById("gltest");
-    // I think the webgl viewer crashes.
-    // Maybe it is the texture leak I have seen in connectome.
-    // Just use the canvas for now.
-    // I have been getting crashes I attribute to not freeing texture
-    // memory properly.
-    // NOTE: I am getting similar crashe with the canvas too.
-    // Stack is running out of some resource.
-    //if ( ! MOBILE_DEVICE && doesBrowserSupportWebGL(testCanvas)) {
-    // initGL(); // Sets CANVAS and GL global variables
-    //} else {
-      initGC();
-    //}
-    EVENT_MANAGER = new EventManager(CANVAS);
-
-    /*
-    scene =  {
-        tileSize: 512,
-        dimensions: [31784, 32768, 1],
-        numLevels: 7,
-        mode: 'singleViewWithOverview',
-        getTileUrl: function(level, x, y, z) {
-            return "http://dragon.krash.net:2009/data/1" + level + "-" + x + "-" + y;
-        }
-    };
-    */
-    scene = eval(scene);
-
-    var cache = new Cache();
-    cache.SetScene(scene);
-
-    scene.getTileUrl = eval(scene.getTileUrl);
-
-    var viewerDiv1 = $('<div>')
-        .appendTo(VIEW_PANEL)
-        .saViewer({overview:true, zoomWidget:true});
-    // TODO: Get rid of this global
-    VIEWER1 = viewerDiv1[0].saViewer;
-    // TODO: Get rid of the viewer index.
-    VIEWER1.ViewerIndex = 0;
-
-    VIEWER1.SetCache(cache);
-
-    // Event manager will be going away.
-    // This is probably not necessay.
-    EVENT_MANAGER.AddViewer(VIEWER1);
-    VIEWER1.ViewerIndex = 0;
-    handleResize();
-
-
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-
-    // Keep the browser from showing the right click menu.
-    document.oncontextmenu = cancelContextMenu;
-
-    var annotationWidget = new AnnotationWidget(VIEWER1);
-    annotationWidget.SetVisibility(2);
-    handleResize();
-    eventuallyRender();
-}
 
 
 

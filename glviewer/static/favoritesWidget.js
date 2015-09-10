@@ -6,7 +6,8 @@ var FAVORITES_GUI;
 
 //------------------------------------------------------------------------------
 // I intend to have only one object
-function FavoritesWidget() {
+// display is an array of viewers (dualViewWidget now).
+function FavoritesWidget(display) {
 
     this.Tab = new Tab(VIEW_PANEL,
                        "/webgl-viewer/static/star.png",
@@ -24,13 +25,10 @@ function FavoritesWidget() {
               'height':'160px'});
         //.addClass("sa-view-favorites-div");
 
-    this.FavoritesBar = new FavoritesBar(this.Tab.Panel);
+    this.FavoritesBar = new FavoritesBar(this.Tab.Panel, display);
 
-    LoadFavorites();
+    this.FavoritesBar.LoadFavorites();
 }
-
-
-
 
 // Hack: Tabs panels are children of the tab div.
 // If I make the tab div width 100%, The other tabs do not receive events.

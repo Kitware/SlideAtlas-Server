@@ -10,10 +10,12 @@
 //ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 
 
-
-function ViewEditMenu (viewer) {
+// Other viewer is a hack for copy camera.
+function ViewEditMenu (viewer, otherViewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
+    // Other viewer is a hack for copy camera.
+    this.OtherViewer = otherViewer;
     this.Tab = new Tab(viewer.GetDiv(),"/webgl-viewer/static/Menu.jpg", "editTab");
     this.Tab.Div
         .css({'position':'absolute',
@@ -153,11 +155,9 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
     var note = NOTES_WIDGET.GetCurrentNote();
-    // Which view record?  Hack.
-    var viewerRecord = note.ViewerRecords[0];
-    if (this.Viewer == VIEWER2) {
-        var viewerRecord = note.ViewerRecords[1];
-    }
+    // Which view record?
+    var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
+
     viewerRecord.OverviewBounds = bounds;
     // Set the image bounds so the new bounds are used immediately.
     viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
@@ -227,11 +227,7 @@ ViewEditMenu.prototype.CopyZoom = function() {
 
     var cam = this.Viewer.GetCamera();
     var copyCam;
-    if (this.Viewer == VIEWER1) {
-        var copyCam = VIEWER2.GetCamera();
-    } else {
-        var copyCam = VIEWER1.GetCamera();
-    }
+    var copyCam = this.OtherViewer.GetCamera();
     
     this.Viewer.AnimateCamera(cam.GetFocalPoint(), cam.Roll, copyCam.Height);
 }
