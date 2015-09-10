@@ -517,10 +517,18 @@ def readViewTree(db, viewId) :
                     record["Image"] = ObjectId(record["Image"])
                 if isinstance(record["Image"], ObjectId) :
                     imgObj = imgdb["images"].find_one({ "_id" : record["Image"]})
-                    imgObj["_id"] = str(imgObj["_id"])
-                    imgObj["database"] = record["Database"]
-                    record["Image"] = imgObj
-                convertImageToPixelCoordinateSystem(record["Image"])
+                    if imgObj is None : # image disappeard. Use broken image.
+                        database = models.ImageStore.objects.get_or_404(id=ObjectId("52a0b030554a19140a5323a9"))
+                        imgdb = database.to_pymongo()
+                        imgObj = imgdb["images"].find_one({ "_id" : "55be241b3ed65909a84cdf0c"})
+                    if imgObj :
+                        imgObj["_id"] = str(imgObj["_id"])
+                        imgObj["database"] = record["Database"]
+                        record["Image"] = imgObj
+                    else :
+                        record["Image"] = {}
+                if imgObj :
+                    convertImageToPixelCoordinateSystem(record["Image"])
                 # Get rid of any lingering thumbnail images which do not jsonify.
                 if record["Image"].has_key("thumb") :
                     record["Image"].pop("thumb")

@@ -12,6 +12,7 @@ from slideatlas.api import apiv2
 from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -296,7 +297,6 @@ def session_save_view():
 ################################################################################
 @mod.route('/session-save-stack', methods=['GET', 'POST'])
 def session_save_stack():
-
     input_str = request.form['input']  # for post
     input_obj = json.loads(input_str)
     session_id = ObjectId(input_obj['sessId'])
@@ -317,8 +317,9 @@ def session_save_stack():
         viewer_record = {
             'Image': ObjectId(item['img']),
             'Database': ObjectId(item['db']),
-            'Camera' : camera,
-            'Annotations': [item['widget']]}
+            'Camera' : camera}
+        if 'widget' in item :
+            viewer_record['Annotations'] = [item['widget']];
         records.append(viewer_record)
 
 

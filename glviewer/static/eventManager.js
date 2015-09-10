@@ -28,6 +28,11 @@ function EventManager (canvas) {
     this.SelectedSweepListener = undefined;
     this.StartTouchTime = 0;
 
+    // TODO: Move these events into a stack manager.
+    var self = this;
+    //$('body').keydown(function (e) {self.HandleKeyDown(e);});
+    //$('body').keyup(function (e) {self.HandleKeyUp(e);});
+
     this.CursorFlag = false;
 
     if (MOBILE_DEVICE == 'Andriod') {
@@ -192,13 +197,13 @@ EventManager.prototype.HandleKeyDown = function(event) {
         RedoState();
         return true;
     }
-    
+
     if (typeof(NAVIGATION_WIDGET) != "undefined") {
         if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
             return true;
         }
     }
-    
+
     return true;
 }
 

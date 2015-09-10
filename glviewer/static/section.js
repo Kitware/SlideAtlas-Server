@@ -83,7 +83,10 @@ Section.prototype.FindImage = function (imageCollectionName) {
 // Could we get away with just passing the camera?
 // No, we need the viewport too.
 // Could the viewport be part of the camera?
+// Returns true if all the tiles to render were available.
+// False implies that the user shoudl render again.
 Section.prototype.Draw = function (view, context) {
+    var finishedRendering = true;
     if (GL) {
         var program = imageProgram;
         context.useProgram(program);
@@ -117,7 +120,7 @@ Section.prototype.Draw = function (view, context) {
             } else {
                 if (tiles[j].LoadState < 3) {
                     // Keep rendering until we have all the tiles.
-                    eventuallyRender();
+                    finishedRendering = false;
                 }
                 if (tile.Parent) { // Queue up the parent.
                     // Note: Parents might be added multiple times by different siblings.
@@ -129,12 +132,13 @@ Section.prototype.Draw = function (view, context) {
             }
             ++j;
         }
-        
+
         // Reverse order to render low res tiles first.
         for (var j = loadedTiles.length-1; j >= 0; --j) {
             loadedTiles[j].Draw(program, context);
         }
     }
+    return finishedRendering;
 }
 
 Section.prototype.LoadTilesInView = function (view) {

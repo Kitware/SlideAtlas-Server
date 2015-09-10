@@ -56,15 +56,15 @@ ImageAnnotation.prototype.Draw = function (view) {
 }
 
 
-function testImageAnnotation () {
-    var imageAnnotation = new ImageAnnotation();
-    
-    // Create an image for testing.
-    imageAnnotation.Image = new Image();
-    imageAnnotation.Image.src = "/webgl-viewer/static/nextNote.png";
-    imageAnnotation.Origin = [80000, 40000];
-    imageAnnotation.Height = 5000;
-
-    VIEWER1.ShapeList.push(imageAnnotation);
-    eventuallyRender();
-}
+// Shapes no longer draw.
+//function testImageAnnotation () {
+//    var imageAnnotation = new ImageAnnotation();
+//    
+//    // Create an image for testing.
+//    imageAnnotation.Image = new Image();
+//    imageAnnotation.Image.src = "/webgl-viewer/static/nextNote.png";
+//    imageAnnotation.Origin = [80000, 40000];
+//    imageAnnotation.Height = 5000;
+//    VIEWERS[0].ShapeList.push(imageAnnotation);
+//    eventuallyRender();
+//}

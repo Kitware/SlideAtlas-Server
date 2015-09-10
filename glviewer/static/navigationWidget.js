@@ -4,7 +4,8 @@
 
 //------------------------------------------------------------------------------
 // I intend to have only one object
-function NavigationWidget() {
+function NavigationWidget(display) {
+    this.Display = display;
 
    // Load the session slides from the localStorage
     this.SlideIndex = 0;
@@ -32,7 +33,7 @@ function NavigationWidget() {
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
-            .appendTo(VIEWER1.GetDiv())
+            .appendTo(display.GetViewer(0).GetDiv())
             .hide()
             //.addClass("sa-view-navigation-div ui-responsive");
             .addClass("ui-responsive")
@@ -207,13 +208,19 @@ NavigationWidget.prototype.PreviousNote = function() {
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
         // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations();
+        current.RecordAnnotations(this.Display);
         // Move camera
-        var cam = VIEWER1.GetCamera();
-        VIEWER2.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
+        for (var i = this.Display.GetNumberOfViewers()-1; i > 0; --i) {
+            var viewer1 = this.Display.GetViewer(i);
+            var viewer0 = this.Display.GetViewer(i-1);
+            var cam = viewer0.GetCamera();
+            viewer1.SetCamera(cam.GetFocalPoint(),
+                              cam.GetRotation(),
+                              cam.Height);
+        }
         --current.StartIndex;
-        current.DisplayStack();
-        current.SynchronizeViews(1);
+        current.DisplayStack(this.Display);
+        NOTES_WIDGET.SynchronizeViews(1, current);
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -222,19 +229,19 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
-    if (iterator.IsStart()) { 
+    if (iterator.IsStart()) {
         // if not previous notes move to the previous slide
         this.PreviousSlide();
-        return; 
+        return;
     }
 
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.
     // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations();
+    current.RecordAnnotations(this.Display);
 
     iterator.Previous();
-    iterator.GetNote().Select();
+    NOTES_WIDGET.SelectNote(iterator.GetNote());
 }
 
 NavigationWidget.prototype.NextNote = function() {
@@ -247,13 +254,19 @@ NavigationWidget.prototype.NextNote = function() {
             return;
         }
         // Copy viewer annotation to the viewer record.
-        current.RecordAnnotations();
+        current.RecordAnnotations(this.Display);
         // Move camera
-        var cam = VIEWER2.GetCamera();
-        VIEWER1.SetCamera(cam.GetFocalPoint(), cam.GetRotation(), cam.Height);
+        for (var i = 1; i < this.Display.GetNumberOfViewers(); ++i) {
+            var viewer0 = this.Display.GetViewer(i-1);
+            var viewer1 = this.Display.GetViewer(i);
+            var cam = viewer1.GetCamera();
+            viewer0.SetCamera(cam.GetFocalPoint(),
+                              cam.GetRotation(),
+                              cam.Height);
+        }
         ++current.StartIndex;
-        current.DisplayStack();
-        current.SynchronizeViews(0);
+        current.DisplayStack(this.Display);
+        NOTES_WIDGET.SynchronizeViews(0, current);
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -271,10 +284,10 @@ NavigationWidget.prototype.NextNote = function() {
     // This is such a good idea I am doing it with children notes too.
     // Before everytime a new child was selected, we lost new annotations.
     // Copy viewer annotation to the viewer record.
-    current.RecordAnnotations();
+    current.RecordAnnotations(this.Display);
 
     iterator.Next();
-    iterator.GetNote().Select();
+    NOTES_WIDGET.SelectNote(iterator.GetNote());
 }
 
 

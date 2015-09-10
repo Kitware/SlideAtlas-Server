@@ -4,8 +4,13 @@
 // A view has its own camera and list of tiles to display.
 // Views can share a cache for tiles.
 
+var TEXT_VIEW_HACK = null;
 
 function View (parent) {
+    // Text needs a context to compute its bounds.
+    if ( ! TEXT_VIEW_HACK) {
+        TEXT_VIEW_HACK = this;
+    }
     // Should widgets use shapes?
     // Should views be used independently to viewers?
     this.ShapeList = [];
@@ -38,10 +43,10 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     // Allow for border.
     viewport[2] -=2;
     viewport[3] -=2;
-    
+
     this.Viewport = viewport;
     this.Camera.SetViewport(viewport);
-    
+
     // 2d canvas
     // Add a new canvas.
     if ( ! this.CanvasDiv) {
@@ -51,9 +56,6 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
         .addClass('view')
         .addClass("sa-view-canvas-div")
 
-    if ( ! hide) {
-        this.CanvasDiv.appendTo(VIEW_PANEL)
-    }
     this.Canvas
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
@@ -86,6 +88,34 @@ View.prototype.GetViewport = function() {
   return this.Viewport;
 }
 
+// The canvasDiv changes size, the width and height of the canvas and
+// camera need to follow.  I am going to make this the resize callback.
+View.prototype.UpdateCanvasSize = function() {
+    var pos = this.CanvasDiv.position();
+    //var width = this.CanvasDiv.innerWidth();
+    //var height = this.CanvasDiv.innerHeight();
+    var width = this.CanvasDiv.width();
+    var height = this.CanvasDiv.height();
+    // resizable is making width 0 intermitently ????
+    if (width <= 0 || height <= 0) { return false; }
+
+    this.Canvas.attr("width", width.toString());
+    this.Canvas.attr("height", height.toString());
+
+    // TODO: Get rid of this.
+    this.Viewport = [pos.left, pos.top, width, height];
+
+    // TODO: Just set the width and height of the camera.
+    // There is no reason, the camera needs to know the
+    // the position of the cameraDiv.
+    this.Camera.SetViewport(this.Viewport);
+    return true;
+}
+
+
+// TODO: Now that the browser in managing the position and size of the
+// canvasDiv, get rid of this function.  I still need to synchronize the
+// canvas with the canvasDiv.  see  UpdateCanvas();
 View.prototype.SetViewport = function(viewport) {
   for (var i = 0; i < 4; ++i) {
     viewport[i] = Math.round(viewport[i]);
@@ -168,13 +198,15 @@ View.prototype.DrawShapes = function () {
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
+// Returns true if all the tiles to render were available.
+// False implies that the user shoudl render again.
 View.prototype.DrawTiles = function () {
     //console.time("  ViewDraw");
     if ( GL) {
         if (MASK_HACK ) {
             return;
         }
-        this.Section.Draw(this, GL);
+        return this.Section.Draw(this, GL);
     } else {
         this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
         this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
@@ -197,9 +229,8 @@ View.prototype.DrawTiles = function () {
         if (MASK_HACK ) {
             return;
         }
-        this.Section.Draw(this, this.Context2d);
+        return this.Section.Draw(this, this.Context2d);
     }
-    //console.timeEnd("  ViewDraw");
 }
 
 // Note: Tile in the list may not be loaded yet.
@@ -323,8 +354,8 @@ View.prototype.DrawCorrelations = function (correlations, pointIdx) {
         var ctx = this.Context2d;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.strokeStyle = "rgba(200,255,255,100)"; 
-        ctx.fillStyle = "rgba(255,0,0,100)"; 
+        ctx.strokeStyle = "rgba(200,255,255,100)";
+        ctx.fillStyle = "rgba(255,0,0,100)";
         for (var i = 0; i < correlations.length; ++i) {
             var wPt = correlations[i].GetPoint(pointIdx);
             var m = this.Camera.Matrix;

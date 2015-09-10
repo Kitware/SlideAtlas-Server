@@ -61,46 +61,13 @@
 
 
 
-var LINk_DIV;
-
-// Time to make this an object to get rid of all these global variables.
-function InitNotesWidget(rootNote) {
-    NOTES_WIDGET = new NotesWidget();
-
-    // Popup div to display permalink.
-    LINK_DIV =
-        $("<div>")
-        .appendTo('body')
-        .css({'top':'30px',
-              'left': '10%',
-              'position': 'absolute',
-              'width':'80%',
-              'height': '50px',
-              'z-index':'3',
-              'background-color':'#FFF',
-              'border':'1px solid #777',
-              'border-radius': '8px',
-              'text-align': 'center',
-              'padding-top': '26px'})
-        .hide()
-        .mouseleave(function() { LINK_DIV.fadeOut(); });
-
-    // There is not option to show the link when EDIT is not on,
-    // so this really does nothing.  Editable is probably necessary
-    // for selection to copy.
-    if (EDIT) {
-        LINK_DIV.attr('contenteditable', "true");
-    }
-
-    NOTES_WIDGET.SetRootNote(rootNote);
-    $(window).trigger('resize');
-}
 
 //==============================================================================
 
 
-function TextEditor(parent) {
+function TextEditor(parent, display) {
     var self = this;
+    this.Display = display;
     this.Parent = parent;
     this.Edit = true;
     // The user can set this to save the note automatically.
@@ -173,8 +140,7 @@ function TextEditor(parent) {
         });
 
     this.UpdateTimer = null;
-    this.RecordView1Timer = null;
-    this.RecordView2Timer = null;
+    this.RecordViewTimer = null;
 
 }
 
@@ -464,7 +430,7 @@ TextEditor.prototype.InsertCameraLink = function() {
         // A link is selected,  Just save a new camera for the link.
         note = GetNoteFromId(id);
         if (note) {
-            note.RecordView();
+            note.RecordView(this.Display);
             // TODO:  Different for user note and Primary note.
             note.Save();
             return;
@@ -491,6 +457,12 @@ TextEditor.prototype.InsertCameraLink = function() {
     var childIdx = parentNote.Children.length;
     //var childIdx = 0; // begining
     var childNote = parentNote.NewChild(childIdx, text);
+    // Setup and save
+    childNote.RecordView(this.Display);
+    // We need to save the note to get its Id (for the link div).
+    childNote.Save();
+    parentNote.UpdateChildrenGUI();
+
     // We need to save the note to get its Id.
     childNote.Save(
         function (note) {
@@ -516,7 +488,7 @@ TextEditor.prototype.InsertCameraLink = function() {
             self.UpdateNote();
             // Do not automatically select new hyperlinks.
             // The user may want to insert one after another.
-            //note.Select();
+            //NOTES_WIDGET.SelectNote(note);
             if (range.noCursor) {
                 // Leave the selection the same as we found it.
                 // Ready for the next link.
@@ -597,8 +569,37 @@ TextEditor.prototype.MakeLinksClickable = function() {
 //==============================================================================
 
 
-function NotesWidget() {
+function NotesWidget(display) {
+    this.ModifiedCallback = null;
+    this.LinkDiv;
+
+    // Popup div to display permalink.
+    LINK_DIV =
+        $("<div>")
+        .appendTo('body')
+        .css({'top':'30px',
+              'left': '10%',
+              'position': 'absolute',
+              'width':'80%',
+              'height': '50px',
+              'z-index':'3',
+              'background-color':'#FFF',
+              'border':'1px solid #777',
+              'border-radius': '8px',
+              'text-align': 'center',
+              'padding-top': '26px'})
+        .hide()
+        .mouseleave(function() { LINK_DIV.fadeOut(); });
+
+    // There is not option to show the link when EDIT is not on,
+    // so this really does nothing.  Editable is probably necessary
+    // for selection to copy.
+    if (EDIT) {
+        LINK_DIV.attr('contenteditable', "true");
+    }
+
     var self = this;
+    this.Display = display;
 
     this.Modified = false;
     this.Window = $('<div>').appendTo('body')
@@ -626,7 +627,7 @@ function NotesWidget() {
     this.AnimationTarget;
     // For animating the display of the notes window (DIV).
     this.Width = 0;
-    this.Visibilty = false;
+    this.Visibility = false;
     this.Dragging = false;
 
     if ( ! MOBILE_DEVICE) {
@@ -704,23 +705,10 @@ function NotesWidget() {
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
     this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "prival notes");
 
-    if (EDIT) {
-        // Hack in a save button.
-        this.SaveButton =
-            $('<img>')
-            .appendTo(this.TabbedWindow.TabDiv)
-            .css({'float': 'right',
-                  'height':'22px',
-                  'margin-right':'20px',
-                  'opacity':'0.7'})
-            .prop('title', "save to databse")
-            .attr('src',"webgl-viewer/static/save22.png")
-            .addClass('editButton')
-            .click(function(){self.SaveCallback();});
-
-        VIEWER1.OnInteraction(function () {self.RecordView1();});
-        VIEWER2.OnInteraction(function () {self.RecordView2();});
+    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
     }
+
 
     this.LinksDiv
         .css({'overflow': 'auto',
@@ -741,7 +729,7 @@ function NotesWidget() {
     }
 
     // Now for the text tab:
-    this.TextEditor = new TextEditor(this.TextDiv);
+    this.TextEditor = new TextEditor(this.TextDiv, this.Display);
     if ( ! EDIT) {
         this.TextEditor.EditOff();
     } else {
@@ -751,53 +739,284 @@ function NotesWidget() {
             });
     }
     // Private notes.
-    this.UserTextEditor = new TextEditor(this.UserTextDiv, true);
+    this.UserTextEditor = new TextEditor(this.UserTextDiv, this.Display);
     this.UserTextEditor.Change(
         function () {
             self.UserTextEditor.Note.Save();
         });
+
 }
 
 
-NotesWidget.prototype.RecordView1 = function() {
-    if (this.RecordView1Timer) {
-        clearTimeout(this.RecordView1Timer);
+NotesWidget.prototype.SetRootNote = function(rootNote) {
+    this.SetRootNote(rootNote);
+    $(window).trigger('resize');
+}
+
+
+NotesWidget.prototype.SetModifiedCallback = function(callback) {
+    this.ModifiedCallback = callback;
+}
+
+// I am changing the select behavior.  Children will show their view, but
+// will not become active unless they have their own text / html.
+NotesWidget.prototype.SelectNote = function(note) {
+    if (note == this.SelectedNote) {
+        // Just reset the camera.
+        note.DisplayView(this.Display);
+        return;
+    }
+    // Flush the timers before moving to another view.
+    // GUI cannot call this object.
+    if (this.RecordViewTimer) {
+        clearTimeout(this.RecordViewTimer);
+        this.RecordViewTimer = null;
+        this.RecordView2();
+    }
+
+    // This should method should be split between Note and NotesWidget
+    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    // For when user selects a note from a list.
+    // Find the note and set a new iterator
+    // This is so the next and previous buttons will behave.
+    if (this.Iterator.GetNote() != note) {
+        var iter = this.RootNote.NewIterator();
+        while (iter.GetNote() != this) {
+            if ( iter.IsEnd()) {
+                // I am supporting hyperlinks in UserNote.
+                // They are not in the links tree yet.
+                // Hack, Just display the view.
+                note.DisplayView(this.Display);
+                // Hilight the text.
+                note.SelectHyperlink();
+                return;
+            }
+            iter.Next();
+        }
+        this.Iterator = iter;
+    }
+
+    // Display text
+    // To support the html note text links, do not show empty text.
+    // Fallback to parent note text / html if necessary.
+    var textNote = note;
+    while ( textNote.Type != "UserNote" && textNote.Parent && textNote.Text == "") {
+        textNote = textNote.Parent;
+    }
+    this.TextEditor.LoadNote(textNote);
+    // Display user text.
+    if (this.UserTextEditor) {
+        if (note.UserNote) {
+            this.UserTextEditor.LoadNote(note.UserNote);
+        } else {
+            this.UserTextEditor.SetHtml("");
+        }
+    }
+
+    // Handle the note that is being unselected.
+    // Clear the selected background of the deselected note.
+    if (this.SelectedNote) {
+        this.SelectedNote.TitleEntry.css({'background':'white'});
+        // Make the old hyper link normal color.
+        $('#'+this.SelectedNote.Id).css({'background':'white'});
+    }
+
+    this.SelectedNote = note;
+
+    // Indicate which note is selected.
+    note.TitleEntry.css({'background':'#f0f0f0'});
+    // This highlighting can be confused with the selection highlighting.
+    // Indicate hyperlink current note.
+    //$('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'#CCC'});
+    // Select the current hyper link
+    note.SelectHyperlink();
+
+
+    if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
+
+    if (this.Display.GetNumberOfViewers() > 1) {
+        this.Display.GetViewer(1).Reset();
+        // TODO:
+        // It would be nice to store the viewer configuration
+        // as a separate state variable.  We might want a stack
+        // that defaults to a single viewer.
+        display.SetNumberOfViewers(note.ViewerRecords.length);
+    }
+
+
+    // Clear the sync callback.
+    var self = this;
+    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        this.Display.GetViewer(i).OnInteraction();
+        if (EDIT) {
+            // These record changes in the viewers to the notes.
+            this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
+        }
+    }
+
+    if (note.Type == "Stack") {
+        if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
+        // Select only gets called when the stack is first loaded.
+        this.Display.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.Display.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+        note.DisplayStack(this.Display);
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    } else {
+        if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
+        note.DisplayView(this.Display);
+    }
+}
+
+// refViewerIdx is the viewer that changed and other viewers need 
+// to be updated to match that reference viewer.
+NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
+    if (refViewerIdx + note.StartIdx >= note.ViewerRecords.length) {
+        return;
+    }
+
+    // Special case for when the shift key is pressed.
+    // Translate only one camera and modify the tranform to match.
+    if (EDIT && EVENT_MANAGER.CursorFlag) {
+        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+        if ( ! note.ActiveCorrelation) {
+            if ( ! trans) {
+                alert("Missing transform");
+                return;
+            }
+            // Remove all correlations visible in the window.
+            var cam = this.Display.GetViewer(0).GetCamera();
+            var bds = cam.GetBounds();
+            var idx = 0;
+            while (idx < trans.Correlations.length) {
+                var cor = trans.Correlations[idx];
+                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
+                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                    trans.Correlations.splice(idx,1);
+                } else {
+                    ++idx;
+                }
+            }
+
+            // Now make a new replacement correlation.
+            note.ActiveCorrelation = new PairCorrelation();
+            trans.Correlations.push(note.ActiveCorrelation);
+        }
+        var cam0 = this.Display.GetViewer(0).GetCamera();
+        var cam1 = this.Display.GetViewer(1).GetCamera();
+        note.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
+        note.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
+        // I really do not want to set the roll unless the user specifically changed it.
+        // It would be hard to correct if the wrong value got set early in the aligment.
+        var deltaRoll = cam1.Roll - cam0.Roll;
+        if (trans.Correlations.length > 1) {
+            deltaRoll = 0;
+            // Let roll be set by multiple correlation points.
+        }
+        note.ActiveCorrelation.SetRoll(deltaRoll);
+        note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
+        return;
+    } else {
+        // A round about way to set and unset the active correlation.
+        // Note is OK, because if there is no interaction without the shift key
+        // the active correlation will not change anyway.
+        note.ActiveCorrelation = undefined;
+    }
+
+    // No shift modifier:
+    // Synchronize all the cameras.
+    // Hard coded for two viewers (recored 0 and 1 too).
+    // First place all the cameras into an array for code simplicity.
+    // Cameras used for preloading.
+    if (! note.PreCamera) { note.PreCamera = new Camera();}
+    if (! note.PostCamera) { note.PostCamera = new Camera();}
+    var cameras = [note.PreCamera, 
+                   this.Display.GetViewer(0).GetCamera(), 
+                   this.Display.GetViewer(1).GetCamera(), 
+                   note.PostCamera];
+    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
+    // Start with the reference section and move forward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx+1; i < cameras.length; ++i) {
+        var transIdx = i - 1 + note.StartIndex;
+        if (transIdx < note.ViewerRecords.length) {
+            note.ViewerRecords[transIdx].Transform
+                .ForwardTransformCamera(cameras[i-1],cameras[i]);
+        } else {
+            cameras[i] = undefined;
+        }
+    }
+
+    // Start with the reference section and move backward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx; i > 0; --i) {
+        var transIdx = i + note.StartIndex-1;
+        if (transIdx > 0) { // First section does not have a transform
+            note.ViewerRecords[transIdx].Transform
+                .ReverseTransformCamera(cameras[i],cameras[i-1]);
+        } else {
+            cameras[i-1] = undefined;
+        }
+    }
+
+    // Preload the adjacent sections.
+    if (cameras[0]) {
+        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
+        cameras[0].SetViewport(this.Display.GetViewer(0).GetViewport());
+        var tiles = cache.ChooseTiles(cameras[0], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            tiles[i].LoadQueueAdd();
+        }
+        LoadQueueUpdate();
+    }
+    if (cameras[3]) {
+        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
+        cameras[3].SetViewport(this.Display.GetViewer(0).GetViewport());
+        var tiles = cache.ChooseTiles(cameras[3], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            tiles[i].LoadQueueAdd();
+        }
+        LoadQueueUpdate();
+    }
+
+    // Overview cameras need to be updated.
+    if (refViewerIdx == 0) {
+        this.Display.GetViewer(1).UpdateCamera();
+        this.Display.GetViewer(1).EventuallyRender(false);
+    } else {
+        this.Display.GetViewer(0).UpdateCamera();
+        this.Display.GetViewer(0).EventuallyRender(false);
+    }
+}
+
+NotesWidget.prototype.RecordView = function() {
+    if ( ! EDIT) { return; }
+
+    if (this.RecordViewTimer) {
+        clearTimeout(this.RecordViewTimer);
     }
     var self = this;
-    this.RecordView1Timer = setTimeout(function () { self.RecordView1b() }, 1000);
+    this.RecordViewTimer = setTimeout(
+        function () { self.RecordView2() },
+        1000);
 }
-
-NotesWidget.prototype.RecordView1b = function() {
-    this.RecordView1Timer = null;
-    var note = this.GetCurrentNote();
-    if (note && note.ViewerRecords.length > 0 && note.ViewerRecords[0]) {
-        note.ViewerRecords[0].CopyViewer(VIEWER1);
-        this.MarkAsModified();
-        console.log("Record View 1");
-    }
-}
-
 
 NotesWidget.prototype.RecordView2 = function() {
-    if (this.RecordView2Timer) {
-        clearTimeout(this.RecordView2Timer);
-    }
-    var self = this;
-    this.RecordView2Timer = setTimeout(function () { self.RecordView2b() }, 1000);
-}
-
-NotesWidget.prototype.RecordView2b = function() {
-    this.RecordView2Timer = null;
+    this.RecordViewTimer = null;
     var note = this.GetCurrentNote();
-    if (note && note.ViewerRecords.length > 1 && note.ViewerRecords[1]) {
-        note.ViewerRecords[1].CopyViewer(VIEWER2);
-        this.MarkAsModified();
-    }
+    //note.RecordView(this.Display);
+    note.RecordAnnotations(this.Display);
+    this.MarkAsModified();
 }
 
 
 NotesWidget.prototype.MarkAsModified = function() {
-    this.SaveButton.attr('src',"webgl-viewer/static/save.png");
+    if (this.ModifiedCallback) {
+        this.ModifiedCallback();
+    }
     this.Modified = true;
 }
 
@@ -813,8 +1032,11 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
 }
 
 
+// TODO:
+// Hmmmm.  I do not think this is used yet.
+// SAVE_BUTTON setup should not be here though.
 NotesWidget.prototype.EditOn = function() {
-    this.SaveButton
+    SAVE_BUTTON
         .prop('title', "save to database")
         .attr('src',"webgl-viewer/static/save22.png")
         .click(function(){self.SaveCallback();});
@@ -823,7 +1045,7 @@ NotesWidget.prototype.EditOn = function() {
 }
 
 NotesWidget.prototype.EditOff = function() {
-    this.SaveButton
+    SAVE_BUTTON
         .prop('title', "edit view")
         .attr('src',"webgl-viewer/static/text_edit.png")
         .click(function(){self.EditOn();});
@@ -840,17 +1062,28 @@ NotesWidget.prototype.EditOff = function() {
 
 }
 
-NotesWidget.prototype.SaveCallback = function() {
-    var note = this.RootNote;
-    if (note.Type == "Stack") {
+NotesWidget.prototype.SaveCallback = function(finishedCallback) {
+    // Lets try saving the camera for the current note.
+    // This is a good comprise.  Do not record the camera
+    // every time it moves, but do record it when the samve button
+    // is pressed.
+    var note = this.GetCurrentNote();
+    note.RecordView(this.Display);
+    // Lets save the state of the notes widget.
+    note.NotesPanelOpen = this.Visibility;
+
+    this.RootNote;
+    if (this.RootNote.Type == "Stack") {
         // Copy viewer annotation to the viewer record.
-        note.RecordAnnotations();
+        this.RootNote.RecordAnnotations(this.Display);
     }
 
     var self = this;
-    note.Save(function () {
+    this.RootNote.Save(function () {
         self.Modified = false;
-        self.SaveButton.attr('src',"webgl-viewer/static/save22.png");
+        if (finishedCallback) {
+            finishedCallback();
+        }
     });
 }
 
@@ -1062,8 +1295,11 @@ NoteIterator.prototype.ToEnd = function() {
 // data is the object retrieved from mongo (with string ids)
 // Right now we expect bookmarks, but it will be generalized later.
 var NOTES = [];
+
 function Note () {
+
     // A global list of notes so we can find a note by its id.
+    this.TempId = 'tmp'+NOTES.length; // hack for html views.
     NOTES.push(this);
 
     var self = this;
@@ -1178,6 +1414,8 @@ function Note () {
     }
 
     // This is for stack notes (which could be a subclass).
+    // It looks like the stack will start on this index when it first
+    // is loaded.  This changes when navigating the stack.
     this.StartIndex = 0;
     this.ActiveCorrelation = undefined;
     this.StackDivs = [];
@@ -1202,6 +1440,10 @@ Note.prototype.SortCallback = function() {
 
 
 function GetNoteFromId(id) {
+    if (id.substr(0,3) == 'tmp') {
+        var idx = parseInt(id.substr(3));
+        return NOTES[idx];
+    }
     for (var i = 0; i < NOTES.length; ++i) {
         var note = NOTES[i];
         if (note.Id && note.Id == id) {
@@ -1211,6 +1453,37 @@ function GetNoteFromId(id) {
     return null;
 }
 
+/*
+// for loading jquery views.
+function FindNote(id, note) {
+    if ( ! note) {
+        for (var i = 0; i < NOTES.length; ++i) {
+            var found = FindNote(id,NOTES[i]);
+            if (found) {
+                return found;
+            }
+        }
+        // TODO: Create and load a new note.
+        return null;
+    }
+
+    if (note.Id == id) {
+        return note;
+    }
+    for (var i = 0; i < note.Children.length; ++i) {
+        var found = FindNote(id, note.Children[i]);
+        if (found) {
+            return found;
+        }
+    }
+    return null;
+}
+*/
+
+
+
+
+
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
     var self = this;
@@ -1218,7 +1491,7 @@ Note.prototype.FormatHyperlink = function() {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
-                .click(function() { self.Select();})
+                .click(function() { NOTES_WIDGET.SelectNote(self);})
                 .css({'color': '#29C'})
                 .hover(function(){ $(this).css("color", "blue");},
                        function(){ $(this).css("color", "#29C");});
@@ -1276,19 +1549,6 @@ Note.prototype.UnselectHyperlink = function () {
     }
 }
 
-
-Note.prototype.GetUserNote = function() {
-    if ( ! this.UserNote) {
-        this.UserNote = new Note();
-        this.UserNote.Parent = this;
-        this.UserNote.Type = "UserNote";
-        this.UserNote.Title = this.Title;
-        this.UserNote.RecordView();
-    }
-
-    return this.UserNote;
-}
-
 Note.prototype.SetParent = function(parent) {
     var self = this;
     this.Parent = parent;
@@ -1300,7 +1560,7 @@ Note.prototype.SetParent = function(parent) {
 Note.prototype.TitleFocusInCallback = function() {
   // Keep the viewer from processing arrow keys.
   EVENT_MANAGER.FocusOut();
-  this.Select();
+  NOTES_WIDGET.SelectNote(this);
 }
 
 
@@ -1376,28 +1636,25 @@ Note.prototype.UserCanEdit = function() {
   return EDIT;
 }
 
-Note.prototype.RecordView = function() {
+Note.prototype.RecordView = function(display) {
+    // TODO: Get rid of VIEWER globals.
+    if (display.GetNumberOfViewers() == 0) { return; }
+
     if (this.Type == "Stack") {
         // All we want to do is record the default
         // camera of the first section (if we at
         // the start of the stack).
         if (this.StartIndex == 0) {
-            this.ViewerRecords[0].CopyViewer(VIEWER1);
+            this.ViewerRecords[0].CopyViewer(display.GetViewer(0));
         }
         return;
     }
     this.ViewerRecords = [];
-    //  Viewer1
-    var viewerRecord = new ViewerRecord();
-    viewerRecord.CopyViewer(VIEWER1);
-    this.ViewerRecords.push(viewerRecord);
-    // Viewer2
-    if (DUAL_VIEW) {
+    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
         var viewerRecord = new ViewerRecord();
-        viewerRecord.CopyViewer(VIEWER2);
+        viewerRecord.CopyViewer(display.GetViewer(i));
         this.ViewerRecords.push(viewerRecord);
     }
-
 }
 
 Note.prototype.AddChild = function(childNote, first) {
@@ -1483,17 +1740,24 @@ Note.prototype.NewChild = function(childIdx, title) {
     childNote.Title = title;
     var d = new Date();
     childNote.Date = d.getTime(); // Temporary. Set for real by server.
-    childNote.RecordView();
-    // We need to save the note to get its Id (for the link div).
-    childNote.Save();
 
     // Now insert the child after the current note.
     this.Children.splice(childIdx,0,childNote);
     childNote.SetParent(parentNote);
-    this.UpdateChildrenGUI();
 
     return childNote;
 }
+
+Note.prototype.LoadIds = function(data) {
+    if ( ! this.Id) {
+        this.Id = data._id;
+    }
+    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
+        this.Children[i].LoadIds(data.Children[i]);
+    }
+    
+}
+
 
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
@@ -1512,7 +1776,9 @@ Note.prototype.Save = function(callback) {
                "date" : d.getTime()},
         success: function(data,status) {
             $('body').css({'cursor':'default'});
-            self.Id = data._id;
+            // get the children ids too.
+            // Assumes the order of children did not change.
+            self.LoadIds(data);
             if (callback) {
                 (callback)(self);
             }
@@ -1524,128 +1790,12 @@ Note.prototype.Save = function(callback) {
     });
 }
 
-// I am changing the select behavior.  Children will show their view, but
-// will not become active unless they have their own text / html.
-Note.prototype.Select = function() {
-
-    if (this == NOTES_WIDGET.SelectedNote) {
-        // Just reset the camera.
-        this.DisplayView();
-        return;
-    }
-
-    // Flush the timers before moving to another view.
-    if (this.RecordView1Timer) {
-        clearTimeout(this.RecordView1Timer);
-        this.RecordView1Timer = null;
-        this.RecordView1b();
-    }
-    if (this.RecordView2Timer) {
-        clearTimeout(this.RecordView2Timer);
-        this.RecordView2Timer = null;
-        this.RecordView2b();
-    }        
-
-    // This should method should be split between Note and NotesWidget
-    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-    // For when user selects a note from a list.
-    // Find the note and set a new iterator
-    // This is so the next and previous buttons will behave.
-    if (NOTES_WIDGET.Iterator.GetNote() != this) {
-        var iter = NOTES_WIDGET.RootNote.NewIterator();
-        while (iter.GetNote() != this) {
-            if ( iter.IsEnd()) {
-                // I am supporting hyperlinks in UserNote.
-                // They are not in the links tree yet.
-                // Hack, Just display the view.
-                this.DisplayView();
-                // Hilight the text.
-                this.SelectHyperlink();
-                return;
-            }
-            iter.Next();
+Note.prototype.RecordAnnotations = function(display) {
+    for (var i = 0; i < display.GetNumberOfViewers; ++i) {
+        if (this.ViewerRecords.length > this.StartIndex+i) {
+            this.ViewerRecords[this.StartIndex+i].CopyAnnotations(
+                display.GetNumberOfViewers(i));
         }
-        NOTES_WIDGET.Iterator = iter;
-    }
-
-    // Display text
-    // To support the html note text links, do not show empty text.
-    // Fallback to parent note text / html if necessary.
-    var textNote = this;
-    while ( textNote.Type != "UserNote" && textNote.Parent && textNote.Text == "") {
-        textNote = textNote.Parent;
-    }
-    NOTES_WIDGET.TextEditor.LoadNote(textNote);
-    // Display user text.
-    if (NOTES_WIDGET.UserTextEditor) {
-        if (this.UserNote) {
-            NOTES_WIDGET.UserTextEditor.LoadNote(this.UserNote);
-        } else {
-            NOTES_WIDGET.UserTextEditor.SetHtml("");
-        }
-    }
-
-    // Handle the note that is being unselected.
-    // Clear the selected background of the deselected note.
-    if (NOTES_WIDGET.SelectedNote) {
-        NOTES_WIDGET.SelectedNote.TitleEntry.css({'background':'white'});
-        // Make the old hyper link normal color.
-        $('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'white'});
-    }
-
-    NOTES_WIDGET.SelectedNote = this;
-
-    // Indicate which note is selected.
-    this.TitleEntry.css({'background':'#f0f0f0'});
-    // This highlighting can be confused with the selection highlighting.
-    // Indicate hyperlink current note.
-    //$('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'#CCC'});
-    // Select the current hyper link
-    this.SelectHyperlink();
-
-
-    if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
-
-    if (typeof VIEWER2 !== 'undefined') {
-        VIEWER2.Reset();
-        // TODO:
-        // It would be nice to store the viewer configuration
-        // as a separate state variable.  We might want a stack
-        // that defaults to a single viewer.
-        SetNumberOfViews(this.ViewerRecords.length);
-    }
-
-
-    // Clear the sync callback.
-    VIEWER1.OnInteraction();
-    VIEWER2.OnInteraction();
-    if (EDIT) {
-        // These record changes in the viewers to the notes.
-        var self = this;
-        VIEWER1.OnInteraction(function () {NOTES_WIDGET.RecordView1();});
-        VIEWER2.OnInteraction(function () {NOTES_WIDGET.RecordView2();});
-    }
-
-    if (this.Type == "Stack") {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
-        // Select only gets called when the stack is first loaded.
-        var self = this;
-        VIEWER1.OnInteraction(function () { self.SynchronizeViews(0);});
-        VIEWER2.OnInteraction(function () { self.SynchronizeViews(1);});
-        this.DisplayStack();
-        // First view is set by viewer record camera.
-        // Second is set relative to the first.
-        this.SynchronizeViews(0);
-    } else {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
-        this.DisplayView();
-    }
-}
-
-Note.prototype.RecordAnnotations = function() {
-    this.ViewerRecords[this.StartIndex].CopyAnnotations(VIEWER1);
-    if (this.StartIndex + 1 < this.ViewerRecords.length) {
-        this.ViewerRecords[this.StartIndex+1].CopyAnnotations(VIEWER2);
     }
 }
 
@@ -1656,7 +1806,7 @@ Note.prototype.DisplayGUI = function(div) {
 
     this.TitleEntry
         .click(function() {
-            self.Select();
+            NOTES_WIDGET.SelectNote(self);
             self.ButtonsDiv.show();
         })
         .bind('input', function () {
@@ -1671,7 +1821,6 @@ Note.prototype.DisplayGUI = function(div) {
                 NOTES_WIDGET.MarkAsModified();
             }
         });
-    
 
     this.TitleDiv
         .hover(
@@ -1721,6 +1870,10 @@ Note.prototype.Serialize = function(includeChildren) {
     obj.Type = this.Type;
     obj.User = this.User;
     obj.Date = this.Date;
+
+    if (this.NotesPanelOpen) {
+        obj.NotesPanelOpen = true;
+    }
 
     if (this.Id) {
         obj._id = this.Id;
@@ -1861,35 +2014,34 @@ Note.prototype.LoadUserNotes = function(data) {
 }
 
 Note.prototype.Collapse = function() {
-  this.ChildrenVisibility = false;
-  if (this.Contains(NOTES_WIDGET.SelectedNote)) {
-    // Selected note should not be in collapsed branch.
-    // Make the visible ancestor active.
-    this.Select();
-  }
-  this.UpdateChildrenGUI();
-  NAVIGATION_WIDGET.Update();
+    this.ChildrenVisibility = false;
+    if (this.Contains(NOTES_WIDGET.SelectedNote)) {
+        // Selected note should not be in collapsed branch.
+        // Make the visible ancestor active.
+        NOTES_WIDGET.SelectNoteg(this);
+    }
+    this.UpdateChildrenGUI();
+    NAVIGATION_WIDGET.Update();
 }
 
 Note.prototype.Expand = function() {
-  this.ChildrenVisibility = true;
-  this.UpdateChildrenGUI();
-  NAVIGATION_WIDGET.Update();
+    this.ChildrenVisibility = true;
+    this.UpdateChildrenGUI();
+    NAVIGATION_WIDGET.Update();
 }
 
-
 // Extra stuff for stack.
-Note.prototype.DisplayStack = function() {
-    this.DisplayView();
+Note.prototype.DisplayStack = function(display) {
+    this.DisplayView(display);
     // For editing correlations
     if (EDIT && this.StartIndex+1 < this.ViewerRecords.length) {
         var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
         if (trans) {
-            VIEWER1.StackCorrelations = trans.Correlations;
-            VIEWER2.StackCorrelations = trans.Correlations;
+            display.GetViewer(0).StackCorrelations = trans.Correlations;
+            display.GetViewer(1).StackCorrelations = trans.Correlations;
         }
     }
-    // Indicate which section is being displayed in VIEWER1
+    // Indicate which section is being displayed in viewer 1
     for (var i = 0; i < this.StackDivs.length; ++i) {
         if (i == this.StartIndex) {
             this.StackDivs[i].css({'background-color':'#BBB'});
@@ -1900,37 +2052,33 @@ Note.prototype.DisplayStack = function() {
 }
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
-Note.prototype.DisplayView = function() {
+Note.prototype.DisplayView = function(display) {
+    if (display.GetNumberOfViewers() == 0) { return; }
+
     // Remove Annotations from the previous note.
-    VIEWER1.Reset();
-    if (VIEWER2) {VIEWER2.Reset();}
-
-    if (this.Type == "Stack") {
-        var idx0 = this.StartIndex;
-        var idx1 = idx0 + 1;
-
-        if (this.ViewerRecords.length > idx0) {
-            this.ViewerRecords[idx0].Apply(VIEWER1);
-        }
-        if (this.ViewerRecords.length > idx1) {
-            this.ViewerRecords[idx1].Apply(VIEWER2);
-        }
-        return;
+    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+        display.GetViewer(i).Reset();
     }
 
-    // Two views should always exist.  Check anyway (for now).
-    SetNumberOfViews(this.ViewerRecords.length);
-    if (typeof VIEWER1 !== 'undefined' && this.ViewerRecords.length > 0) {
-        this.ViewerRecords[0].Apply(VIEWER1);
+    // Set the state of the notes widget.
+    // Should we ever turn it off?
+    if (this.NotesPanelOpen && ! NOTES_WIDGET.Visibility) {
+        NOTES_WIDGET.ToggleNotesWindow();
     }
-    if (typeof VIEWER2 !== 'undefined') {
-        VIEWER2.Reset();
-        if ( this.ViewerRecords.length > 1) {
-            this.ViewerRecords[1].Apply(VIEWER2);
-        } else if ( this.ViewerRecords.length > 0) {
-            // Default the second viewer (closed) to be the same as the first.
-            this.ViewerRecords[0].Apply(VIEWER2);
+
+    // We could have more than two in the future.
+    display.SetNumberOfViewers(this.ViewerRecords.length);
+    var idx = this.StartIndex;
+    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+        var viewer = display.GetViewer(i);
+
+        if (i + idx < this.ViewerRecords.length) {
+            this.ViewerRecords[idx + i].Apply(viewer);
+            // This is for synchroninzing changes in the viewer back to the note.
+            viewer.RecordIndex = i;
         }
+
+        //viewer.Reset(); // I do not think I should do this here.
     }
 }
 
@@ -1954,182 +2102,60 @@ Note.prototype.InitializeStackTransforms = function () {
 }
 
 
-// refViewerIdx is the viewer that changed and other viewers need 
-// to be updated to match that reference viewer.
-Note.prototype.SynchronizeViews = function (refViewerIdx) {
-    if (refViewerIdx + this.StartIdx >= this.ViewerRecords.length) {
-        return;
-    }
-
-    // Special case for when the shift key is pressed.
-    // Translate only one camera and modify the tranform to match.
-    if (EDIT && EVENT_MANAGER.CursorFlag) {
-        var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
-        if ( ! this.ActiveCorrelation) {
-            if ( ! trans) {
-                alert("Missing transform");
-                return;
-            }
-            // Remove all correlations visible in the window.
-            var cam = VIEWER1.GetCamera();
-            var bds = cam.GetBounds();
-            var idx = 0;
-            while (idx < trans.Correlations.length) {
-                var cor = trans.Correlations[idx];
-                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
-                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-                    trans.Correlations.splice(idx,1);
-                } else {
-                    ++idx;
-                }
-            }
-
-            // Now make a new replacement correlation.
-            this.ActiveCorrelation = new PairCorrelation();
-            trans.Correlations.push(this.ActiveCorrelation);
-        }
-        var cam0 = VIEWER1.GetCamera();
-        var cam1 = VIEWER2.GetCamera();
-        this.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
-        this.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
-        // I really do not want to set the roll unless the user specifically changed it.
-        // It would be hard to correct if the wrong value got set early in the aligment.
-        var deltaRoll = cam1.Roll - cam0.Roll;
-        if (trans.Correlations.length > 1) {
-            deltaRoll = 0;
-            // Let roll be set by multiple correlation points.
-        }
-        this.ActiveCorrelation.SetRoll(deltaRoll);
-        this.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
-        return;
-    } else {
-        // A round about way to set and unset the active correlation.
-        // This is OK, because if there is no interaction without the shift key
-        // the active correlation will not change anyway.
-        this.ActiveCorrelation = undefined;
-    }
-
-    // No shift modifier:
-    // Synchronize all the cameras.
-    // Hard coded for two viewers (recored 0 and 1 too).
-    // First place all the cameras into an array for code simplicity.
-    // Cameras used for preloading.
-    if (! this.PreCamera) { this.PreCamera = new Camera();}
-    if (! this.PostCamera) { this.PostCamera = new Camera();}
-    var cameras = [this.PreCamera, VIEWER1.GetCamera(), VIEWER2.GetCamera(), this.PostCamera];
-    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
-    // Start with the reference section and move forward.
-    // With two sections, the second has the transform.
-    for (var i = refCamIdx+1; i < cameras.length; ++i) {
-        var transIdx = i - 1 + this.StartIndex;
-        if (transIdx < this.ViewerRecords.length) {
-            this.ViewerRecords[transIdx].Transform
-                .ForwardTransformCamera(cameras[i-1],cameras[i]);
-        } else {
-            cameras[i] = undefined;
-        }
-    }
-
-    // Start with the reference section and move backward.
-    // With two sections, the second has the transform.
-    for (var i = refCamIdx; i > 0; --i) {
-        var transIdx = i + this.StartIndex-1;
-        if (transIdx > 0) { // First section does not have a transform
-            this.ViewerRecords[transIdx].Transform
-                .ReverseTransformCamera(cameras[i],cameras[i-1]);
-        } else {
-            cameras[i-1] = undefined;
-        }
-    }
-
-    // Preload the adjacent sections.
-    if (cameras[0]) {
-        var cache = FindCache(this.ViewerRecords[this.StartIndex-1].Image);
-        cameras[0].SetViewport(VIEWER1.GetViewport());
-        var tiles = cache.ChooseTiles(cameras[0], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-    if (cameras[3]) {
-        var cache = FindCache(this.ViewerRecords[this.StartIndex+2].Image);
-        cameras[3].SetViewport(VIEWER1.GetViewport());
-        var tiles = cache.ChooseTiles(cameras[3], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-
-    // Overview cameras need to be updated.
-    if (refViewerIdx == 0) {
-        VIEWER2.UpdateCamera();
-        VIEWER2.EventuallyRender(false);
-    } else {
-        VIEWER1.UpdateCamera();
-        VIEWER1.EventuallyRender(false);
-    }
-}
-
 NotesWidget.prototype.GetCurrentNote = function() {
   return this.Iterator.GetNote();
 }
 
 
 NotesWidget.prototype.SaveUserNote = function() {
-  // Create a new note.
-  var childNote = new Note();
-  var d = new Date();
-  this.Date = d.getTime(); // Also reset later.
+    // Create a new note.
+    var childNote = new Note();
+    var d = new Date();
+    this.Date = d.getTime(); // Also reset later.
 
-  childNote.ViewerRecords = [];
-  //  Viewer1
-  var viewerRecord = new ViewerRecord();
-  viewerRecord.CopyViewer(VIEWER1);
-  childNote.ViewerRecords.push(viewerRecord);
-  // Viewer2
-  if (DUAL_VIEW) {
-    var viewerRecord = new ViewerRecord();
-    viewerRecord.CopyViewer(VIEWER2);
-    childNote.ViewerRecords.push(viewerRecord);
-  }
+    childNote.ViewerRecords = [];
+    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+        var viewer = this.Display.GetViewer(i);
+        var viewerRecord = new ViewerRecord();
+        viewerRecord.CopyViewer(viewer);
+        childNote.ViewerRecords.push(viewerRecord);
+    }
 
-  // Now add the note as the last child to the current note.
-  parentNote = this.Iterator.GetNote();
-  parentNote.Children.push(childNote);
-  // ParentId is how we retrieve notes from the database.
-  // It is the only tree structure saved.
-  childNote.SetParent(parentNote);
-  // Expand the parent so that the new note is visible.
-  parentNote.ChildrenVisible = true;
+    // Now add the note as the last child to the current note.
+    parentNote = this.Iterator.GetNote();
+    parentNote.Children.push(childNote);
+    // ParentId is how we retrieve notes from the database.
+    // It is the only tree structure saved.
+    childNote.SetParent(parentNote);
+    // Expand the parent so that the new note is visible.
+    parentNote.ChildrenVisible = true;
 
-  // Save the note in the database for this specific user.
-  // TODO: If author privileges, save note in the actual session / view.
-  var bug = JSON.stringify( childNote );
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/saveusernote",
-    data: {"note": JSON.stringify(childNote.Serialize(false)),
-           "col" : "notes",
-           "date": d.getTime(),
-           "type": "UserNote"},
-    success: function(data,status) { childNote.Id = data;},
-    error: function() {
-      alert( "AJAX - error() : saveusernote 1" );
-    },
-  });
+    // Save the note in the database for this specific user.
+    // TODO: If author privileges, save note in the actual session / view.
+    var bug = JSON.stringify( childNote );
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/saveusernote",
+        data: {"note": JSON.stringify(childNote.Serialize(false)),
+               "col" : "notes",
+               "date": d.getTime(),
+               "type": "UserNote"},
+        success: function(data,status) { childNote.Id = data;},
+        error: function() {
+            alert( "AJAX - error() : saveusernote 1" );
+        },
+    });
 
-  // Redraw the GUI. should we make the parent or the new child active?
-  // If we choose the child, then we need to update the iterator,
-  // which will also update the gui and viewers.
-  NAVIGATION_WIDGET.NextNote();
+    // Redraw the GUI. should we make the parent or the new child active?
+    // If we choose the child, then we need to update the iterator,
+    // which will also update the gui and viewers.
+    NAVIGATION_WIDGET.NextNote();
 }
 
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
     var note = new Note();
-    note.RecordView();
+    note.RecordView(this.Display);
 
     // This is not used and will probably be taken out of the scheme,
     note.SetParent(this.Iterator.GetNote());
@@ -2139,7 +2165,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     // Fix: If on mobile, use the thumbnail for the entire slide.
     var src;
     if(MOBILE_DEVICE){
-        var image = VIEWER1.GetCache().Image;
+        var image = this.Display.GetViewer(0).GetCache().Image;
         src = "http://slide-atlas.org/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
         var thumb = CreateThumbnailImage(110);
@@ -2166,10 +2192,10 @@ NotesWidget.prototype.SaveBrownNote = function() {
 
 
 NotesWidget.prototype.ToggleNotesWindow = function() {
-    this.Visibilty = ! this.Visibilty;
+    this.Visibility = ! this.Visibility;
     RecordState();
 
-    if (this.Visibilty) {
+    if (this.Visibility) {
         this.AnimationCurrent = this.Width;
         this.AnimationTarget = 325;
     } else {
@@ -2200,7 +2226,7 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
         // TODO: Get rid of this hack.
         $(window).trigger('resize');
 
-        if (this.Visibilty) {
+        if (this.Visibility) {
             this.CloseNoteWindowButton.show();
             this.OpenNoteWindowButton.hide();
             this.Window.fadeIn();
@@ -2228,7 +2254,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
     this.TextEditor.LoadNote(this.RootNote);
     this.LinksRoot.empty();
     this.RootNote.DisplayGUI(this.LinksRoot);
-    this.RootNote.Select();
+    this.SelectNote(this.RootNote);
 
     // Add an obvious way to add a link / view to the root note.
     if (EDIT) {
@@ -2238,7 +2264,13 @@ NotesWidget.prototype.DisplayRootNote = function() {
                 var parentNote = NOTES_WIDGET.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
-                childNote.Select();
+                // Setup and save
+                childNote.RecordView(this.Display);
+                // We need to save the note to get its Id (for the link div).
+                childNote.Save();
+                parentNote.UpdateChildrenGUI();
+
+                this.SelectNote(childNote);
             });
     }
 
@@ -2284,8 +2316,13 @@ NotesWidget.prototype.NewCallback = function() {
     }
     // Create a new note.
     var childNote = note.NewChild(childIdx, "New View");
+    // Setup and save
+    childNote.RecordView(this.Display);
+    //childNote.Save();
+    note.UpdateChildrenGUI();
+
     note.Save();
-    childNote.Select();
+    this.SelectNote(childNote);
 }
 
 

@@ -1,9 +1,9 @@
 
 
-var FAVORITES_GUI;
 
-function FavoritesBar(parent){
-    FAVORITES_GUI = this;
+function FavoritesBar(parent, display){
+    this.FavoritesGUI = this;
+    this.Display = display;
 
     this.FavoritesList = parent;
 
@@ -25,7 +25,7 @@ function FavoritesBar(parent){
         .appendTo(this.FavoritesList)
         .addClass("sa-view-favorites-img-list");
 
-    LoadFavorites();
+    this.LoadFavorites();
 }
 
 
@@ -42,106 +42,96 @@ FavoritesBar.prototype.ShowHideFavorites = function(){
         this.FavoritesList.show();
         this.hidden = false;
         var self = this;
-        VIEWER1.OnInteraction( function () { self.Hide();} );
-        VIEWER2.OnInteraction( function () { self.Hide();} );
+        for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+            this.Display.GetViewer(i).OnInteraction( function () { self.Hide();} );
+        }
     } else {
         this.FavoritesList.fadeOut();
         this.hidden = true;
     }
 }
 
-var FAVORITES;
 
+FavoritesBar.prototype.SaveFavorite = function() {
+    NOTES_WIDGET.SaveBrownNote();
+    // Hide shifts the other buttons to the left to fill the gap.
+    var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
+    button.addClass("sa-inactive");
+    setTimeout(function(){ button.removeClass("sa-inactive");}, 
+               500); // one half second
 
-function SaveFavorite() {
-  NOTES_WIDGET.SaveBrownNote();
-  // Hide shifts the other buttons to the left to fill the gap.
-  var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
-  button.addClass("sa-inactive");
-  setTimeout(function(){
-               button.removeClass("sa-inactive");
-             }, 500); // one half second
-
-  //ShowImage(CreateThumbnailImage(110));
+    //ShowImage(CreateThumbnailImage(110));
 }
 
-function LoadFavorites(){
-  $.ajax({
-    type: "get",
-    url: "/webgl-viewer/getfavoriteviews",
-    success: function(data,status){
-               if (status == "success") {
-                 LoadFavoritesCallback(data);
-               } else { alert("ajax failed - get favorite views"); }
-             },
-    error: function() { alert( "AJAX - error() : getfavoriteviews" ); },
+FavoritesBar.prototype.LoadFavorites = function () {
+    var self = this;
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/getfavoriteviews",
+        success: function(data,status){
+            if (status == "success") {
+                self.LoadFavoritesCallback(data);
+            } else { alert("ajax failed - get favorite views"); }
+        },
+        error: function() { alert( "AJAX - error() : getfavoriteviews" ); },
     });
 }
 
-function LoadFavoritesCallback(sessionData) {
-  //var sessionItem = $("[sessid="+sessionData.sessid+"]");
+FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
+    //var sessionItem = $("[sessid="+sessionData.sessid+"]");
 
-  //var viewList = $('<ul>').appendTo(sessionItem)
+    //var viewList = $('<ul>').appendTo(sessionItem)
 
-  FAVORITES = sessionData.viewArray;
+    this.Favorites = sessionData.viewArray;
 
-  FAVORITES_GUI.ImageList.html("");
+    this.FavoritesGUI.ImageList.html("");
 
-  //for (var i = 0; i < sessionData.viewArray.length; ++i) {
-  for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
-    var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
-                            .addClass("sa-view-favorites-callback-div");
+    //for (var i = 0; i < sessionData.viewArray.length; ++i) {
+    for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
+        var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
+            .addClass("sa-view-favorites-callback-div");
 
+        var thumb = sessionData.viewArray[i].Thumb;
 
-    //var db = sessionData.viewArray[i].ViewerRecords[0].Database;
-    //var img = sessionData.viewArray[i].ViewerRecords[0].Image._id;
-    
-    var thumb = sessionData.viewArray[i].Thumb;
-    
-    var view = $('<img>').appendTo(favorite)
-                         .attr('src', thumb)
-                         .attr('height', '110px')
-                         .addClass("sa-view-favorites-callback-img")
-                         .attr('index', i)
-                         .click(function(){ loadFavorite(this); });
+        var view = $('<img>').appendTo(favorite)
+            .attr('src', thumb)
+            .attr('height', '110px')
+            .addClass("sa-view-favorites-callback-img")
+            .attr('index', i)
+            .click(function(){ loadFavorite(this); });
 
-    var del = $('<div>').appendTo(favorite)
-                        .html("X")
-                        .addClass("sa-view-favorites-callback-del")
-                        .attr('index', i)
-                        .click(function(){ deleteFavorite(this); });
-  }
+        var del = $('<div>').appendTo(favorite)
+            .html("X")
+            .addClass("sa-view-favorites-callback-del")
+            .attr('index', i)
+            .click(function(){ deleteFavorite(this); });
+    }
 }
 
+FavoritesBar.prototype.LoadFavorite = function(img){
+    var note = new Note();
+    var index = $(img).attr('index');
+    note.Load(this.Favorits[index]);
 
-
-function loadFavorite(img){
-  var note = new Note();
-  var index = $(img).attr('index');
-  note.Load(FAVORITES[index]);
-
-  note.DisplayView();
+    note.DisplayView();
 }
 
-function deleteFavorite(img){
-  var index = $(img).attr('index');
+FavoritesBar.prototype.DeleteFavorite = function(img){
+    var index = $(img).attr('index');
 
-  $.ajax({
-    type: "post",
-    url: "/webgl-viewer/deleteusernote",
-      data: {"noteId": FAVORITES[index]._id,
-             "col" : "views"},//"favorites"
-    success: function(data,status) {
-
-    },
-    error: function() {
-      alert( "AJAX - error() : deleteusernote" );
-    },
+    $.ajax({
+        type: "post",
+        url: "/webgl-viewer/deleteusernote",
+        data: {"noteId": this.Favorties[index]._id,
+               "col" : "views"},//"favorites"
+        success: function(data,status) {
+        },
+        error: function() {
+            alert( "AJAX - error() : deleteusernote" );
+        },
     });
-  FAVORITES_GUI.ImageList.html("");
+    this.FavoritesGUI.ImageList.html("");
 
-  LoadFavorites();
+    this.LoadFavorites();
 }
-
-
 

@@ -487,8 +487,6 @@ SectionsWidget.prototype.ProcessBounds = function(bds) {
                        [0.5*(bds[0]+bds[1]), 0.5*(bds[2]+bds[3])],
                        scale, 0, null,
                        function (data) {
-                           // for debugging
-                           //DrawImageData(VIEWER1, data);
                            // slow: SmoothDataAlphaRGB(data, 2);
                            var histogram = ComputeIntensityHistogram(data, true);
                            var threshold = PickThreshold(histogram);

@@ -416,20 +416,10 @@
                             </a>
                         </td>
                         <td>
-                            <a href="{{ viewer_view_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
+                            <a href="{{ viewer_url }}" class="lead sa-view-get">{{ view_son.label }}</a>
                         </td>
                         {% if security.EditSessionRequirement(session).can() %}
                         <td align="right">
-                            {% if security.EditSessionRequirement(session).can() %}
-                            <a href="{{ viewer_edit_url }}" class="lead sa-view-get">
-                                <button type="button"
-                                        class="btn btn-warning badge">
-                                    <i class="glyphicon glyphicon-edit"></i>
-                                    <span> Edit</span>
-                                </button>
-                            </a>
-                            {% endif %}
-                          
                             {# TODO: permalink should redirect to viewer_edit_url if another admin follows it #}
                             <button type="button"
                                     class="btn btn-info badge sa-view-permalink"
