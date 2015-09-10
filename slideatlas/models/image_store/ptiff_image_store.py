@@ -138,7 +138,7 @@ class PtiffImageStore(MultipleDatabaseImageStore):
 
         except Exception as e:
             # Todo: currently accepting both exceptions level not stored, and tile not stored
-            current_app.logger.error("Exception while getting tile: " + e.message)
+            current_app.logger.warning("Exception while getting tile: " + e.message)
             if safe:
                 return None
             else:
