@@ -441,7 +441,7 @@ Presentation.prototype.AddImageCallback = function(image) {
     }
 
     if (this.Note.Type == "HTML") {
-        // This will be the primar path in the future.
+        // This will be the primary path in the future.
         this.HtmlPage.InsertViewNote(note);
         return;
     }
