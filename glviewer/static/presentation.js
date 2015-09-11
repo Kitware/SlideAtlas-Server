@@ -1,3 +1,19 @@
+// CME
+// TODO:
+// Added viewer does not save.
+// Added viewer does not have full window option.
+// html title does not scale when reloaded. (after you add a view either).
+// Allow for relative font sizes in a saScalableFontDiv.
+// Added viewer flickers and changes camera when resized.
+// Change font size in gui.
+// Change font color in GUI.
+// Title note type: HtmlSlide
+// Add GUI to add slides and slide items.
+
+
+
+
+
 // TODO:
 // First: content.
 // Actual title page.
@@ -112,6 +128,11 @@ function Presentation(rootNote, edit) {
               'left':'0px',
               'width':'100%',
               'height':'100%'});
+    // A window with a contant aspect ratio that fits in
+    // the PresentationDiv.
+    this.AspectDiv = $('<div>')
+        .appendTo(this.PresentationDiv)
+        .saPresentation({aspectRatio : 1.333});
 
     if (this.Edit) {
         // I am trying a new pattern.  Jquery UI seems to use it.
@@ -164,7 +185,7 @@ function Presentation(rootNote, edit) {
     if (edit) {
         // Temporary way to delete a this.
         this.DeleteSlideButton = $('<img>')
-            .appendTo(this.PresentationDiv)
+            .appendTo(this.AspectDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "delete slide")
             .addClass('editButton')
@@ -181,9 +202,9 @@ function Presentation(rootNote, edit) {
     }
 
 
-    this.TitlePage = new TitlePage(this.PresentationDiv, edit);
-    this.SlidePage = new SlidePage(this.PresentationDiv, edit);
-    this.HtmlPage  = new HtmlPage(this.PresentationDiv, edit);
+    this.TitlePage = new TitlePage(this.AspectDiv, edit);
+    this.SlidePage = new SlidePage(this.AspectDiv, edit);
+    this.HtmlPage  = new HtmlPage(this.AspectDiv, edit);
 
     this.RootNote = rootNote;
     this.GotoSlide(0);
@@ -342,9 +363,9 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .attr('src','webgl-viewer/static/new_window.png')
         .css({'float':'right'})
         .click(function () {
-            //var note = self.InsertNewSlide('HTML');
-            //self.HtmlPage.InitializeNote
-            var note = self.InsertNewSlide('Question');
+            var note = self.InsertNewSlide('HTML');
+            // legacy.  It will still render.
+            //var note = self.InsertNewSlide('Question');
         });
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
@@ -1149,7 +1170,7 @@ function TitlePage (parent, edit) {
               //'min-height':'3em',
               //'min-width':'10em',
               'left': '13%'})
-        .saScalableFont({scale:'24'});
+        .saScalableFont({scale:'0.3'});
 
     this.AuthorBar = $('<div>')
         .appendTo(this.Div)
@@ -1168,7 +1189,7 @@ function TitlePage (parent, edit) {
               //'minimum-height':'4em',
               //'minimum-width':'10em',
               'top': '2em'})
-        .saScalableFont({scale:'20'});
+        .saScalableFont({scale:'0.1'});
 
 
     if (this.Edit) {
@@ -1347,13 +1368,13 @@ HtmlPage.prototype.InitializeTitlePage = function() {
               'height':'25%'});
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
-    var titleText = this.InsertTextBox(42)
+    var titleText = this.InsertTextBox(32)
         .css({'color':'white',
               'left':'10%',
               'top':'40%'})
         .text("Title");
 
-    var authorText = this.InsertTextBox(42)
+    var authorText = this.InsertTextBox(28)
         .css({'left':'10%',
               'width':'88%',
               'top':'59%'})
@@ -1449,6 +1470,8 @@ HtmlPage.prototype.InsertIFrame = function(src) {
 HtmlPage.prototype.InsertTextBox = function(size) {
     size = size || 30;
 
+    var scale = size / this.Div.innerHeight();
+
     // Should everything be have Div as parent?
     var text = $('<div>')
         // note: parent has to be set before saTextEditor is called.
@@ -1462,7 +1485,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'top'  : '90%'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
-        .saScalableFont({scale:size})
+        .saScalableFont({scale:scale})
         // default content
         .text("Text");
 

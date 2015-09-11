@@ -236,27 +236,35 @@ jQuery.prototype.saRecordViewer = function() {
 
 // TODO: Convert the viewer to use this.
 
-// No args / options.
-jQuery.prototype.saFullHeight = function() {
+// Args: not used
+jQuery.prototype.saFullHeight = function(args) {
     this.css({'top':'0px'});
     this.addClass('sa-full-height');
-    //for (var i = 0; i < this.length; ++i) {
+    for (var i = 0; i < this.length; ++i) {
         // I want to put the resize event on "this[i]",
-        // but, I am afraid in might not get trigerend always, or
+        // but, I am afraid it might not get trigerend always, or
         // setting the height would cause recursive calls to resize.
-    //}
+        this[i].saFullHeight = args;
+    }
 
     $(window).resize(
         function() {
             var height = window.innerHeight;
-            $('.sa-full-height')
-                .css({'top':    '0px',
-                      'height': height+'px'});
+            var width = window.innerWidth;
+            var top = 0;
+            var left = 0;
+            items = $('.sa-full-height');
+            for (var i = 0; i < items.length; ++i) {
+                item = items[0];
+                $(item).css({'top': '0px',
+                             'height': height+'px'});
+            }
             // Hack until I can figure out why the resize event is not
             // firing for descendants.
             // This did not work.  It also triggered resize on the window
             // causeing infinite recusion.
             //$('.sa-resize').trigger('resize');
+            // call onresize manually.
             var elements = $('.sa-resize');
             for (var i = 0; i < elements.length; ++i) {
                 if (elements[i].onresize) {
@@ -271,15 +279,67 @@ jQuery.prototype.saFullHeight = function() {
 
 
 //==============================================================================
-// This makes the font scale with the height of the "window".
+// Make this window as large as possible in parent, but keep the aspect
+// ratio. This is for presentation windows.
+// Note:  Position of parent has to be not static.
+//        Should I make the position relative rather than absolute?
+jQuery.prototype.saPresentation = function(args) {
+    this.addClass('sa-presentation');
+    this.addClass('sa-resize');
+    for (var i = 0; i < this.length; ++i) {
+        var item = this[i];
+        if ( ! item.saPresentation) {
+            item.onresize =
+                function () {
+                    var ar = this.saPresentation.aspectRatio;
+                    var parent = item.parentNode;
+                    var width = $(parent).innerWidth();
+                    var height = $(parent).innerHeight();
+                    var top = 0;
+                    var left = 0;
+                    if (width / height > ar) {
+                        // Window is too wide.
+                        var tmp = width - (height * ar);
+                        width = width - tmp;
+                        left = tmp / 2;
+                    } else {
+                        // Window is too tall.
+                        var tmp = height - (width / ar);
+                        height = height - tmp;
+                        top = tmp / 2;
+                    }
+                    $(this).css({
+                        'position': 'absolute',
+                        'top': top+'px',
+                        'height': height+'px',
+                        'left': left+'px',
+                        'width': width+'px'});
+                };
+        }
+        item.saPresentation = {aspectRatio: args.aspectRatio};
+        // Trouble if their is more than 1.  Maybe trigger
+        // a window resize?
+        setTimeout(function(){ item.onresize(item); }, 300);
+    }
+
+    return this;
+}
+
+
+
+//==============================================================================
+// Font is set as a percentage of the parent height.
+// args.size: string i.e. "12%" More work would be needed to make this
+// units in pixels.
 jQuery.prototype.saScalableFont = function(args) {
     this.addClass('sa-scalable-font');
     this.addClass('sa-resize');
+
     for (var i = 0; i < this.length; ++i) {
         var text = this[i];
         if ( ! text.saScalableFont) {
             // default.
-            var scale = 24;
+            var scale = 0.1;
             // html() saves this attribute.
             // this will restore the scale.
             var scaleStr = text.getAttribute('sa-font-scale');
@@ -288,19 +348,28 @@ jQuery.prototype.saScalableFont = function(args) {
             }
             // This overrides the previous two.
             if (args && args.scale) {
-                scale = args.scale;
+                // convert to a decimal.
+                var str = args.scale;
+                if (str.substr(-1) == "%") {
+                    scale = parseFloat(str.substr(0,str.length-1))/100;
+                } else {
+                    scale = parseFloat(str);
+                }
             }
             text.saScalableFont = {scale: scale};
-            // I can either keep this upto data or set it when the
+            // I can either keep this up to date or set it when the
             // saHtml is called. Keeping it set is more local.
             text.setAttribute('sa-font-scale', scale.toString());
             text.onresize =
                 function () {
                     scale = this.saScalableFont.scale;
                     // Scale it relative to the window.
-                    var height = window.innerHeight;
-                    fontSize = scale * height / 500;
-                    this.style.fontSize = fontSize+'px';
+                    var height = $(this).parent().innerHeight();
+                    fontSize = Math.round(scale * height) + 'px';
+                    this.style.fontSize = fontSize;
+                    // Getting and setting the html creates text chidlren
+                    // with their own font size.
+                    $(this).children('font').css({'font-size':fontSize});
                 };
             text.onresize();
         }
