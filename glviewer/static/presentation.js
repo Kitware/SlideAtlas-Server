@@ -417,8 +417,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
-    // Hack to reload viewer records.
-    this.GotoSlide(this.Index);
+    this.SlidePage.DisplayNote(this.Note, PRESENTATION.Index);
 }
 
 // Callback from search.
@@ -582,7 +581,7 @@ Presentation.prototype.GotoSlide = function (index){
         } else {
             this.TitlePage.Div.hide();
             this.HtmlPage.Div.hide();
-            this.SlidePage.DisplayNote(index, this.Note);
+            this.SlidePage.DisplayNote(this.Note, index);
         }
     }
     // Start preloading the next slide.
@@ -759,7 +758,7 @@ function SlidePage(parent, edit) {
             .click(function () {
                 PRESENTATION.Note.ViewerRecords.splice(0,1);
                 // Redisplay the viewers
-                self.DisplayNote(PRESENTATION.Index, self.Note);
+                self.DisplayNote(self.Note, PRESENTATION.Index);
             });
         this.RemoveView2Button = $('<img>')
             .appendTo(this.ViewerDiv2)
@@ -775,7 +774,7 @@ function SlidePage(parent, edit) {
             .click(function () {
                 PRESENTATION.Note.ViewerRecords.splice(1,1);
                 // Redisplay the viewers
-                self.DisplayNote(PRESENTATION.Index, self.Note);
+                self.DisplayNote(self.Note, PRESENTATION.Index);
             });
 
         // Setup view resizing.
@@ -1036,7 +1035,8 @@ SlidePage.prototype.ClearNote = function () {
 }
 
 
-SlidePage.prototype.DisplayNote = function (index, note) {
+SlidePage.prototype.DisplayNote = function (note, index) {
+
     this.Div.show();
     this.Note = note;
     this.ViewerDiv1[0].saViewer.Reset();
@@ -1055,6 +1055,7 @@ SlidePage.prototype.DisplayNote = function (index, note) {
     }
     this.ViewerDiv1[0].saViewer.CopyrightWrapper.hide();
     this.ViewerDiv2[0].saViewer.CopyrightWrapper.hide();
+    this.ResizeViews();
 }
 
 
@@ -1096,7 +1097,7 @@ SlidePage.prototype.InsertViewNote = function (note) {
         this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
-    this.DisplayNote(this.Note);
+    this.DisplayNote(this.Note, PRESENTATION.Index);
 }
 
 
