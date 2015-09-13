@@ -2256,11 +2256,12 @@ NotesWidget.prototype.DisplayRootNote = function() {
 
 NotesWidget.prototype.LoadViewId = function(viewId) {
     VIEW_ID = viewId;
-    this.RootNote = new Note();
+    var note = new Note();
     if (typeof(viewId) != "undefined" && viewId != "") {
-        this.RootNote.LoadViewId(
+        note.LoadViewId(
             viewId,
             function () {
+                NOTES_WIDGET.SetRootNote(note);
                 NOTES_WIDGET.DisplayRootNote();
             }
         );
