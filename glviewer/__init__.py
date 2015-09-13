@@ -7,6 +7,8 @@ from slideatlas.common_utils import jsonify
 import re
 import urllib2
 
+import pdb
+
 def jsonifyView(db,viewid,viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -251,20 +253,30 @@ def bookmark():
 
 
 # get all the children notes for a parent (authored by a specific user).
-@mod.route('/getchildnotes')
-def getchildnotes():
+@mod.route('/getusernotes')
+def getusernotes():
     parentid = request.args.get('parentid', False)
-    if not parentid :
-        return "Error: missing parentid"
+    imageid = request.args.get('imageid', False)
+
+    #pdb.set_trace();
 
     # TODO: this should be an ObjectId by default, not a string
     user = getattr(security.current_user, 'id', '')
+    email = getattr(security.current_user, 'email', '')
 
     admindb = models.ImageStore._get_db()
     db = admindb
 
-    notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
-                                    "User" :     user})
+    if parentid :
+        notecursor = db["views"].find({ "ParentId" : ObjectId(parentid),
+                                        "Type" :     "UserNote",
+                                        "User" :     email})
+    elif imageid :
+        notecursor = db["views"].find({ "ViewerRecords.Image" : ObjectId(imageid),
+                                        "Type" :     "UserNote",
+                                        "User" :     email})
+    else :
+        return "Missing note or imageid"
 
     # make a new structure to return.  Convert the ids to strings.
     noteArray = []
