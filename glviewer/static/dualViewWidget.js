@@ -20,7 +20,7 @@ var VIEWER1;
 var VIEWER2;
 
 
-function DualViewWidget(viewerList) {
+function DualViewWidget() {
     var self = this;
     this.Viewers = [];
 
@@ -111,6 +111,11 @@ DualViewWidget.prototype.ToggleDualView = function () {
     this.DualView = ! this.DualView;
 
     if (this.DualView) {
+        // If there is no image in the second viewer, copy it from the first.
+        if ( ! this.Viewers[1].GetCache()) {
+            this.Viewers[1].SetCache(this.Viewers[0].GetCache());
+            this.Viewers[1].GetCamera().DeepCopy(this.Viewers[0].GetCamera());
+        }
         this.AnimationCurrent = 1.0;
         this.AnimationTarget = 0.5;
         // Edit menu option to copy camera zoom between views.
@@ -147,8 +152,6 @@ DualViewWidget.prototype.UpdateGui = function () {
         // Edit menu option to copy camera zoom between views.
     }
 }
-
-
 
 DualViewWidget.prototype.AnimateViewToggle = function () {
     var timeStep = new Date().getTime() - this.AnimationLastTime;

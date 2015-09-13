@@ -1010,7 +1010,6 @@ NotesWidget.prototype.RecordView2 = function() {
     var note = this.GetCurrentNote();
     //note.RecordView(this.Display);
     note.RecordAnnotations(this.Display);
-    this.MarkAsModified();
 }
 
 
@@ -1865,7 +1864,6 @@ Note.prototype.DisplayGUI = function(div) {
 
     this.UpdateChildrenGUI();
 }
-
 
 
 Note.prototype.Serialize = function(includeChildren) {

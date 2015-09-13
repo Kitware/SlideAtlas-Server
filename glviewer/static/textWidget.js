@@ -456,13 +456,17 @@ TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
 
 TextWidget.prototype.HandleMouseMove = function(event) {
     if (this.State == TEXT_WIDGET_DRAG) {
+        if (NOTES_WIDGET) {
+            // Hack.
+            NOTES_WIDGET.MarkAsModified();
+        }
         w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
                                                    EVENT_MANAGER.LastMouseY);
         w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         // This is the translation.
         var dx = w1[0] - w0[0];
         var dy = w1[1] - w0[1];
-        
+
         this.Text.Position[0] += dx;
         this.Text.Position[1] += dy;
         this.Arrow.Origin = this.Text.Position;
@@ -471,6 +475,10 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         return true;
     }
     if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
+        if (NOTES_WIDGET) {
+            // Hack.
+            NOTES_WIDGET.MarkAsModified();
+        }
         this.Text.Anchor[0] -= EVENT_MANAGER.MouseDeltaX;
         this.Text.Anchor[1] -= EVENT_MANAGER.MouseDeltaY;
         this.UpdateArrow();
@@ -615,46 +623,51 @@ TextWidget.prototype.ShowPropertiesDialog = function () {
 }
 
 TextWidget.prototype.DialogApplyCallback = function () {
-  this.SetActive(false);
-  this.ApplyLineBreaks();
+    this.SetActive(false);
+    this.ApplyLineBreaks();
 
-  var string = this.Dialog.TextInput.val();
-  // remove any trailing white space.
-  string = string.trim();
-  if (string == "") {
-    alert("Empty String");
-    return;
-  }
+    var string = this.Dialog.TextInput.val();
+    // remove any trailing white space.
+    string = string.trim();
+    if (string == "") {
+        alert("Empty String");
+        return;
+    }
 
-  var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
-  var fontSize = this.Dialog.FontInput.val();
-  this.Text.String = string;
-  this.Text.Size = parseFloat(fontSize);
-  this.Text.UpdateBuffers();
+    var hexcolor = ConvertColorToHex(this.Dialog.ColorInput.val());
+    var fontSize = this.Dialog.FontInput.val();
+    this.Text.String = string;
+    this.Text.Size = parseFloat(fontSize);
+    this.Text.UpdateBuffers();
 
-  if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
-    this.SetVisibilityMode(0);
-  } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
-    this.SetVisibilityMode(1);
-  } else {
-    this.SetVisibilityMode(2);
-  }
-  var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
+    if(this.Dialog.VisibilityModeInputs[0].prop("checked")){
+        this.SetVisibilityMode(0);
+    } else if(this.Dialog.VisibilityModeInputs[1].prop("checked")){
+        this.SetVisibilityMode(1);
+    } else {
+        this.SetVisibilityMode(2);
+    }
+    var backgroundFlag = this.Dialog.BackgroundInput.prop("checked");
 
-  this.Text.SetColor(hexcolor);
-  this.Arrow.SetFillColor(hexcolor);
-  this.Arrow.ChooseOutlineColor();
-  
-  this.Text.BackgroundFlag = backgroundFlag;
+    this.Text.SetColor(hexcolor);
+    this.Arrow.SetFillColor(hexcolor);
+    this.Arrow.ChooseOutlineColor();
 
-  localStorage.TextWidgetDefaults = JSON.stringify({Color         : hexcolor, 
-                                                    FontSize      : this.Text.Size, 
-                                                    VisibilityMode: this.VisibilityMode, 
-                                                    BackgroundFlag: backgroundFlag});
+    this.Text.BackgroundFlag = backgroundFlag;
 
-  RecordState();
+    localStorage.TextWidgetDefaults = JSON.stringify(
+        {Color         : hexcolor,
+         FontSize      : this.Text.Size,
+         VisibilityMode: this.VisibilityMode,
+         BackgroundFlag: backgroundFlag});
 
-  this.Viewer.EventuallyRender(true);
+    RecordState();
+
+    this.Viewer.EventuallyRender(true);
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
+    }
 }
 
 //Function to apply line breaks to textarea text.

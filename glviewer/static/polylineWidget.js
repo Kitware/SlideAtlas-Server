@@ -746,21 +746,26 @@ PolylineWidget.prototype.ShowPropertiesDialog = function () {
 }
 
 PolylineWidget.prototype.DialogApplyCallback = function() {
-  var hexcolor = this.Dialog.ColorInput.val();
-  this.Shape.SetOutlineColor(hexcolor);
-  this.Shape.Closed = this.Dialog.ClosedInput.prop("checked");
+    var hexcolor = this.Dialog.ColorInput.val();
+    this.Shape.SetOutlineColor(hexcolor);
+    this.Shape.Closed = this.Dialog.ClosedInput.prop("checked");
 
-  // Cannot use the shap line width because it is set to zero (single pixel)
-  // it the dialog value is too thin.
-  this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-  this.Shape.UpdateBuffers();
-  this.SetActive(false);
-  RecordState();
-  this.Viewer.EventuallyRender(false);
+    // Cannot use the shap line width because it is set to zero (single pixel)
+    // it the dialog value is too thin.
+    this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+    this.Shape.UpdateBuffers();
+    this.SetActive(false);
+    RecordState();
+    this.Viewer.EventuallyRender(false);
 
-  localStorage.PolylineWidgetDefaults = JSON.stringify({Color: hexcolor,
-                                                        ClosedLoop: this.Shape.Closed,
-                                                        LineWidth: this.LineWidth});
+    localStorage.PolylineWidgetDefaults = JSON.stringify(
+        {Color: hexcolor,
+         ClosedLoop: this.Shape.Closed,
+         LineWidth: this.LineWidth});
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
+    }
 }
 
 // Note, self intersection can cause unexpected areas.
