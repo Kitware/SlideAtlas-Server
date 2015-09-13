@@ -69,6 +69,8 @@ function TextEditor(parent, display) {
     var self = this;
     this.Display = display;
     this.Parent = parent;
+    // I do not want the text editable until the note is set.
+    this.Editable = true;
     this.Edit = true;
     // The user can set this to save the note automatically.
     this.ChangeCallback = null;
@@ -142,6 +144,9 @@ function TextEditor(parent, display) {
     this.UpdateTimer = null;
     this.RecordViewTimer = null;
 
+    // Do not enable editing until the Note is set.
+    this.EditOff();
+    this.Note = null;
 }
 
 TextEditor.prototype.Change = function(callback) {
@@ -189,7 +194,14 @@ TextEditor.prototype.EditOff = function() {
         .blur();
 }
 
+TextEditor.prototype.EditableOff = function() {
+    this.EditOff();
+    this.Editable = false;
+}
+
+
 TextEditor.prototype.EditOn = function() {
+    if ( ! this.Editable) { return; }
     if (this.Edit) { return;}
     this.Edit = true;
 
@@ -431,8 +443,12 @@ TextEditor.prototype.InsertCameraLink = function() {
         note = GetNoteFromId(id);
         if (note) {
             note.RecordView(this.Display);
-            // TODO:  Different for user note and Primary note.
-            note.Save();
+            // Do not save empty usernotes.
+            if (note != "UserNote" || 
+                note.Text != "" || 
+                this.Note.Children.length > 0) {
+                note.Save();
+            }
             return;
         }
     }
@@ -508,7 +524,8 @@ TextEditor.prototype.SetHtml = function(html) {
         clearTimeout(this.UpdateTimer());
         this.Update();
     }
-    this.Note = null;
+    this.Note = null; //??? Editing without a note
+    this.EditOn();
     this.TextEntry.html(html);
 }
 
@@ -516,6 +533,7 @@ TextEditor.prototype.GetHtml = function() {
     return this.TextEntry.html();
 }
 
+// TODO: Editor should not become active until it has a note.
 // This probably belongs in a subclass.
 // Or in the note.
 TextEditor.prototype.LoadNote = function(note) {
@@ -530,6 +548,7 @@ TextEditor.prototype.LoadNote = function(note) {
     }
     
     this.MakeLinksClickable();
+    this.EditOn();
 }
 
 // Copy the text entry text back into the note
@@ -538,8 +557,7 @@ TextEditor.prototype.LoadNote = function(note) {
 TextEditor.prototype.UpdateNote = function() {
     this.UpdateTimer = null;
     if ( ! this.Note) {
-        // Here is a real hack.  Hard code the creation of a user note.
-        this.Note = NOTES_WIDGET.GetCurrentNote().GetUserNote();
+        return;
     }
     this.Note.Text = this.TextEntry.html();
     if (this.ChangeCallback) {
@@ -731,7 +749,7 @@ function NotesWidget(display) {
     // Now for the text tab:
     this.TextEditor = new TextEditor(this.TextDiv, this.Display);
     if ( ! EDIT) {
-        this.TextEditor.EditOff();
+        this.TextEditor.EditableOff();
     } else {
         this.TextEditor.Change(
             function () {
@@ -746,13 +764,6 @@ function NotesWidget(display) {
         });
 
 }
-
-
-NotesWidget.prototype.SetRootNote = function(rootNote) {
-    this.SetRootNote(rootNote);
-    $(window).trigger('resize');
-}
-
 
 NotesWidget.prototype.SetModifiedCallback = function(callback) {
     this.ModifiedCallback = callback;
@@ -796,22 +807,12 @@ NotesWidget.prototype.SelectNote = function(note) {
         this.Iterator = iter;
     }
 
-    // Display text
-    // To support the html note text links, do not show empty text.
     // Fallback to parent note text / html if necessary.
     var textNote = note;
     while ( textNote.Type != "UserNote" && textNote.Parent && textNote.Text == "") {
         textNote = textNote.Parent;
     }
     this.TextEditor.LoadNote(textNote);
-    // Display user text.
-    if (this.UserTextEditor) {
-        if (note.UserNote) {
-            this.UserTextEditor.LoadNote(note.UserNote);
-        } else {
-            this.UserTextEditor.SetHtml("");
-        }
-    }
 
     // Handle the note that is being unselected.
     // Clear the selected background of the deselected note.
@@ -1029,6 +1030,12 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
     this.RootNote = rootNote;
     this.Iterator = this.RootNote.NewIterator();
     this.DisplayRootNote();
+
+    // Only show user notes for the first image of the root note.
+    // I can rethink this later.
+    if (rootNote.ViewerRecords.length > 0) {
+        this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
+    }
 }
 
 
@@ -1303,9 +1310,6 @@ function Note () {
     NOTES.push(this);
 
     var self = this;
-
-    // Parallel note so any user can save notes.
-    this.UserNote = null;
 
     this.User = GetUser(); // Reset by flask.
     var d = new Date();
@@ -1956,15 +1960,6 @@ Note.prototype.Load = function(obj){
             this.ViewerRecords[i].Load(obj);
         }
     }
-
-    // Change the user not into a real object.
-    if (this.UserNote) {
-        var userObj = this.UserNote;
-        var userNote = new Note();
-        userNote.SetParent(this);
-        userNote.Load(userObj);
-        this.UserNote = userNote;
-    }
 }
 
 
@@ -1983,34 +1978,6 @@ Note.prototype.LoadViewId = function(viewId, callback) {
     },
     error: function() { alert( "AJAX - error() : getview" ); },
     });
-}
-
-// Get any children notes (this note as parent)
-// Authored by the current user.
-// The notes will have no order.
-// The server knows who the user is.
-Note.prototype.RequestUserNotes = function() {
-  var self = this;
-  $.ajax({
-    type: "get",
-    url: "/webgl-viewer/getchildnotes",
-    data: {"ParentId": this.Id},
-    success: function(data,status) { self.LoadUserNotes(data);},
-    error: function() { alert( "AJAX - error() : getchildnotes" ); },
-    });
-}
-
-
-Note.prototype.LoadUserNotes = function(data) {
-  for (var i = 0; i < data.Notes.length; ++i) {
-    var noteData = data.Notes[i];
-    var note = new Note();
-    note.Load(noteData);
-    this.Children.push(note);
-    this.UpdateChildrenGUI();
-
-    note.RequestUserNotes();
-  }
 }
 
 Note.prototype.Collapse = function() {
@@ -2101,12 +2068,12 @@ Note.prototype.InitializeStackTransforms = function () {
     }
 }
 
-
 NotesWidget.prototype.GetCurrentNote = function() {
-  return this.Iterator.GetNote();
+    return this.Iterator.GetNote();
 }
 
 
+// TODO: ??? Check if this is legacy
 NotesWidget.prototype.SaveUserNote = function() {
     // Create a new note.
     var childNote = new Note();
@@ -2325,4 +2292,48 @@ NotesWidget.prototype.NewCallback = function() {
     this.SelectNote(childNote);
 }
 
+// UserNotes used to be attached to a parent note.  Now I am indexing them
+// from the image id.  They will not get lost, but this causes a could
+// issues.  I do not support multiple user notes per image.  I have to be
+// careful about infinte recursion when loading. I am only going to display
+// the note for the first image in the root note. (I can rethink this last
+// decision later.)
+// Maybe we should store the image id directly in the user not instead of
+// the viewerRecord.
+NotesWidget.prototype.RequestUserNote = function(imageId) {
+    var self = this;
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/getusernotes",
+        data: {"imageid": imageId},
+        success: function(data,status) { self.LoadUserNote(data, imageId);},
+        error: function() { alert( "AJAX - error() : getusernotes" ); },
+    });
+}
+
+// What should i do if the user starts editing before the note loads?
+// Note will not be active until it has a note.
+// Edit to a previous note are saved before it is replaced.
+NotesWidget.prototype.LoadUserNote = function(data, imageId) {
+    if (this.UserNote) {
+        // Save the previous note incase the user is in mid edit????
+        if (this.UserNote.Text != "" || this.UserNote.Children.length > 0) {
+            this.UserNote.Save();
+        }
+    }
+    this.UserNote = new Note();
+    // This is new, Parent was always a note before this.
+    this.UserNote.Parent = imageId; // Should we save the note looking at when created?
+    this.UserNote.Type = "UserNote";
+
+    if (data.Notes.length > 0) {
+        if (data.Notes.length > 1) {
+            alert("Warning: Only showing the first user note.");
+        }
+        var noteData = data.Notes[0];
+        this.UserNote.Load(noteData);
+    }
+    // Must display the text.
+    this.UserTextEditor.LoadNote(this.UserNote);
+}
 

@@ -113,7 +113,7 @@ CollectionBrowser = (function (){
         "keydown",
         function(e) {
             if (e.keyCode == 46) {
-                // Delete just moves the selected to the strash session.
+                // Delete just moves the selected to the trash session.
                 TRASH_SESSION.DropSelected(0, false, false);
             }
             return false; },
