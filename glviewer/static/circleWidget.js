@@ -240,6 +240,10 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     }
     
     if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
+        if (NOTES_WIDGET) {
+            // Hack.
+            NOTES_WIDGET.MarkAsModified();
+        }
         this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -410,6 +414,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     this.Viewer.EventuallyRender(false);
 
     localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
+
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
+    }
 }
 
 

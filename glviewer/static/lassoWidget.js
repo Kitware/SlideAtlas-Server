@@ -332,15 +332,19 @@ LassoWidget.prototype.ShowPropertiesDialog = function () {
 }
 
 LassoWidget.prototype.DialogApplyCallback = function() {
-  var hexcolor = this.Dialog.ColorInput.val();
-  this.Loop.SetOutlineColor(hexcolor);
-  this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-  this.Loop.UpdateBuffers();
-  this.SetActive(false);
-  RecordState();
-  this.Viewer.EventuallyRender(false);
+    var hexcolor = this.Dialog.ColorInput.val();
+    this.Loop.SetOutlineColor(hexcolor);
+    this.Loop.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+    this.Loop.UpdateBuffers();
+    this.SetActive(false);
+    RecordState();
+    this.Viewer.EventuallyRender(false);
 
-  localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
+    localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
+    }
 }
 
 

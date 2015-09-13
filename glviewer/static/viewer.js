@@ -929,6 +929,10 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
 Viewer.prototype.AddWidget = function(widget) {
     widget.Viewer = this;
     this.WidgetList.push(widget);
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
+    }
 }
 
 Viewer.prototype.RemoveWidget = function(widget) {
@@ -939,6 +943,10 @@ Viewer.prototype.RemoveWidget = function(widget) {
     var idx = this.WidgetList.indexOf(widget);
     if(idx!=-1) {
         this.WidgetList.splice(idx, 1);
+    }
+    if (NOTES_WIDGET) {
+        // Hack.
+        NOTES_WIDGET.MarkAsModified();
     }
 }
 
