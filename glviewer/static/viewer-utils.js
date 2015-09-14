@@ -22,6 +22,7 @@ function saGetButtonsDiv(element) {
 }
 
 function saButtons (div) {
+    this.Enabled = true;
     this.Div = div;
     this.TimerId = -1;
     var pos = div.position();
@@ -30,7 +31,7 @@ function saButtons (div) {
         .addClass('sa-edit-gui') // So we can remove it when saving.
         .hide()
         .css({'position':'absolute',
-              'left'  :(pos.left-2)+'px',
+              'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px',
               'width' :'300px'}); // TODO: see if we can get rid of the width.
     // Show the buttons on hover.
@@ -47,7 +48,7 @@ function saButtons (div) {
 saButtons.prototype.PlaceButtons = function () {
     var pos = this.Div.position();
     this.ButtonsDiv
-        .css({'left'  :(pos.left-2)+'px',
+        .css({'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px'});
 }
 
@@ -56,14 +57,16 @@ saButtons.prototype.ShowButtons = function () {
         clearTimeout(this.TimerId);
         this.TimerId = -1;
     }
-    this.PlaceButtons();
-    this.ButtonsDiv.show();
+    if (this.Enabled) {
+        this.PlaceButtons();
+        this.ButtonsDiv.show();
+    }
 }
 
 saButtons.prototype.HideButtons = function () {
     if (this.TimerId < 0) {
         var self = this;
-        this.TimerId = 
+        this.TimerId =
             setTimeout(function () {self.ButtonsDiv.hide();}, 200);
     }
 }
@@ -86,11 +89,24 @@ function saAddButton (element, src, tooltip, callback) {
     return button;
 }
 
-// Remove the buttons div.
-function saButtonsDelete (element) {
-    element.saButtons.ButtonsDiv.remove();
+// privatex functions.
+// TODO: Make an api through jquery to do this.
+function saButtonsDisable (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.Enabled = false;
+    element.saButtons.ButtonsDiv.hide();
 }
 
+function saButtonsEnable (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.Enabled = true;
+}
+
+// Remove the buttons div.
+function saButtonsDelete (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.ButtonsDiv.remove();
+}
 
 
 
@@ -104,6 +120,7 @@ jQuery.prototype.saHtml = function(string) {
         this.html(string);
         this.find('.sa-text-editor').saTextEditor();
         this.find('.sa-scalable-font').saScalableFont();
+        this.find('.sa-full-window-option').saFullWindowOption();
         // We need to load the note.
         viewDivs = this.find('.sa-presentation-view');
         viewDivs.saViewer();
@@ -120,6 +137,8 @@ jQuery.prototype.saHtml = function(string) {
                 if (note) {
                     note.ViewerRecords[0].Apply(viewDivs[i].saViewer);
                     viewDivs[i].saNote = note;
+                    // Hide the copyright which is enable when the cache is set.
+                    viewDivs[i].saViewer.CopyrightWrapper.hide();
                 }
             }
         }
@@ -182,6 +201,14 @@ jQuery.prototype.saResizable = function(args) {
             width = 100 * width / $(this).parent().width();
             this.style.width = width.toString()+'%';
         }
+        // We have to change the top and left ot percentages too.
+        // I might have to make my own resizable to get the exact behavior
+        // I want.
+        var pos  = $(this).position();
+        var top  = 100 * pos.top / $(this).parent().height();
+        var left = 100 * pos.left / $(this).parent().width();
+        this.style.top  = top.toString()+'%';
+        this.style.left = left.toString()+'%';
     };
 
     this.resizable(args);
@@ -461,7 +488,7 @@ saDraggable.prototype.Drag = function(dx, dy) {
 
 // TODO: We need callbacks when it goes full and back.
 jQuery.prototype.saFullWindowOption = function(args) {
-    this.addClass('sa-full-window');
+    this.addClass('sa-full-window-option');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saFullWindowOption) {
             var helper = new saFullWindowOption($(this[i]));
@@ -517,6 +544,7 @@ saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
         //PRESENTATION.EditOff();
         //this.BottomDiv.hide();
         //this.ViewPanel.css({'height':'100%'});
+        saButtonsDisable(div[0]);
         this.FullWindowOptionOffButton.show();
         this.FullWindowOptionButton.hide();
         // Save the css values to undo.
@@ -524,19 +552,24 @@ saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
         this.Width = div[0].style.width;
         this.Top = div[0].style.top;
         this.Height = div[0].style.height;
-        div.css({'left':  '0px',
-                 'width': '100%',
-                 'top':   '0px',
-                 'height': '100%'});
+        this.ZIndex = div[0].style.zIndex;
+        div.css({'left'   : '0px',
+                 'width'  : '100%',
+                 'top'    : '0px',
+                 'height' : '100%',
+                 'z-index': '10'});
     } else {
+        saButtonsEnable(div[0]);
         this.FullWindowOptionOffButton.hide();
         this.FullWindowOptionButton.show();
-        div.css({'left':  this.Left,
-                 'width': this.Width,
-                 'top':   this.Top,
-                 'height': this.Height});
-        
+        div.css({'left'   : this.Left,
+                 'width'  : this.Width,
+                 'top'    : this.Top,
+                 'height' : this.Height,
+                 'z-index': this.ZIndex});
     }
+    // The viewers need a resize event to change their cameras.
+    $(window).trigger('resize');
 }
 
 
@@ -546,22 +579,23 @@ saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
 jQuery.prototype.saDeletable = function(args) {
     this.addClass('sa-deletable');
     for (var i = 0; i < this.length; ++i) {
-        var element = this[i];
-        if ( ! element.saDeletable) {
+        var item = this[i];
+        if ( ! item.saDeletable) {
             // for closure (save element)
-            element.saDeletable = true;
-            (function () {
-                saAddButton(element, 'webgl-viewer/static/remove.png', 'delete',
-                            function () {
-                                saButtonsDelete(element);
-                                $(element).remove();
-                            });
-            })();
+            item.saDeletable = new saDeletable(item);
         }
     }
     return this;
 }
 
+function saDeletable(item) {
+    this.Button = saAddButton(
+        item, 'webgl-viewer/static/remove.png', 'delete',
+        function () {
+            saButtonsDelete(item);
+            $(item).remove();
+        });
+}
 
 
 
@@ -697,7 +731,7 @@ function TextEditor2(div, args) {
         .focusin(function() {
             CONTENT_EDITABLE_HAS_FOCUS = true;
             // Position the handle in the proper spot.
-            // Resizing witn percentages changes it.
+            // Resizing with percentages changes it.
             var pos = self.Div.position();
             self.DragHandle
                 .css({'left'  :(pos.left-2)+'px',

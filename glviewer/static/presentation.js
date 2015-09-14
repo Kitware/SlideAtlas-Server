@@ -1,17 +1,13 @@
 // CME
 // TODO:
-// Delete button always deletes the last viewer.
-// text showing up the wrong size in title bar when first loaded.
-// Background of viewer should be white. (Same for thumb).
-// Added viewer does not have full window option.
-//  It does now, but we have to hide the other edit options.
-// html title does not scale when reloaded. (after you add a view either).
 // Allow for relative font sizes in a saScalableFontDiv.
 // Added viewer flickers and changes camera when resized.
 // Change font size in gui.
 // Change font color in GUI.
 // Title note type: HtmlSlide
 // Add GUI to add slides and slide items.
+// Background of thumbs should be white.
+// text showing up the wrong size in title bar when first loaded.
 
 
 
@@ -1540,10 +1536,12 @@ HtmlPage.prototype.InsertViewNote = function(newNote) {
         .addClass('sa-presentation-view')
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA',
+              'background-color':'#FFF',
+              'opacity':'1.0',
               'left':'5%',
               'right':'2.5%',
               'top':'25%',
-             'bottom':'10%'})
+              'bottom':'10%'})
         .saViewer()
         .saDeletable()
         .saDraggable()
@@ -1564,6 +1562,7 @@ HtmlPage.prototype.InsertViewNote = function(newNote) {
 }
 
 
+// NOTE: This should be lagacy now.  The jquery extensions should handle this.
 // Text elements need to resize explicitly.
 // TODO: Activate text (saScalatFont, saTextEditor, resize) on load.
 // I could make this scalabe ifram as a jquery extension too.
