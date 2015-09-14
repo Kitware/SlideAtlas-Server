@@ -50,11 +50,13 @@ class AddRequestFilter(logging.Filter):
             record.request_method = request.method
             record.request_remote_ip = request.remote_addr
             record.request_path = request.full_path
+            record.request_referrer = request.referrer
             record.request_data = request.get_data(as_text=True)[:self.DATA_MAX_SIZE]
         except RuntimeError:
             record.request_method = None
             record.request_remote_ip = None
             record.request_path = None
+            record.request_referrer = None
             record.request_data = None
         return 1
 
@@ -93,6 +95,7 @@ def setup_email_log_handler(app):
             '\n'
             'Request Type:       %(request_method)s\n'
             'Request Path:       %(request_path)s\n'
+            'Request Referrer:   %(request_referrer)s\n'
             'Request IP:         %(request_remote_ip)s\n'
             'Request Body (first %(request_data_max_size_kb)sk):\n'
             '%(request_data)s\n'
