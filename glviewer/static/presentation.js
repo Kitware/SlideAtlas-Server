@@ -1,7 +1,10 @@
 // CME
 // TODO:
-// Added viewer does not save.
+// Delete button always deletes the last viewer.
+// text showing up the wrong size in title bar when first loaded.
+// Background of viewer should be white. (Same for thumb).
 // Added viewer does not have full window option.
+//  It does now, but we have to hide the other edit options.
 // html title does not scale when reloaded. (after you add a view either).
 // Allow for relative font sizes in a saScalableFontDiv.
 // Added viewer flickers and changes camera when resized.
@@ -131,6 +134,7 @@ function Presentation(rootNote, edit) {
     // A window with a contant aspect ratio that fits in
     // the PresentationDiv.
     this.AspectDiv = $('<div>')
+        .css({'border' :'1px solid #AAA'})
         .appendTo(this.PresentationDiv)
         .saPresentation({aspectRatio : 1.333});
 
@@ -1506,8 +1510,8 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 // necessary, for the saViewer.  Well, maybe not.  I could pass in the
 // note, and then get the id when saHtml() is called to save.
 HtmlPage.prototype.InsertView = function(viewObj) {
-    if ( ! this.Note) { 
-        return; 
+    if ( ! this.Note) {
+        return;
     }
 
     // First make a copy of the view as a child.
@@ -1543,7 +1547,8 @@ HtmlPage.prototype.InsertViewNote = function(newNote) {
         .saViewer()
         .saDeletable()
         .saDraggable()
-        .saResizable();
+        .saResizable()
+        .saFullWindowOption();
 
     // TODO: Change to set note with args.
     // Note only the first viewer record counts.

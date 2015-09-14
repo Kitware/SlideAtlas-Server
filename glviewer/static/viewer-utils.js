@@ -107,6 +107,7 @@ jQuery.prototype.saHtml = function(string) {
         // We need to load the note.
         viewDivs = this.find('.sa-presentation-view');
         viewDivs.saViewer();
+    
         for (var i = 0; i < viewDivs.length; ++i) {
             $(viewDivs[i])
             var noteId = $(viewDivs[i]).attr('sa-note-id');
@@ -121,6 +122,15 @@ jQuery.prototype.saHtml = function(string) {
                     viewDivs[i].saNote = note;
                 }
             }
+        }
+
+        if (EDIT) {
+            var items = this.find('.sa-resize');
+            items.saResizable();
+            items = this.find('.sa-deletable');
+            items.saDeletable();
+            items = this.find('.sa-draggable');
+            items.saDraggable();
         }
 
         return;
@@ -141,7 +151,6 @@ jQuery.prototype.saHtml = function(string) {
             $(views[i]).attr('sa-note-id',note.TempId);
         }
     }
-
 
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
@@ -349,11 +358,13 @@ jQuery.prototype.saScalableFont = function(args) {
             // This overrides the previous two.
             if (args && args.scale) {
                 // convert to a decimal.
-                var str = args.scale;
-                if (str.substr(-1) == "%") {
-                    scale = parseFloat(str.substr(0,str.length-1))/100;
-                } else {
-                    scale = parseFloat(str);
+                scale = args.scale;
+                if (typeof(scale) == "string") {
+                    if (scale.substring(-1) == "%") {
+                        scale = parseFloat(scale.substr(0,str.length-1))/100;
+                    } else {
+                        scale = parseFloat(scale);
+                    }
                 }
             }
             text.saScalableFont = {scale: scale};
@@ -443,6 +454,90 @@ saDraggable.prototype.Drag = function(dx, dy) {
 }
 
 
+
+//==============================================================================
+// Option to go full window.  This is intended for viewers, but might be
+// made general.
+
+// TODO: We need callbacks when it goes full and back.
+jQuery.prototype.saFullWindowOption = function(args) {
+    this.addClass('sa-full-window');
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saFullWindowOption) {
+            var helper = new saFullWindowOption($(this[i]));
+            // Add the helper as an instance variable to the dom object.
+            this[i].saFullWindowOption = helper;
+        }
+    }
+
+    return this;
+}
+
+function saFullWindowOption(div) {
+    var self = this;
+    this.FullWindowOptionButton = $('<img>')
+        .appendTo(div)
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindow(div, true);
+        });
+
+    this.FullWindowOptionOffButton = $('<img>')
+        .appendTo(div)
+        .hide()
+        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .prop('title', "full window off")
+        .css({'position':'absolute',
+              'background':'#FFF',
+              'width':'16px',
+              'left':'1px',
+              'top':'1px',
+              'opacity':'0.5',
+              'z-index':'1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindow(div, false);
+        });
+}
+
+// TODO: Turn off other editing options: drag, delete, resize.
+saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
+    if (flag) {
+        // TODO: Put this in a call back.
+        //PRESENTATION.EditOff();
+        //this.BottomDiv.hide();
+        //this.ViewPanel.css({'height':'100%'});
+        this.FullWindowOptionOffButton.show();
+        this.FullWindowOptionButton.hide();
+        // Save the css values to undo.
+        this.Left = div[0].style.left;
+        this.Width = div[0].style.width;
+        this.Top = div[0].style.top;
+        this.Height = div[0].style.height;
+        div.css({'left':  '0px',
+                 'width': '100%',
+                 'top':   '0px',
+                 'height': '100%'});
+    } else {
+        this.FullWindowOptionOffButton.hide();
+        this.FullWindowOptionButton.show();
+        div.css({'left':  this.Left,
+                 'width': this.Width,
+                 'top':   this.Top,
+                 'height': this.Height});
+        
+    }
+}
 
 
 //==============================================================================
