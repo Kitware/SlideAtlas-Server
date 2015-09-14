@@ -51,7 +51,8 @@ function Viewer (parent, args) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-	      this.OverView = new View();
+        var overViewDiv = $('<div>').appendTo(parent);
+        this.OverView = new View(overViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport, 1);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.FocalPoint = [13000.0, 11000.0, 10.0];
@@ -69,9 +70,9 @@ function Viewer (parent, args) {
             .appendTo(this.OverView.CanvasDiv)
             .attr("src", "/webgl-viewer/static/rotate.png")
             .addClass("sa-view-rotate")
-            .mouseenter(function (e) {self.RollEnter(e);})
-            .mouseleave(function (e) {self.RollLeave(e);})
-            .mousedown( function (e) {self.RollDown(e);})
+            .mouseenter(function (e) {return self.RollEnter(e);})
+            .mouseleave(function (e) {return self.RollLeave(e);})
+            .mousedown( function (e) {return self.RollDown(e);})
             .attr('draggable','false')
             .on("dragstart", function() {
                 return false;
@@ -170,27 +171,28 @@ function Viewer (parent, args) {
 		//	                   false);
 
     if (this.OverView) {
-        var can = this.OverView.CanvasDiv[0];
-        can.addEventListener(
-            "mousedown",
-			      function (event){return self.HandleOverViewMouseDown(event);},
-			      false);
+        var can = this.OverView.CanvasDiv;
+        can.mousedown(
+            function (e) {return self.HandleOverViewMouseDown(e);});
+
+        //can.addEventListener(
+        //    "mousedown",
+			  //    function (event){return self.HandleOverViewMouseDown(event);},
+			  //    false);
         // Main window has to receive these and forward them to the
         // overview. The mouse can go outside overview while interacting.
         // Actually, both main view and overview need to listen.
         // Main view did not get events when mouse was in overview!
-        can.addEventListener(
-            "mouseup",
-			      function (event){return self.HandleOverViewMouseUp(event);},
-			      false);
-        can.addEventListener(
-            "mousemove",
-			      function (event){return self.HandleOverViewMouseMove(event);},
-			      false);
-        can.addEventListener(
-            "wheel",
-			      function (event){return self.HandleOverViewMouseWheel(event);},
-			      false);
+        can.mouseup(
+			      function (e){return self.HandleOverViewMouseUp(e);});
+        can.mousemove(
+			      function (e){return self.HandleOverViewMouseMove(e);});
+        // I cannot get this to capture events.  The feature of resizing
+        //    the overview with the mouse wheel is not important anyway.
+        //can[0].addEventListener(
+        //    function (e){return self.HandleOverViewMouseWheel(e);},
+        //    "wheel",			      
+			  //    false);
     }
 
     this.CopyrightWrapper = $('<div>')
@@ -725,8 +727,9 @@ Viewer.prototype.SetViewport = function(viewport) {
         }
         // center of overview
         var radius = Math.sqrt(h*h+w*w)/2;
-        // Construct the viewport.
-        this.OverViewport = [viewport[0]+viewport[2]-radius-w/2,
+        // Construct the viewport.  Hack: got rid of viewport[0]
+        // TODO: I really need to get rid of the viewport stuff
+        this.OverViewport = [viewport[2]-radius-w/2,
                              viewport[1]+radius-h/2,
                              w, h];
 
@@ -1644,6 +1647,8 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
      if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
      this.ComputeMouseWorld(event);
 
+     // I think we need to deal with the move here because the mouse can
+     // exit the icon and the events are lost.
      if (this.RotateIconDrag) {
          this.RollMove(event);
          return false;

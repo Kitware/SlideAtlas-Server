@@ -507,6 +507,7 @@ function handleResize() {
 
     // TODO: Make a multi-view object.
     // TODO: Let css handle positioning the viewers.
+    //       This call positions the overview and still affect the main view.
     if (DUAL_DISPLAY.Viewers[0]) {
         DUAL_DISPLAY.Viewers[0].SetViewport([0, 0, width1, height]);
         eventuallyRender();
@@ -610,6 +611,10 @@ function NotesModified() {
     SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
 }
 
+function NotesNotModified() {
+    SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+}
+
 // This function gets called when the save button is pressed.
 function SaveCallback() {
     // TODO: This is no longer called by a button, so change its name.
@@ -664,6 +669,7 @@ function Main2(rootNote) {
     NOTES_WIDGET = new NotesWidget(DUAL_DISPLAY);
     NOTES_WIDGET.SetRootNote(rootNote);
     NOTES_WIDGET.SetModifiedCallback(NotesModified);
+    NOTES_WIDGET.SetModifiedClearCallback(NotesNotModified);
 
     // It handles the singlton global.
     new RecorderWidget(DUAL_DISPLAY);

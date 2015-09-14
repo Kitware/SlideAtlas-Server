@@ -219,6 +219,7 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
+        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
         this.Viewer.EventuallyRender(true);
         return;
     }
@@ -317,19 +318,20 @@ PencilWidget.prototype.ShowPropertiesDialog = function () {
 
 
 PencilWidget.prototype.DialogApplyCallback = function() {
-  var hexcolor = this.Dialog.ColorInput.val();
-  this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-  for (var i = 0; i < this.Shapes.length; ++i) {
-    this.Shapes[i].SetOutlineColor(hexcolor);
-    this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-    this.Shapes[i].UpdateBuffers();
-  }
-  this.SetActive(false);
-  RecordState();
-  this.Viewer.EventuallyRender(true);
+    var hexcolor = this.Dialog.ColorInput.val();
+    this.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+    for (var i = 0; i < this.Shapes.length; ++i) {
+        this.Shapes[i].SetOutlineColor(hexcolor);
+        this.Shapes[i].LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
+        this.Shapes[i].UpdateBuffers();
+    }
+    this.SetActive(false);
+    RecordState();
+    this.Viewer.EventuallyRender(true);
 
-  localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
-                                                      LineWidth: this.LineWidth});
+    localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
+                                                        LineWidth: this.LineWidth});
+    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
 }
 
 

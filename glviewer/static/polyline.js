@@ -117,11 +117,6 @@ Polyline.prototype.Decimate = function (spacing) {
 
 
 Polyline.prototype.UpdateBuffers = function() {
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
-
     var points = this.Points.slice(0);
     if (this.Closed && points.length > 2) {
         points.push(points[0]);

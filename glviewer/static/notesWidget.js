@@ -762,11 +762,14 @@ function NotesWidget(display) {
         function () {
             self.UserTextEditor.Note.Save();
         });
-
 }
 
 NotesWidget.prototype.SetModifiedCallback = function(callback) {
     this.ModifiedCallback = callback;
+}
+
+NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
+    this.ModifiedClearCallback = callback;
 }
 
 // I am changing the select behavior.  Children will show their view, but
@@ -1018,6 +1021,14 @@ NotesWidget.prototype.MarkAsModified = function() {
         this.ModifiedCallback();
     }
     this.Modified = true;
+}
+
+
+NotesWidget.prototype.MarkAsNotModified = function() {
+    if (this.ModifiedClearCallback) {
+        this.ModifiedClearCallback();
+    }
+    this.Modified = false;
 }
 
 
