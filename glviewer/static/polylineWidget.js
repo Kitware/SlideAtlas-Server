@@ -186,19 +186,19 @@ function PolylineWidget (viewer, newFlag) {
 
 // This is called whenever the shape changes.
 PolylineWidget.prototype.UpdateBounds = function() {
-  if (this.Shape.Points.length < 2) { return; }
-  var xMin = this.Shape.Points[0][0];
-  var xMax = xMin;
-  var yMin = this.Shape.Points[0][1];
-  var yMax = yMin;
-  for (var i = 1; i < this.Shape.Points.length; ++i) {
-    var pt = this.Shape.Points[i];
-    xMin = Math.min(xMin, pt[0]);
-    xMax = Math.max(xMin, pt[0]);
-    yMin = Math.min(yMin, pt[1]);
-    yMax = Math.max(yMin, pt[1]);
-  }
-  this.Bounds = [xMin, xMax, yMin, yMax];
+    if (this.Shape.Points.length < 2) { return; }
+    var xMin = this.Shape.Points[0][0];
+    var xMax = xMin;
+    var yMin = this.Shape.Points[0][1];
+    var yMax = yMin;
+    for (var i = 1; i < this.Shape.Points.length; ++i) {
+        var pt = this.Shape.Points[i];
+        xMin = Math.min(xMin, pt[0]);
+        xMax = Math.max(xMin, pt[0]);
+        yMin = Math.min(yMin, pt[1]);
+        yMax = Math.max(yMin, pt[1]);
+    }
+    this.Bounds = [xMin, xMax, yMin, yMax];
 }
 
 
@@ -206,13 +206,13 @@ PolylineWidget.prototype.UpdateBounds = function() {
 // Setting the circle radius based on line width does not work.
 // Choose maximum based on screen size and fraction of polyline bounds.
 PolylineWidget.prototype.UpdateCircleRadius = function() {
-  var height = this.Viewer.GetCamera().Height;
-  var radius = height / 200;
-  radius = Math.min(radius, (this.Bounds[3]-this.Bounds[2]) * 0.25);
-  radius = Math.max(radius, this.LineWidth);
+    var height = this.Viewer.GetCamera().Height;
+    var radius = height / 200;
+    radius = Math.min(radius, (this.Bounds[3]-this.Bounds[2]) * 0.25);
+    radius = Math.max(radius, this.LineWidth);
 
-  this.Circle.Radius = radius;
-  this.Circle.UpdateBuffers();
+    this.Circle.Radius = radius;
+    this.Circle.UpdateBuffers();
 }
 
 
@@ -235,38 +235,39 @@ PolylineWidget.prototype.Draw = function(view) {
 
 
 PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-  this.Load(data);
-  // Place the widget over the mouse.
-  // This is more difficult than the circle.  Compute the shift.
-  var xOffset = mouseWorldPt[0] - (this.Bounds[0]+this.Bounds[1])/2;
-  var yOffset = mouseWorldPt[1] - (this.Bounds[2]+this.Bounds[3])/2;
-  for (var i = 0; i < this.Shape.Points.length; ++i) {
-    this.Shape.Points[i][0] += xOffset;
-    this.Shape.Points[i][1] += yOffset;
-  }
-  this.UpdateBounds();
-  this.Shape.UpdateBuffers();
+    this.Load(data);
+    // Place the widget over the mouse.
+    // This is more difficult than the circle.  Compute the shift.
+    var xOffset = mouseWorldPt[0] - (this.Bounds[0]+this.Bounds[1])/2;
+    var yOffset = mouseWorldPt[1] - (this.Bounds[2]+this.Bounds[3])/2;
+    for (var i = 0; i < this.Shape.Points.length; ++i) {
+        this.Shape.Points[i][0] += xOffset;
+        this.Shape.Points[i][1] += yOffset;
+    }
+    this.UpdateBounds();
+    this.Shape.UpdateBuffers();
+    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
 
-  this.Viewer.EventuallyRender(true);
+    this.Viewer.EventuallyRender(true);
 }
 
 PolylineWidget.prototype.Serialize = function() {
-  if(this.Shape === undefined){ return null; }
-  var obj = new Object();
-  obj.type = "polyline";
-  obj.outlinecolor = this.Shape.OutlineColor;
-  obj.linewidth = this.LineWidth;
-  // Copy the points to avoid array reference bug.
-  obj.points = [];
-  for (var i = 0; i < this.Shape.Points.length; ++i) {
-    obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
-  }
-  this.UpdateBounds();
+    if(this.Shape === undefined){ return null; }
+    var obj = new Object();
+    obj.type = "polyline";
+    obj.outlinecolor = this.Shape.OutlineColor;
+    obj.linewidth = this.LineWidth;
+    // Copy the points to avoid array reference bug.
+    obj.points = [];
+    for (var i = 0; i < this.Shape.Points.length; ++i) {
+        obj.points.push([this.Shape.Points[i][0], this.Shape.Points[i][1]]);
+    }
+    this.UpdateBounds();
 
-  obj.creation_camera = this.CreationCamera;
-  obj.closedloop = this.Shape.Closed;
+    obj.creation_camera = this.CreationCamera;
+    obj.closedloop = this.Shape.Closed;
 
-  return obj;
+    return obj;
 }
 
 // Load a widget from a json object (origin MongoDB).
@@ -439,58 +440,61 @@ PolylineWidget.prototype.HandleMouseUp = function(event) {
 
 
 PolylineWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
-  var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
+    var x = event.offsetX;
+    var y = event.offsetY;
+    var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
 
-  if (this.State == POLYLINE_WIDGET_NEW) {
-    this.Circle.Origin = pt;
-    this.Viewer.EventuallyRender(true);
-    return;
-  }
-  if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
-    var lastIdx = this.Shape.Points.length - 1;
-    this.Shape.Points[lastIdx] = pt;
-    this.Shape.UpdateBuffers();
-    this.UpdateBounds();
-    var idx = this.WhichVertexShouldBeActive(pt);
-    // Only the first or last vertexes will stop the new line.
-    this.ActivateVertex(idx);
-    this.Viewer.EventuallyRender(true);
-    return;
-  }
-  if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
-      this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE ||
-      this.State == POLYLINE_WIDGET_ACTIVE) {
-    if (event.which == 0) {
-      // Turn off the active vertex if the mouse moves away.
-      this.SetActive(this.CheckActive(event));
-      return;
+    if (this.State == POLYLINE_WIDGET_NEW) {
+        this.Circle.Origin = pt;
+        this.Viewer.EventuallyRender(true);
+        return;
     }
-    if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 1) {
-      //drag the whole widget.
-      var dx = pt[0] - this.LastMouseWorld[0];
-      var dy = pt[1] - this.LastMouseWorld[1];
-      for (var i = 0; i < this.Shape.Points.length; ++i) {
-        this.Shape.Points[i][0] += dx;
-        this.Shape.Points[i][1] += dy;
-      }
-      this.LastMouseWorld = pt;
-      this.Shape.UpdateBuffers();
-      this.UpdateBounds();
-      this.PlacePopup();
-      this.Viewer.EventuallyRender(true);
-      return;
+    if (this.State == POLYLINE_WIDGET_NEW_EDGE) {
+        var lastIdx = this.Shape.Points.length - 1;
+        this.Shape.Points[lastIdx] = pt;
+        this.Shape.UpdateBuffers();
+        this.UpdateBounds();
+        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+        var idx = this.WhichVertexShouldBeActive(pt);
+        // Only the first or last vertexes will stop the new line.
+        this.ActivateVertex(idx);
+        this.Viewer.EventuallyRender(true);
+        return;
     }
-    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.which == 1) {
-      //drag the vertex
-      this.Shape.Points[this.ActiveVertex] = pt;
-      this.Circle.Origin = pt;
-      this.Shape.UpdateBuffers();
-      this.PlacePopup();
-      this.Viewer.EventuallyRender(true);
+    if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE ||
+        this.State == POLYLINE_WIDGET_MIDPOINT_ACTIVE ||
+        this.State == POLYLINE_WIDGET_ACTIVE) {
+        if (event.which == 0) {
+            // Turn off the active vertex if the mouse moves away.
+            this.SetActive(this.CheckActive(event));
+            return;
+        }
+        if (this.State == POLYLINE_WIDGET_ACTIVE && event.which == 1) {
+            //drag the whole widget.
+            var dx = pt[0] - this.LastMouseWorld[0];
+            var dy = pt[1] - this.LastMouseWorld[1];
+            for (var i = 0; i < this.Shape.Points.length; ++i) {
+                this.Shape.Points[i][0] += dx;
+                this.Shape.Points[i][1] += dy;
+            }
+            this.LastMouseWorld = pt;
+            this.Shape.UpdateBuffers();
+            this.UpdateBounds();
+            if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+            this.PlacePopup();
+            this.Viewer.EventuallyRender(true);
+            return;
+        }
+        if (this.State == POLYLINE_WIDGET_VERTEX_ACTIVE && event.which == 1) {
+            //drag the vertex
+            this.Shape.Points[this.ActiveVertex] = pt;
+            this.Circle.Origin = pt;
+            this.Shape.UpdateBuffers();
+            if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+            this.PlacePopup();
+            this.Viewer.EventuallyRender(true);
+        }
     }
-  }
 }
 
 // pt is mouse in world coordinates.
@@ -762,10 +766,7 @@ PolylineWidget.prototype.DialogApplyCallback = function() {
         {Color: hexcolor,
          ClosedLoop: this.Shape.Closed,
          LineWidth: this.LineWidth});
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
+    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
 }
 
 // Note, self intersection can cause unexpected areas.

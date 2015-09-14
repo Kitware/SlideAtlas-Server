@@ -15,11 +15,6 @@ Circle.prototype.destructor=function() {
 }
 
 Circle.prototype.UpdateBuffers = function() {
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
-
     this.PointBuffer = [];
     var cellData = [];
     var lineCellData = [];

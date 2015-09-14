@@ -240,10 +240,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     }
     
     if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
-        if (NOTES_WIDGET) {
-            // Hack.
-            NOTES_WIDGET.MarkAsModified();
-        }
+        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
         this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -257,6 +254,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
         // Change units from pixels to world.
         this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
         this.Shape.UpdateBuffers();
+        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
     }
@@ -282,13 +280,14 @@ CircleWidget.prototype.HandleTouchPan = function(event) {
 }
 
 CircleWidget.prototype.HandleTouchPinch = function(event) {
-  this.Shape.Radius *= event.PinchScale;
-  this.Shape.UpdateBuffers();
-  this.Viewer.EventuallyRender(true);
+    this.Shape.Radius *= event.PinchScale;
+    this.Shape.UpdateBuffers();
+    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+    this.Viewer.EventuallyRender(true);
 }
 
 CircleWidget.prototype.HandleTouchEnd = function(event) {
-  this.SetActive(false);
+    this.SetActive(false);
 }
 
 
@@ -414,11 +413,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     this.Viewer.EventuallyRender(false);
 
     localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
+    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
 }
 
 

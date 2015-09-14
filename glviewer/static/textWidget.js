@@ -228,12 +228,13 @@ TextWidget.prototype.RemoveFromViewer = function() {
 
 
 TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-  this.Load(data);
-  // Place the tip of the arrow at the mose location.
-  this.Text.Position[0] = mouseWorldPt[0];
-  this.Text.Position[1] = mouseWorldPt[1];
-  this.UpdateArrow();
-  this.Viewer.EventuallyRender(true);
+    this.Load(data);
+    // Place the tip of the arrow at the mose location.
+    this.Text.Position[0] = mouseWorldPt[0];
+    this.Text.Position[1] = mouseWorldPt[1];
+    this.UpdateArrow();
+    this.Viewer.EventuallyRender(true);
+    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
 }
 
 
@@ -471,6 +472,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         this.Text.Position[1] += dy;
         this.Arrow.Origin = this.Text.Position;
         this.PlacePopup();
+        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
         this.Viewer.EventuallyRender(true);
         return true;
     }
@@ -484,6 +486,7 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         this.UpdateArrow();
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
+        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
         return true;
     }
     // We do not want to deactivate the widget while the properties dialog is showing.
@@ -664,10 +667,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
     RecordState();
 
     this.Viewer.EventuallyRender(true);
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
+    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
 }
 
 //Function to apply line breaks to textarea text.

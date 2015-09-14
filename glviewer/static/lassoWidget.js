@@ -232,6 +232,7 @@ LassoWidget.prototype.HandleMouseMove = function(event) {
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
+        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
         this.Viewer.EventuallyRender(true);
         return;
     }
@@ -341,10 +342,7 @@ LassoWidget.prototype.DialogApplyCallback = function() {
     this.Viewer.EventuallyRender(false);
 
     localStorage.LassoWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Loop.LineWidth});
-    if (NOTES_WIDGET) {
-        // Hack.
-        NOTES_WIDGET.MarkAsModified();
-    }
+    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
 }
 
 

@@ -299,7 +299,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        this.NOTES_WIDGET.Modified = false;
+        NOTES_WIDGET.MarkAsNotModified();
         this.SlideIndex -= 1;
         NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
         if (this.NoteDisplay) {
@@ -316,6 +316,7 @@ NavigationWidget.prototype.NextSlide = function() {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
+        NOTES_WIDGET.MarkAsNotModified();
         this.SlideIndex += 1;
         NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
         if (this.NoteDisplay) {
