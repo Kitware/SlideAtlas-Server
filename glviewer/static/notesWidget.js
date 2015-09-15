@@ -1783,9 +1783,9 @@ Note.prototype.Save = function(callback) {
                 (callback)(self);
             }
         },
-        error: function() { 
+        error: function() {
             $('body').css({'cursor':'default'});
-            alert( "AJAX - error() : saveviewnotes" ); 
+            alert( "AJAX - error() : saveviewnotes" );
         },
     });
 }
@@ -1975,7 +1975,7 @@ Note.prototype.LoadViewId = function(viewId, callback) {
     url: "/webgl-viewer/getview",
     data: {"sessid": localStorage.sessionId,
            "viewid": viewId},
-    success: function(data,status) { 
+    success: function(data,status) {
         self.Load(data);
         if (callback) {
             (callback)();

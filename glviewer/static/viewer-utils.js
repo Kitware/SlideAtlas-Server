@@ -221,43 +221,76 @@ jQuery.prototype.saResizable = function(args) {
 
 //==============================================================================
 // Attempting to make the viewer a jqueryUI widget.
-// args = {overview:true, zoomWidget:true}
+// Note:  It does not make sense to call this on multiple divs at once when
+//        the note/view is being set.
+// args = {overview:true, 
+//         zoomWidget:true,
+//         viewId:"55f834dd3f24e56314a56b12", note: {...}
+//         viewerRecordIndex: 0,
+//         hideCopyright: false}
+// viewId (which loads a note) or a preloaded note can be specified.
+// the viewId has precedence over note if both are given.
+// viewerIndex of the note defaults to 0.
+// Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
-    for (var i = 0; i < this.length; ++i) {
-        if ( ! this[i].saViewer) {
-            var viewer = new Viewer($(this[i]), args);
+    // default
+    args = args || {};
+    // This is ignored if there is not viewId or note.
+    args.viewerIndex = args.viewerIndex || 0;
+    // get the note object if an id is specified.
+    if (args.viewId) {
+        args.note = GetNoteFromId(args.viewId);
+        if (args.note == null) {
+            // It has not been loaded yet.  Get if from the server.
+            args.note = new Note();
+            var self = this;
+            args.note.LoadViewId(
+                args.viewId,
+                function () {
+                    saViewerSetup(self, args);
+                });
+            return this;
+        }
+    }
+    saViewerSetup(this, args);
+    return this;
+}
+
+function saViewerSetup(self, args) {
+    for (var i = 0; i < self.length; ++i) {
+        if ( ! self[i].saViewer) {
+            var viewer = new Viewer($(self[i]), args);
             // Add the viewer as an instance variable to the dom object.
-            this[i].saViewer = viewer;
-            viewer.CopyrightWrapper.hide();
+            self[i].saViewer = viewer;
             // TODO: Get rid of the event manager.
             EVENT_MANAGER.AddViewer(viewer);
 
             // When the div resizes, we need to synch the camera and
             // canvas.
-            this[i].onresize =
+            self[i].onresize =
                 function () {
                     this.saViewer.UpdateSize();
                 }
             // Only the body seems to trigger onresize.  We need to trigger
             // it explicitly (from the body onresize function).
-            $(this[i]).addClass('sa-resize');
+            $(self[i]).addClass('sa-resize');
         }
-        // TODO:  If the viewer is already created, just reformat the
-        // viewer with new parameters. (image info ...)
-        // Separate out the args from the constructor.
+        // TODO:  Handle overview and zoomWidget options
+        if (args.note) {
+            args.note.ViewerRecords[args.viewerIndex].Apply(self[i].saViewer);
+        }
+        if (args.hideCopyright) {
+            viewer.CopyrightWrapper.hide();
+        }
     }
-    // I am uncertain what the API should be:
-    // - jQueryUI like with control through arguments.
-    // - Object oriented
-    //   - Access to viewer object through the dom element
-    //   - Access to viewer object through the jQuery list/selector.
-    return this;
 }
 
 jQuery.prototype.saRecordViewer = function() {
     for (var i = 0; i < this.length; ++i) {
+        // TODO: Get rid of this saNote instance variable.
+        // Put it in saViewer as a variable.
         if (this[i].saNote && this[i].saViewer) {
-            this[i].saNote.ViewerRecords[0].CopyViewer(this[i].saViewer);            
+            this[i].saNote.ViewerRecords[0].CopyViewer(this[i].saViewer);
         }
     }
 }

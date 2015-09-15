@@ -39,16 +39,17 @@
 // Only called by the presentation html file.
 // Getting rid of this.
 // Main function called by the presentation.html template
-function PresentationMain(viewId) {
+/*function PresentationMain(viewId) {
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
 
-     rootNote.LoadViewId(
+    rootNote.LoadViewId(
         viewId,
         function () {
             PRESENTATION = new Presentation(rootNote, EDIT);
         });
 }
+*/
 
 
 //==============================================================================
@@ -89,10 +90,6 @@ function Presentation(rootNote, edit) {
         rootNote.ViewerRecords.push(record);
     }
 
-    if (rootNote.Type != "Presentation") {
-        rootNote.Type = "Presentation";
-        rootNote.Save();
-    }
     // Eliminate the GUI in the viewers.
     MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
@@ -516,7 +513,7 @@ Presentation.prototype.Save = function () {
 
     // Hack hack hack.  I should just hang onto the DOM for each slide
     // rather than reloading with saHtml.  It is necessary to convert
-    // temporary not ids with real note ids.
+    // temporary note ids to real note ids.
     for (var i = 0; i < NOTES.length; ++i) {
         note = NOTES[i];
         if ( ! note.Id ) {
@@ -589,10 +586,21 @@ Presentation.prototype.GotoSlide = function (index){
 
     this.Index = index;
     if (index == 0) { // Title page
-        this.SlidePage.Div.hide();
-        this.HtmlPage.Div.hide();
         this.Note = this.RootNote;
-        this.TitlePage.DisplayNote(this.Note);
+        if (this.Note.Type == "Presentation") {
+            // legacy
+            this.SlidePage.Div.hide();
+            this.HtmlPage.Div.hide();
+            this.TitlePage.DisplayNote(this.Note);
+        } else if (this.Note.Type == "HTML") {
+            this.TitlePage.Div.hide();
+            this.SlidePage.Div.hide();
+            this.HtmlPage.Div.show();
+            this.HtmlPage.DisplayNote(this.Note);
+            if (this.Note.Text == "") {
+                this.HtmlPage.InitializeTitlePage();
+            }
+        }
     } else { // Slide page
         this.Note = this.GetSlide(index);
         if (this.Note.Type == "HTML") {
@@ -1368,7 +1376,7 @@ HtmlPage.prototype.InitializeTitlePage = function() {
               'height':'25%'});
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
-    var titleText = this.InsertTextBox(32)
+    var titleText = this.InsertTextBox(50)
         .css({'color':'white',
               'left':'10%',
               'top':'40%'})
@@ -1470,7 +1478,9 @@ HtmlPage.prototype.InsertIFrame = function(src) {
 HtmlPage.prototype.InsertTextBox = function(size) {
     size = size || 30;
 
-    var scale = size / this.Div.innerHeight();
+    // Arbitrary height so I do not need to specify
+    // text in percentages.
+    var scale = size / 800; 
 
     // Should everything be have Div as parent?
     var text = $('<div>')
