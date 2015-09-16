@@ -427,6 +427,8 @@ Presentation.prototype.TimerCallback = function(duration) {
 // Adds a view to the current slide.
 Presentation.prototype.AddViewCallback = function(viewObj) {
     if (this.Note.Type == "HTML") {
+        // TODO: Change this to pass a viewer record of the view.
+        //       Maybe show all the records as options.
         this.HtmlPage.InsertView(viewObj);
         return;
     }
@@ -441,9 +443,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var note = new Note();
     var record = new ViewerRecord();
-    note.ViewerRecords[0] = record;
     record.OverViewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -452,22 +452,25 @@ Presentation.prototype.AddImageCallback = function(image) {
                      Height: (image.bounds[3]-image.bounds[2]),
                      Width : (image.bounds[1]-image.bounds[0])};
 
-    // The root needs a record to show up in the session.
-    // never executed because I add a presentation icon
-    if (this.RootNote.ViewerRecords.length == 0) {
-        this.RootNote.ViewerRecords.push(record);
-    }
-
     if (this.Note.Type == "HTML") {
         // This will be the primar path in the future.
-        this.HtmlPage.InsertViewNote(note);
+        this.HtmlPage.InsertViewerRecord(record);
         return;
     }
     if (this.Note != this.RootNote) {
+        var note = new Note();
+        note.ViewerRecords[0] = record;
         this.SlidePage.InsertViewNote(note);
         return;
     }
- 
+
+    // The root needs a record to show up in the session.
+    // never executed because I add a presentation icon
+    // NOTE: This might be a problem with the new html title page.
+    //       Viewers inthe title pages are stored as records.
+    if (this.RootNote.ViewerRecords.length == 0) {
+        this.RootNote.ViewerRecords.push(record);
+    } 
 }
 
 
@@ -1351,11 +1354,7 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
     this.Div.saHtml(note.Text);
-    
-
-
-
-
+    this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
     // still needed for iframes.
     this.BindElements();
 }
@@ -1523,23 +1522,21 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     // First make a copy of the view as a child.
     var newNote = new Note();
     newNote.Load(viewObj);
-    this.InsertViewNote(newNote);
+    this.InsertViewerRecord(newNote);
 }
 
 
+// The html page is a note.  It contains viewer whose states are saved in
+// viewerRecords.
 // Helper method
-HtmlPage.prototype.InsertViewNote = function(newNote) {
-    if ( ! this.Note) { 
-        return; 
+// TODO: Change newNote to viewerRecord.
+HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
+    if ( ! this.Note) {
+        return;
     }
 
-    newNote.Title = "SlideView " + this.Note.Children.length;
-
-    newNote.Parent = this.Note;
-    this.Note.Children.push(newNote);
-
-    // Temporary
-    VIEW_PANEL = this.Div;
+    var viewerIdx = this.Note.ViewerRecords.length;
+    this.Note.ViewerRecords.push(viewerRecord);
 
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
@@ -1552,21 +1549,13 @@ HtmlPage.prototype.InsertViewNote = function(newNote) {
               'right':'2.5%',
               'top':'25%',
               'bottom':'10%'})
-        .saViewer()
+        .saViewer({'note': this.Note,
+                   'viewerIndex':viewerIdx,
+                   'hideCopyright':true})
         .saDeletable()
         .saDraggable()
         .saResizable()
         .saFullWindowOption();
-
-    // TODO: Change to set note with args.
-    // Note only the first viewer record counts.
-    newNote.ViewerRecords[0].Apply(viewerDiv[0].saViewer);
-    // Hack a link to the note so it can be saved.
-    // We do not have an id yet.  I want to delay saving and getting one.
-    // TODO: make this part of the saViewer api.
-    viewerDiv[0].saNote = newNote;
-    // hack.  THis should be an argument option.
-    viewerDiv[0].saViewer.CopyrightWrapper.hide();
 
     return viewerDiv;
 }

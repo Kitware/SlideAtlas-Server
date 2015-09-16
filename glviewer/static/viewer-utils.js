@@ -33,7 +33,8 @@ function saButtons (div) {
         .css({'position':'absolute',
               'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px',
-              'width' :'300px'}); // TODO: see if we can get rid of the width.
+              'width' :'300px', // TODO: see if we can get rid of the width.
+              'z-index': '10'}); 
     // Show the buttons on hover.
     var self = this;
     this.ButtonsDiv
@@ -126,8 +127,10 @@ jQuery.prototype.saHtml = function(string) {
         viewDivs.saViewer();
     
         for (var i = 0; i < viewDivs.length; ++i) {
-            $(viewDivs[i])
+            var viewer = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
+            var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
+            viewerIdx = parseInt(viewerIdx);
             if (noteId) {
                 // TODO: Rethink this.
                 // The viewer does not actually keep a refrence to the note.
@@ -135,10 +138,9 @@ jQuery.prototype.saHtml = function(string) {
                 // note. So when changes are made, the note is important.
                 var note = GetNoteFromId(noteId);
                 if (note) {
-                    note.ViewerRecords[0].Apply(viewDivs[i].saViewer);
-                    viewDivs[i].saNote = note;
-                    // Hide the copyright which is enable when the cache is set.
-                    viewDivs[i].saViewer.CopyrightWrapper.hide();
+                    note.ViewerRecords[viewerIdx].Apply(viewer);
+                    viewer.saNote = note;
+                    viewer.saViewerIndex = viewerIdx;
                 }
             }
         }
@@ -159,9 +161,11 @@ jQuery.prototype.saHtml = function(string) {
     // view id is being displayed. The view is set programatically, not
     // through jquery api. Also, the note may not have an id until we are
     // ready to save.
+    // TODO: Get rid of sa-presentation-view class and just use sa-viewer
     var views = this.find('.sa-presentation-view');
     for (var i = 0; i <  views.length; ++i) {
-        var note = views[i].saNote;
+        var viewer = views[i].saViewer;
+        var note = viewer.saNote;
         if ( ! note ) {
             console.log("Warning: Note is not saved and has no id.");
         } else if (note.Id) {
@@ -169,6 +173,8 @@ jQuery.prototype.saHtml = function(string) {
         } else if (note.TempId) {
             $(views[i]).attr('sa-note-id',note.TempId);
         }
+        var viewerIndex = viewer.saViewerIndex || 0;
+        $(views[i]).attr('sa-viewer-index', viewerIndex);
     }
 
     // Get rid of the gui elements when returning the html.
@@ -226,7 +232,7 @@ jQuery.prototype.saResizable = function(args) {
 // args = {overview:true, 
 //         zoomWidget:true,
 //         viewId:"55f834dd3f24e56314a56b12", note: {...}
-//         viewerRecordIndex: 0,
+//         viewerIndex: 0,
 //         hideCopyright: false}
 // viewId (which loads a note) or a preloaded note can be specified.
 // the viewId has precedence over note if both are given.
@@ -259,11 +265,10 @@ jQuery.prototype.saViewer = function(args) {
 function saViewerSetup(self, args) {
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
-            var viewer = new Viewer($(self[i]), args);
             // Add the viewer as an instance variable to the dom object.
-            self[i].saViewer = viewer;
+            self[i].saViewer = new Viewer($(self[i]), args);
             // TODO: Get rid of the event manager.
-            EVENT_MANAGER.AddViewer(viewer);
+            EVENT_MANAGER.AddViewer(self[i].saViewer);
 
             // When the div resizes, we need to synch the camera and
             // canvas.
@@ -275,9 +280,12 @@ function saViewerSetup(self, args) {
             // it explicitly (from the body onresize function).
             $(self[i]).addClass('sa-resize');
         }
+        var viewer = self[i].saViewer;
         // TODO:  Handle overview and zoomWidget options
         if (args.note) {
-            args.note.ViewerRecords[args.viewerIndex].Apply(self[i].saViewer);
+            viewer.saNote = args.note;
+            viewer.saViewerIndex = args.viewerIndex;
+            args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
         }
         if (args.hideCopyright) {
             viewer.CopyrightWrapper.hide();
@@ -285,12 +293,14 @@ function saViewerSetup(self, args) {
     }
 }
 
+// This put changes from the viewer in to the note.
+// Is there a better way to do this?
+// Maybe a save method?
 jQuery.prototype.saRecordViewer = function() {
     for (var i = 0; i < this.length; ++i) {
-        // TODO: Get rid of this saNote instance variable.
-        // Put it in saViewer as a variable.
-        if (this[i].saNote && this[i].saViewer) {
-            this[i].saNote.ViewerRecords[0].CopyViewer(this[i].saViewer);
+        if (this[i].saViewer.saNote && this[i].saViewer) {
+            var idx = this[i].saViewer.saViewerIndex || 0;
+            this[i].saViewer.saNote.ViewerRecords[idx].CopyViewer(this[i].saViewer);
         }
     }
 }
@@ -625,11 +635,31 @@ function saDeletable(item) {
     this.Button = saAddButton(
         item, 'webgl-viewer/static/remove.png', 'delete',
         function () {
+            // if we want to get rid of the viewer records,
+            if (item.saViewer) { saPruneViewerRecord(item.saViewer);}
             saButtonsDelete(item);
             $(item).remove();
         });
 }
 
+function saPruneViewerRecord(viewer) {
+    // In order to prune, we will need to find the other viewers associated
+    // with records in the notes.
+    // This is sort of hackish.
+    var viewerIdx = viewer.saViewerIndex;
+    var note = viewer.saNote;
+    var items = $('.sa-presentation-view');
+    // Shift all the larger indexes down one.
+    for (var i = 0; i < items.length; ++i) {
+        if (items[i].saViewer &&
+            items[i].saViewer.saNote == note &&
+            items[i].saViewer.saViewerIndex > viewerIdx) {
+            --items[i].saViewer.saViewerIndex;
+        }
+    }
+    // Remove the viewer record for this viewer.
+    note.ViewerRecords.splice(viewerIdx,1);
+}
 
 
 //==============================================================================
