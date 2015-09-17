@@ -22,6 +22,7 @@ function saGetButtonsDiv(element) {
 }
 
 function saButtons (div) {
+    this.Enabled = true;
     this.Div = div;
     this.TimerId = -1;
     var pos = div.position();
@@ -30,9 +31,10 @@ function saButtons (div) {
         .addClass('sa-edit-gui') // So we can remove it when saving.
         .hide()
         .css({'position':'absolute',
-              'left'  :(pos.left-2)+'px',
+              'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px',
-              'width' :'300px'}); // TODO: see if we can get rid of the width.
+              'width' :'300px', // TODO: see if we can get rid of the width.
+              'z-index': '10'}); 
     // Show the buttons on hover.
     var self = this;
     this.ButtonsDiv
@@ -47,7 +49,7 @@ function saButtons (div) {
 saButtons.prototype.PlaceButtons = function () {
     var pos = this.Div.position();
     this.ButtonsDiv
-        .css({'left'  :(pos.left-2)+'px',
+        .css({'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px'});
 }
 
@@ -56,14 +58,16 @@ saButtons.prototype.ShowButtons = function () {
         clearTimeout(this.TimerId);
         this.TimerId = -1;
     }
-    this.PlaceButtons();
-    this.ButtonsDiv.show();
+    if (this.Enabled) {
+        this.PlaceButtons();
+        this.ButtonsDiv.show();
+    }
 }
 
 saButtons.prototype.HideButtons = function () {
     if (this.TimerId < 0) {
         var self = this;
-        this.TimerId = 
+        this.TimerId =
             setTimeout(function () {self.ButtonsDiv.hide();}, 200);
     }
 }
@@ -86,11 +90,24 @@ function saAddButton (element, src, tooltip, callback) {
     return button;
 }
 
-// Remove the buttons div.
-function saButtonsDelete (element) {
-    element.saButtons.ButtonsDiv.remove();
+// privatex functions.
+// TODO: Make an api through jquery to do this.
+function saButtonsDisable (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.Enabled = false;
+    element.saButtons.ButtonsDiv.hide();
 }
 
+function saButtonsEnable (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.Enabled = true;
+}
+
+// Remove the buttons div.
+function saButtonsDelete (element) {
+    if ( ! element.saButtons) { return; }
+    element.saButtons.ButtonsDiv.remove();
+}
 
 
 
@@ -104,12 +121,16 @@ jQuery.prototype.saHtml = function(string) {
         this.html(string);
         this.find('.sa-text-editor').saTextEditor();
         this.find('.sa-scalable-font').saScalableFont();
+        this.find('.sa-full-window-option').saFullWindowOption();
         // We need to load the note.
         viewDivs = this.find('.sa-presentation-view');
         viewDivs.saViewer();
+
         for (var i = 0; i < viewDivs.length; ++i) {
-            $(viewDivs[i])
+            var viewer = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
+            var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
+            viewerIdx = parseInt(viewerIdx);
             if (noteId) {
                 // TODO: Rethink this.
                 // The viewer does not actually keep a refrence to the note.
@@ -117,9 +138,24 @@ jQuery.prototype.saHtml = function(string) {
                 // note. So when changes are made, the note is important.
                 var note = GetNoteFromId(noteId);
                 if (note) {
-                    note.ViewerRecords[0].Apply(viewDivs[i].saViewer);
-                    viewDivs[i].saNote = note;
+                    note.ViewerRecords[viewerIdx].Apply(viewer);
+                    viewer.saNote = note;
+                    viewer.saViewerIndex = viewerIdx;
                 }
+            }
+        }
+
+        if (EDIT) {
+            var items = this.find('.sa-resize');
+            items.saResizable();
+            items = this.find('.sa-deletable');
+            items.saDeletable();
+            items = this.find('.sa-draggable');
+            items.saDraggable();
+            items = this.find('.sa-presentation-image');
+            for (var i = 0; i < items.length; ++i) {
+                var item = items[i];
+                saPresentationImageSetAspect($(item))
             }
         }
 
@@ -130,9 +166,11 @@ jQuery.prototype.saHtml = function(string) {
     // view id is being displayed. The view is set programatically, not
     // through jquery api. Also, the note may not have an id until we are
     // ready to save.
+    // TODO: Get rid of sa-presentation-view class and just use sa-viewer
     var views = this.find('.sa-presentation-view');
     for (var i = 0; i <  views.length; ++i) {
-        var note = views[i].saNote;
+        var viewer = views[i].saViewer;
+        var note = viewer.saNote;
         if ( ! note ) {
             console.log("Warning: Note is not saved and has no id.");
         } else if (note.Id) {
@@ -140,12 +178,15 @@ jQuery.prototype.saHtml = function(string) {
         } else if (note.TempId) {
             $(views[i]).attr('sa-note-id',note.TempId);
         }
+        var viewerIndex = viewer.saViewerIndex || 0;
+        $(views[i]).attr('sa-viewer-index', viewerIndex);
     }
-
 
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
+    copy.find('.ui-resizable-handle').remove();
+
     // Get rid of the children of the sa-presentation-view.
     // They will be recreated by viewer when the html is loaded.
     copy.find('.sa-presentation-view').empty();
@@ -153,7 +194,16 @@ jQuery.prototype.saHtml = function(string) {
     return copy.html();
 }
 
-
+function saPresentationImageSetAspect(div) {
+    var img = div.find('img');
+    img.load(function () {
+        // compute the aspect ratio.
+        var aRatio = $(this).width() / $(this).height();
+        div.saResizable({
+            aspectRatio: aRatio,
+        });
+    });
+}
 
 
 //==============================================================================
@@ -173,6 +223,14 @@ jQuery.prototype.saResizable = function(args) {
             width = 100 * width / $(this).parent().width();
             this.style.width = width.toString()+'%';
         }
+        // We have to change the top and left ot percentages too.
+        // I might have to make my own resizable to get the exact behavior
+        // I want.
+        var pos  = $(this).position();
+        var top  = 100 * pos.top / $(this).parent().height();
+        var left = 100 * pos.left / $(this).parent().width();
+        this.style.top  = top.toString()+'%';
+        this.style.left = left.toString()+'%';
     };
 
     this.resizable(args);
@@ -185,43 +243,80 @@ jQuery.prototype.saResizable = function(args) {
 
 //==============================================================================
 // Attempting to make the viewer a jqueryUI widget.
-// args = {overview:true, zoomWidget:true}
+// Note:  It does not make sense to call this on multiple divs at once when
+//        the note/view is being set.
+// args = {overview:true, 
+//         zoomWidget:true,
+//         viewId:"55f834dd3f24e56314a56b12", note: {...}
+//         viewerIndex: 0,
+//         hideCopyright: false}
+// viewId (which loads a note) or a preloaded note can be specified.
+// the viewId has precedence over note if both are given.
+// viewerIndex of the note defaults to 0.
+// Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
-    for (var i = 0; i < this.length; ++i) {
-        if ( ! this[i].saViewer) {
-            var viewer = new Viewer($(this[i]), args);
+    // default
+    args = args || {};
+    // This is ignored if there is not viewId or note.
+    args.viewerIndex = args.viewerIndex || 0;
+    // get the note object if an id is specified.
+    if (args.viewId) {
+        args.note = GetNoteFromId(args.viewId);
+        if (args.note == null) {
+            // It has not been loaded yet.  Get if from the server.
+            args.note = new Note();
+            var self = this;
+            args.note.LoadViewId(
+                args.viewId,
+                function () {
+                    saViewerSetup(self, args);
+                });
+            return this;
+        }
+    }
+    saViewerSetup(this, args);
+    return this;
+}
+
+function saViewerSetup(self, args) {
+    for (var i = 0; i < self.length; ++i) {
+        if ( ! self[i].saViewer) {
             // Add the viewer as an instance variable to the dom object.
-            this[i].saViewer = viewer;
-            viewer.CopyrightWrapper.hide();
+            self[i].saViewer = new Viewer($(self[i]), args);
             // TODO: Get rid of the event manager.
-            EVENT_MANAGER.AddViewer(viewer);
+            EVENT_MANAGER.AddViewer(self[i].saViewer);
 
             // When the div resizes, we need to synch the camera and
             // canvas.
-            this[i].onresize =
+            self[i].onresize =
                 function () {
                     this.saViewer.UpdateSize();
                 }
             // Only the body seems to trigger onresize.  We need to trigger
             // it explicitly (from the body onresize function).
-            $(this[i]).addClass('sa-resize');
+            $(self[i]).addClass('sa-resize');
         }
-        // TODO:  If the viewer is already created, just reformat the
-        // viewer with new parameters. (image info ...)
-        // Separate out the args from the constructor.
+        var viewer = self[i].saViewer;
+        // TODO:  Handle overview and zoomWidget options
+        if (args.note) {
+            viewer.saNote = args.note;
+            viewer.saViewerIndex = args.viewerIndex;
+            args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
+        }
+        if (args.hideCopyright) {
+            viewer.CopyrightWrapper.hide();
+        }
     }
-    // I am uncertain what the API should be:
-    // - jQueryUI like with control through arguments.
-    // - Object oriented
-    //   - Access to viewer object through the dom element
-    //   - Access to viewer object through the jQuery list/selector.
-    return this;
 }
 
+// This put changes from the viewer in to the note.
+// Is there a better way to do this?
+// Maybe a save method?
 jQuery.prototype.saRecordViewer = function() {
     for (var i = 0; i < this.length; ++i) {
-        if (this[i].saNote && this[i].saViewer) {
-            this[i].saNote.ViewerRecords[0].CopyViewer(this[i].saViewer);            
+        if (this[i].saViewer.saNote && this[i].saViewer) {
+            var idx = this[i].saViewer.saViewerIndex || 0;
+            this[i].saViewer.saNote.ViewerRecords[idx].CopyViewer(this[i].saViewer);
         }
     }
 }
@@ -236,27 +331,35 @@ jQuery.prototype.saRecordViewer = function() {
 
 // TODO: Convert the viewer to use this.
 
-// No args / options.
-jQuery.prototype.saFullHeight = function() {
+// Args: not used
+jQuery.prototype.saFullHeight = function(args) {
     this.css({'top':'0px'});
     this.addClass('sa-full-height');
-    //for (var i = 0; i < this.length; ++i) {
+    for (var i = 0; i < this.length; ++i) {
         // I want to put the resize event on "this[i]",
-        // but, I am afraid in might not get trigerend always, or
+        // but, I am afraid it might not get trigerend always, or
         // setting the height would cause recursive calls to resize.
-    //}
+        this[i].saFullHeight = args;
+    }
 
     $(window).resize(
         function() {
             var height = window.innerHeight;
-            $('.sa-full-height')
-                .css({'top':    '0px',
-                      'height': height+'px'});
+            var width = window.innerWidth;
+            var top = 0;
+            var left = 0;
+            items = $('.sa-full-height');
+            for (var i = 0; i < items.length; ++i) {
+                item = items[0];
+                $(item).css({'top': '0px',
+                             'height': height+'px'});
+            }
             // Hack until I can figure out why the resize event is not
             // firing for descendants.
             // This did not work.  It also triggered resize on the window
             // causeing infinite recusion.
             //$('.sa-resize').trigger('resize');
+            // call onresize manually.
             var elements = $('.sa-resize');
             for (var i = 0; i < elements.length; ++i) {
                 if (elements[i].onresize) {
@@ -271,15 +374,67 @@ jQuery.prototype.saFullHeight = function() {
 
 
 //==============================================================================
-// This makes the font scale with the height of the "window".
+// Make this window as large as possible in parent, but keep the aspect
+// ratio. This is for presentation windows.
+// Note:  Position of parent has to be not static.
+//        Should I make the position relative rather than absolute?
+jQuery.prototype.saPresentation = function(args) {
+    this.addClass('sa-presentation');
+    this.addClass('sa-resize');
+    for (var i = 0; i < this.length; ++i) {
+        var item = this[i];
+        if ( ! item.saPresentation) {
+            item.onresize =
+                function () {
+                    var ar = this.saPresentation.aspectRatio;
+                    var parent = item.parentNode;
+                    var width = $(parent).innerWidth();
+                    var height = $(parent).innerHeight();
+                    var top = 0;
+                    var left = 0;
+                    if (width / height > ar) {
+                        // Window is too wide.
+                        var tmp = width - (height * ar);
+                        width = width - tmp;
+                        left = tmp / 2;
+                    } else {
+                        // Window is too tall.
+                        var tmp = height - (width / ar);
+                        height = height - tmp;
+                        top = tmp / 2;
+                    }
+                    $(this).css({
+                        'position': 'absolute',
+                        'top': top+'px',
+                        'height': height+'px',
+                        'left': left+'px',
+                        'width': width+'px'});
+                };
+        }
+        item.saPresentation = {aspectRatio: args.aspectRatio};
+        // Trouble if their is more than 1.  Maybe trigger
+        // a window resize?
+        setTimeout(function(){ item.onresize(item); }, 300);
+    }
+
+    return this;
+}
+
+
+
+//==============================================================================
+// Font is set as a percentage of the parent height.
+// args.size: string i.e. "12%" More work would be needed to make this
+// units in pixels.
 jQuery.prototype.saScalableFont = function(args) {
     this.addClass('sa-scalable-font');
     this.addClass('sa-resize');
+
     for (var i = 0; i < this.length; ++i) {
         var text = this[i];
         if ( ! text.saScalableFont) {
             // default.
-            var scale = 24;
+            var scale = 0.1;
             // html() saves this attribute.
             // this will restore the scale.
             var scaleStr = text.getAttribute('sa-font-scale');
@@ -288,19 +443,30 @@ jQuery.prototype.saScalableFont = function(args) {
             }
             // This overrides the previous two.
             if (args && args.scale) {
+                // convert to a decimal.
                 scale = args.scale;
+                if (typeof(scale) == "string") {
+                    if (scale.substring(-1) == "%") {
+                        scale = parseFloat(scale.substr(0,str.length-1))/100;
+                    } else {
+                        scale = parseFloat(scale);
+                    }
+                }
             }
             text.saScalableFont = {scale: scale};
-            // I can either keep this upto data or set it when the
+            // I can either keep this up to date or set it when the
             // saHtml is called. Keeping it set is more local.
             text.setAttribute('sa-font-scale', scale.toString());
             text.onresize =
                 function () {
                     scale = this.saScalableFont.scale;
                     // Scale it relative to the window.
-                    var height = window.innerHeight;
-                    fontSize = scale * height / 500;
-                    this.style.fontSize = fontSize+'px';
+                    var height = $(this).parent().innerHeight();
+                    fontSize = Math.round(scale * height) + 'px';
+                    this.style.fontSize = fontSize;
+                    // Getting and setting the html creates text chidlren
+                    // with their own font size.
+                    $(this).children('font').css({'font-size':fontSize});
                 };
             text.onresize();
         }
@@ -375,6 +541,96 @@ saDraggable.prototype.Drag = function(dx, dy) {
 
 
 
+//==============================================================================
+// Option to go full window.  This is intended for viewers, but might be
+// made general.
+
+// TODO: We need callbacks when it goes full and back.
+jQuery.prototype.saFullWindowOption = function(args) {
+    this.addClass('sa-full-window-option');
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saFullWindowOption) {
+            var helper = new saFullWindowOption($(this[i]));
+            // Add the helper as an instance variable to the dom object.
+            this[i].saFullWindowOption = helper;
+        }
+    }
+
+    return this;
+}
+
+function saFullWindowOption(div) {
+    var self = this;
+    this.FullWindowOptionButton = $('<img>')
+        .appendTo(div)
+        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .prop('title', "full window")
+        .css({'position':'absolute',
+              'width':'12px',
+              'left':'-5px',
+              'top':'-5px',
+              'opacity':'0.5',
+              'z-index':'-1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindow(div, true);
+        });
+
+    this.FullWindowOptionOffButton = $('<img>')
+        .appendTo(div)
+        .hide()
+        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .prop('title', "full window off")
+        .css({'position':'absolute',
+              'background':'#FFF',
+              'width':'16px',
+              'left':'1px',
+              'top':'1px',
+              'opacity':'0.5',
+              'z-index':'1'})
+        .hover(function(){$(this).css({'opacity':'1.0'});},
+               function(){$(this).css({'opacity':'0.5'});})
+        .click(function () {
+            self.SetFullWindow(div, false);
+        });
+}
+
+// TODO: Turn off other editing options: drag, delete, resize.
+saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
+    if (flag) {
+        // TODO: Put this in a call back.
+        //PRESENTATION.EditOff();
+        //this.BottomDiv.hide();
+        //this.ViewPanel.css({'height':'100%'});
+        saButtonsDisable(div[0]);
+        this.FullWindowOptionOffButton.show();
+        this.FullWindowOptionButton.hide();
+        // Save the css values to undo.
+        this.Left = div[0].style.left;
+        this.Width = div[0].style.width;
+        this.Top = div[0].style.top;
+        this.Height = div[0].style.height;
+        this.ZIndex = div[0].style.zIndex;
+        div.css({'left'   : '0px',
+                 'width'  : '100%',
+                 'top'    : '0px',
+                 'height' : '100%',
+                 'z-index': '10'});
+    } else {
+        saButtonsEnable(div[0]);
+        this.FullWindowOptionOffButton.hide();
+        this.FullWindowOptionButton.show();
+        div.css({'left'   : this.Left,
+                 'width'  : this.Width,
+                 'top'    : this.Top,
+                 'height' : this.Height,
+                 'z-index': this.ZIndex});
+    }
+    // The viewers need a resize event to change their cameras.
+    $(window).trigger('resize');
+}
+
 
 //==============================================================================
 // Add a delete button to the jquery objects.
@@ -382,23 +638,44 @@ saDraggable.prototype.Drag = function(dx, dy) {
 jQuery.prototype.saDeletable = function(args) {
     this.addClass('sa-deletable');
     for (var i = 0; i < this.length; ++i) {
-        var element = this[i];
-        if ( ! element.saDeletable) {
+        var item = this[i];
+        if ( ! item.saDeletable) {
             // for closure (save element)
-            element.saDeletable = true;
-            (function () {
-                saAddButton(element, 'webgl-viewer/static/remove.png', 'delete',
-                            function () {
-                                saButtonsDelete(element);
-                                $(element).remove();
-                            });
-            })();
+            item.saDeletable = new saDeletable(item);
         }
     }
     return this;
 }
 
+function saDeletable(item) {
+    this.Button = saAddButton(
+        item, 'webgl-viewer/static/remove.png', 'delete',
+        function () {
+            // if we want to get rid of the viewer records,
+            if (item.saViewer) { saPruneViewerRecord(item.saViewer);}
+            saButtonsDelete(item);
+            $(item).remove();
+        });
+}
 
+function saPruneViewerRecord(viewer) {
+    // In order to prune, we will need to find the other viewers associated
+    // with records in the notes.
+    // This is sort of hackish.
+    var viewerIdx = viewer.saViewerIndex;
+    var note = viewer.saNote;
+    var items = $('.sa-presentation-view');
+    // Shift all the larger indexes down one.
+    for (var i = 0; i < items.length; ++i) {
+        if (items[i].saViewer &&
+            items[i].saViewer.saNote == note &&
+            items[i].saViewer.saViewerIndex > viewerIdx) {
+            --items[i].saViewer.saViewerIndex;
+        }
+    }
+    // Remove the viewer record for this viewer.
+    note.ViewerRecords.splice(viewerIdx,1);
+}
 
 
 //==============================================================================
@@ -533,7 +810,7 @@ function TextEditor2(div, args) {
         .focusin(function() {
             CONTENT_EDITABLE_HAS_FOCUS = true;
             // Position the handle in the proper spot.
-            // Resizing witn percentages changes it.
+            // Resizing with percentages changes it.
             var pos = self.Div.position();
             self.DragHandle
                 .css({'left'  :(pos.left-2)+'px',
@@ -945,8 +1222,91 @@ ResizePanel.prototype.ToggleNotesWindow = function() {
 
 //==============================================================================
 
+//args: { label: function, ...}
+jQuery.prototype.saMenuButton = function(args) {
+
+    var item = this[0];
+    if ( ! item.saMenuButton) {
+        item.saMenuButton = new saMenuButton(args, this);
+    }
+
+    return this;
+}
+
+function saMenuButton(args, menuButton) {
+    this.InsertMenuTimer = 0;
+    this.InsertMenu = $('<ul>')
+        .appendTo( menuButton )
+        // How do I customize the menu location?
+        .css({'position': 'absolute',
+              'left'    : '-110px',
+              'top'     : '25px',
+              'width'   : '140px',
+              'font-size':'18px',
+              'box-shadow': '10px 10px 5px #AAA',
+              'z-index' : '5'})
+        .hide();
+
+    for (label in args) {
+        this.AddMenuItem(label, args[label]);
+    }
+    // Jquery UI formatting
+    this.InsertMenu.menu();
+
+    var self = this;
+    menuButton.mouseover(
+        function () { self.ShowInsertMenu(); });
+    this.InsertMenu.mouseover(
+        function () { self.ShowInsertMenu(); });
+
+    menuButton.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+    this.InsertMenu.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+}
+
+saMenuButton.prototype.AddMenuItem = function(label, callback) {
+    var self = this;
+
+    this[label] = $('<li>')
+        .appendTo(this.InsertMenu)
+        .text(label)
+        .addClass('saButton') // for hover effect
+        .click(function() {
+            (callback)();
+            self.InsertMenu.hide();
+        });
+}
+
+saMenuButton.prototype.ShowInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    this.InsertMenu.show();
+}
+
+saMenuButton.prototype.EventuallyHideInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    var self = this;
+    this.InsertMenuTimer = setTimeout(
+        function () {
+            self.InsertMenuTimer = 0;
+            self.InsertMenu.fadeOut();
+            this.InsertMenuTimer = 0;
+        }, 500);
+}
 
 
+
+
+
+
+
+//==============================================================================
 
 
 

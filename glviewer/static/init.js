@@ -573,8 +573,8 @@ function Main(style,sessId,viewId) {
         }
         rootNote.Title = title;
         rootNote.HiddenTitle = title;
-        rootNote.Text = "Author";
-        rootNote.Type = "Presentation";
+        rootNote.Text = "";
+        rootNote.Type = "HTML";
         // Get the new notes id.
         rootNote.Save(function (note) {
             // Save the note in the session.
@@ -631,7 +631,9 @@ function SaveCallback() {
 // It might speed up loading.
 // Note is the same as a view.
 function Main2(rootNote) {
-    if (STYLE == "Presentation" || rootNote.Type == "Presentation") {
+    if (STYLE == "Presentation" ||
+        rootNote.Type == "Presentation" ||
+        rootNote.Type == "HTML") {
         PRESENTATION = new Presentation(rootNote, EDIT);
         return;
     }

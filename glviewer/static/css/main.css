@@ -17,3 +17,15 @@
 }
 
 .view:focus {outline:0; !important;}
+
+
+
+
+.saButton:hover {
+  background-color: #CEF;
+}
+
+.saButton:active {
+  background-color: #888;
+}
+

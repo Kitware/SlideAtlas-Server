@@ -1,3 +1,18 @@
+// CME
+// TODO:
+// Allow for relative font sizes in a saScalableFontDiv.
+// Added viewer flickers and changes camera when resized.
+// Change font size in gui.
+// Change font color in GUI.
+// Title note type: HtmlSlide
+// Add GUI to add slides and slide items.
+// Background of thumbs should be white.
+// text showing up the wrong size in title bar when first loaded.
+
+
+
+
+
 // TODO:
 // First: content.
 // Actual title page.
@@ -24,16 +39,17 @@
 // Only called by the presentation html file.
 // Getting rid of this.
 // Main function called by the presentation.html template
-function PresentationMain(viewId) {
+/*function PresentationMain(viewId) {
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
 
-     rootNote.LoadViewId(
+    rootNote.LoadViewId(
         viewId,
         function () {
             PRESENTATION = new Presentation(rootNote, EDIT);
         });
 }
+*/
 
 
 //==============================================================================
@@ -74,10 +90,6 @@ function Presentation(rootNote, edit) {
         rootNote.ViewerRecords.push(record);
     }
 
-    if (rootNote.Type != "Presentation") {
-        rootNote.Type = "Presentation";
-        rootNote.Save();
-    }
     // Eliminate the GUI in the viewers.
     MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
@@ -112,6 +124,12 @@ function Presentation(rootNote, edit) {
               'left':'0px',
               'width':'100%',
               'height':'100%'});
+    // A window with a contant aspect ratio that fits in
+    // the PresentationDiv.
+    this.AspectDiv = $('<div>')
+        .css({'border' :'1px solid #AAA'})
+        .appendTo(this.PresentationDiv)
+        .saPresentation({aspectRatio : 1.333});
 
     if (this.Edit) {
         // I am trying a new pattern.  Jquery UI seems to use it.
@@ -164,7 +182,7 @@ function Presentation(rootNote, edit) {
     if (edit) {
         // Temporary way to delete a this.
         this.DeleteSlideButton = $('<img>')
-            .appendTo(this.PresentationDiv)
+            .appendTo(this.AspectDiv)
             .attr('src',"webgl-viewer/static/remove.png")
             .prop('title', "delete slide")
             .addClass('editButton')
@@ -181,9 +199,9 @@ function Presentation(rootNote, edit) {
     }
 
 
-    this.TitlePage = new TitlePage(this.PresentationDiv, edit);
-    this.SlidePage = new SlidePage(this.PresentationDiv, edit);
-    this.HtmlPage  = new HtmlPage(this.PresentationDiv, edit);
+    this.TitlePage = new TitlePage(this.AspectDiv, edit);
+    this.SlidePage = new SlidePage(this.AspectDiv, edit);
+    this.HtmlPage  = new HtmlPage(this.AspectDiv, edit);
 
     this.RootNote = rootNote;
     this.GotoSlide(0);
@@ -191,10 +209,8 @@ function Presentation(rootNote, edit) {
     // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeyup = function(e) {self.HandleKeyUp(e);};
+    //document.onkeyup = function(e) {self.HandleKeyUp(e);};
+    $('body').keyup(function(e) {self.HandleKeyUp(e);});
 
     if (EDIT) {
         this.UpdateSlidesTab();
@@ -335,17 +351,23 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .attr('src','webgl-viewer/static/save22.png')
         .css({'float':'right'})
         .click(function () { self.Save();});
-    this.InsertSlideButton = $('<img>')
+
+
+    this.InsertMenuButton = $('<div>')
         .appendTo(this.SlidesDiv)
-        .prop('title', "new slide")
         .addClass('editButton')
-        .attr('src','webgl-viewer/static/new_window.png')
-        .css({'float':'right'})
-        .click(function () {
-            //var note = self.InsertNewSlide('HTML');
-            //self.HtmlPage.InitializeNote
-            var note = self.InsertNewSlide('Question');
+        .css({'float':'right',
+              'position':'relative'})
+        .saMenuButton( {
+            'New Slide'    : function () {self.InsertNewSlide("HTML");},
+            'New Question' : function () {alert("Question not implemented yet");},
+            'Insert Text'  : function () {self.HtmlPage.InsertTextBox();},
+            'Insert Image' : function () {self.InsertImage();}
         });
+    $('<img>')
+        .appendTo(this.InsertMenuButton)
+        .attr('src','webgl-viewer/static/new_window.png');
+
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
         .appendTo(this.SlidesDiv)
@@ -368,6 +390,11 @@ Presentation.prototype.MakeEditPanel = function (parent) {
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
+
+
+
+
+
 
 Presentation.prototype.TimerCallback = function(duration) {
     if (this.Index == this.GetNumberOfSlides() - 1) {
@@ -409,6 +436,8 @@ Presentation.prototype.TimerCallback = function(duration) {
 // Adds a view to the current slide.
 Presentation.prototype.AddViewCallback = function(viewObj) {
     if (this.Note.Type == "HTML") {
+        // TODO: Change this to pass a viewer record of the view.
+        //       Maybe show all the records as options.
         this.HtmlPage.InsertView(viewObj);
         return;
     }
@@ -422,9 +451,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
-    var note = new Note();
     var record = new ViewerRecord();
-    note.ViewerRecords[0] = record;
     record.OverViewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
@@ -433,22 +460,25 @@ Presentation.prototype.AddImageCallback = function(image) {
                      Height: (image.bounds[3]-image.bounds[2]),
                      Width : (image.bounds[1]-image.bounds[0])};
 
-    // The root needs a record to show up in the session.
-    // never executed because I add a presentation icon
-    if (this.RootNote.ViewerRecords.length == 0) {
-        this.RootNote.ViewerRecords.push(record);
-    }
-
     if (this.Note.Type == "HTML") {
-        // This will be the primary path in the future.
-        this.HtmlPage.InsertViewNote(note);
+        // This will be the primar path in the future.
+        this.HtmlPage.InsertViewerRecord(record);
         return;
     }
     if (this.Note != this.RootNote) {
+        var note = new Note();
+        note.ViewerRecords[0] = record;
         this.SlidePage.InsertViewNote(note);
         return;
     }
- 
+
+    // The root needs a record to show up in the session.
+    // never executed because I add a presentation icon
+    // NOTE: This might be a problem with the new html title page.
+    //       Viewers inthe title pages are stored as records.
+    if (this.RootNote.ViewerRecords.length == 0) {
+        this.RootNote.ViewerRecords.push(record);
+    } 
 }
 
 
@@ -461,6 +491,15 @@ Presentation.prototype.HandleKeyUp = function(event) {
     // Hack to keep the slides from changing when editing.
     if ( CONTENT_EDITABLE_HAS_FOCUS) {
         return true;
+    }
+
+    // I cannot get the browser to paste into a new div
+    // First, paste is executed before this callback.
+    // Second, the execCommand paste does not appear to work.
+    if (event.keyCode == "86" && ! event.ctrlKey) { // check for control v paste
+        if (this.Note.Type == "HTML") {
+            this.HtmlPage.Paste();
+       }
     }
 
     if (event.keyCode == "32" || // space
@@ -494,7 +533,7 @@ Presentation.prototype.Save = function () {
 
     // Hack hack hack.  I should just hang onto the DOM for each slide
     // rather than reloading with saHtml.  It is necessary to convert
-    // temporary not ids with real note ids.
+    // temporary note ids to real note ids.
     for (var i = 0; i < NOTES.length; ++i) {
         note = NOTES[i];
         if ( ! note.Id ) {
@@ -540,7 +579,6 @@ Presentation.prototype.DeleteCurentSlide = function () {
     this.DeleteSlide(this.Index);
 }
 
-
 Presentation.prototype.InsertNewSlide = function (type){
     var idx = this.Index+1;
     var note = new Note();
@@ -551,6 +589,11 @@ Presentation.prototype.InsertNewSlide = function (type){
     if (type == 'HTML') {
         this.HtmlPage.InitializeSlidePage();
     }
+}
+
+Presentation.prototype.InsertImage = function () {
+    var src = prompt("Image URL", "https://slide-atlas.org/static/img/SlideAtlas_home.jpg");
+    this.HtmlPage.InsertImage(src);
 }
 
 // 0->Root/titlePage
@@ -567,10 +610,21 @@ Presentation.prototype.GotoSlide = function (index){
 
     this.Index = index;
     if (index == 0) { // Title page
-        this.SlidePage.Div.hide();
-        this.HtmlPage.Div.hide();
         this.Note = this.RootNote;
-        this.TitlePage.DisplayNote(this.Note);
+        if (this.Note.Type == "Presentation") {
+            // legacy
+            this.SlidePage.Div.hide();
+            this.HtmlPage.Div.hide();
+            this.TitlePage.DisplayNote(this.Note);
+        } else if (this.Note.Type == "HTML") {
+            this.TitlePage.Div.hide();
+            this.SlidePage.Div.hide();
+            this.HtmlPage.Div.show();
+            this.HtmlPage.DisplayNote(this.Note);
+            if (this.Note.Text == "") {
+                this.HtmlPage.InitializeTitlePage();
+            }
+        }
     } else { // Slide page
         this.Note = this.GetSlide(index);
         if (this.Note.Type == "HTML") {
@@ -1150,7 +1204,7 @@ function TitlePage (parent, edit) {
               //'min-height':'3em',
               //'min-width':'10em',
               'left': '13%'})
-        .saScalableFont({scale:'24'});
+        .saScalableFont({scale:'0.3'});
 
     this.AuthorBar = $('<div>')
         .appendTo(this.Div)
@@ -1169,7 +1223,7 @@ function TitlePage (parent, edit) {
               //'minimum-height':'4em',
               //'minimum-width':'10em',
               'top': '2em'})
-        .saScalableFont({scale:'20'});
+        .saScalableFont({scale:'0.1'});
 
 
     if (this.Edit) {
@@ -1323,11 +1377,7 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
     this.Div.saHtml(note.Text);
-    
-
-
-
-
+    this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
     // still needed for iframes.
     this.BindElements();
 }
@@ -1348,13 +1398,13 @@ HtmlPage.prototype.InitializeTitlePage = function() {
               'height':'25%'});
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
-    var titleText = this.InsertTextBox(42)
+    var titleText = this.InsertTextBox(50)
         .css({'color':'white',
               'left':'10%',
               'top':'40%'})
         .text("Title");
 
-    var authorText = this.InsertTextBox(42)
+    var authorText = this.InsertTextBox(28)
         .css({'left':'10%',
               'width':'88%',
               'top':'59%'})
@@ -1389,7 +1439,7 @@ HtmlPage.prototype.InitializeSlidePage = function() {
     this.BindElements();
 }
 
-
+// TODO: make sa jquery handle this. 
 HtmlPage.prototype.InsertImage = function(src) {
     // resizable makes a containing div anyway.
     var imgDiv = $('<div>')
@@ -1414,6 +1464,34 @@ HtmlPage.prototype.InsertImage = function(src) {
         });
 
     return imgDiv;
+}
+
+// The execCommand paste does not work
+HtmlPage.prototype.Paste = function() {
+    // resizable makes a containing div anyway.
+    var containerDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left'    :'5%',
+              'top'     :'25%'})
+        .text("paste here")
+        .saDraggable()
+        .saDeletable();
+
+    // Select the container
+    containerDiv
+        .attr('contenteditable', 'true')
+        .focus();
+
+    // Select everything.
+    var sel = window.getSelection();
+    var range = document.createRange();
+    range.noCursor = true;
+    range.selectNodeContents(containerDiv[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // This does not work.
+    document.execCommand('paste',false,null);
 }
 
 
@@ -1450,6 +1528,10 @@ HtmlPage.prototype.InsertIFrame = function(src) {
 HtmlPage.prototype.InsertTextBox = function(size) {
     size = size || 30;
 
+    // Arbitrary height so I do not need to specify
+    // text in percentages.
+    var scale = size / 800; 
+
     // Should everything be have Div as parent?
     var text = $('<div>')
         // note: parent has to be set before saTextEditor is called.
@@ -1463,7 +1545,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'top'  : '90%'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
-        .saScalableFont({scale:size})
+        .saScalableFont({scale:scale})
         // default content
         .text("Text");
 
@@ -1484,59 +1566,53 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 // necessary, for the saViewer.  Well, maybe not.  I could pass in the
 // note, and then get the id when saHtml() is called to save.
 HtmlPage.prototype.InsertView = function(viewObj) {
-    if ( ! this.Note) { 
-        return; 
+    if ( ! this.Note) {
+        return;
     }
 
     // First make a copy of the view as a child.
     var newNote = new Note();
     newNote.Load(viewObj);
-    this.InsertViewNote(newNote);
+    this.InsertViewerRecord(newNote);
 }
 
 
+// The html page is a note.  It contains viewer whose states are saved in
+// viewerRecords.
 // Helper method
-HtmlPage.prototype.InsertViewNote = function(newNote) {
-    if ( ! this.Note) { 
-        return; 
+// TODO: Change newNote to viewerRecord.
+HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
+    if ( ! this.Note) {
+        return;
     }
 
-    newNote.Title = "SlideView " + this.Note.Children.length;
-
-    newNote.Parent = this.Note;
-    this.Note.Children.push(newNote);
-
-    // Temporary
-    VIEW_PANEL = this.Div;
+    var viewerIdx = this.Note.ViewerRecords.length;
+    this.Note.ViewerRecords.push(viewerRecord);
 
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
         .addClass('sa-presentation-view')
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA',
+              'background-color':'#FFF',
+              'opacity':'1.0',
               'left':'5%',
               'right':'2.5%',
               'top':'25%',
-             'bottom':'10%'})
-        .saViewer()
+              'bottom':'10%'})
+        .saViewer({'note': this.Note,
+                   'viewerIndex':viewerIdx,
+                   'hideCopyright':true})
         .saDeletable()
         .saDraggable()
-        .saResizable();
-
-    // TODO: Change to set note with args.
-    // Note only the first viewer record counts.
-    newNote.ViewerRecords[0].Apply(viewerDiv[0].saViewer);
-    // Hack a link to the note so it can be saved.
-    // We do not have an id yet.  I want to delay saving and getting one.
-    // TODO: make this part of the saViewer api.
-    viewerDiv[0].saNote = newNote;
-    // hack.  THis should be an argument option.
-    viewerDiv[0].saViewer.CopyrightWrapper.hide();
+        .saResizable()
+        .saFullWindowOption();
 
     return viewerDiv;
 }
 
 
+// NOTE: This should be lagacy now.  The jquery extensions should handle this.
 // Text elements need to resize explicitly.
 // TODO: Activate text (saScalatFont, saTextEditor, resize) on load.
 // I could make this scalabe ifram as a jquery extension too.
