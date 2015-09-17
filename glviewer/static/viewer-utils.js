@@ -125,7 +125,7 @@ jQuery.prototype.saHtml = function(string) {
         // We need to load the note.
         viewDivs = this.find('.sa-presentation-view');
         viewDivs.saViewer();
-    
+
         for (var i = 0; i < viewDivs.length; ++i) {
             var viewer = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
@@ -152,6 +152,11 @@ jQuery.prototype.saHtml = function(string) {
             items.saDeletable();
             items = this.find('.sa-draggable');
             items.saDraggable();
+            items = this.find('.sa-presentation-image');
+            for (var i = 0; i < items.length; ++i) {
+                var item = items[i];
+                saPresentationImageSetAspect($(item))
+            }
         }
 
         return;
@@ -180,6 +185,8 @@ jQuery.prototype.saHtml = function(string) {
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
+    copy.find('.ui-resizable-handle').remove();
+
     // Get rid of the children of the sa-presentation-view.
     // They will be recreated by viewer when the html is loaded.
     copy.find('.sa-presentation-view').empty();
@@ -187,7 +194,16 @@ jQuery.prototype.saHtml = function(string) {
     return copy.html();
 }
 
-
+function saPresentationImageSetAspect(div) {
+    var img = div.find('img');
+    img.load(function () {
+        // compute the aspect ratio.
+        var aRatio = $(this).width() / $(this).height();
+        div.saResizable({
+            aspectRatio: aRatio,
+        });
+    });
+}
 
 
 //==============================================================================
@@ -1206,8 +1222,91 @@ ResizePanel.prototype.ToggleNotesWindow = function() {
 
 //==============================================================================
 
+//args: { label: function, ...}
+jQuery.prototype.saMenuButton = function(args) {
+
+    var item = this[0];
+    if ( ! item.saMenuButton) {
+        item.saMenuButton = new saMenuButton(args, this);
+    }
+
+    return this;
+}
+
+function saMenuButton(args, menuButton) {
+    this.InsertMenuTimer = 0;
+    this.InsertMenu = $('<ul>')
+        .appendTo( menuButton )
+        // How do I customize the menu location?
+        .css({'position': 'absolute',
+              'left'    : '-110px',
+              'top'     : '25px',
+              'width'   : '140px',
+              'font-size':'18px',
+              'box-shadow': '10px 10px 5px #AAA',
+              'z-index' : '5'})
+        .hide();
+
+    for (label in args) {
+        this.AddMenuItem(label, args[label]);
+    }
+    // Jquery UI formatting
+    this.InsertMenu.menu();
+
+    var self = this;
+    menuButton.mouseover(
+        function () { self.ShowInsertMenu(); });
+    this.InsertMenu.mouseover(
+        function () { self.ShowInsertMenu(); });
+
+    menuButton.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+    this.InsertMenu.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+}
+
+saMenuButton.prototype.AddMenuItem = function(label, callback) {
+    var self = this;
+
+    this[label] = $('<li>')
+        .appendTo(this.InsertMenu)
+        .text(label)
+        .addClass('saButton') // for hover effect
+        .click(function() {
+            (callback)();
+            self.InsertMenu.hide();
+        });
+}
+
+saMenuButton.prototype.ShowInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    this.InsertMenu.show();
+}
+
+saMenuButton.prototype.EventuallyHideInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    var self = this;
+    this.InsertMenuTimer = setTimeout(
+        function () {
+            self.InsertMenuTimer = 0;
+            self.InsertMenu.fadeOut();
+            this.InsertMenuTimer = 0;
+        }, 500);
+}
 
 
+
+
+
+
+
+//==============================================================================
 
 
 

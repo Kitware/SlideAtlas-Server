@@ -209,10 +209,8 @@ function Presentation(rootNote, edit) {
     // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeyup = function(e) {self.HandleKeyUp(e);};
+    //document.onkeyup = function(e) {self.HandleKeyUp(e);};
+    $('body').keyup(function(e) {self.HandleKeyUp(e);});
 
     if (EDIT) {
         this.UpdateSlidesTab();
@@ -353,17 +351,23 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .attr('src','webgl-viewer/static/save22.png')
         .css({'float':'right'})
         .click(function () { self.Save();});
-    this.InsertSlideButton = $('<img>')
+
+
+    this.InsertMenuButton = $('<div>')
         .appendTo(this.SlidesDiv)
-        .prop('title', "new slide")
         .addClass('editButton')
-        .attr('src','webgl-viewer/static/new_window.png')
-        .css({'float':'right'})
-        .click(function () {
-            var note = self.InsertNewSlide('HTML');
-            // legacy.  It will still render.
-            //var note = self.InsertNewSlide('Question');
+        .css({'float':'right',
+              'position':'relative'})
+        .saMenuButton( {
+            'New Slide'    : function () {self.InsertNewSlide("HTML");},
+            'New Question' : function () {alert("Question not implemented yet");},
+            'Insert Text'  : function () {self.HtmlPage.InsertTextBox();},
+            'Insert Image' : function () {self.InsertImage();}
         });
+    $('<img>')
+        .appendTo(this.InsertMenuButton)
+        .attr('src','webgl-viewer/static/new_window.png');
+
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
         .appendTo(this.SlidesDiv)
@@ -386,6 +390,11 @@ Presentation.prototype.MakeEditPanel = function (parent) {
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
+
+
+
+
+
 
 Presentation.prototype.TimerCallback = function(duration) {
     if (this.Index == this.GetNumberOfSlides() - 1) {
@@ -485,6 +494,15 @@ Presentation.prototype.HandleKeyUp = function(event) {
         return true;
     }
 
+    // I cannot get the browser to paste into a new div
+    // First, paste is executed before this callback.
+    // Second, the execCommand paste does not appear to work.
+    if (event.keyCode == "86" && ! event.ctrlKey) { // check for control v paste
+        if (this.Note.Type == "HTML") {
+            this.HtmlPage.Paste();
+       }
+    }
+
     if (event.keyCode == "32" || // space
         event.keyCode == "34" || // page down
         event.keyCode == "78" || // n
@@ -562,7 +580,6 @@ Presentation.prototype.DeleteCurentSlide = function () {
     this.DeleteSlide(this.Index);
 }
 
-
 Presentation.prototype.InsertNewSlide = function (type){
     var idx = this.Index+1;
     var note = new Note();
@@ -573,6 +590,11 @@ Presentation.prototype.InsertNewSlide = function (type){
     if (type == 'HTML') {
         this.HtmlPage.InitializeSlidePage();
     }
+}
+
+Presentation.prototype.InsertImage = function () {
+    var src = prompt("Image URL", "https://slide-atlas.org/static/img/SlideAtlas_home.jpg");
+    this.HtmlPage.InsertImage(src);
 }
 
 // 0->Root/titlePage
@@ -1416,7 +1438,7 @@ HtmlPage.prototype.InitializeSlidePage = function() {
     this.BindElements();
 }
 
-
+// TODO: make sa jquery handle this. 
 HtmlPage.prototype.InsertImage = function(src) {
     // resizable makes a containing div anyway.
     var imgDiv = $('<div>')
@@ -1441,6 +1463,34 @@ HtmlPage.prototype.InsertImage = function(src) {
         });
 
     return imgDiv;
+}
+
+// The execCommand paste does not work
+HtmlPage.prototype.Paste = function() {
+    // resizable makes a containing div anyway.
+    var containerDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left'    :'5%',
+              'top'     :'25%'})
+        .text("paste here")
+        .saDraggable()
+        .saDeletable();
+
+    // Select the container
+    containerDiv
+        .attr('contenteditable', 'true')
+        .focus();
+
+    // Select everything.
+    var sel = window.getSelection();
+    var range = document.createRange();
+    range.noCursor = true;
+    range.selectNodeContents(containerDiv[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // This does not work.
+    document.execCommand('paste',false,null);
 }
 
 
