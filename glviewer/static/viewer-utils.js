@@ -146,7 +146,7 @@ jQuery.prototype.saHtml = function(string) {
         }
 
         if (EDIT) {
-            var items = this.find('.sa-resize');
+            var items = this.find('.sa-resizable');
             items.saResizable();
             items = this.find('.sa-deletable');
             items.saDeletable();
@@ -212,17 +212,15 @@ function saPresentationImageSetAspect(div) {
 jQuery.prototype.saResizable = function(args) {
     args = args || {};
     args.stop = function (e, ui) {
-        // change the width and height to percentages.
+        // change the width to a percentage.
+        var width = $(this).width();
+        width = 100 * width / $(this).parent().width();
+        this.style.width = width.toString()+'%';
+        // change the height to a percentage.
         var height = $(this).height();
         height = 100 * height / $(this).parent().height();
         this.style.height = height.toString()+'%';
-        if (args.aspectRatio) {
-            this.style.width = '';
-        } else {
-            var width = $(this).width();
-            width = 100 * width / $(this).parent().width();
-            this.style.width = width.toString()+'%';
-        }
+
         // We have to change the top and left ot percentages too.
         // I might have to make my own resizable to get the exact behavior
         // I want.
@@ -234,6 +232,7 @@ jQuery.prototype.saResizable = function(args) {
     };
 
     this.resizable(args);
+    this.addClass('sa-resizable');
 
     return this;
 }
@@ -687,11 +686,12 @@ function saPruneViewerRecord(viewer) {
 //   Make pixel positioning an option
 // - use saDeletable and saDraggable and remove internal code.
 
+// args: {dialog: true}
 jQuery.prototype.saTextEditor = function(args) {
     this.addClass('sa-text-editor');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saTextEditor) {
-            var textEditor = new TextEditor2($(this[i]), args);
+            var textEditor = new saTextEditor($(this[i]), args);
             // Add the viewer as an instance variable to the dom object.
             this[i].saTextEditor = textEditor;
         }
@@ -703,7 +703,8 @@ jQuery.prototype.saTextEditor = function(args) {
 // I hate to use this hack, but I need to stop other events from triggering.
 var CONTENT_EDITABLE_HAS_FOCUS = false;
 
-function TextEditor2(div, args) {
+function saTextEditor(div, args) {
+    args = args || {dialog : true};
     var self = this;
     this.Div = div;
     // Position the div with percentages instead of pixels.
@@ -745,7 +746,7 @@ function TextEditor2(div, args) {
         .css({'position':'absolute',
               'left'  :(pos.left+20)+'px',
               'top'   :(pos.top-20) +'px',
-              'width' :'330px'});
+              'width' :'350px'});
 
     this.AddEditButton("webgl-viewer/static/remove.png", "delete",
                        function() {self.Delete();});
@@ -805,6 +806,83 @@ function TextEditor2(div, args) {
                                $(text).focus();
                            });
     }
+    if (args.dialog) {
+        var self = this;
+        this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+        // Customize dialog for a circle.
+        this.Dialog.Title.text('Text Box Properties');
+
+        // Background
+        this.Dialog.BackgroundDiv =
+        $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'height':'32px'})
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.BackgroundLabel =
+            $('<div>')
+            .appendTo(this.Dialog.BackgroundDiv)
+            .text("Background Color:")
+            .addClass("sa-view-annotation-modal-input-label");
+        // background color,   name="vehicle" value="Bike">
+        this.Dialog.BackgroundCheck = $('<input type="checkbox">')
+            .appendTo(this.Dialog.BackgroundDiv)
+            .change(function() {
+                if($(this).is(":checked")) {
+                    self.Dialog.BackgroundColor.show();
+                } else {
+                    self.Dialog.BackgroundColor.hide();
+                }
+            });
+        this.Dialog.BackgroundColor =
+            $('<input type="color">')
+            .appendTo(this.Dialog.BackgroundDiv)
+            .val('#ffffff')
+            .hide()
+            .addClass("sa-view-annotation-modal-input");
+
+        // Border
+        this.Dialog.BorderDiv =
+            $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'height':'32px',
+                  'width':'400px'})
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.BorderLabel =
+            $('<div>')
+            .appendTo(this.Dialog.BorderDiv)
+            .text("Border:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.BorderCheck = $('<input type="checkbox">')
+            .appendTo(this.Dialog.BorderDiv)
+            .change(function() {
+                if($(this).is(":checked")) {
+                    self.Dialog.BorderWidth.show();
+                    self.Dialog.BorderColor.show();
+                } else {
+                    self.Dialog.BorderWidth.hide();
+                    self.Dialog.BorderColor.hide();
+                }
+            });
+
+
+        this.Dialog.BorderColor =
+            $('<input type="color">')
+            .appendTo(this.Dialog.BorderDiv)
+            .val('#30ff00')
+            .hide()
+            .addClass("sa-view-annotation-modal-input");
+        this.Dialog.BorderWidth =
+            $('<input type="number">')
+            .appendTo(this.Dialog.BorderDiv)
+            .addClass("sa-view-annotation-modal-input")
+            .hide()
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        this.AddEditButton("webgl-viewer/static/Menu.jpg", "properties",
+                           function() {
+                               self.Dialog.Show(true);
+                           });
+    }
 
     div.attr('contenteditable', "true")
         .focusin(function() {
@@ -835,13 +913,34 @@ function TextEditor2(div, args) {
         });
 }
 
-TextEditor2.prototype.Delete = function() {
+
+saTextEditor.prototype.DialogApplyCallback = function() {
+    this.Div.css({'padding'      : '2%',
+                  'border-radius': '2%'});
+
+    if (this.Dialog.BackgroundCheck.is(":checked")) {
+        var hexcolor = this.Dialog.BackgroundColor.val();
+        this.Div.css({'background-color':hexcolor});
+    } else {
+        this.Div.css('background-color', '');
+    }
+
+    if (this.Dialog.BorderCheck.is(":checked")) {
+        var hexcolor = this.Dialog.BorderColor.val();
+        var width = parseFloat(this.Dialog.BorderWidth.val());
+        this.Div.css({'border': width+'px solid ' + hexcolor});
+    } else {
+        this.Div.css('border', '');
+    }
+}
+
+saTextEditor.prototype.Delete = function() {
     this.DragHandle.remove();
     this.ButtonDiv.remove();
     this.Div.remove();
 }
 
-TextEditor2.prototype.InsertUrlLink = function() {
+saTextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
@@ -918,7 +1017,7 @@ TextEditor2.prototype.InsertUrlLink = function() {
     this.UrlDialog.Show(true);
 }
 
-TextEditor2.prototype.InsertUrlLinkAccept = function() {
+saTextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
 
@@ -954,7 +1053,7 @@ TextEditor2.prototype.InsertUrlLinkAccept = function() {
 // Get the selection in this editor.  Returns a range.
 // If not, the range is collapsed at the 
 // end of the text and a new line is added.
-TextEditor2.prototype.GetSelectionRange = function() {
+saTextEditor.prototype.GetSelectionRange = function() {
     var sel = window.getSelection();
     var range;
     var parent = null;
@@ -1004,7 +1103,7 @@ TextEditor2.prototype.GetSelectionRange = function() {
 }
 
 // TODO: Button s have to be clicked in exact center......
-TextEditor2.prototype.AddEditButton = function(src, tooltip, callback) {
+saTextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
     var self = this;
     var button = $('<img>');
     if (tooltip) {
@@ -1012,13 +1111,14 @@ TextEditor2.prototype.AddEditButton = function(src, tooltip, callback) {
     }
     button
         .appendTo(this.ButtonDiv)
+        .css({'height':'16'})
         .addClass('editButton')
         .attr('src',src)
         .click(callback);
 }
 
 // Set in position in pixels
-TextEditor2.prototype.SetPositionPixel = function(x, y) {
+saTextEditor.prototype.SetPositionPixel = function(x, y) {
     this.ButtonDiv
         .css({'left'  :(x+20)+'px',
               'top'   :(y-20) +'px'})
@@ -1241,7 +1341,7 @@ function saMenuButton(args, menuButton) {
         .css({'position': 'absolute',
               'left'    : '-110px',
               'top'     : '25px',
-              'width'   : '140px',
+              'width'   : '150px',
               'font-size':'18px',
               'box-shadow': '10px 10px 5px #AAA',
               'z-index' : '5'})
