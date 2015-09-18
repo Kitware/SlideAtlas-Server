@@ -362,6 +362,8 @@ Presentation.prototype.MakeEditPanel = function (parent) {
             'New Slide'    : function () {self.InsertNewSlide("HTML");},
             'New Question' : function () {alert("Question not implemented yet");},
             'Insert Text'  : function () {self.HtmlPage.InsertTextBox();},
+            'Insert Rectangle': function () {
+                self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
             'Insert Image' : function () {self.InsertImage();}
         });
     $('<img>')
@@ -496,11 +498,11 @@ Presentation.prototype.HandleKeyUp = function(event) {
     // I cannot get the browser to paste into a new div
     // First, paste is executed before this callback.
     // Second, the execCommand paste does not appear to work.
-    if (event.keyCode == "86" && ! event.ctrlKey) { // check for control v paste
-        if (this.Note.Type == "HTML") {
-            this.HtmlPage.Paste();
-       }
-    }
+    //if (event.keyCode == "86" && ! event.ctrlKey) { // check for control v paste
+    //    if (this.Note.Type == "HTML") {
+    //        this.HtmlPage.Paste();
+    //   }
+    //}
 
     if (event.keyCode == "32" || // space
         event.keyCode == "34" || // page down
@@ -1341,7 +1343,7 @@ function HtmlPage (parent, edit) {
         .appendTo(parent)
         .hide()
         .css({
-            'background':'#FFF',
+            'background-color':'#E5F3FE',
             'position' : 'absolute',
             'width': '100%',
             'height': '100%'});
@@ -1387,15 +1389,8 @@ HtmlPage.prototype.DisplayNote = function (note) {
 HtmlPage.prototype.InitializeTitlePage = function() {
     this.Div.empty();
     this.Div[0].className = 'sa-presentation-title-page';
-    this.Div.css({'background-color':'#E5F3FE'});
-    var titleBar = $('<div>')
-        .appendTo(this.Div)
-        .css({'background-color':'#073E87',
-              'position':'absolute',
-              'left':'0%',
-              'width':'97.5%',
-              'top':'31%',
-              'height':'25%'});
+    // Title bar
+    this.InsertRectangle('#073E87','0%','31%','97.5%','25%');
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
     var titleText = this.InsertTextBox(50)
@@ -1418,15 +1413,10 @@ HtmlPage.prototype.InitializeTitlePage = function() {
 HtmlPage.prototype.InitializeSlidePage = function() {
     this.Div.empty();
     this.Div[0].className = 'sa-presentation-slide-page';
-    this.Div.css({'background-color':'#E5F3FE'});
-    var titleBar = $('<div>')
-        .appendTo(this.Div)
-        .css({'background-color':'#073E87',
-              'position':'absolute',
-              'left':'0%',
-              'width':'97.5%',
-              'top':'6%',
-              'height':'14%'});
+
+    // Title bar
+    this.InsertRectangle('#073E87','0%','6%','97.5%','14%');
+
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
     var titleText = this.InsertTextBox(42)
@@ -1446,14 +1436,13 @@ HtmlPage.prototype.InsertImage = function(src) {
         .appendTo(this.Div)
         .css({'position':'absolute',
               'left'    :'5%',
-              'top'     :'25%',
-              'height'  :'10%'})
+              'top'     :'25%'})
         .addClass('sa-presentation-image')
+        .attr('contenteditable', 'true')
         .saDraggable()
         .saDeletable();
     var img = $('<img>')
         .appendTo(imgDiv)
-        .css({'height'  :'100%'})
         .attr('src',src)
         .load(function () {
             // compute the aspect ratio.
@@ -1461,9 +1450,27 @@ HtmlPage.prototype.InsertImage = function(src) {
             imgDiv.saResizable({
                 aspectRatio: aRatio,
             });
+            img.css({'height' :'100%',
+                     'width'   :'100%'});
         });
 
     return imgDiv;
+}
+
+// Make the title bar movable and resizable.
+// left, top, width and height should be in percentages. i.e. '50%'
+HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
+    var bar = $('<div>')
+        .appendTo(this.Div)
+        .css({'background-color': color,
+              'position':'absolute',
+              'left':left,
+              'width':width,
+              'top':top,
+              'height':height})
+    .saDraggable()
+    .saDeletable()
+    .saResizable();
 }
 
 // The execCommand paste does not work
@@ -1551,7 +1558,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 
     if (this.Edit) {
         // Make this div into a text editor.
-        text.saTextEditor();
+        text.saTextEditor({dialog:true});
     }
 
     return text;

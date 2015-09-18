@@ -21,6 +21,7 @@ function CircleWidget (viewer, newFlag) {
     // Color
     this.Dialog.ColorDiv =
         $('<div>')
+        .css({'height':'24px'})
         .appendTo(this.Dialog.Body)
         .addClass("sa-view-annotation-modal-div");
     this.Dialog.ColorLabel =
@@ -32,6 +33,7 @@ function CircleWidget (viewer, newFlag) {
         $('<input type="color">')
         .appendTo(this.Dialog.ColorDiv)
         .val('#30ff00')
+        .hide()
         .addClass("sa-view-annotation-modal-input");
 
     // Line Width
