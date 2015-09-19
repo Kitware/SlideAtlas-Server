@@ -180,7 +180,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
             data: {"note" : noteObj,
                    "date" : d.getTime()},
             success: function(data,status) {},
-            error: function() { alert( "AJAX - error() : saveviewnotes (bounds)" ); },
+            error: function() { saDebug( "AJAX - error() : saveviewnotes (bounds)" ); },
         });
     }
 }
@@ -211,7 +211,7 @@ ViewEditMenu.prototype.SetImageBounds = function() {
                "bds" : JSON.stringify(bounds)},
         success: function(data,status) {},
         error: function() {
-            alert( "AJAX - error() : saveusernote 1" );
+            saDebug( "AJAX - error() : saveusernote 1" );
         },
     });
 }
@@ -265,7 +265,7 @@ ViewEditMenu.prototype.SessionAdvance = function() {
 //          function(data,status){
 //            if (status == "success") {
 //              ShowViewMenuAjax(data);
-//            } else { alert("ajax failed."); }
+//            } else { saDebug("ajax failed."); }
 //          });
 }
 

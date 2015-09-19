@@ -63,7 +63,7 @@ ViewBrowser.prototype.ReloadViewBrowserInfo = function() {
                   // I might want to open a session to avoid an extra click.
                   // I might want to sort the sessions to put the recent at the top.
                   self.LoadGUI(data);
-              } else { alert("ajax failed."); }
+              } else { saDebug("ajax failed."); }
           });
 }
 
@@ -99,7 +99,7 @@ ViewBrowser.prototype.SessionClickCallback = function(obj) {
           function(data,status){
               if (status == "success") {
                   self.AddSessionViews(data);
-              } else { alert("ajax failed."); }
+              } else { saDebug("ajax failed."); }
           });
 }
 
@@ -147,7 +147,7 @@ ViewBrowser.prototype.ViewClickCallback = function(obj) {
         success: function(data,status) {
             self.SelectView(data);
         },
-        error: function() { alert( "AJAX - error() : getview (browser)" ); },
+        error: function() { saDebug( "AJAX - error() : getview (browser)" ); },
     });
 }
 
