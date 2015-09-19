@@ -2234,6 +2234,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
 
     // Add an obvious way to add a link / view to the root note.
     if (EDIT) {
+        var self = this;
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
@@ -2241,7 +2242,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
-                childNote.RecordView(this.Display);
+                childNote.RecordView(self.Display);
                 // We need to save the note to get its Id (for the link div).
                 childNote.Save();
                 parentNote.UpdateChildrenGUI();
