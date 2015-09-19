@@ -1553,6 +1553,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:scale})
+        .resizable()
         // default content
         .text("Text");
 
