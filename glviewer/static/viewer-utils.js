@@ -709,7 +709,7 @@ function saTextEditor(div, args) {
     this.Div = div;
     // Position the div with percentages instead of pixels.
     this.Percentage = true;
-    div.resizable();
+    div.saResizable();
 
     var pos = div.position();
     // I think the drag handle needs to be in the parent.
