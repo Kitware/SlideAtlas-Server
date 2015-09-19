@@ -18,7 +18,7 @@ function Load() {
               // I might want to open a session to avoid an extra click.
               // I might want to sort the sessions to put the recent at the top.
               LoadImageBrowserGUI(data);
-            } else { alert("ajax failed."); }
+            } else { saDelete("ajax failed."); }
           });
 }
 
@@ -64,7 +64,7 @@ function ImageBrowserSessionCallback(obj) {
         function(data,status){
           if (status == "success") {
             ImageBrowserAddSessionViews(data);
-          } else { alert("ajax failed."); }
+          } else { saDelete("ajax failed."); }
         });
 }
 
@@ -101,7 +101,7 @@ function ImageBrowserImageCallback(obj) {
         function(data,status){
           if (status == "success") {
             ImageBrowserLoadImage(data);
-          } else { alert("ajax failed."); }
+          } else { saDelete("ajax failed."); }
         });
 }
 

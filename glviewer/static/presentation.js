@@ -1,7 +1,13 @@
 // CME
 // TODO:
-// Allow for relative font sizes in a saScalableFontDiv.
+// Font size
+//   Allow for relative font sizes in a saScalableFontDiv.
+// Embed video
+// Stack and subnotes.
+// Session browser.
 // Added viewer flickers and changes camera when resized.
+
+
 // Change font size in gui.
 // Change font color in GUI.
 // Title note type: HtmlSlide
@@ -1728,7 +1734,7 @@ SearchPanel.prototype.SearchCallback = function() {
             self.Parent.css({'cursor':'default'});
         },
         error: function() {
-            alert( "AJAX - error() : query" );
+            saDebug( "AJAX - error() : query" );
             self.Parent.css({'cursor':'default'});
         },
     });
@@ -1804,9 +1810,9 @@ function ClipboardPanel(parent, callback) {
         success: function(data,status){
             if (status == "success") {
                 self.LoadClipboardCallback(data);
-            } else { alert("ajax failed - get favorite views 2"); }
+            } else { saDebug("ajax failed - get favorite views 2"); }
         },
-        error: function() { alert( "AJAX - error() : getfavoriteviews 2" );
+        error: function() { saDebug( "AJAX - error() : getfavoriteviews 2" );
         },
     });
 }
@@ -1856,7 +1862,7 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
             success: function(data,status) {
             },
             error: function() {
-                alert( "AJAX - error() : deleteusernote" );
+                saDebug( "AJAX - error() : deleteusernote" );
             },
         });
     }

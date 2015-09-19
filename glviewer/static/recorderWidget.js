@@ -210,9 +210,9 @@ function GetTrackingData(){
     success: function(data,status){
                if (status == "success") {
                  LoadTrackingCallback(data);
-               } else { alert("ajax failed - get tracking data"); }
+               } else { saDebug("ajax failed - get tracking data"); }
              },
-    error: function() { alert( "AJAX - error() : gettrackingdata" ); },
+    error: function() { saDebug( "AJAX - error() : gettrackingdata" ); },
     });
 }
 
@@ -362,7 +362,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
             note.Id = data;
         },
         error: function() {
-            //alert( "AJAX - error() : saveusernote" );
+            //saDebug( "AJAX - error() : saveusernote" );
         },
     });
 
@@ -397,7 +397,7 @@ RecorderWidget.prototype.GetRecords = function() {
             self.Records = data.viewArray;
         },
         error: function() {
-            alert( "AJAX - error() : get records" );
+            saDebug( "AJAX - error() : get records" );
         },
     });
 }

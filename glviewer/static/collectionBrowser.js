@@ -134,7 +134,7 @@ CollectionBrowser = (function (){
                   if (status == "success") {
                       self.Load(data);
                   } else {
-                      alert("ajax failed.");
+                      saDebug("ajax failed.");
                   }
               });   
     }
@@ -217,7 +217,7 @@ CollectionBrowser = (function (){
                   if (status == "success") {
                       self.LoadViewData(data);
                   } else {
-                      alert("ajax failed: sessions?json=1"); }
+                      saDebug("ajax failed: sessions?json=1"); }
               });
     }
 
@@ -336,7 +336,7 @@ CollectionBrowser = (function (){
         this.SavedTime = this.ModifiedTime;
 
         if (this.State != LOADED) {
-            alert("Error Save: Session not loaded.");
+            saDebug("Error Save: Session not loaded.");
             return;
         }
 
@@ -374,7 +374,7 @@ CollectionBrowser = (function (){
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {saDebug( "AJAX - error: session-save (collectionBrowser)" ); }
         });
 
     }
@@ -1116,7 +1116,7 @@ CollectionBrowser = (function (){
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {alert( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {saDebug( "AJAX - error: session-save (collectionBrowser)" ); }
         });
 
         // Update the other browser.

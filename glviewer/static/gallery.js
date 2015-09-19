@@ -62,7 +62,7 @@ Gallery.prototype.Initialize = function() {
               if (status == "success") {
                   self.LoadCollectionList(data);
               } else {
-                  alert("ajax failed.");
+                  saDebug("ajax failed.");
               }
           });
 }
@@ -126,7 +126,7 @@ Gallery.prototype.SelectSession = function(idx) {
                   if (status == "success") {
                       self.LoadImages(data, image_store_id);
                   } else {
-                      alert("ajax failed.");
+                      saDebug("ajax failed.");
                   }
               }
              );
@@ -137,7 +137,7 @@ Gallery.prototype.SelectSession = function(idx) {
                   if (status == "success") {
                       self.LoadSession(data);
                   } else {
-                      alert("ajax failed."); }
+                      saDebug("ajax failed."); }
               }
              );
     }

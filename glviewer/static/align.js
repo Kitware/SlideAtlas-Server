@@ -946,7 +946,7 @@ TriangleMesh.prototype.OtherTriangleEdges = function (tri, edge) {
       } else if (tri.edge2 === edge) {
             return [tri.edge0, tri.edge1];
       }
-      alert("Triangle does not contain the edge");
+      saDebug("Triangle does not contain the edge");
 }
 
 
@@ -957,7 +957,7 @@ TriangleMesh.prototype.PointIdSharedByEdges = function (edge0, edge1) {
     if (edge0.vert0 == edge1.vert1) { return edge0.vert0; }
     if (edge0.vert1 == edge1.vert0) { return edge0.vert1; }
     if (edge0.vert1 == edge1.vert1) { return edge0.vert1; }
-    alert("Edges do not share a point");
+    saDebug("Edges do not share a point");
 }
 
 
@@ -1340,7 +1340,7 @@ function DistanceMap(bounds, spacing) {
                        Math.ceil((bounds[3]-bounds[2])/spacing)];
     var size = this.Dimensions[0]*this.Dimensions[1];
     if (size > 1000000) {
-        alert("Warning: Distance map memory requirement is large.");
+        saDebug("Warning: Distance map memory requirement is large.");
     }
     this.Map = new Array(size);
     for (var i = 0; i < size; ++i) {
@@ -3328,9 +3328,9 @@ function saveHagFishStack() {
             HAGFISH_DATA = data;
             HAGFISH_DATA_STACK = new Note();
             HAGFISH_DATA_STACK.Load(data);
-            alert("Auto Stack Saved");
+            saDebug("Auto Stack Saved");
         },
-        error: function() { alert( "AJAX - error() : saveviewnotes" ); },
+        error: function() { saDebug( "AJAX - error() : saveviewnotes" ); },
     });
 }
 

@@ -1,6 +1,12 @@
 var DUAL_DISPLAY = null;
 
 
+
+function saDebug(msg) {
+    console.log(msg);
+}
+
+
 // for debugging
 function MOVE_TO(x,y) {
   DUAL_DISPLAY.Viewers[0].MainView.Camera.SetFocalPoint(x,y);
@@ -89,7 +95,7 @@ function GetUser() {
   if (typeof(ARGS) != "undefined") {
     return ARGS.User;
   }
-  alert ("Could not find user");
+  saDebug("Could not find user");
   return "";
 }
 
@@ -104,7 +110,7 @@ function GetViewId () {
   if ( ! NOTES_WIDGET && ! NOTES_WIDGET.RootNote) {
     return NOTES_WIDGET.RootNote._id;
   }
-  alert ("Could not find view id");
+  saDebug("Could not find view id");
   return "";
 }
 
@@ -117,7 +123,7 @@ function doesBrowserSupportWebGL(canvas) {
     } catch (e) {
     }
     if (!GL) {
-        //alert("Could not initialise WebGL, sorry :-(");
+        //saDebug("Could not initialise WebGL, sorry :-(");
         return false;
     }
    return true;
@@ -174,7 +180,7 @@ function getShader(gl, id) {
     gl.compileShader(shader);
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        alert(gl.getShaderInfoLog(shader));
+        saDebug(gl.getShaderInfoLog(shader));
         return null;
     }
 
@@ -216,7 +222,7 @@ function createProgram(fragmentShaderID, vertexShaderID) {
     GL.linkProgram(program);
 
     if (!GL.getProgramParameter(program, GL.LINK_STATUS)) {
-        alert("Could not initialise shaders");
+        saDebug("Could not initialise shaders");
     }
 
     program.vertexPositionAttribute = GL.getAttribLocation(program, "aVertexPosition");
@@ -587,18 +593,18 @@ function Main(style,sessId,viewId) {
                     if (status == "success") {
                         Main2(rootNote);
                     } else {
-                        alert("ajax failed - session-add-view");
+                        saDebug("ajax failed - session-add-view");
                     }
                 },
                 error: function() {
-                    alert( "AJAX - error() : session-add-view" );
+                    saDebug( "AJAX - error() : session-add-view" );
                 },
             });
         });
 
     } else {
         if (viewId == "") {
-            alert("Missing view id");
+            saDebug("Missing view id");
             return;
         }
         rootNote.LoadViewId(viewId,

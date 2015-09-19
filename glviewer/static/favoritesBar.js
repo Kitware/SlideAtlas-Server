@@ -71,9 +71,9 @@ FavoritesBar.prototype.LoadFavorites = function () {
         success: function(data,status){
             if (status == "success") {
                 self.LoadFavoritesCallback(data);
-            } else { alert("ajax failed - get favorite views"); }
+            } else { saDebug("ajax failed - get favorite views"); }
         },
-        error: function() { alert( "AJAX - error() : getfavoriteviews" ); },
+        error: function() { saDebug( "AJAX - error() : getfavoriteviews" ); },
     });
 }
 
@@ -127,7 +127,7 @@ FavoritesBar.prototype.DeleteFavorite = function(img){
         success: function(data,status) {
         },
         error: function() {
-            alert( "AJAX - error() : deleteusernote" );
+            saDebug( "AJAX - error() : deleteusernote" );
         },
     });
     this.FavoritesGUI.ImageList.html("");

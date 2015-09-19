@@ -201,6 +201,7 @@ TextEditor.prototype.EditableOff = function() {
 
 
 TextEditor.prototype.EditOn = function() {
+    var self = this;
     if ( ! this.Editable) { return; }
     if (this.Edit) { return;}
     this.Edit = true;
@@ -590,6 +591,11 @@ TextEditor.prototype.MakeLinksClickable = function() {
 function NotesWidget(display) {
     this.ModifiedCallback = null;
     this.LinkDiv;
+    // This is a hack.  I do not know when to save the camera.
+    // The save button will save the camera for the last note displayed.
+    // This may be different that the selected note because of camera links
+    // in text that do not change the text.
+    this.DisplayedNote = null;
 
     // Popup div to display permalink.
     LINK_DIV =
@@ -772,8 +778,11 @@ NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
     this.ModifiedClearCallback = callback;
 }
 
-// I am changing the select behavior.  Children will show their view, but
-// will not become active unless they have their own text / html.
+
+// Two types of select.  This one is from the views tab.
+// It sets the text from the note.
+// There has to be another from text links.  That does not set the
+// text.
 NotesWidget.prototype.SelectNote = function(note) {
     if (note == this.SelectedNote) {
         // Just reset the camera.
@@ -795,7 +804,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     // This is so the next and previous buttons will behave.
     if (this.Iterator.GetNote() != note) {
         var iter = this.RootNote.NewIterator();
-        while (iter.GetNote() != this) {
+        while (iter.GetNote() != note) {
             if ( iter.IsEnd()) {
                 // I am supporting hyperlinks in UserNote.
                 // They are not in the links tree yet.
@@ -810,12 +819,7 @@ NotesWidget.prototype.SelectNote = function(note) {
         this.Iterator = iter;
     }
 
-    // Fallback to parent note text / html if necessary.
-    var textNote = note;
-    while ( textNote.Type != "UserNote" && textNote.Parent && textNote.Text == "") {
-        textNote = textNote.Parent;
-    }
-    this.TextEditor.LoadNote(textNote);
+    this.TextEditor.LoadNote(note);
 
     // Handle the note that is being unselected.
     // Clear the selected background of the deselected note.
@@ -835,7 +839,6 @@ NotesWidget.prototype.SelectNote = function(note) {
     // Select the current hyper link
     note.SelectHyperlink();
 
-
     if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
 
     if (this.Display.GetNumberOfViewers() > 1) {
@@ -846,7 +849,6 @@ NotesWidget.prototype.SelectNote = function(note) {
         // that defaults to a single viewer.
         display.SetNumberOfViewers(note.ViewerRecords.length);
     }
-
 
     // Clear the sync callback.
     var self = this;
@@ -1084,8 +1086,12 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     // This is a good comprise.  Do not record the camera
     // every time it moves, but do record it when the samve button
     // is pressed.
-    var note = this.GetCurrentNote();
-    note.RecordView(this.Display);
+    // Camer links in text can display a note without selecting the note. (current).
+    var note = this.DisplayedNote;
+    if (note) {
+        note.RecordView(this.Display);
+    }
+    note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
     note.NotesPanelOpen = this.Visibility;
 
@@ -1505,7 +1511,9 @@ Note.prototype.FormatHyperlink = function() {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
-                .click(function() { NOTES_WIDGET.SelectNote(self);})
+                //  I do not want the text to change. 
+                .click(function() { self.DisplayView(NOTES_WIDGET.Display);})
+                //.click(function() { NOTES_WIDGET.SelectNote(self);})
                 .css({'color': '#29C'})
                 .hover(function(){ $(this).css("color", "blue");},
                        function(){ $(this).css("color", "#29C");});
@@ -1579,9 +1587,10 @@ Note.prototype.TitleFocusInCallback = function() {
 
 
 Note.prototype.TitleFocusOutCallback = function() {
-    if (self.Modified) {
-        self.Modified = false;
-        self.Title = self.TitleEntry.text();
+    if (this.Modified) {
+        // Move the Title from the GUI to the note.
+        this.Modified = false;
+        this.Title = this.TitleEntry.text();
         NOTES_WIDGET.MarkAsModified();
     }
     // Allow the viewer to process arrow keys.
@@ -1651,6 +1660,10 @@ Note.prototype.UserCanEdit = function() {
 }
 
 Note.prototype.RecordView = function(display) {
+    // To determine which notes camera to save.
+    // For when the user creates a camera link.
+    NOTES_WIDGET.DisplayedNote = this;
+
     // TODO: Get rid of VIEWER globals.
     if (display.GetNumberOfViewers() == 0) { return; }
 
@@ -1799,7 +1812,7 @@ Note.prototype.Save = function(callback) {
         },
         error: function() {
             $('body').css({'cursor':'default'});
-            alert( "AJAX - error() : saveviewnotes" );
+            saDebug("AJAX - error() : saveviewnotes" );
         },
     });
 }
@@ -1985,7 +1998,7 @@ Note.prototype.LoadViewId = function(viewId, callback) {
             (callback)();
         }
     },
-    error: function() { alert( "AJAX - error() : getview" ); },
+    error: function() { saDebug( "AJAX - error() : getview" ); },
     });
 }
 
@@ -2029,6 +2042,8 @@ Note.prototype.DisplayStack = function(display) {
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function(display) {
+    NOTES_WIDGET.DisplayedNote = this;
+
     if (display.GetNumberOfViewers() == 0) { return; }
 
     // Remove Annotations from the previous note.
@@ -2118,7 +2133,7 @@ NotesWidget.prototype.SaveUserNote = function() {
                "type": "UserNote"},
         success: function(data,status) { childNote.Id = data;},
         error: function() {
-            alert( "AJAX - error() : saveusernote 1" );
+            saDebug( "AJAX - error() : saveusernote 1" );
         },
     });
 
@@ -2161,7 +2176,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
             LoadFavorites();
         },
         error: function() {
-            alert( "AJAX - error() : saveusernote 2" );
+            saDebug( "AJAX - error() : saveusernote 2" );
         },
     });
 }
@@ -2247,7 +2262,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
                 childNote.Save();
                 parentNote.UpdateChildrenGUI();
 
-                this.SelectNote(childNote);
+                self.SelectNote(childNote);
             });
     }
 
@@ -2318,7 +2333,7 @@ NotesWidget.prototype.RequestUserNote = function(imageId) {
         url: "/webgl-viewer/getusernotes",
         data: {"imageid": imageId},
         success: function(data,status) { self.LoadUserNote(data, imageId);},
-        error: function() { alert( "AJAX - error() : getusernotes" ); },
+        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
     });
 }
 
@@ -2339,7 +2354,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
-            alert("Warning: Only showing the first user note.");
+            saDebug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
         this.UserNote.Load(noteData);
