@@ -370,7 +370,8 @@ Presentation.prototype.MakeEditPanel = function (parent) {
             'Insert Text'  : function () {self.HtmlPage.InsertTextBox();},
             'Insert Rectangle': function () {
                 self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
-            'Insert Image' : function () {self.InsertImage();}
+            'Insert Image' : function () {self.InsertImage();},
+            'Embed Youtube' : function () {self.InsertYoutube();}
         });
     $('<img>')
         .appendTo(this.InsertMenuButton)
@@ -604,6 +605,11 @@ Presentation.prototype.InsertImage = function () {
     this.HtmlPage.InsertImage(src);
 }
 
+Presentation.prototype.InsertYoutube = function () {
+    var src = prompt("Video IFrame URL", '<iframe width="420" height="315" src="https://www.youtube.com/embed/9tCafgGZtxQ" frameborder="0" allowfullscreen></iframe>');
+    this.HtmlPage.InsertIFrame(src);
+}
+
 // 0->Root/titlePage
 // Childre/slides start at index 1
 Presentation.prototype.GotoSlide = function (index){
@@ -660,6 +666,9 @@ Presentation.prototype.GotoSlide = function (index){
             nextNote.ViewerRecords[1].LoadTiles([0,0,400,300]);
         }
     }
+
+    // Font was not scaling when first loaded.
+    $(window).trigger('resize');
 }
 
 
@@ -1507,8 +1516,45 @@ HtmlPage.prototype.Paste = function() {
     document.execCommand('paste',false,null);
 }
 
+// Embed youtube.
+//'<iframe width="420" height="315" src="https://www.youtube.com/embed/9tCafgGZtxQ" frameborder="0" allowfullscreen></iframe>');
+HtmlPage.prototype.InsertIFrame = function(html) {
+    // Youtube size has to be set in the original html string.
+    var width, height;
+    var start = html.indexOf('width');
+    if (start != -1) {
+        var str = html.substring(start+7);
+        var end = str.indexOf('"');
+        var tmp = str.substr(0,end);
+        width = parseInt(tmp) / (800*1.333);
+        width = Math.round(width*100);
+        width = width + '%';
+        html = html.replace(tmp, width);
+    }
+    start = html.indexOf('height');
+    if (start != -1) {
+        var str = html.substring(start+8);
+        var end = str.indexOf('"');
+        var tmp = str.substr(0,end);
+        height = parseInt(tmp) / 800;
+        height = Math.round(height*100);
+        height = height + '%';
+        html = html.replace(tmp, height);
+    }
 
-HtmlPage.prototype.InsertIFrame = function(src) {
+    var frame = $(html)
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'display':'block',
+              'left': '5%',
+              'top' : '5%'})
+        .saDraggable()
+        .saDeletable();
+
+    return frame;
+}
+
+HtmlPage.prototype.InsertURL = function(src) {
     // iframes do not scale with css.  I have to have a resize callback.
     var div = $('<div>')
         .appendTo(this.Div)

@@ -1,8 +1,5 @@
 // TODO: 
-// - Make editable an option for the text editor.
-// - It woud be nice to have drag button, delete button, edit buttons
-//   add themselves to a common buttons div in arbitrary saObjects.
-
+// Generalize the text dialog to have components from any sa element.
 
 
 
@@ -921,7 +918,7 @@ function saTextEditor(div, args) {
         this.Dialog.BorderColor =
             $('<input type="color">')
             .appendTo(this.Dialog.BorderDiv)
-            .val('#30ff00')
+            .val('#005077')
             .hide()
             .addClass("sa-view-annotation-modal-input");
         this.Dialog.BorderWidth =
@@ -990,13 +987,32 @@ saTextEditor.prototype.ShowDialog = function() {
     }
     this.Dialog.LineHeight.val(lineHeight);
 
+    str = this.Div[0].style.backgroundColor;
+    if (str != "") {
+        this.Dialog.BackgroundCheck.prop('checked', true);
+        this.Dialog.BackgroundColor.show();
+        this.Dialog.BackgroundColor.val(ConvertColorToHex(str));
+    }
+
+    str = this.Div[0].style.borderWidth;
+    if (str != "") {
+        this.Dialog.BorderCheck.prop('checked', true);
+        this.Dialog.BorderWidth.show();
+        this.Dialog.BorderWidth.val(parseInt(str));
+        this.Dialog.BorderColor.show();
+        str = this.Div[0].style.borderColor;
+        if (str != "") {
+            this.Dialog.BorderColor.val(ConvertColorToHex(str));
+        }
+    }
+
     this.Dialog.Show(true);
 }
 
 
 saTextEditor.prototype.DialogApplyCallback = function() {
     this.Div.css({'padding'      : '2%',
-                  'border-radius': '2%'});
+                  'border-radius': '3px'});
     if (this.Dialog.FontSize) {
         var scale = parseFloat(this.Dialog.FontSize.val()) / 800;
         this.Div.saScalableFont({scale:scale});
