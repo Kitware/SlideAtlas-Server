@@ -1,13 +1,13 @@
 // CME
 // TODO:
-// Font size
-//   Allow for relative font sizes in a saScalableFontDiv.
+// fix font color.
 // Embed video
 // Stack and subnotes.
 // Session browser.
 // Added viewer flickers and changes camera when resized.
 
 
+//   Allow for relative font sizes in a saScalableFontDiv.
 // Change font size in gui.
 // Change font color in GUI.
 // Title note type: HtmlSlide
