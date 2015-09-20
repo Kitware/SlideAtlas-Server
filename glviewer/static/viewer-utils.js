@@ -1,8 +1,5 @@
 // TODO: 
-// - Make editable an option for the text editor.
-// - It woud be nice to have drag button, delete button, edit buttons
-//   add themselves to a common buttons div in arbitrary saObjects.
-
+// Generalize the text dialog to have components from any sa element.
 
 
 
@@ -432,30 +429,6 @@ jQuery.prototype.saScalableFont = function(args) {
     for (var i = 0; i < this.length; ++i) {
         var text = this[i];
         if ( ! text.saScalableFont) {
-            // default.
-            var scale = 0.1;
-            // html() saves this attribute.
-            // this will restore the scale.
-            var scaleStr = text.getAttribute('sa-font-scale');
-            if (scaleStr) {
-                scale = parseFloat(scaleStr);
-            }
-            // This overrides the previous two.
-            if (args && args.scale) {
-                // convert to a decimal.
-                scale = args.scale;
-                if (typeof(scale) == "string") {
-                    if (scale.substring(-1) == "%") {
-                        scale = parseFloat(scale.substr(0,str.length-1))/100;
-                    } else {
-                        scale = parseFloat(scale);
-                    }
-                }
-            }
-            text.saScalableFont = {scale: scale};
-            // I can either keep this up to date or set it when the
-            // saHtml is called. Keeping it set is more local.
-            text.setAttribute('sa-font-scale', scale.toString());
             text.onresize =
                 function () {
                     scale = this.saScalableFont.scale;
@@ -467,8 +440,33 @@ jQuery.prototype.saScalableFont = function(args) {
                     // with their own font size.
                     $(this).children('font').css({'font-size':fontSize});
                 };
-            text.onresize();
+            text.saScalableFont = {};
+            text.saScalableFont.scale = 0.1;
         }
+        var scale = text.saScalableFont.scale;
+        // html() saves this attribute.
+        // this will restore the scale.
+        var scaleStr = text.getAttribute('sa-font-scale');
+        if (scaleStr) {
+            scale = parseFloat(scaleStr);
+        }
+        // This overrides the previous two.
+        if (args && args.scale) {
+            // convert to a decimal.
+            scale = args.scale;
+            if (typeof(scale) == "string") {
+                if (scale.substring(-1) == "%") {
+                    scale = parseFloat(scale.substr(0,str.length-1))/100;
+                } else {
+                    scale = parseFloat(scale);
+                }
+            }
+        }
+        // I can either keep this up to date or set it when the
+        // saHtml is called. Keeping it set is more local.
+        text.setAttribute('sa-font-scale', scale.toString());
+        text.saScalableFont.scale = scale;
+        text.onresize();
     }
 
     return this;
@@ -778,6 +776,7 @@ function saTextEditor(div, args) {
     this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
                        function() {document.execCommand('subscript',false,null);});
     if (div.hasClass('sa-scalable-font')) {
+        /*
         this.AddEditButton("webgl-viewer/static/font_increase.png", "large font",
                            function(){
                                text = self.Div[0];
@@ -806,12 +805,64 @@ function saTextEditor(div, args) {
                                text.onresize();
                                $(text).focus();
                            });
+                           */
     }
     if (args.dialog) {
         var self = this;
         this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
         // Customize dialog for a circle.
         this.Dialog.Title.text('Text Box Properties');
+
+        // Font Size
+        this.Dialog.FontSizeDiv =
+        $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'height':'32px'})
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.FontSizeLabel =
+            $('<div>')
+            .appendTo(this.Dialog.FontSizeDiv)
+            .text("Font Size:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.FontSize =
+            $('<input type="number">')
+            .appendTo(this.Dialog.FontSizeDiv)
+            .addClass("sa-view-annotation-modal-input")
+            .keypress(function(event) { return event.keyCode != 13; });
+
+        // Font Color
+        this.Dialog.FontColorDiv =
+        $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'height':'32px'})
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.FontColorLabel =
+            $('<div>')
+            .appendTo(this.Dialog.FontColorDiv)
+            .text("Color:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.FontColor =
+            $('<input type="color">')
+            .appendTo(this.Dialog.FontColorDiv)
+            .val('#050505')
+            .addClass("sa-view-annotation-modal-input");
+
+        // Line Height
+        this.Dialog.LineHeightDiv =
+        $('<div>')
+            .appendTo(this.Dialog.Body)
+            .css({'height':'32px'})
+            .addClass("sa-view-annotation-modal-div");
+        this.Dialog.LineHeightLabel =
+            $('<div>')
+            .appendTo(this.Dialog.LineHeightDiv)
+            .text("Line Height %:")
+            .addClass("sa-view-annotation-modal-input-label");
+        this.Dialog.LineHeight =
+            $('<input type="number">')
+            .appendTo(this.Dialog.LineHeightDiv)
+            .addClass("sa-view-annotation-modal-input")
+            .keypress(function(event) { return event.keyCode != 13; });       
 
         // Background
         this.Dialog.BackgroundDiv =
@@ -864,12 +915,10 @@ function saTextEditor(div, args) {
                     self.Dialog.BorderColor.hide();
                 }
             });
-
-
         this.Dialog.BorderColor =
             $('<input type="color">')
             .appendTo(this.Dialog.BorderDiv)
-            .val('#30ff00')
+            .val('#005077')
             .hide()
             .addClass("sa-view-annotation-modal-input");
         this.Dialog.BorderWidth =
@@ -880,9 +929,7 @@ function saTextEditor(div, args) {
             .keypress(function(event) { return event.keyCode != 13; });
 
         this.AddEditButton("webgl-viewer/static/Menu.jpg", "properties",
-                           function() {
-                               self.Dialog.Show(true);
-                           });
+                           function() { self.ShowDialog(); });
     }
 
     div.attr('contenteditable', "true")
@@ -914,10 +961,80 @@ function saTextEditor(div, args) {
         });
 }
 
+saTextEditor.prototype.ShowDialog = function() {
+    var str;
+
+    // iniitalize the values.
+    if (this.Div[0].saScalableFont) {
+        var scale = this.Div[0].saScalableFont.scale;
+        var fontSize = Math.round(scale * 800);
+        this.Dialog.FontSize.val(fontSize);
+    }
+
+    var color = '#000000';
+    str = this.Div[0].style.color;
+    if (str != "") {
+        color = ConvertColorToHex(str);
+    }
+    this.Dialog.FontColor.val(color);
+
+    var lineHeight = 120; // default value?
+    var str = this.Div[0].style.lineHeight;
+    if (str != "") {
+        if (str.substring(str.length-1) == "%") {
+            lineHeight = parseFloat(str.substr(0,str.length-1));
+        }
+    }
+    this.Dialog.LineHeight.val(lineHeight);
+
+    str = this.Div[0].style.backgroundColor;
+    if (str != "") {
+        this.Dialog.BackgroundCheck.prop('checked', true);
+        this.Dialog.BackgroundColor.show();
+        this.Dialog.BackgroundColor.val(ConvertColorToHex(str));
+    }
+
+    str = this.Div[0].style.borderWidth;
+    if (str != "") {
+        this.Dialog.BorderCheck.prop('checked', true);
+        this.Dialog.BorderWidth.show();
+        this.Dialog.BorderWidth.val(parseInt(str));
+        this.Dialog.BorderColor.show();
+        str = this.Div[0].style.borderColor;
+        if (str != "") {
+            this.Dialog.BorderColor.val(ConvertColorToHex(str));
+        }
+    }
+
+    this.Dialog.Show(true);
+}
+
 
 saTextEditor.prototype.DialogApplyCallback = function() {
     this.Div.css({'padding'      : '2%',
-                  'border-radius': '2%'});
+                  'border-radius': '3px'});
+    if (this.Dialog.FontSize) {
+        var scale = parseFloat(this.Dialog.FontSize.val()) / 800;
+        this.Div.saScalableFont({scale:scale});
+    }
+
+    if (this.Dialog.LineHeight) {
+        var lineHeight = parseFloat(this.Dialog.LineHeight.val());
+        this.Div[0].style.lineHeight = lineHeight + "%";
+    }
+
+    if (this.Dialog.FontColor) {
+        var color = this.Dialog.FontColor.val();
+        this.Div[0].style.color = color;
+    }
+    
+    var color = '#000000';
+    str = this.Div[0].style.color;
+    if (str != "") {
+        color = str;
+    }
+    this.Dialog.FontColor.val(color);
+
 
     if (this.Dialog.BackgroundCheck.is(":checked")) {
         var hexcolor = this.Dialog.BackgroundColor.val();
@@ -1417,7 +1534,16 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 // RGB [Float, Float, Float] to #RRGGBB string
 var ConvertColorToHex = function(color) {
-  if (typeof(color) == 'string') { return color; }
+  if (typeof(color) == 'string') { 
+      if (color.substring(0,1) == '#') {
+          return color;
+          } else if (color.substring(0,3) == 'rgb') {
+              tmp = color.substring(4,color.length - 1).split(',');
+              color = [parseInt(tmp[0])/255,
+                       parseInt(tmp[1])/255,
+                       parseInt(tmp[2])/255];
+          }
+  }
   var hexDigits = "0123456789abcdef";
   var str = "#";
   for (var i = 0; i < 3; ++i) {
