@@ -1,7 +1,5 @@
 // CME
 // TODO:
-// fix font color.
-// Embed video
 // Stack and subnotes.
 // Session browser.
 // Added viewer flickers and changes camera when resized.
