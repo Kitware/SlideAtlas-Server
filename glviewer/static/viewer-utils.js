@@ -1442,8 +1442,9 @@ ResizePanel.prototype.ToggleNotesWindow = function() {
 
 //args: { label: function, ...}
 jQuery.prototype.saMenuButton = function(args) {
-
+    if (this.length == 0) { return this;}
     var item = this[0];
+
     if ( ! item.saMenuButton) {
         item.saMenuButton = new saMenuButton(args, this);
     }
@@ -1471,6 +1472,14 @@ function saMenuButton(args, menuButton) {
     // Jquery UI formatting
     this.InsertMenu.menu();
 
+    // Make it easy to select the first item
+    var self = this;
+    label = Object.keys(args)[0];
+    menuButton.click(function() {
+        (args[label])();
+        self.InsertMenu.hide();
+    });
+
     var self = this;
     menuButton.mouseover(
         function () { self.ShowInsertMenu(); });
@@ -1493,6 +1502,7 @@ saMenuButton.prototype.AddMenuItem = function(label, callback) {
         .click(function() {
             (callback)();
             self.InsertMenu.hide();
+            return false;
         });
 }
 
