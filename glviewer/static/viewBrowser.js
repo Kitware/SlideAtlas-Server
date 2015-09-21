@@ -4,7 +4,6 @@
 // I am also making this into a dialog object. (not based on the dialog class).
 
 
-
 function ViewBrowser() {
     var self = this;
     // A view browser (short cut menu) for the text input.
@@ -107,7 +106,9 @@ BrowserPanel.prototype.LoadGUI = function() {
             $('<li>').appendTo(sessionList)
                 .text(session.label)
                 .attr('db', session.sessdb).attr('sessid', session.sessid)
-                .bind('click', function(){self.SessionClickCallback(this);});
+                .bind('click',function(){self.SessionClickCallback(this);})
+                .addClass('saButton'); // for hover highlighting
+
         }
     }
 }
@@ -115,14 +116,19 @@ BrowserPanel.prototype.LoadGUI = function() {
 BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
     var self = this;
     // Get the sessions this user has access to.
+
+    this.BrowserDiv.css({'cursor':'progress'});
     $.get("/sessions?json=true",
           function(data,status){
+              self.BrowserDiv.css({'cursor':'default'});
               if (status == "success") {
                   self.BrowserInfo = data;
                   // I might want to open a session to avoid an extra click.
                   // I might want to sort the sessions to put the recent at the top.
                   self.LoadGUI(data);
-              } else { saDebug("ajax failed."); }
+              } else { 
+                  saDebug("ajax failed."); 
+              }
           });
 }
 
@@ -132,11 +138,14 @@ BrowserPanel.prototype.SessionClickCallback = function(obj) {
     // No closing yet.
     // Already open. disable iopening twice.
     $(obj).unbind('click');
+    $(obj).removeClass('saButton'); // for hover highlighting
 
     // We need the information in view, image and bookmark (startup_view) object.
     var sess = $(obj).attr('sessid');
+    this.BrowserDiv.css({'cursor':'progress'});
     $.get("/sessions?json=true"+"&sessid="+$(obj).attr('sessid'),
           function(data,status){
+              self.BrowserDiv.css({'cursor':'default'});
               if (status == "success") {
                   self.AddSessionViews(data);
               } else { saDebug("ajax failed."); }
@@ -151,11 +160,12 @@ BrowserPanel.prototype.AddSessionViews = function(sessionData) {
     for (var i = 0; i < sessionData.images.length; ++i) {
       var image = sessionData.images[i];
       var item = $('<li>').appendTo(viewList)
-          // image.db did not work for ibriham stack (why?)
-          .attr('db', image.db)
-          .attr('sessid', sessionData.sessid)
-          .attr('viewid', image.view)
-          .click(function(){self.ViewClickCallback(this);});
+        // image.db did not work for ibriham stack (why?)
+            .attr('db', image.db)
+            .attr('sessid', sessionData.sessid)
+            .attr('viewid', image.view)
+            .click(function(){self.ViewClickCallback(this);})
+            .addClass('saButton'); // for hover highlighting
       $('<img>').appendTo(item)
           .attr('src', "/thumb?db="+image.db+"&img="+image.img)
           .css({'height': '50px'});
@@ -179,6 +189,7 @@ BrowserPanel.prototype.ViewClickCallback = function(obj) {
 
     // Ok, so we only have the viewId at this point.
     // We need to get the view object to get the image id.
+    this.BrowserDiv.css({'cursor':'progress'});
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
@@ -186,9 +197,13 @@ BrowserPanel.prototype.ViewClickCallback = function(obj) {
                "viewid": $(obj).attr('viewid'),
                "db"  : $(obj).attr('db')},
         success: function(data,status) {
+            self.BrowserDiv.css({'cursor':'default'});
             self.SelectView(data);
         },
-        error: function() { saDebug( "AJAX - error() : getview (browser)" ); },
+        error: function() {
+            self.BrowserDiv.css({'cursor':'default'});
+            saDebug( "AJAX - error() : getview (browser)" );
+        },
     });
 }
 

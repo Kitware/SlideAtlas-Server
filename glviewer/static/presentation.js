@@ -1,30 +1,24 @@
 // CME
 // TODO:
 // Stack and subnotes.
-// Session browser.
+// Improve session browser:
+//   Close sessions.
+//   Open notes with children.
+//   Show multiple viewer records.
+//   Choose Images and Notes
+//   Merge search with browser.
 // Added viewer flickers and changes camera when resized.
 
 
 //   Allow for relative font sizes in a saScalableFontDiv.
-// Change font size in gui.
-// Change font color in GUI.
-// Title note type: HtmlSlide
 // Add GUI to add slides and slide items.
 // Background of thumbs should be white.
-// text showing up the wrong size in title bar when first loaded.
-
+// Embed option of viewer.
 
 
 
 
 // TODO:
-// First: content.
-// Actual title page.
-// 1: jquery iFrame.
-// 2: isolate dragable for iFrame.
-// 3: editable off option for text.
-// 4: HtmlPage not expanding during presentation.
-
 
 //==============================================================================
 // TODO:
@@ -339,8 +333,9 @@ Presentation.prototype.MakeEditPanel = function (parent) {
                           'height':'100%'})
 
     this.SlidesDiv = this.EditTabs.NewTabDiv("Slides");
-    this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
+    this.BrowserDiv = this.EditTabs.NewTabDiv("Browse");
     this.SearchDiv = this.EditTabs.NewTabDiv("Search");
+    this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
 
     var self = this;
 
@@ -369,7 +364,7 @@ Presentation.prototype.MakeEditPanel = function (parent) {
             'Insert Rectangle': function () {
                 self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
             'Insert Image' : function () {self.InsertImage();},
-            'Insert Video' : function () {self.InsertVideo();},
+            'Insert MP4' : function () {self.InsertVideo();},
             'Embed Youtube' : function () {self.InsertYoutube();}
         });
     $('<img>')
@@ -385,15 +380,22 @@ Presentation.prototype.MakeEditPanel = function (parent) {
               'bottom':'3px',
               'overflow-y':'auto'});
 
-    this.ClipboardPanel = new ClipboardPanel(
-        this.ClipboardDiv,
+    this.BrowserPanel = new BrowserPanel(
+        this.BrowserDiv,
         function (viewObj) {
             self.AddViewCallback(viewObj);
         });
+    this.BrowserDiv.css({'overflow-y':'auto'});
+
     this.SearchPanel = new SearchPanel(
         this.SearchDiv,
         function (imageObj) {
             self.AddImageCallback(imageObj);
+        });
+    this.ClipboardPanel = new ClipboardPanel(
+        this.ClipboardDiv,
+        function (viewObj) {
+            self.AddViewCallback(viewObj);
         });
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
@@ -1653,7 +1655,6 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 }
 
 
-
 // Should save the view as a child notes, or viewer record?
 // For saving, it would be easy to encode the view id into the html as an
 // attribute, but what would I do with the other viewer records?  Ignore
@@ -1668,7 +1669,11 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     // First make a copy of the view as a child.
     var newNote = new Note();
     newNote.Load(viewObj);
-    this.InsertViewerRecord(newNote);
+    if (newNote.ViewerRecords.length > 0) {
+        this.InsertViewerRecord(newNote.ViewerRecords[0]);
+    } else {
+        saDebug("Insert failed: Note has no viewer records.");
+    }
 }
 
 
