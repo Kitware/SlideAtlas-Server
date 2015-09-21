@@ -1,5 +1,7 @@
 // CME
 // TODO:
+// Snap to grid.
+// Slide menu/edit buttons
 // Stack and subnotes.
 // Improve session browser:
 //   Close sessions.
@@ -358,14 +360,15 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .css({'float':'right',
               'position':'relative'})
         .saMenuButton( {
-            'New Slide'    : function () {self.InsertNewSlide("HTML");},
-            'New Question' : function () {alert("Question not implemented yet");},
-            'Insert Text'  : function () {self.HtmlPage.InsertTextBox();},
+            'New Slide'       : function () {self.InsertNewSlide("HTML");},
+            'New Question'    : function () {alert("Question not implemented yet");},
+            'Copy Slide'      : function () {self.InsertSlideCopy();},
+            'Insert Text'     : function () {self.HtmlPage.InsertTextBox();},
             'Insert Rectangle': function () {
                 self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
-            'Insert Image' : function () {self.InsertImage();},
-            'Insert MP4' : function () {self.InsertVideo();},
-            'Embed Youtube' : function () {self.InsertYoutube();}
+            'Insert Image'    : function () {self.InsertImage();},
+            'Insert MP4'      : function () {self.InsertVideo();},
+            'Embed Youtube'   : function () {self.InsertYoutube();}
         });
     $('<img>')
         .appendTo(this.InsertMenuButton)
@@ -601,6 +604,16 @@ Presentation.prototype.InsertNewSlide = function (type){
     }
 }
 
+Presentation.prototype.InsertSlideCopy = function (type){
+    var idx = this.Index+1;
+    var note = new Note();
+    // Deep copy of note with children.
+    note.Load(this.Note.Serialize(true));
+    this.RootNote.Children.splice(idx-1,0,note);
+    this.GotoSlide(idx);
+    this.UpdateSlidesTab();
+}
+
 Presentation.prototype.InsertImage = function () {
     var src = prompt("Image URL", "https://slide-atlas.org/static/img/SlideAtlas_home.jpg");
     this.HtmlPage.InsertImage(src);
@@ -673,10 +686,11 @@ Presentation.prototype.GotoSlide = function (index){
         }
     }
 
+    this.UpdateSlidesTab();
+
     // Font was not scaling when first loaded.
     $(window).trigger('resize');
 }
-
 
 Presentation.prototype.GetNumberOfSlides = function (){
     return this.RootNote.Children.length + 1;
@@ -694,26 +708,93 @@ Presentation.prototype.GetSlide = function (idx){
 }
 
 
+Presentation.prototype.SortCallback = function (){
+    // Change the list of GUI items into a list of notes.
+    var items = this.SlideList.find('div');
+    var newChildren = [];
+    var newIndex = 0;
+    for (var i = 0; i < items.length; ++i) {
+        var idx = parseInt($(items[i]).data('index'));
+        if (idx != 0) { // we have to skip the title page because it is
+            // root.
+            newChildren.push(this.GetSlide(idx));
+        }
+        if (this.Index == idx) {
+            // If the current slide moved, update the index.
+            // Note the offset by one to account for the root / title.
+            // length is one more than the notes index.
+            newIndex = newChildren.length;
+        }
+    }
+    this.RootNote.Children = newChildren;
+    this.Index = newIndex;
+    this.UpdateSlidesTab();
+}
+
+
 Presentation.prototype.UpdateSlidesTab = function (){
+    var self = this;
+
     // Add the title page 
     this.SlideList.empty();
 
+    if (EDIT) {
+        this.SlideList
+            .sortable({update: function(event,ui){self.SortCallback();},
+                       handle: ".ui-icon"});
+    }
+
     for (var i = 0; i < this.GetNumberOfSlides(); ++i) {
-        //var slide = this.GetSlide(i);
+        // get a title
+        var note = this.GetSlide(i);
+        var title = note.Title;
+        if (title == "") { // No title set in the note
+            title = note.Text;
+            var idx = title.indexOf('sa-presentation-text');
+            if (idx == -1) {
+                // Nothing i the text / html to use as a title.
+                title = "Slide " + i;
+            } else {
+                title = title.substring(idx);
+                idx = title.indexOf('>');
+                title = title.substring(idx+1);
+                idx = title.indexOf('<');
+                // We may have other formating blocks.
+                // An xml parser would be nice.
+                while (idx == 0) {
+                    idx = title.indexOf('>');
+                    title = title.substring(idx+1);
+                    idx = title.indexOf('<');
+                }
+                title = title.substring(0,idx);
+            }
+        }
         var slideDiv = $('<div>')
             .appendTo(this.SlideList)
-            .css({'padding-left':'1.5em',
+            .css({'position':'relative',
+                  'padding-left':'1.5em',
                   'padding-right':'1.5em',
                   'margin': '5px',
-                  'border':'2px outset #CCC'})
-            .text("Slide " + i)
+                  'color': '#29C'})
+            .hover(function(){ $(this).css("color", "blue");},
+                   function(){ $(this).css("color", "#29C");})
+            .text(title)
             .data("index",i)
-            .hover(
-                function() {$(this).css({'background':'#EEE'});},
-                function() {$(this).css({'background':'#FFF'});})
             .click(function () {
                 PRESENTATION.GotoSlide($(this).data("index"));
             });
+        var sortHandle = $('<span>')
+            .appendTo(slideDiv)
+            .css({'position':'absolute',
+                  'left':'7px',
+                  'top' :'2px',
+                  'opacity':'0.5'})
+            .addClass('ui-icon ui-icon-bullet')
+            .addClass('sa-sort-handle');
+        
+        if (this.Note == note) {
+            slideDiv.css({'background':'#EEE'});
+        }
     }
 }
 
