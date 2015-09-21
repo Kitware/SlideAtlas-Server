@@ -760,6 +760,37 @@ function Main2(rootNote) {
 }
 
 
-
-
-
+// I had to prune all the annotations (lassos) that were not visible.
+function keepVisible(){
+  var n = NOTES_WIDGET.GetCurrentNote();
+  var r = n.ViewerRecords[n.StartIndex];
+  var w = VIEWER1.WidgetList;
+  var c = VIEWER1.GetCamera();
+  var b =c.GetBounds();
+  for(var i= 0; i<r.Annotations.length; ++i) {
+    if (r.Annotations[i].type != 'lasso') {
+      r.Annotations.splice(i,1);
+      --i;
+    } else {
+      var pt = r.Annotations[i].points[0];
+      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+  b[3]) {
+        r.Annotations.splice(i,1);
+        --i;
+      }
+    }
+  }
+  for(var i= 0; i<w.length; ++i) {
+    if ( ! w[i] instanceof LassoWidget || ! w[i].Loop) {
+      w.splice(i,1);
+      --i;
+    } else {
+      var pt = w[i].Loop.Points[0];
+      if ( ! pt || pt[0] < b[0] || pt[0] > b[1] || pt[1] < b[2] || pt[1] >
+  b[3]) {
+        w.splice(i,1);
+        --i;
+      }
+    }
+  }
+}

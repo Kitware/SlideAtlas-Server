@@ -360,16 +360,19 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .css({'float':'right',
               'position':'relative'})
         .saMenuButton( {
-            'New Slide'       : function () {self.InsertNewSlide("HTML");},
-            'New Question'    : function () {alert("Question not implemented yet");},
+            'New Slide'       : function () {
+                self.InsertNewSlide("HTML");},
             'Copy Slide'      : function () {self.InsertSlideCopy();},
-            'Insert Text'     : function () {self.HtmlPage.InsertTextBox();},
+            'Insert Text'     : function () {
+                self.HtmlPage.InsertTextBox();},
+            'Insert Question' : function () {self.HtmlPage.InsertQuestion();},
             'Insert Rectangle': function () {
                 self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
             'Insert Image'    : function () {self.InsertImage();},
             'Insert MP4'      : function () {self.InsertVideo();},
             'Embed Youtube'   : function () {self.InsertYoutube();}
         });
+
     $('<img>')
         .appendTo(this.InsertMenuButton)
         .attr('src','webgl-viewer/static/new_window.png');
@@ -1484,6 +1487,8 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
     // still needed for iframes.
     this.BindElements();
+
+    this.ShuffleQuestion();
 }
 
 
@@ -1719,8 +1724,8 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'overflow': 'visible',
               'fontFamily': "Verdana,sans-serif",
               // defaults caller can reset these.
-              'left' : '18%',
-              'top'  : '90%'})
+              'left' : '5%',
+              'top'  : '30%'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:scale})
@@ -1733,6 +1738,93 @@ HtmlPage.prototype.InsertTextBox = function(size) {
     }
 
     return text;
+}
+
+HtmlPage.prototype.ShuffleQuestion = function() {
+    var questions = this.Div.find('.sa-question');
+    for (var i = 0; i < questions.length; ++i) {
+        var q = questions[i];
+        // Shuffle the list.
+        for (j = q.childNodes.length; j > 0; --j) {
+            var idx = Math.floor(Math.random() * j);
+            q.appendChild(q.removeChild(q.childNodes[idx]));
+        }
+    }
+}
+
+// Multiple choice for now.
+// Answers stored as list items <li>.
+HtmlPage.prototype.InsertQuestion = function() {
+    var self = this;
+
+    var dialog = $('<div>')
+        .dialog({
+            modal: false,
+            resizable:true,
+            minWidth: 450,
+            beforeClose: function() {
+                CONTENT_EDITABLE_HAS_FOCUS = false;
+            },
+            buttons: {
+                "create": function () {
+                    var textBox = self.InsertTextBox(22);
+                    textBox.html(self.Question.html());
+                    var q = $('<ol>')
+                        .appendTo(textBox)
+                        .addClass('sa-question');
+                    var a = $('<li>')
+                        .appendTo(q)
+                        .text(self.Answer.html())
+                        .addClass('sa-answer');
+                    for (var i = 0; i < self.Options.length; ++i) {
+                        var a = $('<li>')
+                            .appendTo(q)
+                            .text(self.Options[i].html());
+                    }
+
+                    self.ShuffleQuestion();
+
+                    $(this).dialog("destroy");
+                }
+            }
+        });
+
+    // TODO: Do not make these instance variables of presentation.
+    this.QuestionTypeLabel = $('<div>')
+        .appendTo(dialog)
+        .text("Multiple Choice");
+
+    this.QuestionLabel = $('<div>')
+        .appendTo(dialog)
+        .text("Question:");
+    this.Question = $('<div>')
+        .appendTo(dialog)
+        .css({'border':'1px solid #AAA',
+              'margin':'2px'})
+        .attr('contenteditable', 'true');
+
+    this.AnswerLabel = $('<div>')
+        .appendTo(dialog)
+        .text("Answer:");
+    this.Answer = $('<div>')
+        .appendTo(dialog)
+        .css({'border':'1px solid #AAA',
+              'margin':'2px'})
+        .attr('contenteditable', 'true');
+
+
+    this.Options = [];
+    this.AddOptionButton = $('<button>')
+        .appendTo(dialog)
+        .text("+ Option")
+        .click(function () {
+            var option = $('<div>')
+                .insertBefore(self.AddOptionButton)
+                .css({'border':'1px solid #AAA',
+                      'margin':'2px'})
+                .attr('contenteditable', 'true');
+            self.Options.push(option);
+        });
 }
 
 

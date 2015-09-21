@@ -29,3 +29,19 @@
   background-color: #888;
 }
 
+.sa-presentation-text ul {
+  margin-top: 0em;
+  padding-left: 1em;
+}
+
+.sa-presentation-text ol {
+  margin-top: 0em;
+  padding-left: 1em;
+  list-style-position: inside;
+}
+
+.sa-presentation-text .sa-answer {
+    font-weight: bold;
+}
+
+
