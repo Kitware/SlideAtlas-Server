@@ -28,6 +28,12 @@ function ViewBrowser() {
     this.SearchDiv = this.TabbedDiv.NewTabDiv("Search");
     this.ClipboardDiv = this.TabbedDiv.NewTabDiv("Clipboard");
 
+    this.BrowserPanel = new BrowserPanel(
+        this.BrowserDiv,
+        function (viewObj) {
+            self.SelectView(viewObj);
+        });
+
     this.SearchPanel = new SearchPanel(
         this.SearchDiv,
         function (imageObj) {
@@ -41,9 +47,30 @@ function ViewBrowser() {
         });
 
     this.Viewer = null;
-    this.BrowserInfo = null;
-    this.ReloadViewBrowserInfo();
 }
+
+ViewBrowser.prototype.SelectView = function(viewObj) {
+    if (viewObj == null) {
+        this.Viewer.SetCache(null);
+        eventuallyRender();
+    }
+
+    this.SelectImage(viewObj.ViewerRecords[0].Image);
+}
+
+ViewBrowser.prototype.SelectImage = function(imgobj) {
+    this.Div.fadeOut();
+    var source = FindCache(imgobj);
+
+    // We have to get rid of annotation which does not apply to the new image.
+    this.Viewer.Reset();
+    this.Viewer.SetCache(source);    
+
+    RecordState();
+
+    eventuallyRender();
+}
+
 
 // Open the dialog. (ShowViewBrowser).
 ViewBrowser.prototype.Open = function(viewer) {
@@ -53,21 +80,19 @@ ViewBrowser.prototype.Open = function(viewer) {
     this.Div.show();
 }
 
-ViewBrowser.prototype.ReloadViewBrowserInfo = function() {
-    var self = this;
-    // Get the sessions this user has access to.
-    $.get("/sessions?json=true",
-          function(data,status){
-              if (status == "success") {
-                  self.BrowserInfo = data;
-                  // I might want to open a session to avoid an extra click.
-                  // I might want to sort the sessions to put the recent at the top.
-                  self.LoadGUI(data);
-              } else { saDebug("ajax failed."); }
-          });
+
+//==============================================================================
+
+
+function BrowserPanel(browserDiv, callback) {
+    this.BrowserDiv = browserDiv;
+    this.SelectView = callback;
+
+    this.BrowserInfo = null;
+    this.ReloadViewBrowserInfo();
 }
 
-ViewBrowser.prototype.LoadGUI = function() {
+BrowserPanel.prototype.LoadGUI = function() {
     var self = this;
     var data = this.BrowserInfo;
     this.BrowserDiv.empty();
@@ -87,7 +112,22 @@ ViewBrowser.prototype.LoadGUI = function() {
     }
 }
 
-ViewBrowser.prototype.SessionClickCallback = function(obj) {
+BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
+    var self = this;
+    // Get the sessions this user has access to.
+    $.get("/sessions?json=true",
+          function(data,status){
+              if (status == "success") {
+                  self.BrowserInfo = data;
+                  // I might want to open a session to avoid an extra click.
+                  // I might want to sort the sessions to put the recent at the top.
+                  self.LoadGUI(data);
+              } else { saDebug("ajax failed."); }
+          });
+}
+
+
+BrowserPanel.prototype.SessionClickCallback = function(obj) {
     var self = this;
     // No closing yet.
     // Already open. disable iopening twice.
@@ -103,7 +143,8 @@ ViewBrowser.prototype.SessionClickCallback = function(obj) {
           });
 }
 
-ViewBrowser.prototype.AddSessionViews = function(sessionData) {
+
+BrowserPanel.prototype.AddSessionViews = function(sessionData) {
     var self = this;
     var sessionItem = $("[sessid="+sessionData.sessid+"]");
     var viewList = $('<ul>').appendTo(sessionItem)
@@ -123,13 +164,13 @@ ViewBrowser.prototype.AddSessionViews = function(sessionData) {
       }
 }
 
-ViewBrowser.prototype.ViewClickCallback = function(obj) {
+
+BrowserPanel.prototype.ViewClickCallback = function(obj) {
     var self = this;
 
     // null implies the user wants an empty view.
     if (obj == null) {
-        this.Viewer.SetCache(null);
-        eventuallyRender();
+        this.SelectView(null);
         return;
     }
 
@@ -150,24 +191,6 @@ ViewBrowser.prototype.ViewClickCallback = function(obj) {
         error: function() { saDebug( "AJAX - error() : getview (browser)" ); },
     });
 }
-
-ViewBrowser.prototype.SelectView = function(viewObj) {
-    this.SelectImage(viewObj.ViewerRecords[0].Image);
-}
-
-ViewBrowser.prototype.SelectImage = function(imgobj) {
-    this.Div.fadeOut();
-    var source = FindCache(imgobj);
-
-    // We have to get rid of annotation which does not apply to the new image.
-    this.Viewer.Reset();
-    this.Viewer.SetCache(source);    
-
-    RecordState();
-
-    eventuallyRender();
-}
-
 
 
 

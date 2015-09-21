@@ -369,6 +369,7 @@ Presentation.prototype.MakeEditPanel = function (parent) {
             'Insert Rectangle': function () {
                 self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
             'Insert Image' : function () {self.InsertImage();},
+            'Insert Video' : function () {self.InsertVideo();},
             'Embed Youtube' : function () {self.InsertYoutube();}
         });
     $('<img>')
@@ -601,6 +602,11 @@ Presentation.prototype.InsertNewSlide = function (type){
 Presentation.prototype.InsertImage = function () {
     var src = prompt("Image URL", "https://slide-atlas.org/static/img/SlideAtlas_home.jpg");
     this.HtmlPage.InsertImage(src);
+}
+
+Presentation.prototype.InsertVideo = function () {
+    var src = prompt("Video URL", "https://slide-atlas.org/api/v2/sessions/53ac02d5a7a14110d929adcc/attachments/55fef0e6a7a14162dfb4da32");
+    this.HtmlPage.InsertVideo(src);
 }
 
 Presentation.prototype.InsertYoutube = function () {
@@ -1468,6 +1474,38 @@ HtmlPage.prototype.InsertImage = function(src) {
         });
 
     return imgDiv;
+}
+
+// TODO: Change type based on extension
+HtmlPage.prototype.InsertVideo = function(src) {
+    // resizable makes a containing div anyway.
+    var vidDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left'    :'10%',
+              'top'     :'30%'})
+        .addClass('sa-presentation-video')
+        .saDraggable()
+        .saDeletable();
+
+    var vid = $('<video controls>')
+        .appendTo(vidDiv);
+    var src = $('<source type="video/mp4">')
+        .appendTo(vid)
+        .attr('src',src);
+
+    vid[0].addEventListener('loadeddata', function() {
+        // Video is loaded
+        // compute the aspect ratio.
+        var aRatio = $(this).width() / $(this).height();
+        vidDiv.saResizable({
+            aspectRatio: aRatio,
+        });
+        vid.css({'height' :'100%',
+                 'width'  :'100%'});
+    }, false);
+
+    return vidDiv;
 }
 
 // Make the title bar movable and resizable.
