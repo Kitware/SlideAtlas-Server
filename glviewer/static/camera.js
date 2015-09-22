@@ -10,7 +10,7 @@ function Camera () {
     this.Matrix = mat4.create();
     this.Height = 256.0 * 64.0;
     this.Width = this.Height * 1.62;
-    this.FocalPoint = [128.0*64.0, 128.0*64.0, 10.0];
+    this.FocalPoint = [128.0*64.0, 128.0*64.0];
     this.ComputeMatrix();
     // for drawing the view bounds.
     this.Points = [];
@@ -28,7 +28,7 @@ Camera.prototype.DeepCopy = function (inCam) {
     this.Roll = inCam.Roll;
     this.Height = inCam.Height;
     this.Width = inCam.Width;
-    this.FocalPoint = inCam.FocalPoint.slice(0);
+    this.SetFocalPoint( inCam.FocalPoint);
     this.ViewportWidth = inCam.ViewportWidth;
     this.ViewportHeight = inCam.ViewportHeight;
     this.ComputeMatrix();
@@ -48,7 +48,7 @@ Camera.prototype.SetViewport = function (viewport) {
 
 Camera.prototype.Serialize = function () {
   var obj = {};
-  obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
+  obj.SetFocalPoint( [this.FocalPoint[0], this.FocalPoint[1]]);
   obj.Roll = this.Roll;
   obj.Height = this.GetHeight();
   obj.Width = this.GetWidth();
@@ -56,8 +56,7 @@ Camera.prototype.Serialize = function () {
 }
 
 Camera.prototype.Load = function (obj) {
-    this.FocalPoint[0] = obj.FocalPoint[0];
-    this.FocalPoint[1] = obj.FocalPoint[1];
+    this.SetFocalPoint( obj.FocalPoint);
     this.Roll = obj.Roll;
     this.Height = obj.Height;
     if (obj.Width) {
@@ -80,16 +79,16 @@ Camera.prototype.GetRotation = function () {
 Camera.prototype.GetFocalPoint = function () {
   // Copy to avoid bugs because arrays are shared.
   // These are nasty to find.
-  return [this.FocalPoint[0],this.FocalPoint[1],this.FocalPoint[2]];
+  return [this.FocalPoint[0],this.FocalPoint[1]];
 }
 
-Camera.prototype.SetFocalPoint = function (x, y) {
-  if (isNaN(x) || isNaN(y)) {
+Camera.prototype.SetFocalPoint = function (fp) {
+  if (isNaN(fp[0]) || isNaN(fp[1])) {
     console.log("Camera 1");
     return;
   }
-  this.FocalPoint[0] = x;
-  this.FocalPoint[1] = y;
+  this.FocalPoint[0] = fp[0];
+  this.FocalPoint[1] = fp[1];
   // Ignore z on purpose.
 }
 
@@ -132,7 +131,7 @@ Camera.prototype.HandleTranslate = function (dx,dy) {
     var c = Math.cos(this.Roll);
     var x = this.FocalPoint[0];
     var y = this.FocalPoint[1];
-    var z = this.FocalPoint[2];
+    var z = 10;
     var w = this.GetWidth();
     var h = this.GetHeight();
 
@@ -174,14 +173,16 @@ Camera.prototype.HandleRoll = function (x,y, dx, dy) {
 
 
 Camera.prototype.Translate = function (dx,dy,dz) {
-  if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
-    console.log("Camera 2");
-    return;
-  }
-  this.FocalPoint[0] += dx;
-  this.FocalPoint[1] += dy;
-  this.FocalPoint[2] += dz;
-  this.ComputeMatrix();
+    if (isNaN(dx) || isNaN(dy) || isNaN(dz)) {
+        console.log("Camera 2");
+        return;
+    }
+    // I will leave this as an exception.
+    // Everything else uses SetFocalPoint([x,y]);
+    this.FocalPoint[0] += dx;
+    this.FocalPoint[1] += dy;
+    //this.FocalPoint[2] += dz;
+    this.ComputeMatrix();
 }
 
 
@@ -243,7 +244,7 @@ Camera.prototype.ComputeMatrix = function () {
     var c = Math.cos(this.Roll);
     var x = this.FocalPoint[0];
     var y = this.FocalPoint[1];
-    var z = this.FocalPoint[2];
+    var z = 10;
     var w = this.GetWidth();
     // var ht = this.GetHeight();  The iPad got this wrong?????
     var ht = this.Height;
@@ -291,10 +292,9 @@ Camera.prototype.Reset = function () {
     bounds[3] = TILE_DIMENSIONS[1] * ROOT_SPACING[1];
     bounds[5] = NUMBER_OF_SECTIONS * ROOT_SPACING[2];
 
-    this.SetFocalPoint((bounds[0] + bounds[1]) * 0.5,
-                       (bounds[2] + bounds[3]) * 0.5);
-    // We would need to set slice as well.
-    //this.FocalPoint[2] = (bounds[4] + bounds[5]) * 0.5;
+    this.SetFocalPoint( [(bounds[0] + bounds[1]) * 0.5,
+                         (bounds[2] + bounds[3]) * 0.5]);
+
     this.SetHeight(bounds[3]-bounds[2]);
     this.ComputeMatrix();
 }
@@ -309,7 +309,7 @@ Camera.prototype.DisplayToWorld = function (x,y,z) {
     var worldPt = [];
     worldPt[0] = this.FocalPoint[0] + (x * scale);
     worldPt[1] = this.FocalPoint[1] + (y * scale);
-    worldPt[2] = this.FocalPoint[2] + (z * this.Height * 0.5);
+    worldPt[2] = 10 + (z * this.Height * 0.5);
 
     return worldPt;
 }

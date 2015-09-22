@@ -91,6 +91,10 @@ View.prototype.GetViewport = function() {
 // The canvasDiv changes size, the width and height of the canvas and
 // camera need to follow.  I am going to make this the resize callback.
 View.prototype.UpdateCanvasSize = function() {
+    if ( ! this.CanvasDiv.is(':visible') ) {
+        return;
+    }
+
     var pos = this.CanvasDiv.position();
     //var width = this.CanvasDiv.innerWidth();
     //var height = this.CanvasDiv.innerHeight();
@@ -190,6 +194,9 @@ View.prototype.AddShape = function(shape) {
 }
 
 View.prototype.DrawShapes = function () {
+    if ( ! this.CanvasDiv.is(':visible') ) {
+        return;
+    }
     for(i=0; i<this.ShapeList.length; i++){
         this.ShapeList[i].Draw(this);
     }
@@ -201,6 +208,9 @@ var MASK_HACK = false;
 // Returns true if all the tiles to render were available.
 // False implies that the user shoudl render again.
 View.prototype.DrawTiles = function () {
+    if ( ! this.CanvasDiv.is(':visible') ) {
+        return;
+    }
     //console.time("  ViewDraw");
     if ( GL) {
         if (MASK_HACK ) {

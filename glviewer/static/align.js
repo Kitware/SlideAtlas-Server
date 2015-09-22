@@ -3296,7 +3296,7 @@ function addVerifiedHagFishContours() {
             record.Camera.Height = Math.abs((fp[1]-c[1])*2);
             record.Camera.Roll = contour.Camera.Roll;
         }
-        record.Camera.FocalPoint = fp;
+        record.Camera.SetFocalPoint(fp);
         record.Image = imgData;
         record.Database = imgData.db;
         if (LAST_HAGFISH_CONTOUR) {

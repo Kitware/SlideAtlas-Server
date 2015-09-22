@@ -161,8 +161,8 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     viewerRecord.OverviewBounds = bounds;
     // Set the image bounds so the new bounds are used immediately.
     viewerRecord.Image.bounds = viewerRecord.OverviewBounds;
-    this.Viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, 
-                                              (bounds[2]+bounds[3])/2);
+    this.Viewer.OverView.Camera.SetFocalPoint( [(bounds[0]+bounds[1])/2,
+                                                (bounds[2]+bounds[3])/2]);
     this.Viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
     this.Viewer.OverView.Camera.ComputeMatrix();
     eventuallyRender();
@@ -197,7 +197,8 @@ ViewEditMenu.prototype.SetImageBounds = function() {
 
     // Set the image bounds so the new bounds are used immediately.
     viewer.GetCache().Image.bounds = bounds;
-    viewer.OverView.Camera.SetFocalPoint((bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2);
+    viewer.OverView.Camera.SetFocalPoint( [(bounds[0]+bounds[1])/2,
+                                           (bounds[2]+bounds[3])/2]);
     viewer.OverView.Camera.SetHeight(bounds[3]-bounds[2]);
     viewer.OverView.Camera.ComputeMatrix();
     eventuallyRender();
