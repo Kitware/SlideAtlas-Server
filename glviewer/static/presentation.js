@@ -1,5 +1,6 @@
 // CME
 // TODO:
+// Images not scalling properly (interactive)
 // Snap to grid.
 // Slide menu/edit buttons
 // Stack and subnotes.
@@ -1757,6 +1758,7 @@ HtmlPage.prototype.ShuffleQuestion = function() {
 HtmlPage.prototype.InsertQuestion = function() {
     var self = this;
 
+    CONTENT_EDITABLE_HAS_FOCUS = true;
     var dialog = $('<div>')
         .dialog({
             modal: false,
@@ -1805,6 +1807,7 @@ HtmlPage.prototype.InsertQuestion = function() {
 
     this.AnswerLabel = $('<div>')
         .appendTo(dialog)
+        .addClass('sa-answer')
         .text("Answer:");
     this.Answer = $('<div>')
         .appendTo(dialog)
@@ -1813,6 +1816,9 @@ HtmlPage.prototype.InsertQuestion = function() {
         .attr('contenteditable', 'true');
 
 
+    this.OptionTypeLabel = $('<div>')
+        .appendTo(dialog)
+        .text("Options:");
     this.Options = [];
     this.AddOptionButton = $('<button>')
         .appendTo(dialog)
