@@ -9,7 +9,7 @@ function saDebug(msg) {
 
 // for debugging
 function MOVE_TO(x,y) {
-  DUAL_DISPLAY.Viewers[0].MainView.Camera.SetFocalPoint(x,y);
+  DUAL_DISPLAY.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
   DUAL_DISPLAY.Viewers[0].MainView.Camera.ComputeMatrix();
   eventuallyRender();
 }

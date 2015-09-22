@@ -59,7 +59,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
     view.SetCache(cache);
     view.InitializeViewport(viewport, 1, true);
     var newCam = view.Camera;
-    newCam.SetFocalPoint(focalPoint[0], focalPoint[1]);
+    newCam.SetFocalPoint( focalPoint);
     newCam.SetRoll(roll);
     newCam.SetHeight(height*scale);
     // TODO:  Hide matrix computation.  Make it automatic.

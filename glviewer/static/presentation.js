@@ -1,6 +1,5 @@
 // CME
 // TODO:
-// Images not scalling properly (interactive)
 // Snap to grid.
 // Slide menu/edit buttons
 // Stack and subnotes.
@@ -10,7 +9,6 @@
 //   Show multiple viewer records.
 //   Choose Images and Notes
 //   Merge search with browser.
-// Added viewer flickers and changes camera when resized.
 
 
 //   Allow for relative font sizes in a saScalableFontDiv.
@@ -1876,9 +1874,9 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
               'background-color':'#FFF',
               'opacity':'1.0',
               'left':'5%',
-              'right':'2.5%',
+              'width':'30%',
               'top':'25%',
-              'bottom':'10%'})
+              'height':'30%'})
         .saViewer({'note': this.Note,
                    'viewerIndex':viewerIdx,
                    'hideCopyright':true})

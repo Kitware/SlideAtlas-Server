@@ -154,6 +154,10 @@ jQuery.prototype.saHtml = function(string) {
                 var item = items[i];
                 saPresentationImageSetAspect($(item))
             }
+            // Why did these disapear?  Put the back.
+            // I do not think it wil hurt to call saResizable twice.
+            items = this.find('.sa-presentation-view');
+            items.saResizable();
         }
 
         return;
@@ -208,7 +212,17 @@ function saPresentationImageSetAspect(div) {
 
 jQuery.prototype.saResizable = function(args) {
     args = args || {};
+    args.start = function (e, ui) {
+        if ( this.saViewer ) {
+            // Translate events were being triggered in the viewer.
+            this.saViewer.Focus = false;
+        }
+    };
     args.stop = function (e, ui) {
+        if ( this.saViewer ) {
+            // Translate events were being triggered in the viewer.
+            this.saViewer.Focus = true;
+        }
         // change the width to a percentage.
         var width = $(this).width();
         width = 100 * width / $(this).parent().width();
