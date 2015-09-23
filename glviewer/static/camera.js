@@ -48,7 +48,7 @@ Camera.prototype.SetViewport = function (viewport) {
 
 Camera.prototype.Serialize = function () {
   var obj = {};
-  obj.SetFocalPoint( [this.FocalPoint[0], this.FocalPoint[1]]);
+  obj.FocalPoint = [this.FocalPoint[0], this.FocalPoint[1]];
   obj.Roll = this.Roll;
   obj.Height = this.GetHeight();
   obj.Width = this.GetWidth();
