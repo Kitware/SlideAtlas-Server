@@ -7,15 +7,13 @@
 // A common parent for all sa buttons (for this element).
 // Handle showing and hiding buttons.  Internal helper.
 
-function saGetButtonsDiv(element) {
-    if ( ! element.saButtons) {
+function saGetButtonsDiv(domElement) {
+    if ( ! domElement.saButtons) {
         // Edit buttons.
-        var helper = new saButtons($(element));
-        element.saButtons = helper;
-
+        var helper = new saButtons($(domElement));
+        domElement.saButtons = helper;
     }
-
-    return element.saButtons.ButtonsDiv;
+    return domElement.saButtons.ButtonsDiv;
 }
 
 function saButtons (div) {
@@ -30,8 +28,8 @@ function saButtons (div) {
         .css({'position':'absolute',
               'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px',
-              'width' :'300px', // TODO: see if we can get rid of the width.
-              'z-index': '10'}); 
+              'width' :'340px', // TODO: see if we can get rid of the width.
+              'z-index': '10'});
     // Show the buttons on hover.
     var self = this;
     this.ButtonsDiv
@@ -70,11 +68,12 @@ saButtons.prototype.HideButtons = function () {
 }
 
 
-function saAddButton (element, src, tooltip, callback) {
-    var buttonsDiv = saGetButtonsDiv(element);
+function saAddButton (domElement, src, tooltip, callback, prepend) {
+    var buttonsDiv = saGetButtonsDiv(domElement);
+
     var button = $('<img>')
-        .appendTo(buttonsDiv)
         .addClass('editButton')
+        .css({'height':'16px'})
         .attr('src',src);
     if (callback) {
         button.click(callback);
@@ -84,10 +83,16 @@ function saAddButton (element, src, tooltip, callback) {
         button.prop('title', tooltip);
     }
 
+    if ( prepend) {
+        button.prependTo(buttonsDiv);
+    } else {
+        button.appendTo(buttonsDiv);
+    }
+
     return button;
 }
 
-// privatex functions.
+// private functions.
 // TODO: Make an api through jquery to do this.
 function saButtonsDisable (element) {
     if ( ! element.saButtons) { return; }
@@ -144,6 +149,11 @@ jQuery.prototype.saHtml = function(string) {
 
         if (EDIT) {
             var items = this.find('.sa-resizable');
+            // temporary to make previous editors draggable.
+            items = this.find('.sa-text-editor');
+            items.saDraggable();
+            items.saDeletable();
+
             items.saResizable();
             items = this.find('.sa-deletable');
             items.saDeletable();
@@ -492,8 +502,9 @@ jQuery.prototype.saScalableFont = function(args) {
 // draggable with a handle
 // TODO: This uses percentages now.  Exxtend with the option to position
 // with pixel units.
-
-jQuery.prototype.saDraggable = function() {
+// args = {grid: [xDivisions, yDivisions]}
+jQuery.prototype.saDraggable = function(args) {
+    args = args || {grid:[30,39]};
     this.addClass('sa-draggable');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saDraggable) {
@@ -501,20 +512,33 @@ jQuery.prototype.saDraggable = function() {
             // Add the helper as an instance variable to the dom object.
             this[i].saDraggable = helper;
         }
+        this[i].saDraggable.SetArgs(args);
     }
 
     return this;
 }
 
 function saDraggable(div) {
+    this.XStops = null;
+    this.YStops = null;
     this.Percentage = true;
     this.Div = div;
+
     var self = this;
-    var d = saAddButton(div[0], 'webgl-viewer/static/fullscreen.png', 'drag');
+    var d = saAddButton(div[0], 'webgl-viewer/static/fullscreen.png',
+                        'drag', null, true);
     d.mousedown(
         function (e) {
             self.OldX = e.pageX;
             self.OldY = e.pageY;
+
+            var pos = self.Div.position();
+            var x = pos.left;
+            var y = pos.top;
+            var width = self.Div.parent().width();
+            var height = self.Div.parent().height();
+            if (self.XStops) { self.XStops.Start(x,width);}
+            if (self.YStops) { self.YStops.Start(y,height);}
             $('body').on('mousemove.saDrag',
                       function (e) {
                           self.Drag(e.pageX-self.OldX, e.pageY-self.OldY);
@@ -532,23 +556,153 @@ function saDraggable(div) {
         });
 }
 
+saDraggable.prototype.SetArgs = function(args) {
+    if (args.grid) {
+        // The grid is not shared.
+        this.XStops = new saStops(args.grid[0]);
+        this.YStops = new saStops(args.grid[1]);
+    }
+}
+
+// (dx, dy) drag vector in pixels.
 saDraggable.prototype.Drag = function(dx, dy) {
     var pos = this.Div.position();
+    var x = pos.left;
+    var y = pos.top;
 
-    var x = pos.left + dx;
-    var y = pos.top + dy;
+    var width = this.Div.parent().width();
+    var height = this.Div.parent().height();
+    var nx = x + dx;
+    var ny = y + dy;
+    if (this.XStops) {
+        nx = this.XStops.Drag(dx);
+    }
+    if (this.YStops) {
+        ny = this.YStops.Drag(dy);
+    }
+
     if (this.Percentage) {
-        x = 100 * x / this.Div.parent().width();
-        y = 100 * y / this.Div.parent().height();
-        this.Div[0].style.left = x.toString()+'%';
-        this.Div[0].style.top = y.toString()+'%';
+        nx  = nx / width;
+        ny  = ny / height;
+        nx = nx*100;
+        ny = ny*100;
+        this.Div[0].style.left = nx+'%';
+        this.Div[0].style.top  = ny+'%';
     } else {
-        this.Div[0].style.left = x+'px';
-        this.Div[0].style.top = y+'px';
+        this.Div[0].style.left = nx+'px';
+        this.Div[0].style.top  = ny+'px';
     }
 
     this.Div[0].saButtons.PlaceButtons();
 }
+
+
+function saStops(divisions) {
+    // How far do we hve to pass a stop before the item snaps to the mouse.
+    this.Threshold = 25;
+    // Current Stop
+    this.Stopped = false;
+    this.Stop = 0;  // TODO: This is not necessary.  Just use last.
+    // The amount of drag saved up so far to get out of a stop.
+    this.Delta = 0;
+
+    // For speed up factor to account for stopped regions.
+    this.Target = 0;
+    this.Gap = 100.0;
+
+    // Even positioning of the division.
+    this.Divisions = divisions;
+    // The current position of the item.
+    this.Last = 0;
+}
+
+
+saStops.prototype.Start = function(last, size) {
+    this.Stopped = false;
+    this.Delta = 0;
+    this.Last = last;
+    this.Size = size;
+
+    this.Target = last;
+    this.Gap = size / this.Divisions;
+}
+
+
+// last and size could have changed since the last time this was called,
+// so pass them in again.
+// return:
+//   the new position of the item (same units as args).
+// arguments (all in the same units):
+//   size: width of window
+//   last: The current position of the item.
+//   delta: The distance the mouse has moved.
+saStops.prototype.Drag = function(delta) {
+    // Put a compensation factor so item follows mouse.
+    this.Target += delta;
+    delta = delta + 3*(this.Target - this.Last) / this.Gap;
+
+    // Where we should be without the stop.
+    var next = this.Last + delta;
+
+    if (this.Stopped) {
+        // Acculilate the movement.
+        this.Delta = this.Delta + delta;
+        // Have we passed the threshold to exit?
+        if (Math.abs(this.Delta) > this.Threshold) {
+            // yes
+            this.Stopped = false;
+            this.Delta = 0;
+            this.Last = next;
+            return next;
+        }
+        // no
+        return this.Stop;
+    }
+
+    // We are note stopped yet.
+    // Have we passed a stop?  Get the nearest stop value.
+    var stop = this.GetStop(this.Last, next);
+
+    if (stop < this.Last && stop < next) {
+        // We did not pass a stop.
+        this.Delta = 0;
+        this.Last = next;
+        return next;
+    }
+    if (stop > this.Last && stop > next) {
+        // We did not pass a stop.
+        this.Delta = 0;
+        this.Last = next;
+        return next;
+    }
+
+    // Stop is in middle.  Start the Stopped behavior.
+    this.Delta = next - stop;
+    this.Last = stop;
+    this.Stop = stop;
+    this.Stopped = true;
+
+    return stop;
+}
+
+
+saStops.prototype.GetStop = function(last, next) {
+    // Put the stops at integer values.
+    var last2 = last * this.Divisions / this.Size;
+    var next2 = next * this.Divisions / this.Size;
+    // transform motion to be positive;
+    if (next2 < last2) {
+        var tmp = last2;
+        last2 = next2;
+        next2 = tmp;
+    }
+    // Find the last stop passed.
+    var stop = Math.floor(next2);
+    stop = stop * this.Size / this.Divisions;
+
+    return stop;
+}
+
 
 
 
@@ -649,24 +803,25 @@ saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
 jQuery.prototype.saDeletable = function(args) {
     this.addClass('sa-deletable');
     for (var i = 0; i < this.length; ++i) {
-        var item = this[i];
-        if ( ! item.saDeletable) {
+        var domItem = this[i];
+        if ( ! domItem.saDeletable) {
             // for closure (save element)
-            item.saDeletable = new saDeletable(item);
+            domItem.saDeletable = new saDeletable(domItem);
         }
     }
     return this;
 }
 
-function saDeletable(item) {
+// check dom
+function saDeletable(domItem) {
     this.Button = saAddButton(
-        item, 'webgl-viewer/static/remove.png', 'delete',
+        domItem, 'webgl-viewer/static/remove.png', 'delete',
         function () {
             // if we want to get rid of the viewer records,
             if (item.saViewer) { saPruneViewerRecord(item.saViewer);}
             saButtonsDelete(item);
-            $(item).remove();
-        });
+            $(item).remove();},
+        true);
 }
 
 function saPruneViewerRecord(viewer) {
@@ -724,6 +879,7 @@ function saTextEditor(div, args) {
     div.saResizable();
 
     var pos = div.position();
+/*
     // I think the drag handle needs to be in the parent.
     // Then synchronize the div's position with the handle.
     // Parent must then be realtive positioning or equivalent.
@@ -750,8 +906,9 @@ function saTextEditor(div, args) {
         });
     // This is needed for the drag event to synchronize position of div.
     this.DragHandle[0].saTextEditor = this;
-
+    */
     // Edit buttons.
+    /*
     this.ButtonDiv = $('<div>')
         .appendTo(div.parent())
         .addClass('sa-edit-gui') // So we can remove it when saving.
@@ -760,38 +917,40 @@ function saTextEditor(div, args) {
               'left'  :(pos.left+20)+'px',
               'top'   :(pos.top-20) +'px',
               'width' :'350px'});
+    */
+    /*this.AddEditButton("webgl-viewer/static/remove.png", "delete",
+                       function() {self.Delete();});*/
 
-    this.AddEditButton("webgl-viewer/static/remove.png", "delete",
-                       function() {self.Delete();});
-    this.AddEditButton("webgl-viewer/static/link.png", "link URL",
-                       function() {self.InsertUrlLink();});
-    this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
-                       function() {
-                           console.log("bold");
-                           document.execCommand('bold',false,null);});
-    this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
-                       function() {document.execCommand('italic',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
-                       function() {document.execCommand('underline',false,null);});
-    this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
-                       function() {document.execCommand('InsertUnorderedList',false,null);});
-    this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
-                       function() {document.execCommand('InsertOrderedList',false,null);});
-    this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
-                       function() {document.execCommand('indent',false,null);});
-    this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
-                       function() {document.execCommand('outdent',false,null);});
-    this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
-                       function() {document.execCommand('justifyLeft',false,null);});
-    this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
-                       function() {document.execCommand('justifyCenter',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
-                       function() {document.execCommand('superscript',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
-                       function() {document.execCommand('subscript',false,null);});
+    var domText = this.Div[0];
+    saAddButton(domText, "webgl-viewer/static/link.png", "link URL",
+                function() {self.InsertUrlLink();});
+    saAddButton(domText, "webgl-viewer/static/font_bold.png", "bold",
+                function() {
+                    console.log("bold");
+                    document.execCommand('bold',false,null);});
+    saAddButton(domText, "webgl-viewer/static/text_italic.png", "italic",
+                function() {document.execCommand('italic',false,null);});
+    saAddButton(domText, "webgl-viewer/static/edit_underline.png", "underline",
+                function() {document.execCommand('underline',false,null);});
+    saAddButton(domText, "webgl-viewer/static/list_bullets.png", "unorded list",
+                function() {document.execCommand('InsertUnorderedList',false,null);});
+    saAddButton(domText, "webgl-viewer/static/list_numbers.png", "ordered list",
+                function() {document.execCommand('InsertOrderedList',false,null);});
+    saAddButton(domText, "webgl-viewer/static/indent_increase.png", "indent",
+                function() {document.execCommand('indent',false,null);});
+    saAddButton(domText, "webgl-viewer/static/indent_decrease.png", "outdent",
+                function() {document.execCommand('outdent',false,null);});
+    saAddButton(domText, "webgl-viewer/static/alignment_left.png", "align left",
+                function() {document.execCommand('justifyLeft',false,null);});
+    saAddButton(domText, "webgl-viewer/static/alignment_center.png", "align center",
+                function() {document.execCommand('justifyCenter',false,null);});
+    saAddButton(domText, "webgl-viewer/static/edit_superscript.png", "superscript",
+                function() {document.execCommand('superscript',false,null);});
+    saAddButton(domText, "webgl-viewer/static/edit_subscript.png", "subscript",
+                function() {document.execCommand('subscript',false,null);});
     if (div.hasClass('sa-scalable-font')) {
         /*
-        this.AddEditButton("webgl-viewer/static/font_increase.png", "large font",
+        saAddButton(domText, "webgl-viewer/static/font_increase.png", "large font",
                            function(){
                                text = self.Div[0];
                                text.saScalableFont.scale += 1;
@@ -805,7 +964,7 @@ function saTextEditor(div, args) {
                                text.onresize();
                                $(text).focus();
                            });
-        this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font",
+        saAddButton(domText, "webgl-viewer/static/font_decrease.png", "small font",
                            function() {
                                text = self.Div[0];
                                text.saScalableFont.scale -= 1;
@@ -876,6 +1035,7 @@ function saTextEditor(div, args) {
             $('<input type="number">')
             .appendTo(this.Dialog.LineHeightDiv)
             .addClass("sa-view-annotation-modal-input")
+            .val(1)
             .keypress(function(event) { return event.keyCode != 13; });       
 
         // Background
@@ -942,8 +1102,8 @@ function saTextEditor(div, args) {
             .hide()
             .keypress(function(event) { return event.keyCode != 13; });
 
-        this.AddEditButton("webgl-viewer/static/Menu.jpg", "properties",
-                           function() { self.ShowDialog(); });
+        saAddButton(domText, "webgl-viewer/static/Menu.jpg", "properties",
+                    function() { self.ShowDialog(); });
     }
 
     div.attr('contenteditable', "true")
@@ -952,26 +1112,32 @@ function saTextEditor(div, args) {
             // Position the handle in the proper spot.
             // Resizing with percentages changes it.
             var pos = self.Div.position();
+            /*
             self.DragHandle
                 .css({'left'  :(pos.left-2)+'px',
                       'top'   :(pos.top-20) +'px'})
                 .show();
+            */
+            /*
             self.ButtonDiv
                 .css({'left'  :(pos.left+20)+'px',
                       'top'   :(pos.top-20) +'px'})
                 .show();
+            */
 
         })
         .focusout(function() {
             CONTENT_EDITABLE_HAS_FOCUS = false;
-            self.DragHandle.hide();
+            //self.DragHandle.hide();
             // hiding the button div here keeps the buttons from working.
+            /*
             setTimeout(
                 function () {
                     if ( ! self.Div.is(":focus")) {
                         self.ButtonDiv.hide();
                     }},
                 250);
+            */
         });
 }
 
@@ -1018,6 +1184,8 @@ saTextEditor.prototype.ShowDialog = function() {
         if (str != "") {
             this.Dialog.BorderColor.val(ConvertColorToHex(str));
         }
+    } else {
+        this.Dialog.BorderWidth.val(1);
     }
 
     this.Dialog.Show(true);
@@ -1067,8 +1235,8 @@ saTextEditor.prototype.DialogApplyCallback = function() {
 }
 
 saTextEditor.prototype.Delete = function() {
-    this.DragHandle.remove();
-    this.ButtonDiv.remove();
+    //this.DragHandle.remove();
+    //this.ButtonDiv.remove();
     this.Div.remove();
 }
 
@@ -1234,26 +1402,11 @@ saTextEditor.prototype.GetSelectionRange = function() {
     return range;
 }
 
-// TODO: Button s have to be clicked in exact center......
-saTextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
-    var self = this;
-    var button = $('<img>');
-    if (tooltip) {
-        button.prop('title', tooltip);
-    }
-    button
-        .appendTo(this.ButtonDiv)
-        .css({'height':'16'})
-        .addClass('editButton')
-        .attr('src',src)
-        .click(callback);
-}
-
 // Set in position in pixels
 saTextEditor.prototype.SetPositionPixel = function(x, y) {
-    this.ButtonDiv
+    /*this.ButtonDiv
         .css({'left'  :(x+20)+'px',
-              'top'   :(y-20) +'px'})
+              'top'   :(y-20) +'px'})*/
     if (this.Percentage) {
         x = 100 * x / this.Div.parent().width();
         y = 100 * y / this.Div.parent().height();

@@ -1483,6 +1483,8 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
     this.Div.saHtml(note.Text);
+    // Set stops.
+    $('sa-draggable').saDraggable();
     this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
     // still needed for iframes.
     this.BindElements();
@@ -1606,9 +1608,9 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
               'width':width,
               'top':top,
               'height':height})
-    .saDraggable()
-    .saDeletable()
-    .saResizable();
+        .saDraggable()
+        .saDeletable()
+        .saResizable();
 }
 
 // The execCommand paste does not work
@@ -1734,6 +1736,8 @@ HtmlPage.prototype.InsertTextBox = function(size) {
     if (this.Edit) {
         // Make this div into a text editor.
         text.saTextEditor({dialog:true});
+        text.saDraggable();
+        text.saDeletable();
     }
 
     return text;
