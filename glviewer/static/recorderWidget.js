@@ -30,6 +30,16 @@ function ViewerRecord () {
     this.Annotations = [];
 }
 
+// For copy slide in presentatations.  Serialize / load messup image.
+ViewerRecord.prototype.DeepCopy = function(source) {
+    this.AnnotationVisibility = source.AnnotationVisibility;
+    this.Annotations = JSON.parse(JSON.stringify(source.Annotations));
+    this.Camera = new Camera();
+    this.Camera.DeepCopy(source.Camera);
+    this.Image = source.Image;
+    this.OverviewBounds = source.OverviewBounds.slice(0);
+}
+
 // I am still trying to figure out a good pattern for loading
 // objects from mongo.
 // Cast to a ViewerObject by setting its prototype does not work on IE
@@ -52,6 +62,7 @@ ViewerRecord.prototype.Load = function(obj) {
         this.Camera.Width = this.Camera.Height * 1.62;
     }
 
+    // Stuck with Overview because it is in the database.
     if (! this.OverviewBounds) {
         this.OverviewBounds = this.Image.bounds;
     }
@@ -109,7 +120,7 @@ ViewerRecord.prototype.CopyAnnotations = function (viewer) {
 // I am not sure we need to serialize.  
 // The annotations are already in database form.
 // Possibly we need to restrict which ivars get into the database.
-ViewerRecord.prototype.Serialize = function (viewer) {
+ViewerRecord.prototype.Serialize = function () {
   rec = {};
   rec.Image = this.Image._id;
   rec.Database = this.Image.database;

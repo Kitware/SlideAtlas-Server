@@ -819,8 +819,8 @@ function saDeletable(domItem) {
         function () {
             // if we want to get rid of the viewer records,
             if (item.saViewer) { saPruneViewerRecord(item.saViewer);}
-            saButtonsDelete(item);
-            $(item).remove();},
+            saButtonsDelete(domItem);
+            $(domItem).remove();},
         true);
 }
 
