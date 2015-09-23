@@ -988,7 +988,7 @@ NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
         LoadQueueUpdate();
     }
 
-    // Overview cameras need to be updated.
+    // OverView cameras need to be updated.
     if (refViewerIdx == 0) {
         this.Display.GetViewer(1).UpdateCamera();
         this.Display.GetViewer(1).EventuallyRender(false);
@@ -1439,6 +1439,34 @@ function Note () {
     this.StartIndex = 0;
     this.ActiveCorrelation = undefined;
     this.StackDivs = [];
+}
+
+// For copy slide in presentations
+Note.prototype.DeepCopy = function(note) {
+    // I tried serialize / load, but the image changed to a string id.
+    this.Image = Note.Image; // not really deep.
+    this.Children = [];
+    for (var i = 0; i < note.Children.length; ++i) {
+        var child = new Note();
+        child.DeepCopy(note.Children[i]);
+        this.Children.push(child);
+    }
+    this.Parent = note.Parent;
+    this.StartIndex = note.StartIndex;
+    // Replace old note id with new in HTML.
+    var oldId = note.Id || note.TempId;
+    var newId = this.Id || this.TempId;
+    this.Text = note.Text.replace(oldId, newId);
+    this.Title = note.Title;
+    this.Type = note.Type;
+    this.User = note.User;
+    this.UserText = note.UserText;
+    this.ViewerRecords = [];
+    for (var i = 0; i < note.ViewerRecords.length; ++i) {
+        var record = new ViewerRecord();
+        record.DeepCopy(note.ViewerRecords[i]);
+        this.ViewerRecords.push(record);
+    }
 }
 
 // So this is a real pain.  I need to get the order of the notes from

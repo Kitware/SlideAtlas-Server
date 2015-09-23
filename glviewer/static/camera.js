@@ -24,13 +24,13 @@ function Camera () {
 }
 
 Camera.prototype.DeepCopy = function (inCam) {
-    this.ZRange = inCam.ZRange.slice(0);
+    if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
     this.Roll = inCam.Roll;
     this.Height = inCam.Height;
     this.Width = inCam.Width;
     this.SetFocalPoint( inCam.FocalPoint);
-    this.ViewportWidth = inCam.ViewportWidth;
-    this.ViewportHeight = inCam.ViewportHeight;
+    if (inCam.ViewportWidth) { this.ViewportWidth = inCam.ViewportWidth; }
+    if (inCam.ViewportHeight) { this.ViewportHeight = inCam.ViewportHeight; }
     this.ComputeMatrix();
 }
 

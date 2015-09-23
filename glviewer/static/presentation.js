@@ -467,7 +467,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
     var record = new ViewerRecord();
-    record.OverViewBounds = image.bounds;
+    record.OverViewbounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
                                  (image.bounds[2]+image.bounds[3])/2, 0],
@@ -609,8 +609,12 @@ Presentation.prototype.InsertNewSlide = function (type){
 Presentation.prototype.InsertSlideCopy = function (type){
     var idx = this.Index+1;
     var note = new Note();
+
+    // Record changes in the note before the copy.
+    this.HtmlPage.UpdateEdits();
     // Deep copy of note with children.
-    note.Load(this.Note.Serialize(true));
+    note.DeepCopy(this.Note);
+
     this.RootNote.Children.splice(idx-1,0,note);
     this.GotoSlide(idx);
     this.UpdateSlidesTab();
