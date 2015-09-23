@@ -1462,6 +1462,7 @@ HtmlPage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
+        $('.sa-annotation-widget').saAnnotationWidget('hide');
     }
 }
 
@@ -1470,6 +1471,7 @@ HtmlPage.prototype.EditOn = function () {
     if (EDIT &&  ! this.Edit) {
         this.Edit = true;
         // this.Div.css({'width': '100%', 'left': '0px'}); ???
+        $('.sa-annotation-widget').saAnnotationWidget('show');
     }
 }
 

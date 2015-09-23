@@ -168,6 +168,10 @@ jQuery.prototype.saHtml = function(string) {
             // I do not think it wil hurt to call saResizable twice.
             items = this.find('.sa-presentation-view');
             items.saResizable();
+
+            //items = this.find('.sa-annotation-widget');
+            items = this.find('.sa-presentation-view');
+            items.saAnnotationWidget();
         }
 
         return;
@@ -1614,6 +1618,115 @@ jQuery.prototype.saMenuButton = function(args) {
 
     if ( ! item.saMenuButton) {
         item.saMenuButton = new saMenuButton(args, this);
+    }
+
+    return this;
+}
+
+function saMenuButton(args, menuButton) {
+    this.InsertMenuTimer = 0;
+    this.InsertMenu = $('<ul>')
+        .appendTo( menuButton )
+        // How do I customize the menu location?
+        .css({'position': 'absolute',
+              'left'    : '-110px',
+              'top'     : '25px',
+              'width'   : '150px',
+              'font-size':'18px',
+              'box-shadow': '10px 10px 5px #AAA',
+              'z-index' : '5'})
+        .hide();
+
+    for (label in args) {
+        this.AddMenuItem(label, args[label]);
+    }
+    // Jquery UI formatting
+    this.InsertMenu.menu();
+
+    // Make it easy to select the first item
+    var self = this;
+    label = Object.keys(args)[0];
+    menuButton.click(function() {
+        (args[label])();
+        self.InsertMenu.hide();
+    });
+
+    var self = this;
+    menuButton.mouseover(
+        function () { self.ShowInsertMenu(); });
+    this.InsertMenu.mouseover(
+        function () { self.ShowInsertMenu(); });
+
+    menuButton.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+    this.InsertMenu.mouseleave(
+        function () { self.EventuallyHideInsertMenu(); });
+}
+
+saMenuButton.prototype.AddMenuItem = function(label, callback) {
+    var self = this;
+
+    this[label] = $('<li>')
+        .appendTo(this.InsertMenu)
+        .text(label)
+        .addClass('saButton') // for hover effect
+        .click(function() {
+            (callback)();
+            self.InsertMenu.hide();
+            return false;
+        });
+}
+
+saMenuButton.prototype.ShowInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    this.InsertMenu.show();
+}
+
+saMenuButton.prototype.EventuallyHideInsertMenu = function() {
+    if (this.InsertMenuTimer) {
+        clearTimeout(this.InsertMenuTimer);
+        this.InsertMenuTimer = 0;
+    }
+    var self = this;
+    this.InsertMenuTimer = setTimeout(
+        function () {
+            self.InsertMenuTimer = 0;
+            self.InsertMenu.fadeOut();
+            this.InsertMenuTimer = 0;
+        }, 500);
+}
+
+
+
+
+
+
+//==============================================================================
+// Although this is only an option for saViewers,  Make it separate to keep
+// it clean. NOTE: .saViewer has to be setup before this call.
+
+
+
+//args: 
+jQuery.prototype.saAnnotationWidget = function(args) {
+    for (var i = 0; i < this.length; ++i) {
+        var item = this[i];
+        if ( ! item.saViewer) {
+            console.log("Setup the viewer before the annotaiton widget.");
+        } else if ( ! item.saAnnotationWidget) {
+            $(item).addClass("sa-annotation-widget")
+            item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
+            item.saAnnotationWidget.SetVisibility(2);
+        } else {
+            if (args == "hide") {
+                item.saAnnotationWidget.hide();
+            } else if (args == "show") {
+                item.saAnnotationWidget.show();
+            }
+        }       
     }
 
     return this;
