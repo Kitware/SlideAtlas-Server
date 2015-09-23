@@ -613,16 +613,16 @@ TextWidget.prototype.PlacePopup = function () {
 
 // Can we bind the dialog apply callback to an objects method?
 TextWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
-  this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
-  this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
-  this.Dialog.TextInput.val(this.Text.String);
-  this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
+    this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
+    this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
+    this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
+    this.Dialog.TextInput.val(this.Text.String);
+    this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
 
-  this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
-  
-  this.Dialog.Show(true);
-  this.Dialog.TextInput.focus();
+    this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+
+    this.Dialog.Show(true);
+    this.Dialog.TextInput.focus();
 }
 
 TextWidget.prototype.DialogApplyCallback = function () {

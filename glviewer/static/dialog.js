@@ -68,22 +68,24 @@ function Dialog(callback) {
 
 
 Dialog.prototype.Show = function(modal) {
-  var self = this;
-  this.Overlay.show();
-  this.Dialog.fadeIn(300);
+    var self = this;
+    this.Overlay.show();
+    this.Dialog.fadeIn(300);
 
-  if (modal) {
-    EVENT_MANAGER.HasFocus = false;
-    this.Overlay.unbind("click");
-  } else {
-    this.Overlay.click(function (e) { self.Hide(); });
-  }
+    if (modal) {
+        EVENT_MANAGER.HasFocus = false;
+        this.Overlay.unbind("click");
+    } else {
+        this.Overlay.click(function (e) { self.Hide(); });
+    }
+    CONTENT_EDITABLE_HAS_FOCUS = true; // blocks viewer events.
 }
 
 Dialog.prototype.Hide = function () {
-  EVENT_MANAGER.HasFocus = true;
-  this.Overlay.hide();
-  this.Dialog.fadeOut(300);
+    EVENT_MANAGER.HasFocus = true;
+    this.Overlay.hide();
+    this.Dialog.fadeOut(300);
+    CONTENT_EDITABLE_HAS_FOCUS = false;
 } 
 
 
