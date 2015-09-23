@@ -1723,6 +1723,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         .css({'display':'inline-block',
               'position':'absolute',
               'overflow': 'visible',
+              'padding'      : '1%',
               'fontFamily': "Verdana,sans-serif",
               // defaults caller can reset these.
               'left' : '5%',
@@ -1772,7 +1773,14 @@ HtmlPage.prototype.InsertQuestion = function() {
             buttons: {
                 "create": function () {
                     var textBox = self.InsertTextBox(22);
-                    textBox.html(self.Question.html());
+                    textBox
+                        .html(self.Question.html())
+                        .css({'background-color':'#ffffff',
+                              'border':'1px solid #AAA',
+                              'left':'2%',
+                              'width': '90%',
+                              'top': '75%',
+                              'height':'20%'})
                     var q = $('<ol>')
                         .appendTo(textBox)
                         .addClass('sa-question');
