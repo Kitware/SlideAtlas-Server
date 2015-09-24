@@ -7,6 +7,22 @@
 // A common parent for all sa buttons (for this element).
 // Handle showing and hiding buttons.  Internal helper.
 
+// Just for enabling and disabling the edit buttons
+// cmd: "enable" or "disable"
+jQuery.prototype.saButtons = function(cmd) {
+    if (cmd == 'enable') {
+        for (var i = 0; i < this.length; ++i) {
+            saButtonsEnable(this[i]);
+        }
+    }
+    if (cmd == 'disable') {
+        for (var i = 0; i < this.length; ++i) {
+            saButtonsDisable(this[i]);
+        }
+    }
+}
+
+
 function saGetButtonsDiv(domElement) {
     if ( ! domElement.saButtons) {
         // Edit buttons.
@@ -30,6 +46,8 @@ function saButtons (div) {
               'top'   :(pos.top-20) +'px',
               'width' :'340px', // TODO: see if we can get rid of the width.
               'z-index': '10'});
+    // Make it easy to enable and disable these edit buttons.
+    this.ButtonsDiv[0].saButtons = this;
     // Show the buttons on hover.
     var self = this;
     this.ButtonsDiv
@@ -715,6 +733,8 @@ saStops.prototype.GetStop = function(last, next) {
 // made general.
 
 // TODO: We need callbacks when it goes full and back.
+
+// args: "off"  turns full window off.
 jQuery.prototype.saFullWindowOption = function(args) {
     this.addClass('sa-full-window-option');
     for (var i = 0; i < this.length; ++i) {
@@ -722,6 +742,9 @@ jQuery.prototype.saFullWindowOption = function(args) {
             var helper = new saFullWindowOption($(this[i]));
             // Add the helper as an instance variable to the dom object.
             this[i].saFullWindowOption = helper;
+        }
+        if (args == 'off') {
+            this[i].saFullWindowOption.SetFullWindow($(this[i]), false);
         }
     }
 
@@ -1720,12 +1743,11 @@ jQuery.prototype.saAnnotationWidget = function(args) {
             $(item).addClass("sa-annotation-widget")
             item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
             item.saAnnotationWidget.SetVisibility(2);
-        } else {
-            if (args == "hide") {
-                item.saAnnotationWidget.hide();
-            } else if (args == "show") {
-                item.saAnnotationWidget.show();
-            }
+        }
+        if (args == "hide") {
+            item.saAnnotationWidget.hide();
+        } else if (args == "show") {
+            item.saAnnotationWidget.show();
         }       
     }
 

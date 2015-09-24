@@ -1,6 +1,16 @@
 // CME
 // TODO:
-// Snap to grid.
+// NP not working for a student.
+
+// Question resizable only after reload.
+
+// Images have a minimum size.
+
+
+// Snap 
+//    to objects.
+//    some indication of snap.
+//    look at google.
 // Slide menu/edit buttons
 // Stack and subnotes.
 // Improve session browser:
@@ -642,6 +652,9 @@ Presentation.prototype.GotoSlide = function (index){
         return;
     }
 
+    // Exit and full window viewers.
+    $('.sa-presentation-view').saFullWindowOption('off');
+
     // Clear previous slides settings.
     this.TitlePage.ClearNote();
     this.SlidePage.ClearNote();
@@ -740,6 +753,8 @@ Presentation.prototype.SortCallback = function (){
 
 Presentation.prototype.UpdateSlidesTab = function (){
     var self = this;
+
+    if ( ! EDIT || ! this.Edit || ! this.SlideList) { return;}
 
     // Add the title page 
     this.SlideList.empty();
@@ -1462,17 +1477,25 @@ HtmlPage.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
-        $('.sa-annotation-widget').saAnnotationWidget('hide');
+        this.SaEditOff();
     }
 }
-
-
 HtmlPage.prototype.EditOn = function () {
     if (EDIT &&  ! this.Edit) {
         this.Edit = true;
         // this.Div.css({'width': '100%', 'left': '0px'}); ???
-        $('.sa-annotation-widget').saAnnotationWidget('show');
+        this.SaEditOn();
     }
+}
+
+// Hide/show the edit gui on all the sa elements
+HtmlPage.prototype.SaEditOff = function () {
+    $('.sa-annotation-widget').saAnnotationWidget('hide');
+    $('.sa-edit-gui').saButtons('disable');
+}
+HtmlPage.prototype.SaEditOn = function () {
+    $('.sa-annotation-widget').saAnnotationWidget('show');
+    $('.sa-edit-gui').saButtons('enable');
 }
 
 
@@ -1489,6 +1512,17 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
     this.Div.saHtml(note.Text);
+    if ( ! this.Edit) {
+        this.SaEditOff();
+    } else {
+        this.SaEditOn();
+    }
+    // hack
+    // Do not let students edit text.
+    if ( ! EDIT) {
+        $('.sa-text-editor').attr('contenteditable', "flase")
+    }
+
     // Set stops.
     $('sa-draggable').saDraggable();
     this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
@@ -1898,8 +1932,9 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
         .saViewer({'note': this.Note,
                    'viewerIndex':viewerIdx,
                    'hideCopyright':true})
-        .saDeletable()
+        .saAnnotationWidget()
         .saDraggable()
+        .saDeletable()
         .saResizable()
         .saFullWindowOption();
 
