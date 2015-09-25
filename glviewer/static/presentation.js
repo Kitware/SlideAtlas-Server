@@ -1,10 +1,15 @@
 // CME
 // TODO:
-// NP not working for a student.
-
 // Question resizable only after reload.
-
 // Images have a minimum size.
+
+// Feature Requests
+// Active box should move to front. (layers?)
+// Text should selectively resize.
+// Full window should have overview window and dual view option.
+// Hide mode (hidden annotations idea).
+// True false / short answer question.
+// Mobile users: first view in session is off the edge.
 
 
 // Snap 
@@ -1492,10 +1497,13 @@ HtmlPage.prototype.EditOn = function () {
 HtmlPage.prototype.SaEditOff = function () {
     $('.sa-annotation-widget').saAnnotationWidget('hide');
     $('.sa-edit-gui').saButtons('disable');
+    $('.sa-presentation-text').attr('contenteditable', 'false');
+
 }
 HtmlPage.prototype.SaEditOn = function () {
     $('.sa-annotation-widget').saAnnotationWidget('show');
     $('.sa-edit-gui').saButtons('enable');
+    $('.sa-presentation-text').attr('contenteditable', 'true');
 }
 
 
@@ -1926,9 +1934,9 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
               'background-color':'#FFF',
               'opacity':'1.0',
               'left':'5%',
-              'width':'30%',
+              'width':'45%',
               'top':'25%',
-              'height':'30%'})
+              'height':'45%'})
         .saViewer({'note': this.Note,
                    'viewerIndex':viewerIdx,
                    'hideCopyright':true})
@@ -1987,6 +1995,25 @@ HtmlPage.prototype.UpdateEdits = function () {
         // presentation to the database.
         var htmlDiv = this.Div;
         var note = this.Note;
+
+        // prune deleted records.
+        // I should really do this when a view is deleted, but there are
+        // deleted records in the database.
+        // NOTE: THIS ASSUME THAT ALL THE VIEWERS USE THIS NOTE!!!
+        var newRecords = [];
+        for (var i = 0; i < this.Note.ViewerRecords.length; ++i) {
+            var record = this.Note.ViewerRecords[i];
+            var str = i.toString();
+            var items = $('[sa-viewer-index='+str+']');
+            if (items.length > 0) {
+                // Replace the index with the new index
+                items.attr('sa-viewer-index', newRecords.length);
+                newRecords.push(record);
+            }
+        }
+        this.Note.ViewerRecords = newRecords;
+
+
         note.Text = htmlDiv.saHtml();
     }
 }

@@ -200,6 +200,7 @@ jQuery.prototype.saHtml = function(string) {
     // through jquery api. Also, the note may not have an id until we are
     // ready to save.
     // TODO: Get rid of sa-presentation-view class and just use sa-viewer
+    /* saved when note is set.
     var views = this.find('.sa-presentation-view');
     for (var i = 0; i <  views.length; ++i) {
         var viewer = views[i].saViewer;
@@ -214,6 +215,7 @@ jQuery.prototype.saHtml = function(string) {
         var viewerIndex = viewer.saViewerIndex || 0;
         $(views[i]).attr('sa-viewer-index', viewerIndex);
     }
+    */
 
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
@@ -342,8 +344,10 @@ function saViewerSetup(self, args) {
         // TODO:  Handle overview and zoomWidget options
         if (args.note) {
             viewer.saNote = args.note;
-            viewer.saViewerIndex = args.viewerIndex;
+            viewer.saViewerIndex = args.viewerIndex || 0;
             args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
+            $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
+            $(self[i]).attr('sa-viewer-index', viewer.saViewerIndex);
         }
         if (args.hideCopyright) {
             viewer.CopyrightWrapper.hide();
@@ -551,6 +555,15 @@ function saDraggable(div) {
                         'drag', null, true);
     d.mousedown(
         function (e) {
+            // raise to the top of the layers.
+            // this did not work for text boxes on top of views.
+            // it did work for mutiple views.
+            var parent = self.Div.parent();
+            self.Div.detach();
+            self.Div.appendTo(parent);
+            self.Div.css({'z-index':'5'});
+
+
             self.OldX = e.pageX;
             self.OldY = e.pageY;
 
@@ -570,6 +583,7 @@ function saDraggable(div) {
                       });
             $('body').on('mouseup.saDrag',
                       function (e) {
+                          self.Div.css('z-index', '');
                           $('body').off('mousemove.saDrag');
                           $('body').off('mouseup.saDrag');
                           return false;
@@ -905,48 +919,7 @@ function saTextEditor(div, args) {
     this.Percentage = true;
     div.saResizable();
 
-    var pos = div.position();
-/*
-    // I think the drag handle needs to be in the parent.
-    // Then synchronize the div's position with the handle.
-    // Parent must then be realtive positioning or equivalent.
-    this.DragHandle = $('<img>')
-        // this is specific for the presentation.  I do not want gui showing up
-        // in html.
-        .appendTo(div.parent())
-        // so we can remove this gui from saHtml string.
-        .addClass('sa-edit-gui')
-        .hide()
-        .prop('title', 'drag text')
-        .attr('src','webgl-viewer/static/fullscreen.png') // temp icon
-        // this is not really a button, but I want it to be formated like
-        // the others.
-        .addClass('editButton')
-        .css({'background':'white',
-              'position':'absolute',
-              'left'  :(pos.left-2)+'px',
-              'top'   :(pos.top-20) +'px'})
-        .draggable({
-            drag: function( event, ui ) {
-                this.saTextEditor.SetPositionPixel(ui.position.left+2,
-                                                   ui.position.top+20);}
-        });
-    // This is needed for the drag event to synchronize position of div.
-    this.DragHandle[0].saTextEditor = this;
-    */
-    // Edit buttons.
-    /*
-    this.ButtonDiv = $('<div>')
-        .appendTo(div.parent())
-        .addClass('sa-edit-gui') // So we can remove it when saving.
-        .hide()
-        .css({'position':'absolute',
-              'left'  :(pos.left+20)+'px',
-              'top'   :(pos.top-20) +'px',
-              'width' :'350px'});
-    */
-    /*this.AddEditButton("webgl-viewer/static/remove.png", "delete",
-                       function() {self.Delete();});*/
+    //var pos = div.position();
 
     var domText = this.Div[0];
     saAddButton(domText, "webgl-viewer/static/link.png", "link URL",
@@ -975,38 +948,7 @@ function saTextEditor(div, args) {
                 function() {document.execCommand('superscript',false,null);});
     saAddButton(domText, "webgl-viewer/static/edit_subscript.png", "subscript",
                 function() {document.execCommand('subscript',false,null);});
-    if (div.hasClass('sa-scalable-font')) {
-        /*
-        saAddButton(domText, "webgl-viewer/static/font_increase.png", "large font",
-                           function(){
-                               text = self.Div[0];
-                               text.saScalableFont.scale += 1;
-                               console.log("scale = " + text.saScalableFont.scale);
-                               // We need to put this in an attribute so it
-                               // gets saved in the html.
-                               text.setAttribute('sa-font-scale',
-                                                 text.saScalableFont.scale.toString());
-                               // Call the resize method to draw the text at
-                               // the new size.
-                               text.onresize();
-                               $(text).focus();
-                           });
-        saAddButton(domText, "webgl-viewer/static/font_decrease.png", "small font",
-                           function() {
-                               text = self.Div[0];
-                               text.saScalableFont.scale -= 1;
-                               console.log("scale = " + text.saScalableFont.scale);
-                               // We need to put this in an attribute so it
-                               // gets saved in the html.
-                               text.setAttribute('sa-font-scale',
-                                                 text.saScalableFont.scale.toString());
-                               // Call the resize method to draw the text at
-                               // the new size.
-                               text.onresize();
-                               $(text).focus();
-                           });
-                           */
-    }
+
     if (args.dialog) {
         var self = this;
         this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
@@ -1136,35 +1078,9 @@ function saTextEditor(div, args) {
     div.attr('contenteditable', "true")
         .focusin(function() {
             CONTENT_EDITABLE_HAS_FOCUS = true;
-            // Position the handle in the proper spot.
-            // Resizing with percentages changes it.
-            var pos = self.Div.position();
-            /*
-            self.DragHandle
-                .css({'left'  :(pos.left-2)+'px',
-                      'top'   :(pos.top-20) +'px'})
-                .show();
-            */
-            /*
-            self.ButtonDiv
-                .css({'left'  :(pos.left+20)+'px',
-                      'top'   :(pos.top-20) +'px'})
-                .show();
-            */
-
         })
         .focusout(function() {
             CONTENT_EDITABLE_HAS_FOCUS = false;
-            //self.DragHandle.hide();
-            // hiding the button div here keeps the buttons from working.
-            /*
-            setTimeout(
-                function () {
-                    if ( ! self.Div.is(":focus")) {
-                        self.ButtonDiv.hide();
-                    }},
-                250);
-            */
         });
 }
 
