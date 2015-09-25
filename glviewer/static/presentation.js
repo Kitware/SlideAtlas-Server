@@ -74,36 +74,6 @@ function Presentation(rootNote, edit) {
     // We need this to know what to return to when a view goes full screen.
     this.FullScreen = false;
 
-    // TODO:
-    // Fix this. Session page needs every member view to have an image.
-    // The root needs a record to show up in the session.
-    if (rootNote.ViewerRecords.length < 1) {
-        var record = new ViewerRecord();
-        record.Load(
-            {AnnotationVisibility: 2,
-             Annotations: [],
-             Camera: {FocalPoint: [510, 519],
-                      Height: 1009,
-                      Roll: 0,
-                      Width: 1066},
-             Database: "507f34a902e31010bcdb1366",
-             Image: {TileSize: 256,
-                     _id: "55b4e5c03ed65909a84cd938",
-                     bounds: [0, 1020, 15, 1024],
-                     components: 3,
-                     database: "507f34a902e31010bcdb1366",
-                     dimensions: [1020, 1009],
-                     filename: "projection-screen.jpg",
-                     label: "projection-screen.jpg",
-                     levels: 3,
-                     origin: [0, 0, 0],
-                     spacing: [1, 1, 1],
-                     NumberOfLevels: 3,
-                     OverviewBounds: [0, 1020, 15, 1024]}
-            });
-        rootNote.ViewerRecords.push(record);
-    }
-
     // Eliminate the GUI in the viewers.
     MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
@@ -575,6 +545,40 @@ Presentation.prototype.Save = function () {
             return;
         }
     }
+
+    // TODO:
+    // Fix this. Session page needs every member view to have an image.
+    // The root needs a record to show up in the session.
+    var rootNote = this.RootNote;
+    if (rootNote.ViewerRecords.length < 1) {
+        var record = new ViewerRecord();
+        record.Load(
+            {AnnotationVisibility: 2,
+             Annotations: [],
+             Camera: {FocalPoint: [510, 519],
+                      Height: 1009,
+                      Roll: 0,
+                      Width: 1066},
+             Database: "507f34a902e31010bcdb1366",
+             Image: {TileSize: 256,
+                     _id: "55b4e5c03ed65909a84cd938",
+                     bounds: [0, 1020, 15, 1024],
+                     components: 3,
+                     database: "507f34a902e31010bcdb1366",
+                     dimensions: [1020, 1009],
+                     filename: "projection-screen.jpg",
+                     label: "projection-screen.jpg",
+                     levels: 3,
+                     origin: [0, 0, 0],
+                     spacing: [1, 1, 1],
+                     NumberOfLevels: 3,
+                     OverviewBounds: [0, 1020, 15, 1024]}
+            });
+        rootNote.ViewerRecords.push(record);
+    }
+
+
+
     //this.SaveButton.css({'color':'#F00'});
     this.RootNote.Save();
 }
