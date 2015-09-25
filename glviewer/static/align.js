@@ -1669,8 +1669,8 @@ function GetImageData(view) {
     // useful for debugging
     //ctx.putImageData(imagedata, dx, dy);
     var cam = view.Camera;
-    var width = cam.ViewportWidth;
-    var height = cam.ViewportHeight;
+    var width = Math.floor(cam.ViewportWidth);
+    var height = Math.floor(cam.ViewportHeight);
     var ctx  = view.Context2d;
     var data = ctx.getImageData(0,0,width,height);
     data.Camera = new Camera();
@@ -1693,7 +1693,7 @@ function GetImageData(view) {
 // marks 4 edges.
 ImageData.prototype.MarkEdge = function (x0,y0, x1,y1) {
     if ( ! this.EdgeMarks) {
-        var numTemplates = (this.width)*(this.height);
+        var numTemplates = Math.round((this.width)*(this.height));
         this.EdgeMarks = new Array(numTemplates);
         for (var i = 0; i < numTemplates; ++i) {
             this.EdgeMarks[i] = 0;
