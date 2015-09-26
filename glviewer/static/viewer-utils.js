@@ -9,6 +9,10 @@
 
 // Just for enabling and disabling the edit buttons
 // cmd: "enable" or "disable"
+
+// Only one set of buttons are visible at a time.
+var SA_BUTTONS_VISIBLE = null;
+
 jQuery.prototype.saButtons = function(cmd) {
     if (cmd == 'enable') {
         for (var i = 0; i < this.length; ++i) {
@@ -51,11 +55,11 @@ function saButtons (div) {
     // Show the buttons on hover.
     var self = this;
     this.ButtonsDiv
-        .mouseenter(function () { self.ShowButtons(); })
+        .mouseenter(function () { self.ShowButtons(2); })
         .mouseleave(function () { self.HideButtons(); });
 
     this.Div
-        .mouseenter(function () { self.ShowButtons(); })
+        .mouseenter(function () { self.ShowButtons(1); })
         .mouseleave(function () { self.HideButtons(); });
 }
 
@@ -66,14 +70,28 @@ saButtons.prototype.PlaceButtons = function () {
               'top'   :(pos.top-20) +'px'});
 }
 
-saButtons.prototype.ShowButtons = function () {
+saButtons.prototype.ShowButtons = function (level) {
     if (this.TimerId >= 0) {
         clearTimeout(this.TimerId);
         this.TimerId = -1;
     }
     if (this.Enabled) {
+        if (SA_BUTTONS_VISIBLE && SA_BUTTONS_VISIBLE != this.ButtonsDiv) {
+            SA_BUTTONS_VISIBLE.fadeOut(200);
+            SA_BUTTONS_VISIBLE = this.ButtonsDiv;
+        }
         this.PlaceButtons();
-        this.ButtonsDiv.show();
+        if (level == 1) {
+            this.ButtonsDiv
+                .fadeIn(400);
+            this.ButtonsDiv.children()
+                .css({'opacity':'0.4'});
+        } else {
+            this.ButtonsDiv
+                .show();
+            this.ButtonsDiv.children()
+                .css({'opacity':'1.0'});
+        }
     }
 }
 
@@ -81,7 +99,12 @@ saButtons.prototype.HideButtons = function () {
     if (this.TimerId < 0) {
         var self = this;
         this.TimerId =
-            setTimeout(function () {self.ButtonsDiv.hide();}, 200);
+            setTimeout(function () {
+                if (SA_BUTTONS_VISIBLE == self.ButtonsDiv) {
+                    SA_BUTTONS_VISIBLE = null;
+                }
+                self.ButtonsDiv.fadeOut(200);
+            }, 200);
     }
 }
 

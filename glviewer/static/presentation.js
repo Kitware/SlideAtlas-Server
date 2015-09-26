@@ -4,7 +4,6 @@
 // Images have a minimum size.
 
 // Feature Requests
-// Active box should move to front. (layers?)
 // Text should selectively resize.
 // Full window should have overview window and dual view option.
 // Hide mode (hidden annotations idea).
@@ -45,31 +44,12 @@
 // - Stop the timer when we leave full screen. Turn editing back on if EDIT.
 
 
-//==============================================================================
-// hack a presentation mode:
-// presentation object?
-
-
-// Only called by the presentation html file.
-// Getting rid of this.
-// Main function called by the presentation.html template
-/*function PresentationMain(viewId) {
-    // We need to get the view so we know how to initialize the app.
-    var rootNote = new Note();
-
-    rootNote.LoadViewId(
-        viewId,
-        function () {
-            PRESENTATION = new Presentation(rootNote, EDIT);
-        });
-}
-*/
-
 
 //==============================================================================
 
 function Presentation(rootNote, edit) {
     var self = this;
+    this.RootNote = rootNote;
     this.Edit = edit;
     // We need this to know what to return to when a view goes full screen.
     this.FullScreen = false;
@@ -187,7 +167,6 @@ function Presentation(rootNote, edit) {
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
     this.HtmlPage  = new HtmlPage(this.AspectDiv, edit);
 
-    this.RootNote = rootNote;
     this.GotoSlide(0);
 
     // Keep the browser from showing the left click menu.
@@ -361,6 +340,28 @@ Presentation.prototype.MakeEditPanel = function (parent) {
         .appendTo(this.InsertMenuButton)
         .attr('src','webgl-viewer/static/new_window.png');
 
+    this.AnswersButton = $('<input type="checkbox">')
+        .appendTo(this.SlidesDiv)
+        .prop('title', "show / hide answers")
+        .css({'float':'right'})
+        .change(function () {
+            if (this.checked) {
+                self.RootNote.Mode = "answer-show";
+            } else {
+                self.RootNote.Mode = "answer-hide";
+            }
+            self.UpdateQuestionMode();
+        });
+    // Set the question mode
+    if (this.RootNote.Mode && this.RootNote.Mode == 'answer-show') {
+        this.AnswersButton[0].checked = true;
+    }
+
+    this.AnswersLabel = $('<div>')
+        .appendTo(this.SlidesDiv)
+        .text("answers")
+        .css({'float':'right'});
+
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
         .appendTo(this.SlidesDiv)
@@ -392,8 +393,15 @@ Presentation.prototype.MakeEditPanel = function (parent) {
 }
 
 
-
-
+Presentation.prototype.UpdateQuestionMode = function() {
+    if ( ! this.RootNote) { return;}
+    if (this.RootNote.Mode == 'answer-hide') {
+        $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
+    }
+    if (this.RootNote.Mode == 'answer-show') {
+        $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
+    }
+}
 
 
 Presentation.prototype.TimerCallback = function(duration) {
@@ -715,6 +723,7 @@ Presentation.prototype.GotoSlide = function (index){
     }
 
     this.UpdateSlidesTab();
+    this.UpdateQuestionMode();
 
     // Font was not scaling when first loaded.
     $(window).trigger('resize');
@@ -1628,6 +1637,8 @@ HtmlPage.prototype.InsertVideo = function(src) {
         .addClass('sa-presentation-video')
         .saDraggable()
         .saDeletable();
+    // full window option did not work
+        // .saFullWindowOption();
 
     var vid = $('<video controls>')
         .appendTo(vidDiv);
@@ -1797,7 +1808,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 }
 
 HtmlPage.prototype.ShuffleQuestion = function() {
-    var questions = this.Div.find('.sa-question');
+    var questions = this.Div.find('.sa-multiple-choice-question');
     for (var i = 0; i < questions.length; ++i) {
         var q = questions[i];
         // Shuffle the list.
@@ -1833,20 +1844,33 @@ HtmlPage.prototype.InsertQuestion = function() {
                               'width': '90%',
                               'top': '75%',
                               'height':'20%'})
-                    var q = $('<ol>')
-                        .appendTo(textBox)
-                        .addClass('sa-question');
-                    var a = $('<li>')
-                        .appendTo(q)
-                        .text(self.Answer.html())
-                        .addClass('sa-answer');
-                    for (var i = 0; i < self.Options.length; ++i) {
+                    if (self.MultipleChoiceOptions.length > 0) {
+                        // MULTIPLE CHOICE
+                        var q = $('<ol>')
+                            .appendTo(textBox)
+                            .addClass('sa-multiple-choice-question');
                         var a = $('<li>')
                             .appendTo(q)
-                            .text(self.Options[i].html());
+                            .text(self.MultipleChoiceAnswer.html())
+                            .addClass('sa-multiple-choice-answer');
+                        for (var i = 0; i < self.MultipleChoiceOptions.length; ++i) {
+                            var a = $('<li>')
+                                .appendTo(q)
+                                .text(self.MultipleChoiceOptions[i].html());
+                        }
+                        self.ShuffleQuestion();
+                    } else {
+                        // SHORT ANSWER
+                        var q = $('<ol>')
+                            .appendTo(textBox)
+                            .addClass('sa-short-answer-question');
+                        var a = $('<li>')
+                            .appendTo(q)
+                            .text(self.Answer.html())
+                            .addClass('sa-short-answer');
                     }
 
-                    self.ShuffleQuestion();
+                    PRESENTATION.UpdateQuestionMode();
 
                     $(this).dialog("destroy");
                 }
@@ -1854,9 +1878,20 @@ HtmlPage.prototype.InsertQuestion = function() {
         });
 
     // TODO: Do not make these instance variables of presentation.
-    this.QuestionTypeLabel = $('<div>')
-        .appendTo(dialog)
+
+
+    this.QuestionTypeSelect = $('<select>')
+        .appendTo(dialog);
+    this.QuestionTypeMultipleChoice = $('<option>')
+        .appendTo(this.QuestionTypeSelect)
         .text("Multiple Choice");
+    this.QuestionTypeSortAnswer = $('<option>')
+        .appendTo(this.QuestionTypeSelect)
+        .text("Short Answer");
+    this.QuestionTypeTrueFalse = $('<option>')
+        .appendTo(this.QuestionTypeSelect)
+        .text("True or False");
+    this.QuestionTypeSelect.change(function (){alert("select")});
 
     this.QuestionLabel = $('<div>')
         .appendTo(dialog)
@@ -1867,31 +1902,32 @@ HtmlPage.prototype.InsertQuestion = function() {
               'margin':'2px'})
         .attr('contenteditable', 'true');
 
-    this.AnswerLabel = $('<div>')
-        .appendTo(dialog)
+    this.MultipleChoiceDiv = $('<div>')
+        .appendTo(dialog);
+    this.MultipleChoiceAnswerLabel = $('<div>')
+        .appendTo(this.MultipleChoiceDiv)
         .addClass('sa-answer')
         .text("Answer:");
-    this.Answer = $('<div>')
-        .appendTo(dialog)
+    this.MultipleChoiceAnswer = $('<div>')
+        .appendTo(this.MultipleChoiceDiv)
         .css({'border':'1px solid #AAA',
               'margin':'2px'})
         .attr('contenteditable', 'true');
 
-
-    this.OptionTypeLabel = $('<div>')
-        .appendTo(dialog)
+    this.MultipleChoiceOptionLabel = $('<div>')
+        .appendTo(this.MultipleChoiceDiv)
         .text("Options:");
-    this.Options = [];
-    this.AddOptionButton = $('<button>')
-        .appendTo(dialog)
+    this.MultipleChoiceOptions = [];
+    this.MultipleChoiceAddOptionButton = $('<button>')
+        .appendTo(this.MultipleChoiceDiv)
         .text("+ Option")
         .click(function () {
             var option = $('<div>')
-                .insertBefore(self.AddOptionButton)
+                .insertBefore(self.MultipleChoiceAddOptionButton)
                 .css({'border':'1px solid #AAA',
                       'margin':'2px'})
                 .attr('contenteditable', 'true');
-            self.Options.push(option);
+            self.MultipleChoiceOptions.push(option);
         });
 }
 
@@ -2021,6 +2057,30 @@ HtmlPage.prototype.UpdateEdits = function () {
         note.Text = htmlDiv.saHtml();
     }
 }
+
+
+//==============================================================================
+// I am making a full fledge viewer for the full window option.
+function ViewerPage (parent, edit) {
+    this.Note = null;
+    this.RecordIndex = 0;
+
+    // Should I make another div or just use the parent?
+    this.Div = $('<div>')
+        .appendTo(parent)
+        .hide()
+        .css({
+            'background-color':'#FFF',
+            'position' : 'absolute',
+            'width': '100%',
+            'height': '100%'})
+        .saViewer();
+    // .....
+}
+
+
+
+
 
 
 
@@ -2215,5 +2275,8 @@ ClipboardPanel.prototype.ClipboardDeleteAll = function() {
         });
     }
 }
+
+
+
 
 

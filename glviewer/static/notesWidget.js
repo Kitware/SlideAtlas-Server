@@ -1331,6 +1331,7 @@ function Note () {
     var d = new Date();
     this.Date = d.getTime(); // Also reset later.
     this.Type = "Note";
+    this.Mode = "";
 
     this.Title = "";
     this.Text = "";
@@ -1846,10 +1847,10 @@ Note.prototype.Save = function(callback) {
 }
 
 Note.prototype.RecordAnnotations = function(display) {
-    for (var i = 0; i < display.GetNumberOfViewers; ++i) {
+    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
         if (this.ViewerRecords.length > this.StartIndex+i) {
             this.ViewerRecords[this.StartIndex+i].CopyAnnotations(
-                display.GetNumberOfViewers(i));
+                display.GetViewer(i));
         }
     }
 }
@@ -1922,6 +1923,7 @@ Note.prototype.Serialize = function(includeChildren) {
     var obj = {};
     obj.SessionId = localStorage.sessionId;
     obj.Type = this.Type;
+    obj.Mode = this.Mode;
     obj.User = this.User;
     obj.Date = this.Date;
 
