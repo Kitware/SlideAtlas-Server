@@ -584,6 +584,8 @@ function saDraggable(div) {
             var parent = self.Div.parent();
             self.Div.detach();
             self.Div.appendTo(parent);
+
+
             self.Div.css({'z-index':'5'});
 
 
