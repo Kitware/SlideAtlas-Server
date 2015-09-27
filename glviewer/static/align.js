@@ -2618,23 +2618,55 @@ function DeformableAlignViewers() {
 // !!!!!!!!!!!!!
 
 function AlignPolylines() {
+//    var note = NOTES_WIDGET.GetCurrentNote();
+//    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+//    trans.Correlations = [];
+
     var viewer1 = VIEWERS[0];
+    var camBds1 = viewer1.GetCamera().GetBounds();
     var viewer2 = VIEWERS[1];
+    var camBds2 = viewer2.GetCamera().GetBounds();
     for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
         var pLine1 = viewer1.WidgetList[i1];
-        if (pLine1 instanceof PolylineWidget) {
+        if (pLine1 instanceof PolylineWidget && pLine1.Shape.Points.length > 0) {
+            var bds1 = pLine1.Shape.GetBounds();
+            var wCen1 = [(bds1[0]+bds1[1])*0.5, (bds1[2]+bds1[3])*0.5];
+            var cen1 = viewer1.ConvertPointWorldToViewer(wCen1[0], wCen1[1]);
+            if (wCen1[0] < camBds1[0] || wCen1[0] > camBds1[1] ||
+                wCen1[1] < camBds1[2] || wCen1[1] > camBds1[3]) { 
+                continue; 
+            } 
             var c1 = pLine1.Shape.OutlineColor;
-            //
+            var pLine2Best = null;
+            var dist2Best = 10000000;
             for (var i2 = 0; i2 < viewer2.WidgetList.length; ++i2) {
                 var pLine2 = viewer2.WidgetList[i2];
-                if (pLine2 instanceof PolylineWidget) {
+                if (pLine2 instanceof PolylineWidget && pLine2.Shape.Points.length > 0) {
                     var c2 = pLine2.Shape.OutlineColor;
                     if (Math.abs(c1[0]-c2[0]) < 0.01 &&
                         Math.abs(c1[1]-c2[1]) < 0.01 &&
                         Math.abs(c1[2]-c2[2]) < 0.01) {
-                        AlignPolylines2(pLine1, pLine2);
+
+                        var bds2 = pLine2.Shape.GetBounds();
+                        var wCen2 = [(bds2[0]+bds2[1])*0.5, (bds2[2]+bds2[3])*0.5];
+                        var cen2 = viewer2.ConvertPointWorldToViewer(wCen2[0], wCen2[1]);
+                        if (wCen2[0] < camBds2[0] || wCen2[0] > camBds2[1] ||
+                            wCen2[1] < camBds2[2] || wCen2[1] > camBds2[3]) { 
+                            continue; 
+                        } 
+                        var dist2 =
+                            (cen2[0]-cen1[0])*(cen2[0]-cen1[0]) +
+                            (cen2[1]-cen1[1])*(cen2[1]-cen1[1]);
+                        if ( ! pLine2Best || dist2Best < dist2) {
+                            dist2Best = dist2;
+                            pLine2Best = pLine2;
+                        }
                     }
                 }
+            }
+
+            if (dist2Best < 100000) {
+                AlignPolylines2(pLine1, pLine2Best);
             }
         }
     }
@@ -2695,7 +2727,7 @@ function AlignPolylines2(pLine1, pLine2) {
     //contour1.Camera = VIEWER1.GetCamera();
     //contour1.WorldToViewer();
     //contour1.Resample(1);
-    contour1.Resample(10);
+    contour1.Resample(5);
 
     var contour2 = new Contour();
     contour2.World = true;
@@ -2703,10 +2735,11 @@ function AlignPolylines2(pLine1, pLine2) {
     //contour2.Camera = VIEWER2.GetCamera();
     //contour2.WorldToViewer();
     //contour2.Resample(1);
-    contour2.Resample(10);
+    contour2.Resample(5);
 
-    // A resample is probably better here.
-    contour2.RemoveDuplicatePoints(1.0);
+    if (contour1.Points.length == 0 || contour2.Points.length == 0) {
+        return;
+    }
 
     // Save a copy of the contour before it is transformed.
     // We need before and after to make correlation points.
@@ -2718,39 +2751,13 @@ function AlignPolylines2(pLine1, pLine2) {
             DEBUG_CONTOUR1 = contour1;
             DEBUG_CONTOUR2a = originalContour2;
             DEBUG_CONTOUR2b = contour2
-
-
-    // Remove all correlations visible in the window.
-    /*
-    var cam = VIEWERS[0].GetCamera();
-    var bds = cam.GetBounds();
-    var idx = 0;
-    while (idx < trans.Correlations.length) {
-        var cor = trans.Correlations[idx];
-        if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
-            cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-            trans.Correlations.splice(idx,1);
-        } else {
-                    ++idx;
-        }
-    }
-    */
-
             DEBUG_TRANS = trans;
 
     // Now make new correlations from the transformed contour.
     var targetNumCorrelations = 20;
     var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
     for (var i = 2; i < originalContour2.Length(); i += skip) {
-        // TODO: delete this
-        //var viewport = VIEWERS[0].GetViewport(); // does this do anything!!!!
-        //var pt1 = VIEWERS[0].ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
-        //                                               contour2.GetPoint(i)[1]);
         var pt1 = contour2.GetPoint(i);
-
-        //var viewport = VIEWERS[1].GetViewport();
-        //var pt2 = VIEWERS[1].ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
-        //                                               originalContour2.GetPoint(i)[1]);
         var pt2 = originalContour2.GetPoint(i);
         var cor = new PairCorrelation();
         cor.SetPoint0(pt1);
