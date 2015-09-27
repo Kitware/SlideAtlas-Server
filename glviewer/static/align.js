@@ -2645,6 +2645,7 @@ function AlignPolylinesByColor(rgb) {
     // Get the polyline from viewer1
     var viewer1 = VIEWERS[0];
     var pLine1 = null;
+    var count1 = 0;
     for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
         var w1 = viewer1.WidgetList[i1];
         if (w1 instanceof PolylineWidget && w1.Shape.Points.length > 0) {
@@ -2652,15 +2653,17 @@ function AlignPolylinesByColor(rgb) {
             if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
                 Math.abs(c1[1]-rgb[1]) < 0.05 &&
                 Math.abs(c1[2]-rgb[2]) < 0.05) {
+                ++count1;
                 pLine1 = w1;
             }
         }
     }
-    if (! pLine1) { return;}
+    if (count1 != 1) {return;}
 
     // Get the polyline from viewer2
     var viewer2 = VIEWERS[1];
     var pLine2 = null;
+    var count2 = 0;
     for (var i2 = 0; i2 < viewer2.WidgetList.length; ++i2) {
         var w2 = viewer2.WidgetList[i2];
         if (w2 instanceof PolylineWidget && w1.Shape.Points.length > 0) {) {
@@ -2668,11 +2671,12 @@ function AlignPolylinesByColor(rgb) {
             if (Math.abs(c2[0]-rgb[0]) < 0.05 &&
                 Math.abs(c2[1]-rgb[1]) < 0.05 &&
                 Math.abs(c2[2]-rgb[2]) < 0.05) {
+                ++count2;
                 pLine2 = w2;
             }
         }
     }
-    if (! pLine2) { return;}
+    if (count2 != 1) {return;}
 
     AlignPolylines2(pLine1, pLine2);
 }
