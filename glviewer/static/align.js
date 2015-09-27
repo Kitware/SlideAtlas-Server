@@ -342,6 +342,31 @@ Contour.prototype.RemoveDuplicatePoints = function (epsilon) {
     }
 }
 
+// I could also impliment a resample to get uniform spacing.
+// Assume closed loop
+Contour.prototype.Resample = function (spacing) {
+    var newPoints = [];
+    var p0 = this.Points[this.Points.length-1];
+    var idx = 1;
+    var d = 0;
+    while (idx < this.Points.length) {
+        var p1 = this.Points[idx];
+        var dx = p1[0] - p0[0];
+        var dy = p1[1] - p0[1];
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        d = d - dist;
+        while (d < 0) {
+            var x = p1[0] + dx*d/dist
+            var y = p1[1] + dy*d/dist
+            newPoints.push([x,y]);
+            d = d + spacing;
+        }
+        idx = idx + 1;
+        p0 = p1;
+    }
+    this.Points = newPoints;
+}
+
 // Should eventually share this with polyline.
 // The real problem is aliasing.  Line is jagged with high frequency sampling artifacts.
 // Pass in the spacing as a hint to get rid of aliasing.
@@ -413,6 +438,22 @@ Contour.prototype.TransformToWorld = function() {
                                                                viewPt[1]);
     }
     this.World = true;
+}
+
+// change coordiantes to viewer
+Contour.prototype.WorldToViewer = function() {
+    if ( ! this.World ) {
+        return;
+    }
+    delete this.Bounds;
+    delete this.Area;
+
+    for (var i = 0; i < this.Points.length; ++i) {
+        var viewPt = this.Points[i];
+        this.Points[i] = this.Camera.ConvertPointWorldToViewer(viewPt[0],
+                                                               viewPt[1]);
+    }
+    this.World = false;
 }
 
 // Take a list of image points and make a viewer annotation out of them.
@@ -2272,16 +2313,15 @@ function AlignContours(contour1, contour2) {
     return trans;
 }
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // This first transforms contour2 to match contour1 with a rigid transformation.
 // It then creates a mesh and allows it to deform for a better match.
 // contour2 is modified to match contour1.
-function DeformableAlignContours(contour1, contour2) {
+function DeformableAlignContours(contour1, contour2, rigid) {
     // First translate the contour2 to have the same center as
-    // contour1. This will make the map smaller and more useful!!!!!!
+    // contour1. This will make the map smaller and more useful!
     var center1 = contour1.GetCenter();
     var center2 = contour2.GetCenter();
-    contour2.Translate([center1[0]-center2[0], center1[0]-center2[0]]);
+    contour2.Translate([center1[0]-center2[0], center1[1]-center2[1]]);
 
     // Get the bounds of both contours.
     var bds1 = contour1.GetBounds();
@@ -2299,30 +2339,22 @@ function DeformableAlignContours(contour1, contour2) {
     bds1[2] = yMid + 1.1*(bds1[2]-yMid);
     bds1[3] = yMid + 1.1*(bds1[3]-yMid);
 
-    // Keep bounds inside viewports
-    if (bds1[0] < 0) { bds1[0] = 0; }
-    if (bds1[2] < 0) { bds1[2] = 0; }
-
-    // TODO: Consider: (some contours ended out of viewport.
-    // Important!  Bounds should not be outside viewports!
-    // This will solve problem with edge mismatch because
-    // distance map has no gradient outside bounds.
-    //if (bds1[1] > viewport[2]) { bds1[1] = viewport[2]; }
-    //if (bds1[3] > viewport[3]) { bds1[3] = viewport[3]; }
-
-    // TODO: Keep a copy of contour2 to map correlation points.
-
-    var distMap = new DistanceMap(bds1, 2);
+    // Compute a spacing so we can use contours in world coordiantes.
+    // (used to be 2)
+    var spacing = Math.sqrt((bds1[1]-bds1[0])*(bds1[3]-bds1[2])/100000.0);
+    var distMap = new DistanceMap(bds1, spacing);
     distMap.AddContour(contour1);
     distMap.Update();
 
     // Offset ?? Debug this later.
     //contour2 = DecimateContour(contour2, 1);
     RigidAlignContourWithMap(contour2, distMap);
-    DeformableAlignContourWithMap(contour2, distMap);
+    if ( ! rigid) {
+        DeformableAlignContourWithMap(contour2, distMap);
+    }
 }
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 // This shifts and rotates the contour to match the distance map.
 // It returns the shift and roll, but the contour is also transformed.
 function RigidAlignContourWithMap(contour, distMap) {
@@ -2375,7 +2407,6 @@ function RigidAlignContourWithMap(contour, distMap) {
 var ITERATIONS = 5000;
 var EDGE_FACTOR = 0.2;
 var GRADIENT_FACTOR = 0.03;
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Convert the contour into a mesh for internal use, but modify contour2
 // to match contour1.
 function DeformableAlignContourWithMap(contour, distMap) {
@@ -2578,6 +2609,156 @@ function DeformableAlignViewers() {
 
             eventuallyRender();
         }, 10);
+}
+
+// An idea.  Use an existing polyline instead of a new iso contour.
+// Select polylines by color.
+// Something is not work.  
+// I expect two things: Coordinate system (no) or spacing (no).
+// !!!!!!!!!!!!!
+
+function AlignPolylines() {
+    var viewer1 = VIEWERS[0];
+    var viewer2 = VIEWERS[1];
+    for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
+        var pLine1 = viewer1.WidgetList[i1];
+        if (pLine1 instanceof PolylineWidget) {
+            var c1 = pLine1.Shape.OutlineColor;
+            //
+            for (var i2 = 0; i2 < viewer2.WidgetList.length; ++i2) {
+                var pLine2 = viewer2.WidgetList[i2];
+                if (pLine2 instanceof PolylineWidget) {
+                    var c2 = pLine2.Shape.OutlineColor;
+                    if (Math.abs(c1[0]-c2[0]) < 0.01 &&
+                        Math.abs(c1[1]-c2[1]) < 0.01 &&
+                        Math.abs(c1[2]-c2[2]) < 0.01) {
+                        AlignPolylines2(pLine1, pLine2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+function AlignPolylinesByColor(rgb) {
+    // Get the polyline from viewer1
+    var viewer1 = VIEWERS[0];
+    var pLine1 = null;
+    for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
+        var w1 = viewer1.WidgetList[i1];
+        if (w1 instanceof PolylineWidget) {
+            var c1 = w1.Shape.OutlineColor;
+            if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
+                Math.abs(c1[1]-rgb[1]) < 0.05 &&
+                Math.abs(c1[2]-rgb[2]) < 0.05) {
+                pLine1 = w1;
+            }
+        }
+    }
+    if (! pLine1) { return;}
+
+    // Get the polyline from viewer2
+    var viewer2 = VIEWERS[1];
+    var pLine2 = null;
+    for (var i2 = 0; i2 < viewer2.WidgetList.length; ++i2) {
+        var w2 = viewer2.WidgetList[i2];
+        if (w2 instanceof PolylineWidget) {
+            var c2 = w2.Shape.OutlineColor;
+            if (Math.abs(c2[0]-rgb[0]) < 0.05 &&
+                Math.axbs(c2[1]-rgb[1]) < 0.05 &&
+                Math.abs(c2[2]-rgb[2]) < 0.05) {
+                pLine2 = w2;
+            }
+        }
+    }
+    if (! pLine2) { return;}
+
+    AlignPolylines2(pLine1, pLine2);
+}
+
+
+function AlignPolylines2(pLine1, pLine2) {
+    var note = NOTES_WIDGET.GetCurrentNote();
+    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+    if ( ! trans) {
+        return;
+    }
+
+    var contour1 = new Contour();
+    contour1.World = true;
+    contour1.SetPoints(pLine1.Shape.Points);
+    //contour1.Camera = VIEWER1.GetCamera();
+    //contour1.WorldToViewer();
+    //contour1.Resample(1);
+    contour1.Resample(10);
+
+    var contour2 = new Contour();
+    contour2.World = true;
+    contour2.SetPoints(pLine2.Shape.Points);
+    //contour2.Camera = VIEWER2.GetCamera();
+    //contour2.WorldToViewer();
+    //contour2.Resample(1);
+    contour2.Resample(10);
+
+    // A resample is probably better here.
+    contour2.RemoveDuplicatePoints(1.0);
+
+    // Save a copy of the contour before it is transformed.
+    // We need before and after to make correlation points.
+    var originalContour2 = new Contour();
+    originalContour2.DeepCopy(contour2);
+    // Lets try rigid.
+    DeformableAlignContours(contour1, contour2, true);
+
+            DEBUG_CONTOUR1 = contour1;
+            DEBUG_CONTOUR2a = originalContour2;
+            DEBUG_CONTOUR2b = contour2
+
+
+    // Remove all correlations visible in the window.
+    /*
+    var cam = VIEWERS[0].GetCamera();
+    var bds = cam.GetBounds();
+    var idx = 0;
+    while (idx < trans.Correlations.length) {
+        var cor = trans.Correlations[idx];
+        if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] &&
+            cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+            trans.Correlations.splice(idx,1);
+        } else {
+                    ++idx;
+        }
+    }
+    */
+
+            DEBUG_TRANS = trans;
+
+    // Now make new correlations from the transformed contour.
+    var targetNumCorrelations = 20;
+    var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
+    for (var i = 2; i < originalContour2.Length(); i += skip) {
+        // TODO: delete this
+        //var viewport = VIEWERS[0].GetViewport(); // does this do anything!!!!
+        //var pt1 = VIEWERS[0].ConvertPointViewerToWorld(contour2.GetPoint(i)[0],
+        //                                               contour2.GetPoint(i)[1]);
+        var pt1 = contour2.GetPoint(i);
+
+        //var viewport = VIEWERS[1].GetViewport();
+        //var pt2 = VIEWERS[1].ConvertPointViewerToWorld(originalContour2.GetPoint(i)[0],
+        //                                               originalContour2.GetPoint(i)[1]);
+        var pt2 = originalContour2.GetPoint(i);
+        var cor = new PairCorrelation();
+        cor.SetPoint0(pt1);
+        cor.SetPoint1(pt2);
+        trans.Correlations.push(cor);
+    }
+
+    console.log("Finished alignment");
+    // Syncronize views
+    NOTES_WIDGET.SynchronizeViews(0, note);
+
+    eventuallyRender();
 }
 
 

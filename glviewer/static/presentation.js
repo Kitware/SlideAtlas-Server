@@ -6,7 +6,6 @@
 // Feature Requests
 // Text should selectively resize.
 // Full window should have overview window and dual view option.
-// Hide mode (hidden annotations idea).
 // True false / short answer question.
 // Mobile users: first view in session is off the edge.
 
@@ -1605,7 +1604,8 @@ HtmlPage.prototype.InsertImage = function(src) {
         .appendTo(this.Div)
         .css({'position':'absolute',
               'left'    :'5%',
-              'top'     :'25%'})
+              'top'     :'25%',
+              'z-index' :'1'})
         .addClass('sa-presentation-image')
         .attr('contenteditable', 'true')
         .saDraggable()
@@ -1633,7 +1633,8 @@ HtmlPage.prototype.InsertVideo = function(src) {
         .appendTo(this.Div)
         .css({'position':'absolute',
               'left'    :'10%',
-              'top'     :'30%'})
+              'top'     :'30%',
+              'z-index' :'1'})
         .addClass('sa-presentation-video')
         .saDraggable()
         .saDeletable();
@@ -1735,7 +1736,8 @@ HtmlPage.prototype.InsertIFrame = function(html) {
         .css({'position':'absolute',
               'display':'block',
               'left': '5%',
-              'top' : '5%'})
+              'top' : '5%',
+              'z-index':'1'})
         .saDraggable()
         .saDeletable();
 
@@ -1750,7 +1752,8 @@ HtmlPage.prototype.InsertURL = function(src) {
               'left':'5%',
               'right':'2.5%',
               'top':'25%',
-              'bottom':'10%'})
+              'bottom':'10%',
+              'z-index':'1'})
         .saDraggable()
         .saDeletable()
         .resizable();
@@ -1790,7 +1793,8 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'fontFamily': "Verdana,sans-serif",
               // defaults caller can reset these.
               'left' : '5%',
-              'top'  : '30%'})
+              'top'  : '30%',
+              'z-index':'1'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:scale})
