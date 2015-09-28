@@ -2714,6 +2714,37 @@ function AlignPolylinesByColor(rgb) {
 }
 
 
+var POLYLINE_AREA = 0;
+function IntegratePolylinesByColor(rgb) {
+    rgb[0] = rgb[0] / 255;
+    rgb[1] = rgb[1] / 255;
+    rgb[2] = rgb[2] / 255;
+
+    // Get the polyline from viewer1
+    var viewer1 = VIEWERS[0];
+    var camBds1 = viewer1.GetCamera().GetBounds();
+
+    for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
+        var w1 = viewer1.WidgetList[i1];
+        if (w1 instanceof PolylineWidget && w1.Shape.Points.length > 0) {
+            var bds1 = w1.Shape.GetBounds();
+            var wCen1 = [(bds1[0]+bds1[1])*0.5, (bds1[2]+bds1[3])*0.5];
+            var c1 = w1.Shape.OutlineColor;
+            if (wCen1[0] < camBds1[0] || wCen1[0] > camBds1[1] ||
+                wCen1[1] < camBds1[2] || wCen1[1] > camBds1[3]) {
+                continue;
+            }
+            if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
+                Math.abs(c1[1]-rgb[1]) < 0.05 &&
+                Math.abs(c1[2]-rgb[2]) < 0.05) {
+                POLYLINE_AREA += w1.ComputeArea();
+            }
+        }
+    }
+
+}
+
+
 function AlignPolylines2(pLine1, pLine2) {
     var note = NOTES_WIDGET.GetCurrentNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
