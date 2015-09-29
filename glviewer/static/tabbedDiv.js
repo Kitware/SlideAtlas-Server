@@ -25,6 +25,7 @@ function TabbedDiv(parent) {
               'bottom':'0px'});
 
     this.TabPanels = [];
+    this.CurrentTabPanel = null;
 }
 
 // I want to hide the TabPanel object, so I return the div.
@@ -36,46 +37,89 @@ TabbedDiv.prototype.NewTabDiv = function (label, helpString) {
     this.TabPanels.push(tabPanel);
     // First panel added should be open by default.
     if (this.TabPanels.length == 1) {
-        this.ShowTabPanel(tabPanel);
+        this.OpenTabPanel(tabPanel);
     }
 
     return tabPanel.Div;
 }
 
 // Private
-TabbedDiv.prototype.ShowTabPanel = function (tabPanel) {
+TabbedDiv.prototype.OpenTabPanel = function (tabPanel) {
+    if ( ! tabPanel) { return;}
+    // close to previous tab
+    // NOTE: If we only close the previous panel, tab buttons wrap to the next line
     for (var i = 0; i < this.TabPanels.length; ++i) {
-        var otherTabPanel = this.TabPanels[i];
-        otherTabPanel.Div.hide();
+        var panel = this.TabPanels[i];
+        panel.Div.hide();
         // The z-index does not seem to be working.
         // When the panel is zoomed, Tab looks like it is on top.
-        otherTabPanel.Tab.css({'color': '#AAA',
-                               'z-index' : '4',
-                               'border-color': '#BBB'});
-        otherTabPanel.IsOpen = true;
+        panel.Tab.css({'color': '#AAA',
+                       'z-index' : '4',
+                       'border-color': '#BBB'});
     }
-
+    // open the new tab.
     tabPanel.Div.show();
     tabPanel.Tab.css({'color': '#000',
                       'z-index' : '6',
                       'border-color': '#BBB #BBB #FFF #BBB'});
+    this.CurrentTabPanel = tabPanel;
 }
 
-TabbedDiv.prototype.ShowTabDiv = function (tabDiv) {
+// Internal helper method
+TabbedDiv.prototype.GetTabPanelFromDiv = function (tabDiv) {
     for (var i = 0; i < this.TabPanels.length; ++i) {
         var tabPanel = this.TabPanels[i];
         if (tabPanel.Div == tabDiv) {
-            this.ShowTabPanel(tabPanel);
+            return tabPanel;
         }
     }
+    return null;
+}
+
+// Internal helper method
+TabbedDiv.prototype.GetTabPanelFromIndex = function (index) {
+    if (index < 0 || index >= this.TabPanels.length) {
+        console.log("GetTabPanelFromIndex("+index +"): error");
+        return null;
+    }
+    return this.TabPanels[index];
+}
+
+TabbedDiv.prototype.ShowTabDiv = function (tabDiv) {
+    this.OpenTabPanel(this.GetTabPanelFromDiv(tabDiv));
 }
 
 TabbedDiv.prototype.ShowTabIndex = function (index) {
-    if (index < 0 || index >= this.TabPanels.length) {
-        console.log("ShowTabPanelIndex("+index +"): error"); 
-        return;
+    this.OpenTabPanel(this.GetTabPanelFromIndex(index));
+}
+
+TabbedDiv.prototype.EnableTabDiv = function (tabDiv) {
+    var panel = this.GetTabPanelFromDiv(tabDiv);
+    panel.Enabled = true;
+    panel.Tab.hide();
+}
+
+TabbedDiv.prototype.DisableTabDiv = function (tabDiv) {
+    var panel = this.GetTabPanelFromDiv(tabDiv);
+    if ( ! panel) { return;}
+
+    panel.Enabled = false;
+    if (panel == this.CurrentTabPanel) {
+        this.CurrentTabPanel = null;
+        // Find another panel to display.
+        for ( var i = 0; i < this.TabPanels.length; ++i) {
+            if (this.TabPanels[i].Enabled) {
+                this.OpenTabPanel(this.TabPanel[i]);
+                break;
+            }
+        }
     }
-    this.ShowTabPanel(this.TabPanels[index]);
+
+    panel.Tab.css({'color': '#AAA',
+                   'z-index' : '4',
+                   'border-color': '#BBB'});
+    panel.Div.hide();
+    panel.Tab.hide();
 }
 
 
@@ -84,6 +128,7 @@ TabbedDiv.prototype.ShowTabIndex = function (index) {
 
 function TabPanel(tabbedDiv, title) {
     var self = this;
+    this.Enabled = true;
     this.Tab = $('<div>')
         .appendTo(tabbedDiv.TabDiv)
         .text(title)
@@ -101,7 +146,7 @@ function TabPanel(tabbedDiv, title) {
               'z-index' : '6',
               'background': 'white'})
         .click(function(){
-            tabbedDiv.ShowTabPanel(self);
+            tabbedDiv.OpenTabPanel(self);
         });
     this.Div = $('<div>')
         .hide()
@@ -117,8 +162,6 @@ function TabPanel(tabbedDiv, title) {
               'z-index' : '5',
               'background': 'white'})
 
-    // I do not think this flag is used or needed.
-    this.IsOpen = false;
 }
 
 

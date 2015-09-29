@@ -940,6 +940,9 @@ function saTextEditor(div, args) {
     args = args || {dialog : true};
     var self = this;
     this.Div = div;
+    div.css({'padding'      : '1%',
+             'border-radius': '3px'});
+
     // Position the div with percentages instead of pixels.
     this.Percentage = true;
     div.saResizable();
@@ -1161,11 +1164,16 @@ saTextEditor.prototype.ShowDialog = function() {
 
 
 saTextEditor.prototype.DialogApplyCallback = function() {
+    // TODO: Remove this or add it to the dialog.
     this.Div.css({'padding'      : '1%',
                   'border-radius': '3px'});
+
     if (this.Dialog.FontSize) {
         var scale = parseFloat(this.Dialog.FontSize.val()) / 800;
-        this.Div.saScalableFont({scale:scale});
+        var jSel = this.Div;
+        // It is contained in a parent scalable font, so just set the attribute.
+        //jSel.setAttribute('sa-font-scale', scale.toString());
+        jSel.saScalableFont({scale:scale});
     }
 
     if (this.Dialog.LineHeight) {
@@ -1318,9 +1326,58 @@ saTextEditor.prototype.InsertUrlLinkAccept = function() {
     }
 }
 
+// This does not work yet.!!!!!!!!!!!!!!!
+// Returns the jquery object selected.  If a partial object is selected,
+// the dom is split up into fragments.
+saTextEditor.prototype.GetSelection = function() {
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
+
+    // Two conditions when we just return the top level div:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        // Something is selected
+        range = sel.getRangeAt(0);
+        range.noCursor = false;
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != this.Div[0]) {
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
+            }
+        }
+    }
+    if ( ! parent) {
+        return this.Div;
+    }
+
+    // Insert the fragments without a container.
+    var children = range.extractContents().children;
+    for (var i = 0; i < children.length; ++i) {
+        range.insertNode(children[i]);
+    }
+    return $(children);
+    
+    // Create a new span around the fragment.
+    //var newNode = document.createElement('span');    
+    //newNode.appendChild(range.extractContents()); 
+    //range.insertNode(newNode)
+    //return $(newNode);
+}
+
 // Get the selection in this editor.  Returns a range.
 // If not, the range is collapsed at the 
 // end of the text and a new line is added.
+// Returns the range of the selection.
 saTextEditor.prototype.GetSelectionRange = function() {
     var sel = window.getSelection();
     var range;
@@ -1406,7 +1463,7 @@ function ResizePanel(parent) {
     var self = this;
 
     // For animating the display of the notes window (DIV).
-    this.Width = 300;
+    this.Width = 353;
 
     this.PanelDiv = $('<div>').appendTo(parent)
         .css({
@@ -1415,7 +1472,7 @@ function ResizePanel(parent) {
             'top' : '0px',
             'bottom':'0px',
             'left' : '0px',
-            'width': this.width+'px'})
+            'width': this.Width+'px'})
         .attr('draggable','false')
         .on("dragstart", function() {return false;});
     this.MainDiv = $('<div>').appendTo(parent)
@@ -1425,7 +1482,7 @@ function ResizePanel(parent) {
             'bottom':'0px',
             'left' : this.Width+'px',
             'right':'0px',
-            'border':'1px solid #AAA'})
+            'border-left':'1px solid #AAA'})
         .attr('draggable','false')
         .on("dragstart", function() {return false;});
 
@@ -1435,13 +1492,13 @@ function ResizePanel(parent) {
               'height': '20px',
               'width': '20px',
               'top' : '0px',
-              'left' : '3px',
+              'left' : '1px',
               'opacity': '0.6',
               '-moz-user-select': 'none',
               '-webkit-user-select': 'none',
               'z-index': '6'})
         .attr('src',"webgl-viewer/static/dualArrowRight2.png")
-        .click(function(){self.ToggleNotesWindow();})
+        .click(function(){self.SetVisibility(true);})
         .attr('draggable','false')
         .hide()
         .on("dragstart", function() {
@@ -1453,30 +1510,29 @@ function ResizePanel(parent) {
         .css({'position': 'absolute',
               'height': '20px',
               'top' : '0px',
-              'left' : '-20px',
+              'left' : '-22px',
               'opacity': '0.6',
               '-moz-user-select': 'none',
               '-webkit-user-select': 'none',
               'z-index': '6'})
         //.hide()
         .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
-        .click(function(){self.ToggleNotesWindow();})
+        .click(function(){self.SetVisibility(false);})
         .attr('draggable','false')
         .on("dragstart", function() {
             return false;});
 
 
-    this.Visibility = false;
+    this.Visibility = true;
     this.Dragging = false;
 
-    // TODO: Get rid of the reference to the global VIEW_PANEL.
     this.ResizeNoteWindowEdge = $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .css({'position': 'absolute',
               'height': '100%',
               'width': '3px',
               'top' : '0px',
-              'left' : '0px',
+              'left' : this.Width+'px',
               'background': '#BDF',
               'z-index': '10',
               'cursor': 'col-resize'})
@@ -1484,6 +1540,7 @@ function ResizePanel(parent) {
                function () {$(this).css({'background':'#BDF'});})
         .mousedown(function () {
             self.StartDrag();
+            return false;
         });
 }
 
@@ -1491,34 +1548,39 @@ function ResizePanel(parent) {
 // Maybe use parent.
 ResizePanel.prototype.StartDrag = function () {
     this.Dragging = true;
-    $('body').bind('mousemove',this.ResizeDrag);
-    $('body').bind('mouseup', this.ResizeStopDrag);
+    var self = this;
+    this.TmpDrag = function (e) {return self.ResizeDrag(e);}
+    this.TmpStop = function (e) {return self.ResizeStopDrag(e);}
+    $('body').bind('mousemove', this.TmpDrag);
+    $('body').bind('mouseup', this.TmpStop);
     $('body').css({'cursor': 'col-resize'});
 }
 
-ResizePanel.ResizeDrag = function (e) {
+ResizePanel.prototype.ResizeDrag = function (e) {
     this.SetWidth(e.pageX - 1);
     if (this.Width < 200) {
         this.ResizeStopDrag();
-        this.ToggleNotesWindow();
+        this.SetVisibility(false);
     }
 
     return false;
 }
-ResizePanel.ResizeStopDrag = function () {
-    $('body').unbind('mousemove',this.ResizeDrag);
-    $('body').unbind('mouseup', this.ResizeStopDrag);
+
+ResizePanel.prototype.ResizeStopDrag = function () {
+    $('body').unbind('mousemove', this.TmpDrag);
+    $('body').unbind('mouseup', this.TmpDrag);
     $('body').css({'cursor': 'auto'});
+    return false;
 }
-
-
-
 
 // TODO: Notes widget should just follow the parent.
 // Get rid of this.
 ResizePanel.prototype.SetWidth = function(width) {
     this.Width = width;
-    this.Window.width(width);
+    this.PanelDiv.css({'width': this.Width+'px'});
+    this.MainDiv.css({'left' : this.Width+'px'});
+    this.ResizeNoteWindowEdge.css({'left' : (this.Width-2)+'px'});
+
     // TODO: Get rid of this hack.
     $(window).trigger('resize');
 }
@@ -1535,12 +1597,11 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
         if (this.Visibility) {
             this.CloseNoteWindowButton.show();
             this.OpenNoteWindowButton.hide();
-            this.Window.fadeIn();
+            this.PanelDiv.fadeIn();
         } else {
             this.CloseNoteWindowButton.hide();
             this.OpenNoteWindowButton.show();
         }
-        draw();
         return;
     }
 
@@ -1550,20 +1611,20 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
     this.AnimationDuration *= (1.0-k);
     this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
 
-    draw();
     var self = this;
     requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
-ResizePanel.prototype.ToggleNotesWindow = function() {
-    this.Visibility = ! this.Visibility;
-    RecordState();
+// Open and close the panel
+ResizePanel.prototype.SetVisibility = function(visibility) {
+    if (this.Visibility == visibility) { return; }
+    this.Visibility = visibility;
 
     if (this.Visibility) {
         this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 325;
+        this.AnimationTarget = 353;
     } else {
-        this.Window.hide();
+        this.PanelDiv.hide();
         this.AnimationCurrent = this.Width;
         this.AnimationTarget = 0;
     }
@@ -1571,6 +1632,32 @@ ResizePanel.prototype.ToggleNotesWindow = function() {
     this.AnimationDuration = 1000.0;
     this.AnimateNotesWindow();
 }
+
+// Show / hide the panel and handles.
+// I keep the "visibility" state and restore it.
+ResizePanel.prototype.Show = function() {
+    this.ResizeNoteWindowEdge.show();
+    if (this.Visibility) {
+        this.Visibility = false; // hack
+        this.SetVisibility(true);
+    } else {
+        this.OpenNoteWindowButton.show();
+    }
+}
+
+ResizePanel.prototype.Hide = function() {
+    // Do not use "SetVisibility" because we need to instantly close the panel.
+    this.PanelDiv.hide();
+    this.SetWidth(0);
+    this.OpenNoteWindowButton.hide();
+    this.CloseNoteWindowButton.hide();
+    this.ResizeNoteWindowEdge.hide();
+
+    //Hack to recompute viewports
+    // TODO: Get rid of this hack.
+    $(window).trigger('resize');
+}
+
 
 
 //==============================================================================
@@ -1679,7 +1766,7 @@ jQuery.prototype.saAnnotationWidget = function(args) {
     for (var i = 0; i < this.length; ++i) {
         var item = this[i];
         if ( ! item.saViewer) {
-            console.log("Setup the viewer before the annotaiton widget.");
+            console.log("Setup the viewer before the annotation widget.");
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
             item.saAnnotationWidget = new AnnotationWidget(item.saViewer);

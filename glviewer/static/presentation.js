@@ -1,5 +1,6 @@
 // CME
 // TODO:
+// Bugs:
 // Question resizable only after reload.
 // Images have a minimum size.
 
@@ -45,7 +46,6 @@
 
 
 //==============================================================================
-
 function Presentation(rootNote, edit) {
     var self = this;
     this.RootNote = rootNote;
@@ -80,13 +80,17 @@ function Presentation(rootNote, edit) {
             'width': '100%'})
         .saFullHeight();
 
-    this.PresentationDiv = $('<div>')
-        .appendTo(this.WindowDiv)
-        .css({'position':'absolute',
-              'top':'0px',
-              'left':'0px',
-              'width':'100%',
-              'height':'100%'});
+    this.ResizePanel = new ResizePanel(this.WindowDiv);
+
+    //this.PresentationDiv = $('<div>')
+    //    .appendTo(this.WindowDiv)
+    //    .css({'position':'absolute',
+    //          'top':'0px',
+    //          'left':'0px',
+    //          'width':'100%',
+    //          'height':'100%'});
+    this.PresentationDiv = this.ResizePanel.MainDiv;
+
     // A window with a contant aspect ratio that fits in
     // the PresentationDiv.
     this.AspectDiv = $('<div>')
@@ -94,22 +98,8 @@ function Presentation(rootNote, edit) {
         .appendTo(this.PresentationDiv)
         .saPresentation({aspectRatio : 1.333});
 
-    if (this.Edit) {
-        // I am trying a new pattern.  Jquery UI seems to use it.
-        // Modify a div after it is created.  That way the creator has full
-        // standard access to jquery methods.
-        this.LeftPanel = $('<div>')
-            .appendTo(this.WindowDiv)
-            .css({'position':'absolute',
-                  'left':'0px',
-                  'right':'0px',
-                  'height':'100%',
-                  'width':'25%'});
-        this.MakeEditPanel(this.LeftPanel);
-        this.PresentationDiv
-            .css({'left':'25%',
-                  'width':'75%'});
-    }
+    this.LeftPanel = this.ResizePanel.PanelDiv;
+    this.InitializeLeftPanel(this.LeftPanel);
 
     // Float the two slide show buttons in the upper right corner.
     this.ShowButton = $('<img>')
@@ -221,6 +211,7 @@ Presentation.prototype.StartTimerShow = function () {
 Presentation.prototype.StartFullScreen = function () {
     var elem = document.body;
 
+    this.ResizePanel.Hide();
     this.EditOff();
     $(window).trigger('resize');
     this.ShowButton.hide();
@@ -249,6 +240,7 @@ Presentation.prototype.StartFullScreen = function () {
             
             self.FullScreen = state;
             if ( ! self.FullScreen) {
+                self.ResizePanel.Show();
                 self.EditOn();
                 self.ShowButton.show();
                 self.TimerButton.show();
@@ -261,15 +253,19 @@ Presentation.prototype.StartFullScreen = function () {
 Presentation.prototype.EditOff = function () {
     if (EDIT && this.Edit) {
         this.Edit = false;
-        this.EditTabs.Div.hide();
+
+        this.SaveButton.hide();
+        this.InsertMenuButton.hide();
+        this.DeleteSlideButton.hide();
+        this.AnswersButton.hide();
+        this.AnswersLabel.hide();
+        this.EditTabs.DisableTabDiv(this.BrowserDiv);
+        this.EditTabs.DisableTabDiv(this.SearchDiv);
+        this.EditTabs.DisableTabDiv(this.ClipboardDiv);
+
         this.TitlePage.EditOff();
         this.SlidePage.EditOff();
         this.HtmlPage.EditOff();
-        this.DeleteSlideButton.hide();
-        this.PresentationDiv
-            .css({'left':'0%',
-                  'width':'100%'});
-        this.LeftPanel.hide();
     }
 }
 
@@ -278,89 +274,34 @@ Presentation.prototype.EditOn = function () {
     if (this.FullScreen) { return; }
     if (EDIT && ! this.Edit) {
         this.Edit = true;
-        this.EditTabs.Div.show();
+
+        this.SaveButton.show();
+        this.InsertMenuButton.show();
+        this.DeleteSlideButton.show();
+        this.AnswersButton.show();
+        this.AnswersLabel.hide();
+        this.EditTabs.EnableTabDiv(this.BrowserDiv);
+        this.EditTabs.EnableTabDiv(this.SearchDiv);
+        this.EditTabs.EnableTabDiv(this.ClipboardDiv);
+
         this.TitlePage.EditOn();
         this.SlidePage.EditOn();
         this.HtmlPage.EditOn();
         this.DeleteSlideButton.show();
-        this.PresentationDiv
-            .css({'left':'25%',
-                  'width':'75%'});
-        this.LeftPanel.show();
     }
 }
 
 
-Presentation.prototype.MakeEditPanel = function (parent) {
+Presentation.prototype.InitializeLeftPanel = function (parent) {
     this.EditTabs = new TabbedDiv(parent);
     this.EditTabs.Div.css({'width':'100%',
                           'height':'100%'})
 
     this.SlidesDiv = this.EditTabs.NewTabDiv("Slides");
-    this.BrowserDiv = this.EditTabs.NewTabDiv("Browse");
-    this.SearchDiv = this.EditTabs.NewTabDiv("Search");
-    this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
-
-    var self = this;
-
     this.SlidesDiv
         .css({'text-align': 'left',
               'color': '#303030',
               'font-size': '18px'});
-    this.SaveButton = $('<img>')
-        .appendTo(this.SlidesDiv)
-        .prop('title', "save")
-        .addClass('editButton')
-        .attr('src','webgl-viewer/static/save22.png')
-        .css({'float':'right'})
-        .click(function () { self.Save();});
-
-
-    this.InsertMenuButton = $('<div>')
-        .appendTo(this.SlidesDiv)
-        .addClass('editButton')
-        .css({'float':'right',
-              'position':'relative'})
-        .saMenuButton( {
-            'New Slide'       : function () {
-                self.InsertNewSlide("HTML");},
-            'Copy Slide'      : function () {self.InsertSlideCopy();},
-            'Insert Text'     : function () {
-                self.HtmlPage.InsertTextBox();},
-            'Insert Question' : function () {self.HtmlPage.InsertQuestion();},
-            'Insert Rectangle': function () {
-                self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
-            'Insert Image'    : function () {self.InsertImage();},
-            'Insert MP4'      : function () {self.InsertVideo();},
-            'Embed Youtube'   : function () {self.InsertYoutube();}
-        });
-
-    $('<img>')
-        .appendTo(this.InsertMenuButton)
-        .attr('src','webgl-viewer/static/new_window.png');
-
-    this.AnswersButton = $('<input type="checkbox">')
-        .appendTo(this.SlidesDiv)
-        .prop('title', "show / hide answers")
-        .css({'float':'right'})
-        .change(function () {
-            if (this.checked) {
-                self.RootNote.Mode = "answer-show";
-            } else {
-                self.RootNote.Mode = "answer-hide";
-            }
-            self.UpdateQuestionMode();
-        });
-    // Set the question mode
-    if (this.RootNote.Mode && this.RootNote.Mode == 'answer-show') {
-        this.AnswersButton[0].checked = true;
-    }
-
-    this.AnswersLabel = $('<div>')
-        .appendTo(this.SlidesDiv)
-        .text("answers")
-        .css({'float':'right'});
-
     // The div that will hold the list of slides.
     this.SlideList = $('<div>')
         .appendTo(this.SlidesDiv)
@@ -370,26 +311,216 @@ Presentation.prototype.MakeEditPanel = function (parent) {
               'bottom':'3px',
               'overflow-y':'auto'});
 
-    this.BrowserPanel = new BrowserPanel(
-        this.BrowserDiv,
-        function (viewObj) {
-            self.AddViewCallback(viewObj);
-        });
-    this.BrowserDiv.css({'overflow-y':'auto'});
+    if (EDIT) {
+        this.BrowserDiv = this.EditTabs.NewTabDiv("Browse");
+        this.SearchDiv = this.EditTabs.NewTabDiv("Search");
+        this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
+        var self = this;
 
-    this.SearchPanel = new SearchPanel(
-        this.SearchDiv,
-        function (imageObj) {
-            self.AddImageCallback(imageObj);
-        });
-    this.ClipboardPanel = new ClipboardPanel(
-        this.ClipboardDiv,
-        function (viewObj) {
-            self.AddViewCallback(viewObj);
-        });
+        this.SaveButton = $('<img>')
+            .appendTo(this.SlidesDiv)
+            .prop('title', "save")
+            .addClass('editButton')
+            .attr('src','webgl-viewer/static/save22.png')
+            .css({'float':'right'})
+            .click(function () { self.Save();});
+        this.InsertMenuButton = $('<div>')
+            .appendTo(this.SlidesDiv)
+            .addClass('editButton')
+            .css({'float':'right',
+                  'position':'relative'})
+            .saMenuButton( {
+                'New Slide'       : function () {
+                    self.InsertNewSlide("HTML");},
+                'Copy Slide'      : function () {self.InsertSlideCopy();},
+                'Insert Text'     : function () {
+                    self.HtmlPage.InsertTextBox();},
+                'Insert Question' : function () {self.HtmlPage.InsertQuestion();},
+                'Insert Rectangle': function () {
+                    self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
+                'Insert Image'    : function () {self.InsertImage();},
+                'Insert MP4'      : function () {self.InsertVideo();},
+                'Embed Youtube'   : function () {self.InsertYoutube();}
+            });
+
+        $('<img>')
+            .appendTo(this.InsertMenuButton)
+            .attr('src','webgl-viewer/static/new_window.png');
+
+        this.AnswersButton = $('<input type="checkbox">')
+            .appendTo(this.SlidesDiv)
+            .prop('title', "show / hide answers")
+            .css({'float':'right'})
+            .change(function () {
+                if (this.checked) {
+                    self.RootNote.Mode = "answer-show";
+                } else {
+                    self.RootNote.Mode = "answer-hide";
+                }
+                self.UpdateQuestionMode();
+            });
+        // Set the question mode
+        if (this.RootNote.Mode && this.RootNote.Mode == 'answer-show') {
+            this.AnswersButton[0].checked = true;
+        }
+
+        this.AnswersLabel = $('<div>')
+            .appendTo(this.SlidesDiv)
+            .text("answers")
+            .css({'float':'right'});
+
+        this.BrowserPanel = new BrowserPanel(
+            this.BrowserDiv,
+            function (viewObj) {
+                self.AddViewCallback(viewObj);
+            });
+        this.BrowserDiv.css({'overflow-y':'auto'});
+
+        this.SearchPanel = new SearchPanel(
+            this.SearchDiv,
+            function (imageObj) {
+                self.AddImageCallback(imageObj);
+            });
+        this.ClipboardPanel = new ClipboardPanel(
+            this.ClipboardDiv,
+            function (viewObj) {
+                self.AddViewCallback(viewObj);
+            });
+
+    }
+
+    this.UserTextDiv = this.EditTabs.NewTabDiv("Notes", "private notes");
+    // Private notes.
+    this.UserNoteEditor = new UserNoteEditor(this.UserTextDiv);
 
     this.EditTabs.ShowTabDiv(this.SlidesDiv);
 }
+
+
+
+//==============================================================================
+// What should i do if the user starts editing before the note loads?
+// Note will not be active until it has a note.
+// Editd to the previous note are saved before it is replaced.
+function UserNoteEditor(parent) {
+    this.UpdateTimer = null;
+    this.ParentNote = null;
+    this.UserNote = null;
+    this.TextEditor = $('<div>')
+        .appendTo(parent)
+        .css({'display':'inline-block',
+              'position':'absolute',
+              'overflow-y': 'auto',
+              'padding'   : '5px',
+              'fontFamily': "Verdana,sans-serif",
+              'left' : '2px',
+              'right' : '2px',
+              'top'  : '20px',
+              'bottom':'2px'});
+        //.saTextEditor();
+
+    var self = this;
+    this.TextEditor.attr('contenteditable', 'false')
+        .bind('input', function () {
+            // Leave events are not triggering.
+            self.EventuallyUpdate();
+        })
+        .focusin(function() {
+            CONTENT_EDITABLE_HAS_FOCUS = true;
+        })
+        .focusout(function() {
+            CONTENT_EDITABLE_HAS_FOCUS = false;
+            self.UpdateNote();
+        })
+        // Mouse leave events are not triggering.
+        .mouseleave(function() { // back button does not cause loss of focus.
+            self.UpdateNote();
+        });
+
+    this.TextEditor.change( function () { self.UpdateNote(); });
+}
+
+UserNoteEditor.prototype.EventuallyUpdate = function() {
+    if (this.UpdateTimer) {
+        clearTimeout(this.UpdateTimer);
+        this.UpdateTimer = null;
+    }
+    var self = this;
+    this.UpdateTimer = setTimeout(function () { self.UpdateNote() }, 5000);
+}
+
+
+UserNoteEditor.prototype.UpdateNote = function () {
+    if (this.UserNote) {
+        this.UserNote.Text = this.TextEditor.html();
+        this.UserNote.Save();
+    }
+}
+
+
+// TODO: Make sure this works with temp note ids.
+UserNoteEditor.prototype.SetNote = function (note) {
+    if (this.ParentNote == note) { return; }
+    this.ParentNote = note;
+
+    if ( ! note) {
+        // Save the previous note incase the user is in mid edit????
+        this.UpdateNote();
+        this.UserNote = null;
+        this.TextEditor.html("");
+        this.TextEditor
+            .attr('contenteditable', 'false')
+            .css('border','');
+    }
+
+    var self = this;
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/getusernotes",
+        data: {"parentid": note.Id},
+        success: function(data,status) { self.LoadUserNote(data, note.Id);},
+        error: function() { saDebug( "AJAX - error() : getusernotes" ); },
+    });
+}
+
+UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
+    if ( ! this.ParentNote || this.ParentNote.Id != parentNoteId) {
+        // Many things could happen while waiting for the note to load.
+        return;
+    }
+
+    // Save the previous note incase the user is in mid edit????
+    this.UpdateNote();
+
+    this.UserNote = new Note();
+    this.UserNote.Parent = this.ParentNote;
+    this.UserNote.ParentId = this.ParentNote.Id;
+    this.UserNote.Type = "UserNote";
+
+    if (data.Notes.length > 0) {
+        if (data.Notes.length > 1) {
+            saDebug("Warning: Only showing the first user note.");
+        }
+        var noteData = data.Notes[0];
+        this.UserNote.Load(noteData);
+    }
+
+    // Must display the text.
+    this.TextEditor.html(this.UserNote.Text);
+    this.TextEditor.attr('contenteditable', 'true')
+        .css({'border':'2px inset #DDD'});
+}
+
+
+
+
+//==============================================================================
+
+
+
+
+
+
 
 
 Presentation.prototype.UpdateQuestionMode = function() {
@@ -693,6 +824,7 @@ Presentation.prototype.GotoSlide = function (index){
                 this.HtmlPage.InitializeTitlePage();
             }
         }
+        this.UserNoteEditor.SetNote(this.Note);
     } else { // Slide page
         this.Note = this.GetSlide(index);
         if (this.Note.Type == "HTML") {
@@ -700,6 +832,7 @@ Presentation.prototype.GotoSlide = function (index){
             this.SlidePage.Div.hide();
             this.HtmlPage.Div.show();
             this.HtmlPage.DisplayNote(this.Note);
+            this.UserNoteEditor.SetNote(this.Note);
         } else {
             this.TitlePage.Div.hide();
             this.HtmlPage.Div.hide();
@@ -771,7 +904,7 @@ Presentation.prototype.SortCallback = function (){
 Presentation.prototype.UpdateSlidesTab = function (){
     var self = this;
 
-    if ( ! EDIT || ! this.Edit || ! this.SlideList) { return;}
+    if ( ! this.SlideList) { return;}
 
     // Add the title page 
     this.SlideList.empty();
@@ -813,7 +946,8 @@ Presentation.prototype.UpdateSlidesTab = function (){
                   'padding-left':'1.5em',
                   'padding-right':'1.5em',
                   'margin': '5px',
-                  'color': '#29C'})
+                  'color': '#29C',
+                  'cursor':'pointer'})
             .hover(function(){ $(this).css("color", "blue");},
                    function(){ $(this).css("color", "#29C");})
             .text(title)
@@ -827,8 +961,10 @@ Presentation.prototype.UpdateSlidesTab = function (){
                   'left':'7px',
                   'top' :'2px',
                   'opacity':'0.5'})
-            .addClass('ui-icon ui-icon-bullet')
-            .addClass('sa-sort-handle');
+            .addClass('ui-icon ui-icon-bullet');
+        if (EDIT) {
+            sortHandle.addClass('sa-sort-handle');
+        }
         
         if (this.Note == note) {
             slideDiv.css({'background':'#EEE'});
