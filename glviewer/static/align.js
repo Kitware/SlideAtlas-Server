@@ -2673,7 +2673,52 @@ function AlignPolylines() {
 }
 
 
+// just remove all polylines leaving only lines of the same color.
+function MaskPolylinesByColor(rgb) {
+    rgb[0] = rgb[0] / 255;
+    rgb[1] = rgb[1] / 255;
+    rgb[2] = rgb[2] / 255;
+    // Remove the polylines from viewers
+    for (var i = 0; i < 2; ++i) {
+        var viewer1 = VIEWERS[i];
+        var newList = [];
+        for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
+            var w1 = viewer1.WidgetList[i1];
+            if (w1 instanceof PolylineWidget) {
+                var c1 = w1.Shape.OutlineColor;
+                if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
+                    Math.abs(c1[1]-rgb[1]) < 0.05 &&
+                    Math.abs(c1[2]-rgb[2]) < 0.05) {
+                    newList.push(w1);
+                }
+            }
+        }
+        viewer1.WidgetList = newList;
+    }
+
+    // Do the note too.
+    var note = NOTES_WIDGET.RootNote;
+    for (var i = 0; i < note.ViewerRecords.length; ++i) {
+        var vr = note.ViewerRecords[i];
+        var newList = [];
+        for ( var j = 0; j < vr.Annotations.length; ++j) {
+            var a = vr.Annotations[j];
+            var c = a.outlinecolor;
+            if (Math.abs(c[0]-rgb[0]) < 0.05 &&
+                Math.abs(c[1]-rgb[1]) < 0.05 &&
+                Math.abs(c[2]-rgb[2]) < 0.05) {
+                newList.push(a);
+            }
+        }
+        vr.Annotations = newList;
+    }
+    eventuallyRender();    
+}
+
 function AlignPolylinesByColor(rgb) {
+    rgb[0] = rgb[0] / 255;
+    rgb[1] = rgb[1] / 255;
+    rgb[2] = rgb[2] / 255;
     // Get the polyline from viewer1
     var viewer1 = VIEWERS[0];
     var pLine1 = null;
@@ -2737,7 +2782,9 @@ function IntegratePolylinesByColor(rgb) {
             if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
                 Math.abs(c1[1]-rgb[1]) < 0.05 &&
                 Math.abs(c1[2]-rgb[2]) < 0.05) {
-                POLYLINE_AREA += w1.ComputeArea();
+                var area = w1.ComputeArea();
+                POLYLINE_AREA += area;
+                console.log(area);
             }
         }
     }

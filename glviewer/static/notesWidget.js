@@ -460,7 +460,7 @@ TextEditor.prototype.InsertCameraLink = function() {
     // Use the selected text as a name for the note.
     var text = sel.toString();
     if (text == "") {
-        // creaste a new name. Should I number the notes?
+        // create a new name. Should I number the notes?
         ++LINKS_WITH_NO_NAME;
         text = "link"+LINKS_WITH_NO_NAME;
     }
@@ -490,7 +490,7 @@ TextEditor.prototype.InsertCameraLink = function() {
             // The note will format the link and add callbacks later.
             span.id = note.Id;
             if ( ! range.collapsed) {
-                // Remove the seelcted text.
+                // Remove the selected text.
                 range.extractContents(); // deleteContents(); // cloneContents
                 range.collapse(true);
                 span.appendChild( document.createTextNode(text) );
@@ -727,7 +727,7 @@ function NotesWidget(display) {
         .css({'padding-left':'0px'})
         .appendTo(this.LinksDiv);
     this.TextDiv = this.TabbedWindow.NewTabDiv("Text");
-    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "prival notes");
+    this.UserTextDiv = this.TabbedWindow.NewTabDiv("Notes", "private notes");
 
     for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
         this.Display.GetViewer(i).OnInteraction(function (){self.RecordView();});
@@ -2366,6 +2366,9 @@ NotesWidget.prototype.RequestUserNote = function(imageId) {
         error: function() { saDebug( "AJAX - error() : getusernotes" ); },
     });
 }
+
+
+
 
 // What should i do if the user starts editing before the note loads?
 // Note will not be active until it has a note.
