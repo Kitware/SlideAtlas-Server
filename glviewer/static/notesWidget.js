@@ -1689,10 +1689,6 @@ Note.prototype.UserCanEdit = function() {
 }
 
 Note.prototype.RecordView = function(display) {
-    // To determine which notes camera to save.
-    // For when the user creates a camera link.
-    NOTES_WIDGET.DisplayedNote = this;
-
     // TODO: Get rid of VIEWER globals.
     if (display.GetNumberOfViewers() == 0) { return; }
 
@@ -2072,6 +2068,8 @@ Note.prototype.DisplayStack = function(display) {
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function(display) {
+    // To determine which notes camera to save.
+    // For when the user creates a camera link.
     NOTES_WIDGET.DisplayedNote = this;
 
     if (display.GetNumberOfViewers() == 0) { return; }
