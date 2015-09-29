@@ -1919,7 +1919,7 @@ function LongestContour(data, threshold) {
                 contour = new Contour();
                 contour.Camera = data.Camera;
                 contour.SetPoints(xContour);
-                area = contour.GetArea();
+                area = Math.abs(contour.GetArea());
                 if (area > bestArea) {
                     bestArea = area;
                     bestContour = contour;
@@ -1930,7 +1930,7 @@ function LongestContour(data, threshold) {
                 contour = new Contour();
                 contour.Camera = data.Camera;
                 contour.SetPoints(yContour);
-                area = contour.GetArea();
+                area = Math.abs(contour.GetArea());
                 if (area > bestArea) {
                     bestArea = area;
                     bestContour = contour;
