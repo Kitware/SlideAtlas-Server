@@ -2721,11 +2721,20 @@ function AlignPolylinesByColor(rgb) {
     rgb[2] = rgb[2] / 255;
     // Get the polyline from viewer1
     var viewer1 = VIEWERS[0];
+    var camBds1 = viewer1.GetCamera().GetBounds();
     var pLine1 = null;
     var count1 = 0;
     for (var i1 = 0; i1 < viewer1.WidgetList.length; ++i1) {
         var w1 = viewer1.WidgetList[i1];
         if (w1 instanceof PolylineWidget && w1.Shape.Points.length > 0) {
+
+            var bds1 = w1.Shape.GetBounds();
+            var wCen1 = [(bds1[0]+bds1[1])*0.5, (bds1[2]+bds1[3])*0.5];
+            if (wCen1[0] < camBds1[0] || wCen1[0] > camBds1[1] ||
+                wCen1[1] < camBds1[2] || wCen1[1] > camBds1[3]) {
+                continue;
+            }
+
             var c1 = w1.Shape.OutlineColor;
             if (Math.abs(c1[0]-rgb[0]) < 0.05 &&
                 Math.abs(c1[1]-rgb[1]) < 0.05 &&
@@ -2739,11 +2748,20 @@ function AlignPolylinesByColor(rgb) {
 
     // Get the polyline from viewer2
     var viewer2 = VIEWERS[1];
+    var camBds2 = viewer2.GetCamera().GetBounds();
     var pLine2 = null;
     var count2 = 0;
     for (var i2 = 0; i2 < viewer2.WidgetList.length; ++i2) {
         var w2 = viewer2.WidgetList[i2];
         if (w2 instanceof PolylineWidget && w1.Shape.Points.length > 0) {
+
+            var bds2 = w2.Shape.GetBounds();
+            var wCen2 = [(bds2[0]+bds2[1])*0.5, (bds2[2]+bds2[3])*0.5];
+            if (wCen2[0] < camBds2[0] || wCen2[0] > camBds2[1] ||
+                wCen2[1] < camBds2[2] || wCen2[1] > camBds2[3]) {
+                continue;
+            }
+
             var c2 = w2.Shape.OutlineColor;
             if (Math.abs(c2[0]-rgb[0]) < 0.05 &&
                 Math.abs(c2[1]-rgb[1]) < 0.05 &&
@@ -2832,7 +2850,7 @@ function AlignPolylines2(pLine1, pLine2) {
             DEBUG_TRANS = trans;
 
     // Now make new correlations from the transformed contour.
-    var targetNumCorrelations = 20;
+    var targetNumCorrelations = 10;
     var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
     for (var i = 2; i < originalContour2.Length(); i += skip) {
         var pt1 = contour2.GetPoint(i);
