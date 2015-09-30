@@ -2617,7 +2617,7 @@ function DeformableAlignViewers() {
 // I expect two things: Coordinate system (no) or spacing (no).
 // !!!!!!!!!!!!!
 
-function AlignPolylines() {
+function AlignPolylines(replace) {
 //    var note = NOTES_WIDGET.GetCurrentNote();
 //    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
 //    trans.Correlations = [];
@@ -2666,7 +2666,7 @@ function AlignPolylines() {
             }
 
             if (dist2Best < 100000) {
-                AlignPolylines2(pLine1, pLine2Best);
+                AlignPolylines2(pLine1, pLine2Best, replace);
             }
         }
     }
@@ -2715,7 +2715,7 @@ function MaskPolylinesByColor(rgb) {
     eventuallyRender();    
 }
 
-function AlignPolylinesByColor(rgb) {
+function AlignPolylinesByColor(rgb, replace) {
     rgb[0] = rgb[0] / 255;
     rgb[1] = rgb[1] / 255;
     rgb[2] = rgb[2] / 255;
@@ -2773,7 +2773,7 @@ function AlignPolylinesByColor(rgb) {
     }
     if (count2 != 1) {return;}
 
-    AlignPolylines2(pLine1, pLine2);
+    AlignPolylines2(pLine1, pLine2, replace);
 }
 
 
@@ -2810,7 +2810,7 @@ function IntegratePolylinesByColor(rgb) {
 }
 
 
-function AlignPolylines2(pLine1, pLine2) {
+function AlignPolylines2(pLine1, pLine2, replace) {
     var note = NOTES_WIDGET.GetCurrentNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
@@ -2820,18 +2820,18 @@ function AlignPolylines2(pLine1, pLine2) {
     var contour1 = new Contour();
     contour1.World = true;
     contour1.SetPoints(pLine1.Shape.Points);
-    //contour1.Camera = VIEWER1.GetCamera();
-    //contour1.WorldToViewer();
-    //contour1.Resample(1);
-    contour1.Resample(5);
+    contour1.Camera = VIEWER1.GetCamera();
+    contour1.WorldToViewer();
+    contour1.Resample(1);
+    //contour1.Resample(5);
 
     var contour2 = new Contour();
     contour2.World = true;
     contour2.SetPoints(pLine2.Shape.Points);
-    //contour2.Camera = VIEWER2.GetCamera();
-    //contour2.WorldToViewer();
-    //contour2.Resample(1);
-    contour2.Resample(5);
+    contour2.Camera = VIEWER2.GetCamera();
+    contour2.WorldToViewer();
+    contour2.Resample(1);
+    //contour2.Resample(5);
 
     if (contour1.Points.length == 0 || contour2.Points.length == 0) {
         return;
@@ -2849,12 +2849,42 @@ function AlignPolylines2(pLine1, pLine2) {
             DEBUG_CONTOUR2b = contour2
             DEBUG_TRANS = trans;
 
+
+    if (replace) {
+        // Remove all correlations.
+        //trans.Correlations = [];
+        // Remove all correlations visible in the window.
+        var cam = VIEWERS[0].GetCamera();
+        var bds = cam.GetBounds();
+        var idx = 0;
+        while (idx < trans.Correlations.length) {
+            var cor = trans.Correlations[idx];
+            if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
+                cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                trans.Correlations.splice(idx,1);
+            } else {
+                ++idx;
+            }
+        }
+    }
+        DEBUG_TRANS = trans;
+
     // Now make new correlations from the transformed contour.
     var targetNumCorrelations = 10;
     var skip = Math.ceil(contour2.Length() / targetNumCorrelations);
     for (var i = 2; i < originalContour2.Length(); i += skip) {
         var pt1 = contour2.GetPoint(i);
+        if (contour1.Camera) { // aligned contour2 is in contour1
+            // coordinate system.
+            pt1 = contour1.Camera.ConvertPointViewerToWorld(pt1[0],pt1[1]);
+        }
         var pt2 = originalContour2.GetPoint(i);
+        if (contour2.Camera) {
+            pt2 = contour2.Camera.ConvertPointViewerToWorld(pt2[0],pt2[1]);
+        }
+
+        //var pt1 = contour2.GetPoint(i);
+        //var pt2 = originalContour2.GetPoint(i);
         var cor = new PairCorrelation();
         cor.SetPoint0(pt1);
         cor.SetPoint1(pt2);
