@@ -5,7 +5,7 @@ from operator import itemgetter
 import urllib2
 
 from bson import ObjectId
-from flask import Blueprint, request, render_template, make_response
+from flask import Blueprint, request, render_template, make_response, abort
 
 from slideatlas import models, security
 from slideatlas.common_utils import jsonify
@@ -705,6 +705,9 @@ def getview():
     admindb = models.ImageStore._get_db()
 
     viewObj = readViewTree(admindb, viewid)
+    if viewObj is None:
+        abort(404)
+
     # I am giving the viewer the responsibility of hiding stuff.
     # copy the hide annotation from the session to the view.
     viewObj["HideAnnotations"] = False
