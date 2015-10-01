@@ -5,6 +5,7 @@ from operator import itemgetter
 import urllib2
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from flask import Blueprint, request, render_template, make_response, abort
 
 from slideatlas import models, security
@@ -521,7 +522,11 @@ def getfavoriteviews():
 # and returns a single structure.
 def readViewTree(db, viewId):
     if isinstance(viewId, basestring):
-        viewId = ObjectId(viewId)
+        try:
+            viewId = ObjectId(viewId)
+        except InvalidId:
+            # viewId may come from a client-provided URL, and could be invalid
+            viewId = None
     if isinstance(viewId, ObjectId):
         viewObj = db["views"].find_one({'_id': viewId})
     else:
