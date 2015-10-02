@@ -483,8 +483,10 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
         var note = NOTES_WIDGET.GetCurrentNote();
         if (note.StartIndex < note.ViewerRecords.length-1) {
             NAVIGATION_WIDGET.NextNote();
-            this.SaveLargeImage(fileName, width, height, stack,
-                                finishedCallback);
+            var self = this;
+            setTimeout(function () {
+                self.SaveLargeImage(fileName, width, height, stack,
+                                    finishedCallback);}, 1000);
             return;
         }
     }
