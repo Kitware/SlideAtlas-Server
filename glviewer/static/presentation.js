@@ -2383,6 +2383,9 @@ ClipboardPanel.prototype.LoadClipboardCallback = function(sessionData) {
 
     for (var i = 0; i < this.ClipboardViews.length; ++i) {
         var view = this.ClipboardViews[i];
+        if (view.Thumb.substring(0,6) == "http:/") {
+            view.Thumb = view.Thumb.substring(6);
+        }
         var thumb = $('<img>')
             .appendTo(this.ClipboardDiv)
             .attr('src', view.Thumb)
