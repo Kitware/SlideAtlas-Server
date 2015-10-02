@@ -2185,7 +2185,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     var src;
     if(MOBILE_DEVICE){
         var image = this.Display.GetViewer(0).GetCache().Image;
-        src = "http://slide-atlas.org/thumb?db=" + image.database + "&img=" + image._id + "";
+        src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
         var thumb = CreateThumbnailImage(110);
         src = thumb.src;

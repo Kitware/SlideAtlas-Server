@@ -1,6 +1,11 @@
 // CME
 // TODO:
 // Bugs:
+// Cannot write a user note for a newly added (tmpid) note.
+// Get short answer questions working.
+// Check that copy is working.
+
+
 // Question resizable only after reload.
 // Images have a minimum size.
 
@@ -557,8 +562,13 @@ Presentation.prototype.TimerCallback = function(duration) {
     document.execCommand('bold',false,null);
     document.execCommand('bold',false,null);
     // Hide annotations
-    this.SlidePage.AnnotationWidget1.SetVisibility(false);
-    this.SlidePage.AnnotationWidget2.SetVisibility(false);
+    // legacy
+    if (this.SlidePage.AnnotationWidget1) {
+        this.SlidePage.AnnotationWidget1.SetVisibility(false);
+    }
+    if (this.SlidePage.AnnotationWidget2) {
+        this.SlidePage.AnnotationWidget2.SetVisibility(false);
+    }
     // remove the selection
     range.collapse(false);
     // The collapse has no effect without this.
@@ -1698,6 +1708,7 @@ HtmlPage.prototype.InitializeTitlePage = function() {
     // Should everything be have Div as parent?
     // Todo: make this look like jquery.
     var titleText = this.InsertTextBox(50)
+        .addClass('sa-presentation-title')
         .css({'color':'white',
               'left':'10%',
               'top':'40%'})

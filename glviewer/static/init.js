@@ -572,7 +572,7 @@ function Main(style,sessId,viewId) {
     // Hack to create a new presenation.
     if (viewId == "" || viewId == "None") {
         var title = window.prompt("Please enter the presentation title.",
-                                  "Presentation");
+                                  "SlideShow");
         if (title == null) {
             // Go back in browser?
             return;
