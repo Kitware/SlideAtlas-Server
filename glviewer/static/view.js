@@ -208,9 +208,11 @@ var MASK_HACK = false;
 // Returns true if all the tiles to render were available.
 // False implies that the user shoudl render again.
 View.prototype.DrawTiles = function () {
-    if ( ! this.CanvasDiv.is(':visible') ) {
-        return;
-    }
+    // Download view is not visible, but still needs to render tiles.
+    // This causes black/blank download images
+    //if ( ! this.CanvasDiv.is(':visible') ) {
+    //    return;
+    //}
     //console.time("  ViewDraw");
     if ( GL) {
         if (MASK_HACK ) {
