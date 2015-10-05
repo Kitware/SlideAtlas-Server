@@ -1808,16 +1808,9 @@ Note.prototype.Save = function(callback) {
             // get the children ids too.
             // Assumes the order of children did not change.
             self.LoadIds(data);
-            if (self.UserNote && self.UserNote.Text != "") {
-                // This might be the first time the parent is saved.
-                // We cannot save user notes until the parent has a real id.
-                self.UserNote.Parent = self;
-                self.UserNote.Save();
-            }
             if (callback) {
                 (callback)(self);
             }
-            this.TempId = "";
         },
         error: function() {
             $('body').css({'cursor':'default'});
@@ -1949,6 +1942,7 @@ Note.prototype.Serialize = function(includeChildren) {
     // upper left pixel
     obj.CoordinateSystem = "Pixel";
 
+    // Will this erase children if includeChildren is off?
     if (includeChildren) {
         obj.Children = [];
         for (var i = 0; i < this.Children.length; ++i) {
@@ -1971,8 +1965,8 @@ Note.prototype.Load = function(obj){
     if (this._id) {
         this.Id = this._id;
         delete this._id;
-        // Some TempIds made their way into the database.
-        this.TempId = "";
+        // All notes have a TempId (set in contructor) before they are loaded.
+        delete this.TempId;
     }
 
     if (this.ParentId) {

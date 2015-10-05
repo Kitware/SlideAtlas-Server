@@ -167,9 +167,7 @@ function Presentation(rootNote, edit) {
     //document.onkeyup = function(e) {self.HandleKeyUp(e);};
     $('body').keyup(function(e) {self.HandleKeyUp(e);});
 
-    if (EDIT) {
-        this.UpdateSlidesTab();
-    }
+    this.UpdateSlidesTab();
 }
 
 
@@ -350,6 +348,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
             .appendTo(this.InsertMenuButton)
             .attr('src','webgl-viewer/static/new_window.png');
 
+
         this.AnswersButton = $('<input type="checkbox">')
             .appendTo(this.SlidesDiv)
             .prop('title', "show / hide answers")
@@ -371,6 +370,11 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
             .appendTo(this.SlidesDiv)
             .text("answers")
             .css({'float':'right'});
+
+
+
+
+
 
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
@@ -556,19 +560,27 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 
 
 
-
-
-
-
-
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
     if (this.RootNote.Mode == 'answer-hide') {
         $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
+        // Experiment with hiding titles too.
+        var title = $('.sa-presentation-title');
+        var standin = title.clone();
+        title.hide();
+        standin
+            .appendTo(title.parent())
+            .html("#")
+            .addClass('sa-standin')
+            .attr('contenteditable', 'false');
     }
     if (this.RootNote.Mode == 'answer-show') {
         $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
+        // Experiment with hiding titles too.
+        $('.sa-standin').remove();
+        $('.sa-presentation-title').show();
     }
+    this.UpdateSlidesTab();
 }
 
 
@@ -712,18 +724,43 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-    // Hack hack hack.  I should just hang onto the DOM for each slide
-    // rather than reloading with saHtml.  It is necessary to convert
-    // temporary note ids to real note ids. (for the html sa-presentation-views)
+    // It is necessary to convert
+    // temporary note ids to real note ids. (for the html
+    // sa-presentation-views)
+    // This is also important for the user notes.  They have to save the
+    // correct parent id.
+    var waitingCount = 0;
     for (var i = 0; i < NOTES.length; ++i) {
         note = NOTES[i];
-        if ( ! note.Id ) {
+        if ( ! note.Id && note.Type != "UserNote" ) {
+            ++waitingCount;
             note.Save(function() {
-                // This could break if save sets more than one id.
-                note.Text = note.Text.replace(note.TempId, note.Id);
-                note.Save();
+                --waitingCount;
+                // Synchonize asynchronous calls.
+                if (waitingCount == 0) {
+                    // reenter this method to finish the rest.
+                    self.Save();
+                }
             });
-            return;
+        }
+    }
+    // It will take time for the ids to come back
+    if (waitingCount > 0) {
+        return;
+    }
+
+    // Save the user notes.  They are not saved with the parent notes like
+    // the children are.
+    for (var i = 0; i < NOTES.length; ++i) {
+        note = NOTES[i];
+        if ( note.Type == "UserNote" ) {
+            if (note.Id || note.Text != "") {
+                // Parent will have an id at this point.
+                note.Save();
+                if (note.TempId) {
+                    delete note.TempId;
+                }
+            }
         }
     }
 
@@ -758,9 +795,23 @@ Presentation.prototype.Save = function () {
         rootNote.ViewerRecords.push(record);
     }
 
+    // Replacing the temp ids in the html is harder than I would expect.
+    // I change it in the save callback, but cosure magic change it back
+    // Before the root note was saved.
+    // Try changing them here.
+    for (var i = 0; i < NOTES.length; ++i) {
+        note = NOTES[i];
+        if (note.TempId) {
+            // Replace al the occurances of the id in the string.
+            note.Text = note.Text.replace(
+                new RegExp(note.TempId, 'g'), note.Id);
+            delete note.TempId;
+        }
+    }
 
 
     //this.SaveButton.css({'color':'#F00'});
+    // And finally, we can save the presentation.
     this.RootNote.Save();
 }
 
@@ -804,6 +855,7 @@ Presentation.prototype.InsertNewSlide = function (type){
     if (type == 'HTML') {
         this.HtmlPage.InitializeSlidePage();
     }
+    this.UpdateQuestionMode();
 }
 
 Presentation.prototype.InsertSlideCopy = function (type){
@@ -982,6 +1034,10 @@ Presentation.prototype.UpdateSlidesTab = function (){
                 }
                 title = title.substring(0,idx);
             }
+        }
+        // Hide titles
+        if (this.RootNote.Mode == 'answer-hide') {
+            title = "#"+(i+1);
         }
         var slideDiv = $('<div>')
             .appendTo(this.SlideList)
@@ -1783,7 +1839,8 @@ HtmlPage.prototype.InitializeSlidePage = function() {
         .css({'color':'white',
               'left':'18%',
               'top':'8%'})
-        .text("Title");
+        .text("Title")
+        .addClass('sa-presentation-title');
 
     this.UpdateEdits();
     this.BindElements();
