@@ -1335,7 +1335,7 @@ function Note () {
 
     this.Title = "";
     this.Text = "";
-    this.UserText = "";
+    //this.UserText = "";
     this.Modified = false;
 
     // Upto two for dual view.
@@ -1461,7 +1461,7 @@ Note.prototype.DeepCopy = function(note) {
     this.Title = note.Title;
     this.Type = note.Type;
     this.User = note.User;
-    this.UserText = note.UserText;
+    //this.UserText = note.UserText;
     this.ViewerRecords = [];
     for (var i = 0; i < note.ViewerRecords.length; ++i) {
         var record = new ViewerRecord();
@@ -1501,36 +1501,6 @@ function GetNoteFromId(id) {
     }
     return null;
 }
-
-/*
-// for loading jquery views.
-function FindNote(id, note) {
-    if ( ! note) {
-        for (var i = 0; i < NOTES.length; ++i) {
-            var found = FindNote(id,NOTES[i]);
-            if (found) {
-                return found;
-            }
-        }
-        // TODO: Create and load a new note.
-        return null;
-    }
-
-    if (note.Id == id) {
-        return note;
-    }
-    for (var i = 0; i < note.Children.length; ++i) {
-        var found = FindNote(id, note.Children[i]);
-        if (found) {
-            return found;
-        }
-    }
-    return null;
-}
-*/
-
-
-
 
 
 // Every time the "Text" is loaded, they hyper links have to be setup.
@@ -1684,8 +1654,15 @@ Note.prototype.DeleteCallback = function() {
     NOTES_WIDGET.MarkAsModified();
 }
 
+Note.prototype.SetUserNote = function(userNote) {
+    var parentNote = this;
+    parentNote.UserNote = userNote;
+    userNote.Parent = parentNote;
+    userNote.Type = "UserNote";
+}
+
 Note.prototype.UserCanEdit = function() {
-  return EDIT;
+    return EDIT;
 }
 
 Note.prototype.RecordView = function(display) {
@@ -1821,6 +1798,8 @@ Note.prototype.Save = function(callback) {
     var noteObj = JSON.stringify(this.Serialize(true));
     var d = new Date();
     $('body').css({'cursor':'progress'});
+    var tmpId = this.TempId;
+    this.TempId = "";
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
@@ -1831,11 +1810,19 @@ Note.prototype.Save = function(callback) {
             // get the children ids too.
             // Assumes the order of children did not change.
             self.LoadIds(data);
+            if (self.UserNote && self.UserNote.Text != "") {
+                // This might be the first time the parent is saved.
+                // We cannot save user notes until the parent has a real id.
+                self.UserNote.Parent = self;
+                self.UserNote.Save();
+            }
             if (callback) {
                 (callback)(self);
             }
         },
         error: function() {
+            // restore the temporary id.
+            self.TempId = tmpId;
             $('body').css({'cursor':'default'});
             saDebug("AJAX - error() : saveviewnotes" );
         },
@@ -1929,11 +1916,13 @@ Note.prototype.Serialize = function(includeChildren) {
 
     if (this.Id) {
         obj._id = this.Id;
+        delete this._id;
     }
     // I would like to put the session as parent, but this would be an inclomplete reference.
     // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
     if (this.Parent) {
         obj.ParentId = this.Parent.Id;
+        delete this.ParentId
     }
     obj.Title = this.Title;
     obj.HiddenTitle = this.HiddenTitle;
@@ -1969,6 +1958,7 @@ Note.prototype.Serialize = function(includeChildren) {
             obj.Children.push(this.Children[i].Serialize(includeChildren));
         }
     }
+
     return obj;
 }
 
@@ -1976,14 +1966,22 @@ Note.prototype.Serialize = function(includeChildren) {
 // Children ...
 Note.prototype.Load = function(obj){
     var self = this;
+
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
     // I am not sure blindly copying all of the variables is a good idea.
     if (this._id) {
         this.Id = this._id;
+        delete this._id;
+        // Some TempIds made their way into the database.
+        this.TempId = "";
     }
-    delete this._id;
+
+    if (this.ParentId) {
+        this.Parent = GetNoteFromId(this.ParentId);
+        delete this.ParentId
+    }
 
     if (this.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
@@ -1998,6 +1996,14 @@ Note.prototype.Load = function(obj){
         childNote.Load(childObj);
         this.Children[i] = childNote;
         childNote.Div.data("index", i);
+    }
+
+    // I believe the server embeds the correct user note.
+    if (this.UserNote) {
+        // Make the user not into a real object.
+        var obj = this.UserNote;
+        this.UserNote = new Note();
+        this.UserNote.Load(obj);
     }
 
     for (var i = 0; i < this.ViewerRecords.length; ++i) {

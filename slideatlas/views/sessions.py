@@ -12,7 +12,7 @@ from slideatlas.api import apiv2
 from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
-
+import pdb
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -198,16 +198,22 @@ def deepcopyview(view_id):
         for child in view['Children']:
             new_child = deepcopyview(child)
             if new_child is not None:
-                # Replace the old id with the new id in the text.
-                view["Text"] = view["Text"].replace(str(child),str(new_child))
-                # Replace the reference in the chilren array.
                 new_children.append(new_child)
         view['Children'] = new_children
 
+    # There is probably a better way of getting a
+    # new id that saving.  We have to save twice here.
+    # We have to replace the oldId string with the new for html text.
+    oldId = view['_id']
     # this forces a deep copy
     del view['_id']
-    new_view_id = admin_db['views'].save(view)
-    return new_view_id
+    newId = view['_id'] = admin_db['views'].save(view)
+    # Replace the old id with the new id in the text.
+    view["Text"] = view["Text"].replace(str(oldId),str(newId))
+    # a second save for the updated html text.
+    admin_db['views'].save(view)
+
+    return newId
 
 
 ################################################################################

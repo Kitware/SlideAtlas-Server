@@ -1,7 +1,6 @@
 // CME
 // TODO:
 // Bugs:
-// Cannot write a user note for a newly added (tmpid) note.
 // Get short answer questions working.
 // Check that copy is working.
 
@@ -405,12 +404,11 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
 //==============================================================================
 // What should i do if the user starts editing before the note loads?
-// Note will not be active until it has a note.
-// Editd to the previous note are saved before it is replaced.
+// Editor will not be active until it has a note.
 function UserNoteEditor(parent) {
     this.UpdateTimer = null;
     this.ParentNote = null;
-    this.UserNote = null;
+    //this.UserNote = null;
     this.TextEditor = $('<div>')
         .appendTo(parent)
         .css({'display':'inline-block',
@@ -456,34 +454,75 @@ UserNoteEditor.prototype.EventuallyUpdate = function() {
 
 
 UserNoteEditor.prototype.UpdateNote = function () {
-    if (this.UserNote) {
-        this.UserNote.Text = this.TextEditor.html();
-        this.UserNote.Save();
+    if (this.ParentNote && this.ParentNote.UserNote) {
+        var userNote = this.ParentNote.UserNote;
+        userNote.Text = this.TextEditor.html();
+        // Do not save the user not until the parent has been saved.
+        if (this.ParentNote.Id) {
+            // Do not save new empty user notes.
+            if(userNote.Id || userNote.Text != "") {
+                // Do not save the user not if it has no text.
+                userNote.Save();
+            }
+        }
     }
 }
 
 
+// The parent not is set.  A user not is retrieved or created, and the
+// editor is attached to the user note.
+// TODO: Get rid of the local iVar UserNote.
 // TODO: Make sure this works with temp note ids.
-UserNoteEditor.prototype.SetNote = function (note) {
-    if (this.ParentNote == note) { return; }
-    this.ParentNote = note;
+UserNoteEditor.prototype.SetNote = function (parentNote) {
+    if (this.ParentNote == parentNote) { return; }
 
-    if ( ! note) {
-        // Save the previous note incase the user is in mid edit????
-        this.UpdateNote();
-        this.UserNote = null;
-        this.TextEditor.html("");
-        this.TextEditor
-            .attr('contenteditable', 'false')
-            .css('border','');
+    // Save the previous note incase the user is in mid edit
+    // TODO: Do not save it has not been modified.
+    this.UpdateNote();
+    // clear the editor and make not editable until we have another user note.
+    this.ParentNote = null;
+    //this.UserNote = null;
+    this.TextEditor.html("");
+    this.TextEditor
+        .attr('contenteditable', 'false')
+        .css('border','');
+
+    // Null note means save previous and clear editor and make it no longer editable.
+    if ( ! parentNote) {
+        return;
     }
 
+    this.ParentNote = parentNote;
+
+    if (parentNote.UserNote) {
+        //this.UserNote = parentNote.UserNote;
+        this.TextEditor
+            .html(parentNote.UserNote.Text)
+            .attr('contenteditable', 'true')
+            .css({'border':'2px inset #DDD'});
+        return;
+    }
+
+    if ( ! parentNote.Id) {
+        // If the parent does not have an id, it must be new and will not
+        // have a user note.  Make a new one (do not try to load user note).
+        // A new note.  I do not want to save empty user notes for every
+        // note.  The check will be in the save method.
+        parentNote.SetUserNote(new Note());
+        this.TextEditor
+            .attr('contenteditable', 'true')
+            .css({'border':'2px inset #DDD'});
+        return;
+    }
+
+    // NOTE: This is probably not necessary because the server embeds user
+    // notes when the parent is sent to the client.
     var self = this;
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getusernotes",
-        data: {"parentid": note.Id},
-        success: function(data,status) { self.LoadUserNote(data, note.Id);},
+        data: {"parentid": parentNote.Id},
+        success: function(data,status) { self.LoadUserNote(data, parentNote.Id);},
         error: function() { saDebug( "AJAX - error() : getusernotes" ); },
     });
 }
@@ -494,24 +533,19 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
         return;
     }
 
-    // Save the previous note incase the user is in mid edit????
-    this.UpdateNote();
+    var parentNote = this.ParentNote;
+    parentNote.SetUserNote(new Note());
 
-    this.UserNote = new Note();
-    this.UserNote.Parent = this.ParentNote;
-    this.UserNote.ParentId = this.ParentNote.Id;
-    this.UserNote.Type = "UserNote";
-
-    if (data.Notes.length > 0) {
+    if (data.Notes && data.Notes.length > 0) {
         if (data.Notes.length > 1) {
             saDebug("Warning: Only showing the first user note.");
         }
         var noteData = data.Notes[0];
-        this.UserNote.Load(noteData);
+        parentNote.UserNote.Load(noteData);
     }
 
     // Must display the text.
-    this.TextEditor.html(this.UserNote.Text);
+    this.TextEditor.html(parentNote.UserNote.Text);
     this.TextEditor.attr('contenteditable', 'true')
         .css({'border':'2px inset #DDD'});
 }
@@ -681,7 +715,7 @@ Presentation.prototype.Save = function () {
 
     // Hack hack hack.  I should just hang onto the DOM for each slide
     // rather than reloading with saHtml.  It is necessary to convert
-    // temporary note ids to real note ids.
+    // temporary note ids to real note ids. (for the html sa-presentation-views)
     for (var i = 0; i < NOTES.length; ++i) {
         note = NOTES[i];
         if ( ! note.Id ) {
