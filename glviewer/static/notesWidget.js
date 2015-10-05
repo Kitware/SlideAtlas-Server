@@ -1798,8 +1798,6 @@ Note.prototype.Save = function(callback) {
     var noteObj = JSON.stringify(this.Serialize(true));
     var d = new Date();
     $('body').css({'cursor':'progress'});
-    var tmpId = this.TempId;
-    this.TempId = "";
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
@@ -1819,10 +1817,9 @@ Note.prototype.Save = function(callback) {
             if (callback) {
                 (callback)(self);
             }
+            this.TempId = "";
         },
         error: function() {
-            // restore the temporary id.
-            self.TempId = tmpId;
             $('body').css({'cursor':'default'});
             saDebug("AJAX - error() : saveviewnotes" );
         },
