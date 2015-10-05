@@ -2,14 +2,13 @@
 // TODO:
 // Bugs:
 // Get short answer questions working.
-// Check that copy is working.
-
 
 // Question resizable only after reload.
 // Images have a minimum size.
 
 // Feature Requests
 // Text should selectively resize.
+//    This is hard.  I cannot change a selection into a dom that can be manipulated.
 // Full window should have overview window and dual view option.
 // True false / short answer question.
 // Mobile users: first view in session is off the edge.
@@ -721,8 +720,8 @@ Presentation.prototype.Save = function () {
         if ( ! note.Id ) {
             note.Save(function() {
                 // This could break if save sets more than one id.
-                note.Text.replace(note.TempId, note.Id);
-                self.Save();
+                note.Text = note.Text.replace(note.TempId, note.Id);
+                note.Save();
             });
             return;
         }
@@ -1708,6 +1707,18 @@ HtmlPage.prototype.ClearNote = function () {
 
 
 HtmlPage.prototype.DisplayNote = function (note) {
+    // Lets record to position of the previous slides viewers to use
+    // as the position of any viewers in the new slide.
+    this.DefaultViewerPositions = [];
+    var lastViewers = $('.sa-presentation-view');
+    for (var i = 0; i < lastViewers.length; ++i) {
+        this.DefaultViewerPositions.push(
+            {left:lastViewers[i].style.left,
+             top:lastViewers[i].style.top,
+             width:lastViewers[i].style.width,
+             height:lastViewers[i].style.height});
+    }
+    
     this.Note = note;
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
@@ -2151,6 +2162,11 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
     var viewerIdx = this.Note.ViewerRecords.length;
     this.Note.ViewerRecords.push(viewerRecord);
 
+    var defaultPosition = {left:'5%',top:'25%',width:'45%',height:'45%'};
+    if (this.DefaultViewerPositions.length > 0) {
+        defaultPosition = this.DefaultViewerPositions.splice(0,1)[0];
+    }
+
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
         .addClass('sa-presentation-view')
@@ -2158,10 +2174,10 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
               'box-shadow': '10px 10px 5px #AAA',
               'background-color':'#FFF',
               'opacity':'1.0',
-              'left':'5%',
-              'width':'45%',
-              'top':'25%',
-              'height':'45%'})
+              'left':   defaultPosition.left,
+              'width':  defaultPosition.width,
+              'top':    defaultPosition.top,
+              'height': defaultPosition.height})
         .saViewer({'note': this.Note,
                    'viewerIndex':viewerIdx,
                    'hideCopyright':true})
