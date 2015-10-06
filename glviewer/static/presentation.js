@@ -352,7 +352,9 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
         this.AnswersButton = $('<input type="checkbox">')
             .appendTo(this.SlidesDiv)
             .prop('title', "show / hide answers")
-            .css({'float':'right'})
+            .css({'float':'right'});
+        this.AnswersButton[0].checked = true;
+        this.AnswersButton
             .change(function () {
                 if (this.checked) {
                     self.RootNote.Mode = "answer-show";
@@ -362,19 +364,14 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
                 self.UpdateQuestionMode();
             });
         // Set the question mode
-        if (this.RootNote.Mode && this.RootNote.Mode == 'answer-show') {
-            this.AnswersButton[0].checked = true;
+        if (this.RootNote.Mode && this.RootNote.Mode == 'answer-hide') {
+            this.AnswersButton[0].checked = false;
         }
 
         this.AnswersLabel = $('<div>')
             .appendTo(this.SlidesDiv)
             .text("answers")
             .css({'float':'right'});
-
-
-
-
-
 
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
@@ -562,7 +559,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
-    if (this.RootNote.Mode == 'answer-hide') {
+    if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
         $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
         // Experiment with hiding titles too.
         var title = $('.sa-presentation-title');
@@ -573,8 +570,7 @@ Presentation.prototype.UpdateQuestionMode = function() {
             .html("#" + this.Index)
             .addClass('sa-standin')
             .attr('contenteditable', 'false');
-    }
-    if (this.RootNote.Mode == 'answer-show') {
+    } else {
         $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
         // Experiment with hiding titles too.
         $('.sa-standin').remove();
