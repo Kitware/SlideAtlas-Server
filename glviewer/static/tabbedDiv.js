@@ -96,7 +96,7 @@ TabbedDiv.prototype.ShowTabIndex = function (index) {
 TabbedDiv.prototype.EnableTabDiv = function (tabDiv) {
     var panel = this.GetTabPanelFromDiv(tabDiv);
     panel.Enabled = true;
-    panel.Tab.hide();
+    panel.Tab.show();
 }
 
 TabbedDiv.prototype.DisableTabDiv = function (tabDiv) {
