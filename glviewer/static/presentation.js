@@ -280,7 +280,7 @@ Presentation.prototype.EditOn = function () {
         this.InsertMenuButton.show();
         this.DeleteSlideButton.show();
         this.AnswersButton.show();
-        this.AnswersLabel.hide();
+        this.AnswersLabel.show();
         this.EditTabs.EnableTabDiv(this.BrowserDiv);
         this.EditTabs.EnableTabDiv(this.SearchDiv);
         this.EditTabs.EnableTabDiv(this.ClipboardDiv);
@@ -570,7 +570,7 @@ Presentation.prototype.UpdateQuestionMode = function() {
         title.hide();
         standin
             .appendTo(title.parent())
-            .html("#")
+            .html("#" + this.Index)
             .addClass('sa-standin')
             .attr('contenteditable', 'false');
     }
