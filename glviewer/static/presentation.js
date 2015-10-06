@@ -1034,10 +1034,10 @@ Presentation.prototype.UpdateSlidesTab = function (){
                 }
                 title = title.substring(0,idx);
             }
-        }
-        // Hide titles
-        if (this.RootNote.Mode == 'answer-hide') {
-            title = "#"+(i+1);
+            // Hide titles
+            if (this.RootNote.Mode == 'answer-hide') {
+                title = "#"+i;
+            }
         }
         var slideDiv = $('<div>')
             .appendTo(this.SlideList)
