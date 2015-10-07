@@ -224,7 +224,9 @@ CollectionBrowser = (function (){
     SessionObject.prototype.LoadViewData = function(data) {
         this.State = LOADED;
         this.ViewObjects = [];
-        this.Modified();
+        // Why did i modify?  Did I intend to doe the opposite?
+        //this.Modified();
+        this.ModifiedTime = this.SavedTime = 1;
         for (var i = 0; i < data.session.views.length; ++i) {
             viewObject = new ViewObject(this).LoadData(data.session.views[i]);
             // Info not in views?
