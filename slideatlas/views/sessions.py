@@ -205,6 +205,9 @@ def deepcopyview(view_id):
     # new id that saving.  We have to save twice here.
     # We have to replace the oldId string with the new for html text.
     oldId = view['_id']
+    # Lets save the old Id.  It might be userful for remeber the original
+    # view
+    view['CopySource'] = oldId
     # this forces a deep copy
     del view['_id']
     newId = view['_id'] = admin_db['views'].save(view)
