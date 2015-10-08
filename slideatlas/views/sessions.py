@@ -12,7 +12,7 @@ from slideatlas.api import apiv2
 from slideatlas import models
 from slideatlas import security
 from slideatlas.common_utils import jsonify
-import pdb
+
 NUMBER_ON_PAGE = 10
 
 mod = Blueprint('session', __name__)
@@ -209,7 +209,8 @@ def deepcopyview(view_id):
     del view['_id']
     newId = view['_id'] = admin_db['views'].save(view)
     # Replace the old id with the new id in the text.
-    view["Text"] = view["Text"].replace(str(oldId),str(newId))
+    if 'Text' in view :
+        view["Text"] = view["Text"].replace(str(oldId),str(newId))
     # a second save for the updated html text.
     admin_db['views'].save(view)
 
