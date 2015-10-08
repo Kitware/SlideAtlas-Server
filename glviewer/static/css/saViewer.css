@@ -204,7 +204,8 @@
 */
 
 .sa-view-browser-item{ background-color: #FFF}
-.sa-view-browser-item.sa-active{ background-color: #CDF}
+.sa-view-browser-item.sa-selected    { background-color: #CDF}
+.sa-view-browser-view-item.sa-active {border-color: #333}
 .sa-view-browser-message{
     position: fixed;
     font-size : 200%;
@@ -244,7 +245,6 @@
     padding: 2px;
     border-color: #CCC
 }
-.sa-view-browser-view-item.sa-active {border-color: #333}
 .sa-view-browser-view-label {
     color: #333;
     font-size: 11px;

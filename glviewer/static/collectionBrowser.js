@@ -324,7 +324,7 @@ CollectionBrowser = (function (){
 
         // I am not sure that the GUI stuff belongs in this method.
         // Update GUI will repopulate this array.
-        SELECTED = [];
+        ClearSelected();
         // Save modified sessions.
         LIBRARY_OBJ.Save();
         UpdateGUI();
@@ -477,13 +477,13 @@ CollectionBrowser = (function (){
             }
         }
         SELECTED.push(view);
-        view.Item.addClass("sa-view-browser-item sa-active");
+        view.Item.addClass("sa-view-browser-item sa-selected");
         view.ViewData.Selected = true;
     }
 
     function RemoveSelected(view) {
         view.ViewData.Selected = false;
-        view.Item.removeClass('sa-active');
+        view.Item.removeClass("sa-view-browser-item sa-selected");
         // Remove the item from the selected list.
         var index = SELECTED.indexOf(view);
         if (index > -1) {
@@ -495,7 +495,7 @@ CollectionBrowser = (function (){
     // Sets the SELECTED list to empty and removes highlighting from items.
     function ClearSelected() {
         for (var i = 0; i < SELECTED.length; ++i) {
-            SELECTED[i].Item.removeClass("sa-active");
+            SELECTED[i].Item.removeClass("sa-view-browser-item sa-selected");
             SELECTED[i].ViewData.Selected = false;
         }
         SELECTED = [];
