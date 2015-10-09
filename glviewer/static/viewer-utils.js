@@ -1,5 +1,49 @@
-// TODO: 
-// Generalize the text dialog to have components from any sa element.
+
+
+//==============================================================================
+// A common dialog class for all sa objects.
+// Abstraction of text dialog for rectangles.
+// Internal helper.
+function saGetDialog(domElement, showCallback, applyCallback) {
+    if ( ! domElement.saDialog) {
+        var helper = new Dialog(function () {saDialogApplyCallback(domElement);});
+        if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
+        if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
+        saAddButton(domElement, "webgl-viewer/static/Menu.jpg", "properties",
+                    function() { saDialogShowCallback(domElement); });
+        domElement.saDialog = helper;
+    }
+    // I assume that the users will add variables to the dialog.
+    if (showCallback) {domElement.saDialog.ShowCallbacks.push(showCallback);}
+    if (applyCallback) {domElement.saDialog.ApplyCallbacks.push(applyCallback);}
+    return domElement.saDialog;
+}
+
+// Remove the dialog.
+// Incomplete. I need to remove the dialog button.
+var saDialogDelete = function(element) {
+    if ( ! element.saDialog) { return; }
+    element.saDialog.Dialog.Body.empty;
+    delete element.saDialog;
+    //element.saDelete.ButtonsDiv.remove();
+}
+
+var saDialogShowCallback = function(element) {
+    var callbacks = element.saDialog.ShowCallbacks;
+    for (var i = 0; i < callbacks.length; ++i) {
+        (callbacks[i])(element);
+    }
+    element.saDialog.Show(true);
+}
+
+
+var saDialogApplyCallback = function(element) {
+    var callbacks = element.saDialog.ApplyCallbacks;
+    for (var i = 0; i < callbacks.length; ++i) {
+        (callbacks[i])(element);
+    }
+}
+
 
 
 
@@ -165,6 +209,7 @@ jQuery.prototype.saHtml = function(string) {
         this.find('.sa-text-editor').saTextEditor();
         this.find('.sa-scalable-font').saScalableFont();
         this.find('.sa-full-window-option').saFullWindowOption();
+        this.find('.sa-presentation-rectangle').saRectangle();
         // We need to load the note.
         viewDivs = this.find('.sa-presentation-view');
         viewDivs.saViewer();
@@ -907,6 +952,99 @@ function saPruneViewerRecord(viewer) {
     }
     // Remove the viewer record for this viewer.
     note.ViewerRecords.splice(viewerIdx,1);
+}
+
+
+
+//==============================================================================
+// Just editing options to a rectangle.  I could make the text editor a 
+// "subclass" of this rectangle object.
+
+// args: {dialog: true}
+jQuery.prototype.saRectangle = function() {
+    this.addClass('sa-presentation-rectangle');
+    for (var i = 0; i < this.length; ++i) {
+        element = this[i];
+        if ( ! element.saRactangle) {
+            element.saRectangle = {};
+            dialog = saGetDialog(element,
+                                 saRectangleDialogShowCallback,
+                                 saRectangleDialogApplyCallback);
+            
+        // Customize dialog for a rectangle.
+        dialog.Title.text('Rectangle Properties');
+
+        // Background
+        dialog.BackgroundDiv =
+        $('<div>')
+            .appendTo(dialog.Body)
+            .css({'height':'32px'})
+            .addClass("sa-view-annotation-modal-div");
+        dialog.BackgroundLabel =
+            $('<div>')
+            .appendTo(dialog.BackgroundDiv)
+            .text("Background:")
+            .addClass("sa-view-annotation-modal-input-label");
+        dialog.BackgroundInput =
+            $('<input>')
+            .appendTo(dialog.BackgroundDiv)
+            .val('')
+            .addClass("sa-view-annotation-modal-input");
+
+        // Border
+        dialog.BorderDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'height':'32px',
+                  'width':'400px'})
+            .addClass("sa-view-annotation-modal-div");
+        dialog.BorderLabel =
+            $('<div>')
+            .appendTo(dialog.BorderDiv)
+            .text("Border:")
+            .addClass("sa-view-annotation-modal-input-label");
+        dialog.BorderInput =
+            $('<input>')
+            .appendTo(dialog.BorderDiv)
+            .val('5px solid rgb(0, 0, 128)')
+            .addClass("sa-view-annotation-modal-input");
+        dialog.BorderRadiusDiv =
+            $('<div>')
+            .appendTo(dialog.Body)
+            .css({'height':'32px',
+                  'width':'400px'})
+            .addClass("sa-view-annotation-modal-div");
+        dialog.BorderRadiusLabel =
+            $('<div>')
+            .appendTo(dialog.BorderRadiusDiv)
+            .text("Radius:")
+            .addClass("sa-view-annotation-modal-input-label");
+        dialog.BorderRadius =
+            $('<input>')
+            .appendTo(dialog.BorderRadiusDiv)
+            .val('')
+            .addClass("sa-view-annotation-modal-input");
+        }
+    }
+
+    return this;
+}
+
+var saRectangleDialogShowCallback = function (element) {
+    var color = element.style.background;
+    if (color == '') {
+        color = element.style.backgroundColor;
+    }
+    element.saDialog.BackgroundInput.val(color);
+    element.saDialog.BorderInput.val(element.style.border);
+    element.saDialog.BorderRadius.val(element.style.borderRadius);
+}
+
+var saRectangleDialogApplyCallback = function (element) {
+    element.style.backgroundColor = "";
+    element.style.background = element.saDialog.BackgroundInput.val();
+    element.style.border = element.saDialog.BorderInput.val();
+    element.style.borderRadius = element.saDialog.BorderRadius.val();
 }
 
 

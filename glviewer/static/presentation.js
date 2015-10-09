@@ -56,6 +56,17 @@ function Presentation(rootNote, edit) {
     // We need this to know what to return to when a view goes full screen.
     this.FullScreen = false;
 
+    // Setup default global properties.
+    if ( typeof(rootNote.TypeData) == "undefined") {
+        rootNote.TypeData = {};
+    }
+    if (! rootNote.TypeData.Background) {
+        rootNote.TypeData.Background = '#EEEEEE';
+    }
+    if (! rootNote.TypeData.AspectRatio) {
+        rootNote.TypeData.AspectRatio = 1.3333;
+    }
+
     // Eliminate the GUI in the viewers.
     MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
@@ -94,12 +105,12 @@ function Presentation(rootNote, edit) {
     //          'height':'100%'});
     this.PresentationDiv = this.ResizePanel.MainDiv;
 
-    // A window with a contant aspect ratio that fits in
+    // A window with a constant aspect ratio that fits in
     // the PresentationDiv.
     this.AspectDiv = $('<div>')
         .css({'border' :'1px solid #AAA'})
         .appendTo(this.PresentationDiv)
-        .saPresentation({aspectRatio : 1.333});
+        .saPresentation({aspectRatio : this.RootNote.TypeData.AspectRatio});
 
     this.LeftPanel = this.ResizePanel.PanelDiv;
     this.InitializeLeftPanel(this.LeftPanel);
@@ -1062,7 +1073,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
         }
         
         if (this.Note == note) {
-            slideDiv.css({'background':'#EEE'});
+            slideDiv.css({'background':this.RootNote.TypeData.Background});
         }
     }
 }
@@ -1919,7 +1930,8 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
               'height':height})
         .saDraggable()
         .saDeletable()
-        .saResizable();
+        .saResizable()
+        .saRectangle();
 }
 
 // The execCommand paste does not work
