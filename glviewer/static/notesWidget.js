@@ -1900,6 +1900,13 @@ Note.prototype.Serialize = function(includeChildren) {
     obj.User = this.User;
     obj.Date = this.Date;
 
+    // user data to customize note types
+    // I needed this for background color and apsect ratio of presentations.
+    if (this.TypeData) {
+        obj.TypeData = this.TypeData;
+    }
+    
+
     if (this.NotesPanelOpen) {
         obj.NotesPanelOpen = true;
     }
