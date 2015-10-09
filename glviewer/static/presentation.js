@@ -168,7 +168,8 @@ function Presentation(rootNote, edit) {
 
     this.TitlePage = new TitlePage(this.AspectDiv, edit);
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
-    this.HtmlPage  = new HtmlPage(this.AspectDiv, edit);
+    this.HtmlPage  = new HtmlPage(this.AspectDiv, edit,
+                                  rootNote.TypeData.Background);
 
     this.GotoSlide(0);
 
@@ -1073,7 +1074,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
         }
         
         if (this.Note == note) {
-            slideDiv.css({'background':this.RootNote.TypeData.Background});
+            slideDiv.css({'background':'#EEE'});
         }
     }
 }
@@ -1717,7 +1718,7 @@ TitlePage.prototype.UpdateEdits = function () {
 // How to save css stuff?
 // embedded viewers will be children (what to do about multiple records, stacks?).
 // Ignore edit for now.
-function HtmlPage (parent, edit) {
+function HtmlPage (parent, edit, background) {
     this.Edit = edit;
     this.Note = null;
     // Should I make another div or just use the parent?
@@ -1725,7 +1726,7 @@ function HtmlPage (parent, edit) {
         .appendTo(parent)
         .hide()
         .css({
-            'background-color':'#E5F3FE',
+            'background-color':background,
             'position' : 'absolute',
             'width': '100%',
             'height': '100%'});

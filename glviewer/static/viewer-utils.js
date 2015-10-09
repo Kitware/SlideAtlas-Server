@@ -92,7 +92,7 @@ function saButtons (div) {
         .css({'position':'absolute',
               'left'  :(pos.left+10)+'px',
               'top'   :(pos.top-20) +'px',
-              'width' :'340px', // TODO: see if we can get rid of the width.
+              'width' :'360px', // TODO: see if we can get rid of the width.
               'z-index': '10'});
     // Make it easy to enable and disable these edit buttons.
     this.ButtonsDiv[0].saButtons = this;
@@ -1110,6 +1110,8 @@ function saTextEditor(div, args) {
                 function() {document.execCommand('justifyLeft',false,null);});
     saAddButton(domText, "webgl-viewer/static/alignment_center.png", "align center",
                 function() {document.execCommand('justifyCenter',false,null);});
+    saAddButton(domText, "webgl-viewer/static/alignment_full.png", "align full",
+                function() {document.execCommand('justifyFull',false,null);});
     saAddButton(domText, "webgl-viewer/static/edit_superscript.png", "superscript",
                 function() {document.execCommand('superscript',false,null);});
     saAddButton(domText, "webgl-viewer/static/edit_subscript.png", "subscript",
