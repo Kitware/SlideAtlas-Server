@@ -186,7 +186,7 @@ EventManager.prototype.HandleKeyDown = function(event) {
         this.ControlKeyPressed = true;
         return true;
     }
-    
+
     // Handle undo and redo (cntrl-z, cntrl-y)
     if (this.ControlKeyPressed && event.keyCode == 90) {
         // Function in recordWidget.
@@ -198,7 +198,7 @@ EventManager.prototype.HandleKeyDown = function(event) {
         return true;
     }
 
-    if (typeof(PRESENTATION) != "undefined") {
+    if (typeof(PRESENTATION) != "undefined" && PRESENTATION) {
         PRESENTATION.HandleKeyDown(event);
         return true;
     }

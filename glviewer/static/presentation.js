@@ -1136,10 +1136,9 @@ function SlidePage(parent, edit) {
                   'position': 'absolute',
                   'top': '0px',
                   'bottom': '300px',
+                  'left': '0px',
                   'width': '100%',
                   'height': 'auto'});
-    // TODO: Get rid of this global variable.
-    VIEW_PANEL = this.ViewPanel;
 
     this.BottomDiv = $('<div>')
         .appendTo(this.Div)
