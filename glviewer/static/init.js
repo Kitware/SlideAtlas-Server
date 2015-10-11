@@ -514,8 +514,10 @@ function handleResize() {
     }
 
     // Setup the view panel div to be the same as the two viewers.
-    VIEW_PANEL.css({'left': viewPanelLeft+'px',
-                    'width': viewPanelWidth+'px'});
+    if (VIEW_PANEL) {
+        VIEW_PANEL.css({'left': viewPanelLeft+'px',
+                        'width': viewPanelWidth+'px'});
+    }
 
     // TODO: Make a multi-view object.
     // TODO: Let css handle positioning the viewers.
