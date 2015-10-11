@@ -74,7 +74,7 @@ function ViewEditMenu (viewer, otherViewer) {
             self.Tab.PanelOff();
             // When the circle button is pressed, create the widget.
             if ( ! self.Viewer) { return; }
-            new CutoutWidget(self.Viewer);
+            new CutoutWidget(parent, self.Viewer);
         });
 
     for(var plugin in window.PLUGINS) {
@@ -664,9 +664,9 @@ var DownloadImage = (function () {
 
 // Create a selection list of sessions.
 // This does not belong here.
-function InitSlideSelector() {
+function InitSlideSelector(parent) {
     $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .css({
             'background-color': 'white',
             'border-style': 'solid',
@@ -687,7 +687,7 @@ function InitSlideSelector() {
     
     // Create a selector for views.
     $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .css({
             'background-color': 'white',
             'border-style': 'solid',
@@ -707,7 +707,7 @@ function InitSlideSelector() {
     $('<ul>').appendTo('#viewMenu').attr('id', 'viewMenuSelector'); // <select> for drop down
     
     $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .css({
             'background-color': 'white',
             'border-style': 'solid',

@@ -446,8 +446,10 @@ function ShowAnnotationEditMenu(x, y) {
 }
 
 
+// TODO:  Put this into the dual view widget.
 // Getting resize right was a major pain.
 function handleResize() {
+    
     var width = CANVAS.width();
     var height = CANVAS.height();
 
@@ -463,14 +465,14 @@ function handleResize() {
       height = window.innerHeight;
     }
 
-    if (PRESENTATION) {
-        PRESENTATION.HandleResize(width, height);
-        return;
-    }
+    //if (PRESENTATION) {
+    //    PRESENTATION.HandleResize(width, height);
+    //    return;
+    //}
 
     if (GL) {
-        CANVAS[0].width = width;
-        CANVAS[0].height = height;
+        VIEW_PANEL[0].width = width;
+        VIEW_PANEL[0].height = height;
         //gl.viewportWidth = canvas.width;
         //gl.viewportHeight = canvas.height;
         GL.viewport(0, 0, width, height);
@@ -488,6 +490,10 @@ function handleResize() {
         viewPanelLeft = NOTES_WIDGET.Width;
         NOTES_WIDGET.Resize(viewPanelLeft,height);
     }
+    if (PRESENTATION) {
+        viewPanelLeft = PRESENTATION.ResizePanel.Width
+    }
+
     var viewPanelWidth = width - viewPanelLeft;
     // TODO: let css size the viewers.
     // The remaining width is split between the two viewers.
@@ -504,7 +510,7 @@ function handleResize() {
         // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create
         // a separate webgl canvas for each view because thay cannot share
         // texture images.
-        CANVAS.css({"left":viewPanelLeft});
+        VIEW_PANEL.css({"left":viewPanelLeft});
     }
 
     // Setup the view panel div to be the same as the two viewers.
@@ -532,7 +538,9 @@ var DRAWING = false;
 function draw() {
     if (DRAWING) { return; }
     DRAWING = true;
-    DUAL_DISPLAY.Draw();
+    if (DUAL_DISPLAY) {
+        DUAL_DISPLAY.Draw();
+    }
     DRAWING = false;
 }
 
@@ -663,18 +671,18 @@ function Main2(rootNote) {
     }
     EVENT_MANAGER = new EventManager(CANVAS);
 
-    DUAL_DISPLAY = new DualViewWidget();
+    DUAL_DISPLAY = new DualViewWidget(VIEW_PANEL);
     // TODO: Is this really needed here?  Try it at the end.
     handleResize();
 
     // TODO: Get rid of this global variable.
-    NAVIGATION_WIDGET = new NavigationWidget(DUAL_DISPLAY);
+    NAVIGATION_WIDGET = new NavigationWidget(VIEW_PANEL,DUAL_DISPLAY);
     if (MOBILE_DEVICE) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
-    VIEW_BROWSER = new ViewBrowser();
-    NOTES_WIDGET = new NotesWidget(DUAL_DISPLAY);
+    VIEW_BROWSER = new ViewBrowser(VIEW_PANEL);
+    NOTES_WIDGET = new NotesWidget(VIEW_PANEL,DUAL_DISPLAY);
     NOTES_WIDGET.SetRootNote(rootNote);
     NOTES_WIDGET.SetModifiedCallback(NotesModified);
     NOTES_WIDGET.SetModifiedClearCallback(NotesNotModified);
@@ -704,7 +712,7 @@ function Main2(rootNote) {
             }
         } else {
             // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(DUAL_DISPLAY);
+            FAVORITES_WIDGET = new FavoritesWidget(VIEW_PANEL, DUAL_DISPLAY);
             FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
         }
     }
@@ -734,7 +742,7 @@ function Main2(rootNote) {
     document.oncontextmenu = cancelContextMenu;
 
     if ( ! MOBILE_DEVICE) {
-        InitSlideSelector();
+        InitSlideSelector(VIEW_PANEL);
         var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
                                          DUAL_DISPLAY.Viewers[1]);
         VIEW_MENU = viewMenu1;

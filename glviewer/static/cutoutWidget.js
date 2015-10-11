@@ -6,7 +6,7 @@
 //   This is difficult because the widget would have to be active all the time.
 //   Hold off on this.
 
-function CutoutWidget (viewer) {
+function CutoutWidget (parent, viewer) {
     this.Viewer = viewer;
     var cam = viewer.GetCamera();
     var fp = cam.GetFocalPoint();
@@ -24,7 +24,7 @@ function CutoutWidget (viewer) {
 
     var self = this;
     this.Div = $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .addClass("sa-view-cutout-div");
     $('<button>')
         .appendTo(this.Div)

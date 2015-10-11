@@ -4,7 +4,7 @@
 
 //------------------------------------------------------------------------------
 // I intend to have only one object
-function NavigationWidget(display) {
+function NavigationWidget(parent,display) {
     this.Display = display;
 
    // Load the session slides from the localStorage
@@ -42,7 +42,7 @@ function NavigationWidget(display) {
                   'bottom': '20px',
                   'z-index': '5'});
     } else {
-        this.Tab = new Tab(VIEW_PANEL,"/webgl-viewer/static/nav.png", "navigationTab");
+        this.Tab = new Tab(parent,"/webgl-viewer/static/nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");
@@ -112,7 +112,7 @@ function NavigationWidget(display) {
     }
 
     this.CopyrightWrapper =
-        $('<div>').appendTo(VIEW_PANEL)
+        $('<div>').appendTo(parent)
         .css({
             'width': '100%',
             'text-align': 'center'

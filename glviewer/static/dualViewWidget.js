@@ -20,17 +20,18 @@ var VIEWER1;
 var VIEWER2;
 
 
-function DualViewWidget() {
+function DualViewWidget(parent) {
     var self = this;
     this.Viewers = [];
 
-    var width = CANVAS.innerWidth();
-    var height = CANVAS.innerHeight();
+    // This parent used to be CANVAS.
+    var width = parent.innerWidth();
+    var height = parent.innerHeight();
     var halfWidth = width/2;
 
     for (var i = 0; i < 2; ++i) {
         var viewerDiv = $('<div>')
-            .appendTo(VIEW_PANEL)
+            .appendTo(parent)
             .saViewer({overview:true, zoomWidget:true});
         this.Viewers[i] = viewerDiv[0].saViewer;
         // TODO: Get rid of this.
@@ -54,7 +55,7 @@ function DualViewWidget() {
     if ( ! MOBILE_DEVICE) {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
-            .appendTo(VIEW_PANEL)
+            .appendTo(parent)
             .addClass("sa-view-dualview-div")
             .attr('id', 'dualWidgetLeft')
             .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
@@ -63,7 +64,7 @@ function DualViewWidget() {
             .on("dragstart", function() {
                 return false;});
 
-        $('<img>').appendTo(VIEW_PANEL)
+        $('<img>').appendTo(parent)
             .hide()
             .addClass("sa-view-dualview-img")
             .attr('id', 'dualWidgetRight')
@@ -210,11 +211,15 @@ DualViewWidget.prototype.CreateThumbnailImage = function(height) {
 
 
 DualViewWidget.prototype.ShowImage = function (img) {
+    alert("Do not depricate DualViewWidget.ShowIMage(img)");
+
+    /* I do not think this does anything
     //document.body.appendChild(img);
     var disp =
-        $('<img>').appendTo(VIEW_PANEL)
+        $('<img>').appendTo(parent)
         .addClass("sa-active")
         .attr('src',img.src);
+    */
 }
 
 DualViewWidget.prototype.Draw = function () {

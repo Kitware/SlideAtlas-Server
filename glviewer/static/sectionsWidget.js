@@ -25,6 +25,8 @@ function SectionsWidget (viewer, newFlag) {
         return;
     }
 
+    var parent = viewer.MainView.CanvasDiv;
+
     this.Type = "sections";
     this.Viewer = viewer;
     this.Viewer.WidgetList.push(this);
@@ -42,7 +44,7 @@ function SectionsWidget (viewer, newFlag) {
     // Just one delete button. 
     // Just move it around with the active section.
     this.DeleteButton = $('<img>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .hide()
         .css({'height': '20px',
               'position': 'absolute',
@@ -54,7 +56,7 @@ function SectionsWidget (viewer, newFlag) {
 
     // Right click menu.
     this.Menu = $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .hide()
         .css({
             'width': '150px',
