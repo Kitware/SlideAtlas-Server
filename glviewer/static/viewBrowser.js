@@ -4,11 +4,11 @@
 // I am also making this into a dialog object. (not based on the dialog class).
 
 
-function ViewBrowser() {
+function ViewBrowser(parent) {
     var self = this;
     // A view browser (short cut menu) for the text input.
     this.Div = $('<div>')
-        .appendTo(VIEW_PANEL)
+        .appendTo(parent)
         .hide().css({
             'position'  : 'absolute',
             'top'       : '5%',

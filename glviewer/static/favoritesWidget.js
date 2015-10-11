@@ -7,9 +7,9 @@ var FAVORITES_GUI;
 //------------------------------------------------------------------------------
 // I intend to have only one object
 // display is an array of viewers (dualViewWidget now).
-function FavoritesWidget(display) {
+function FavoritesWidget(parent, display) {
 
-    this.Tab = new Tab(VIEW_PANEL,
+    this.Tab = new Tab(parent,
                        "/webgl-viewer/static/star.png",
                        "favorites");
     this.Tab.Div

@@ -6,6 +6,18 @@
 // Question resizable only after reload.
 // Images have a minimum size.
 
+// My feature requests from creating poster:
+// Snap to objects.
+// Text background options like rectange (gradient)
+//   option to enter css text, or select color gui
+// Group objects.
+// Copy and paste object or group.
+// Select objects.
+// Move selected objects with arrow.
+// Undo edits
+// padding option in text dialog (conversion for px to %?)
+
+
 // Feature Requests
 // Text should selectively resize.
 //    This is hard.  I cannot change a selection into a dom that can be manipulated.
@@ -68,7 +80,7 @@ function Presentation(rootNote, edit) {
     }
 
     // Eliminate the GUI in the viewers.
-    MOBILE_DEVICE = "Simple";
+    //MOBILE_DEVICE = "Simple";
     $(body).css({'overflow-x':'hidden'});
 
     // Hack.  It is only used for events.
@@ -123,7 +135,7 @@ function Presentation(rootNote, edit) {
         .attr('src','webgl-viewer/static/slide_show.png')
         .css({'position':'absolute',
               'top':'2px',
-              'right':'0px',
+              'right':'20px',
               'width':'20px',
               'z-index':'5'})
         .click(function () {
@@ -136,7 +148,7 @@ function Presentation(rootNote, edit) {
         .attr('src','webgl-viewer/static/timer.png')
         .css({'position':'absolute',
               'top':'2px',
-              'right':'26px',
+              'right':'46px',
               'width':'20px',
               'z-index':'5'})
         .click(function () {
@@ -170,6 +182,7 @@ function Presentation(rootNote, edit) {
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
     this.HtmlPage  = new HtmlPage(this.AspectDiv, edit,
                                   rootNote.TypeData.Background);
+    this.ViewerPage = new ViewerPage(this.PresentationDiv, edit);
 
     this.GotoSlide(0);
 
@@ -895,6 +908,17 @@ Presentation.prototype.InsertYoutube = function () {
     this.HtmlPage.InsertIFrame(src);
 }
 
+
+// Viewer option only works for html pages.
+Presentation.prototype.ShowViewer = function(recordIdx) {
+    this.AspectDiv.hide();
+    this.ViewerPage.SetViewerRecord(this.Note.ViewerRecords[recordIdx]);
+    this.ViewerPage.Div.show();
+
+    $(window).trigger('resize');
+}
+
+
 // 0->Root/titlePage
 // Childre/slides start at index 1
 Presentation.prototype.GotoSlide = function (index){
@@ -910,6 +934,9 @@ Presentation.prototype.GotoSlide = function (index){
     this.SlidePage.ClearNote();
     this.HtmlPage.ClearNote();
 
+    // These two are to get rid of the ViewerPage.
+    this.ViewerPage.Div.hide();
+    this.AspectDiv.show();
     this.Index = index;
     if (index == 0) { // Title page
         this.Note = this.RootNote;
@@ -1856,17 +1883,34 @@ HtmlPage.prototype.InitializeSlidePage = function() {
 
 // TODO: make sa jquery handle this. 
 HtmlPage.prototype.InsertImage = function(src) {
-    // resizable makes a containing div anyway.
-    var imgDiv = $('<div>')
-        .appendTo(this.Div)
-        .css({'position':'absolute',
-              'left'    :'5%',
-              'top'     :'25%',
-              'z-index' :'1'})
-        .addClass('sa-presentation-image')
-        .attr('contenteditable', 'true')
-        .saDraggable()
-        .saDeletable();
+
+    var ref = prompt("link url", "");
+    var imgDiv;
+
+    if (ref != "") {
+        imgDiv = $('<a>')
+            .appendTo(this.Div)
+            .attr('href', ref)
+            .css({'position':'absolute',
+                  'left'    :'5%',
+                  'top'     :'25%',
+                  'z-index' :'1'})
+            .addClass('sa-presentation-image')
+            .saDraggable()
+            .saDeletable();
+    } else {
+        // resizable makes a containing div anyway.
+        imgDiv = $('<div>')
+            .appendTo(this.Div)
+            .css({'position':'absolute',
+                  'left'    :'5%',
+                  'top'     :'25%',
+                  'z-index' :'1'})
+            .addClass('sa-presentation-image')
+            .attr('contenteditable', 'true')
+            .saDraggable()
+            .saDeletable();
+    }
     var img = $('<img>')
         .appendTo(imgDiv)
         .attr('src',src)
@@ -2047,7 +2091,6 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         .css({'display':'inline-block',
               'position':'absolute',
               'overflow': 'visible',
-              'padding'      : '1%',
               'fontFamily': "Verdana,sans-serif",
               // defaults caller can reset these.
               'left' : '5%',
@@ -2326,6 +2369,8 @@ HtmlPage.prototype.UpdateEdits = function () {
 }
 
 
+
+// TODO: Simplify this.
 //==============================================================================
 // I am making a full fledge viewer for the full window option.
 function ViewerPage (parent, edit) {
@@ -2340,9 +2385,104 @@ function ViewerPage (parent, edit) {
             'background-color':'#FFF',
             'position' : 'absolute',
             'width': '100%',
-            'height': '100%'})
-        .saViewer();
-    // .....
+            'height': '100%'});
+
+    // TODO: Get Rid of EVENT_MANAGER and CANVAS globals.
+    EVENT_MANAGER = new EventManager(CANVAS);
+
+    DUAL_DISPLAY = new DualViewWidget(this.Div);
+    // TODO: Is this really needed here?  Try it at the end.
+    //handleResize();
+
+    // TODO: Get rid of this global variable.
+    NAVIGATION_WIDGET = new NavigationWidget(this.Div,DUAL_DISPLAY);
+
+    VIEW_BROWSER = new ViewBrowser(this.Div);
+    //NOTES_WIDGET = new NotesWidget(this.Div, DUAL_DISPLAY);
+    //NOTES_WIDGET.SetModifiedCallback(NotesModified);
+    //NOTES_WIDGET.SetModifiedClearCallback(NotesNotModified);
+
+    // It handles the singlton global.
+    // Not now
+    //new RecorderWidget(DUAL_DISPLAY);
+
+    // Do not let guests create favorites.
+    // TODO: Rework how favorites behave on mobile devices.
+    if (USER != "" && ! MOBILE_DEVICE) {
+        if ( EDIT) {
+            // Put a save button here when editing.
+            SAVE_BUTTON = $('<img>')
+                .appendTo(this.Div)
+                .css({'position':'absolute',
+                      'bottom':'4px',
+                      'left':'10px',
+                      'height': '28px',
+                      'z-index': '5'})
+                .prop('title', "save to databse")
+                .addClass('editButton')
+                .attr('src',"webgl-viewer/static/save22.png")
+                .click(SaveCallback);
+            //for (var i = 0; i < DUAL_DISPLAY.Viewers.length; ++i) {
+            //    DUAL_DISPLAY.Viewers[i].OnInteraction(
+            //        function () {NOTES_WIDGET.RecordView();});
+            //}
+        } else {
+            // Favorites when not editing.
+            FAVORITES_WIDGET = new FavoritesWidget(this.Div, DUAL_DISPLAY);
+            FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+        }
+    }
+
+    if (MOBILE_DEVICE) {
+        NAVIGATION_WIDGET.SetVisibility(false);
+        //MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
+    }
+
+    // The event manager still handles stack alignment.
+    // This should be moved to a stack helper class.
+    // Undo and redo too.
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
+    // Keep the browser from showing the left click menu.
+    document.oncontextmenu = cancelContextMenu;
+
+    if ( ! MOBILE_DEVICE) {
+        InitSlideSelector(this.Div);
+        var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
+                                         DUAL_DISPLAY.Viewers[1]);
+        VIEW_MENU = viewMenu1;
+        var viewMenu2 = new ViewEditMenu(DUAL_DISPLAY.Viewers[1],
+                                         DUAL_DISPLAY.Viewers[0]);
+
+        var annotationWidget1 = new AnnotationWidget(DUAL_DISPLAY.Viewers[0]);
+        annotationWidget1.SetVisibility(2);
+        var annotationWidget2 = new AnnotationWidget(DUAL_DISPLAY.Viewers[1]);
+        annotationWidget1.SetVisibility(2);
+        DUAL_DISPLAY.UpdateGui();
+    }
+
+    $(window).bind('orientationchange', function(event) {
+        handleResize();
+    });
+
+    $(window).resize(function() {
+        handleResize();
+    }).trigger('resize');
+}
+
+
+ViewerPage.prototype.SetNote = function(note) {
+    //NOTES_WIDGET.SetRootNote(note);
+    note.DisplayView(DUAL_DISPLAY);
+    eventuallyRender();
+}
+
+
+ViewerPage.prototype.SetViewerRecord = function(record) {
+    var note = new Note();
+    note.ViewerRecords.push(record);
+    this.SetNote(note);
 }
 
 

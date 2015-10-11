@@ -9,6 +9,7 @@ Tab = (function () {
     // will be allowed open at a time.
     function Tab (parent,imageSrc, tabID) {
         var self = this; // trick to set methods in callbacks.
+        if ( ! parent) { alert("null parent: tab"); }
         parent = parent || VIEW_PANEL;
 
         this.Div = $('<div>')

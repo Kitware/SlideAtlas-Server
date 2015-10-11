@@ -198,6 +198,11 @@ EventManager.prototype.HandleKeyDown = function(event) {
         return true;
     }
 
+    if (typeof(PRESENTATION) != "undefined") {
+        PRESENTATION.HandleKeyDown(event);
+        return true;
+    }
+
     if (typeof(NAVIGATION_WIDGET) != "undefined") {
         if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
             return true;
@@ -244,6 +249,11 @@ EventManager.prototype.HandleKeyUp = function(event) {
     } else if (event.keyCode == 17) {
         // Control key modifier.
         this.ControlKeyPressed = false;
+    }
+
+    if (typeof(PRESENTATION) != "undefined") {
+        PRESENTATION.HandleKeyUp(event);
+        return true;
     }
 
     return true;

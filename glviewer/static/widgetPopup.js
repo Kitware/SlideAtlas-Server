@@ -7,17 +7,19 @@ function WidgetPopup (widget) {
     this.Widget = widget;
     this.Visible = false;
     this.HideTimerId = 0;
-    
+
+    var parent = widget.Viewer.MainView.CanvasDiv;
+
     // buttons to replace right click.
     var self = this;
-    
+
     // We cannot append this to the canvas, so just append
     // it to the view panel, and add the viewport offset for now.
     // I should probably create a div around the canvas.
     // This is this only place I need viewport[0], [1] and I
     // was thinking of getting rid of the viewport offset.
     this.ButtonDiv =
-        $('<div>').appendTo(VIEW_PANEL)
+        $('<div>').appendTo(parent)
         .hide()
         .css({'position': 'absolute',
               'z-index': '1'})
@@ -54,9 +56,9 @@ WidgetPopup.prototype.PropertiesCallback = function() {
 WidgetPopup.prototype.Show = function(x, y) {
     // Have to add the viewport offset because I cannot use Canvas as
     // parent.
-    var viewport = this.Widget.Viewer.GetViewport();
-    x += viewport[0];
-    y += viewport[1];
+    //var viewport = this.Widget.Viewer.GetViewport();
+    //x += viewport[0];
+    //y += viewport[1];
     this.CancelHideTimer(); // Just in case: Show trumps previous hide.
     this.ButtonDiv.css({
         'left' : x+'px',
@@ -72,7 +74,7 @@ WidgetPopup.prototype.Hide = function() {
 
 WidgetPopup.prototype.StartHideTimer = function() {
   if ( ! this.HideTimerId) {
-    var self = this;
+      var self = this;
     
     if(MOBILE_DEVICE) {
       this.HideTimerId = setTimeout(function(){self.HideTimerCallback();}, 1500);
