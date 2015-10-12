@@ -182,7 +182,9 @@ function Presentation(rootNote, edit) {
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
     this.HtmlPage  = new HtmlPage(this.AspectDiv, edit,
                                   rootNote.TypeData.Background);
-    this.ViewerPage = new ViewerPage(this.PresentationDiv, edit);
+
+    // Problem with event manager (we get two key up events.
+    //this.ViewerPage = new ViewerPage(this.PresentationDiv, edit);
 
     this.GotoSlide(0);
 
@@ -912,8 +914,8 @@ Presentation.prototype.InsertYoutube = function () {
 // Viewer option only works for html pages.
 Presentation.prototype.ShowViewer = function(recordIdx) {
     this.AspectDiv.hide();
-    this.ViewerPage.SetViewerRecord(this.Note.ViewerRecords[recordIdx]);
-    this.ViewerPage.Div.show();
+    //this.ViewerPage.SetViewerRecord(this.Note.ViewerRecords[recordIdx]);
+    //this.ViewerPage.Div.show();
 
     $(window).trigger('resize');
 }
@@ -935,7 +937,7 @@ Presentation.prototype.GotoSlide = function (index){
     this.HtmlPage.ClearNote();
 
     // These two are to get rid of the ViewerPage.
-    this.ViewerPage.Div.hide();
+    //this.ViewerPage.Div.hide();
     this.AspectDiv.show();
     this.Index = index;
     if (index == 0) { // Title page
@@ -1099,7 +1101,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
         if (EDIT) {
             sortHandle.addClass('sa-sort-handle');
         }
-        
+
         if (this.Note == note) {
             slideDiv.css({'background':'#EEE'});
         }
