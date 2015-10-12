@@ -549,7 +549,9 @@ TextEditor.prototype.LoadNote = function(note) {
     }
     
     this.MakeLinksClickable();
-    this.EditOn();
+    if (EDIT) {
+        this.EditOn();
+    }
 }
 
 // Copy the text entry text back into the note

@@ -1,8 +1,6 @@
 // VCR like buttons to get to next/previous note/slide.
 // entwined with the notes widget at the moment.
 
-var FAVORITES_GUI;
-
 
 //------------------------------------------------------------------------------
 // I intend to have only one object

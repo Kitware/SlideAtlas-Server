@@ -578,8 +578,10 @@ Cache.prototype.ChooseTiles = function(camera, slice, tiles) {
             tile = this.GetTile(slice, i, tileIds[j]);
             // If the tile is loaded or loading,
             // this does nothing.
-            tile.LoadQueueAdd();
-            tiles.push(tile);
+            if (tile) {
+                tile.LoadQueueAdd();
+                tiles.push(tile);
+            }
         }
     }
 
@@ -685,6 +687,7 @@ Cache.prototype.GetTile = function(slice, level, id) {
 }
 
 Cache.prototype.RecursiveGetTile = function(level, x, y, z) {
+    if ( ! this.Levels[level]) { return null; }
     var tile = this.Levels[level].GetTile(x,y);
     if (tile) {
         return tile;

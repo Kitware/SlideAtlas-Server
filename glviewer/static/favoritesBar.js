@@ -88,7 +88,7 @@ FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
 
     //for (var i = 0; i < sessionData.viewArray.length; ++i) {
     for (var i = sessionData.viewArray.length-1; i >= 0; --i) {
-        var favorite = $('<div>').appendTo(FAVORITES_GUI.ImageList)
+        var favorite = $('<div>').appendTo(this.FavoritesGUI.ImageList)
             .addClass("sa-view-favorites-callback-div");
 
         var thumb = sessionData.viewArray[i].Thumb;
