@@ -339,4 +339,25 @@ NavigationWidget.prototype.LoadViewId = function(viewId) {
 
 
 
-
+// Advance through a stack for DPA2015
+var stopDemo = false;
+var demoInc = 1;
+function demoFrame() {
+    var n = NOTES_WIDGET.GetCurrentNote();
+    var num = n.ViewerRecords.length;
+    if (n.StartIndex >= num-2) {
+        demoInc = -1;
+    }
+    if (n.StartIndex <= 0) {
+        demoInc = 1;
+    }
+    if (demoInc == 1) {
+        NAVIGATION_WIDGET.NextNote();
+    } else {
+        NAVIGATION_WIDGET.PreviousNote();
+    }
+    
+    if ( ! stopDemo) {
+        setTimeout(demoFrame, 2000);
+    }
+}
