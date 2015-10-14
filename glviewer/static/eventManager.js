@@ -251,7 +251,7 @@ EventManager.prototype.HandleKeyUp = function(event) {
         this.ControlKeyPressed = false;
     }
 
-    if (typeof(PRESENTATION) != "undefined") {
+    if (typeof(PRESENTATION) != "undefined" && PRESENTATION) {
         PRESENTATION.HandleKeyUp(event);
         return true;
     }
