@@ -1810,7 +1810,20 @@ HtmlPage.prototype.DisplayNote = function (note) {
              width:lastViewers[i].style.width,
              height:lastViewers[i].style.height});
     }
-    
+
+    // hack to get rid of tmp ids.  I can not reproduce the problem.
+    if ( ! note.TempId && note.Text && note.Id) {
+        var idx0 = note.Text.indexOf('sa-note-id="tmp');
+        while (idx0 >= 0) {
+            idx0 += 12;
+            var idx1 = note.Text.indexOf('"',idx0);
+            var tmpId = note.Text.substring(idx0,idx1);
+            console.log("Replacing temp id " + tmpId + " with " + note.Id);
+            note.Text = note.Text.replace(tmpId, note.Id);
+            idx0 = note.Text.indexOf('sa-note-id="tmp');
+        }
+    }
+
     this.Note = note;
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
