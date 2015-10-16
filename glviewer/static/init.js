@@ -624,11 +624,15 @@ function Main(style,sessId,viewId) {
 
 // Call back from NotesWidget.
 function NotesModified() {
-    SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
+    if (EDIT) {
+        SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
+    }
 }
 
 function NotesNotModified() {
-    SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+    if (EDIT) {
+        SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+    }
 }
 
 // This function gets called when the save button is pressed.
