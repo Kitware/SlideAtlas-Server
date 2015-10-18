@@ -316,7 +316,9 @@ saLightBox.prototype.Expand = function(flag, animate) {
         this.SavedZIndex = this.Div[0].style.zIndex;
 
         // Make the image big
-        this.Div.css({'z-index':'100'});
+        // Not resize handles have z-index 1000 !
+        // I am close to just implementing my own resize feature.
+        this.Div.css({'z-index':'1001'});
         if (animate) {
             this.Div.animate({'left': '5%',
                               'top' : '5%',
