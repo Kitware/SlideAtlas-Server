@@ -674,7 +674,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
     var record = new ViewerRecord();
-    record.OverViewbounds = image.bounds;
+    record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
                                  (image.bounds[2]+image.bounds[3])/2, 0],
@@ -933,9 +933,6 @@ Presentation.prototype.GotoSlide = function (index){
     if (index < 0 || index >= this.GetNumberOfSlides() || index == this.Index) {
         return;
     }
-
-    // Exit and full window viewers.
-    $('.sa-presentation-view').saFullWindowOption('off');
 
     // Clear previous slides settings.
     this.TitlePage.ClearNote();
@@ -1549,10 +1546,6 @@ SlidePage.prototype.UpdateEdits = function () {
 }
 
 
-
-
-
-
 SlidePage.prototype.InsertViewNote = function (note) {
     if (note.ViewerRecords.length < 1) { return; }
 
@@ -1964,8 +1957,6 @@ HtmlPage.prototype.InsertVideo = function(src) {
         .addClass('sa-presentation-video')
         .saDraggable()
         .saDeletable();
-    // full window option did not work
-        // .saFullWindowOption();
 
     var vid = $('<video controls>')
         .appendTo(vidDiv);
