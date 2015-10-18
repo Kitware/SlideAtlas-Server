@@ -108,19 +108,15 @@ function saLightBox(div) {
 
 // Resize requires an aspect ratio.
 saLightBox.prototype.SetArgs = function(args) {
+    // hack because div can have only one onresize method.
+    if (args == "updateSize") {
+        this.UpdateSize();
+        return;
+    }
+
     args = args || {};
     var self = this;
 
-
-    // Save resize args for editable option.
-    args.start = function (e, ui) {
-        self.RaiseToTop();
-        return false;
-    };
-    args.stop = function (e, ui) {
-        self.ConvertToPercentages();
-        return false;
-    };
 
     // I found a weird bug where aspect ratio leaks from one element to another.
     // Constant objects must be reused because of closure.
@@ -138,10 +134,22 @@ saLightBox.prototype.SetArgs = function(args) {
             this.Div.attr('sa-aspect-ratio', aspectRatio.toString());
         }
     }
+
+
+
+    // Save resize args for editable option.
+    this.ResizableArgs = {
+        start : function (e, ui) {
+            self.RaiseToTop();
+            return false;
+        },
+        stop : function (e, ui) {
+            self.ConvertToPercentages();
+            return false;
+        }
+    };
     if (aspectRatio) {
-        this.ResizableArgs = {aspectRatio:aspectRatio};
-    } else {
-        this.ResizableArgs = {};
+        this.ResizableArgs.aspectRatio = aspectRatio;
     }
 
     if (args.editable) {
@@ -300,6 +308,62 @@ saLightBox.prototype.HandleMouseUp = function(event) {
     return false;
 }
 
+// I cannot put this directly as a callback because it 
+// overwrites the viewer resize method.
+saLightBox.prototype.UpdateSize = function(animate) {
+    if ( ! this.Expanded) { return; }
+
+    var self = this;
+    var left = '5%';
+    var top = '5%';
+    var width = '90%';
+    var height = '90%';
+    if (this.ResizableArgs.aspectRatio) {
+
+        // Hack to get expanded images to resize.
+        if ( ! this.Div[0].onresize) {
+            this.Div[0].onresize = 
+                function() {
+                    self.UpdateSize();
+                }
+            this.Div.addClass('sa-resize');
+        }
+
+        // Compute the new size.
+        var ratio = this.ResizableArgs.aspectRatio;
+        var pWidth = this.Div.parent().width();
+        var pHeight = this.Div.parent().height();
+        width = Math.floor(pWidth * 0.9);
+        height = Math.floor(pHeight * 0.9);
+        if (width / height > ratio) {
+            width = Math.floor(height * ratio);
+        } else {
+            height = Math.floor(width / ratio);
+        }
+        left = Math.floor(0.5*(pWidth-width)) + 'px';
+        top = Math.floor(0.5*(pHeight-height)) + 'px';
+        width = width + 'px';
+        height = height + 'px';
+    }
+
+    // Make the image big
+    // Not resize handles have z-index 1000 !
+    // I am close to just implementing my own resize feature.
+    this.Div.css({'z-index':'1001'});
+    if (animate) {
+        this.Div.animate({'left'  : left,
+                          'top'   : top,
+                          'width' : width,
+                          'height': height},
+                         {step: function () {self.Div.trigger('resize');}});
+    } else {
+        this.Div.css({'left'  : left,
+                      'top'   : top,
+                      'width' : width,
+                      'height': height});
+    }
+}
+
 saLightBox.prototype.Expand = function(flag, animate) {
     if (flag == this.Expanded) { return; }
     var self = this;
@@ -319,18 +383,8 @@ saLightBox.prototype.Expand = function(flag, animate) {
         // Not resize handles have z-index 1000 !
         // I am close to just implementing my own resize feature.
         this.Div.css({'z-index':'1001'});
-        if (animate) {
-            this.Div.animate({'left': '5%',
-                              'top' : '5%',
-                              'width':'90%',
-                              'height':'90%'});
-        } else {
-            this.Div.css({'left': '5%',
-                          'top' : '5%',
-                          'width':'90%',
-                          'height':'90%'});
-        }
-        
+        this.UpdateSize(true);
+
         // Show the mask.
         this.Mask.show();
         // Clicking outside the div will cause the div to shrink back to
@@ -338,7 +392,7 @@ saLightBox.prototype.Expand = function(flag, animate) {
         this.Mask.on(
             'mousedown.lightbox',
             function () {
-                self.Expand(false);
+                self.Expand(false, true);
             });
     } else {
         // Reverse the expansion.
@@ -352,7 +406,9 @@ saLightBox.prototype.Expand = function(flag, animate) {
                               'left':self.SavedLeft,
                               'width':self.SavedWidth,
                               'height':self.SavedHeight,
-                              'z-index':self.SavedZIndex});
+                              'z-index':self.SavedZIndex},
+                             {step: function () {self.Div.trigger('resize');}});
+
         } else {
             this.Div.css({'top':self.SavedTop,
                           'left':self.SavedLeft,
@@ -421,14 +477,14 @@ saLightBox.prototype.HandleMouseWheel = function(event) {
 saLightBox.prototype.ConvertToPercentages = function() {
     // I had issues with previous slide shows that had images with no width
     // set. Of course it won't scale right but they will still show up.
-    if (this.Div[0].style.width != "") {
+    var width = this.Div.width();    
+    if (width > 0) {
         // These always return pixel units.
-        var width = this.Div.width();
         width = 100 * width / this.Div.parent().width();
         this.Div[0].style.width = width.toString()+'%';
     }
-    if (this.Div[0].style.height != "") {
-        var height = this.Div.height();
+    var height = this.Div.height();
+    if (height > 0) {
         height = 100 * height / this.Div.parent().height();
         this.Div[0].style.height = height.toString()+'%';
     }
@@ -770,10 +826,6 @@ jQuery.prototype.saResizable = function(args) {
         }
     };
     args.stop = function (e, ui) {
-        if ( this.saViewer) {
-            // Translate events were being triggered in the viewer.
-            this.saViewer.EnableInteraction();
-        }
         // change the width to a percentage.
         var width = $(this).width();
         width = 100 * width / $(this).parent().width();
