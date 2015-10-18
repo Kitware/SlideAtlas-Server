@@ -28,14 +28,17 @@ function Viewer (parent, args) {
     // TODO: Get rid of this viewport stuff
     var viewport = [0,0,100,100];
 
-    // Hack to stop receiving events.
-    this.Focus = true;
-
     this.HistoryFlag = false;
 
     // Interaction state:
     // What to do for mouse move or mouse up.
     this.InteractionState = INTERACTION_NONE;
+    // External callbacks
+    this.InteractionListeners = [];
+    // TODO: Get rid of this.  Remove bindings instead.
+    // This is a hack to turn off interaction.
+    // Sometime I need to clean up the events for viewers.
+    this.InteractionEnabled = true;
 
     this.AnimateLast;
     this.AnimateDuration = 0.0;
@@ -47,12 +50,12 @@ function Viewer (parent, args) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    if ( args.overview && (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad")) {
+    if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-        var overViewDiv = $('<div>').appendTo(parent);
-        this.OverView = new View(overViewDiv);
+        this.OverViewDiv = $('<div>').appendTo(parent);
+        this.OverView = new View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport, 1);
 	      this.OverView.Camera.ZRange = [-1,0];
 	      this.OverView.Camera.SetFocalPoint( [13000.0, 11000.0]);
@@ -93,8 +96,6 @@ function Viewer (parent, args) {
     
     this.GuiElements = [];
     
-    this.InteractionListeners = [];
-
     if (args.zoomWidget && ! MOBILE_DEVICE) {
         this.InitializeZoomGui();
     }
@@ -200,6 +201,14 @@ function Viewer (parent, args) {
         .addClass("sa-view-copyright");
 }
 
+Viewer.prototype.SetOverViewVisibility = function(visible) {
+    if (visible) {
+        this.OverViewDiv.show();
+    } else {
+        this.OverViewDiv.hide();
+    }
+}
+
 Viewer.prototype.EventuallyRender = function(interaction) {
     if (! this.RenderPending) {
         this.RenderPending = true;
@@ -249,14 +258,13 @@ Viewer.prototype.RollMove = function (e) {
         return;
     }
     // Find the center of the overview window.
-    var w = this.OverView.CanvasDiv;
-    var o = w.offset();
+    var origin = this.MainView.CanvasDiv.offset();
     // center of rotation
     var cx = this.OverViewport[0] + (this.OverViewport[2] / 2);
     var cy = this.OverViewport[1] + (this.OverViewport[3] / 2);
 
-    var x = e.clientX - cx - VIEW_PANEL.position().left;
-    var y = e.clientY - cy;
+    var x = (e.clientX-origin.left) - cx;
+    var y = (e.clientY-origin.top) - cy;
     var c = x*this.RotateIconY - y*this.RotateIconX;
     var r = c / (x*x + y*y);
 
@@ -270,7 +278,7 @@ Viewer.prototype.RollMove = function (e) {
     return false;
 }
 
-
+// TODO: Get rid of viewer::SetViewport.
 // onresize callback.  Canvas width and height and the camera need
 // to be synchronized with the canvas div.
 Viewer.prototype.UpdateSize = function (e) {
@@ -278,8 +286,35 @@ Viewer.prototype.UpdateSize = function (e) {
         this.EventuallyRender();
     }
 
-    // when we get rid of the set viewport method, put the logic to
-    // position the overview here.
+    // I do not know the way the viewport is used to place
+    // this overview.  It should be like other widgets
+    // and be placed relative to the parent.
+    if (this.OverView) {
+        var width = this.MainView.GetWidth();
+        var height = this.MainView.GetHeight();
+        var area = width*height;
+        var bounds = this.GetOverViewBounds();
+        var aspect = (bounds[1]-bounds[0])/(bounds[3]-bounds[2]);
+        // size of overview
+        var h = Math.sqrt(area*this.OverViewScale/aspect);
+        var w = h*aspect;
+        // Limit size
+        if (h > height/2) {
+            h = height/2;
+            var w = h*aspect;
+            this.OverViewScale = w*h/area;
+        }
+        // center of overview
+        var radius = Math.sqrt(h*h+w*w)/2;
+        // Construct the viewport.  Hack: got rid of viewport[0]
+        // TODO: I really need to get rid of the viewport stuff
+        this.OverViewport = [width-radius-w/2,
+                             radius-h/2,
+                             w, h];
+
+        this.OverView.SetViewport(this.OverViewport);
+        this.OverView.Camera.ComputeMatrix();
+    }
 }
 
 
@@ -817,120 +852,120 @@ Viewer.prototype.AnimateCamera = function(center, rotation, height) {
     this.EventuallyRender(true);
 }
 
- // This sets the overview camera from the main view camera.
- // The user can change the mainview camera and then call this method.
- Viewer.prototype.UpdateCamera = function() {
+// This sets the overview camera from the main view camera.
+// The user can change the mainview camera and then call this method.
+Viewer.prototype.UpdateCamera = function() {
 
-     var cam = this.MainView.Camera;
-     this.ZoomTarget = cam.Height;
+    var cam = this.MainView.Camera;
+    this.ZoomTarget = cam.Height;
 
-     this.TranslateTarget[0] = cam.FocalPoint[0];
-     this.TranslateTarget[1] = cam.FocalPoint[1];
-     this.RollTarget = cam.Roll;
-     if (this.OverView) {
-         //this.OverView.Camera.Roll = cam.Roll;
-         //this.OverView.Camera.ComputeMatrix();
-         this.OverView.CanvasDiv.css({'transform':'rotate('+cam.Roll+'rad'});
-         this.OverView.Camera.Roll = 0;
-         this.OverView.Camera.ComputeMatrix();
-     }
+    this.TranslateTarget[0] = cam.FocalPoint[0];
+    this.TranslateTarget[1] = cam.FocalPoint[1];
+    this.RollTarget = cam.Roll;
+    if (this.OverView) {
+        //this.OverView.Camera.Roll = cam.Roll;
+        //this.OverView.Camera.ComputeMatrix();
+        this.OverView.CanvasDiv.css({'transform':'rotate('+cam.Roll+'rad'});
+        this.OverView.Camera.Roll = 0;
+        this.OverView.Camera.ComputeMatrix();
+    }
 
-     this.MainView.Camera.ComputeMatrix();
-     this.UpdateZoomGui();
- }
+    this.MainView.Camera.ComputeMatrix();
+    this.UpdateZoomGui();
+}
 
- // This is used to set the default camera so the complexities
- // of the target and overview are hidden.
- Viewer.prototype.SetCamera = function(center, rotation, height) {
-     this.MainView.Camera.SetHeight(height);
-     this.MainView.Camera.SetFocalPoint( [center[0], center[1]]);
-     this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
+// This is used to set the default camera so the complexities
+// of the target and overview are hidden.
+Viewer.prototype.SetCamera = function(center, rotation, height) {
+    this.MainView.Camera.SetHeight(height);
+    this.MainView.Camera.SetFocalPoint( [center[0], center[1]]);
+    this.MainView.Camera.Roll = rotation * 3.14159265359 / 180.0;
 
-     this.UpdateCamera();
-     this.EventuallyRender(true);
- }
+    this.UpdateCamera();
+    this.EventuallyRender(true);
+}
 
- Viewer.prototype.GetCamera = function() {
-     return this.MainView.Camera;
- }
+Viewer.prototype.GetCamera = function() {
+    return this.MainView.Camera;
+}
 
- Viewer.prototype.GetSpacing = function() {
-   var cam = this.GetCamera();
-   var viewport = this.GetViewport();
-   return cam.GetHeight() / viewport[3];
- }
+Viewer.prototype.GetSpacing = function() {
+    var cam = this.GetCamera();
+    var viewport = this.GetViewport();
+    return cam.GetHeight() / viewport[3];
+}
 
- // I could merge zoom methods if position defaulted to focal point.
- Viewer.prototype.AnimateZoomTo = function(factor, position) {
-   EVENT_MANAGER.CursorFlag = false;
+// I could merge zoom methods if position defaulted to focal point.
+Viewer.prototype.AnimateZoomTo = function(factor, position) {
+    EVENT_MANAGER.CursorFlag = false;
 
-   this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
-   if (this.ZoomTarget < 0.9 / (1 << 5)) {
-     this.ZoomTarget = 0.9 / (1 << 5);
-   }
-   // Lets restrict discrete zoom values to be standard values.
-   var windowHeight = this.GetViewport()[3];
-   var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) / 
-                        Math.log(2));
-   this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
+    this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
+    if (this.ZoomTarget < 0.9 / (1 << 5)) {
+        this.ZoomTarget = 0.9 / (1 << 5);
+    }
+    // Lets restrict discrete zoom values to be standard values.
+    var windowHeight = this.GetViewport()[3];
+    var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) /
+                         Math.log(2));
+    this.ZoomTarget = 32.0 * windowHeight / Math.pow(2,tmp);
 
-   factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
+    factor = this.ZoomTarget / this.MainView.Camera.GetHeight(); // Actual factor after limit.
 
-   // Compute translate target to keep position in the same place.
-   this.TranslateTarget[0] = position[0] 
-         - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-   this.TranslateTarget[1] = position[1] 
-         - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
+    // Compute translate target to keep position in the same place.
+    this.TranslateTarget[0] = position[0]
+        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+    this.TranslateTarget[1] = position[1]
+        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
-   this.RollTarget = this.MainView.Camera.Roll;
+    this.RollTarget = this.MainView.Camera.Roll;
 
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender(true);
- }
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+}
 
- Viewer.prototype.AnimateZoom = function(factor) {
-   var focalPoint = this.GetCamera().GetFocalPoint();
-   this.AnimateZoomTo(factor, focalPoint);
- }
+Viewer.prototype.AnimateZoom = function(factor) {
+    var focalPoint = this.GetCamera().GetFocalPoint();
+    this.AnimateZoomTo(factor, focalPoint);
+}
 
- Viewer.prototype.AnimateTranslate = function(dx, dy) {
-   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
-   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
+Viewer.prototype.AnimateTranslate = function(dx, dy) {
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
 
-   this.ZoomTarget = this.MainView.Camera.GetHeight();
-   this.RollTarget = this.MainView.Camera.Roll;
+    this.ZoomTarget = this.MainView.Camera.GetHeight();
+    this.RollTarget = this.MainView.Camera.Roll;
 
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender(true);
- }
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+}
 
- Viewer.prototype.AnimateRoll = function(dRoll) {
-   dRoll *= Math.PI / 180.0;
-   this.RollTarget = this.MainView.Camera.Roll + dRoll;
+Viewer.prototype.AnimateRoll = function(dRoll) {
+    dRoll *= Math.PI / 180.0;
+    this.RollTarget = this.MainView.Camera.Roll + dRoll;
 
-   this.ZoomTarget = this.MainView.Camera.GetHeight();
-   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    this.ZoomTarget = this.MainView.Camera.GetHeight();
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
 
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender(true);
- }
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+}
 
- Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
-   this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
-   this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
+Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
+    this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0] + dx;
+    this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1] + dy;
 
-   this.RollTarget = this.MainView.Camera.Roll + dRoll;
+    this.RollTarget = this.MainView.Camera.Roll + dRoll;
 
-   this.ZoomTarget = this.MainView.Camera.GetHeight();
+    this.ZoomTarget = this.MainView.Camera.GetHeight();
 
-   this.AnimateLast = new Date().getTime();
-   this.AnimateDuration = 200.0; // hard code 200 milliseconds
-   this.EventuallyRender(true);
- }
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+}
 
 
 Viewer.prototype.AddWidget = function(widget) {
@@ -1188,251 +1223,260 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
     this.EventuallyRender(true);
 }
 
+Viewer.prototype.SetInteractionEnabled = function(enabled) {
+    this.InteractionEnabled = enabled;
+}
+Viewer.prototype.EnableInteraction = function() {
+    this.InteractionEnabled = true;
+}
+Viewer.prototype.DisableInteraction = function() {
+    this.InteractionEnabled = false;
+}
 
+/**/
+Viewer.prototype.HandleTouchStart = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    this.MomentumX = 0.0;
+    this.MomentumY = 0.0;
+    this.MomentumRoll = 0.0;
+    this.MomentumScale = 0.0;
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
 
+    // Four finger grab resets the view.
+    if ( event.Touches.length >= 4) {
+        var cam = this.GetCamera();
+        var bds = this.MainView.Section.GetBounds();
+        cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
+        cam.Roll = 0.0;
+        cam.SetHeight(bds[3]-bds[2]);
+        cam.ComputeMatrix();
+        this.EventuallyRender();
+        // Return value hides navigation widget
+        return true;
+    }
 
- /**/
- Viewer.prototype.HandleTouchStart = function(event) {
-     this.MomentumX = 0.0;
-     this.MomentumY = 0.0;
-     this.MomentumRoll = 0.0;
-     this.MomentumScale = 0.0;
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+    // See if any widget became active.
+    if (this.AnnotationVisibility) {
+        for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
+            event.MouseX = event.Touches[touchIdx][0];
+            event.MouseY = event.Touches[touchIdx][1];
+            this.ComputeMouseWorld(event);
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if ( ! this.WidgetList[i].GetActive() &&
+                     this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return true;
+                }
+            }
+        }
+    }
 
-     // Four finger grab resets the view.
-     if ( event.Touches.length >= 4) {
-         var cam = this.GetCamera();
-         var bds = this.MainView.Section.GetBounds();
-         cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
-         cam.Roll = 0.0;
-         cam.SetHeight(bds[3]-bds[2]);
-         cam.ComputeMatrix();
-         this.EventuallyRender();
-         // Return value hides navigation widget
-         return true;
-     }
+    return false;
+}
 
-     // See if any widget became active.
-     if (this.AnnotationVisibility) {
-         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-             event.MouseX = event.Touches[touchIdx][0];
-             event.MouseY = event.Touches[touchIdx][1];
-             this.ComputeMouseWorld(event);
-             for (var i = 0; i < this.WidgetList.length; ++i) {
-                 if ( ! this.WidgetList[i].GetActive() &&
-                      this.WidgetList[i].CheckActive(event)) {
-                     this.ActivateWidget(this.WidgetList[i]);
-                     return true;
-                 }
-             }
-         }
-     }
+// Only one touch
+Viewer.prototype.HandleTouchPan = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+        // Sanity check.
+        return;
+    }
 
-     return false;
- }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != undefined) {
+        this.ActiveWidget.HandleTouchPan(event);
+        return;
+    }
 
- // Only one touch
- Viewer.prototype.HandleTouchPan = function(event) {
-     if (event.Touches.length != 1 || event.LastTouches.length != 1) {
-         // Sanity check.
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    // Convert to world by inverting the camera matrix.
+    // I could simplify and just process the vector.
+    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+
+    // This is the new focal point.
+    var dx = w1[0] - w0[0];
+    var dy = w1[1] - w0[1];
+    var dt = event.Time - event.LastTime;
+
+    // Remember the last motion to implement momentum.
+    var momentumX = dx/dt;
+    var momentumY = dy/dt;
+
+    this.MomentumX = (this.MomentumX + momentumX) * 0.5;
+    this.MomentumY = (this.MomentumY + momentumY) * 0.5;
+    this.MomentumRoll = 0.0;
+    this.MomentumScale = 0.0;
+
+    var cam = this.GetCamera();
+    cam.Translate( -dx, -dy, 0);
+    cam.ComputeMatrix();
+    this.EventuallyRender(true);
+}
+
+Viewer.prototype.HandleTouchRotate = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var numTouches = event.Touches.length;
+    if (event.LastTouches.length != numTouches || numTouches  != 3) {
+        // Sanity check.
+        return;
+    }
+
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    var dt = event.Time - event.LastTime;
+
+    // Compute rotation.
+    // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+    // We could also take the maximum.
+    var x;
+    var y;
+    var a = 0;
+    for (var i = 0; i < numTouches; ++i) {
+        x = event.LastTouches[i][0] - event.LastMouseX;
+        y = event.LastTouches[i][1] - event.LastMouseY;
+        var a1  = Math.atan2(y,x);
+        x = event.Touches[i][0] - event.MouseX;
+        y = event.Touches[i][1] - event.MouseY;
+        a1 = a1 - Math.atan2(y,x);
+        if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
+        if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
+        a += a1;
+    }
+    a = a / numTouches;
+
+    // rotation and scale are around the mid point .....
+    // we need to compute focal point height and roll (not just a matrix).
+    // Focal point is the only difficult item.
+    var cam = this.GetCamera();
+    w0[0] = cam.FocalPoint[0] - w1[0];
+    w0[1] = cam.FocalPoint[1] - w1[1];
+    var c = Math.cos(a);
+    var s = Math.sin(a);
+    // This is the new focal point.
+    x = w1[0] + (w0[0]*c - w0[1]*s);
+    y = w1[1] + (w0[0]*s + w0[1]*c);
+
+    // Remember the last motion to implement momentum.
+    var momentumRoll = a/dt;
+
+    this.MomentumX = 0.0;
+    this.MomentumY = 0.0;
+    this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
+    this.MomentumScale = 0.0;
+
+    cam.Roll = cam.Roll - a;
+    cam.ComputeMatrix();
+    if (this.OverView) {
+        var cam2 = this.OverView.Camera;
+        cam2.Roll = cam.Roll;
+        cam2.ComputeMatrix();
+    }
+    this.EventuallyRender(true);
+}
+
+Viewer.prototype.HandleTouchPinch = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var numTouches = event.Touches.length;
+    if (event.LastTouches.length != numTouches || numTouches  != 2) {
+        // Sanity check.
+        return;
+    }
+
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    var dt = event.Time - event.LastTime;
+    // iPad / iPhone must have low precision time
+    if (dt == 0) {
+        return;
+    }
+
+    // Compute scale.
+    // Consider weighting rotation by vector length to avoid over contribution of short vectors.
+    // We could also take max.
+    // This should rarely be an issue and could only happen with 3 or more touches.
+    var scale = 1;
+    var s0 = 0;
+    var s1 = 0;
+    for (var i = 0; i < numTouches; ++i) {
+        x = event.LastTouches[i][0] - event.LastMouseX;
+        y = event.LastTouches[i][1] - event.LastMouseY;
+        s0 += Math.sqrt(x*x + y*y);
+        x = event.Touches[i][0] - event.MouseX;
+        y = event.Touches[i][1] - event.MouseY;
+        s1 += Math.sqrt(x*x + y*y);
+    }
+    // This should not happen, but I am having trouble with NaN camera parameters.
+    if (s0 < 2 || s1 < 2) {
          return;
-     }
+    }
+    scale = s1/ s0;
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != undefined) {
-         this.ActiveWidget.HandleTouchPan(event);
-         return;
-     }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        event.PinchScale = scale;
+        this.ActiveWidget.HandleTouchPinch(event);
+        return;
+    }
 
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+    // scale is around the mid point .....
+    // we need to compute focal point height and roll (not just a matrix).
+    // Focal point is the only difficult item.
+    var cam = this.GetCamera();
+    w0[0] = cam.FocalPoint[0] - w1[0];
+    w0[1] = cam.FocalPoint[1] - w1[1];
+    // This is the new focal point.
+    var x = w1[0] + w0[0] / scale;
+    var y = w1[1] + w0[1] / scale;
 
-     // Convert to world by inverting the camera matrix.
-     // I could simplify and just process the vector.
-     w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-     w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    // Remember the last motion to implement momentum.
+    var momentumScale = (scale-1)/dt;
 
-     // This is the new focal point.
-     var dx = w1[0] - w0[0];
-     var dy = w1[1] - w0[1];
-     var dt = event.Time - event.LastTime;
+    this.MomentumX = 0.0;
+    this.MomentumY = 0.0;
+    this.MomentumRoll = 0.0;
+    this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
 
-     // Remember the last motion to implement momentum.
-     var momentumX = dx/dt;
-     var momentumY = dy/dt;
+    cam.FocalPoint[0] = x;
+    cam.FocalPoint[1] = y;
+    cam.SetHeight(cam.GetHeight() / scale);
+    cam.ComputeMatrix();
+    this.EventuallyRender(true);
+}
 
-     this.MomentumX = (this.MomentumX + momentumX) * 0.5;
-     this.MomentumY = (this.MomentumY + momentumY) * 0.5;
-     this.MomentumRoll = 0.0;
-     this.MomentumScale = 0.0;
+Viewer.prototype.HandleTouchEnd = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleTouchEnd(event);
+        return;
+    }
+    //this.UpdateZoomGui();
+    this.HandleMomentum(event);
+}
 
-     var cam = this.GetCamera();
-     cam.Translate( -dx, -dy, 0);
-     cam.ComputeMatrix();
-     this.EventuallyRender(true);
- }
-
- Viewer.prototype.HandleTouchRotate = function(event) {
-     var numTouches = event.Touches.length;
-     if (event.LastTouches.length != numTouches || numTouches  != 3) {
-         // Sanity check.
-         return;
-     }
-
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
-
-     w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-     w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-     var dt = event.Time - event.LastTime;
-
-     // Compute rotation.
-     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
-     // We could also take the maximum.
-     var x;
-     var y;
-     var a = 0;
-     for (var i = 0; i < numTouches; ++i) {
-         x = event.LastTouches[i][0] - event.LastMouseX;
-         y = event.LastTouches[i][1] - event.LastMouseY;
-         var a1  = Math.atan2(y,x);
-         x = event.Touches[i][0] - event.MouseX;
-         y = event.Touches[i][1] - event.MouseY;
-         a1 = a1 - Math.atan2(y,x);
-         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
-         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
-         a += a1;
-     }
-     a = a / numTouches;
-
-     // rotation and scale are around the mid point .....
-     // we need to compute focal point height and roll (not just a matrix).
-     // Focal point is the only difficult item.
-     var cam = this.GetCamera();
-     w0[0] = cam.FocalPoint[0] - w1[0];
-     w0[1] = cam.FocalPoint[1] - w1[1];
-     var c = Math.cos(a);
-     var s = Math.sin(a);
-     // This is the new focal point.
-     x = w1[0] + (w0[0]*c - w0[1]*s);
-     y = w1[1] + (w0[0]*s + w0[1]*c);
-
-     // Remember the last motion to implement momentum.
-     var momentumRoll = a/dt;
-
-     this.MomentumX = 0.0;
-     this.MomentumY = 0.0;
-     this.MomentumRoll = (this.MomentumRoll + momentumRoll) * 0.5;
-     this.MomentumScale = 0.0;
-
-     cam.Roll = cam.Roll - a;
-     cam.ComputeMatrix();
-     if (this.OverView) {
-         var cam2 = this.OverView.Camera;
-         cam2.Roll = cam.Roll;
-         cam2.ComputeMatrix();
-     }
-     this.EventuallyRender(true);
- }
-
- Viewer.prototype.HandleTouchPinch = function(event) {
-     var numTouches = event.Touches.length;
-     if (event.LastTouches.length != numTouches || numTouches  != 2) {
-         // Sanity check.
-         return;
-     }
-
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
-
-     w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-     w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-     var dt = event.Time - event.LastTime;
-     // iPad / iPhone must have low precision time
-     if (dt == 0) {
-         return;
-     }
-
-     // Compute scale.
-     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
-     // We could also take max.
-     // This should rarely be an issue and could only happen with 3 or more touches.
-     var scale = 1;
-     var s0 = 0;
-     var s1 = 0;
-     for (var i = 0; i < numTouches; ++i) {
-         x = event.LastTouches[i][0] - event.LastMouseX;
-         y = event.LastTouches[i][1] - event.LastMouseY;
-         s0 += Math.sqrt(x*x + y*y);
-         x = event.Touches[i][0] - event.MouseX;
-         y = event.Touches[i][1] - event.MouseY;
-         s1 += Math.sqrt(x*x + y*y);
-     }
-     // This should not happen, but I am having trouble with NaN camera parameters.
-     if (s0 < 2 || s1 < 2) {
-         return;
-     }
-     scale = s1/ s0;
-
-
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         event.PinchScale = scale;
-         this.ActiveWidget.HandleTouchPinch(event);
-         return;
-     }
-
-
-
-     // scale is around the mid point .....
-     // we need to compute focal point height and roll (not just a matrix).
-     // Focal point is the only difficult item.
-     var cam = this.GetCamera();
-     w0[0] = cam.FocalPoint[0] - w1[0];
-     w0[1] = cam.FocalPoint[1] - w1[1];
-     // This is the new focal point.
-     var x = w1[0] + w0[0] / scale;
-     var y = w1[1] + w0[1] / scale;
-
-     // Remember the last motion to implement momentum.
-     var momentumScale = (scale-1)/dt;
-
-     this.MomentumX = 0.0;
-     this.MomentumY = 0.0;
-     this.MomentumRoll = 0.0;
-     this.MomentumScale = (this.MomentumScale + momentumScale) * 0.5;
-
-     cam.FocalPoint[0] = x;
-     cam.FocalPoint[1] = y;
-     cam.SetHeight(cam.GetHeight() / scale);
-     cam.ComputeMatrix();
-     this.EventuallyRender(true);
- }
-
- Viewer.prototype.HandleTouchEnd = function(event) {
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleTouchEnd(event);
-         return;
-     }
-     //this.UpdateZoomGui();
-     this.HandleMomentum(event);
- }
- /**/
 
 
 
@@ -1547,7 +1591,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
 
  Viewer.prototype.HandleMouseDown = function(event) {
-     if ( ! this.Focus) {return;}
+     if ( ! this.InteractionEnabled) { return true; }
 
      this.FireFoxWhich = event.which;
      event.preventDefault(); // Keep browser from selecting images.
@@ -1590,6 +1634,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
  }
 
  Viewer.prototype.HandleDoubleClick = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      if (this.ActiveWidget != null) {
          return this.ActiveWidget.HandleDoubleClick(event);
      }
@@ -1604,7 +1649,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
  }
 
  Viewer.prototype.HandleMouseUp = function(event) {
-
+     if ( ! this.InteractionEnabled) { return true; }
      this.FireFoxWhich = 0;
      EVENT_MANAGER.RecordMouseUp(event);
 
@@ -1645,7 +1690,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
 
 
  Viewer.prototype.HandleMouseMove = function(event) {
-     if ( ! this.Focus) {return;}
+     if ( ! this.InteractionEnabled) { return true; }
 
      event.preventDefault(); // Keep browser from selecting images.
      if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
@@ -1735,6 +1780,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
  }
 
  Viewer.prototype.HandleMouseWheel = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      // Forward the events to the widget if one is active.
      if (this.ActiveWidget != null) {
          if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
@@ -1788,6 +1834,7 @@ Viewer.prototype.OverViewPlaceCamera = function(x, y) {
  // returns false if the event was "consumed" (browser convention).
  // Returns true if nothing was done with the event.
  Viewer.prototype.HandleKeyDown = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
          if ( ! SAVING_IMAGE) {
              SAVING_IMAGE = new Dialog();
@@ -2024,6 +2071,7 @@ function colorNameToHex(color)
 
  // TODO: Make the overview slide a widget.
  Viewer.prototype.HandleOverViewMouseDown = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      if (this.RotateIconDrag) { return;}
 
      this.InteractionState = INTERACTION_OVERVIEW;
@@ -2037,6 +2085,7 @@ function colorNameToHex(color)
 
 
  Viewer.prototype.HandleOverViewMouseUp = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      if (this.RotateIconDrag) { return;}
      if (this.InteractionState == INTERACTION_OVERVIEW_DRAG) 
      {
@@ -2063,6 +2112,7 @@ function colorNameToHex(color)
  }
 
  Viewer.prototype.HandleOverViewMouseMove = function(event) {
+     if ( ! this.InteractionEnabled) { return true; }
      if (this.RotateIconDrag) {
          this.RollMove(event);
          return false;
@@ -2107,6 +2157,7 @@ function colorNameToHex(color)
 }
 
 Viewer.prototype.HandleOverViewMouseWheel = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
     var tmp = 0;
     if (event.deltaY) {
 	      tmp = event.deltaY;

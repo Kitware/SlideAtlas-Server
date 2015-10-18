@@ -863,7 +863,6 @@ NotesWidget.prototype.SelectNote = function(note) {
     }
 
     if (note.Type == "Stack") {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
         // Select only gets called when the stack is first loaded.
         this.Display.GetViewer(0).OnInteraction(function () {
             self.SynchronizeViews(0, note);});
@@ -874,7 +873,6 @@ NotesWidget.prototype.SelectNote = function(note) {
         // Second is set relative to the first.
         this.SynchronizeViews(0, note);
     } else {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
         note.DisplayView(this.Display);
     }
 }

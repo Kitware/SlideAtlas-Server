@@ -10,7 +10,13 @@
 //ViewEditMenu.prototype.SessionAdvanceAjax = function() {
 
 
+// All edit menus share a ViewBrowser.  Next to consider.  Share the
+// presentation browser panel.
+var VIEW_BROWSER;
+
+
 // Other viewer is a hack for copy camera.
+// parent is for the view browser.
 function ViewEditMenu (viewer, otherViewer) {
     var self = this; // trick to set methods in callbacks.
     this.Viewer = viewer;
@@ -25,11 +31,17 @@ function ViewEditMenu (viewer, otherViewer) {
 
     this.Tab.Panel.addClass("sa-view-edit-panel");
 
-    $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("Load Slide")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.Tab.PanelOff(); VIEW_BROWSER.Open(self.Viewer);});
+    if (VIEW_BROWSER) {
+        $('<button>')
+            .appendTo(this.Tab.Panel)
+            .text("Load Slide")
+            .addClass("sa-view-edit-button")
+            .click(
+                function(){
+                    self.Tab.PanelOff();
+                    VIEW_BROWSER.Open(self.Viewer);
+                });
+    }
     if (EDIT) {
         $('<button>')
             .appendTo(this.Tab.Panel)
@@ -56,12 +68,14 @@ function ViewEditMenu (viewer, otherViewer) {
         .click(function(){self.ToggleHistory();});
 
     // Hack until we have some sort of scale.
-    this.CopyZoomMenuItem = $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("Copy Zoom")
-        .hide()
-        .addClass("sa-view-edit-button")
-        .click(function(){self.CopyZoom();});
+    if (this.OtherViewer) {
+        this.CopyZoomMenuItem = $('<button>')
+            .appendTo(this.Tab.Panel)
+            .text("Copy Zoom")
+            .hide()
+            .addClass("sa-view-edit-button")
+            .click(function(){self.CopyZoom();});
+    }
     $('<button>').appendTo(this.Tab.Panel)
         .text("Flip Horizontal")
         .addClass("sa-view-edit-button")
@@ -106,16 +120,15 @@ function ViewEditMenu (viewer, otherViewer) {
             .click(function(){self.SetViewBounds();});
     }
 
-    this.StackDetectButton =
-        $('<button>').appendTo(this.Tab.Panel)
-            .text("Detect Tissue Sections")
-            .hide()
-            .addClass("sa-view-edit-button")
-            .click(function(){self.DetectTissueSections();});
 }
 
-
-
+ViewEditMenu.prototype.SetVisibility = function(flag) {
+    if (flag) {
+        this.Tab.show();
+    } else {
+        this.Tab.hide();
+    }
+}
 
 ViewEditMenu.prototype.DetectTissueSections = function() {
     initHagfish();
