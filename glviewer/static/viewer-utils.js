@@ -7,12 +7,13 @@
 // There could be a selected state that allows grouping, deleting ....
 // enter leave will change border color to indicate active.
 // only worry about percentage (presentation) for now.
-// TODO: 
-// View menu.
+// TODO:
+// Do not expand images larget than their native resolution (double maybe?)
+// Change answer to question in the properties menu.
+// Change cursor when inside lightbox element to indicate draggable.
+// Some images from old presentations are 0 size.
 // Camera gets restored on shrink (even in edit mode) 
 //   Maybe push pin or camera icon to capture changes
-
-
 
 // Respect aspect ratio when expanded.
 // Text ?
@@ -416,17 +417,24 @@ saLightBox.prototype.HandleMouseWheel = function(event) {
 
 // Change left, top, widht and height to percentages.
 saLightBox.prototype.ConvertToPercentages = function() {
-    // These always return pixel units.
-    var width = this.Div.width();
-    var height = this.Div.height();
+    // I had issues with previous slide shows that had images with no width
+    // set. Of course it won't scale right but they will still show up.
+    if (this.Div[0].style.width != "") {
+        // These always return pixel units.
+        var width = this.Div.width();
+        width = 100 * width / this.Div.parent().width();
+        this.Div[0].style.width = width.toString()+'%';
+    }
+    if (this.Div[0].style.height != "") {
+        var height = this.Div.height();
+        height = 100 * height / this.Div.parent().height();
+        this.Div[0].style.height = height.toString()+'%';
+    }
+
     var pos  = this.Div.position();
     var left = pos.left;
     var top  = pos.top;
 
-    width = 100 * width / this.Div.parent().width();
-    this.Div[0].style.width = width.toString()+'%';
-    height = 100 * height / this.Div.parent().height();
-    this.Div[0].style.height = height.toString()+'%';
     top  = 100 * top / this.Div.parent().height();
     left = 100 * left / this.Div.parent().width();
     this.Div[0].style.top  = top.toString()+'%';
@@ -726,7 +734,8 @@ jQuery.prototype.saHtml = function(string) {
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
-    copy.find('.ui-resizable-handle').remove();
+    copy.find('.ui-resizable').resizable('destroy');
+    //copy.find('.ui-resizable-handle').remove();
 
     // Get rid of the children of the sa-presentation-view.
     // They will be recreated by viewer when the html is loaded.
