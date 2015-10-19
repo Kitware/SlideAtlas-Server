@@ -11,7 +11,6 @@ from flask import Blueprint, request, render_template, make_response, abort
 from slideatlas import models, security
 from slideatlas.common_utils import jsonify
 
-
 def jsonifyView(db, viewid, viewobj):
     imgdb = viewobj['ViewerRecords'][0]['Database']
     imgid = viewobj['ViewerRecords'][0]['Image']
@@ -265,6 +264,7 @@ def bookmark():
 # get all the children notes for a parent (authored by a specific user).
 @mod.route('/getusernotes')
 def getusernotes():
+
     parentid = request.args.get('parentid', False)
     imageid = request.args.get('imageid', False)
 

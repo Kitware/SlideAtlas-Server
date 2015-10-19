@@ -618,7 +618,15 @@ Note.prototype.Serialize = function(includeChildren) {
     // I would like to put the session as parent, but this would be an inclomplete reference.
     // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
     if (this.Parent) {
-        obj.ParentId = this.Parent.Id;
+        if (typeof(this.Parent) == 'string') {
+            // When the parent is an image.
+            obj.ParentId = this.Parent;
+        }
+        if (typeof(this.Parent) == 'object' && this.Parent.Id) {
+            // When the parent is a note.
+            obj.ParentId = this.Parent.Id;
+        }
+        // These snuck into the database.
         delete this.ParentId
     }
     obj.Title = this.Title;

@@ -217,6 +217,7 @@ TextEditor.prototype.EditOn = function() {
               'background': '#f5f8ff'})
         .bind('input', function () {
             self.Modified = true;
+            self.EventuallyUpdate();
         })
         .focusin(function() {
             EVENT_MANAGER.FocusOut();
@@ -1584,9 +1585,6 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         }
     }
     this.UserNote = new Note();
-    // This is new, Parent was always a note before this.
-    this.UserNote.Parent = imageId; // Should we save the note looking at when created?
-    this.UserNote.Type = "UserNote";
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
@@ -1594,8 +1592,30 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         }
         var noteData = data.Notes[0];
         this.UserNote.Load(noteData);
+    } else {
+        // start with a copy of the current note.
+        // The server searches viewer records for the image.
+        // Only copoy the first viewer records.  More could be problematic.
+        var note = this.GetCurrentNote();
+        if (note && note.ViewerRecords.length > 0) {
+            var record = new ViewerRecord();
+            record.DeepCopy(note.ViewerRecords[0]);
+            this.UserNote.ViewerRecords.push(record);
+        }
     }
+
+    // This is new, Parent was always a note before this.
+    // Although this is more robust (user notes are constent when notes are
+    // copied...), the GUI looks like user notes are associated with notes
+    // not viewerRecords/images.
+    this.UserNote.Parent = imageId;
+    this.UserNote.Type = "UserNote";
+
     // Must display the text.
     this.UserTextEditor.LoadNote(this.UserNote);
+    // User notes are always editable. Unless it tis the demo account.
+    if (USER != "") {
+        this.UserTextEditor.EditOn();
+    }
 }
 
