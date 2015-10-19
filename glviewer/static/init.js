@@ -675,6 +675,9 @@ function Main2(rootNote) {
     EVENT_MANAGER = new EventManager(CANVAS);
 
     DUAL_DISPLAY = new DualViewWidget(VIEW_PANEL);
+    if (rootNote.Type == "Stack") {
+        DUAL_DISPLAY.SetNumberOfViewers(2);
+    }
     // TODO: Is this really needed here?  Try it at the end.
     handleResize();
 

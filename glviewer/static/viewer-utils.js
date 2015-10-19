@@ -351,6 +351,8 @@ saLightBox.prototype.UpdateSize = function(animate) {
     // I am close to just implementing my own resize feature.
     this.Div.css({'z-index':'1001'});
     if (animate) {
+        // Animate is not working for images. It does not seem to be the
+        // units of the position parameters.
         this.Div.animate({'left'  : left,
                           'top'   : top,
                           'width' : width,

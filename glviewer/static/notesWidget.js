@@ -849,7 +849,7 @@ NotesWidget.prototype.SelectNote = function(note) {
         // It would be nice to store the viewer configuration
         // as a separate state variable.  We might want a stack
         // that defaults to a single viewer.
-        display.SetNumberOfViewers(note.ViewerRecords.length);
+        this.Display.SetNumberOfViewers(note.ViewerRecords.length);
     }
 
     // Clear the sync callback.
@@ -880,7 +880,7 @@ NotesWidget.prototype.SelectNote = function(note) {
 // refViewerIdx is the viewer that changed and other viewers need 
 // to be updated to match that reference viewer.
 NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
-    if (refViewerIdx + note.StartIdx >= note.ViewerRecords.length) {
+    if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
         return;
     }
 
@@ -924,7 +924,7 @@ NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
         }
         note.ActiveCorrelation.SetRoll(deltaRoll);
         note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
-        return;
+        return; 
     } else {
         // A round about way to set and unset the active correlation.
         // Note is OK, because if there is no interaction without the shift key
