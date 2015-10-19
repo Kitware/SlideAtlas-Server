@@ -584,11 +584,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 }
 
 
-
-
 //==============================================================================
-
-
 
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
@@ -1801,7 +1797,7 @@ HtmlPage.prototype.DisplayNote = function (note) {
     // Lets record to position of the previous slides viewers to use
     // as the position of any viewers in the new slide.
     this.DefaultViewerPositions = [];
-    var lastViewers = $('.sa-presentation-view');
+    var lastViewers = $('.sa-lightbox-viewer');
     for (var i = 0; i < lastViewers.length; ++i) {
         this.DefaultViewerPositions.push(
             {left:lastViewers[i].style.left,
@@ -1840,11 +1836,14 @@ HtmlPage.prototype.DisplayNote = function (note) {
         $('.sa-text-editor').attr('contenteditable', "flase")
     }
 
-    // Make the images into lightbox elements.
+    // Change the edit status of the lightbox viewer.
     this.Div.find('.sa-presentation-image')
         .saLightBox({'editable':EDIT});
+    this.Div.find('.sa-lightbox-viewer')
+        .saLightBoxViewer({'editable':EDIT});
     // Make viewers into lightbox elements.
-    this.InitializeViews(this.Div.find('.sa-presentation-view'));
+    // MOVE
+    //this.InitializeViews(this.Div.find('.sa-presentation-view'));
 
     // Set stops.
     $('sa-draggable').saDraggable();
@@ -2291,7 +2290,6 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
 
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
-        .addClass('sa-presentation-view')
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA',
               'background-color':'#FFF',
@@ -2300,12 +2298,15 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
               'width'  : defaultPosition.width,
               'top'    : defaultPosition.top,
               'height' : defaultPosition.height})
-        .saViewer({'note'         : this.Note,
-                   'viewerIndex'  : viewerIdx,
-                   'hideCopyright': true,
-                   'interaction'  : false})
-        .saAnnotationWidget("hide")
-    this.InitializeViews(viewerDiv);
+        .saLightBoxViewer({'note'         : this.Note,
+                           'viewerIndex'  : viewerIdx,
+                           'hideCopyright': true,
+                           'interaction'  : false,
+                           'editable'     : EDIT});
+    // MOVE
+        //.addClass('sa-presentation-view')
+        //.saAnnotationWidget("hide")
+    //this.InitializeViews(viewerDiv);
 
     return viewerDiv;
 }
@@ -2315,6 +2316,7 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
 // because it is too specific to presentations.  I could make a composite
 // lightboxViewer jquery element though.
 // TODO: Make this a composite lightboxviewer.
+/* MOVE
 HtmlPage.prototype.InitializeViews = function(viewerDiv) {
     viewerDiv
         .saViewer({'hideCopyright': true,
@@ -2344,6 +2346,7 @@ HtmlPage.prototype.InitializeViews = function(viewerDiv) {
              }
             });
 }
+*/
 
 // NOTE: This should be lagacy now.  The jquery extensions should handle this.
 // Text elements need to resize explicitly.
@@ -2383,7 +2386,7 @@ HtmlPage.prototype.BindElements = function() {
 HtmlPage.prototype.UpdateEdits = function () {
     if (this.Note) {
         // Record the camera position (and annotations).
-        this.Div.find('.sa-presentation-view').saRecordViewer();
+        this.Div.find('.sa-lightbox-viewer').saRecordViewer();
         // Doing this here forces us to save the notes
         // TODO: This may created orphaned views. fix this be either
         // delaying copying saHtml to note, or incrementally saving

@@ -108,6 +108,7 @@ function saLightBox(div) {
 
 // Resize requires an aspect ratio.
 saLightBox.prototype.SetArgs = function(args) {
+    // TODO: I do noit think this is used (legacy).
     // hack because div can have only one onresize method.
     if (args == "updateSize") {
         this.UpdateSize();
@@ -310,7 +311,7 @@ saLightBox.prototype.HandleMouseUp = function(event) {
 
 // I cannot put this directly as a callback because it 
 // overwrites the viewer resize method.
-saLightBox.prototype.UpdateSize = function(animate) {
+saLightBox.prototype.UpdateSize = function() {
     if ( ! this.Expanded) { return; }
 
     var self = this;
@@ -322,7 +323,7 @@ saLightBox.prototype.UpdateSize = function(animate) {
 
         // Hack to get expanded images to resize.
         if ( ! this.Div[0].onresize) {
-            this.Div[0].onresize = 
+            this.Div[0].onresize =
                 function() {
                     self.UpdateSize();
                 }
@@ -350,20 +351,10 @@ saLightBox.prototype.UpdateSize = function(animate) {
     // Not resize handles have z-index 1000 !
     // I am close to just implementing my own resize feature.
     this.Div.css({'z-index':'1001'});
-    if (animate) {
-        // Animate is not working for images. It does not seem to be the
-        // units of the position parameters.
-        this.Div.animate({'left'  : left,
-                          'top'   : top,
-                          'width' : width,
-                          'height': height},
-                         {step: function () {self.Div.trigger('resize');}});
-    } else {
-        this.Div.css({'left'  : left,
-                      'top'   : top,
-                      'width' : width,
-                      'height': height});
-    }
+    this.Div.css({'left'  : left,
+                  'top'   : top,
+                  'width' : width,
+                  'height': height});
 }
 
 saLightBox.prototype.Expand = function(flag, animate) {
@@ -385,7 +376,8 @@ saLightBox.prototype.Expand = function(flag, animate) {
         // Not resize handles have z-index 1000 !
         // I am close to just implementing my own resize feature.
         this.Div.css({'z-index':'1001'});
-        this.UpdateSize(true);
+        this.UpdateSize();
+        this.Div.trigger('resize');
 
         // Show the mask.
         this.Mask.show();
@@ -402,7 +394,6 @@ saLightBox.prototype.Expand = function(flag, animate) {
         this.Mask.hide();
         // remove event to shrink div.
         this.Mask.off('mousedown.lightbox');
-        // Restore the original size
         if (animate) {
             this.Div.animate({'top':self.SavedTop,
                               'left':self.SavedLeft,
@@ -501,6 +492,45 @@ saLightBox.prototype.ConvertToPercentages = function() {
 }
 
 
+//==============================================================================
+// Combination of lightbox and viewer.
+
+jQuery.prototype.saLightBoxViewer = function(args) {
+    if ( ! args.hideCopyright) {
+        args.hideCopyright = true;
+    }
+    // Small viewer does not have overview
+    args.overview = false;
+    var editable = args.editable;
+        
+    this.saViewer(args)
+        .saAnnotationWidget("hide")
+        .saLightBox(
+            {editable:editable,
+             onExpand : function(expanded) {
+                 this.Div.saViewer({interaction:expanded});
+                 if (expanded) {
+                     this.Div.saAnnotationWidget("show");
+                     this.Div.saViewer({overview : true,
+                                        menu     : true});
+                 } else {
+                     this.Div.saAnnotationWidget("hide");
+                     this.Div.saViewer({overview : false,
+                                        menu     : false});
+                     // TODO: Formalize this hack. Viewer formally needs a note.
+                     // If not editable, restore the note.
+                     var viewer = this.Div[0].saViewer;
+                     var note = viewer.saNote;
+                     var index = viewer.saViewerIndex || 0;
+                     if ( ! this.Div[0].saLightBox.Editable && note) {
+                         note.ViewerRecords[index].Apply(viewer);
+                     }
+                 }
+             }
+            });
+
+    return this;
+}
 
 
 
@@ -734,8 +764,12 @@ jQuery.prototype.saHtml = function(string) {
         //this.find('.sa-full-window-option').saFullWindowOption();
         // TODO: Move this out of this file.
         this.find('.sa-presentation-rectangle').saRectangle();
+        // Change legacy sa-presentation-view into sa-lightbox-viewer
+        this.find('.sa-presentation-view')
+            .addClass('sa-lightbox-viewer')
+            .removeClass('sa-presentation-view');
         // We need to load the note.
-        viewDivs = this.find('.sa-presentation-view');
+        viewDivs = this.find('.sa-lightbox-viewer');
         viewDivs.saViewer({'hideCopyright': true,
                            'interaction':   false});
 
@@ -779,7 +813,7 @@ jQuery.prototype.saHtml = function(string) {
 
             // TODO: This does not belong here.
             // Annotation button does not show up when small.
-            items = this.find('.sa-presentation-view');
+            items = this.find('.sa-lightbox-viewer');
             items.saAnnotationWidget('hide');
         }
 
@@ -798,7 +832,7 @@ jQuery.prototype.saHtml = function(string) {
 
     // Get rid of the children of the sa-presentation-view.
     // They will be recreated by viewer when the html is loaded.
-    copy.find('.sa-presentation-view').empty();
+    copy.find('.sa-lightbox-viewer').empty();
 
     return copy.html();
 }
@@ -1462,7 +1496,7 @@ function saPruneViewerRecord(viewer) {
     // This is sort of hackish.
     var viewerIdx = viewer.saViewerIndex;
     var note = viewer.saNote;
-    var items = $('.sa-presentation-view');
+    var items = $('.sa-lightbox-viewer');
     // Shift all the larger indexes down one.
     for (var i = 0; i < items.length; ++i) {
         if (items[i].saViewer &&
