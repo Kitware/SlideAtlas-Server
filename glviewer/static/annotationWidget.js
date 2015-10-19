@@ -99,6 +99,18 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
     if (this.Viewer.GetAnnotationVisibility() == visibility) {
         return;
     }
+
+    // Hack to make all stack viewers share a single annotation visibility
+    // flag. 
+    if (NOTES_WIDGET) {
+        var note = NOTES_WIDGET.GetCurrentNote();
+        if (note.Type == 'Stack') {
+            for (var i = 0; i < note.ViewerRecords.length; ++i) {
+                note.ViewerRecords[i].AnnotationVisibility = visibility;
+            }
+        }
+    }
+
     if (this.VisibilityImage) {
         if (visibility == ANNOTATION_OFF) {
             this.VisibilityImage.css({'top': '-30px'});

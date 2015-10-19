@@ -371,8 +371,9 @@ Note.prototype.RecordView = function(display) {
         // All we want to do is record the default
         // camera of the first section (if we at
         // the start of the stack).
+        var viewer0 = display.GetViewer(0);
         if (this.StartIndex == 0) {
-            this.ViewerRecords[0].CopyViewer(display.GetViewer(0));
+            this.ViewerRecords[0].CopyViewer(viewer0);
         }
         return;
     }
@@ -382,6 +383,7 @@ Note.prototype.RecordView = function(display) {
         viewerRecord.CopyViewer(display.GetViewer(i));
         this.ViewerRecords.push(viewerRecord);
     }
+
 }
 
 Note.prototype.AddChild = function(childNote, first) {
@@ -778,7 +780,7 @@ Note.prototype.DisplayView = function(display) {
 
     var numViewers = display.GetNumberOfViewers();
     if (numViewers == 0) { return; }
-    if (this.Type != 'Stack') {
+    if (this.Type == 'Stack') {
         // Stack display needs to keep both viewers up to date.
         numViewers = 2;
     }
