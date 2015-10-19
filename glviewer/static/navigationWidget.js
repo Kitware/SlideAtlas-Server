@@ -210,7 +210,8 @@ NavigationWidget.prototype.PreviousNote = function() {
         // Copy viewer annotation to the viewer record.
         current.RecordAnnotations(this.Display);
         // Move camera
-        for (var i = this.Display.GetNumberOfViewers()-1; i > 0; --i) {
+        // Hardcoded for dual display
+        for (var i = 2-1; i > 0; --i) {
             var viewer1 = this.Display.GetViewer(i);
             var viewer0 = this.Display.GetViewer(i-1);
             var cam = viewer0.GetCamera();
@@ -256,7 +257,8 @@ NavigationWidget.prototype.NextNote = function() {
         // Copy viewer annotation to the viewer record.
         current.RecordAnnotations(this.Display);
         // Move camera
-        for (var i = 1; i < this.Display.GetNumberOfViewers(); ++i) {
+        // Hard coded for dual display.
+        for (var i = 1; i < 2; ++i) {
             var viewer0 = this.Display.GetViewer(i-1);
             var viewer1 = this.Display.GetViewer(i);
             var cam = viewer1.GetCamera();

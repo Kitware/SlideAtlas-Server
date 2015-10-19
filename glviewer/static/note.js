@@ -776,10 +776,15 @@ Note.prototype.DisplayView = function(display) {
         NOTES_WIDGET.DisplayedNote = this;
     }
 
-    if (display.GetNumberOfViewers() == 0) { return; }
+    var numViewers = display.GetNumberOfViewers();
+    if (numViewers == 0) { return; }
+    if (this.Type != 'Stack') {
+        // Stack display needs to keep both viewers up to date.
+        numViewers = 2;
+    }
 
     // Remove Annotations from the previous note.
-    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+    for (var i = 0; i < numViewers; ++i) {
         display.GetViewer(i).Reset();
     }
 
@@ -790,9 +795,12 @@ Note.prototype.DisplayView = function(display) {
     }
 
     // We could have more than two in the future.
-    display.SetNumberOfViewers(this.ViewerRecords.length);
+    if (this.Type != 'Stack') {
+        // I want the single view (when set by the user) to persist for rthe stack.
+        display.SetNumberOfViewers(this.ViewerRecords.length);
+    }
     var idx = this.StartIndex;
-    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+    for (var i = 0; i < numViewers; ++i) {
         var viewer = display.GetViewer(i);
 
         if (i + idx < this.ViewerRecords.length) {
@@ -800,12 +808,8 @@ Note.prototype.DisplayView = function(display) {
             // This is for synchroninzing changes in the viewer back to the note.
             viewer.RecordIndex = i;
         }
-
-        //viewer.Reset(); // I do not think I should do this here.
     }
 }
-
-
 
 // Creates default transforms for Viewer Records 1-n
 // (if they do not exist already).  Uses cameras focal point.
