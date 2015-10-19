@@ -208,17 +208,18 @@ NavigationWidget.prototype.PreviousNote = function() {
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
         // Copy viewer annotation to the viewer record.
+
         current.RecordAnnotations(this.Display);
+
         // Move camera
         // Hardcoded for dual display
-        for (var i = 2-1; i > 0; --i) {
-            var viewer1 = this.Display.GetViewer(i);
-            var viewer0 = this.Display.GetViewer(i-1);
-            var cam = viewer0.GetCamera();
-            viewer1.SetCamera(cam.GetFocalPoint(),
-                              cam.GetRotation(),
-                              cam.Height);
-        }
+        var viewer1 = this.Display.GetViewer(1);
+        var viewer0 = this.Display.GetViewer(0);
+        var cam = viewer0.GetCamera();
+        viewer1.SetCamera(cam.GetFocalPoint(),
+                          cam.GetRotation(),
+                          cam.Height);
+
         --current.StartIndex;
         current.DisplayStack(this.Display);
         NOTES_WIDGET.SynchronizeViews(1, current);
@@ -258,14 +259,13 @@ NavigationWidget.prototype.NextNote = function() {
         current.RecordAnnotations(this.Display);
         // Move camera
         // Hard coded for dual display.
-        for (var i = 1; i < 2; ++i) {
-            var viewer0 = this.Display.GetViewer(i-1);
-            var viewer1 = this.Display.GetViewer(i);
-            var cam = viewer1.GetCamera();
-            viewer0.SetCamera(cam.GetFocalPoint(),
-                              cam.GetRotation(),
-                              cam.Height);
-        }
+        var viewer0 = this.Display.GetViewer(0);
+        var viewer1 = this.Display.GetViewer(1);
+        var cam = viewer1.GetCamera();
+        viewer0.SetCamera(cam.GetFocalPoint(),
+                          cam.GetRotation(),
+                          cam.Height);
+
         ++current.StartIndex;
         current.DisplayStack(this.Display);
         NOTES_WIDGET.SynchronizeViews(0, current);

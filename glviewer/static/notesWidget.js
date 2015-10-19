@@ -880,6 +880,7 @@ NotesWidget.prototype.SelectNote = function(note) {
 // refViewerIdx is the viewer that changed and other viewers need 
 // to be updated to match that reference viewer.
 NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
+    // We allow the viewer to go one past the end.
     if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
         return;
     }
@@ -995,6 +996,18 @@ NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     } else {
         this.Display.GetViewer(0).UpdateCamera();
         this.Display.GetViewer(0).EventuallyRender(false);
+    }
+
+    // Synchronize annitation visibility.
+    var refViewer = this.Display.GetViewer(refViewerIdx);
+    for (var i = 0; i < 2; ++i) {
+        if (i != refViewerIdx) {
+            var viewer = this.Display.GetViewer(i);
+            if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
+                viewer.AnnotationWidget.SetVisibility(
+                    refViewer.AnnotationWidget.GetVisibility());
+            }
+        }
     }
 }
 

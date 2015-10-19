@@ -480,13 +480,12 @@ saLightBox.prototype.ConvertToPercentages = function() {
     // I had issues with previous slide shows that had images with no width
     // set. Of course it won't scale right but they will still show up.
     var width = this.Div.width();    
-    if (width > 0) {
+    if (width > 0) { // TODO: Remove this check after a while.
         // These always return pixel units.
         width = 100 * width / this.Div.parent().width();
         this.Div[0].style.width = width.toString()+'%';
-    }
-    var height = this.Div.height();
-    if (height > 0) {
+
+        var height = this.Div.height();
         height = 100 * height / this.Div.parent().height();
         this.Div[0].style.height = height.toString()+'%';
     }
