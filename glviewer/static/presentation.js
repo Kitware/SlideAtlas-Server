@@ -2152,6 +2152,7 @@ HtmlPage.prototype.InsertQuestion = function() {
             },
             buttons: {
                 "create": function () {
+                    // This creates the question from the dialog entries.
                     var textBox = self.InsertTextBox(22);
                     textBox
                         .html(self.Question.html())
