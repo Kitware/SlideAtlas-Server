@@ -179,11 +179,6 @@ saLightBox.prototype.EditOn = function() {
     this.Edit = true;
     // I cannot get jqueryUI draggable to work.  Use my own events.
     var self = this;
-    this.Div.on('keypress.lightbox',
-                function(){
-                    return self.HandleKeyPress();
-                });
-
     this.Div.on(
         'mousewheel.lightbox',
         function(event){
@@ -203,13 +198,6 @@ saLightBox.prototype.EditOff = function() {
     this.Div.off('keypress.lightbox');
 
     this.DeleteButton.hide();
-}
-
-saLightBox.prototype.HandleKeyPress = function(event) {
-    alert('keypress');
-    if (event.keyCode == 1) {
-        this.Div.remove();
-    }
 }
 
 saLightBox.prototype.HandleMouseDown = function(event) {
