@@ -1,3 +1,545 @@
+//==============================================================================
+// This is going to replace draggable, resizable and fullWIndow options.
+// Small viewers have no interaction except optional positioning.
+// Clicking makes them big (90%?) and consume interaction.
+// Click outside box makes them small again.
+// This could also be used for text boxes (with out the expansion option).
+// There could be a selected state that allows grouping, deleting ....
+// enter leave will change border color to indicate active.
+// only worry about percentage (presentation) for now.
+// TODO:
+// Do not expand images larget than their native resolution (double maybe?)
+// Change answer to question in the properties menu.
+// Change cursor when inside lightbox element to indicate draggable.
+// Some images from old presentations are 0 size.
+// Camera gets restored on shrink (even in edit mode) 
+//   Maybe push pin or camera icon to capture changes
+
+// Respect aspect ratio when expanded.
+// Text ?
+// Dialogs
+// Split draggable outof lightbox.
+
+
+
+jQuery.prototype.saLightBox = function(args) {
+    this.addClass('sa-light-box');
+    for (var i = 0; i < this.length; ++i) {
+        if ( ! this[i].saLightBox) {
+            var helper = new saLightBox($(this[i]));
+            // Add the helper as an instance variable to the dom object.
+            this[i].saLightBox = helper;
+        }
+        this[i].saLightBox.SetArgs(args);
+    }
+
+    return this;
+}
+
+function saLightBox(div) {
+    this.Div = div;
+    this.Expanded = false;
+
+    // Mask is to gray out background and consume events.
+    // All lightbox items in this parent will share a mask.
+    var parent = div.parent();
+    this.Mask = parent.find('.sa-light-box-mask');
+    if ( this.Mask.length == 0) {
+        this.Mask = $('<div>')
+            .appendTo(parent)
+            .addClass('.sa-light-box-mask') // So it can be retrieved.
+            .addClass('.sa-edit-gui') // Remove before saHtml save.
+            .hide()
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px',
+                  'width':'100%',
+                  'height':'100%',
+                  'z-index':'99',
+                  'opacity':'0.5',
+                  'background-color':'#000'});
+    }
+
+    var self = this;
+    this.Div
+        .css({'border':'1px solid #44E'})
+        .hover(
+            function (e) {
+                self.SavedBorder = this.style.border;
+                $(this).css({'border-color':'#6AF'});
+                if (self.Edit) {
+                    self.DeleteButton.show();
+                }
+            },
+            function (e) {
+                this.style.border = self.SavedBorder;
+                self.DeleteButton.hide();
+            }
+        );
+
+    // We need the mouse down for click -> expand
+    this.Div
+        .on('mousedown.lightbox',
+              function (event) {
+                  return self.HandleMouseDown(event);
+              });
+
+    // I could not get the key events working.  I had to restart the browser.
+    this.DeleteButton = $('<img>')
+        .appendTo(this.Div)
+        .addClass('editButton')
+        .addClass('.sa-edit-gui') // Remove before saHtml save.
+        .css({'height':'16px',
+              'position':'absolute',
+              'top':'0px',
+              'left':'0px'})
+        .attr('src','webgl-viewer/static/remove.png')
+        .prop('title', "delete")
+        .hide()
+        // Trying to block the expand event.
+        .mousedown(function(){return false;})
+        .click(
+            function () {
+                self.DeleteButton.remove();
+                self.Div.remove();
+                return false;
+            });
+}
+
+// Resize requires an aspect ratio.
+saLightBox.prototype.SetArgs = function(args) {
+    // TODO: I do noit think this is used (legacy).
+    // hack because div can have only one onresize method.
+    if (args == "updateSize") {
+        this.UpdateSize();
+        return;
+    }
+
+    args = args || {};
+    var self = this;
+
+
+    // I found a weird bug where aspect ratio leaks from one element to another.
+    // Constant objects must be reused because of closure.
+
+    var aspectRatio = args.aspectRatio;
+    // If aspectRatio is not set, look for an attirbute
+    if ( ! aspectRatio) {
+        aspectRatio = this.Div.attr('sa-aspect-ratio');
+    } else {
+        // If aspectRatio is "", actively unset it.
+        if (aspectRatio == "") {
+            this.Div.removeAttr('sa-aspect-ratio');
+        } else {
+            // If a real aspectRatio is passed in, save it as an attirubte.
+            this.Div.attr('sa-aspect-ratio', aspectRatio.toString());
+        }
+    }
+
+
+
+    // Save resize args for editable option.
+    this.ResizableArgs = {
+        start : function (e, ui) {
+            self.RaiseToTop();
+            return false;
+        },
+        stop : function (e, ui) {
+            self.ConvertToPercentages();
+            return false;
+        }
+    };
+    if (aspectRatio) {
+        this.ResizableArgs.aspectRatio = aspectRatio;
+    }
+
+    if (args.editable) {
+        this.Editable = true;
+        this.EditOn();
+    } else {
+        this.Editable = false;
+        this.EditOff();
+    }
+
+    this.ConvertToPercentages();
+
+    // External control of expanding or shrinking.
+    if (typeof(args.expand) != "undefined") {
+        this.Expand(args.expand, args.animate);
+    }
+
+    // Callback when expanded state changes.
+    // Viewer interaction is only enabled when the element expands.
+    if (args.onExpand) {
+        this.ExpandCallback = args.onExpand;
+    }
+}
+
+saLightBox.prototype.EditOn = function() {
+    this.Edit = true;
+    // I cannot get jqueryUI draggable to work.  Use my own events.
+    var self = this;
+    this.Div.on(
+        'mousewheel.lightbox',
+        function(event){
+            // Resize from the middle.
+            return self.HandleMouseWheel(event.originalEvent);
+        });
+    // NOTE: I cannot get key events working for delete key.
+
+    this.Div.resizable(this.ResizableArgs);
+}
+
+saLightBox.prototype.EditOff = function() {
+    this.Edit = false;
+    this.Div.resizable('destroy');
+    // TODO: Remove wheel event.
+    this.Div.off('mousewheel.lightbox');
+    this.Div.off('keypress.lightbox');
+
+    this.DeleteButton.hide();
+}
+
+saLightBox.prototype.HandleMouseDown = function(event) {
+    if (event.which == 1) {
+        // Hack way to avoid dragging (or expanding) when 
+        // intending to resize offest is relative to resize handles.
+        if (event.offsetX < 11 || event.offsetY < 11) {
+            return true;
+        }
+        var self = this;
+        // To detect quick click for expansion.
+        this.ClickStart = Date.now();
+        $('body').on(
+            'mouseup.lightbox',
+            function(e) {
+                return self.HandleMouseUp(e);
+            });
+
+        if (this.Edit) {
+            // Setup dragging.
+            this.DragLastX = event.screenX;
+            this.DragLastY = event.screenY;
+            // Add the event to stop dragging
+
+            $('body').on(
+                'mousemove.lightbox',
+                function (event) {
+                    return self.HandleMouseMove(event);
+                });
+            $('body').on(
+                'mouseleave.lightbox',
+                function(e) {
+                    return self.HandleMouseUp(e);
+                });
+        }
+        return false;
+    }
+    return true;
+}
+
+// raise to the top of the draw order.
+// Note: it will not override z-index
+saLightBox.prototype.RaiseToTop = function() {
+    var parent = this.Div.parent();
+    this.Div.detach();
+    this.Div.appendTo(parent);
+}
+
+saLightBox.prototype.HandleMouseMove = function(event) {
+    if (event.which == 1) {
+        // Wait for the click duration to start dragging.
+        if (Date.now() - this.ClickStart < 200) {
+            return true;
+        }
+
+        if ( ! this.Dragging) {
+            this.RaiseToTop();
+            this.Dragging = true;
+        }
+
+        var dx = event.screenX - this.DragLastX;
+        var dy = event.screenY - this.DragLastY;
+        this.DragLastX = event.screenX;
+        this.DragLastY = event.screenY;
+
+        // Maybe we should not let the object leave the page.
+        var pos  = this.Div.position();
+        var left = pos.left + dx;
+        var top  = pos.top + dy;
+        this.Div[0].style.top  = top.toString()+'px';
+        this.Div[0].style.left = left.toString()+'px';
+        return false;
+    }
+    return true;
+}
+
+saLightBox.prototype.HandleMouseUp = function(event) {
+    // mouse up is not conditional on edit because it
+    // is also used for expand on click.
+    $('body').off('mouseup.lightbox');
+
+    if (this.Edit) {
+        if (this.Dragging) {
+            this.Dragging = false;
+            this.ConvertToPercentages();
+        }
+        $('body').off('mousemove.lightbox');
+        $('body').off('mouseleave.lightbox');
+    }
+
+    // Quick click expands the item.
+    var clickDuration = Date.now() - this.ClickStart;
+    if (clickDuration < 200 && ! this.Expanded) {
+        this.Expand(true);
+    }
+
+    return false;
+}
+
+// I cannot put this directly as a callback because it 
+// overwrites the viewer resize method.
+saLightBox.prototype.UpdateSize = function() {
+    if ( ! this.Expanded) { return; }
+
+    var self = this;
+    var left = '5%';
+    var top = '5%';
+    var width = '90%';
+    var height = '90%';
+    if (this.ResizableArgs.aspectRatio) {
+
+        // Hack to get expanded images to resize.
+        if ( ! this.Div[0].onresize) {
+            this.Div[0].onresize =
+                function() {
+                    self.UpdateSize();
+                }
+            this.Div.addClass('sa-resize');
+        }
+
+        // Compute the new size.
+        var ratio = this.ResizableArgs.aspectRatio;
+        var pWidth = this.Div.parent().width();
+        var pHeight = this.Div.parent().height();
+        width = Math.floor(pWidth * 0.9);
+        height = Math.floor(pHeight * 0.9);
+        if (width / height > ratio) {
+            width = Math.floor(height * ratio);
+        } else {
+            height = Math.floor(width / ratio);
+        }
+        left = Math.floor(0.5*(pWidth-width)) + 'px';
+        top = Math.floor(0.5*(pHeight-height)) + 'px';
+        width = width + 'px';
+        height = height + 'px';
+    }
+
+    // Make the image big
+    // Not resize handles have z-index 1000 !
+    // I am close to just implementing my own resize feature.
+    this.Div.css({'z-index':'1001'});
+    this.Div.css({'left'  : left,
+                  'top'   : top,
+                  'width' : width,
+                  'height': height});
+}
+
+saLightBox.prototype.Expand = function(flag, animate) {
+    if (flag == this.Expanded) { return; }
+    var self = this;
+    if (flag) {
+        this.EditOff();
+        // We have to disable teh expand behavior too.
+        this.Expanded = true;
+        
+        // Save the current position and size.
+        this.SavedTop = this.Div[0].style.top;
+        this.SavedLeft = this.Div[0].style.left;
+        this.SavedWidth = this.Div[0].style.width;
+        this.SavedHeight = this.Div[0].style.height;
+        this.SavedZIndex = this.Div[0].style.zIndex;
+
+        // Make the image big
+        // Not resize handles have z-index 1000 !
+        // I am close to just implementing my own resize feature.
+        this.Div.css({'z-index':'1001'});
+        this.UpdateSize();
+        this.Div.trigger('resize');
+
+        // Show the mask.
+        this.Mask.show();
+        // Clicking outside the div will cause the div to shrink back to
+        // its original size.
+        this.Mask.on(
+            'mousedown.lightbox',
+            function () {
+                self.Expand(false, true);
+            });
+    } else {
+        // Reverse the expansion.
+        // hide the mask
+        this.Mask.hide();
+        // remove event to shrink div.
+        this.Mask.off('mousedown.lightbox');
+        if (animate) {
+            this.Div.animate({'top':self.SavedTop,
+                              'left':self.SavedLeft,
+                              'width':self.SavedWidth,
+                              'height':self.SavedHeight,
+                              'z-index':self.SavedZIndex},
+                             {step: function () {self.Div.trigger('resize');}});
+
+        } else {
+            this.Div.css({'top':self.SavedTop,
+                          'left':self.SavedLeft,
+                          'width':self.SavedWidth,
+                          'height':self.SavedHeight,
+                          'z-index':self.SavedZIndex});
+        }
+        this.Expanded = false;
+        if (this.Editable) {
+            this.EditOn();
+        }
+    }
+
+    // External changes with editability (viewer interaction).
+    if (this.ExpandCallback) {
+        (this.ExpandCallback)(flag);
+    }
+    this.Div.trigger('resize');
+}
+
+
+saLightBox.prototype.HandleMouseWheel = function(event) {
+    var width = this.Div.width();
+    var height = this.Div.height();
+    var dWidth = 0;
+    var dHeight = 0;
+
+    var tmp = 0;
+    if (event.deltaY) {
+        tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+        tmp = event.wheelDelta;
+    }
+    // Wheel event seems to be in increments of 3.
+    // depreciated mousewheel had increments of 120....
+    // Initial delta cause another bug.
+    // Lets restrict to one zoom step per event.
+    if (tmp > 0) {
+        dWidth = 0.1 * width;
+        dHeight = 0.1 * height;
+    } else if (tmp < 0) {
+        dWidth = width * (-0.091);
+        dHeight = height * (-0.091);
+    }
+
+    width += dWidth;
+    this.Div[0].style.width = width.toString()+'px';
+    height += dHeight;
+    this.Div[0].style.height = height.toString()+'px';
+
+    // We have to change the top and left ot percentages too.
+    // I might have to make my own resizable to get the exact behavior
+    // I want.
+    var pos  = this.Div.position();
+    var left = pos.left - (dWidth / 2);
+    var top  = pos.top - (dHeight / 2);
+    this.Div[0].style.top  = top.toString()+'px';
+    this.Div[0].style.left = left.toString()+'px';
+
+    this.ConvertToPercentages();
+    return false;
+}
+
+
+// Change left, top, widht and height to percentages.
+saLightBox.prototype.ConvertToPercentages = function() {
+    // I had issues with previous slide shows that had images with no width
+    // set. Of course it won't scale right but they will still show up.
+    var width = this.Div.width();    
+    if (width > 0) { // TODO: Remove this check after a while.
+        // These always return pixel units.
+        width = 100 * width / this.Div.parent().width();
+        this.Div[0].style.width = width.toString()+'%';
+
+        var height = this.Div.height();
+        height = 100 * height / this.Div.parent().height();
+        this.Div[0].style.height = height.toString()+'%';
+    }
+
+    var pos  = this.Div.position();
+    var left = pos.left;
+    var top  = pos.top;
+
+    top  = 100 * top / this.Div.parent().height();
+    left = 100 * left / this.Div.parent().width();
+    this.Div[0].style.top  = top.toString()+'%';
+    this.Div[0].style.left = left.toString()+'%';
+}
+
+
+//==============================================================================
+// Combination of lightbox and viewer.
+
+jQuery.prototype.saLightBoxViewer = function(args) {
+    if ( ! args.hideCopyright) {
+        args.hideCopyright = true;
+    }
+    // Small viewer does not have overview
+    args.overview = false;
+    var editable = args.editable;
+        
+    this.saViewer(args)
+        .saAnnotationWidget("hide")
+        .saLightBox(
+            {editable:editable,
+             onExpand : function(expanded) {
+                 this.Div.saViewer({interaction:expanded});
+                 if (expanded) {
+                     this.Div.saAnnotationWidget("show");
+                     this.Div.saViewer({overview : true,
+                                        menu     : true});
+                 } else {
+                     this.Div.saAnnotationWidget("hide");
+                     this.Div.saViewer({overview : false,
+                                        menu     : false});
+                     // TODO: Formalize this hack. Viewer formally needs a note.
+                     // If not editable, restore the note.
+                     var viewer = this.Div[0].saViewer;
+                     var note = viewer.saNote;
+                     var index = viewer.saViewerIndex || 0;
+                     if ( ! this.Div[0].saLightBox.Editable && note) {
+                         note.ViewerRecords[index].Apply(viewer);
+                     }
+                 }
+             }
+            });
+    this.addClass('sa-lightbox-viewer');
+
+    return this;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //==============================================================================
@@ -208,11 +750,17 @@ jQuery.prototype.saHtml = function(string) {
         this.html(string);
         this.find('.sa-text-editor').saTextEditor();
         this.find('.sa-scalable-font').saScalableFont();
-        this.find('.sa-full-window-option').saFullWindowOption();
+        //this.find('.sa-full-window-option').saFullWindowOption();
+        // TODO: Move this out of this file.
         this.find('.sa-presentation-rectangle').saRectangle();
+        // Change legacy sa-presentation-view into sa-lightbox-viewer
+        this.find('.sa-presentation-view')
+            .addClass('sa-lightbox-viewer')
+            .removeClass('sa-presentation-view');
         // We need to load the note.
-        viewDivs = this.find('.sa-presentation-view');
-        viewDivs.saViewer();
+        viewDivs = this.find('.sa-lightbox-viewer');
+        viewDivs.saViewer({'hideCopyright': true,
+                           'interaction':   false});
 
         for (var i = 0; i < viewDivs.length; ++i) {
             var viewer = viewDivs[i].saViewer;
@@ -239,60 +787,41 @@ jQuery.prototype.saHtml = function(string) {
             items = this.find('.sa-text-editor');
             items.saDraggable();
             items.saDeletable();
-
             items.saResizable();
-            items = this.find('.sa-deletable');
-            items.saDeletable();
-            items = this.find('.sa-draggable');
+
+            items = this.find('.sa-presentation-rectangle');
             items.saDraggable();
+            items.saDeletable();
+            items.saResizable();
+
             items = this.find('.sa-presentation-image');
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
                 saPresentationImageSetAspect($(item))
             }
-            // Why did these disapear?  Put the back.
-            // I do not think it wil hurt to call saResizable twice.
-            items = this.find('.sa-presentation-view');
-            items.saResizable();
 
-            //items = this.find('.sa-annotation-widget');
-            items = this.find('.sa-presentation-view');
-            items.saAnnotationWidget();
+            // TODO: This does not belong here.
+            // Annotation button does not show up when small.
+            items = this.find('.sa-lightbox-viewer');
+            items.saAnnotationWidget('hide');
         }
 
         return;
     }
 
-    // Add an attribute to the sa-presentation-view that spcifies which
-    // view id is being displayed. The view is set programatically, not
-    // through jquery api. Also, the note may not have an id until we are
-    // ready to save.
-    // TODO: Get rid of sa-presentation-view class and just use sa-viewer
-    /* saved when note is set.
-    var views = this.find('.sa-presentation-view');
-    for (var i = 0; i <  views.length; ++i) {
-        var viewer = views[i].saViewer;
-        var note = viewer.saNote;
-        if ( ! note ) {
-            console.log("Warning: Note is not saved and has no id.");
-        } else if (note.Id) {
-            $(views[i]).attr('sa-note-id',note.Id);
-        } else if (note.TempId) {
-            $(views[i]).attr('sa-note-id',note.TempId);
-        }
-        var viewerIndex = viewer.saViewerIndex || 0;
-        $(views[i]).attr('sa-viewer-index', viewerIndex);
-    }
-    */
+    // Shrink any light box elements that are expanded.
+    // We do not have an s-light-box class yet.
+    $('.sa-light-box').saLightBox({'expand':false, 'animate':false});
 
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
-    copy.find('.ui-resizable-handle').remove();
+    copy.find('.ui-resizable').resizable('destroy');
+    //copy.find('.ui-resizable-handle').remove();
 
     // Get rid of the children of the sa-presentation-view.
     // They will be recreated by viewer when the html is loaded.
-    copy.find('.sa-presentation-view').empty();
+    copy.find('.sa-lightbox-viewer').empty();
 
     return copy.html();
 }
@@ -315,16 +844,12 @@ function saPresentationImageSetAspect(div) {
 jQuery.prototype.saResizable = function(args) {
     args = args || {};
     args.start = function (e, ui) {
-        if ( this.saViewer ) {
+        if ( this.saViewer) {
             // Translate events were being triggered in the viewer.
-            this.saViewer.Focus = false;
+            this.saViewer.DisableInteraction();
         }
     };
     args.stop = function (e, ui) {
-        if ( this.saViewer ) {
-            // Translate events were being triggered in the viewer.
-            this.saViewer.Focus = true;
-        }
         // change the width to a percentage.
         var width = $(this).width();
         width = 100 * width / $(this).parent().width();
@@ -357,7 +882,9 @@ jQuery.prototype.saResizable = function(args) {
 // Attempting to make the viewer a jqueryUI widget.
 // Note:  It does not make sense to call this on multiple divs at once when
 //        the note/view is being set.
-// args = {overview:true, 
+// args = {interaction:true,
+//         overview:true,
+//         menu:true, 
 //         zoomWidget:true,
 //         viewId:"55f834dd3f24e56314a56b12", note: {...}
 //         viewerIndex: 0,
@@ -409,7 +936,20 @@ function saViewerSetup(self, args) {
             $(self[i]).addClass('sa-resize');
         }
         var viewer = self[i].saViewer;
-        // TODO:  Handle overview and zoomWidget options
+        // TODO:  Handle zoomWidget options
+        if (typeof(args.overview) != "undefined") {
+            viewer.SetOverViewVisibility(args.overview);
+        }
+        // The way I handle the viewer edit menu is messy.
+        // TODO: Find a more elegant way to add tabs.
+        // Maybe the way we handle the anntation tab shouodl be our pattern.
+        if (typeof(args.menu) != "undefined") {
+            if ( ! viewer.Menu) {
+                viewer.Menu = new ViewEditMenu(viewer, null);
+            }
+            viewer.Menu.SetVisibility(args.menu);
+        }
+        
         if (args.note) {
             viewer.saNote = args.note;
             viewer.saViewerIndex = args.viewerIndex || 0;
@@ -420,8 +960,12 @@ function saViewerSetup(self, args) {
         if (args.hideCopyright) {
             viewer.CopyrightWrapper.hide();
         }
+        if (typeof(args.interaction) != 'undefined') {
+            viewer.SetInteractionEnabled(args.interaction);
+        }
     }
 }
+
 
 // This put changes from the viewer in to the note.
 // Is there a better way to do this?
@@ -941,7 +1485,7 @@ function saPruneViewerRecord(viewer) {
     // This is sort of hackish.
     var viewerIdx = viewer.saViewerIndex;
     var note = viewer.saNote;
-    var items = $('.sa-presentation-view');
+    var items = $('.sa-lightbox-viewer');
     // Shift all the larger indexes down one.
     for (var i = 0; i < items.length; ++i) {
         if (items[i].saViewer &&
@@ -1406,7 +1950,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
             .val('#30ff00')
             .css({'display':'table-cell',
                   'width':'25em'})
-            .bind('input', function () {
+            .on('input', function () {
                 var url = self.UrlDialog.UrlInput.val();
                 if (self.UrlDialog.LastUrl == self.UrlDialog.TextInput.val()) {
                     // The text is same as the URL. Keep them synchronized.
@@ -1691,8 +2235,8 @@ ResizePanel.prototype.StartDrag = function () {
     var self = this;
     this.TmpDrag = function (e) {return self.ResizeDrag(e);}
     this.TmpStop = function (e) {return self.ResizeStopDrag(e);}
-    $('body').bind('mousemove', this.TmpDrag);
-    $('body').bind('mouseup', this.TmpStop);
+    $('body').on('mousemove', this.TmpDrag);
+    $('body').on('mouseup', this.TmpStop);
     $('body').css({'cursor': 'col-resize'});
 }
 
@@ -1707,8 +2251,8 @@ ResizePanel.prototype.ResizeDrag = function (e) {
 }
 
 ResizePanel.prototype.ResizeStopDrag = function () {
-    $('body').unbind('mousemove', this.TmpDrag);
-    $('body').unbind('mouseup', this.TmpDrag);
+    $('body').off('mousemove', this.TmpDrag);
+    $('body').off('mouseup', this.TmpDrag);
     $('body').css({'cursor': 'auto'});
     return false;
 }
@@ -1907,11 +2451,14 @@ jQuery.prototype.saAnnotationWidget = function(args) {
         var item = this[i];
         if ( ! item.saViewer) {
             console.log("Setup the viewer before the annotation widget.");
+            return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
             item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
             item.saAnnotationWidget.SetVisibility(2);
         }
+        // This hides and shows the button/tools but does not change the
+        // visibility of the annotations in the viewer.
         if (args == "hide") {
             item.saAnnotationWidget.hide();
         } else if (args == "show") {

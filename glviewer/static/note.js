@@ -371,8 +371,9 @@ Note.prototype.RecordView = function(display) {
         // All we want to do is record the default
         // camera of the first section (if we at
         // the start of the stack).
+        var viewer0 = display.GetViewer(0);
         if (this.StartIndex == 0) {
-            this.ViewerRecords[0].CopyViewer(display.GetViewer(0));
+            this.ViewerRecords[0].CopyViewer(viewer0);
         }
         return;
     }
@@ -382,6 +383,7 @@ Note.prototype.RecordView = function(display) {
         viewerRecord.CopyViewer(display.GetViewer(i));
         this.ViewerRecords.push(viewerRecord);
     }
+
 }
 
 Note.prototype.AddChild = function(childNote, first) {
@@ -616,7 +618,15 @@ Note.prototype.Serialize = function(includeChildren) {
     // I would like to put the session as parent, but this would be an inclomplete reference.
     // A space is not a valid id. Niether is 'false'. Lets leave it blank. 
     if (this.Parent) {
-        obj.ParentId = this.Parent.Id;
+        if (typeof(this.Parent) == 'string') {
+            // When the parent is an image.
+            obj.ParentId = this.Parent;
+        }
+        if (typeof(this.Parent) == 'object' && this.Parent.Id) {
+            // When the parent is a note.
+            obj.ParentId = this.Parent.Id;
+        }
+        // These snuck into the database.
         delete this.ParentId
     }
     obj.Title = this.Title;
@@ -776,10 +786,15 @@ Note.prototype.DisplayView = function(display) {
         NOTES_WIDGET.DisplayedNote = this;
     }
 
-    if (display.GetNumberOfViewers() == 0) { return; }
+    var numViewers = display.GetNumberOfViewers();
+    if (numViewers == 0) { return; }
+    if (this.Type == 'Stack') {
+        // Stack display needs to keep both viewers up to date.
+        numViewers = 2;
+    }
 
     // Remove Annotations from the previous note.
-    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+    for (var i = 0; i < numViewers; ++i) {
         display.GetViewer(i).Reset();
     }
 
@@ -790,9 +805,12 @@ Note.prototype.DisplayView = function(display) {
     }
 
     // We could have more than two in the future.
-    display.SetNumberOfViewers(this.ViewerRecords.length);
+    if (this.Type != 'Stack') {
+        // I want the single view (when set by the user) to persist for rthe stack.
+        display.SetNumberOfViewers(this.ViewerRecords.length);
+    }
     var idx = this.StartIndex;
-    for (var i = 0; i < display.GetNumberOfViewers(); ++i) {
+    for (var i = 0; i < numViewers; ++i) {
         var viewer = display.GetViewer(i);
 
         if (i + idx < this.ViewerRecords.length) {
@@ -800,12 +818,8 @@ Note.prototype.DisplayView = function(display) {
             // This is for synchroninzing changes in the viewer back to the note.
             viewer.RecordIndex = i;
         }
-
-        //viewer.Reset(); // I do not think I should do this here.
     }
 }
-
-
 
 // Creates default transforms for Viewer Records 1-n
 // (if they do not exist already).  Uses cameras focal point.

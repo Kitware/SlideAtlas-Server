@@ -1,5 +1,8 @@
 // CME
 // TODO:
+// Light box option.
+
+
 // Bugs:
 // Get short answer questions working.
 
@@ -106,6 +109,10 @@ function Presentation(rootNote, edit) {
             'width': '100%'})
         .saFullHeight();
 
+    // Hack so all viewers will shar the same browser.
+    // We should really use the brower tab in the left panel.
+    VIEW_BROWSER = new ViewBrowser(this.WindowDiv);
+
     this.ResizePanel = new ResizePanel(this.WindowDiv);
 
     //this.PresentationDiv = $('<div>')
@@ -176,7 +183,6 @@ function Presentation(rootNote, edit) {
                 self.DeleteCurentSlide();
             });
     }
-
 
     this.TitlePage = new TitlePage(this.AspectDiv, edit);
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
@@ -578,11 +584,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 }
 
 
-
-
 //==============================================================================
-
-
 
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
@@ -668,7 +670,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
 // Callback from search.
 Presentation.prototype.AddImageCallback = function(image) {
     var record = new ViewerRecord();
-    record.OverViewbounds = image.bounds;
+    record.OverviewBounds = image.bounds;
     record.Image = image;
     record.Camera = {FocalPoint:[(image.bounds[0]+image.bounds[1])/2,
                                  (image.bounds[2]+image.bounds[3])/2, 0],
@@ -927,9 +929,6 @@ Presentation.prototype.GotoSlide = function (index){
     if (index < 0 || index >= this.GetNumberOfSlides() || index == this.Index) {
         return;
     }
-
-    // Exit and full window viewers.
-    $('.sa-presentation-view').saFullWindowOption('off');
 
     // Clear previous slides settings.
     this.TitlePage.ClearNote();
@@ -1250,13 +1249,13 @@ function SlidePage(parent, edit) {
         // Gets call on other mouse ups, but this is ok.
         this.ViewerDiv1
             .mouseup(function () {
-                this.saViewer.Focus = true;
+                this.saViewer.EnableInteraction();
                 self.UpdateEdits();
                 $(window).trigger('resize');
             });
         this.ViewerDiv1
             .resize(function () {
-                this.saViewer.Focus = false;
+                this.saViewer.DisableInteraction();
                 var vp = this.saViewer.GetViewport();
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
@@ -1270,13 +1269,13 @@ function SlidePage(parent, edit) {
         // Gets call on other mouse ups, but this is ok.
         this.ViewerDiv2
             .mouseup(function () {
-                this.saViewer.Focus = true;
+                this.saViewer.EnableInteraction();
                 self.UpdateEdits();
                 $(window).trigger('resize');
             });
         this.ViewerDiv2
             .resize(function () {
-                this.saViewer.Focus = false;
+                this.saViewer.DisableInteraction();
                 var vp = this.saViewer.GetViewport();
                 vp[2] = $(this).width();
                 vp[3] = $(this).height();
@@ -1543,10 +1542,6 @@ SlidePage.prototype.UpdateEdits = function () {
 }
 
 
-
-
-
-
 SlidePage.prototype.InsertViewNote = function (note) {
     if (note.ViewerRecords.length < 1) { return; }
 
@@ -1802,7 +1797,7 @@ HtmlPage.prototype.DisplayNote = function (note) {
     // Lets record to position of the previous slides viewers to use
     // as the position of any viewers in the new slide.
     this.DefaultViewerPositions = [];
-    var lastViewers = $('.sa-presentation-view');
+    var lastViewers = $('.sa-lightbox-viewer');
     for (var i = 0; i < lastViewers.length; ++i) {
         this.DefaultViewerPositions.push(
             {left:lastViewers[i].style.left,
@@ -1828,7 +1823,9 @@ HtmlPage.prototype.DisplayNote = function (note) {
     this.Div.show();
     // This version setsup the saTextEditor and other jquery extensions.
     this.Div.saHtml(note.Text);
+
     if ( ! this.Edit) {
+        // TODO: Reevaulate SaEdit functions.
         this.SaEditOff();
     } else {
         this.SaEditOn();
@@ -1839,9 +1836,17 @@ HtmlPage.prototype.DisplayNote = function (note) {
         $('.sa-text-editor').attr('contenteditable', "flase")
     }
 
+    // Change the edit status of the lightbox viewer.
+    this.Div.find('.sa-presentation-image')
+        .saLightBox({'editable':EDIT});
+    this.Div.find('.sa-lightbox-viewer')
+        .saLightBoxViewer({'editable':EDIT});
+    // Make viewers into lightbox elements.
+    // MOVE
+    //this.InitializeViews(this.Div.find('.sa-presentation-view'));
+
     // Set stops.
     $('sa-draggable').saDraggable();
-    this.Div.find('.sa-presentation-view').saViewer({'hideCopyright':true});
     // still needed for iframes.
     this.BindElements();
 
@@ -1898,42 +1903,40 @@ HtmlPage.prototype.InitializeSlidePage = function() {
 // TODO: make sa jquery handle this. 
 HtmlPage.prototype.InsertImage = function(src) {
 
-    var ref = prompt("link url", "");
     var imgDiv;
+    var left = 5 + Math.floor(Math.random() * 10);
+    var top = 20 + Math.floor(Math.random() * 10);
 
+    /* // link option
     if (ref != "") {
         imgDiv = $('<a>')
             .appendTo(this.Div)
             .attr('href', ref)
             .css({'position':'absolute',
-                  'left'    :'5%',
-                  'top'     :'25%',
+                  'left'    :left+'%',
+                  'top'     :top+'%',
                   'z-index' :'1'})
             .addClass('sa-presentation-image')
-            .saDraggable()
-            .saDeletable();
-    } else {
-        // resizable makes a containing div anyway.
-        imgDiv = $('<div>')
-            .appendTo(this.Div)
-            .css({'position':'absolute',
-                  'left'    :'5%',
-                  'top'     :'25%',
-                  'z-index' :'1'})
-            .addClass('sa-presentation-image')
-            .attr('contenteditable', 'true')
-            .saDraggable()
-            .saDeletable();
-    }
+            .saLightBox();
+    } else {*/
+    imgDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'left'    :left+'%',
+              'top'     :top+'%',
+              'z-index' :'1'})
+        .addClass('sa-presentation-image');
+
     var img = $('<img>')
         .appendTo(imgDiv)
         .attr('src',src)
         .load(function () {
             // compute the aspect ratio.
             var aRatio = $(this).width() / $(this).height();
-            imgDiv.saResizable({
-                aspectRatio: aRatio,
-            });
+                imgDiv.saLightBox({
+                    aspectRatio: aRatio,
+                    editable: EDIT
+                });
             img.css({'height' :'100%',
                      'width'   :'100%'});
         });
@@ -1953,8 +1956,6 @@ HtmlPage.prototype.InsertVideo = function(src) {
         .addClass('sa-presentation-video')
         .saDraggable()
         .saDeletable();
-    // full window option did not work
-        // .saFullWindowOption();
 
     var vid = $('<video controls>')
         .appendTo(vidDiv);
@@ -1987,9 +1988,6 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
               'width':width,
               'top':top,
               'height':height})
-        .saDraggable()
-        .saDeletable()
-        .saResizable()
         .saRectangle();
 }
 
@@ -2292,27 +2290,63 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
 
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
-        .addClass('sa-presentation-view')
         .css({'position':'absolute',
               'box-shadow': '10px 10px 5px #AAA',
               'background-color':'#FFF',
               'opacity':'1.0',
-              'left':   defaultPosition.left,
-              'width':  defaultPosition.width,
-              'top':    defaultPosition.top,
-              'height': defaultPosition.height})
-        .saViewer({'note': this.Note,
-                   'viewerIndex':viewerIdx,
-                   'hideCopyright':true})
-        .saAnnotationWidget()
-        .saDraggable()
-        .saDeletable()
-        .saResizable()
-        .saFullWindowOption();
+              'left'   : defaultPosition.left,
+              'width'  : defaultPosition.width,
+              'top'    : defaultPosition.top,
+              'height' : defaultPosition.height})
+        .saLightBoxViewer({'note'         : this.Note,
+                           'viewerIndex'  : viewerIdx,
+                           'hideCopyright': true,
+                           'interaction'  : false,
+                           'editable'     : EDIT});
+    // MOVE
+        //.addClass('sa-presentation-view')
+        //.saAnnotationWidget("hide")
+    //this.InitializeViews(viewerDiv);
 
     return viewerDiv;
 }
 
+// This is done on creation and when it is realoded so I am making it its
+// own function.  I do not want to put this into the viewer-utilities
+// because it is too specific to presentations.  I could make a composite
+// lightboxViewer jquery element though.
+// TODO: Make this a composite lightboxviewer.
+/* MOVE
+HtmlPage.prototype.InitializeViews = function(viewerDiv) {
+    viewerDiv
+        .saViewer({'hideCopyright': true,
+                   'overview'     : false})
+        .saAnnotationWidget("hide")
+        .saLightBox(
+            {editable:EDIT,
+             onExpand : function(expanded) {
+                 viewerDiv.saViewer({interaction:expanded});
+                 if (expanded) {
+                     viewerDiv.saAnnotationWidget("show");
+                     viewerDiv.saViewer({overview : true,
+                                         menu     : true});
+                 } else {
+                     viewerDiv.saAnnotationWidget("hide");
+                     viewerDiv.saViewer({overview : false,
+                                         menu     : false});
+                     // TODO: Formalize this hack. Viewer formally needs a note.
+                     // If not editable, restore the note.
+                     var viewer = viewerDiv[0].saViewer;
+                     var note = viewer.saNote;
+                     var index = viewer.saViewerIndex || 0;
+                     if ( ! EDIT && note) {
+                         note.ViewerRecords[index].Apply(viewer);
+                     }
+                 }
+             }
+            });
+}
+*/
 
 // NOTE: This should be lagacy now.  The jquery extensions should handle this.
 // Text elements need to resize explicitly.
@@ -2352,7 +2386,7 @@ HtmlPage.prototype.BindElements = function() {
 HtmlPage.prototype.UpdateEdits = function () {
     if (this.Note) {
         // Record the camera position (and annotations).
-        this.Div.find('.sa-presentation-view').saRecordViewer();
+        this.Div.find('.sa-lightbox-viewer').saRecordViewer();
         // Doing this here forces us to save the notes
         // TODO: This may created orphaned views. fix this be either
         // delaying copying saHtml to note, or incrementally saving
@@ -2376,7 +2410,6 @@ HtmlPage.prototype.UpdateEdits = function () {
             }
         }
         this.Note.ViewerRecords = newRecords;
-
 
         note.Text = htmlDiv.saHtml();
     }
@@ -2411,7 +2444,6 @@ function ViewerPage (parent, edit) {
     // TODO: Get rid of this global variable.
     NAVIGATION_WIDGET = new NavigationWidget(this.Div,DUAL_DISPLAY);
 
-    VIEW_BROWSER = new ViewBrowser(this.Div);
     //NOTES_WIDGET = new NotesWidget(this.Div, DUAL_DISPLAY);
     //NOTES_WIDGET.SetModifiedCallback(NotesModified);
     //NOTES_WIDGET.SetModifiedClearCallback(NotesNotModified);
@@ -2465,7 +2497,6 @@ function ViewerPage (parent, edit) {
         InitSlideSelector(this.Div);
         var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
                                          DUAL_DISPLAY.Viewers[1]);
-        VIEW_MENU = viewMenu1;
         var viewMenu2 = new ViewEditMenu(DUAL_DISPLAY.Viewers[1],
                                          DUAL_DISPLAY.Viewers[0]);
 

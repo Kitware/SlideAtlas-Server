@@ -3,6 +3,8 @@
 // I am changing this to be more about selecting an image.
 // I am also making this into a dialog object. (not based on the dialog class).
 
+// It may be better to undock and redock
+
 
 function ViewBrowser(parent) {
     var self = this;
@@ -16,7 +18,7 @@ function ViewBrowser(parent) {
             'left'      : '10%',
             'width'     : '70%',
             'padding'   : '5%',
-            'z-index'   : '7',
+            'z-index'   : '107',
             'text-align': 'left',
             'color'     : '#303030'})
         .mouseleave(function () {self.Div.fadeOut();});

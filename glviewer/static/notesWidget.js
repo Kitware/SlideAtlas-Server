@@ -217,6 +217,7 @@ TextEditor.prototype.EditOn = function() {
               'background': '#f5f8ff'})
         .bind('input', function () {
             self.Modified = true;
+            self.EventuallyUpdate();
         })
         .focusin(function() {
             EVENT_MANAGER.FocusOut();
@@ -849,7 +850,7 @@ NotesWidget.prototype.SelectNote = function(note) {
         // It would be nice to store the viewer configuration
         // as a separate state variable.  We might want a stack
         // that defaults to a single viewer.
-        display.SetNumberOfViewers(note.ViewerRecords.length);
+        this.Display.SetNumberOfViewers(note.ViewerRecords.length);
     }
 
     // Clear the sync callback.
@@ -863,7 +864,6 @@ NotesWidget.prototype.SelectNote = function(note) {
     }
 
     if (note.Type == "Stack") {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.show();
         // Select only gets called when the stack is first loaded.
         this.Display.GetViewer(0).OnInteraction(function () {
             self.SynchronizeViews(0, note);});
@@ -874,7 +874,6 @@ NotesWidget.prototype.SelectNote = function(note) {
         // Second is set relative to the first.
         this.SynchronizeViews(0, note);
     } else {
-        if (VIEW_MENU) VIEW_MENU.StackDetectButton.hide();
         note.DisplayView(this.Display);
     }
 }
@@ -882,7 +881,8 @@ NotesWidget.prototype.SelectNote = function(note) {
 // refViewerIdx is the viewer that changed and other viewers need 
 // to be updated to match that reference viewer.
 NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
-    if (refViewerIdx + note.StartIdx >= note.ViewerRecords.length) {
+    // We allow the viewer to go one past the end.
+    if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
         return;
     }
 
@@ -926,7 +926,7 @@ NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
         }
         note.ActiveCorrelation.SetRoll(deltaRoll);
         note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
-        return;
+        return; 
     } else {
         // A round about way to set and unset the active correlation.
         // Note is OK, because if there is no interaction without the shift key
@@ -997,6 +997,18 @@ NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     } else {
         this.Display.GetViewer(0).UpdateCamera();
         this.Display.GetViewer(0).EventuallyRender(false);
+    }
+
+    // Synchronize annitation visibility.
+    var refViewer = this.Display.GetViewer(refViewerIdx);
+    for (var i = 0; i < 2; ++i) {
+        if (i != refViewerIdx) {
+            var viewer = this.Display.GetViewer(i);
+            if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
+                viewer.AnnotationWidget.SetVisibility(
+                    refViewer.AnnotationWidget.GetVisibility());
+            }
+        }
     }
 }
 
@@ -1573,9 +1585,6 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         }
     }
     this.UserNote = new Note();
-    // This is new, Parent was always a note before this.
-    this.UserNote.Parent = imageId; // Should we save the note looking at when created?
-    this.UserNote.Type = "UserNote";
 
     if (data.Notes.length > 0) {
         if (data.Notes.length > 1) {
@@ -1583,8 +1592,30 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         }
         var noteData = data.Notes[0];
         this.UserNote.Load(noteData);
+    } else {
+        // start with a copy of the current note.
+        // The server searches viewer records for the image.
+        // Only copoy the first viewer records.  More could be problematic.
+        var note = this.GetCurrentNote();
+        if (note && note.ViewerRecords.length > 0) {
+            var record = new ViewerRecord();
+            record.DeepCopy(note.ViewerRecords[0]);
+            this.UserNote.ViewerRecords.push(record);
+        }
     }
+
+    // This is new, Parent was always a note before this.
+    // Although this is more robust (user notes are constent when notes are
+    // copied...), the GUI looks like user notes are associated with notes
+    // not viewerRecords/images.
+    this.UserNote.Parent = imageId;
+    this.UserNote.Type = "UserNote";
+
     // Must display the text.
     this.UserTextEditor.LoadNote(this.UserNote);
+    // User notes are always editable. Unless it tis the demo account.
+    if (USER != "") {
+        this.UserTextEditor.EditOn();
+    }
 }
 

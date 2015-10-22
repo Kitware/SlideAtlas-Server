@@ -28,8 +28,6 @@ function ZERO_PAD(i, n) {
 // initials shaders and some buffers we need and to render.
 
 var ROOT_DIV;
-var VIEW_BROWSER;
-
 
 // globals (for now)
 var imageProgram;
@@ -572,7 +570,6 @@ function cancelContextMenu(e) {
     return false;
 }
 
-var VIEW_MENU;
 
 // Main function called by the default view.html template
 function Main(style,sessId,viewId) {
@@ -678,6 +675,9 @@ function Main2(rootNote) {
     EVENT_MANAGER = new EventManager(CANVAS);
 
     DUAL_DISPLAY = new DualViewWidget(VIEW_PANEL);
+    if (rootNote.Type == "Stack") {
+        DUAL_DISPLAY.SetNumberOfViewers(2);
+    }
     // TODO: Is this really needed here?  Try it at the end.
     handleResize();
 
@@ -687,7 +687,6 @@ function Main2(rootNote) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
-    VIEW_BROWSER = new ViewBrowser(VIEW_PANEL);
     NOTES_WIDGET = new NotesWidget(VIEW_PANEL,DUAL_DISPLAY);
     NOTES_WIDGET.SetRootNote(rootNote);
     NOTES_WIDGET.SetModifiedCallback(NotesModified);
@@ -748,10 +747,14 @@ function Main2(rootNote) {
     document.oncontextmenu = cancelContextMenu;
 
     if ( ! MOBILE_DEVICE) {
-        InitSlideSelector(VIEW_PANEL);
+        // Hack for all viewer edit menus to share browser.
+        VIEW_BROWSER = new ViewBrowser(parent);
+
+        // TODO: See if we can get rid of this, or combine it with
+        // the view browser.
+        InitSlideSelector(VIEW_PANEL); // What is this?
         var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
                                          DUAL_DISPLAY.Viewers[1]);
-        VIEW_MENU = viewMenu1;
         var viewMenu2 = new ViewEditMenu(DUAL_DISPLAY.Viewers[1],
                                          DUAL_DISPLAY.Viewers[0]);
 

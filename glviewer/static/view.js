@@ -88,6 +88,14 @@ View.prototype.GetViewport = function() {
   return this.Viewport;
 }
 
+View.prototype.GetWidth = function() {
+    return this.CanvasDiv.width();
+}
+
+View.prototype.GetHeight = function() {
+    return this.CanvasDiv.height();
+}
+
 // The canvasDiv changes size, the width and height of the canvas and
 // camera need to follow.  I am going to make this the resize callback.
 View.prototype.UpdateCanvasSize = function() {
@@ -121,30 +129,32 @@ View.prototype.UpdateCanvasSize = function() {
 // canvasDiv, get rid of this function.  I still need to synchronize the
 // canvas with the canvasDiv.  see  UpdateCanvas();
 View.prototype.SetViewport = function(viewport) {
-  for (var i = 0; i < 4; ++i) {
-    viewport[i] = Math.round(viewport[i]);
-  }
-  // Allow for border.
-  viewport[2] -=2;
-  viewport[3] -=2;
-  if (this.CanvasDiv) {
-    if (viewport[2] < 3 || viewport[3] < 1) {
-      this.CanvasDiv.hide();
-    } else {
-      this.CanvasDiv.show();
+    for (var i = 0; i < 4; ++i) {
+        viewport[i] = Math.round(viewport[i]);
     }
-    this.CanvasDiv.css({
-        'left'  : viewport[0]+"px",
-        'width' : viewport[2]+"px",
-        'top'   : viewport[1]+"px",
-        'height': viewport[3]+"px"
-    });
-    this.Canvas.attr("width", viewport[2].toString());
-    this.Canvas.attr("height", viewport[3].toString());
-  }
+    // Allow for border.
+    viewport[2] -=2;
+    viewport[3] -=2;
+    if (this.CanvasDiv) {
+        /* get rid of this hack
+           if (viewport[2] < 3 || viewport[3] < 1) {
+           this.CanvasDiv.hide();
+           } else {
+           this.CanvasDiv.show();
+           }
+        */
+        this.CanvasDiv.css({
+            'left'  : viewport[0]+"px",
+            'width' : viewport[2]+"px",
+            'top'   : viewport[1]+"px",
+            'height': viewport[3]+"px"
+        });
+        this.Canvas.attr("width", viewport[2].toString());
+        this.Canvas.attr("height", viewport[3].toString());
+    }
 
-  this.Viewport = viewport;
-  this.Camera.SetViewport(viewport);
+    this.Viewport = viewport;
+    this.Camera.SetViewport(viewport);
 }
 
 
