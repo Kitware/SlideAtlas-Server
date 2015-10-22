@@ -1836,12 +1836,14 @@ HtmlPage.prototype.DisplayNote = function (note) {
         $('.sa-text-editor').attr('contenteditable', "false")
     }
 
-    // Change the edit status of the lightbox viewer.
+    // Change the edit status of the elements.
     this.Div.find('.sa-presentation-image')
         .saLightBox({'editable':EDIT,
                      'aspectRatio':true});
     this.Div.find('.sa-lightbox-viewer')
         .saLightBoxViewer({'editable':EDIT});
+    this.Div.find('.sa-presentation-rectangle')
+        .saRectangle({'editable':EDIT});
     // Make viewers into lightbox elements.
     // MOVE
     //this.InitializeViews(this.Div.find('.sa-presentation-view'));
@@ -1980,7 +1982,7 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
               'width':width,
               'top':top,
               'height':height})
-        .saRectangle();
+        .saRectangle({editable: EDIT});
 }
 
 // The execCommand paste does not work

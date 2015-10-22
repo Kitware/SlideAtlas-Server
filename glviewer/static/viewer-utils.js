@@ -10,7 +10,7 @@ jQuery.prototype.saQuestion = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saLightBox = helper;
         }
-        this[i].saLightBox.SetArgs(args);
+        this[i].saLightBox.ProcessArguments(args);
     }
 
     return this;
@@ -194,8 +194,7 @@ HtmlPage.prototype.InsertQuestion = function() {
 //         editable: true}
 
 // TODO:
-// saBox (saRectange) that subclasses saElement and puts background gui in
-// the dialog.
+// Question.
  
 jQuery.prototype.saElement = function(args) {
     for (var i = 0; i < this.length; ++i) {
@@ -204,7 +203,7 @@ jQuery.prototype.saElement = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saElement = helper;
         }
-        this[i].saElement.SetArgs(args);
+        this[i].saElement.ProcessArguments(args);
     }
     return this;
 }
@@ -320,6 +319,7 @@ saElement.prototype.InitializeDialog = function () {
         .css({'display': 'inline-block',
               'padding':'0px 5px',
               'width':'4em',
+              'height':'20px',
               'text-align': 'right'})
         .text("Width");
     this.Dialog.BorderWidth = $('<input type="number">')
@@ -336,7 +336,7 @@ saElement.prototype.InitializeDialog = function () {
         .val('#005077')
         .prop('disabled', true)
         .css({'float':'right',
-              'height':'19px'})
+              'height':'18px'})
         .addClass("sa-view-annotation-modal-input");
 
     // Rounded corners
@@ -357,6 +357,7 @@ saElement.prototype.InitializeDialog = function () {
         .css({'display': 'inline-block',
               'padding':'0px 5px',
               'width':'4em',
+              'height':'20px',
               'text-align': 'right'})
         .text("Radius");
     this.Dialog.BorderRadius = $('<input type="number">')
@@ -391,6 +392,7 @@ saElement.prototype.InitializeDialog = function () {
         .css({'display': 'inline-block',
               'padding':'0px 5px',
               'width':'4em',
+              'height':'20px',
               'text-align': 'right'})
         .text("Shadow");
     this.Dialog.ShadowOffset = $('<input type="number">')
@@ -407,6 +409,7 @@ saElement.prototype.InitializeDialog = function () {
         .css({'display': 'inline-block',
               'padding':'0px 5px',
               'width':'3em',
+              'height':'20px',
               'text-align': 'right'})
         .text("Blur");
     this.Dialog.ShadowBlur = $('<input type="number">')
@@ -423,7 +426,7 @@ saElement.prototype.InitializeDialog = function () {
         .val('#AAAAAA')
         .prop('disabled', true)
         .css({'float':'right',
-              'height':'19px'})
+              'height':'18px'})
         .addClass("sa-view-annotation-modal-input");
 }
 
@@ -444,14 +447,26 @@ saElement.prototype.AddAccordionTab = function(title) {
         .hide();
     var self = this;
     tab.click(function () {
-        if (self.CurrentAccordionPanel) {
-            self.CurrentAccordionPanel.toggle();
+        if (self.OpenAccordionPanel) {
+            self.OpenAccordionPanel.hide(200);
         }
-        panel.toggle();
-        self.CurrentAccordianPanel = panel;
+        if (self.OpenAccordionPanel == panel) {
+            // Just closing the open panel.
+            self.OpenAccordionPanel = null;
+            return;
+        }
+        // Opening a new panel.
+        panel.show(200);
+        self.OpenAccordionPanel = panel;
     });
     // The last tab created is visible by default.
-    tab.trigger("click");
+    // This should have worked, but did not.
+    //tab.trigger("click");
+    if (this.OpenAccordionPanel) {
+        this.OpenAccordionPanel.hide();
+    }
+    this.OpenAccordionPanel = panel;
+    panel.show();
 
     return panel;
 }
@@ -498,7 +513,7 @@ saElement.prototype.DialogOpen = function() {
 
     // Give 'subclasses' a chance to initialize their tabs.
     for (var i = 0; i < this.DialogOpenCallbacks.length; ++i) {
-        (this.DialogOpenCallbacks)(this.Dialog);
+        (this.DialogOpenCallbacks[i])(this.Dialog);
     }
 
     this.Dialog.Show(true);
@@ -533,12 +548,12 @@ saElement.prototype.DialogApply = function() {
 
     // Giv 'subclasses' a chance to apply parameters in their tabs.
     for (var i = 0; i < this.DialogApplyCallbacks.length; ++i) {
-        (this.DialogApplyCallbacks)(this.Dialog);
+        (this.DialogApplyCallbacks[i])(this.Dialog);
     }
 }
 
 
-saElement.prototype.SetArgs = function(args) {
+saElement.prototype.ProcessArguments = function(args) {
     args = args || {};
     var self = this;
 
@@ -773,8 +788,158 @@ saElement.prototype.ConvertToPercentages = function() {
     this.Div[0].style.left = left.toString()+'%';
 }
 
+//==============================================================================
+// Just editing options to a rectangle.  I could make the text editor a 
+// "subclass" of this rectangle object.
 
+jQuery.prototype.saRectangle = function(args) {
+    this.addClass('sa-presentation-rectangle');
+    for (var i = 0; i < this.length; ++i) {
+        dom = this[i];
+        if ( ! dom.saRectangle) {
+            dom.saRectangle = new saRectangle($(dom));
+        }
+        dom.saRectangle.ProcessArguments(args);
+    }
 
+    return this;
+}
+
+function saRectangle(div) {
+    var self = this;
+    this.Div = div;
+    // Setup the superclass saElement.
+    div.saElement();
+    var element = div[0].saElement;
+    this.BackgroundPanel = element.AddAccordionTab("Background");
+   // TODO: Better API
+    element.DialogOpenCallbacks.push(
+        function () {
+            self.DialogOpen();
+        });
+    element.DialogApplyCallbacks.push(
+        function () {
+            self.DialogApply();
+        });
+
+    // Background with gradient option.
+    this.BackgroundLine1 = $('<div>')
+        .appendTo(this.BackgroundPanel)
+        .css({'width':'100%'});
+    this.BackgroundCheck = $('<input type="checkbox">')
+        .appendTo(this.BackgroundLine1)
+        .change(function() {
+            if($(this).is(":checked")) {
+                self.BackgroundColor.prop('disabled', false);
+            } else {
+                self.BackgroundColor.prop('disabled', true);
+            }
+        });
+    this.BackgroundColorLabel = $('<div>')
+        .appendTo(this.BackgroundLine1)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'4em',
+              'height':'20px',
+              'text-align': 'right'})
+        .text("Color");
+    this.BackgroundColor = $('<input type="color">')
+        .appendTo(this.BackgroundLine1)
+        .val('#005077')
+        .prop('disabled', true)
+        .css({'height':'18px',
+             'margin-left':'1em'})
+        .addClass("sa-view-annotation-modal-input");
+
+    // Gradient
+    this.BackgroundLine2 = $('<div>')
+        .appendTo(this.BackgroundPanel)
+        .css({'width':'100%'});
+    this.GradientCheck = $('<input type="checkbox">')
+        .appendTo(this.BackgroundLine2)
+        .change(function() {
+            if($(this).is(":checked")) {
+                self.GradientColor.prop('disabled', false);
+                self.GradientColor.show();
+            } else {
+                self.GradientColor.prop('disabled', true);
+                self.GradientColor.hide();
+            }
+        });
+    this.GradientLabel = $('<div>')
+        .appendTo(this.BackgroundLine2)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'4em',
+              'height':'20px',
+              'text-align': 'right'})
+        .text("Gradient");
+    this.GradientColor = $('<input type="color">')
+        .appendTo(this.BackgroundLine2)
+        .val('#005077')
+        .prop('disabled', true)
+        .css({'height':'18px',
+              'margin-left':'1em'})
+        .addClass("sa-view-annotation-modal-input");
+}
+
+saRectangle.prototype.ProcessArguments = function(args) {
+    this.Div[0].saElement.ProcessArguments(args);
+}
+
+saRectangle.prototype.DialogOpen = function () {
+    var color = this.Div[0].style.background;
+    if (color == '') {
+        color = this.Div[0].style.backgroundColor;
+    }
+    if (color == '') {
+        this.BackgroundCheck.prop('checked', false);
+        this.BackgroundColor.prop('disabled', true);
+        this.GradientCheck.prop('checked', false);
+        this.GradientColor.prop('disabled', true);
+        this.GradientColor.hide();
+        return;
+    }
+    if (color.substring(0,3) == 'rgb') {
+        this.BackgroundCheck.prop('checked', true);
+        this.BackgroundColor.prop('disabled', false);
+        this.BackgroundColor.val(ConvertColorToHex(color));
+        this.GradientCheck.prop('checked', false);
+        this.GradientColor.prop('disabled', true);
+        this.GradientColor.hide();
+        return;
+    }
+    // parsing the gradient is a bit harder.
+    if (color.substring(0,15) == 'linear-gradient') {
+        var idx0 = color.indexOf('rgb');
+        var idx1 = color.indexOf(')') + 1;
+        this.BackgroundCheck.prop('checked', true);
+        this.BackgroundColor.prop('disabled', false);
+        this.BackgroundColor.val(ConvertColorToHex(color.substring(idx0,idx1)));
+        idx0 = color.indexOf('rgb', idx1);
+        idx1 = color.indexOf(')', idx1) + 1;
+        this.GradientCheck.prop('checked', true);
+        this.GradientColor.prop('disabled', false);
+        this.GradientColor.show();
+        this.GradientColor.val(ConvertColorToHex(color.substring(idx0,idx1)));
+        return;
+    }
+    saDebug("parse error: " + color);
+}
+
+saRectangle.prototype.DialogApply = function () {
+    if ( ! this.BackgroundCheck.is(":checked")) {
+        this.Div.css('background', '');
+        return;
+    }
+    var hexColor = this.BackgroundColor.val();
+    if ( ! this.GradientCheck.is(":checked")) {
+        this.Div.css({'background': hexColor});
+        return;
+    }
+    var hexColor2 = this.GradientColor.val();
+    this.Div.css({'background': 'linear-gradient('+hexColor+','+hexColor2+')'});
+}
 
 //==============================================================================
 // a "subclass" of saElement.
@@ -782,8 +947,6 @@ saElement.prototype.ConvertToPercentages = function() {
 // TODO:
 // Do not expand images larger than their native resolution (double maybe?)
 // Change answer to question in the properties menu.
-// Change cursor when inside lightbox element to indicate draggable.
-// Some images from old presentations are 0 size.
 // Camera gets restored on shrink (even in edit mode) 
 //   Maybe push pin or camera icon to capture changes
 
@@ -796,7 +959,7 @@ jQuery.prototype.saLightBox = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saLightBox = helper;
         }
-        this[i].saLightBox.SetArgs(args);
+        this[i].saLightBox.ProcessArguments(args);
     }
 
     return this;
@@ -832,7 +995,7 @@ function saLightBox(div) {
     }
 }
 
-saLightBox.prototype.SetArgs = function(args) {
+saLightBox.prototype.ProcessArguments = function(args) {
     this.Div.saElement(args);
 
     if (args.aspectRatio !== undefined) {
@@ -1262,15 +1425,11 @@ jQuery.prototype.saHtml = function(string) {
             items.saResizable();
 
             items = this.find('.sa-presentation-rectangle');
-            items.saDraggable();
-            items.saDeletable();
-            items.saResizable();
+            items.saRectangle();
 
             items = this.find('.sa-presentation-image');
             items.saLightBox({aspectRatio: true});
 
-            // TODO: This does not belong here.
-            // Annotation button does not show up when small.
             items = this.find('.sa-lightbox-viewer');
             items.saAnnotationWidget('hide');
         }
@@ -1608,7 +1767,7 @@ jQuery.prototype.saDraggable = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saDraggable = helper;
         }
-        this[i].saDraggable.SetArgs(args);
+        this[i].saDraggable.ProcessArguments(args);
     }
 
     return this;
@@ -1664,7 +1823,7 @@ function saDraggable(div) {
         });
 }
 
-saDraggable.prototype.SetArgs = function(args) {
+saDraggable.prototype.ProcessArguments = function(args) {
     if (args.grid) {
         // The grid is not shared.
         this.XStops = new saStops(args.grid[0]);
@@ -1956,98 +2115,6 @@ function saPruneViewerRecord(viewer) {
     note.ViewerRecords.splice(viewerIdx,1);
 }
 
-
-
-//==============================================================================
-// Just editing options to a rectangle.  I could make the text editor a 
-// "subclass" of this rectangle object.
-
-// args: {dialog: true}
-jQuery.prototype.saRectangle = function() {
-    this.addClass('sa-presentation-rectangle');
-    for (var i = 0; i < this.length; ++i) {
-        element = this[i];
-        if ( ! element.saRactangle) {
-            element.saRectangle = {};
-            dialog = saGetDialog(element,
-                                 saRectangleDialogShowCallback,
-                                 saRectangleDialogApplyCallback);
-            
-        // Customize dialog for a rectangle.
-        dialog.Title.text('Rectangle Properties');
-
-        // Background
-        dialog.BackgroundDiv =
-        $('<div>')
-            .appendTo(dialog.Body)
-            .css({'height':'32px'})
-            .addClass("sa-view-annotation-modal-div");
-        dialog.BackgroundLabel =
-            $('<div>')
-            .appendTo(dialog.BackgroundDiv)
-            .text("Background:")
-            .addClass("sa-view-annotation-modal-input-label");
-        dialog.BackgroundInput =
-            $('<input>')
-            .appendTo(dialog.BackgroundDiv)
-            .val('')
-            .addClass("sa-view-annotation-modal-input");
-
-        // Border
-        dialog.BorderDiv =
-            $('<div>')
-            .appendTo(dialog.Body)
-            .css({'height':'32px',
-                  'width':'400px'})
-            .addClass("sa-view-annotation-modal-div");
-        dialog.BorderLabel =
-            $('<div>')
-            .appendTo(dialog.BorderDiv)
-            .text("Border:")
-            .addClass("sa-view-annotation-modal-input-label");
-        dialog.BorderInput =
-            $('<input>')
-            .appendTo(dialog.BorderDiv)
-            .val('5px solid rgb(0, 0, 128)')
-            .addClass("sa-view-annotation-modal-input");
-        dialog.BorderRadiusDiv =
-            $('<div>')
-            .appendTo(dialog.Body)
-            .css({'height':'32px',
-                  'width':'400px'})
-            .addClass("sa-view-annotation-modal-div");
-        dialog.BorderRadiusLabel =
-            $('<div>')
-            .appendTo(dialog.BorderRadiusDiv)
-            .text("Radius:")
-            .addClass("sa-view-annotation-modal-input-label");
-        dialog.BorderRadius =
-            $('<input>')
-            .appendTo(dialog.BorderRadiusDiv)
-            .val('')
-            .addClass("sa-view-annotation-modal-input");
-        }
-    }
-
-    return this;
-}
-
-var saRectangleDialogShowCallback = function (element) {
-    var color = element.style.background;
-    if (color == '') {
-        color = element.style.backgroundColor;
-    }
-    element.saDialog.BackgroundInput.val(color);
-    element.saDialog.BorderInput.val(element.style.border);
-    element.saDialog.BorderRadius.val(element.style.borderRadius);
-}
-
-var saRectangleDialogApplyCallback = function (element) {
-    element.style.backgroundColor = "";
-    element.style.background = element.saDialog.BackgroundInput.val();
-    element.style.border = element.saDialog.BorderInput.val();
-    element.style.borderRadius = element.saDialog.BorderRadius.val();
-}
 
 
 //==============================================================================
@@ -3014,6 +3081,7 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 
 
 //==============================================================================
+
 
 
 // RGB [Float, Float, Float] to #RRGGBB string

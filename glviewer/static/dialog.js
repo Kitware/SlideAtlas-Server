@@ -34,7 +34,7 @@ function Dialog(callback) {
         .appendTo(this.Dialog)
         .css({'width':'100%',
               'box-sizing': 'border-box',
-              'margin-botton':'30px'});
+              'margin-bottom':'30px'});
 
     this.ApplyButtonDiv = $('<div>')
         .appendTo(this.Dialog)
