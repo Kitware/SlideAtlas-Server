@@ -13,11 +13,12 @@ function FillWidget (viewer, newFlag) {
     }
 
     // I am not sure what to do for the fill because
-    // I plan to chang it to a contour.
+    // I plan to change it to a contour.
 
     this.Dialog = new Dialog(this);
     // Customize dialog for a lasso.
     this.Dialog.Title.text('Fill Annotation Editor');
+    this.Dialog.Body.css({'margin':'1em 2em'});
     // Color
     this.Dialog.ColorDiv =
         $('<div>')

@@ -1,4 +1,4 @@
-// CME
+3// CME
 // TODO:
 // Light box option.
 
@@ -1833,12 +1833,13 @@ HtmlPage.prototype.DisplayNote = function (note) {
     // hack
     // Do not let students edit text.
     if ( ! EDIT) {
-        $('.sa-text-editor').attr('contenteditable', "flase")
+        $('.sa-text-editor').attr('contenteditable', "false")
     }
 
     // Change the edit status of the lightbox viewer.
     this.Div.find('.sa-presentation-image')
-        .saLightBox({'editable':EDIT});
+        .saLightBox({'editable':EDIT,
+                     'aspectRatio':true});
     this.Div.find('.sa-lightbox-viewer')
         .saLightBoxViewer({'editable':EDIT});
     // Make viewers into lightbox elements.
@@ -1925,21 +1926,12 @@ HtmlPage.prototype.InsertImage = function(src) {
               'left'    :left+'%',
               'top'     :top+'%',
               'z-index' :'1'})
+        .saLightBox({aspectRatio: true,
+                     editable: EDIT})
         .addClass('sa-presentation-image');
-
     var img = $('<img>')
         .appendTo(imgDiv)
-        .attr('src',src)
-        .load(function () {
-            // compute the aspect ratio.
-            var aRatio = $(this).width() / $(this).height();
-                imgDiv.saLightBox({
-                    aspectRatio: aRatio,
-                    editable: EDIT
-                });
-            img.css({'height' :'100%',
-                     'width'   :'100%'});
-        });
+        .attr('src',src);
 
     return imgDiv;
 }

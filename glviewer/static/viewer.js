@@ -1839,6 +1839,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          if ( ! SAVING_IMAGE) {
              SAVING_IMAGE = new Dialog();
              SAVING_IMAGE.Title.text('Saving');
+             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
              SAVING_IMAGE.WaitingImage = $('<img>')
                  .appendTo(SAVING_IMAGE.Body)
                  .attr("src", "/webgl-viewer/static/circular.gif")

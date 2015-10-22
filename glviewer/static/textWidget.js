@@ -35,6 +35,7 @@ function TextWidget (viewer, string) {
     var self = this;
     this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Text Annotation Editor');
+    this.Dialog.Body.css({'margin':'1em 2em'});
   
     this.Dialog.TextInput =
         $('<textarea>')

@@ -21,8 +21,6 @@ function saLightBox(div) {
     this.Expanded = false;
 
 
-
-
 HtmlPage.prototype.InsertTextBox = function(size) {
     size = size || 30;
 
@@ -193,9 +191,11 @@ HtmlPage.prototype.InsertQuestion = function() {
 // Start with draggable, resizable, deletable and click.
 // Highlight border to indicate an active element.
 // args = {click: function (dom) {...}
-//         enabled: true}
+//         editable: true}
 
-// TODO: Make the cursor indicate draggable.
+// TODO:
+// saBox (saRectange) that subclasses saElement and puts background gui in
+// the dialog.
  
 jQuery.prototype.saElement = function(args) {
     for (var i = 0; i < this.length; ++i) {
@@ -211,24 +211,36 @@ jQuery.prototype.saElement = function(args) {
 
 // TODO: Rename Edit
 function saElement(div) {
-    this.Edit = true;
-    this.Div = div;
     var self = this;
+
+    // Save resize args for editable option.
+    this.ResizableArgs = {
+        start : function (e, ui) {
+            self.RaiseToTop();
+            return false;
+        },
+        stop : function (e, ui) {
+            self.ConvertToPercentages();
+            return false;
+        }
+    }
+
+    this.Editable = false;
+    this.Div = div;
     this.ClickCallback = null;
     this.Div
+        .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
             function (e) {
                 self.SavedBorder = this.style.border;
-                $(this).css({'border-color':'#6AF',
-                             'cursor':'move'});
-                if (self.Edit) {
-                    self.DeleteButton.show();
+                $(this).css({'border-color':'#6AF'});
+                if (self.Editable) {
+                    self.ButtonDiv.show();
                 }
             },
             function (e) {
                 this.style.border = self.SavedBorder;
-                $(this).css({'cursor':'auto'})
-                self.DeleteButton.hide();
+                self.ButtonDiv.hide();
             }
         );
 
@@ -241,37 +253,308 @@ function saElement(div) {
               });
 
     // I could not get the key events working.  I had to restart the browser.
-    this.DeleteButton = $('<img>')
+    this.ButtonDiv = $('<div>')
         .appendTo(this.Div)
-        .addClass('editButton')
         .addClass('.sa-edit-gui') // Remove before saHtml save.
         .css({'height':'16px',
               'position':'absolute',
               'top':'0px',
-              'left':'0px'})
-        .attr('src','webgl-viewer/static/remove.png')
-        .prop('title', "delete")
+              'left':'0px',
+              'cursor':'auto'})
         .hide()
         // Block the expand event when the delete button is pressed.
-        .mousedown(function(){return false;})
+        .mousedown(function(){return false;});
+    this.DeleteButton = $('<img>')
+        .appendTo(this.ButtonDiv)
+        .addClass('editButton')
+        .css({'height':'16px'})
+        .attr('src','webgl-viewer/static/remove.png')
+        .prop('title', "delete")
         .click(
             function () {
-                self.DeleteButton.remove();
                 self.Div.remove();
-                return false;
             });
+    this.MenuButton = $('<img>')
+        .appendTo(this.ButtonDiv)
+        .addClass('editButton')
+        .css({'height':'16px'})
+        .attr('src','webgl-viewer/static/Menu.jpg')
+        .prop('title', "properties")
+        .click(
+            function () {
+                self.DialogOpen();
+            });
+
+    this.InitializeDialog();
 }
 
-// Resize requires an aspect ratio.
+saElement.prototype.InitializeDialog = function () {
+    var self = this;
+    this.Dialog = new Dialog(function () {self.DialogApply();});
+    this.Dialog.Title.text('Properties');
+    // Open callbacks allow default values to be set in the dialog.
+    this.DialogOpenCallbacks = [];
+    this.DialogApplyCallbacks = [];
+
+    // Initialize the dialog with properties of border and shadow.
+    // Border
+    this.Dialog.BorderPanel = this.AddAccordionTab("Border");
+
+    // Border width and color.
+    this.Dialog.BorderLine1 = $('<div>')
+        .appendTo(this.Dialog.BorderPanel)
+        .css({'width':'100%'});
+    this.Dialog.BorderCheck = $('<input type="checkbox">')
+        .appendTo(this.Dialog.BorderLine1)
+        .change(function() {
+            if($(this).is(":checked")) {
+                self.Dialog.BorderWidth.prop('disabled', false);
+                self.Dialog.BorderColor.prop('disabled', false);
+            } else {
+                self.Dialog.BorderWidth.prop('disabled', true);
+                self.Dialog.BorderColor.prop('disabled', true);
+            }
+        });
+    this.Dialog.BorderWidthLabel = $('<div>')
+        .appendTo(this.Dialog.BorderLine1)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'4em',
+              'text-align': 'right'})
+        .text("Width");
+    this.Dialog.BorderWidth = $('<input type="number">')
+        .appendTo(this.Dialog.BorderLine1)
+        .addClass("sa-view-annotation-modal-input")
+        .css({'display': 'inline-block',
+              'width':'3em'})
+        .prop('disabled', true)
+        .val(1)
+        // Consume all events except return
+        .keypress(function(event) { return event.keyCode != 13; });
+    this.Dialog.BorderColor = $('<input type="color">')
+        .appendTo(this.Dialog.BorderLine1)
+        .val('#005077')
+        .prop('disabled', true)
+        .css({'float':'right',
+              'height':'19px'})
+        .addClass("sa-view-annotation-modal-input");
+
+    // Rounded corners
+    this.Dialog.BorderLine2 = $('<div>')
+        .appendTo(this.Dialog.BorderPanel)
+        .css({'width':'100%'});
+    this.Dialog.BorderRadiusCheck = $('<input type="checkbox">')
+        .appendTo(this.Dialog.BorderLine2)
+        .change(function() {
+            if($(this).is(":checked")) {
+                self.Dialog.BorderRadius.prop('disabled', false);
+            } else {
+                self.Dialog.BorderRadius.prop('disabled', true);
+            }
+        });
+    this.Dialog.BorderRadiusLabel = $('<div>')
+        .appendTo(this.Dialog.BorderLine2)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'4em',
+              'text-align': 'right'})
+        .text("Radius");
+    this.Dialog.BorderRadius = $('<input type="number">')
+        .appendTo(this.Dialog.BorderLine2)
+        .addClass("sa-view-annotation-modal-input")
+        .prop('disabled', true)
+        .css({'display': 'inline-block',
+              'width':'3em'})
+        .val(5)
+        // Consume all events except return
+        .keypress(function(event) { return event.keyCode != 13; });
+
+    // Shadow
+    this.Dialog.BorderLine3 = $('<div>')
+        .appendTo(this.Dialog.BorderPanel)
+        .css({'width':'100%'});
+    this.Dialog.ShadowCheck = $('<input type="checkbox">')
+        .appendTo(this.Dialog.BorderLine3)
+        .change(function() {
+            if($(this).is(":checked")) {
+                self.Dialog.ShadowOffset.prop('disabled', false);
+                self.Dialog.ShadowBlur.prop('disabled', false);
+                self.Dialog.ShadowColor.prop('disabled', false);
+            } else {
+                self.Dialog.ShadowOffset.prop('disabled', true);
+                self.Dialog.ShadowBlur.prop('disabled', true);
+                self.Dialog.ShadowColor.prop('disabled', true);
+            }
+        });
+    this.Dialog.ShadowLabel = $('<div>')
+        .appendTo(this.Dialog.BorderLine3)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'4em',
+              'text-align': 'right'})
+        .text("Shadow");
+    this.Dialog.ShadowOffset = $('<input type="number">')
+        .appendTo(this.Dialog.BorderLine3)
+        .addClass("sa-view-annotation-modal-input")
+        .prop('disabled', true)
+        .css({'display': 'inline-block',
+              'width':'3em'})
+        .val(10)
+        // Consume all events except return
+        .keypress(function(event) { return event.keyCode != 13; });
+    this.Dialog.ShadowBlurLabel = $('<div>')
+        .appendTo(this.Dialog.BorderLine3)
+        .css({'display': 'inline-block',
+              'padding':'0px 5px',
+              'width':'3em',
+              'text-align': 'right'})
+        .text("Blur");
+    this.Dialog.ShadowBlur = $('<input type="number">')
+        .appendTo(this.Dialog.BorderLine3)
+        .addClass("sa-view-annotation-modal-input")
+        .prop('disabled', true)
+        .css({'display': 'inline-block',
+              'width':'3em'})
+        .val(5)
+        // Consume all events except return
+        .keypress(function(event) { return event.keyCode != 13; });
+    this.Dialog.ShadowColor = $('<input type="color">')
+        .appendTo(this.Dialog.BorderLine3)
+        .val('#AAAAAA')
+        .prop('disabled', true)
+        .css({'float':'right',
+              'height':'19px'})
+        .addClass("sa-view-annotation-modal-input");
+}
+
+saElement.prototype.AddAccordionTab = function(title) {
+    var tabDiv = $('<div>')
+        .appendTo(this.Dialog.Body)
+        .css({'width':'100%'});
+    var tab = $('<div>')
+        .appendTo(tabDiv)
+        .text(title)
+        .addClass('sa-accordion-tab');
+    var panel = $('<div>')
+        .appendTo(tabDiv)
+        .css({'width':'100%',
+              'padding':'5px',
+              'border':'1px solid #AAA',
+              'box-sizing': 'border-box'})
+        .hide();
+    var self = this;
+    tab.click(function () {
+        if (self.CurrentAccordionPanel) {
+            self.CurrentAccordionPanel.toggle();
+        }
+        panel.toggle();
+        self.CurrentAccordianPanel = panel;
+    });
+    // The last tab created is visible by default.
+    tab.trigger("click");
+
+    return panel;
+}
+
+saElement.prototype.DialogOpen = function() {
+    // TODO: Does this work when 'border' is used?
+    var str = this.Div[0].style.borderWidth;
+    if (str != "") {
+        this.Dialog.BorderCheck.prop('checked', true);
+        this.Dialog.BorderWidth.prop('disabled', false);
+        this.Dialog.BorderColor.prop('disabled', false);
+        this.Dialog.BorderWidth.val(parseInt(str));
+        // Current border is highlighted.  Use the saved color.
+        //str = this.Div[0].style.borderColor;
+        str = this.SavedBorder.substr(this.SavedBorder.indexOf('rgb'));
+        if (str != "") {
+            this.Dialog.BorderColor.val(ConvertColorToHex(str));
+        }
+    }
+
+    // Border Radius
+    str = this.Div[0].style.borderRadius;
+    if (str != "") {
+        this.Dialog.BorderRadiusCheck.prop('checked', true);
+        this.Dialog.BorderRadius.prop('disabled', false);
+        this.Dialog.BorderRadius.val(parseInt(str));
+    }
+
+    // Shadow
+    str = this.Div[0].style.boxShadow;
+    if (str != "") {
+        this.Dialog.ShadowCheck.prop('checked', true);
+        var idx = str.indexOf(')')+1;
+        var color = str.substr(str.indexOf('rgb'), idx);
+        this.Dialog.ShadowColor.val(ConvertColorToHex(color));
+        this.Dialog.ShadowColor.prop('disabled', false);
+        str = str.substr(idx+1); // 1 more to skip the space
+        var params = str.split(' ');
+        this.Dialog.ShadowOffset.prop('disabled', false);
+        this.Dialog.ShadowOffset.val(parseInt(params[0]));
+        this.Dialog.ShadowBlur.prop('disabled', false);
+        this.Dialog.ShadowBlur.val(parseInt(params[2]));
+    }
+
+    // Give 'subclasses' a chance to initialize their tabs.
+    for (var i = 0; i < this.DialogOpenCallbacks.length; ++i) {
+        (this.DialogOpenCallbacks)(this.Dialog);
+    }
+
+    this.Dialog.Show(true);
+}
+
+saElement.prototype.DialogApply = function() {
+    if (this.Dialog.BorderCheck.is(":checked")) {
+        var hexcolor = this.Dialog.BorderColor.val();
+        var width = parseFloat(this.Dialog.BorderWidth.val());
+        this.Div.css({'border': width+'px solid ' + hexcolor});
+    } else {
+        this.Div.css('border', '');
+    }
+
+    // Border Radius
+    if (this.Dialog.BorderRadiusCheck.is(":checked")) {
+        var width = parseFloat(this.Dialog.BorderRadius.val());
+        this.Div.css({'borderRadius': width+'px'});
+    } else {
+        this.Div.css('borderRadius', '');
+    }
+
+    // Shadow
+    if (this.Dialog.ShadowCheck.is(":checked")) {
+        var hexcolor = this.Dialog.ShadowColor.val();
+        var offset = parseInt(this.Dialog.ShadowOffset.val());
+        var blur = parseInt(this.Dialog.ShadowBlur.val());
+        this.Div.css({'box-shadow': offset+'px '+offset+'px '+blur+'px '+hexcolor});
+    } else {
+        this.Div.css('box-shadow', '');
+    }
+
+    // Giv 'subclasses' a chance to apply parameters in their tabs.
+    for (var i = 0; i < this.DialogApplyCallbacks.length; ++i) {
+        (this.DialogApplyCallbacks)(this.Dialog);
+    }
+}
+
+
 saElement.prototype.SetArgs = function(args) {
     args = args || {};
     var self = this;
 
-    if (args.enabled !== undefined) {
-        if (args.enabled) {
-            this.EditOn();
+    // It is important to set aspect ratio before EditOn is called.
+    if (args.aspectRatio !== undefined) {
+        this.ResizableArgs.aspectRatio = args.aspectRatio;
+        if (this.Editable) {
+            this.Div.resizable(this.ResizableArgs);
+        }
+    }
+
+    if (args.editable !== undefined) {
+        if (args.editable) {
+            this.EditableOn();
         } else {
-            this.EditOff();
+            this.EditableOff();
         }
     }
 
@@ -279,55 +562,15 @@ saElement.prototype.SetArgs = function(args) {
         this.ClickCallback = args.click;
     }
 
-    // I found a weird bug where aspect ratio leaks from one element to another.
-    // Constant objects must be reused because of closure.
-    aspectRatio = this.Div.attr('sa-aspect-ratio');
-    } else {
-        // If aspectRatio is "", actively unset it.
-        if (aspectRatio == "") {
-            this.Div.removeAttr('sa-aspect-ratio');
-        } else {
-            // If a real aspectRatio is passed in, save it as an attirubte.
-            this.Div.attr('sa-aspect-ratio', aspectRatio.toString());
-        }
-    }
-
-    // Save resize args for editable option.
-    this.ResizableArgs = {
-        start : function (e, ui) {
-            self.RaiseToTop();
-            return false;
-        },
-        stop : function (e, ui) {
-            self.ConvertToPercentages();
-            return false;
-        }
-    };
-    if (aspectRatio) {
-        this.ResizableArgs.aspectRatio = aspectRatio;
-    }
-
-    if (args.editable) {
-        this.Editable = true;
-        this.EditOn();
-    } else {
-        this.Editable = false;
-        this.EditOff();
-    }
-
     this.ConvertToPercentages();
-
-    // External control of expanding or shrinking.
-    if (args.expand !== undefined) {
-        this.Expand(args.expand, args.animate);
-    }
 }
 
-// Not the best function name.  Edit = draggable, expandable and deleteable.
-saElement.prototype.EditOn = function() {
-    this.Edit = true;
+// Not the best function name.  Editable => draggable, expandable and deletable.
+saElement.prototype.EditableOn = function() {
+    this.Editable = true;
     // I cannot get jqueryUI draggable to work.  Use my own events.
     var self = this;
+    this.Div.css({'cursor':'move'});
     this.Div.on('keyup.element',
                 function(event){
                     return self.HandleKeyUp(event);
@@ -344,14 +587,15 @@ saElement.prototype.EditOn = function() {
     this.Div.resizable(this.ResizableArgs);
 }
 
-saElement.prototype.EditOff = function() {
-    this.Edit = false;
+saElement.prototype.EditableOff = function() {
+    this.Editable = false;
+    this.Div.css({'cursor':'auto'});
     this.Div.resizable('destroy');
     // TODO: Remove wheel event.
     this.Div.off('mousewheel.element');
     this.Div.off('keyup.element');
 
-    this.DeleteButton.hide();
+    this.ButtonDiv.hide();
 }
 
 saElement.prototype.HandleKeyUp = function(event) {
@@ -359,7 +603,9 @@ saElement.prototype.HandleKeyUp = function(event) {
         // TODO: change this to detect the delete key.
         // Dangerous.  Can we have an undo?
         this.Div.remove();
+        return false;
     }
+    return true;
 }
 
 saElement.prototype.HandleMouseDown = function(event) {
@@ -378,7 +624,7 @@ saElement.prototype.HandleMouseDown = function(event) {
                 return self.HandleMouseUp(e);
             });
 
-        if (this.Edit) {
+        if (this.Editable) {
             // Setup dragging.
             this.DragLastX = event.screenX;
             this.DragLastY = event.screenY;
@@ -441,7 +687,7 @@ saElement.prototype.HandleMouseUp = function(event) {
     // is also used tio trigger click callback.
     $('body').off('mouseup.element');
 
-    if (this.Edit) {
+    if (this.Editable) {
         if (this.Dragging) {
             this.Dragging = false;
             this.ConvertToPercentages();
@@ -454,7 +700,6 @@ saElement.prototype.HandleMouseUp = function(event) {
     var clickDuration = Date.now() - this.ClickStart;
     if (clickDuration < 200 && ! this.Expanded && this.ClickCallback) {
         (this.ClickCallback)(this.Div[0]);
-        this.Expand(true);
     }
 
     return false;
@@ -564,6 +809,7 @@ function saLightBox(div) {
     this.Div = div;
     this.Expanded = false;
     this.ExpandCallback = null;
+    this.AspectRatio = false;
 
     // Mask is to gray out background and consume events.
     // All lightbox items in this parent will share a mask.
@@ -587,8 +833,14 @@ function saLightBox(div) {
 }
 
 saLightBox.prototype.SetArgs = function(args) {
-    div.saElement(args);
+    this.Div.saElement(args);
 
+    if (args.aspectRatio !== undefined) {
+        this.AspectRatio = args.aspectRatio;
+    }
+
+    // lightbox and element editable flags are not always the same.
+    // When expanded, The element editable is turned off.
     if (args.editable !== undefined) {
         this.Editable = args.editable;
     }
@@ -615,8 +867,7 @@ saLightBox.prototype.UpdateSize = function() {
     var top = '5%';
     var width = '90%';
     var height = '90%';
-    if (this.ResizableArgs.aspectRatio) {
-
+    if (this.AspectRatio) {
         // Hack to get expanded images to resize.
         if ( ! this.Div[0].onresize) {
             this.Div[0].onresize =
@@ -627,7 +878,7 @@ saLightBox.prototype.UpdateSize = function() {
         }
 
         // Compute the new size.
-        var ratio = this.ResizableArgs.aspectRatio;
+        var ratio = this.Div.width() / this.Div.height();
         var pWidth = this.Div.parent().width();
         var pHeight = this.Div.parent().height();
         width = Math.floor(pWidth * 0.9);
@@ -1016,10 +1267,7 @@ jQuery.prototype.saHtml = function(string) {
             items.saResizable();
 
             items = this.find('.sa-presentation-image');
-            for (var i = 0; i < items.length; ++i) {
-                var item = items[i];
-                saPresentationImageSetAspect($(item))
-            }
+            items.saLightBox({aspectRatio: true});
 
             // TODO: This does not belong here.
             // Annotation button does not show up when small.
@@ -1045,17 +1293,6 @@ jQuery.prototype.saHtml = function(string) {
     copy.find('.sa-lightbox-viewer').empty();
 
     return copy.html();
-}
-
-function saPresentationImageSetAspect(div) {
-    var img = div.find('img');
-    img.load(function () {
-        // compute the aspect ratio.
-        var aRatio = $(this).width() / $(this).height();
-        div.saResizable({
-            aspectRatio: aRatio,
-        });
-    });
 }
 
 

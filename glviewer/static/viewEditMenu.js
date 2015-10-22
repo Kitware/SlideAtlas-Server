@@ -369,6 +369,7 @@ var DownloadImage = (function () {
 
         
         var d = new Dialog(StartDownloadCallback);
+        d.Body.css({'margin':'1em 2em'});
         DOWNLOAD_WIDGET.DimensionDialog = d;
         d.Title.text('Download Image');
         
