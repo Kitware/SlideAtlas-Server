@@ -516,6 +516,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
                  }
              }
             });
+    this.addClass('sa-lightbox-viewer');
 
     return this;
 }
@@ -2450,6 +2451,7 @@ jQuery.prototype.saAnnotationWidget = function(args) {
         var item = this[i];
         if ( ! item.saViewer) {
             console.log("Setup the viewer before the annotation widget.");
+            return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
             item.saAnnotationWidget = new AnnotationWidget(item.saViewer);
