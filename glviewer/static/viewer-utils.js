@@ -78,11 +78,20 @@ function saLightBox(div) {
         );
 
     // We need the mouse down for click -> expand
+    // TODO: See if the tap event could be used for normal web mouse click.
     this.Div
         .on('mousedown.lightbox',
-              function (event) {
-                  return self.HandleMouseDown(event);
-              });
+            function (event) {
+                return self.HandleMouseDown(event);
+            })
+        .on('tap.lightbox',
+            function (event) {
+                if ( ! self.Expanded) {
+                    self.Expand(true);
+                    return false;
+                }
+                return true;
+            });
 
     // I could not get the key events working.  I had to restart the browser.
     this.DeleteButton = $('<img>')
@@ -371,17 +380,24 @@ saLightBox.prototype.Expand = function(flag, animate) {
         this.Mask.show();
         // Clicking outside the div will cause the div to shrink back to
         // its original size.
-        this.Mask.on(
-            'mousedown.lightbox',
-            function () {
-                self.Expand(false, true);
-            });
+        this.Mask
+            .on('mousedown.lightbox',
+                function () {
+                    self.Expand(false, true);
+                    return false;
+                })
+            .on('tap.lightbox',
+                function (event) {
+                    self.Expand(false, true);
+                    return false;
+                });
     } else {
         // Reverse the expansion.
         // hide the mask
         this.Mask.hide();
         // remove event to shrink div.
         this.Mask.off('mousedown.lightbox');
+        this.Mask.off('tap.lightbox');
         if (animate) {
             this.Div.animate({'top':self.SavedTop,
                               'left':self.SavedLeft,
