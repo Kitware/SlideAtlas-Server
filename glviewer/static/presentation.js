@@ -124,6 +124,13 @@ function Presentation(rootNote, edit) {
     //          'height':'100%'});
     this.PresentationDiv = this.ResizePanel.MainDiv;
 
+    this.PresentationDiv.on(
+        'swipeleft',
+        function () { self.GotoSlide(self.Index+1);});
+    this.PresentationDiv.on(
+        'swiperight',
+        function () { self.GotoSlide(self.Index-1);});
+
     // A window with a constant aspect ratio that fits in
     // the PresentationDiv.
     this.AspectDiv = $('<div>')

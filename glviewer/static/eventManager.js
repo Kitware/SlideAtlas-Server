@@ -512,13 +512,15 @@ EventManager.prototype.HandleTouchMove = function(e, viewer) {
     // Put a throttle on events
     if ( ! this.HandleTouch(e, false, viewer)) { return; }
 
-    if (NAVIGATION_WIDGET.Visibility) {
+    if (typeof(NAVIGATION_WIDGET) != "undefined" && 
+        NAVIGATION_WIDGET.Visibility) {
         // No slide interaction with the interface up.
         // I had bad interaction with events going to browser.
         NAVIGATION_WIDGET.ToggleVisibility();
     }
 
-    if (MOBILE_ANNOTATION_WIDGET.Visibility) {
+    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
+               MOBILE_ANNOTATION_WIDGET.Visibility) {
         // No slide interaction with the interface up.
         // I had bad interaction with events going to browser.
         MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
@@ -549,8 +551,12 @@ EventManager.prototype.HandleTouchEnd = function(e, viewer) {
     if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
         this.StartTouchTime = 0;
         if (t < 90) {
-            NAVIGATION_WIDGET.ToggleVisibility();
-            MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+            if (typeof(NAVIGATION_WIDGET) != "undefined") {
+                NAVIGATION_WIDGET.ToggleVisibility();
+            }
+            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
+                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+            }
             return;
         }
         if (viewer) {
