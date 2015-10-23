@@ -1,4 +1,4 @@
-3// CME
+// CME
 // TODO:
 // Light box option.
 
@@ -1852,8 +1852,9 @@ HtmlPage.prototype.DisplayNote = function (note) {
     $('sa-draggable').saDraggable();
     // still needed for iframes.
     this.BindElements();
-
-    this.ShuffleQuestion();
+    if (EDIT) {
+        this.ShuffleQuestion();
+    }
 }
 
 
@@ -2133,114 +2134,19 @@ HtmlPage.prototype.ShuffleQuestion = function() {
 // Multiple choice for now.
 // Answers stored as list items <li>.
 HtmlPage.prototype.InsertQuestion = function() {
-    var self = this;
-
-    CONTENT_EDITABLE_HAS_FOCUS = true;
-    var dialog = $('<div>')
-        .dialog({
-            modal: false,
-            resizable:true,
-            minWidth: 450,
-            beforeClose: function() {
-                CONTENT_EDITABLE_HAS_FOCUS = false;
-            },
-            buttons: {
-                "create": function () {
-                    // This creates the question from the dialog entries.
-                    var textBox = self.InsertTextBox(22);
-                    textBox
-                        .html(self.Question.html())
-                        .css({'background-color':'#ffffff',
-                              'border':'1px solid #AAA',
-                              'left':'2%',
-                              'width': '90%',
-                              'top': '75%',
-                              'height':'20%'})
-                    if (self.MultipleChoiceOptions.length > 0) {
-                        // MULTIPLE CHOICE
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-multiple-choice-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.MultipleChoiceAnswer.html())
-                            .addClass('sa-multiple-choice-answer');
-                        for (var i = 0; i < self.MultipleChoiceOptions.length; ++i) {
-                            var a = $('<li>')
-                                .appendTo(q)
-                                .text(self.MultipleChoiceOptions[i].html());
-                        }
-                        self.ShuffleQuestion();
-                    } else {
-                        // SHORT ANSWER
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-short-answer-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.Answer.html())
-                            .addClass('sa-short-answer');
-                    }
-
-                    PRESENTATION.UpdateQuestionMode();
-
-                    $(this).dialog("destroy");
-                }
-            }
-        });
-
-    // TODO: Do not make these instance variables of presentation.
-
-
-    this.QuestionTypeSelect = $('<select>')
-        .appendTo(dialog);
-    this.QuestionTypeMultipleChoice = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Multiple Choice");
-    this.QuestionTypeSortAnswer = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Short Answer");
-    this.QuestionTypeTrueFalse = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("True or False");
-    this.QuestionTypeSelect.change(function (){alert("select")});
-
-    this.QuestionLabel = $('<div>')
-        .appendTo(dialog)
-        .text("Question:");
-    this.Question = $('<div>')
-        .appendTo(dialog)
-        .css({'border':'1px solid #AAA',
-              'margin':'2px'})
-        .attr('contenteditable', 'true');
-
-    this.MultipleChoiceDiv = $('<div>')
-        .appendTo(dialog);
-    this.MultipleChoiceAnswerLabel = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .addClass('sa-answer')
-        .text("Answer:");
-    this.MultipleChoiceAnswer = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .css({'border':'1px solid #AAA',
-              'margin':'2px'})
-        .attr('contenteditable', 'true');
-
-    this.MultipleChoiceOptionLabel = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("Options:");
-    this.MultipleChoiceOptions = [];
-    this.MultipleChoiceAddOptionButton = $('<button>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("+ Option")
-        .click(function () {
-            var option = $('<div>')
-                .insertBefore(self.MultipleChoiceAddOptionButton)
-                .css({'border':'1px solid #AAA',
-                      'margin':'2px'})
-                .attr('contenteditable', 'true');
-            self.MultipleChoiceOptions.push(option);
-        });
+    var bar = $('<div>')
+        .css({'position':'absolute',
+              'left':'2%',
+              'width':'92%',
+              'top':'75%',
+              'height':'22.5%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'z-index' :'1'})
+        .saQuestion({editable: EDIT});
+    // This is not the best api.  Delay appending the div until after the
+    // dialog has been applied
+    bar.saQuestion({'parent':this.Div});
 }
 
 

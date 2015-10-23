@@ -1,137 +1,44 @@
 //==============================================================================
 // Abstracting the question.  It will not be editable text, but can be
-// changed from a properties dialog.
-/*
+// changed from a properties dialog. Subclass of rectangle.
+// TODO:
+// Can we delay creating the dialog until after the dialog closes?
+
+// Edit questions/
+// Convert text to an saElement.
+// Option to hide with answers.
+// Interactive question.
+// Shuffle questions as note Text. No shuffle when answers are off.
+
 jQuery.prototype.saQuestion = function(args) {
     this.addClass('sa-question');
     for (var i = 0; i < this.length; ++i) {
-        if ( ! this[i].saLightBox) {
-            var helper = new saLightBox($(this[i]));
+        if ( ! this[i].saQuestion) {
             // Add the helper as an instance variable to the dom object.
-            this[i].saLightBox = helper;
+            this[i].saQuestion = new saQuestion($(this[i]));;
         }
-        this[i].saLightBox.ProcessArguments(args);
+        this[i].saQuestion.ProcessArguments(args);
     }
 
     return this;
 }
 
-function saLightBox(div) {
-    this.Div = div;
-    this.Expanded = false;
-
-
-HtmlPage.prototype.InsertTextBox = function(size) {
-    size = size || 30;
-
-    // Arbitrary height so I do not need to specify
-    // text in percentages.
-    var scale = size / 800; 
-
-    // Should everything be have Div as parent?
-    var text = $('<div>')
-        // note: parent has to be set before saTextEditor is called.
-        .appendTo(this.Div)
-        .css({'display':'inline-block',
-              'position':'absolute',
-              'overflow': 'visible',
-              'fontFamily': "Verdana,sans-serif",
-              // defaults caller can reset these.
-              'left' : '5%',
-              'top'  : '30%',
-              'z-index':'1'})
-        .addClass('sa-presentation-text')
-        // This makes the font scale with height of the window.
-        .saScalableFont({scale:scale})
-        // default content
-        .text("Text");
-
-    if (this.Edit) {
-        // Make this div into a text editor.
-        text.saTextEditor({dialog:true});
-        text.saDraggable();
-        text.saDeletable();
-    }
-
-    return text;
-}
-
-HtmlPage.prototype.ShuffleQuestion = function() {
-    var questions = this.Div.find('.sa-multiple-choice-question');
-    for (var i = 0; i < questions.length; ++i) {
-        var q = questions[i];
-        // Shuffle the list.
-        for (j = q.childNodes.length; j > 0; --j) {
-            var idx = Math.floor(Math.random() * j);
-            q.appendChild(q.removeChild(q.childNodes[idx]));
-        }
-    }
-}
-
-// Multiple choice for now.
-// Answers stored as list items <li>.
-HtmlPage.prototype.InsertQuestion = function() {
+function saQuestion(div) {
     var self = this;
+    this.Div = div;
+    this.Div.addClass('sa-question');
 
-    CONTENT_EDITABLE_HAS_FOCUS = true;
-    var dialog = $('<div>')
-        .dialog({
-            modal: false,
-            resizable:true,
-            minWidth: 450,
-            beforeClose: function() {
-                CONTENT_EDITABLE_HAS_FOCUS = false;
-            },
-            buttons: {
-                "create": function () {
-                    // This creates the question from the dialog entries.
-                    var textBox = self.InsertTextBox(22);
-                    textBox
-                        .html(self.Question.html())
-                        .css({'background-color':'#ffffff',
-                              'border':'1px solid #AAA',
-                              'left':'2%',
-                              'width': '90%',
-                              'top': '75%',
-                              'height':'20%'})
-                    if (self.MultipleChoiceOptions.length > 0) {
-                        // MULTIPLE CHOICE
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-multiple-choice-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.MultipleChoiceAnswer.html())
-                            .addClass('sa-multiple-choice-answer');
-                        for (var i = 0; i < self.MultipleChoiceOptions.length; ++i) {
-                            var a = $('<li>')
-                                .appendTo(q)
-                                .text(self.MultipleChoiceOptions[i].html());
-                        }
-                        self.ShuffleQuestion();
-                    } else {
-                        // SHORT ANSWER
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-short-answer-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.Answer.html())
-                            .addClass('sa-short-answer');
-                    }
-
-                    PRESENTATION.UpdateQuestionMode();
-
-                    $(this).dialog("destroy");
-                }
-            }
-        });
-
-    // TODO: Do not make these instance variables of presentation.
-
+    // Setup the superclass saRectangle.
+    div.saRectangle();
+    var element = div[0].saElement;
+    element.Dialog.Dialog.css({'width':'500px'});
+    var panel = this.QuestionPanel = element.AddAccordionTab(
+        "Question",
+        function () { self.DialogInitialize(); },
+        function () { self.DialogApply(); });
 
     this.QuestionTypeSelect = $('<select>')
-        .appendTo(dialog);
+        .appendTo(panel);
     this.QuestionTypeMultipleChoice = $('<option>')
         .appendTo(this.QuestionTypeSelect)
         .text("Multiple Choice");
@@ -141,50 +48,145 @@ HtmlPage.prototype.InsertQuestion = function() {
     this.QuestionTypeTrueFalse = $('<option>')
         .appendTo(this.QuestionTypeSelect)
         .text("True or False");
-    this.QuestionTypeSelect.change(function (){alert("select")});
+    this.QuestionTypeSelect.change(
+        function (){
+            if ($(this).val() == "Multiple Choice") {
+                self.MultipleChoiceDiv.show();
+                self.TrueFalseDiv.hide();
+                self.ShortAnswerDiv.hide();
+            }
+            if ($(this).val() == "True or False") {
+                self.MultipleChoiceDiv.hide();
+                self.TrueFalseDiv.show();
+                self.ShortAnswerDiv.hide();
+            }
+            if ($(this).val() == "Short Answer") {
+                self.MultipleChoiceDiv.hide();
+                self.TrueFalseDiv.hide();
+                self.ShortAnswerDiv.show();
+            }
+        });
 
     this.QuestionLabel = $('<div>')
-        .appendTo(dialog)
+        .appendTo(panel)
         .text("Question:");
     this.Question = $('<div>')
-        .appendTo(dialog)
+        .appendTo(panel)
         .css({'border':'1px solid #AAA',
               'margin':'2px'})
         .attr('contenteditable', 'true');
 
+    this.ShortAnswerDiv = $('<div>')
+        .appendTo(panel)
+        .css({'border':'1px solid #AAA',
+              'width':'100%',
+              'height':'3em',
+              'margin':'1px'})
+        .attr('contenteditable', 'true')
+        .hide();
+
+    this.TrueFalseDiv = $('<div>')
+        .appendTo(panel)
+        .hide();
+    this.TrueFalseAnswers = [];
+    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "True");
+    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "False");
+
     this.MultipleChoiceDiv = $('<div>')
-        .appendTo(dialog);
+        .appendTo(panel);
     this.MultipleChoiceAnswerLabel = $('<div>')
         .appendTo(this.MultipleChoiceDiv)
         .addClass('sa-answer')
-        .text("Answer:");
-    this.MultipleChoiceAnswer = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .css({'border':'1px solid #AAA',
-              'margin':'2px'})
-        .attr('contenteditable', 'true');
+        .text("Answers:");
 
-    this.MultipleChoiceOptionLabel = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("Options:");
-    this.MultipleChoiceOptions = [];
-    this.MultipleChoiceAddOptionButton = $('<button>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("+ Option")
-        .click(function () {
-            var option = $('<div>')
-                .insertBefore(self.MultipleChoiceAddOptionButton)
-                .css({'border':'1px solid #AAA',
-                      'margin':'2px'})
-                .attr('contenteditable', 'true');
-            self.MultipleChoiceOptions.push(option);
-        });
+    this.MultipleChoiceAnswers = [];
+    this.AddAnswer(this.MultipleChoiceDiv, this.MultipleChoiceAnswers);
+}
+
+saQuestion.prototype.AddAnswer = function(parent, answerList, text) {
+    var self = this;
+    var answerDiv = $('<div>')
+        .appendTo(parent)
+        .css({'width':'100%',
+              'position':'relative'});
+    var check = $('<input type="checkbox">')
+        .appendTo(answerDiv);
+    var answer = $('<div>')
+        .appendTo(answerDiv)
+        .css({'border':'1px solid #AAA',
+              'position':'absolute',
+              'left':'30px',
+              'right':'2px',
+              'top':'2px'})
+        .attr('contenteditable', 'true');
+   check.change(
+       function() {
+           if($(this).is(":checked")) {
+               answer.css({'font-weight':'bold'});
+           } else {
+               answer.css({'font-weight':'normal'});
+           }
+       });
+    if (text) {
+        answer.text(text);
+    } else {
+        answer.on('focus.answer',
+                  function() {
+                      // Add another answer when this one gets focus.
+                      $(this).off('focus.answer');
+                      self.AddAnswer(parent, answerList);
+                  });
+    }
+    answerList.push(answer);
+}
+
+saQuestion.prototype.ProcessArguments = function(args) {
+    this.Div[0].saRectangle.ProcessArguments(args);
 }
 
 
-
+saQuestion.prototype.DialogInitialize = function () {
+/*
 
 */
+}
+
+saQuestion.prototype.DialogApply = function () {
+    this.Div.empty();
+    var tmp = $('<div>')
+        .appendTo(this.Div)
+        .addClass('sa-question')
+        .text(this.Question.text());
+
+    if (this.QuestionTypeSelect.val() == "Multiple Choice") {
+        this.Div.attr('type','multiple-choice');
+        tmp = $('<ol>')
+            .appendTo(this.Div);
+        for (var i = 0; i < this.MultipleChoiceAnswers.length; ++i) {
+            var answerInput = this.MultipleChoiceAnswers[i];
+            if (answerInput.text() != "") {
+                var a = $('<li>')
+                    .appendTo(tmp)
+                    .addClass('sa-answer')
+                    .text(answerInput.text());
+                // I did not save the check, so get its value from bold.
+                if (answerInput.css('font-weight') == 'bold') {
+                    a.css({'font-weight':'bold'});
+                    a.attr('checked','true');
+                } else {
+                    a.attr('checked','false');
+                }
+            }
+        }
+    }
+    if (this.QuestionTypeSelect.val == "True or False") {
+        this.Div.attr('type','true-false');
+    }
+    if (this.QuestionTypeSelect.val == "Short Answer") {
+        this.Div.attr('type','short-answer');
+    }
+}
+
 
 //==============================================================================
 // Sort of a superclass for all presentation elements.
@@ -192,7 +194,7 @@ HtmlPage.prototype.InsertQuestion = function() {
 // Highlight border to indicate an active element.
 // args = {click: function (dom) {...}
 //         editable: true}
-
+// args = "dialog" => open the dialog.
 // TODO:
 // Question.
  
@@ -281,7 +283,7 @@ function saElement(div) {
         .prop('title', "properties")
         .click(
             function () {
-                self.DialogOpen();
+                self.DialogOpenCallback();
             });
 
     this.InitializeDialog();
@@ -289,15 +291,38 @@ function saElement(div) {
 
 saElement.prototype.InitializeDialog = function () {
     var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApply();});
+    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Properties');
     // Open callbacks allow default values to be set in the dialog.
-    this.DialogOpenCallbacks = [];
-    this.DialogApplyCallbacks = [];
+    this.DialogInitializeFunctions = [];
+    this.DialogApplyFunctions = [];
+
+    // Indicate that this item should be hidden when in quize mode.
+    this.Dialog.QuizPanel = this.AddAccordionTab(
+        "Quiz",
+        function () {
+            self.Dialog.QuizCheck.prop('checked', self.Div.hasClass('sa-quiz-hide'));
+        },
+        function () {
+            if (self.Dialog.QuizCheck.is(':checked')) {
+                self.Div.addClass('sa-quiz-hide');
+            } else {
+                self.Div.removeClass('sa-quiz-hide');
+            }
+        });
+    this.Dialog.QuizLabel = $('<div>')
+        .appendTo(this.Dialog.QuizPanel)
+        .css({'display': 'inline-block'})
+        .text("Hide for quiz:");
+    this.Dialog.QuizCheck = $('<input type="checkbox">')
+        .appendTo(this.Dialog.QuizPanel);
 
     // Initialize the dialog with properties of border and shadow.
     // Border
-    this.Dialog.BorderPanel = this.AddAccordionTab("Border");
+    this.Dialog.BorderPanel = this.AddAccordionTab(
+        "Border",
+        function () {self.DialogInitialize();},
+        function () {self.DialogApply();});
 
     // Border width and color.
     this.Dialog.BorderLine1 = $('<div>')
@@ -430,7 +455,14 @@ saElement.prototype.InitializeDialog = function () {
         .addClass("sa-view-annotation-modal-input");
 }
 
-saElement.prototype.AddAccordionTab = function(title) {
+saElement.prototype.AddAccordionTab = function(title, open, apply) {
+    if (open) {
+        this.DialogInitializeFunctions.push(open)
+    }
+    if (apply) {
+        this.DialogApplyFunctions.push(apply)
+    }
+
     var tabDiv = $('<div>')
         .appendTo(this.Dialog.Body)
         .css({'width':'100%'});
@@ -471,7 +503,16 @@ saElement.prototype.AddAccordionTab = function(title) {
     return panel;
 }
 
-saElement.prototype.DialogOpen = function() {
+saElement.prototype.DialogOpenCallback = function() {
+    // Give 'subclasses' a chance to initialize their tabs.
+    for (var i = 0; i < this.DialogInitializeFunctions.length; ++i) {
+        (this.DialogInitializeFunctions[i])(this.Dialog);
+    }
+
+    this.Dialog.Show(true);
+}
+
+saElement.prototype.DialogInitialize = function() {
     // TODO: Does this work when 'border' is used?
     var str = this.Div[0].style.borderWidth;
     if (str != "") {
@@ -481,8 +522,13 @@ saElement.prototype.DialogOpen = function() {
         this.Dialog.BorderWidth.val(parseInt(str));
         // Current border is highlighted.  Use the saved color.
         //str = this.Div[0].style.borderColor;
-        str = this.SavedBorder.substr(this.SavedBorder.indexOf('rgb'));
+        str = this.SavedBorder;
+        if ( ! str || str == "") {
+            // Called programatically
+            str = this.Div[0].style.border;
+        }
         if (str != "") {
+            str = str.substr(str.indexOf('rgb'));
             this.Dialog.BorderColor.val(ConvertColorToHex(str));
         }
     }
@@ -510,16 +556,18 @@ saElement.prototype.DialogOpen = function() {
         this.Dialog.ShadowBlur.prop('disabled', false);
         this.Dialog.ShadowBlur.val(parseInt(params[2]));
     }
-
-    // Give 'subclasses' a chance to initialize their tabs.
-    for (var i = 0; i < this.DialogOpenCallbacks.length; ++i) {
-        (this.DialogOpenCallbacks[i])(this.Dialog);
-    }
-
-    this.Dialog.Show(true);
 }
 
+saElement.prototype.DialogApplyCallback = function() {
+    // Giv 'subclasses' a chance to apply parameters in their tabs.
+    for (var i = 0; i < this.DialogApplyFunctions.length; ++i) {
+        (this.DialogApplyFunctions[i])(this.Dialog);
+    }
+}
+
+
 saElement.prototype.DialogApply = function() {
+    this.SavedBorder = this.Div[0].style.border;
     if (this.Dialog.BorderCheck.is(":checked")) {
         var hexcolor = this.Dialog.BorderColor.val();
         var width = parseFloat(this.Dialog.BorderWidth.val());
@@ -546,9 +594,12 @@ saElement.prototype.DialogApply = function() {
         this.Div.css('box-shadow', '');
     }
 
-    // Giv 'subclasses' a chance to apply parameters in their tabs.
-    for (var i = 0; i < this.DialogApplyCallbacks.length; ++i) {
-        (this.DialogApplyCallbacks[i])(this.Dialog);
+    // To delay showing the question div until after the user has entered
+    // text and selected apply.
+    // If close is selected, it is never appended to the parent.
+    if (this.DelayedParent) {
+        this.Div.appendTo(this.DelayedParent);
+        delete this.DelayedParent;
     }
 }
 
@@ -556,6 +607,14 @@ saElement.prototype.DialogApply = function() {
 saElement.prototype.ProcessArguments = function(args) {
     args = args || {};
     var self = this;
+
+    // For questions.  We want the dialog to be filled before we create
+    // (append to parent) the div.  Cancel will leave nothing in the parent
+    // html.
+    if (args.parent) {
+        this.DelayedParent = args.parent;
+        this.DialogOpenCallback();
+    }
 
     // It is important to set aspect ratio before EditOn is called.
     if (args.aspectRatio !== undefined) {
@@ -811,16 +870,10 @@ function saRectangle(div) {
     // Setup the superclass saElement.
     div.saElement();
     var element = div[0].saElement;
-    this.BackgroundPanel = element.AddAccordionTab("Background");
-   // TODO: Better API
-    element.DialogOpenCallbacks.push(
-        function () {
-            self.DialogOpen();
-        });
-    element.DialogApplyCallbacks.push(
-        function () {
-            self.DialogApply();
-        });
+    this.BackgroundPanel = element.AddAccordionTab(
+        "Background",
+        function () {self.DialogInitialize();},
+        function () {self.DialogApply();});
 
     // Background with gradient option.
     this.BackgroundLine1 = $('<div>')
@@ -887,7 +940,7 @@ saRectangle.prototype.ProcessArguments = function(args) {
     this.Div[0].saElement.ProcessArguments(args);
 }
 
-saRectangle.prototype.DialogOpen = function () {
+saRectangle.prototype.DialogInitialize = function () {
     var color = this.Div[0].style.background;
     if (color == '') {
         color = this.Div[0].style.backgroundColor;
