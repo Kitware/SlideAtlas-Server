@@ -77,6 +77,8 @@ function detectMobile() {
     if (STYLE == "simple") {
         MOBILE_DEVICE = "Simple";
     }
+
+    return MOBILE_DEVICE;
 }
 
 
