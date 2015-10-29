@@ -1,6 +1,5 @@
 // CME
 // TODO:
-// Light box option.
 
 
 // Bugs:
@@ -2142,8 +2141,11 @@ HtmlPage.prototype.InsertQuestion = function() {
               'height':'22.5%',
               'background':'#FFF',
               'border':'1px solid #AAA',
+              'padding':'1% 0% 0% 1%', // top right bottom left
               'z-index' :'1'})
+        .saScalableFont({scale:'0.03'})
         .saQuestion({editable: EDIT});
+
     // This is not the best api.  Delay appending the div until after the
     // dialog has been applied
     bar.saQuestion({'parent':this.Div});
