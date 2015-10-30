@@ -106,64 +106,57 @@ function Viewer (parent, args) {
     this.RecordIndex = 0; // Only used for drawing correlations.
 
     var self = this;
-    var can = this.MainView.CanvasDiv[0];
-    can.addEventListener(
-        "mousedown",
+    var can = this.MainView.CanvasDiv;
+    can.on(
+        "mousedown.viewer",
 			  function (event){
-            return self.HandleMouseDown(event);},
-			  false);
-    can.addEventListener(
-        "mousemove",
+            return self.HandleMouseDown(event);
+        });
+    can.on(
+        "mousemove.viewer",
 			  function (event){
             // So key events go the the right viewer.
             this.focus();
-            return self.HandleMouseMove(event);},
-			  false);
+            return self.HandleMouseMove(event);
+        });
     // We need to detect the mouse up even if it happens outside the canvas,
-    document.body.addEventListener(
-        "mouseup",
+    $(document.body).on(
+        "mouseup.viewer",
 			  function (event){
-            self.HandleMouseUp(event);},
-			  false);
-    can.addEventListener(
-        "wheel", 
+            return self.HandleMouseUp(event);
+        });
+    can.on(
+        "wheel.viewer",
         function(event){
-            self.HandleMouseWheel(event);
-        }, 
-        false);
+            return self.HandleMouseWheel(event.originalEvent);
+        });
 
     // I am delaying getting event manager out of receiving touch events.
     // It has too many helper functions.
-    can.addEventListener(
-        "touchstart", 
+    can.on(
+        "touchstart.viewer",
         function(event){
-            EVENT_MANAGER.HandleTouchStart(event, self);
-        }, 
-        false);
-    can.addEventListener(
-        "touchmove", 
+            return EVENT_MANAGER.HandleTouchStart(event.originalEvent, self);
+        });
+    can.on(
+        "touchmove.viewer",
         function(event){
-            EVENT_MANAGER.HandleTouchMove(event, self);
-        }, 
-        false);
-    can.addEventListener(
-        "touchend",
+            return EVENT_MANAGER.HandleTouchMove(event.originalEvent, self);
+        });
+    can.on(
+        "touchend.viewer",
         function(event){
-            EVENT_MANAGER.HandleTouchEnd(event, self);
-        },
-        false);
-
+            return EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+        });
 
     // necesary to respond to keyevents.
     this.MainView.CanvasDiv.attr("tabindex","1");
-    can.addEventListener(
-        "keydown",
+    can.on(
+        "keydown.viewer",
 			  function (event){
             //alert("keydown");
             return self.HandleKeyDown(event);
-        },
-	      false);
-
+        });
 
     // This did not work for double left click
     // Go back to my original way of handling this.
@@ -173,21 +166,22 @@ function Viewer (parent, args) {
 
     if (this.OverView) {
         var can = this.OverView.CanvasDiv;
-        can.mousedown(
-            function (e) {return self.HandleOverViewMouseDown(e);});
+        can.on(
+            "mousedown.viewer",
+            function (e) {
+                return self.HandleOverViewMouseDown(e);
+            });
 
-        //can.addEventListener(
-        //    "mousedown",
-			  //    function (event){return self.HandleOverViewMouseDown(event);},
-			  //    false);
-        // Main window has to receive these and forward them to the
-        // overview. The mouse can go outside overview while interacting.
-        // Actually, both main view and overview need to listen.
-        // Main view did not get events when mouse was in overview!
-        can.mouseup(
-			      function (e){return self.HandleOverViewMouseUp(e);});
-        can.mousemove(
-			      function (e){return self.HandleOverViewMouseMove(e);});
+        can.on(
+            "mouseup.viewer",
+			      function (e){
+                return self.HandleOverViewMouseUp(e);
+            });
+        can.on(
+            "mousemove.viewer",
+			      function (e){
+                return self.HandleOverViewMouseMove(e);
+            });
         // I cannot get this to capture events.  The feature of resizing
         //    the overview with the mouse wheel is not important anyway.
         //can[0].addEventListener(
