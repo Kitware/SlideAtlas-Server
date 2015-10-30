@@ -124,6 +124,7 @@ function Presentation(rootNote, edit) {
     //          'height':'100%'});
     this.PresentationDiv = this.ResizePanel.MainDiv;
 
+    // Wow, really?  Timing caused the swipe bug?
     this.WindowDiv.on(
         'swipeleft',
         function (e) { 
