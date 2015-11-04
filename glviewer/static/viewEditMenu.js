@@ -49,77 +49,83 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("Download Image")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.Tab.PanelOff(); DownloadImage(self.Viewer);});
-    $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("Slide Info")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.ShowSlideInformation();});
-
-    // Test for showing coverage of view histor.
-    this.HistoryMenuItem = $('<button>')
-        .appendTo(this.Tab.Panel)
-        .text("History On")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.ToggleHistory();});
-
-    // Hack until we have some sort of scale.
-    if (this.OtherViewer) {
-        this.CopyZoomMenuItem = $('<button>')
+    if (NOTES_WIDGET) {
+        $('<button>')
             .appendTo(this.Tab.Panel)
-            .text("Copy Zoom")
-            .hide()
+            .text("Download Image")
             .addClass("sa-view-edit-button")
-            .click(function(){self.CopyZoom();});
-    }
-    $('<button>').appendTo(this.Tab.Panel)
-        .text("Flip Horizontal")
-        .addClass("sa-view-edit-button")
-        .click(function(){self.FlipHorizontal();});
+            .click(function(){self.Tab.PanelOff();
+                              DownloadImage(self.Viewer);});
 
-    $('<button>').appendTo(this.Tab.Panel)
-        .text("Download image from server")
-        .addClass("sa-view-edit-button")
-        .click(function(){
-            self.Tab.PanelOff();
-            // When the circle button is pressed, create the widget.
-            if ( ! self.Viewer) { return; }
-            new CutoutWidget(parent, self.Viewer);
-        });
+        $('<button>')
+            .appendTo(this.Tab.Panel)
+            .text("Slide Info")
+            .addClass("sa-view-edit-button")
+            .click(function(){self.ShowSlideInformation();});
 
-    for(var plugin in window.PLUGINS) {
-        var that = this;
-        if(window.PLUGINS[plugin].button_text) {
-            (function (plugin) {
-                // console.log("Adding menu for " + plugin);
-                $('<button>').appendTo(that.Tab.Panel)
-                    .text(window.PLUGINS[plugin].button_text)
-                    .addClass("sa-view-edit-button")
-                    .click(function () {
-                        window.PLUGINS[plugin].Init();
-                    });
-            })(plugin);
+        if (typeof(TIME_LINE) != "undefined") {
+            // Test for showing coverage of view histor.
+            this.HistoryMenuItem = $('<button>')
+                .appendTo(this.Tab.Panel)
+                .text("History On")
+                .addClass("sa-view-edit-button")
+                .click(function(){self.ToggleHistory();});
+        }
+        // Hack until we have some sort of scale.
+        if (this.OtherViewer) {
+            this.CopyZoomMenuItem = $('<button>')
+                .appendTo(this.Tab.Panel)
+                .text("Copy Zoom")
+                .hide()
+                .addClass("sa-view-edit-button")
+                .click(function(){self.CopyZoom();});
+        }
+    
+        $('<button>').appendTo(this.Tab.Panel)
+            .text("Flip Horizontal")
+            .addClass("sa-view-edit-button")
+            .click(function(){self.FlipHorizontal();});
+        /* cutout widget dialog is broken.
+        $('<button>').appendTo(this.Tab.Panel)
+            .text("Download image from server")
+            .addClass("sa-view-edit-button")
+            .click(function(){
+                self.Tab.PanelOff();
+                // When the circle button is pressed, create the widget.
+                if ( ! self.Viewer) { return; }
+                new CutoutWidget(parent, self.Viewer);
+            });
+        // color threshold is also broken
+        for(var plugin in window.PLUGINS) {
+            var that = this;
+            if(window.PLUGINS[plugin].button_text) {
+                (function (plugin) {
+                    // console.log("Adding menu for " + plugin);
+                    $('<button>').appendTo(that.Tab.Panel)
+                        .text(window.PLUGINS[plugin].button_text)
+                        .addClass("sa-view-edit-button")
+                        .click(function () {
+                            window.PLUGINS[plugin].Init();
+                        });
+                })(plugin);
+            }
+        }
+        */
+
+        // I need some indication that the behavior id different in edit mode.
+        // If the user is authorized, the new bounds are automatically saved.
+        if (EDIT) {
+            $('<button>').appendTo(this.Tab.Panel)
+                .text("Save Overview Bounds")
+                .addClass("sa-view-edit-button")
+                .click(function(){self.SetViewBounds();});
+        } else {
+            $('<button>').appendTo(this.Tab.Panel)
+                .text("Set Overview Bounds")
+                .addClass("sa-view-edit-button")
+                .click(function(){self.SetViewBounds();});
         }
     }
-
-    // I need some indication that the behavior id different in edit mode.
-    // If the user is authorized, the new bounds are automatically saved.
-    if (EDIT) {
-        $('<button>').appendTo(this.Tab.Panel)
-            .text("Save Overview Bounds")
-            .addClass("sa-view-edit-button")
-            .click(function(){self.SetViewBounds();});
-    } else {
-        $('<button>').appendTo(this.Tab.Panel)
-            .text("Set Overview Bounds")
-            .addClass("sa-view-edit-button")
-            .click(function(){self.SetViewBounds();});
-    }
-
 }
 
 ViewEditMenu.prototype.SetVisibility = function(flag) {
@@ -152,7 +158,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    NOTES_WIDGET.SaveCallback();
+    if (NOTES_WIDGET) NOTES_WIDGET.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -266,7 +272,7 @@ ViewEditMenu.prototype.FlipHorizontal = function() {
     // When the circle button is pressed, create the widget.
     if ( ! this.Viewer) { return; }
 
-    var cam = viewer.GetCamera();
+    var cam = this.Viewer.GetCamera();
     this.Viewer.ToggleMirror();
     this.Viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
     RecordState();

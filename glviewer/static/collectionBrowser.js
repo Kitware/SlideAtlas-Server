@@ -134,7 +134,7 @@ CollectionBrowser = (function (){
                   if (status == "success") {
                       self.Load(data);
                   } else {
-                      saDebug("ajax failed.");
+                      console.log("ajax failed.");
                   }
               });   
     }
@@ -200,25 +200,45 @@ CollectionBrowser = (function (){
         }
     }
 
-    SessionObject.prototype.RequestViewData = function(callback) {
+    SessionObject.prototype.RequestViewData = function(sucessCallback,
+                                                       errorCallback) {
         if (this.State == LOADED) {
-            callback(this);
+            sucessCallback(this);
         }
-        this.LoadCallbacks.push(callback);
+        this.LoadCallbacks.push(sucessCallback);
         if (this.State == WAITING) {
             return;
         }
         this.State == WAITING;
         // Make the request to populate the view list.
         var self = this;
-        this.State = WAITING;
+        this.State = WAITING
+
+        $.ajax({
+            type: "get",
+            url: "/sessions?json=1&sessid="+this.Id,
+            success: function(data) {
+                self.LoadViewData(data);
+            },
+            error: function() {
+                if (errorCallback) {
+                    (errorCallback)();
+                }
+                console.log("ajax failed: sessions?json=1");
+            }});
+
+        /*
         $.get("/sessions?json=1&sessid="+this.Id,
               function(data,status){
                   if (status == "success") {
                       self.LoadViewData(data);
                   } else {
-                      saDebug("ajax failed: sessions?json=1"); }
+                      if (errorCallback) {
+                          (errorCallback)();
+                      }
+                      console.log("ajax failed: sessions?json=1"); }
               });
+              */
     }
 
     SessionObject.prototype.LoadViewData = function(data) {
@@ -338,7 +358,7 @@ CollectionBrowser = (function (){
         this.SavedTime = this.ModifiedTime;
 
         if (this.State != LOADED) {
-            saDebug("Error Save: Session not loaded.");
+            console.log("Error Save: Session not loaded.");
             return;
         }
 
@@ -376,7 +396,7 @@ CollectionBrowser = (function (){
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {saDebug( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {console.log( "AJAX - error: session-save (collectionBrowser)" ); }
         });
 
     }
@@ -805,7 +825,15 @@ CollectionBrowser = (function (){
         var self = this;
         this.SessionData.RequestViewData(
             function(sessObject){
+                // sucess callback
                 self.LoadViewData(sessObject);
+            },
+            function() {
+                // Error callback
+                // Get rid of the loding image.
+                self.ViewList.find('.sa-view-browser-waiting')
+                    .attr("src", "/webgl-viewer/static/brokenImage.png")
+                    .attr("alt", "error");
             });
     }
 
@@ -837,7 +865,7 @@ CollectionBrowser = (function (){
     
     Session.prototype.LoadViewData = function(sessionObject) {
         var self = this;
-        
+
         this.LoadState = LOAD_METADATA_LOADED;
         this.UpdateGUI();        
     }
@@ -846,26 +874,32 @@ CollectionBrowser = (function (){
         if (this.UpdateTime >= this.SessionData.ModifiedTime) {
             return;
         }
-        this.UpdateTime = this.SessionData.ModifiedTime;
 
         this.Views = [];
         this.ViewList.empty();
 
         if (this.LoadState <= LOAD_METADATA_WAITING) {
             // Throw a waiting icon until the meta data arrives.
+            // This is removed when UpdateGUI gets called again and
+            // this.ViewList.empty() is called.
             var listItem = $('<li>')
                 .appendTo(this.ViewList)
+                .css({'display':'block'})
                 .addClass("sa-view-browser-view-item");
-            
             var image = $('<img>')
                 .appendTo(listItem)
                 .attr("src", "/webgl-viewer/static/circular.gif")
                 .attr("alt", "waiting...")
-                .addClass("sa-view-browser-view-img");
+                .addClass("sa-view-browser-waiting");
+            $('<div>')
+                .appendTo(this.ViewList)
+                .css('clear','both');
+
             return;
         }
 
-        this.LoadState = LOAD_METADATA_LOADED;        
+        this.UpdateTime = this.SessionData.ModifiedTime;
+        this.LoadState = LOAD_METADATA_LOADED;
         for (var i = 0; i < this.SessionData.ViewObjects.length; ++i) {
             var viewObject = this.SessionData.ViewObjects[i];
             this.Views.push(new View(viewObject, this));
@@ -873,7 +907,7 @@ CollectionBrowser = (function (){
         $('<div>')
             .appendTo(this.ViewList)
             .css('clear','both');
-        
+
         if (this.ViewListOpen) {
             // View list was opened before we got the metadata.
             // Load the images too.
@@ -1118,7 +1152,7 @@ CollectionBrowser = (function (){
                 self.UpdateViewIds(data);
                 self.SaveLock = false;
             },
-            error:   function() {saDebug( "AJAX - error: session-save (collectionBrowser)" ); }
+            error:   function() {console.log( "AJAX - error: session-save (collectionBrowser)" ); }
         });
 
         // Update the other browser.

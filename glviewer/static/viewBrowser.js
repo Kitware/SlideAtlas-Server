@@ -18,7 +18,7 @@ function ViewBrowser(parent) {
             'left'      : '10%',
             'width'     : '70%',
             'padding'   : '5%',
-            'z-index'   : '107',
+            'z-index'   : '1007',
             'text-align': 'left',
             'color'     : '#303030'})
         .mouseleave(function () {self.Div.fadeOut();});

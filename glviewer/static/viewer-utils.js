@@ -2336,6 +2336,7 @@ ResizePanel.prototype.SetVisibility = function(visibility) {
 // Show / hide the panel and handles.
 // I keep the "visibility" state and restore it.
 ResizePanel.prototype.Show = function() {
+    this.Visibility = true;
     this.ResizeNoteWindowEdge.show();
     if (this.Visibility) {
         this.Visibility = false; // hack
@@ -2346,6 +2347,7 @@ ResizePanel.prototype.Show = function() {
 }
 
 ResizePanel.prototype.Hide = function() {
+    this.Visibility = false;
     // Do not use "SetVisibility" because we need to instantly close the panel.
     this.PanelDiv.hide();
     this.SetWidth(0);

@@ -124,12 +124,27 @@ function Presentation(rootNote, edit) {
     //          'height':'100%'});
     this.PresentationDiv = this.ResizePanel.MainDiv;
 
-    this.PresentationDiv.on(
+    // Wow, really?  Timing caused the swipe bug?
+    this.WindowDiv.on(
         'swipeleft',
-        function () { self.GotoSlide(self.Index+1);});
-    this.PresentationDiv.on(
+        function (e) { 
+            if ( self.ResizePanel.Visibility &&
+                 e.swipestop.coords[0] < self.ResizePanel.Width) {
+                self.ResizePanel.SetVisibility(false);
+                return false;
+            }
+            self.GotoSlide(self.Index+1);
+        });
+    this.WindowDiv.on(
         'swiperight',
-        function () { self.GotoSlide(self.Index-1);});
+        function (e) { 
+            if ( ! self.ResizePanel.Visibility &&
+                 e.swipestart.coords[0] < 10) {
+                self.ResizePanel.Show();
+                return false;
+            }
+            self.GotoSlide(self.Index-1);
+        });
 
     // A window with a constant aspect ratio that fits in
     // the PresentationDiv.
@@ -140,6 +155,10 @@ function Presentation(rootNote, edit) {
 
     this.LeftPanel = this.ResizePanel.PanelDiv;
     this.InitializeLeftPanel(this.LeftPanel);
+    // Left panel is closed by default on mobile devices.
+    if (detectMobile()) {
+        this.ResizePanel.Hide();
+    }
 
     // Float the two slide show buttons in the upper right corner.
     this.ShowButton = $('<img>')
