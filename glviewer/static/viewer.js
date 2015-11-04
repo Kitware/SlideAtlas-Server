@@ -123,7 +123,8 @@ function Viewer (parent, args) {
     $(document.body).on(
         "mouseup.viewer",
 			  function (event){
-            return self.HandleMouseUp(event);
+            self.HandleMouseUp(event);
+            return true;
         });
     can.on(
         "wheel.viewer",
@@ -146,7 +147,8 @@ function Viewer (parent, args) {
     can.on(
         "touchend.viewer",
         function(event){
-            return EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+            EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+            return true;
         });
 
     // necesary to respond to keyevents.
