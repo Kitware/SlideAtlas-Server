@@ -1,89 +1,91 @@
 
+var DIALOG_OVERLAY = null;
+
 
 function Dialog(callback) {
-  this.Overlay =
-    $('<div>')
-      .appendTo('body')
-      .addClass("sa-view-dialog-div")
-      .hide();
+    if ( ! DIALOG_OVERLAY) {
+        DIALOG_OVERLAY = $('<div>')
+        .appendTo('body')
+        .css({
+            'position':'fixed',
+            'left':'0px',
+            'width': '100%',
+            'background-color':'#AAA',
+            'opacity':'0.4',
+            'z-index':'1010'})
+            .saFullHeight()
+            .hide();
+    }
 
-  this.Dialog =
-    $('<div>')
-      .appendTo('body')
-      .addClass("sa-view-dialog-div");
+    this.Dialog =
+        $('<div>')
+        .appendTo('body')
+        .css({'z-index':'1011'})
+        .addClass("sa-view-dialog-div");
 
-  this.Table =
-    $('<table>')
-      .appendTo(this.Dialog)
-        .addClass("sa-view-dialog-table");
-
-  this.Row1 = $('<tr>').appendTo(this.Table);
-  this.Title =
-    $('<td>')
-      .appendTo(this.Row1)
-      .addClass("sa-view-dialog-title")
-      .text("Title");
-  this.CloseButton =
-    $('<td>')
-      .appendTo(this.Row1)
-      .addClass("sa-view-dialog-close")
+    this.Row1 = $('<div>')
+        .addClass("sa-view-dialog-title")
+        .appendTo(this.Dialog)
+        .css({'width':'100%',
+              'height':'2.25em',
+              'box-sizing': 'border-box'});
+    this.Title = $('<div>')
+        .appendTo(this.Row1)
+        .css({'float':'left'})
+        .addClass("sa-view-dialog-title")
+        .text("Title");
+    this.CloseButton = $('<div>')
+        .appendTo(this.Row1)
+        .css({'float':'right'})
+        .addClass("sa-view-dialog-close")
         .text("Close");
+
+  this.Body =
+    $('<div>')
+        .appendTo(this.Dialog)
+        .css({'width':'100%',
+              'box-sizing': 'border-box',
+              'margin-bottom':'30px'});
+
+    this.ApplyButtonDiv = $('<div>')
+        .appendTo(this.Dialog)
+        .addClass("sa-view-dialog-apply-div");
+    this.ApplyButton = $('<button>')
+        .appendTo(this.ApplyButtonDiv)
+        .addClass("sa-view-dialog-apply-button")
+        .text("Apply");
 
     // Closure to pass a stupid parameter to the callback
     var self = this;
     (function () {
-        self.CloseButton.click(function (e) {self.Hide(); e.preventDefault();});
+        // Return true needed to hide the spectrum color picker.
+        self.CloseButton.click(function (e) {self.Hide(); return true;});
+        self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
     })();
 
-  this.Row2 = $('<tr>').appendTo(this.Table);
-  this.Space2a = $('<td>').appendTo(this.Row2).html("&nbsp");
-  this.Space2b = $('<td>').appendTo(this.Row2).html("&nbsp");
-
-  this.Row3 = $("<tr>").appendTo(this.Table);
-  this.Body =
-    $("<td colspan='2'>")
-      .appendTo(this.Row3)
-      .addClass("sa-view-dialog-body");
-
-  this.Row4 = $('<tr>').appendTo(this.Table);
-  this.Space4a = $('<td>').appendTo(this.Row4).html("&nbsp");
-  this.Space4b = $('<td>').appendTo(this.Row4).html("&nbsp");
-
-  this.Row5 = $("<tr>").appendTo(this.Table);
-  this.ApplyDiv =
-    $("<td colspan='2'>")
-      .appendTo(this.Row5)
-      .addClass("sa-view-dialog-apply-div")
-  this.ApplyButton =
-    $('<button>')
-        .appendTo(this.ApplyDiv)
-        .text("Apply")
-        .addClass("sa-view-dialog-apply-button")
-        .click(function (e) {
-            (callback)();
-            self.Hide();
-            e.preventDefault();
-        });
 }
 
 
 Dialog.prototype.Show = function(modal) {
     var self = this;
-    this.Overlay.show();
+    DIALOG_OVERLAY.show();
     this.Dialog.fadeIn(300);
 
     if (modal) {
         EVENT_MANAGER.HasFocus = false;
-        this.Overlay.unbind("click");
+        DIALOG_OVERLAY.off('click.dialog');
     } else {
-        this.Overlay.click(function (e) { self.Hide(); });
+        DIALOG_OVERLAY.on(
+            'click.dialog',
+            function (e) { self.Hide(); });
     }
     CONTENT_EDITABLE_HAS_FOCUS = true; // blocks viewer events.
 }
 
 Dialog.prototype.Hide = function () {
     EVENT_MANAGER.HasFocus = true;
-    this.Overlay.hide();
+    DIALOG_OVERLAY.off('click.dialog');
+    DIALOG_OVERLAY.hide();
     this.Dialog.fadeOut(300);
     CONTENT_EDITABLE_HAS_FOCUS = false;
 } 

@@ -31,6 +31,7 @@ function PolylineWidget (viewer, newFlag) {
     this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
     // Customize dialog for a lasso.
     this.Dialog.Title.text('Lasso Annotation Editor');
+    this.Dialog.Body.css({'margin':'1em 2em'});
     // Color
     this.Dialog.ColorDiv =
         $('<div>')

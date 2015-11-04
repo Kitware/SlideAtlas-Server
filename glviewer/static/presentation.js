@@ -1,6 +1,5 @@
 // CME
 // TODO:
-// Light box option.
 
 
 // Bugs:
@@ -615,6 +614,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
     if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
+        $('.sa-quiz-hide').hide();
         $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
         // Experiment with hiding titles too.
         var title = $('.sa-presentation-title');
@@ -626,6 +626,7 @@ Presentation.prototype.UpdateQuestionMode = function() {
             .addClass('sa-standin')
             .attr('contenteditable', 'false');
     } else {
+        $('.sa-quiz-hide').show();
         $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
         // Experiment with hiding titles too.
         $('.sa-standin').remove();
@@ -1802,8 +1803,8 @@ HtmlPage.prototype.SaEditOff = function () {
     $('.sa-annotation-widget').saAnnotationWidget('hide');
     $('.sa-edit-gui').saButtons('disable');
     $('.sa-presentation-text').attr('contenteditable', 'false');
-
 }
+
 HtmlPage.prototype.SaEditOn = function () {
     $('.sa-annotation-widget').saAnnotationWidget('show');
     $('.sa-edit-gui').saButtons('enable');
@@ -1859,14 +1860,17 @@ HtmlPage.prototype.DisplayNote = function (note) {
     // hack
     // Do not let students edit text.
     if ( ! EDIT) {
-        $('.sa-text-editor').attr('contenteditable', "flase")
+        $('.sa-text-editor').attr('contenteditable', "false")
     }
 
-    // Change the edit status of the lightbox viewer.
+    // Change the edit status of the elements.
     this.Div.find('.sa-presentation-image')
-        .saLightBox({'editable':EDIT});
+        .saLightBox({'editable':EDIT,
+                     'aspectRatio':true});
     this.Div.find('.sa-lightbox-viewer')
         .saLightBoxViewer({'editable':EDIT});
+    this.Div.find('.sa-presentation-rectangle')
+        .saRectangle({'editable':EDIT});
     // Make viewers into lightbox elements.
     // MOVE
     //this.InitializeViews(this.Div.find('.sa-presentation-view'));
@@ -1875,8 +1879,9 @@ HtmlPage.prototype.DisplayNote = function (note) {
     $('sa-draggable').saDraggable();
     // still needed for iframes.
     this.BindElements();
-
-    this.ShuffleQuestion();
+    if (EDIT) {
+        this.ShuffleQuestion();
+    }
 }
 
 
@@ -1951,21 +1956,12 @@ HtmlPage.prototype.InsertImage = function(src) {
               'left'    :left+'%',
               'top'     :top+'%',
               'z-index' :'1'})
+        .saLightBox({aspectRatio: true,
+                     editable: EDIT})
         .addClass('sa-presentation-image');
-
     var img = $('<img>')
         .appendTo(imgDiv)
-        .attr('src',src)
-        .load(function () {
-            // compute the aspect ratio.
-            var aRatio = $(this).width() / $(this).height();
-                imgDiv.saLightBox({
-                    aspectRatio: aRatio,
-                    editable: EDIT
-                });
-            img.css({'height' :'100%',
-                     'width'   :'100%'});
-        });
+        .attr('src',src);
 
     return imgDiv;
 }
@@ -2009,12 +2005,13 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
     var bar = $('<div>')
         .appendTo(this.Div)
         .css({'background-color': color,
+              'border':'1px solid rgba(255, 255, 255, 0)',
               'position':'absolute',
               'left':left,
               'width':width,
               'top':top,
               'height':height})
-        .saRectangle();
+        .saRectangle({editable: EDIT});
 }
 
 // The execCommand paste does not work
@@ -2130,21 +2127,23 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'position':'absolute',
               'overflow': 'visible',
               'fontFamily': "Verdana,sans-serif",
+              'border':'1px solid rgba(255, 255, 255, 0)',
               // defaults caller can reset these.
               'left' : '5%',
               'top'  : '30%',
+              'padding':'2% 1% 1% 1%', // top right bottom left
               'z-index':'1'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
-        .saScalableFont({scale:scale})
+        .saScalableFont({scale:scale,
+                         editable: EDIT})
         // default content
         .text("Text");
 
     if (this.Edit) {
         // Make this div into a text editor.
-        text.saTextEditor({dialog:true});
-        text.saDraggable();
-        text.saDeletable();
+        text.saTextEditor({dialog:   true,
+                           editable: true});
     }
 
     return text;
@@ -2165,113 +2164,22 @@ HtmlPage.prototype.ShuffleQuestion = function() {
 // Multiple choice for now.
 // Answers stored as list items <li>.
 HtmlPage.prototype.InsertQuestion = function() {
-    var self = this;
+    var bar = $('<div>')
+        .css({'position':'absolute',
+              'left':'2%',
+              'width':'92%',
+              'top':'75%',
+              'height':'22.5%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 0% 0% 1%', // top right bottom left
+              'z-index' :'1'})
+        .saScalableFont({scale:'0.03'})
+        .saQuestion({editable: EDIT});
 
-    CONTENT_EDITABLE_HAS_FOCUS = true;
-    var dialog = $('<div>')
-        .dialog({
-            modal: false,
-            resizable:true,
-            minWidth: 450,
-            beforeClose: function() {
-                CONTENT_EDITABLE_HAS_FOCUS = false;
-            },
-            buttons: {
-                "create": function () {
-                    var textBox = self.InsertTextBox(22);
-                    textBox
-                        .html(self.Question.html())
-                        .css({'background-color':'#ffffff',
-                              'border':'1px solid #AAA',
-                              'left':'2%',
-                              'width': '90%',
-                              'top': '75%',
-                              'height':'20%'})
-                    if (self.MultipleChoiceOptions.length > 0) {
-                        // MULTIPLE CHOICE
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-multiple-choice-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.MultipleChoiceAnswer.html())
-                            .addClass('sa-multiple-choice-answer');
-                        for (var i = 0; i < self.MultipleChoiceOptions.length; ++i) {
-                            var a = $('<li>')
-                                .appendTo(q)
-                                .text(self.MultipleChoiceOptions[i].html());
-                        }
-                        self.ShuffleQuestion();
-                    } else {
-                        // SHORT ANSWER
-                        var q = $('<ol>')
-                            .appendTo(textBox)
-                            .addClass('sa-short-answer-question');
-                        var a = $('<li>')
-                            .appendTo(q)
-                            .text(self.Answer.html())
-                            .addClass('sa-short-answer');
-                    }
-
-                    PRESENTATION.UpdateQuestionMode();
-
-                    $(this).dialog("destroy");
-                }
-            }
-        });
-
-    // TODO: Do not make these instance variables of presentation.
-
-
-    this.QuestionTypeSelect = $('<select>')
-        .appendTo(dialog);
-    this.QuestionTypeMultipleChoice = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Multiple Choice");
-    this.QuestionTypeSortAnswer = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Short Answer");
-    this.QuestionTypeTrueFalse = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("True or False");
-    this.QuestionTypeSelect.change(function (){alert("select")});
-
-    this.QuestionLabel = $('<div>')
-        .appendTo(dialog)
-        .text("Question:");
-    this.Question = $('<div>')
-        .appendTo(dialog)
-        .css({'border':'1px solid #AAA',
-              'margin':'2px'})
-        .attr('contenteditable', 'true');
-
-    this.MultipleChoiceDiv = $('<div>')
-        .appendTo(dialog);
-    this.MultipleChoiceAnswerLabel = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .addClass('sa-answer')
-        .text("Answer:");
-    this.MultipleChoiceAnswer = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .css({'border':'1px solid #AAA',
-              'margin':'2px'})
-        .attr('contenteditable', 'true');
-
-    this.MultipleChoiceOptionLabel = $('<div>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("Options:");
-    this.MultipleChoiceOptions = [];
-    this.MultipleChoiceAddOptionButton = $('<button>')
-        .appendTo(this.MultipleChoiceDiv)
-        .text("+ Option")
-        .click(function () {
-            var option = $('<div>')
-                .insertBefore(self.MultipleChoiceAddOptionButton)
-                .css({'border':'1px solid #AAA',
-                      'margin':'2px'})
-                .attr('contenteditable', 'true');
-            self.MultipleChoiceOptions.push(option);
-        });
+    // This is not the best api.  Delay appending the div until after the
+    // dialog has been applied
+    bar.saQuestion({'parent':this.Div});
 }
 
 
