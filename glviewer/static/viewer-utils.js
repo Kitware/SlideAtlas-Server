@@ -8,14 +8,11 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Question has internal resize.
-// Question not handliong dialog apply (margin) properly. Loose answers.
+// Cannot delete title of new slide.
 
 
-// Link resize callbacks.
 // Make sure the active border stays on during resize.
 // Finish pan zoom of presentation.
-// Finish text (turn off text edit buttons).
 // Stack viewer / lightbox
 // Question: Interactive
 
@@ -75,7 +72,7 @@ function saElement(div) {
         .hover(
             function (e) {
                 self.SavedBorder = this.style.border;
-                $(this).css({'border-color':'#6AF'});
+                $(this).css({'border-color':'#7BF'});
                 if (self.Editable) {
                     self.ButtonDiv.show();
                 }
@@ -107,7 +104,7 @@ function saElement(div) {
     this.ButtonDiv = $('<div>')
         .appendTo(this.Div)
         .addClass('.sa-edit-gui') // Remove before saHtml save.
-        .css({'height':'16px',
+        .css({'height':'20px',
               'position':'absolute',
               'top':'0px',
               'left':'0px',
@@ -118,7 +115,12 @@ function saElement(div) {
     this.DeleteButton = $('<img>')
         .appendTo(this.ButtonDiv)
         .addClass('editButton')
-        .css({'height':'16px'})
+        .css({'height':'16px',
+              // static put the buttons out of parent???????
+              // Hack the positions with absolute
+              'position':'absolute',
+              'top':'0px',
+              'left':'0px'})
         .attr('src','webgl-viewer/static/remove.png')
         .prop('title', "delete")
         .click(
@@ -128,7 +130,12 @@ function saElement(div) {
     this.MenuButton = $('<img>')
         .appendTo(this.ButtonDiv)
         .addClass('editButton')
-        .css({'height':'16px'})
+        .css({'height':'16px',
+              // static put the buttons out of parent???????
+              // Hack the positions with absolute
+              'position':'absolute',
+              'top':'0px',
+              'left':'20px'})
         .attr('src','webgl-viewer/static/Menu.jpg')
         .prop('title', "properties")
         .click(
@@ -390,7 +397,7 @@ saElement.prototype.DialogInitialize = function() {
         }
         if (str != "") {
             str = str.substr(str.indexOf('rgb'));
-            this.Dialog.BorderColor.spectrum('get');
+            this.Dialog.BorderColor.spectrum('set',str);
         }
     }
 
@@ -601,7 +608,7 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
             this.MoveState = 0;
             return true;
         }
-        var handleSize = 5;
+        var handleSize = 6;
         var x = event.offsetX;
         var y = event.offsetY;
         var width = this.Div.outerWidth() - handleSize;
@@ -1071,6 +1078,7 @@ saText.prototype.DialogPaddingApply = function () {
 
 //==============================================================================
 // Questions
+//
 jQuery.prototype.saQuestion = function(args) {
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saQuestion) {
@@ -1273,13 +1281,11 @@ saQuestion.prototype.DialogApply = function () {
             if (answer.Input.text() != "") {
                 var a = $('<li>')
                     .appendTo(tmp)
-                    .addClass('sa-multiple-choice-answer')
+                    .addClass('sa-answer')
                     .text(answer.Input.text());
                 if (answer.Check.is(':checked')) {
                     a.css({'font-weight':'bold'});
-                    a.attr('checked','true');
-                } else {
-                    a.attr('checked','false');
+                    a.addClass('sa-true');
                 }
             }
         }
@@ -1300,9 +1306,7 @@ saQuestion.prototype.DialogApply = function () {
                     .text(answer.Input.text());
                 if (answer.Check.is(':checked')) {
                     a.css({'font-weight':'bold'});
-                    a.attr('checked','true');
-                } else {
-                    a.attr('checked','false');
+                    a.addClass('sa-true');
                 }
             }
         }
@@ -2315,9 +2319,14 @@ jQuery.prototype.saHtml = function(string) {
     // We do not have an s-light-box class yet.
     $('.sa-light-box').saLightBox({'expand':false, 'animate':false});
 
+    // Items that are not visible loos their position.
+    this.find('.sa-quiz-hide').show();
+    this.find('.sa-presentation-title').show();
+
     // Get rid of the gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
+    copy.find('.sa-standin').remove();
     copy.find('.ui-resizable').resizable('destroy');
     //copy.find('.ui-resizable-handle').remove();
 

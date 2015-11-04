@@ -407,6 +407,48 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
             .attr('src','webgl-viewer/static/new_window.png');
 
 
+        this.QuizMenu = $('<select name="quiz" id="quiz">')
+            .appendTo(this.SlidesDiv)
+            .css({'float':'right',
+                  'margin':'3px'})
+            .change(function () {
+                if (this.value == "review") {
+                    self.RootNote.Mode = "answer-show";
+                } else if (this.value == "hidden") {
+                    self.RootNote.Mode = "answer-hide";
+                } else if (this.value == "interactive") {
+                    self.RootNote.Mode = "answer-interactive";
+                }
+                self.UpdateQuestionMode();
+            });
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('review');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('hidden');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('interactive');
+        this.QuizLabel = $('<div>')
+            .appendTo(this.SlidesDiv)
+            .css({'float':'right',
+                  'font-size':'small',
+                  'margin-top':'4px'})
+            .text("quiz");
+        // Set the question mode
+        if (this.RootNote.Mode) {
+                if (this.RootNote.Mode == 'answer-hide') {
+                    this.QuizMenu.val("hidden");
+                } else if (this.RootNote.Mode == 'answer-interactive') {
+                    this.QuizMenu.val("interactive");
+                } else {
+                    this.QuizMenu.val("review");
+                }
+        }
+
+
+        /*
         this.AnswersButton = $('<input type="checkbox">')
             .appendTo(this.SlidesDiv)
             .prop('title', "show / hide answers")
@@ -430,6 +472,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
             .appendTo(this.SlidesDiv)
             .text("answers")
             .css({'float':'right'});
+            */
 
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
@@ -612,10 +655,35 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 //==============================================================================
 
 Presentation.prototype.UpdateQuestionMode = function() {
+    // Clear wrong answers selected by user.
+    $('.sa-answer').css({'color':'#000'});
+
     if ( ! this.RootNote) { return;}
-    if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
+    if (this.RootNote.Mode == 'answer-show') {
+        $('.sa-quiz-hide').show();
+        $('.sa-true').css({'font-weight':'bold'});
+    } else {
         $('.sa-quiz-hide').hide();
-        $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
+        $('.sa-true').css({'font-weight':'normal'});
+    }
+
+    if (this.RootNote.Mode == 'answer-interactive') {
+        // Bind response to the user selecting an answer.
+        $('.sa-answer').on(
+            'click.answer',
+            function () {
+                if ($(this).hasClass('sa-true')) {
+                    $(this).css({'font-weight':'bold'});
+                } else {
+                    $(this).css({'color':'#C00'});
+                }
+            });
+    } else {
+        $('.sa-answer').off('click.answer');
+    }
+
+    // Do not hide the Title page title
+    if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
         // Experiment with hiding titles too.
         var title = $('.sa-presentation-title');
         var standin = title.clone();
@@ -624,10 +692,9 @@ Presentation.prototype.UpdateQuestionMode = function() {
             .appendTo(title.parent())
             .html("#" + this.Index)
             .addClass('sa-standin')
-            .attr('contenteditable', 'false');
+            .attr('contenteditable', 'false')
+            .saScalableFont();
     } else {
-        $('.sa-quiz-hide').show();
-        $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
         // Experiment with hiding titles too.
         $('.sa-standin').remove();
         $('.sa-presentation-title').show();
@@ -1630,7 +1697,7 @@ function TitlePage (parent, edit) {
               'left': '0%',
               'right': '3%',
               'background':'#073E87',
-              'font-color':'#FFF'});
+              'color':'#FFF'});
     this.Title = $('<span>')
         .appendTo(this.TitleBar)
         .attr('contenteditable', 'true')
@@ -1649,7 +1716,7 @@ function TitlePage (parent, edit) {
               'left': '62%',
               'right': '3%',
               'background':'#E9F5FE',
-              'font-color':'#888',
+              'color':'#888',
               'padding-left':'2em'});
     this.AuthorText = $('<span>')
         .appendTo(this.AuthorBar)
@@ -2172,7 +2239,7 @@ HtmlPage.prototype.InsertQuestion = function() {
               'height':'22.5%',
               'background':'#FFF',
               'border':'1px solid #AAA',
-              'padding':'1% 0% 0% 1%', // top right bottom left
+              'padding':'1% 1% 1% 1%', // top right bottom left
               'z-index' :'1'})
         .saScalableFont({scale:'0.03'})
         .saQuestion({editable: EDIT});
