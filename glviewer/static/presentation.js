@@ -588,6 +588,7 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 Presentation.prototype.UpdateQuestionMode = function() {
     if ( ! this.RootNote) { return;}
     if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
+        $('.sa-quiz-hide').hide();
         $('.sa-multiple-choice-answer').css({'font-weight':'normal'});
         // Experiment with hiding titles too.
         var title = $('.sa-presentation-title');
@@ -599,6 +600,7 @@ Presentation.prototype.UpdateQuestionMode = function() {
             .addClass('sa-standin')
             .attr('contenteditable', 'false');
     } else {
+        $('.sa-quiz-hide').show();
         $('.sa-multiple-choice-answer').css({'font-weight':'bold'});
         // Experiment with hiding titles too.
         $('.sa-standin').remove();
@@ -1775,8 +1777,8 @@ HtmlPage.prototype.SaEditOff = function () {
     $('.sa-annotation-widget').saAnnotationWidget('hide');
     $('.sa-edit-gui').saButtons('disable');
     $('.sa-presentation-text').attr('contenteditable', 'false');
-
 }
+
 HtmlPage.prototype.SaEditOn = function () {
     $('.sa-annotation-widget').saAnnotationWidget('show');
     $('.sa-edit-gui').saButtons('enable');
@@ -1977,6 +1979,7 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
     var bar = $('<div>')
         .appendTo(this.Div)
         .css({'background-color': color,
+              'border':'1px solid rgba(255, 255, 255, 0)',
               'position':'absolute',
               'left':left,
               'width':width,
@@ -2098,21 +2101,23 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'position':'absolute',
               'overflow': 'visible',
               'fontFamily': "Verdana,sans-serif",
+              'border':'1px solid rgba(255, 255, 255, 0)',
               // defaults caller can reset these.
               'left' : '5%',
               'top'  : '30%',
+              'padding':'2% 1% 1% 1%', // top right bottom left
               'z-index':'1'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
-        .saScalableFont({scale:scale})
+        .saScalableFont({scale:scale,
+                         editable: EDIT})
         // default content
         .text("Text");
 
     if (this.Edit) {
         // Make this div into a text editor.
-        text.saTextEditor({dialog:true});
-        text.saDraggable();
-        text.saDeletable();
+        text.saTextEditor({dialog:   true,
+                           editable: true});
     }
 
     return text;

@@ -1,15 +1,26 @@
 
+var DIALOG_OVERLAY = null;
+
 
 function Dialog(callback) {
-    this.Overlay =
-        $('<div>')
+    if ( ! DIALOG_OVERLAY) {
+        DIALOG_OVERLAY = $('<div>')
         .appendTo('body')
-        .addClass("sa-view-dialog-div")
-        .hide();
+        .css({
+            'position':'fixed',
+            'left':'0px',
+            'width': '100%',
+            'background-color':'#AAA',
+            'opacity':'0.4',
+            'z-index':'1010'})
+            .saFullHeight()
+            .hide();
+    }
 
     this.Dialog =
         $('<div>')
         .appendTo('body')
+        .css({'z-index':'1011'})
         .addClass("sa-view-dialog-div");
 
     this.Row1 = $('<div>')
@@ -47,8 +58,9 @@ function Dialog(callback) {
     // Closure to pass a stupid parameter to the callback
     var self = this;
     (function () {
-        self.CloseButton.click(function (e) {self.Hide(); return false;});
-        self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return false;});
+        // Return true needed to hide the spectrum color picker.
+        self.CloseButton.click(function (e) {self.Hide(); return true;});
+        self.ApplyButton.click(function (e) {self.Hide(); (callback)(); return true;});
     })();
 
 }
@@ -56,21 +68,24 @@ function Dialog(callback) {
 
 Dialog.prototype.Show = function(modal) {
     var self = this;
-    this.Overlay.show();
+    DIALOG_OVERLAY.show();
     this.Dialog.fadeIn(300);
 
     if (modal) {
         EVENT_MANAGER.HasFocus = false;
-        this.Overlay.unbind("click");
+        DIALOG_OVERLAY.off('click.dialog');
     } else {
-        this.Overlay.click(function (e) { self.Hide(); });
+        DIALOG_OVERLAY.on(
+            'click.dialog',
+            function (e) { self.Hide(); });
     }
     CONTENT_EDITABLE_HAS_FOCUS = true; // blocks viewer events.
 }
 
 Dialog.prototype.Hide = function () {
     EVENT_MANAGER.HasFocus = true;
-    this.Overlay.hide();
+    DIALOG_OVERLAY.off('click.dialog');
+    DIALOG_OVERLAY.hide();
     this.Dialog.fadeOut(300);
     CONTENT_EDITABLE_HAS_FOCUS = false;
 } 
