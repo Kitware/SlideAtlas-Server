@@ -9,13 +9,14 @@
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
 // Cannot delete title of new slide.
-
+// Add the drag handle.
+// Move editor buttons outside div (change deactivate event.)
+// bug: question buttons div are active on load
 
 // Make sure the active border stays on during resize.
 // Finish pan zoom of presentation.
 // Stack viewer / lightbox
 // Question: Interactive
-
 
 // Edit questions/
 // Convert text to an saElement.
@@ -56,19 +57,38 @@ function saElement(div) {
     this.Editable = false;
     this.Div = div;
     this.ClickCallback = null;
+    // Hack to keep the element active.
+    this.LockActive = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
             function (e) {
+                console.log('in  ' + self.LockActive);
+                if ( self.LockActive) {return true;}
                 self.SavedBorder = this.style.border;
                 $(this).css({'border-color':'#7BF'});
                 if (self.Editable) {
-                    self.ButtonDiv.show();
+                    self.ButtonDiv.appendTo(self.Div);
+                    // Rmove an element destroys bindings.
+                    self.MenuButton
+                        .on('mousedown',
+                            function () {
+                                self.DialogOpenCallback();
+                                return false;
+                            });
+                    self.DeleteButton
+                        .on('mousedown',
+                            function () {
+                                self.Div.remove();
+                                return false;
+                            });
                 }
             },
             function (e) {
+                console.log('out ' + self.LockActive);
+                if ( self.LockActive) {return true;}
                 this.style.border = self.SavedBorder;
-                self.ButtonDiv.hide();
+                self.ButtonDiv.remove();
             }
         );
 
@@ -91,14 +111,12 @@ function saElement(div) {
 
     // I could not get the key events working.  I had to restart the browser.
     this.ButtonDiv = $('<div>')
-        .appendTo(this.Div)
         .addClass('.sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
               'top':'0px',
               'left':'0px',
               'cursor':'auto'})
-        .hide()
         // Block the expand event when the delete button is pressed.
         .mousedown(function(){return false;});
     this.DeleteButton = $('<img>')
@@ -111,11 +129,7 @@ function saElement(div) {
               'top':'0px',
               'left':'0px'})
         .attr('src','webgl-viewer/static/remove.png')
-        .prop('title', "delete")
-        .click(
-            function () {
-                self.Div.remove();
-            });
+        .prop('title', "delete");
     this.MenuButton = $('<img>')
         .appendTo(this.ButtonDiv)
         .addClass('editButton')
@@ -126,11 +140,7 @@ function saElement(div) {
               'top':'0px',
               'left':'20px'})
         .attr('src','webgl-viewer/static/Menu.jpg')
-        .prop('title', "properties")
-        .click(
-            function () {
-                self.DialogOpenCallback();
-            });
+        .prop('title', "properties");
 
     this.InitializeDialog();
 }
@@ -537,7 +547,7 @@ saElement.prototype.EditableOff = function() {
     this.Div.off('keyup.element');
     this.Div.off('mousemove.elementCursor');
 
-    this.ButtonDiv.hide();
+    this.ButtonDiv.remove();
 }
 
 
@@ -1353,7 +1363,7 @@ function saTextEditor(div) {
         "Text",
         function () {self.DialogInitialize();},
         function () {self.DialogApply();});
-    
+
     // Font Size
     this.FontSizeDiv = $('<div>')
         .appendTo(this.TextPanel)
@@ -1403,12 +1413,10 @@ function saTextEditor(div) {
     // These will only become visible when you click / select
     this.Div.css({'overflow':'visible'}); // so the buttons are not cut off
     this.EditButtonDiv = $('<div>')
-        .appendTo(this.Div)
+        .appendTo(this.Div.parent())
         .addClass('.sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
-              'top':'-20px',
-              'left':'0px',
               'width':'275px',
               'cursor':'auto'})
         .hide()
@@ -1445,7 +1453,30 @@ function saTextEditor(div) {
 }
 
 saTextEditor.prototype.EditingOn = function() {
-    this.EditButtonDiv.show();
+    var offset = 20;
+    var pos = this.Div.position();
+    var width = this.Div.outerWidth();
+    if (width < 275) {width = 275;}
+    var height = this.Div.outerHeight() + offset;
+    this.EditButtonDiv
+        .css({'left'  : pos.left+'px',
+              'top'   :(pos.top-offset)+'px',
+              'width' : width+'px',
+              'height': height+'px'})
+        .show();
+
+    // I use mouse up because it should always propagate.
+    $('body').on(
+        'mouseup.textEditor',
+        function (e) {
+            if (e.currentTarget != self.Div[0] &&
+                e.currentTarget != self.EditButtonDiv[0]) {
+                self.EditingOff();
+            }
+        });
+    // Try to block the editing off call when clicking in our own.
+    this.Div.on('mouseup.textEditor', function () { return false;});
+    this.EditButtonDiv.on('mouseup.textEditor', function () { return false;});
 
     // TODO: Get rid of this hack.
     // Keyup should return false.
@@ -1453,6 +1484,9 @@ saTextEditor.prototype.EditingOn = function() {
 
     // Bad name. Actually movable.
     // TODO: Change this name.
+    // hack
+    console.log("EditingOn");
+    this.Div[0].saElement.LockActive = true;
     this.SavedMovable = this.Div[0].saElement.Editable;
     this.Div[0].saElement.EditableOff();
     this.Div[0].saElement.Clickable = false;
@@ -1460,15 +1494,18 @@ saTextEditor.prototype.EditingOn = function() {
     var self = this;
     this.Div
         .attr('contenteditable', 'true')
-        .css({'cursor':'text'})
-        .on('mouseleave.textEditor',
-            function () {
-                self.EditingOff();
-            });
+        .css({'cursor':'text'});
 }
 
 saTextEditor.prototype.EditingOff = function() {
+    $('body').off('mouseup.textEditor');
+    this.Div.off('mouseup.textEditor');
+    this.EditButtonDiv.off('mouseup.textEditor');
+
     this.EditButtonDiv.hide();
+    // hack
+    console.log("EditingOff");
+    this.Div[0].saElement.LockActive = false;
 
     if (this.SavedMovable) {
         this.Div[0].saElement.EditableOn();
@@ -1566,8 +1603,6 @@ saTextEditor.prototype.DialogApply = function() {
 }
 
 saTextEditor.prototype.Delete = function() {
-    //this.DragHandle.remove();
-    //this.ButtonDiv.remove();
     this.Div.remove();
 }
 
@@ -1785,9 +1820,6 @@ saTextEditor.prototype.GetSelectionRange = function() {
 
 // Set in position in pixels
 saTextEditor.prototype.SetPositionPixel = function(x, y) {
-    /*this.ButtonDiv
-        .css({'left'  :(x+20)+'px',
-              'top'   :(y-20) +'px'})*/
     if (this.Percentage) {
         x = 100 * x / this.Div.parent().width();
         y = 100 * y / this.Div.parent().height();
