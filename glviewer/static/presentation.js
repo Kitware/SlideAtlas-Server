@@ -2194,12 +2194,14 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'position':'absolute',
               'overflow': 'visible',
               'fontFamily': "Verdana,sans-serif",
-              'border':'1px solid rgba(255, 255, 255, 0)',
+              'border' : '1px solid rgba(255, 255, 255, 0)',
               // defaults caller can reset these.
-              'left' : '5%',
-              'top'  : '30%',
-              'padding':'2% 1% 1% 1%', // top right bottom left
-              'z-index':'1'})
+              'left'   : '5%',
+              'width'  : '50%',
+              'top'    : '30%',
+              'height' : '10%',
+              'padding': '2% 1% 1% 1%', // top right bottom left
+              'z-index': '1'})
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:scale,
