@@ -9,7 +9,9 @@
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
 // Cannot delete title of new slide.
-
+// Add the drag handle.
+// Move editor buttons outside div (change deactivate event.)
+// bug: question buttons div are active on load
 
 // Make sure the active border stays on during resize.
 // Finish pan zoom of presentation.
@@ -63,12 +65,25 @@ function saElement(div) {
                 self.SavedBorder = this.style.border;
                 $(this).css({'border-color':'#7BF'});
                 if (self.Editable) {
-                    self.ButtonDiv.show();
+                    self.ButtonDiv.appendTo(self.Div);
+                    // Rmove an element destroys bindings.
+                    self.MenuButton
+                        .on('mousedown',
+                            function () {
+                                self.DialogOpenCallback();
+                                return false;
+                            });
+                    self.DeleteButton
+                        .on('mousedown',
+                            function () {
+                                self.Div.remove();
+                                return false;
+                            });
                 }
             },
             function (e) {
                 this.style.border = self.SavedBorder;
-                self.ButtonDiv.hide();
+                self.ButtonDiv.remove();
             }
         );
 
@@ -91,14 +106,12 @@ function saElement(div) {
 
     // I could not get the key events working.  I had to restart the browser.
     this.ButtonDiv = $('<div>')
-        .appendTo(this.Div)
         .addClass('.sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
               'top':'0px',
               'left':'0px',
               'cursor':'auto'})
-        .hide()
         // Block the expand event when the delete button is pressed.
         .mousedown(function(){return false;});
     this.DeleteButton = $('<img>')
@@ -111,11 +124,7 @@ function saElement(div) {
               'top':'0px',
               'left':'0px'})
         .attr('src','webgl-viewer/static/remove.png')
-        .prop('title', "delete")
-        .click(
-            function () {
-                self.Div.remove();
-            });
+        .prop('title', "delete");
     this.MenuButton = $('<img>')
         .appendTo(this.ButtonDiv)
         .addClass('editButton')
@@ -126,11 +135,7 @@ function saElement(div) {
               'top':'0px',
               'left':'20px'})
         .attr('src','webgl-viewer/static/Menu.jpg')
-        .prop('title', "properties")
-        .click(
-            function () {
-                self.DialogOpenCallback();
-            });
+        .prop('title', "properties");
 
     this.InitializeDialog();
 }
@@ -537,7 +542,7 @@ saElement.prototype.EditableOff = function() {
     this.Div.off('keyup.element');
     this.Div.off('mousemove.elementCursor');
 
-    this.ButtonDiv.hide();
+    this.ButtonDiv.remove();
 }
 
 
@@ -1566,8 +1571,6 @@ saTextEditor.prototype.DialogApply = function() {
 }
 
 saTextEditor.prototype.Delete = function() {
-    //this.DragHandle.remove();
-    //this.ButtonDiv.remove();
     this.Div.remove();
 }
 
@@ -1785,9 +1788,6 @@ saTextEditor.prototype.GetSelectionRange = function() {
 
 // Set in position in pixels
 saTextEditor.prototype.SetPositionPixel = function(x, y) {
-    /*this.ButtonDiv
-        .css({'left'  :(x+20)+'px',
-              'top'   :(y-20) +'px'})*/
     if (this.Percentage) {
         x = 100 * x / this.Div.parent().width();
         y = 100 * y / this.Div.parent().height();
