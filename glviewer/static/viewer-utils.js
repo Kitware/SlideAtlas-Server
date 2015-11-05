@@ -53,17 +53,6 @@ jQuery.prototype.saElement = function(args) {
 function saElement(div) {
     var self = this;
 
-    // Save resize args for editable option.
-    this.ResizableArgs = {
-        start : function (e, ui) {
-            return false;
-        },
-        stop : function (e, ui) {
-            self.ConvertToPercentages();
-            return false;
-        }
-    }
-
     this.Editable = false;
     this.Div = div;
     this.ClickCallback = null;
@@ -2016,7 +2005,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     // Small viewer does not have overview
     args.overview = false;
     var editable = args.editable;
-        
+
     this.saViewer(args)
         .saAnnotationWidget("hide")
         .saLightBox(
@@ -2042,6 +2031,8 @@ jQuery.prototype.saLightBoxViewer = function(args) {
                  }
              }
             });
+
+    this.addClass('sa-lightbox-viewer');
 
     return this;
 }
@@ -2339,6 +2330,7 @@ jQuery.prototype.saHtml = function(string) {
 
 
 //==============================================================================
+// LEGACY
 // Just add the feature of setting width and height as percentages.
 
 jQuery.prototype.saResizable = function(args) {
@@ -2369,7 +2361,6 @@ jQuery.prototype.saResizable = function(args) {
         this.style.left = left.toString()+'%';
     };
 
-    this.resizable(args);
     this.addClass('sa-resizable');
 
     return this;
@@ -2453,6 +2444,8 @@ function saViewerSetup(self, args) {
         if (args.note) {
             viewer.saNote = args.note;
             viewer.saViewerIndex = args.viewerIndex || 0;
+            // .... TODO ....
+            // Note note record. DUALDisplay?
             args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
             $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
             $(self[i]).attr('sa-viewer-index', viewer.saViewerIndex);
@@ -3083,6 +3076,7 @@ saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
 
 
 //==============================================================================
+// LEGACY
 // Add a delete button to the jquery objects.
 
 jQuery.prototype.saDeletable = function(args) {
