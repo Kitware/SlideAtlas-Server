@@ -18,7 +18,6 @@
 // Stack viewer / lightbox
 // Question: Interactive
 
-
 // Edit questions/
 // Convert text to an saElement.
 // Option to hide with answers.
@@ -58,10 +57,14 @@ function saElement(div) {
     this.Editable = false;
     this.Div = div;
     this.ClickCallback = null;
+    // Hack to keep the element active.
+    this.LockActive = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
             function (e) {
+                console.log('in  ' + self.LockActive);
+                if ( self.LockActive) {return true;}
                 self.SavedBorder = this.style.border;
                 $(this).css({'border-color':'#7BF'});
                 if (self.Editable) {
@@ -82,6 +85,8 @@ function saElement(div) {
                 }
             },
             function (e) {
+                console.log('out ' + self.LockActive);
+                if ( self.LockActive) {return true;}
                 this.style.border = self.SavedBorder;
                 self.ButtonDiv.remove();
             }
@@ -1358,7 +1363,7 @@ function saTextEditor(div) {
         "Text",
         function () {self.DialogInitialize();},
         function () {self.DialogApply();});
-    
+
     // Font Size
     this.FontSizeDiv = $('<div>')
         .appendTo(this.TextPanel)
@@ -1408,12 +1413,10 @@ function saTextEditor(div) {
     // These will only become visible when you click / select
     this.Div.css({'overflow':'visible'}); // so the buttons are not cut off
     this.EditButtonDiv = $('<div>')
-        .appendTo(this.Div)
+        .appendTo(this.Div.parent())
         .addClass('.sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
-              'top':'-20px',
-              'left':'0px',
               'width':'275px',
               'cursor':'auto'})
         .hide()
@@ -1450,7 +1453,30 @@ function saTextEditor(div) {
 }
 
 saTextEditor.prototype.EditingOn = function() {
-    this.EditButtonDiv.show();
+    var offset = 20;
+    var pos = this.Div.position();
+    var width = this.Div.outerWidth();
+    if (width < 275) {width = 275;}
+    var height = this.Div.outerHeight() + offset;
+    this.EditButtonDiv
+        .css({'left'  : pos.left+'px',
+              'top'   :(pos.top-offset)+'px',
+              'width' : width+'px',
+              'height': height+'px'})
+        .show();
+
+    // I use mouse up because it should always propagate.
+    $('body').on(
+        'mouseup.textEditor',
+        function (e) {
+            if (e.currentTarget != self.Div[0] &&
+                e.currentTarget != self.EditButtonDiv[0]) {
+                self.EditingOff();
+            }
+        });
+    // Try to block the editing off call when clicking in our own.
+    this.Div.on('mouseup.textEditor', function () { return false;});
+    this.EditButtonDiv.on('mouseup.textEditor', function () { return false;});
 
     // TODO: Get rid of this hack.
     // Keyup should return false.
@@ -1458,6 +1484,9 @@ saTextEditor.prototype.EditingOn = function() {
 
     // Bad name. Actually movable.
     // TODO: Change this name.
+    // hack
+    console.log("EditingOn");
+    this.Div[0].saElement.LockActive = true;
     this.SavedMovable = this.Div[0].saElement.Editable;
     this.Div[0].saElement.EditableOff();
     this.Div[0].saElement.Clickable = false;
@@ -1465,15 +1494,18 @@ saTextEditor.prototype.EditingOn = function() {
     var self = this;
     this.Div
         .attr('contenteditable', 'true')
-        .css({'cursor':'text'})
-        .on('mouseleave.textEditor',
-            function () {
-                self.EditingOff();
-            });
+        .css({'cursor':'text'});
 }
 
 saTextEditor.prototype.EditingOff = function() {
+    $('body').off('mouseup.textEditor');
+    this.Div.off('mouseup.textEditor');
+    this.EditButtonDiv.off('mouseup.textEditor');
+
     this.EditButtonDiv.hide();
+    // hack
+    console.log("EditingOff");
+    this.Div[0].saElement.LockActive = false;
 
     if (this.SavedMovable) {
         this.Div[0].saElement.EditableOn();
