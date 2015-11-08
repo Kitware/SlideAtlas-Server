@@ -447,33 +447,6 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
                 }
         }
 
-
-        /*
-        this.AnswersButton = $('<input type="checkbox">')
-            .appendTo(this.SlidesDiv)
-            .prop('title', "show / hide answers")
-            .css({'float':'right'});
-        this.AnswersButton[0].checked = true;
-        this.AnswersButton
-            .change(function () {
-                if (this.checked) {
-                    self.RootNote.Mode = "answer-show";
-                } else {
-                    self.RootNote.Mode = "answer-hide";
-                }
-                self.UpdateQuestionMode();
-            });
-        // Set the question mode
-        if (this.RootNote.Mode && this.RootNote.Mode == 'answer-hide') {
-            this.AnswersButton[0].checked = false;
-        }
-
-        this.AnswersLabel = $('<div>')
-            .appendTo(this.SlidesDiv)
-            .text("answers")
-            .css({'float':'right'});
-            */
-
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
             function (viewObj) {
@@ -669,17 +642,26 @@ Presentation.prototype.UpdateQuestionMode = function() {
 
     if (this.RootNote.Mode == 'answer-interactive') {
         // Bind response to the user selecting an answer.
-        $('.sa-answer').on(
-            'click.answer',
-            function () {
-                if ($(this).hasClass('sa-true')) {
-                    $(this).css({'font-weight':'bold'});
-                } else {
-                    $(this).css({'color':'#C00'});
-                }
-            });
+        $('.sa-answer')
+            .css({'cursor':'pointer',
+                  'color':'#057'})
+            .hover(function(){$(this).css({'background':'#DDD'});},
+                   function(){$(this).css({'background':'#FFF'});})
+            .on('click.answer',
+                function () {
+                    if ($(this).hasClass('sa-true')) {
+                        $(this).css({'font-weight':'bold',
+                                     'color':'#000'});
+                    } else {
+                        $(this).css({'color':'#C00'});
+                    }
+                });
     } else {
-        $('.sa-answer').off('click.answer');
+        $('.sa-answer')
+            .css({'color':'#000'})
+            .css('cursor','')
+            .off('hover')
+            .off('click.answer');
     }
 
     // Do not hide the Title page title
@@ -1931,11 +1913,14 @@ HtmlPage.prototype.DisplayNote = function (note) {
     }
 
     // Change the edit status of the elements.
+    var self = this;
     this.Div.find('.sa-presentation-image')
         .saLightBox({'editable':EDIT,
                      'aspectRatio':true});
     this.Div.find('.sa-lightbox-viewer')
-        .saLightBoxViewer({'editable':EDIT});
+        .saLightBoxViewer({
+            'editable':EDIT,
+            'delete' : function (dom) {self.ViewDeleteCallback(dom);}});
     this.Div.find('.sa-presentation-rectangle')
         .saRectangle({'editable':EDIT});
     // Make viewers into lightbox elements.
@@ -2291,6 +2276,7 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
         defaultPosition = this.DefaultViewerPositions.splice(0,1)[0];
     }
 
+    var self = this;
     var viewerDiv = $('<div>')
         .appendTo(this.Div)
         .css({'position':'absolute',
@@ -2301,17 +2287,63 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
               'width'  : defaultPosition.width,
               'top'    : defaultPosition.top,
               'height' : defaultPosition.height})
-        .saLightBoxViewer({'note'         : this.Note,
-                           'viewerIndex'  : viewerIdx,
-                           'hideCopyright': true,
-                           'interaction'  : false,
-                           'editable'     : EDIT});
+        .saLightBoxViewer({
+            'note'         : this.Note,
+            'viewerIndex'  : viewerIdx,
+            'hideCopyright': true,
+            'interaction'  : false,
+            'editable'     : EDIT,
+            'delete' : function (dom) {self.ViewDeleteCallback(dom);}});
     // MOVE
         //.addClass('sa-presentation-view')
         //.saAnnotationWidget("hide")
     //this.InitializeViews(viewerDiv);
 
     return viewerDiv;
+}
+// The html page is a note.  It contains viewer whose states are saved in
+// viewerRecords.
+// Helper method
+// TODO: Change newNote to viewerRecord.
+HtmlPage.prototype.InsertView2 = function(viewId) {
+    if ( ! this.Note) {
+        return;
+    }
+
+    var defaultPosition = {left:'5%',top:'25%',width:'45%',height:'45%'};
+    if (this.DefaultViewerPositions.length > 0) {
+        defaultPosition = this.DefaultViewerPositions.splice(0,1)[0];
+    }
+
+    var viewerDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'box-shadow': '10px 10px 5px #AAA',
+              'background-color':'#FFF',
+              'opacity':'1.0',
+              'left'   : defaultPosition.left,
+              'width'  : defaultPosition.width,
+              'top'    : defaultPosition.top,
+              'height' : defaultPosition.height})
+        .saDualViewer({
+            'viewId'       : viewId,
+            'hideCopyright': true,
+            'editable'     : EDIT});
+    // MOVE
+        //.addClass('sa-presentation-view')
+        //.saAnnotationWidget("hide")
+    //this.InitializeViews(viewerDiv);
+
+    return viewerDiv;
+}
+
+// When a viewer is deleted the next should replace it.
+HtmlPage.prototype.ViewDeleteCallback = function (dom) {
+    this.DefaultViewerPositions.push(
+        {left:dom.style.left,
+         top:dom.style.top,
+         width:dom.style.width,
+         height:dom.style.height});
 }
 
 // This is done on creation and when it is realoded so I am making it its

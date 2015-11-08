@@ -8,6 +8,14 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+// Get stack displayed in a show (shallow copied)
+// Get dual light box working
+//     GUI and toggle interaction.
+// Get Deep copy stack working.
+// Figure out how user can add a stack with the GUI.
+// Save changes to a stack.
+
+
 // Cannot delete title of new slide.
 // Add the drag handle.
 // Move editor buttons outside div (change deactivate event.)
@@ -34,6 +42,7 @@
 // Start with draggable, resizable, deletable and click.
 // Highlight border to indicate an active element.
 // args = {click: function (dom) {...}
+//         delete: function (dom) {...}
 //         editable: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
@@ -57,13 +66,13 @@ function saElement(div) {
     this.Editable = false;
     this.Div = div;
     this.ClickCallback = null;
+    this.DeleteCallback = null;
     // Hack to keep the element active.
     this.LockActive = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
             function (e) {
-                console.log('in  ' + self.LockActive);
                 if ( self.LockActive) {return true;}
                 self.SavedBorder = this.style.border;
                 $(this).css({'border-color':'#7BF'});
@@ -79,13 +88,15 @@ function saElement(div) {
                     self.DeleteButton
                         .on('mousedown',
                             function () {
+                                if (self.DeleteCallback) {
+                                    (self.DeleteCallback)(self.Div[0]);
+                                }
                                 self.Div.remove();
                                 return false;
                             });
                 }
             },
             function (e) {
-                console.log('out ' + self.LockActive);
                 if ( self.LockActive) {return true;}
                 this.style.border = self.SavedBorder;
                 self.ButtonDiv.remove();
@@ -511,6 +522,10 @@ saElement.prototype.ProcessArguments = function(args) {
 
     if (args.click !== undefined) {
         this.ClickCallback = args.click;
+    }
+
+    if (args.delete !== undefined) {
+        this.DeleteCallback = args.delete;
     }
 
     this.ConvertToPercentages();
@@ -1485,7 +1500,6 @@ saTextEditor.prototype.EditingOn = function() {
     // Bad name. Actually movable.
     // TODO: Change this name.
     // hack
-    console.log("EditingOn");
     this.Div[0].saElement.LockActive = true;
     this.SavedMovable = this.Div[0].saElement.Editable;
     this.Div[0].saElement.EditableOff();
@@ -1504,7 +1518,6 @@ saTextEditor.prototype.EditingOff = function() {
 
     this.EditButtonDiv.hide();
     // hack
-    console.log("EditingOff");
     this.Div[0].saElement.LockActive = false;
 
     if (this.SavedMovable) {
@@ -2038,31 +2051,38 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     args.overview = false;
     var editable = args.editable;
 
+    // sa viewer is separate.  We need to pass the args to saLightBoxToo.
     this.saViewer(args)
-        .saAnnotationWidget("hide")
-        .saLightBox(
-            {editable:editable,
-             onExpand : function(expanded) {
-                 this.Div.saViewer({interaction:expanded});
-                 if (expanded) {
-                     this.Div.saAnnotationWidget("show");
-                     this.Div.saViewer({overview : true,
-                                        menu     : true});
-                 } else {
-                     this.Div.saAnnotationWidget("hide");
-                     this.Div.saViewer({overview : false,
-                                        menu     : false});
-                     // TODO: Formalize this hack. Viewer formally needs a note.
-                     // If not editable, restore the note.
-                     var viewer = this.Div[0].saViewer;
-                     var note = viewer.saNote;
-                     var index = viewer.saViewerIndex || 0;
-                     if ( ! this.Div[0].saLightBox.Editable && note) {
-                         note.ViewerRecords[index].Apply(viewer);
-                     }
-                 }
-             }
-            });
+        .saAnnotationWidget("hide");
+    // sa viewer is separate.  We need to pass the args to saLightBoxToo.
+    args.onExpand = 
+        function (expanded) {
+            this.Div.saViewer({interaction:expanded});
+            if (expanded) {
+                this.Div.saAnnotationWidget("show");
+                this.Div.saViewer({overview : true,
+                                   menu     : true});
+            } else {
+                this.Div.saAnnotationWidget("hide");
+                this.Div.saViewer({overview : false,
+                                   menu     : false});
+                // This is here to restore the viewer to its
+                // initial state when it shrinks
+                // TODO: Formalize this hack. Viewer formally needs a note.
+                // If not editable, restore the note.
+                var viewer = this.Div[0].saViewer;
+                var note = viewer.saNote;
+                var index = viewer.saViewerIndex || 0;
+                if ( ! this.Div[0].saLightBox.Editable && note) {
+                    if (note.Type == 'HTML') {
+                        note.ViewerRecords[index].Apply(viewer);
+                    } else if (note.Type == 'Stack') {
+                        note.DisplayView(display);
+                    }
+                }
+            }
+        };
+    this.saLightBox(args);
 
     this.addClass('sa-lightbox-viewer');
 
@@ -2301,14 +2321,20 @@ jQuery.prototype.saHtml = function(string) {
             var noteId = $(viewDivs[i]).attr('sa-note-id');
             var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
             viewerIdx = parseInt(viewerIdx);
+            // TODO: This should not be here.  
+            // The saViewer should handle this internally.
             if (noteId) {
                 // TODO: Rethink this.
                 // The viewer does not actually keep a refrence to the note.
-                // We may not even care if we load a sceond copy of the
+                // We may not even care if we load a second copy of the
                 // note. So when changes are made, the note is important.
                 var note = GetNoteFromId(noteId);
                 if (note) {
-                    note.ViewerRecords[viewerIdx].Apply(viewer);
+                    if (note.Type == 'HTML') {
+                        note.ViewerRecords[viewerIdx].Apply(viewer);
+                    } else if (note.Type == 'Stack') {
+                        note.DisplayView(display);
+                    }
                     viewer.saNote = note;
                     viewer.saViewerIndex = viewerIdx;
                 }
@@ -2475,10 +2501,12 @@ function saViewerSetup(self, args) {
         
         if (args.note) {
             viewer.saNote = args.note;
-            viewer.saViewerIndex = args.viewerIndex || 0;
-            // .... TODO ....
-            // Note note record. DUALDisplay?
-            args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
+            var index = viewer.saViewerIndex = args.viewerIndex || 0;
+            if (args.note.Type == 'HTML') {
+                args.note.ViewerRecords[index].Apply(viewer);
+            } else if (args.note.Type == 'Stack') {
+                args.note.DisplayView(display);
+            }
             $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
             $(self[i]).attr('sa-viewer-index', viewer.saViewerIndex);
         }
@@ -2502,6 +2530,106 @@ jQuery.prototype.saRecordViewer = function() {
             this[i].saViewer.saNote.ViewerRecords[idx].CopyViewer(this[i].saViewer);
         }
     }
+}
+    
+
+
+//==============================================================================
+// This is the standard dual viewer used for stacks and differential
+// viewing. I am making it separate from the single viewer, but
+// at the very least I want the lightbox viewer to be the same for
+// both the viewer and dual viewer. I think I can make a single display with
+// the same API as the dual display.
+
+// The dual view widget uses the saViewer, so this cannot be merged with saViewer.
+
+
+
+jQuery.prototype.saDualViewer = function(args) {
+    // default
+    args = args || {};
+    // This is ignored if there is not viewId or note.
+    args.viewerIndex = args.viewerIndex || 0;
+    // get the note object if an id is specified.
+    if (args.viewId) {
+        args.note = GetNoteFromId(args.viewId);
+        if (args.note == null) {
+            // It has not been loaded yet.  Get if from the server.
+            args.note = new Note();
+            var self = this;
+            args.note.LoadViewId(
+                args.viewId,
+                function () {
+                    saDualViewerSetup(self, args);
+                });
+            return this;
+        }
+    }
+    saDualViewerSetup(this, args);
+    return this;
+}
+
+function saDualViewerSetup(self, args) {
+    for (var i = 0; i < self.length; ++i) {
+        if ( ! self[i].saDualViewer) {
+            // Add the viewer as an instance variable to the dom object.
+            self[i].saDualViewer = new DualViewWidget($(self[i])); // args??
+
+            // ???? EVENT_MANAGER.AddViewer(self[i].saViewer);
+
+            // When the div resizes, we need to synch the camera and
+            // canvas.
+            //self[i].onresize =
+            //    function () {
+            //        this.saViewer.UpdateSize();
+            //    }
+            // Only the body seems to trigger onresize.  We need to trigger
+            // it explicitly (from the body onresize function).
+            $(self[i]).addClass('sa-resize');
+        }
+        var self = self[i].saDualViewer;
+        // TODO:  Handle zoomWidget options
+        //if (args.overview !== undefined) {
+        //    viewer.SetOverViewVisibility(args.overview);
+        //}
+        // The way I handle the viewer edit menu is messy.
+        // TODO: Find a more elegant way to add tabs.
+        // Maybe the way we handle the anntation tab shouodl be our pattern.
+        //if (args.menu !== undefined) {
+        //    if ( ! viewer.Menu) {
+        //        viewer.Menu = new ViewEditMenu(viewer, null);
+        //    }
+        //    viewer.Menu.SetVisibility(args.menu);
+        //}
+
+        if (args.note) {
+            display.saNote = args.note;
+            if (note.Type == 'HTML') {
+                console.log("dual view is not appropriate for HTML notes.");
+            }
+            note.DisplayView(display);
+            $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
+        }
+        //if (args.hideCopyright) {
+        //    viewer.CopyrightWrapper.hide();
+        //}
+        //if (args.interaction !== undefined) {
+        //    viewer.SetInteractionEnabled(args.interaction);
+        //}
+    }
+}
+
+
+// This put changes from the viewer in to the note.
+// Is there a better way to do this?
+// Maybe a save method?
+jQuery.prototype.saRecordViewer = function() {
+    //for (var i = 0; i < this.length; ++i) {
+    //    if (this[i].saViewer.saNote && this[i].saViewer) {
+    //        var idx = this[i].saViewer.saViewerIndex || 0;
+   //         this[i].saViewer.saNote.ViewerRecords[idx].CopyViewer(this[i].saViewer);
+   //     }
+   // }
 }
     
 
@@ -3462,22 +3590,15 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 }
 
 
-
-
-
-
 //==============================================================================
 // Although this is only an option for saViewers,  Make it separate to keep
 // it clean. NOTE: .saViewer has to be setup before this call.
-
-
 
 //args: 
 jQuery.prototype.saAnnotationWidget = function(args) {
     for (var i = 0; i < this.length; ++i) {
         var item = this[i];
         if ( ! item.saViewer) {
-            console.log("Setup the viewer before the annotation widget.");
             return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")

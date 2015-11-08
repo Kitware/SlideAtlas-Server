@@ -235,3 +235,4 @@ DualViewWidget.prototype.Draw = function () {
     }
     if (this.Viewers[1] && this.DualView) { this.Viewers[1].Draw(); }
 }
+
