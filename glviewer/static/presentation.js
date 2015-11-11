@@ -1849,13 +1849,11 @@ HtmlPage.prototype.EditOn = function () {
 
 // Hide/show the edit gui on all the sa elements
 HtmlPage.prototype.SaEditOff = function () {
-    $('.sa-annotation-widget').saAnnotationWidget('hide');
     $('.sa-edit-gui').saButtons('disable');
     $('.sa-presentation-text').attr('contenteditable', 'false');
 }
 
 HtmlPage.prototype.SaEditOn = function () {
-    $('.sa-annotation-widget').saAnnotationWidget('show');
     $('.sa-edit-gui').saButtons('enable');
     $('.sa-presentation-text').attr('contenteditable', 'true');
 }
@@ -2291,13 +2289,8 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
             'note'         : this.Note,
             'viewerIndex'  : viewerIdx,
             'hideCopyright': true,
-            'interaction'  : false,
             'editable'     : EDIT,
             'delete' : function (dom) {self.ViewDeleteCallback(dom);}});
-    // MOVE
-        //.addClass('sa-presentation-view')
-        //.saAnnotationWidget("hide")
-    //this.InitializeViews(viewerDiv);
 
     return viewerDiv;
 }
@@ -2325,14 +2318,11 @@ HtmlPage.prototype.InsertView2 = function(viewId) {
               'width'  : defaultPosition.width,
               'top'    : defaultPosition.top,
               'height' : defaultPosition.height})
-        .saDualViewer({
+        .saLightBoxViewer({
             'viewId'       : viewId,
+            'dual'         : true,
             'hideCopyright': true,
             'editable'     : EDIT});
-    // MOVE
-        //.addClass('sa-presentation-view')
-        //.saAnnotationWidget("hide")
-    //this.InitializeViews(viewerDiv);
 
     return viewerDiv;
 }
@@ -2345,43 +2335,6 @@ HtmlPage.prototype.ViewDeleteCallback = function (dom) {
          width:dom.style.width,
          height:dom.style.height});
 }
-
-// This is done on creation and when it is realoded so I am making it its
-// own function.  I do not want to put this into the viewer-utilities
-// because it is too specific to presentations.  I could make a composite
-// lightboxViewer jquery element though.
-// TODO: Make this a composite lightboxviewer.
-/* MOVE
-HtmlPage.prototype.InitializeViews = function(viewerDiv) {
-    viewerDiv
-        .saViewer({'hideCopyright': true,
-                   'overview'     : false})
-        .saAnnotationWidget("hide")
-        .saLightBox(
-            {editable:EDIT,
-             onExpand : function(expanded) {
-                 viewerDiv.saViewer({interaction:expanded});
-                 if (expanded) {
-                     viewerDiv.saAnnotationWidget("show");
-                     viewerDiv.saViewer({overview : true,
-                                         menu     : true});
-                 } else {
-                     viewerDiv.saAnnotationWidget("hide");
-                     viewerDiv.saViewer({overview : false,
-                                         menu     : false});
-                     // TODO: Formalize this hack. Viewer formally needs a note.
-                     // If not editable, restore the note.
-                     var viewer = viewerDiv[0].saViewer;
-                     var note = viewer.saNote;
-                     var index = viewer.saViewerIndex || 0;
-                     if ( ! EDIT && note) {
-                         note.ViewerRecords[index].Apply(viewer);
-                     }
-                 }
-             }
-            });
-}
-*/
 
 // NOTE: This should be lagacy now.  The jquery extensions should handle this.
 // Text elements need to resize explicitly.
@@ -2471,11 +2424,8 @@ function ViewerPage (parent, edit) {
 
     // TODO: Get Rid of EVENT_MANAGER and CANVAS globals.
     EVENT_MANAGER = new EventManager(CANVAS);
-
+    // TODO: Get rid of this too.
     DUAL_DISPLAY = new DualViewWidget(this.Div);
-    // TODO: Is this really needed here?  Try it at the end.
-    //handleResize();
-
     // TODO: Get rid of this global variable.
     NAVIGATION_WIDGET = new NavigationWidget(this.Div,DUAL_DISPLAY);
 

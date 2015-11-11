@@ -24,6 +24,9 @@ function DualViewWidget(parent) {
     var self = this;
     this.Viewers = [];
 
+    this.Parent = parent;
+    parent.addClass('sa-dual-viewer');
+
     // This parent used to be CANVAS.
     var width = parent.innerWidth();
     var height = parent.innerHeight();
@@ -79,6 +82,44 @@ function DualViewWidget(parent) {
     }
 }
 
+// Astracting the saViewer class to support dual viewers and stacks.
+DualViewWidget.prototype.ProcessArguments = function (args) {
+    if (args.note) {
+        // TODO: DO we need both?
+        this.saNote = args.note;
+        args.note.DisplayView(this);
+        this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+    }
+
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        var viewer = this.Viewers[i];
+
+        // TODO:  Handle zoomWidget options
+        if (args.overview !== undefined) {
+            viewer.SetOverViewVisibility(args.overview);
+        }
+        if (args.drawWidget !== undefined) {
+            viewer.SetAnnotationWidgetVisibility(args.drawWidget);
+        }
+        // The way I handle the viewer edit menu is messy.
+        // TODO: Find a more elegant way to add tabs.
+        // Maybe the way we handle the anntation tab shouodl be our pattern.
+        if (args.menu !== undefined) {
+            if ( ! viewer.Menu) {
+                viewer.Menu = new ViewEditMenu(viewer, null);
+            }
+            viewer.Menu.SetVisibility(args.menu);
+        }
+
+        if (args.hideCopyright) {
+            viewer.CopyrightWrapper.hide();
+        }
+        if (args.interaction !== undefined) {
+            viewer.SetInteractionEnabled(args.interaction);
+        }
+    }
+}
+
 // API for ViewerSet
 DualViewWidget.prototype.GetNumberOfViewers = function() {
     if (this.DualView) {
@@ -103,7 +144,7 @@ DualViewWidget.prototype.SetNumberOfViewers = function(numViews) {
         this.Viewer1Fraction = 1.0;
     }
 
-    handleResize();
+    this.UpdateSize();
     this.UpdateGui();
 }
 
@@ -159,7 +200,7 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
     if (timeStep > this.AnimationDuration) {
         // end the animation.
         this.Viewer1Fraction = this.AnimationTarget;
-        handleResize();
+        this.UpdateSize();
         this.UpdateGui();
         // this function is defined in init.js
         this.Draw();
@@ -172,7 +213,7 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
     this.AnimationDuration *= (1.0-k);
     this.Viewer1Fraction += (this.AnimationTarget - this.Viewer1Fraction) * k;
 
-    handleResize();
+    this.UpdateSize();
     // 2d canvas does not draw without this.
     this.Draw();
     var self = this;
@@ -234,5 +275,42 @@ DualViewWidget.prototype.Draw = function () {
         this.Viewers[0].Draw();
     }
     if (this.Viewers[1] && this.DualView) { this.Viewers[1].Draw(); }
+}
+
+
+DualViewWidget.prototype.UpdateSize = function () {
+    var height = this.Parent.height();
+    var width = this.Parent.width();
+
+    var width1 = width * this.Viewer1Fraction;
+    var width2 = width - width1;
+
+    // GL was odd because both viewer wer pu in the same canvas.
+
+    // TODO: Let css handle positioning the viewers.
+    //       This call positions the overview and still affect the main view.
+    if (this.Viewers[0]) {
+        // this should call UpdateSize
+        this.Viewers[0].SetViewport([0, 0, width1, height]);
+        this.Viewers[0].EventuallyRender(false);
+    }
+    if (this.Viewers[1]) {
+        // this should call UpdateSize
+        this.Viewers[1].SetViewport([width1, 0, width2, height]);
+        this.Viewers[1].EventuallyRender(false);
+    }
+}
+
+
+DualViewWidget.prototype.AnnotationWidgetOn = function() {
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        this.Viewers.AnnotationWidgetOn();
+    }
+}
+
+DualViewWidget.prototype.AnnotationWidgetOff = function() {
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        this.Viewers.AnnotationWidgetOff();
+    }
 }
 

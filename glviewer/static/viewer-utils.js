@@ -1941,7 +1941,7 @@ saLightBox.prototype.UpdateSize = function() {
             this.Div[0].onresize =
                 function() {
                     self.UpdateSize();
-                }
+                };
             this.Div.addClass('sa-resize');
         }
 
@@ -2047,25 +2047,28 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     if ( ! args.hideCopyright) {
         args.hideCopyright = true;
     }
+    if ( args.interaction === undefined) {
+        args.interaction = false;
+    }
+
     // Small viewer does not have overview
     args.overview = false;
     var editable = args.editable;
 
     // sa viewer is separate.  We need to pass the args to saLightBoxToo.
-    this.saViewer(args)
-        .saAnnotationWidget("hide");
+    this.saViewer(args);
     // sa viewer is separate.  We need to pass the args to saLightBoxToo.
     args.onExpand = 
         function (expanded) {
             this.Div.saViewer({interaction:expanded});
             if (expanded) {
-                this.Div.saAnnotationWidget("show");
-                this.Div.saViewer({overview : true,
-                                   menu     : true});
+                this.Div.saViewer({overview  : true,
+                                   menu      : true,
+                                   drawWidget: true});
             } else {
-                this.Div.saAnnotationWidget("hide");
-                this.Div.saViewer({overview : false,
-                                   menu     : false});
+                this.Div.saViewer({overview  : false,
+                                   menu      : false,
+                                   drawWidget: false});
                 // This is here to restore the viewer to its
                 // initial state when it shrinks
                 // TODO: Formalize this hack. Viewer formally needs a note.
@@ -2358,7 +2361,7 @@ jQuery.prototype.saHtml = function(string) {
                               editable   : true});
 
             items = this.find('.sa-lightbox-viewer');
-            items.saAnnotationWidget('hide');
+            items.saViewer({drawWidget: false});
         }
 
         return;
@@ -2434,6 +2437,7 @@ jQuery.prototype.saResizable = function(args) {
 // args = {interaction:true,
 //         overview:true,
 //         menu:true, 
+//         drawWidget:true,
 //         zoomWidget:true,
 //         viewId:"55f834dd3f24e56314a56b12", note: {...}
 //         viewerIndex: 0,
@@ -2466,13 +2470,37 @@ jQuery.prototype.saViewer = function(args) {
     return this;
 }
 
+// I am struggling for an API to choose between single view and dual view.
+// - I considered saDualViewer, but it is nearly identical to saViewer and
+// saLightBoxViewer does not know which to create because it does not have
+// the note early enough.
+// - I consider hinging it on the existence of sa-viewer-index but that is
+// hidden and not obvious.
+// I choose to pass an argument flag "dual", but am sure how to store the
+// flag in html. I could have an attribute "dual", but I think I like to 
+// change the class from sa-viewer to sa-dual-viewer better. 
+// TODO: Make the argument calls not dependant on order.
 function saViewerSetup(self, args) {
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
+            if (args.dual == undefined) {
+                // look for class name.
+                if (self.hasClass('sa-dual-viewer')) {
+                    args.dual = true;
+                }
+            }
+
             // Add the viewer as an instance variable to the dom object.
-            self[i].saViewer = new Viewer($(self[i]), args);
-            // TODO: Get rid of the event manager.
-            EVENT_MANAGER.AddViewer(self[i].saViewer);
+            if (args.dual) {
+                // TODO: dual has to be set on the first call.  Make this
+                // order independant. Also get rid of args here. We should
+                // use process arguments to setup options.
+                self[i].saViewer = new DualViewWidget($(self[i]));
+            } else {
+                self[i].saViewer = new Viewer($(self[i]), args);
+                // TODO: Get rid of the event manager.
+                EVENT_MANAGER.AddViewer(self[i].saViewer);
+            }
 
             // When the div resizes, we need to synch the camera and
             // canvas.
@@ -2484,41 +2512,9 @@ function saViewerSetup(self, args) {
             // it explicitly (from the body onresize function).
             $(self[i]).addClass('sa-resize');
         }
-        var viewer = self[i].saViewer;
-        // TODO:  Handle zoomWidget options
-        if (args.overview !== undefined) {
-            viewer.SetOverViewVisibility(args.overview);
-        }
-        // The way I handle the viewer edit menu is messy.
-        // TODO: Find a more elegant way to add tabs.
-        // Maybe the way we handle the anntation tab shouodl be our pattern.
-        if (args.menu !== undefined) {
-            if ( ! viewer.Menu) {
-                viewer.Menu = new ViewEditMenu(viewer, null);
-            }
-            viewer.Menu.SetVisibility(args.menu);
-        }
-        
-        if (args.note) {
-            viewer.saNote = args.note;
-            var index = viewer.saViewerIndex = args.viewerIndex || 0;
-            if (args.note.Type == 'HTML') {
-                args.note.ViewerRecords[index].Apply(viewer);
-            } else if (args.note.Type == 'Stack') {
-                args.note.DisplayView(display);
-            }
-            $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
-            $(self[i]).attr('sa-viewer-index', viewer.saViewerIndex);
-        }
-        if (args.hideCopyright) {
-            viewer.CopyrightWrapper.hide();
-        }
-        if (args.interaction !== undefined) {
-            viewer.SetInteractionEnabled(args.interaction);
-        }
+        self[i].saViewer.ProcessArguments(args);
     }
 }
-
 
 // This put changes from the viewer in to the note.
 // Is there a better way to do this?
@@ -2531,7 +2527,6 @@ jQuery.prototype.saRecordViewer = function() {
         }
     }
 }
-    
 
 
 //==============================================================================
@@ -2579,15 +2574,15 @@ function saDualViewerSetup(self, args) {
 
             // When the div resizes, we need to synch the camera and
             // canvas.
-            //self[i].onresize =
-            //    function () {
-            //        this.saViewer.UpdateSize();
-            //    }
+            self[i].onresize =
+                function () {
+                    this.saDualViewer.UpdateSize();
+                };
             // Only the body seems to trigger onresize.  We need to trigger
             // it explicitly (from the body onresize function).
             $(self[i]).addClass('sa-resize');
         }
-        var self = self[i].saDualViewer;
+        var display = self[i].saDualViewer;
         // TODO:  Handle zoomWidget options
         //if (args.overview !== undefined) {
         //    viewer.SetOverViewVisibility(args.overview);
@@ -2604,10 +2599,10 @@ function saDualViewerSetup(self, args) {
 
         if (args.note) {
             display.saNote = args.note;
-            if (note.Type == 'HTML') {
+            if (args.note.Type == 'HTML') {
                 console.log("dual view is not appropriate for HTML notes.");
             }
-            note.DisplayView(display);
+            args.note.DisplayView(display);
             $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
         }
         //if (args.hideCopyright) {
@@ -3593,6 +3588,9 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 //==============================================================================
 // Although this is only an option for saViewers,  Make it separate to keep
 // it clean. NOTE: .saViewer has to be setup before this call.
+
+// This is not compatable with the dual viewer.  We need two widgets (one
+// per viewer).  Legacy now.
 
 //args: 
 jQuery.prototype.saAnnotationWidget = function(args) {

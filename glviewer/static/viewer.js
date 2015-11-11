@@ -17,11 +17,15 @@ var INTERACTION_OVERVIEW = 4;
 var INTERACTION_OVERVIEW_DRAG = 5;
 var INTERACTION_ICON_ROTATE = 6;
 
-
+// TODO: Can we get rid of args parameter now that we have ProcessArguments method?
 // See the top of the file for description of args.
 function Viewer (parent, args) {
     args = args || {};
     var self = this;
+
+    this.Parent = parent;
+    parent.addClass('sa-viewer');
+
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
@@ -188,13 +192,50 @@ function Viewer (parent, args) {
         //    the overview with the mouse wheel is not important anyway.
         //can[0].addEventListener(
         //    function (e){return self.HandleOverViewMouseWheel(e);},
-        //    "wheel",			      
+        //    "wheel",
 			  //    false);
     }
 
     this.CopyrightWrapper = $('<div>')
         .appendTo(this.MainView.CanvasDiv)
         .addClass("sa-view-copyright");
+}
+
+// I am moving some of the saViewer code into this viewer object because
+// I am trying to abstract the single viewer used for the HTML presentation
+// note and the full dual view / stack note.
+// TODO: Make an alternative path that does not require a note.
+Viewer.prototype.ProcessArguments = function (args) {
+    // TODO:  Handle zoomWidget options
+    if (args.overview !== undefined) {
+        this.SetOverViewVisibility(args.overview);
+    }
+    if (args.drawWidget !== undefined) {
+        this.SetAnnotationWidgetVisibility(args.drawWidget);
+    }
+    // The way I handle the viewer edit menu is messy.
+    // TODO: Find a more elegant way to add tabs.
+    // Maybe the way we handle the anntation tab shouodl be our pattern.
+    if (args.menu !== undefined) {
+        if ( ! this.Menu) {
+            this.Menu = new ViewEditMenu(this, null);
+        }
+        this.Menu.SetVisibility(args.menu);
+    }
+
+    if (args.note) {
+        this.saNote = args.note;
+        var index = this.saViewerIndex = args.viewerIndex || 0;
+        args.note.ViewerRecords[index].Apply(this);
+        this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+        this.Parent.attr('sa-viewer-index', this.saViewerIndex);
+    }
+        if (args.hideCopyright) {
+            this.CopyrightWrapper.hide();
+        }
+    if (args.interaction !== undefined) {
+        this.SetInteractionEnabled(args.interaction);
+    }
 }
 
 Viewer.prototype.SetOverViewVisibility = function(visible) {
@@ -205,6 +246,7 @@ Viewer.prototype.SetOverViewVisibility = function(visible) {
     }
 }
 
+// The interaction boolean argument will supress interaction events if false.
 Viewer.prototype.EventuallyRender = function(interaction) {
     if (! this.RenderPending) {
         this.RenderPending = true;
@@ -2167,10 +2209,28 @@ Viewer.prototype.HandleOverViewMouseWheel = function(event) {
 	  } else if (tmp < 0) {
         this.OverViewScale /= 1.2;
     }
-    
+
     // TODO: Get rid of this hack.
     $(window).trigger('resize');
 
     return true;
 }
+
+Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
+    if (vis) {
+        if ( ! this.AnnotationWidget) {
+            this.AnnotationWidget = new AnnotationWidget(this);
+        }
+        this.AnnotationWidget.show();
+    } else {
+        if ( this.AnnotationWidget) {
+            this.AnnotationWidget.hide();
+        }
+    }
+}
+
+
+
+
+
 

@@ -750,7 +750,7 @@ function Main2(rootNote) {
 
     if ( ! MOBILE_DEVICE) {
         // Hack for all viewer edit menus to share browser.
-        VIEW_BROWSER = new ViewBrowser(parent);
+        VIEW_BROWSER = new ViewBrowser($('body'));
 
         // TODO: See if we can get rid of this, or combine it with
         // the view browser.
