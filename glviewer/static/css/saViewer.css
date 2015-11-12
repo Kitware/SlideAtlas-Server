@@ -354,37 +354,37 @@
         bottom : 100px;
         z-index: 5;
     }
-    .sa-view-annotation-button.sa-active {
-        border-style: inset;
-        opacity: 1.0;
-    }
-    /* End Annotation block */
+}
+.sa-view-annotation-button.sa-active {
+    border-style: inset;
+    opacity: 1.0;
+}
+/* End Annotation block */
 
-    /*
-     *  Begin Navigation block
-     */
+/*
+ *  Begin Navigation block
+ */
 
-    .sa-view-navigation-panel {
-        left: -45px;
-        width: 200px;
-        height: 50px;
-        padding: 0px 2px;
-    }
-
-    .sa-view-navigation-div {
-        left: 50px;
-        bottom: 0px;
-    }
-
-    .sa-view-navigation-button {
-        height: 40px;
-        width: 40px;
-        padding: 5px;
-        opacity: 0.2;
-    }
-/* Done to change the width on small screens    */
+.sa-view-navigation-panel {
+    left: -45px;
+    width: 200px;
+    height: 50px;
+    padding: 0px 2px;
 }
 
+.sa-view-navigation-div {
+    left: 50px;
+    bottom: 0px;
+}
+
+.sa-view-navigation-button {
+    height: 40px;
+    width: 40px;
+    padding: 5px;
+    opacity: 0.2;
+}
+
+/* Done to change the width on small screens    */
 @media only screen and (max-device-width: 480px) {
     .sa-view-navigation-div {
         position: absolute;
