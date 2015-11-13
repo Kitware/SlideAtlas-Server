@@ -316,8 +316,7 @@ Presentation.prototype.EditOff = function () {
         this.SaveButton.hide();
         this.InsertMenuButton.hide();
         this.DeleteSlideButton.hide();
-        this.AnswersButton.hide();
-        this.AnswersLabel.hide();
+        // QuizMenu / label?
         this.EditTabs.DisableTabDiv(this.BrowserDiv);
         this.EditTabs.DisableTabDiv(this.SearchDiv);
         this.EditTabs.DisableTabDiv(this.ClipboardDiv);
@@ -337,8 +336,6 @@ Presentation.prototype.EditOn = function () {
         this.SaveButton.show();
         this.InsertMenuButton.show();
         this.DeleteSlideButton.show();
-        this.AnswersButton.show();
-        this.AnswersLabel.show();
         this.EditTabs.EnableTabDiv(this.BrowserDiv);
         this.EditTabs.EnableTabDiv(this.SearchDiv);
         this.EditTabs.EnableTabDiv(this.ClipboardDiv);
@@ -446,33 +443,6 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
                     this.QuizMenu.val("review");
                 }
         }
-
-
-        /*
-        this.AnswersButton = $('<input type="checkbox">')
-            .appendTo(this.SlidesDiv)
-            .prop('title', "show / hide answers")
-            .css({'float':'right'});
-        this.AnswersButton[0].checked = true;
-        this.AnswersButton
-            .change(function () {
-                if (this.checked) {
-                    self.RootNote.Mode = "answer-show";
-                } else {
-                    self.RootNote.Mode = "answer-hide";
-                }
-                self.UpdateQuestionMode();
-            });
-        // Set the question mode
-        if (this.RootNote.Mode && this.RootNote.Mode == 'answer-hide') {
-            this.AnswersButton[0].checked = false;
-        }
-
-        this.AnswersLabel = $('<div>')
-            .appendTo(this.SlidesDiv)
-            .text("answers")
-            .css({'float':'right'});
-            */
 
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
@@ -1870,12 +1840,16 @@ HtmlPage.prototype.SaEditOff = function () {
     $('.sa-annotation-widget').saAnnotationWidget('hide');
     $('.sa-edit-gui').saButtons('disable');
     $('.sa-presentation-text').attr('contenteditable', 'false');
+    $('.sa-presentation-rectangle').saElement({'editable':false});
+    $('.sa-light-box').saLightBox({'editable':false});
 }
 
 HtmlPage.prototype.SaEditOn = function () {
     $('.sa-annotation-widget').saAnnotationWidget('show');
     $('.sa-edit-gui').saButtons('enable');
     $('.sa-presentation-text').attr('contenteditable', 'true');
+    $('.sa-presentation-rectangle').saElement({'editable':true});
+    $('.sa-light-box').saLightBox({'editable':true});
 }
 
 
@@ -1990,7 +1964,8 @@ HtmlPage.prototype.InitializeSlidePage = function() {
     var titleText = this.InsertTextBox(42)
         .css({'color':'white',
               'left':'18%',
-              'top':'8%'})
+              'top':'7.25%',
+              'height':'11.5%'})
         .text("Title")
         .addClass('sa-presentation-title');
 
@@ -2027,6 +2002,8 @@ HtmlPage.prototype.InsertImage = function(src) {
                      editable: EDIT})
         .addClass('sa-presentation-image');
     var img = $('<img>')
+        .css({'width':'100%',
+              'height':'100%'})
         .appendTo(imgDiv)
         .attr('src',src);
 
@@ -2196,6 +2173,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
               'fontFamily': "Verdana,sans-serif",
               'border' : '1px solid rgba(255, 255, 255, 0)',
               // defaults caller can reset these.
+              'box-sizing':'border-box',
               'left'   : '5%',
               'width'  : '50%',
               'top'    : '30%',

@@ -63,7 +63,6 @@ function saElement(div) {
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
             function (e) {
-                console.log('in  ' + self.LockActive);
                 if ( self.LockActive) {return true;}
                 self.SavedBorder = this.style.border;
                 $(this).css({'border-color':'#7BF'});
@@ -85,7 +84,6 @@ function saElement(div) {
                 }
             },
             function (e) {
-                console.log('out ' + self.LockActive);
                 if ( self.LockActive) {return true;}
                 this.style.border = self.SavedBorder;
                 self.ButtonDiv.remove();
@@ -607,7 +605,7 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
             this.MoveState = 0;
             return true;
         }
-        var handleSize = 6;
+        var handleSize = 7;
         var x = event.offsetX;
         var y = event.offsetY;
         var width = this.Div.outerWidth() - handleSize;
@@ -1485,7 +1483,6 @@ saTextEditor.prototype.EditingOn = function() {
     // Bad name. Actually movable.
     // TODO: Change this name.
     // hack
-    console.log("EditingOn");
     this.Div[0].saElement.LockActive = true;
     this.SavedMovable = this.Div[0].saElement.Editable;
     this.Div[0].saElement.EditableOff();
@@ -1504,7 +1501,6 @@ saTextEditor.prototype.EditingOff = function() {
 
     this.EditButtonDiv.hide();
     // hack
-    console.log("EditingOff");
     this.Div[0].saElement.LockActive = false;
 
     if (this.SavedMovable) {
