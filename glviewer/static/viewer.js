@@ -205,6 +205,7 @@ function Viewer (parent, args) {
 }
 
 Viewer.prototype.SetOverViewVisibility = function(visible) {
+    if ( ! this.OverViewDiv) { return;}
     if (visible) {
         this.OverViewDiv.show();
     } else {
