@@ -350,8 +350,8 @@ RecorderWidget.prototype.RecordStateCallback = function() {
 
     // The note will want to know its context
     // The stack viewer does not have  notes widget.
-    if ( typeof NOTES_WIDGET !== 'undefined') {
-        parentNote = NOTES_WIDGET.GetCurrentNote();
+    if (SA.NotesWidget) {
+        parentNote = SA.NotesWidget.GetCurrentNote();
         if ( ! parentNote.Id) {
             //  Note is not loaded yet.
             // Wait some more

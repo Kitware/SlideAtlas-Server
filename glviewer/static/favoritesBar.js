@@ -53,7 +53,7 @@ FavoritesBar.prototype.ShowHideFavorites = function(){
 
 
 FavoritesBar.prototype.SaveFavorite = function() {
-    NOTES_WIDGET.SaveBrownNote();
+    SA.NotesWidget.SaveBrownNote();
     // Hide shifts the other buttons to the left to fill the gap.
     var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
     button.addClass("sa-inactive");

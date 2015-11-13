@@ -10,7 +10,7 @@
 
 
 // Create and repond to the dual / single view toggle button.
-// How the window is deived between viewer1 and viewer1.
+// How the window is derived between viewer1 and viewer1.
 // Default: viewer1 uses all available space.
 
 
@@ -23,6 +23,11 @@ var VIEWER2;
 function DualViewWidget(parent) {
     var self = this;
     this.Viewers = [];
+
+    // Rather than getting the current note from the NotesWidget, keep a
+    // reference here.  SlideShow can have multiple "displays".
+    // We might consider keep a reference in the dua
+    this.Note = null;
 
     this.Parent = parent;
     parent.addClass('sa-dual-viewer');
@@ -79,7 +84,19 @@ function DualViewWidget(parent) {
 
         this.Viewers[0].AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
         this.Viewers[0].AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
+
+        // DualViewer is the navigation widgets temporary home.
+        // SlideShow can have multiple nagivation widgets so it is no
+        // longer a singlton.
+        // This is for moving through notes, session views and stacks.
+        // It is not exactly related to dual viewer. It is sort of a child
+        // of the dual viewer.
+        this.NavigationWidget = new NavigationWidget(parent,this);
     }
+}
+
+DualViewWidget.prototype.GetNote = function () {
+    return this.Note;
 }
 
 // Astracting the saViewer class to support dual viewers and stacks.
@@ -97,6 +114,12 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
         // TODO:  Handle zoomWidget options
         if (args.overview !== undefined) {
             viewer.SetOverViewVisibility(args.overview);
+        }
+        if (args.navigation !== undefined) {
+            this.NavigationWidget.SetVisibility(args.navigation);
+        }
+        if (args.zoomWidget !== undefined) {
+            viewer.SetZoomWidgetVisibility(args.zoomWidget);
         }
         if (args.drawWidget !== undefined) {
             viewer.SetAnnotationWidgetVisibility(args.drawWidget);
@@ -284,6 +307,13 @@ DualViewWidget.prototype.UpdateSize = function () {
 
     var width1 = width * this.Viewer1Fraction;
     var width2 = width - width1;
+
+
+    if (width2 <= 10) {
+        this.Viewers[1].Hide();
+    } else {
+        this.Viewers[1].Show();
+    }
 
     // GL was odd because both viewer wer pu in the same canvas.
 

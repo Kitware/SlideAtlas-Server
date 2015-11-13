@@ -98,7 +98,7 @@ function Presentation(rootNote, edit) {
                 'z-index': '-1'
             });
     // This is necessary for some reason.
-    EVENT_MANAGER = new EventManager(CANVAS);
+    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
@@ -213,9 +213,6 @@ function Presentation(rootNote, edit) {
     this.SlidePage = new SlidePage(this.AspectDiv, edit);
     this.HtmlPage  = new HtmlPage(this.AspectDiv, edit,
                                   rootNote.TypeData.Background);
-
-    // Problem with event manager (we get two key up events.
-    //this.ViewerPage = new ViewerPage(this.PresentationDiv, edit);
 
     this.GotoSlide(0);
 
@@ -740,7 +737,7 @@ Presentation.prototype.AddViewCallback = function(viewObj) {
     record.Load(viewObj.ViewerRecords[0]);
     this.Note.ViewerRecords.push(record);
 
-    this.SlidePage.DisplayNote(this.Note, PRESENTATION.Index);
+    this.SlidePage.DisplayNote(this.Note, SA.Presentation.Index);
 }
 
 // Callback from search.
@@ -988,17 +985,6 @@ Presentation.prototype.InsertYoutube = function () {
     this.HtmlPage.InsertIFrame(src);
 }
 
-
-// Viewer option only works for html pages.
-Presentation.prototype.ShowViewer = function(recordIdx) {
-    this.AspectDiv.hide();
-    //this.ViewerPage.SetViewerRecord(this.Note.ViewerRecords[recordIdx]);
-    //this.ViewerPage.Div.show();
-
-    $(window).trigger('resize');
-}
-
-
 // 0->Root/titlePage
 // Childre/slides start at index 1
 Presentation.prototype.GotoSlide = function (index){
@@ -1011,8 +997,6 @@ Presentation.prototype.GotoSlide = function (index){
     this.SlidePage.ClearNote();
     this.HtmlPage.ClearNote();
 
-    // These two are to get rid of the ViewerPage.
-    //this.ViewerPage.Div.hide();
     this.AspectDiv.show();
     this.Index = index;
     if (index == 0) { // Title page
@@ -1164,7 +1148,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
             .text(title)
             .data("index",i)
             .click(function () {
-                PRESENTATION.GotoSlide($(this).data("index"));
+                SA.Presentation.GotoSlide($(this).data("index"));
             });
         var sortHandle = $('<span>')
             .appendTo(slideDiv)
@@ -1298,9 +1282,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                PRESENTATION.Note.ViewerRecords.splice(0,1);
+                SA.Presentation.Note.ViewerRecords.splice(0,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, PRESENTATION.Index);
+                self.DisplayNote(self.Note, SA.Presentation.Index);
             });
         this.RemoveView2Button = $('<img>')
             .appendTo(this.ViewerDiv2)
@@ -1314,9 +1298,9 @@ function SlidePage(parent, edit) {
                   'height':'12px',
                   'z-index':'5'})
             .click(function () {
-                PRESENTATION.Note.ViewerRecords.splice(1,1);
+                SA.Presentation.Note.ViewerRecords.splice(1,1);
                 // Redisplay the viewers
-                self.DisplayNote(self.Note, PRESENTATION.Index);
+                self.DisplayNote(self.Note, SA.Presentation.Index);
             });
 
         // Setup view resizing.
@@ -1416,7 +1400,7 @@ function SlidePage(parent, edit) {
 
 SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
     if (viewerDiv) {
-        PRESENTATION.EditOff();
+        SA.Presentation.EditOff();
         this.FullWindowViewOffButton.show();
         this.FullWindowView1Button.hide();
         this.FullWindowView2Button.hide();
@@ -1431,7 +1415,7 @@ SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
             'bottom': '300px',
             'height': 'auto'});
         if (EDIT) {
-            PRESENTATION.EditOn();
+            SA.Presentation.EditOn();
         }
 
     }
@@ -1635,7 +1619,7 @@ SlidePage.prototype.InsertViewNote = function (note) {
         this.Note.ViewerRecords[1].Apply(this.ViewerDiv2[0].saViewer);
     }
 
-    this.DisplayNote(this.Note, PRESENTATION.Index);
+    this.DisplayNote(this.Note, SA.Presentation.Index);
 }
 
 
@@ -2402,122 +2386,6 @@ HtmlPage.prototype.UpdateEdits = function () {
         note.Text = htmlDiv.saHtml();
     }
 }
-
-
-
-// TODO: Simplify this.
-//==============================================================================
-// I am making a full fledge viewer for the full window option.
-function ViewerPage (parent, edit) {
-    this.Note = null;
-    this.RecordIndex = 0;
-
-    // Should I make another div or just use the parent?
-    this.Div = $('<div>')
-        .appendTo(parent)
-        .hide()
-        .css({
-            'background-color':'#FFF',
-            'position' : 'absolute',
-            'width': '100%',
-            'height': '100%'});
-
-    // TODO: Get Rid of EVENT_MANAGER and CANVAS globals.
-    EVENT_MANAGER = new EventManager(CANVAS);
-    // TODO: Get rid of this too.
-    DUAL_DISPLAY = new DualViewWidget(this.Div);
-    // TODO: Get rid of this global variable.
-    NAVIGATION_WIDGET = new NavigationWidget(this.Div,DUAL_DISPLAY);
-
-    //NOTES_WIDGET = new NotesWidget(this.Div, DUAL_DISPLAY);
-    //NOTES_WIDGET.SetModifiedCallback(NotesModified);
-    //NOTES_WIDGET.SetModifiedClearCallback(NotesNotModified);
-
-    // It handles the singlton global.
-    // Not now
-    //new RecorderWidget(DUAL_DISPLAY);
-
-    // Do not let guests create favorites.
-    // TODO: Rework how favorites behave on mobile devices.
-    if (USER != "" && ! MOBILE_DEVICE) {
-        if ( EDIT) {
-            // Put a save button here when editing.
-            SAVE_BUTTON = $('<img>')
-                .appendTo(this.Div)
-                .css({'position':'absolute',
-                      'bottom':'4px',
-                      'left':'10px',
-                      'height': '28px',
-                      'z-index': '5'})
-                .prop('title', "save to databse")
-                .addClass('editButton')
-                .attr('src',"webgl-viewer/static/save22.png")
-                .click(SaveCallback);
-            //for (var i = 0; i < DUAL_DISPLAY.Viewers.length; ++i) {
-            //    DUAL_DISPLAY.Viewers[i].OnInteraction(
-            //        function () {NOTES_WIDGET.RecordView();});
-            //}
-        } else {
-            // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(this.Div, DUAL_DISPLAY);
-            FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
-        }
-    }
-
-    if (MOBILE_DEVICE) {
-        NAVIGATION_WIDGET.SetVisibility(false);
-        //MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
-    }
-
-    // The event manager still handles stack alignment.
-    // This should be moved to a stack helper class.
-    // Undo and redo too.
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
-
-    // Keep the browser from showing the left click menu.
-    document.oncontextmenu = cancelContextMenu;
-
-    if ( ! MOBILE_DEVICE) {
-        InitSlideSelector(this.Div);
-        var viewMenu1 = new ViewEditMenu(DUAL_DISPLAY.Viewers[0],
-                                         DUAL_DISPLAY.Viewers[1]);
-        var viewMenu2 = new ViewEditMenu(DUAL_DISPLAY.Viewers[1],
-                                         DUAL_DISPLAY.Viewers[0]);
-
-        var annotationWidget1 = new AnnotationWidget(DUAL_DISPLAY.Viewers[0]);
-        annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(DUAL_DISPLAY.Viewers[1]);
-        annotationWidget1.SetVisibility(2);
-        DUAL_DISPLAY.UpdateGui();
-    }
-
-    $(window).bind('orientationchange', function(event) {
-        handleResize();
-    });
-
-    $(window).resize(function() {
-        handleResize();
-    }).trigger('resize');
-}
-
-
-ViewerPage.prototype.SetNote = function(note) {
-    //NOTES_WIDGET.SetRootNote(note);
-    note.DisplayView(DUAL_DISPLAY);
-    eventuallyRender();
-}
-
-
-ViewerPage.prototype.SetViewerRecord = function(record) {
-    var note = new Note();
-    note.ViewerRecords.push(record);
-    this.SetNote(note);
-}
-
-
-
-
 
 
 

@@ -8,9 +8,17 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Get stack displayed in a show (shallow copied)
-// Get dual light box working
-//     GUI and toggle interaction.
+// Check fetal foot (focal point)
+// Stack should open up in dual view mode.
+// Stack screens are not synchronized
+// Open lightbox viewers do not consume key events.
+// Open viewers should have navigation widget.
+// reload dual viewer.
+// Resize dual is not working.
+// Open dual viewer: overview missing.
+// delete button is visible in presentation mode.
+// Navigation does nothing in slide show.
+
 // Get Deep copy stack working.
 // Figure out how user can add a stack with the GUI.
 // Save changes to a stack.
@@ -2047,6 +2055,13 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     if ( ! args.hideCopyright) {
         args.hideCopyright = true;
     }
+    // No zoom widget when minimized.
+    if ( ! args.zoomWidget) {
+        args.zoomWidget = false;
+    }
+    if ( ! args.navigation) {
+        args.navigation = false;
+    }
     if ( args.interaction === undefined) {
         args.interaction = false;
     }
@@ -2063,11 +2078,15 @@ jQuery.prototype.saLightBoxViewer = function(args) {
             this.Div.saViewer({interaction:expanded});
             if (expanded) {
                 this.Div.saViewer({overview  : true,
+                                   navigation: true,
                                    menu      : true,
+                                   zoomWidget: true,
                                    drawWidget: true});
             } else {
                 this.Div.saViewer({overview  : false,
+                                   navigation: false,
                                    menu      : false,
+                                   zoomWidget: false,
                                    drawWidget: false});
                 // This is here to restore the viewer to its
                 // initial state when it shrinks
@@ -2497,9 +2516,9 @@ function saViewerSetup(self, args) {
                 // use process arguments to setup options.
                 self[i].saViewer = new DualViewWidget($(self[i]));
             } else {
-                self[i].saViewer = new Viewer($(self[i]), args);
+                self[i].saViewer = new Viewer($(self[i]));
                 // TODO: Get rid of the event manager.
-                EVENT_MANAGER.AddViewer(self[i].saViewer);
+                SA.EventManager.AddViewer(self[i].saViewer);
             }
 
             // When the div resizes, we need to synch the camera and
@@ -2570,8 +2589,6 @@ function saDualViewerSetup(self, args) {
             // Add the viewer as an instance variable to the dom object.
             self[i].saDualViewer = new DualViewWidget($(self[i])); // args??
 
-            // ???? EVENT_MANAGER.AddViewer(self[i].saViewer);
-
             // When the div resizes, we need to synch the camera and
             // canvas.
             self[i].onresize =
@@ -2583,19 +2600,6 @@ function saDualViewerSetup(self, args) {
             $(self[i]).addClass('sa-resize');
         }
         var display = self[i].saDualViewer;
-        // TODO:  Handle zoomWidget options
-        //if (args.overview !== undefined) {
-        //    viewer.SetOverViewVisibility(args.overview);
-        //}
-        // The way I handle the viewer edit menu is messy.
-        // TODO: Find a more elegant way to add tabs.
-        // Maybe the way we handle the anntation tab shouodl be our pattern.
-        //if (args.menu !== undefined) {
-        //    if ( ! viewer.Menu) {
-        //        viewer.Menu = new ViewEditMenu(viewer, null);
-        //    }
-        //    viewer.Menu.SetVisibility(args.menu);
-        //}
 
         if (args.note) {
             display.saNote = args.note;
@@ -2605,12 +2609,6 @@ function saDualViewerSetup(self, args) {
             args.note.DisplayView(display);
             $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
         }
-        //if (args.hideCopyright) {
-        //    viewer.CopyrightWrapper.hide();
-        //}
-        //if (args.interaction !== undefined) {
-        //    viewer.SetInteractionEnabled(args.interaction);
-        //}
     }
 }
 
@@ -3198,9 +3196,6 @@ function saFullWindowOption(div) {
 saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
     if (flag) {
         // TODO: Put this in a call back.
-        //PRESENTATION.EditOff();
-        //this.BottomDiv.hide();
-        //this.ViewPanel.css({'height':'100%'});
         saButtonsDisable(div[0]);
         this.FullWindowOptionOffButton.show();
         this.FullWindowOptionButton.hide();

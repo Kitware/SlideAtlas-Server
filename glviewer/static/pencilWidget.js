@@ -220,7 +220,7 @@ PencilWidget.prototype.HandleMouseMove = function(event) {
         var pt = this.Viewer.ConvertPointViewerToWorld(x,y);
         shape.Points.push([pt[0], pt[1]]); // avoid same reference.
         shape.UpdateBuffers();
-        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
         this.Viewer.EventuallyRender(true);
         return;
     }
@@ -332,7 +332,7 @@ PencilWidget.prototype.DialogApplyCallback = function() {
 
     localStorage.PencilWidgetDefaults = JSON.stringify({Color: hexcolor,
                                                         LineWidth: this.LineWidth});
-    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
 }
 
 

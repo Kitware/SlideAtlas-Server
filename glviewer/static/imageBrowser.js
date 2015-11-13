@@ -25,7 +25,7 @@ function Load() {
 
 
 function ShowImageBrowser() {
-  ACTIVE_VIEWER = EVENT_MANAGER.CurrentViewer;
+  ACTIVE_VIEWER = SA.EventManager.CurrentViewer;
   if ( ! ACTIVE_VIEWER) { return; }
 
   $('#ImageBrowser').show();

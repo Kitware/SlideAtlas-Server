@@ -247,7 +247,7 @@ PolylineWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
     }
     this.UpdateBounds();
     this.Shape.UpdateBuffers();
-    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
 
     this.Viewer.EventuallyRender(true);
 }
@@ -455,7 +455,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
         this.Shape.Points[lastIdx] = pt;
         this.Shape.UpdateBuffers();
         this.UpdateBounds();
-        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
         var idx = this.WhichVertexShouldBeActive(pt);
         // Only the first or last vertexes will stop the new line.
         this.ActivateVertex(idx);
@@ -481,7 +481,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
             this.LastMouseWorld = pt;
             this.Shape.UpdateBuffers();
             this.UpdateBounds();
-            if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
             this.PlacePopup();
             this.Viewer.EventuallyRender(true);
             return;
@@ -491,7 +491,7 @@ PolylineWidget.prototype.HandleMouseMove = function(event) {
             this.Shape.Points[this.ActiveVertex] = pt;
             this.Circle.Origin = pt;
             this.Shape.UpdateBuffers();
-            if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+            if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
             this.PlacePopup();
             this.Viewer.EventuallyRender(true);
         }
@@ -767,7 +767,7 @@ PolylineWidget.prototype.DialogApplyCallback = function() {
         {Color: hexcolor,
          ClosedLoop: this.Shape.Closed,
          LineWidth: this.LineWidth});
-    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
 }
 
 // Note, self intersection can cause unexpected areas.

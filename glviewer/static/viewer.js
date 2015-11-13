@@ -19,8 +19,7 @@ var INTERACTION_ICON_ROTATE = 6;
 
 // TODO: Can we get rid of args parameter now that we have ProcessArguments method?
 // See the top of the file for description of args.
-function Viewer (parent, args) {
-    args = args || {};
+function Viewer (parent) {
     var self = this;
 
     this.Parent = parent;
@@ -55,6 +54,7 @@ function Viewer (parent, args) {
     this.MainView.Camera.ComputeMatrix();
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
+        this.OverViewVisibility = true;
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
@@ -100,10 +100,6 @@ function Viewer (parent, args) {
     
     this.GuiElements = [];
     
-    if (args.zoomWidget && ! MOBILE_DEVICE) {
-        this.InitializeZoomGui();
-    }
-
     // For stack correlations.
     this.StackCorrelations = undefined;
     // This is only for drawing correlations.
@@ -141,17 +137,17 @@ function Viewer (parent, args) {
     can.on(
         "touchstart.viewer",
         function(event){
-            return EVENT_MANAGER.HandleTouchStart(event.originalEvent, self);
+            return SA.EventManager.HandleTouchStart(event.originalEvent, self);
         });
     can.on(
         "touchmove.viewer",
         function(event){
-            return EVENT_MANAGER.HandleTouchMove(event.originalEvent, self);
+            return SA.EventManager.HandleTouchMove(event.originalEvent, self);
         });
     can.on(
         "touchend.viewer",
         function(event){
-            EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+            SA.EventManager.HandleTouchEnd(event.originalEvent, self);
             return true;
         });
 
@@ -206,9 +202,11 @@ function Viewer (parent, args) {
 // note and the full dual view / stack note.
 // TODO: Make an alternative path that does not require a note.
 Viewer.prototype.ProcessArguments = function (args) {
-    // TODO:  Handle zoomWidget options
     if (args.overview !== undefined) {
         this.SetOverViewVisibility(args.overview);
+    }
+    if (args.zoomWidget !== undefined) {
+        this.SetZoomWidgetVisibility(args.zoomWidget);
     }
     if (args.drawWidget !== undefined) {
         this.SetAnnotationWidgetVisibility(args.drawWidget);
@@ -239,10 +237,25 @@ Viewer.prototype.ProcessArguments = function (args) {
 }
 
 Viewer.prototype.SetOverViewVisibility = function(visible) {
+    this.OverViewVisibility = visible;
     if (visible) {
         this.OverViewDiv.show();
     } else {
         this.OverViewDiv.hide();
+    }
+}
+
+Viewer.prototype.Hide = function() {
+    this.MainView.CanvasDiv.hide();
+    if (this.OverView) {
+        this.OverView.CanvasDiv.hide();
+    }
+}
+
+Viewer.prototype.Show = function() {
+    this.MainView.CanvasDiv.show();
+    if (this.OverView && this.OverVIewVisibility) {
+        this.OverView.CanvasDiv.show();
     }
 }
 
@@ -529,7 +542,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
                                             finishedCallback) {
     var sectionFileName = fileName;
     if (stack) {
-        var note = NOTES_WIDGET.GetCurrentNote();
+        var note = SA.NotesWidget.GetCurrentNote();
         var idx = fileName.indexOf('.');
         if (idx < 0) {
             sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -553,9 +566,9 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
     if (stack) {
-        var note = NOTES_WIDGET.GetCurrentNote();
+        var note = SA.NotesWidget.GetCurrentNote();
         if (note.StartIndex < note.ViewerRecords.length-1) {
-            NAVIGATION_WIDGET.NextNote();
+            SA.DualDisplay.NavigationWidget.NextNote();
             var self = this;
             setTimeout(function () {
                 self.SaveLargeImage(fileName, width, height, stack,
@@ -596,22 +609,22 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
      this.EventuallyRender(false);
  }
 
- Viewer.prototype.SaveStackImage = function(fileNameRoot) {
-     var self = this;
-     var note = NOTES_WIDGET.GetCurrentNote();
-     var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
-     this.SaveImage(fileName);
-     if (note.StartIndex < note.ViewerRecords.length-1) {
-         NAVIGATION_WIDGET.NextNote();
-         AddFinishedLoadingCallback(
-             function () {
-                 self.SaveStackImage(fileNameRoot); 
-             }
-         );
-         this.EventuallyRender(false);
-     }
- }
- //-----
+Viewer.prototype.SaveStackImage = function(fileNameRoot) {
+    var self = this;
+    var note = SA.NotesWidget.GetCurrentNote();
+    var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
+    this.SaveImage(fileName);
+    if (note.StartIndex < note.ViewerRecords.length-1) {
+        SA.DualDisplay.NavigationWidget.NextNote();
+        AddFinishedLoadingCallback(
+            function () {
+                self.SaveStackImage(fileNameRoot);
+            }
+        );
+        this.EventuallyRender(false);
+    }
+}
+//-----
 
 
 
@@ -770,17 +783,6 @@ Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
 // When I remove this function, move the logic to UpdateSize().
 Viewer.prototype.SetViewport = function(viewport) {
 
-    if (viewport[2] <= 10) {
-        this.MainView.CanvasDiv.hide();
-        if (this.OverView) {
-            this.OverView.CanvasDiv.hide();
-        }
-        return;
-    }
-    this.MainView.CanvasDiv.show();
-    if (this.OverView) {
-        this.OverView.CanvasDiv.show();
-    }
     this.MainView.SetViewport(viewport);
     this.MainView.Camera.ComputeMatrix();
 
@@ -935,7 +937,7 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    EVENT_MANAGER.CursorFlag = false;
+    SA.EventManager.CursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
@@ -1009,9 +1011,9 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
 Viewer.prototype.AddWidget = function(widget) {
     widget.Viewer = this;
     this.WidgetList.push(widget);
-    if (NOTES_WIDGET) {
+    if (SA.NotesWidget) {
         // Hack.
-        NOTES_WIDGET.MarkAsModified();
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -1024,9 +1026,9 @@ Viewer.prototype.RemoveWidget = function(widget) {
     if(idx!=-1) {
         this.WidgetList.splice(idx, 1);
     }
-    if (NOTES_WIDGET) {
+    if (SA.NotesWidget) {
         // Hack.
-        NOTES_WIDGET.MarkAsModified();
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -1155,7 +1157,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (EVENT_MANAGER.CursorFlag && EDIT) {
+    if (SA.EventManager.CursorFlag && EDIT) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
@@ -1633,7 +1635,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
 
      this.FireFoxWhich = event.which;
      event.preventDefault(); // Keep browser from selecting images.
-     EVENT_MANAGER.RecordMouseDown(event);
+     SA.EventManager.RecordMouseDown(event);
 
      if (this.RotateIconDrag) {
          // Problem with leaving the browser with mouse down.
@@ -1642,7 +1644,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          this.RotateIconDrag = false;
      }
 
-     if (EVENT_MANAGER.DoubleClick) {
+     if (SA.EventManager.DoubleClick) {
          // Without this, double click selects sub elementes.
          event.preventDefault();
          return this.HandleDoubleClick(event);
@@ -1689,7 +1691,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
  Viewer.prototype.HandleMouseUp = function(event) {
      if ( ! this.InteractionEnabled) { return true; }
      this.FireFoxWhich = 0;
-     EVENT_MANAGER.RecordMouseUp(event);
+     SA.EventManager.RecordMouseUp(event);
 
      if (this.RotateIconDrag) {
          this.RollUp(event);
@@ -1731,7 +1733,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
      if ( ! this.InteractionEnabled) { return true; }
 
      event.preventDefault(); // Keep browser from selecting images.
-     if ( ! EVENT_MANAGER.RecordMouseMove(event)) { return; }
+     if ( ! SA.EventManager.RecordMouseMove(event)) { return; }
      this.ComputeMouseWorld(event);
 
      // I think we need to deal with the move here because the mouse can
@@ -1782,15 +1784,15 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          var cy = y - (this.MainView.Viewport[3]*0.5);
          // GLOBAL views will go away when views handle this.
          this.MainView.Camera.HandleRoll(cx, cy,
-                                         EVENT_MANAGER.MouseDeltaX,
-                                         EVENT_MANAGER.MouseDeltaY);
+                                         SA.EventManager.MouseDeltaX,
+                                         SA.EventManager.MouseDeltaY);
          //if (this.OverView) {
          //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
          //}
          this.RollTarget = this.MainView.Camera.Roll;
          this.UpdateCamera();
      } else if (this.InteractionState == INTERACTION_ZOOM) {
-         var dy = EVENT_MANAGER.MouseDeltaY / this.MainView.Viewport[2];
+         var dy = SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
          this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
                                         / (1.0 + (dy* 5.0)));
          this.ZoomTarget = this.MainView.Camera.GetHeight();
@@ -1799,10 +1801,10 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          // Translate
          // Convert to view [-0.5,0.5] coordinate system.
          // Note: the origin gets subtracted out in delta above.
-         var dx = -EVENT_MANAGER.MouseDeltaX / this.MainView.Viewport[2];
-         var dy = -EVENT_MANAGER.MouseDeltaY / this.MainView.Viewport[2];
+         var dx = -SA.EventManager.MouseDeltaX / this.MainView.Viewport[2];
+         var dy = -SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
          // compute the speed of the movement.
-         var speed = Math.sqrt(dx*dx + dy*dy) / EVENT_MANAGER.MouseDeltaTime;
+         var speed = Math.sqrt(dx*dx + dy*dy) / SA.EventManager.MouseDeltaTime;
          speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
          // I am not sure I like the speed acceleration.
          // Lets try a limit.
@@ -2225,6 +2227,19 @@ Viewer.prototype.SetAnnotationWidgetVisibility = function(vis) {
     } else {
         if ( this.AnnotationWidget) {
             this.AnnotationWidget.hide();
+        }
+    }
+}
+
+Viewer.prototype.SetZoomWidgetVisibility = function(vis) {
+    if (vis) {
+        if ( ! this.ZoomTab) {
+            this.InitializeZoomGui();
+        }
+        this.ZoomTab.show();
+    } else {
+        if ( this.ZoomTab) {
+            this.ZoomTab.hide();
         }
     }
 }

@@ -10,6 +10,9 @@ function NavigationWidget(parent,display) {
    // Load the session slides from the localStorage
     this.SlideIndex = 0;
     this.Session = [];
+
+    this.NoteIterator = new NoteIterator();
+
     if (localStorage && localStorage.session) {
         this.Session = JSON.parse(localStorage.session);
         // Find the index of the current slide.
@@ -29,7 +32,6 @@ function NavigationWidget(parent,display) {
     var left = '170px';
     var bottom = '10px';
     if (MOBILE_DEVICE) {
-
         // fake a tab
         this.Tab = {};
         this.Tab.Panel = $('<div>')
@@ -53,7 +55,6 @@ function NavigationWidget(parent,display) {
             .addClass("sa-view-note")
             .html("");
     }
-
 
     this.PreviousSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
@@ -119,6 +120,14 @@ function NavigationWidget(parent,display) {
         }).html();
 }
 
+NavigationWidget.prototype.SetNote = function(note) {
+    this.NoteIterator.SetNote(note);
+    this.Update();
+}
+
+NavigationWidget.prototype.GetNote = function() {
+    return this.NoteIterator.GetNote();
+}
 
 NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
     // 34=page down, 78=n, 32=space
@@ -152,63 +161,57 @@ NavigationWidget.prototype.ToggleVisibility = function() {
 NavigationWidget.prototype.SetVisibility = function(v) {
     this.Visibility = v;
     if (v) {
-        this.Tab.Panel.show();
+        this.Tab.show();
     } else {
-        this.Tab.Panel.hide();
+        this.Tab.hide();
     }
 }
 
 NavigationWidget.prototype.Update = function() {
-  // Disable and enable prev/next note buttons so we cannot go past the end.
-  var note = NOTES_WIDGET.GetCurrentNote();
-  if (note.Type == "Stack") {
-      // Next note refers to ViewerRecords.
-      if (note.StartIndex > 0) {
-          this.PreviousNoteButton.addClass("sa-active");
-      } else {
-          this.PreviousNoteButton.removeClass("sa-active");
-      }
-      if (note.StartIndex < note.ViewerRecords.length - 1) {
-          this.NextNoteButton.addClass("sa-active");
-      } else {
-          this.NextNoteButton.removeClass("sa-active");
-      }
-  } else {
-      // Next note refers to children.
-      if (NOTES_WIDGET.Iterator.IsStart()) {
-          this.PreviousNoteButton.removeClass("sa-active");
-      } else {
-          this.PreviousNoteButton.addClass("sa-active");
-      }
-      if (NOTES_WIDGET.Iterator.IsEnd()) {
-          this.NextNoteButton.removeClass("sa-active");
-      } else {
-          this.NextNoteButton.addClass("sa-active");
-      }
-  }
+    // Disable prev/next note buttons by default.
+    this.PreviousNoteButton.removeClass("sa-active");
+    this.NextNoteButton.removeClass("sa-active");
+    var note = this.NoteIterator.GetNote();
+    if (note) {
+        if (note.Type == "Stack") {
+            // Next note refers to ViewerRecords.
+            if (note.StartIndex > 0) {
+                this.PreviousNoteButton.addClass("sa-active");
+            }
+            if (note.StartIndex < note.ViewerRecords.length - 1) {
+                this.NextNoteButton.addClass("sa-active");
+            }
+        } else {
+            // Next note refers to children.
+            if ( ! this.NoteIterator.IsStart()) {
+                this.PreviousNoteButton.addClass("sa-active");
+            }
+            if ( ! this.NoteIterator.IsEnd()) {
+                this.NextNoteButton.addClass("sa-active");
+            }
+        }
+    }
 
-  // Disable and enable prev/next slide buttons so we cannot go past the end.
-  if (this.SlideIndex <= 0) {
-    this.PreviousSlideButton.removeClass("sa-active");
-  } else {
-    this.PreviousSlideButton.addClass("sa-active");
-  }
-  if (this.SlideIndex >= this.Session.length-1) {
-    this.NextSlideButton.removeClass("sa-active");
-  } else {
-    this.NextSlideButton.addClass("sa-active")
-  }
+    // Disable and enable prev/next slide buttons so we cannot go past the end.
+    if (this.SlideIndex <= 0) {
+        this.PreviousSlideButton.removeClass("sa-active");
+    } else {
+        this.PreviousSlideButton.addClass("sa-active");
+    }
+    if (this.SlideIndex >= this.Session.length-1) {
+        this.NextSlideButton.removeClass("sa-active");
+    } else {
+        this.NextSlideButton.addClass("sa-active")
+    }
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-    EVENT_MANAGER.CursorFlag = false;
+    SA.EventManager.CursorFlag = false;
 
-    var iterator = NOTES_WIDGET.Iterator;
-    var current = iterator.GetNote();
+    var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex <= 0) { return;}
         // Copy viewer annotation to the viewer record.
-
         current.RecordAnnotations(this.Display);
 
         // Move camera
@@ -222,7 +225,9 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         --current.StartIndex;
         current.DisplayStack(this.Display);
-        NOTES_WIDGET.SynchronizeViews(1, current);
+        if (SA.NotesWidget) {
+            SA.NotesWidget.SynchronizeViews(1, current);
+        }
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -231,7 +236,7 @@ NavigationWidget.prototype.PreviousNote = function() {
         return;
     }
 
-    if (iterator.IsStart()) {
+    if (this.NoteIterator.IsStart()) {
         // if not previous notes move to the previous slide
         this.PreviousSlide();
         return;
@@ -242,15 +247,16 @@ NavigationWidget.prototype.PreviousNote = function() {
     // Copy viewer annotation to the viewer record.
     current.RecordAnnotations(this.Display);
 
-    iterator.Previous();
-    NOTES_WIDGET.SelectNote(iterator.GetNote());
+    this.NoteIterator.Previous();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.SelectNote(this.NoteIterator.GetNote());
+    }
 }
 
 NavigationWidget.prototype.NextNote = function() {
-    EVENT_MANAGER.CursorFlag = false;
+    SA.EventManager.CursorFlag = false;
 
-    var iterator = NOTES_WIDGET.Iterator;
-    var current = iterator.GetNote();
+    var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
         if (current.StartIndex >= current.ViewerRecords.length - 1) {
             return;
@@ -268,7 +274,9 @@ NavigationWidget.prototype.NextNote = function() {
 
         ++current.StartIndex;
         current.DisplayStack(this.Display);
-        NOTES_WIDGET.SynchronizeViews(0, current);
+        if (SA.NotesWidget) {
+            SA.NotesWidget.SynchronizeViews(0, current);
+        }
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -277,7 +285,7 @@ NavigationWidget.prototype.NextNote = function() {
         return;
     }
 
-    if (iterator.IsEnd()) {
+    if (this.NoteIterator.IsEnd()) {
         // If we have no more notes, then move to the next slide.
         this.NextSlide();
         return;
@@ -288,22 +296,22 @@ NavigationWidget.prototype.NextNote = function() {
     // Copy viewer annotation to the viewer record.
     current.RecordAnnotations(this.Display);
 
-    iterator.Next();
-    NOTES_WIDGET.SelectNote(iterator.GetNote());
+    this.NoteIterator.Next();
+    SA.NotesWidget.SelectNote(this.NoteIterator.GetNote());
 }
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-    EVENT_MANAGER.CursorFlag = false;
+    SA.EventManager.CursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
-    if (NOTES_WIDGET.Modified) {
+    if (SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        NOTES_WIDGET.MarkAsNotModified();
+        SA.NotesWidget.MarkAsNotModified();
         this.SlideIndex -= 1;
-        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -311,16 +319,16 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-    EVENT_MANAGER.CursorFlag = false;
+    SA.EventManager.CursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
-    if (NOTES_WIDGET.Modified) {
+    if (SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        NOTES_WIDGET.MarkAsNotModified();
+        SA.NotesWidget.MarkAsNotModified();
         this.SlideIndex += 1;
-        NOTES_WIDGET.LoadViewId(this.Session[this.SlideIndex]);
+        SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -328,38 +336,205 @@ NavigationWidget.prototype.NextSlide = function() {
 }
 
 NavigationWidget.prototype.LoadViewId = function(viewId) {
-  VIEW_ID = viewId;
-  NOTES_WIDGET.RootNote = new Note();
-  if (typeof(viewId) != "undefined" && viewId != "") {
-    NOTES_WIDGET.RootNote.LoadViewId(viewId);
-  }
-  // Since loading the view is asynchronous,
-  // the NOTES_WIDGET.RootNote is not complete at this point.
+    VIEW_ID = viewId;
+    SA.NotesWidget.RootNote = new Note();
+    if (typeof(viewId) != "undefined" && viewId != "") {
+        SA.NotesWidget.RootNote.LoadViewId(viewId);
+    }
+    // Since loading the view is asynchronous,
+    // the SA.NotesWidget.RootNote is not complete at this point.
+}
+
+//==============================================================================
+
+
+//------------------------------------------------------------------------------
+// Iterator to perform depth first search through note tree.
+// Collapsed branches (children not visible) are not traversed.
+// This iterator is a bit over engineered.  I made it so we can subclasses
+// that iterate over internal states.  However, internal states require
+// notes so I made an array of answers (which are hidden).
+function NoteIterator(note) {
+    this.Note = note;
+    this.ChildIterator = null;
+}
+
+// Because of sorting, the child array gets reset on us.
+// I need a dynamic way to get the Children array based on the state.
+NoteIterator.prototype.GetChildArray = function() {
+    if ( ! this.Note) {
+        return [];
+    }
+    return this.Note.Children;
+}
+
+// Because of sorting, I have to make the index dynamic
+// and it cannot be stored as an ivar.
+NoteIterator.prototype.GetChildIndex = function() {
+    if (this.ChildIterator == null) {
+        return -1;
+    }
+    return this.GetChildArray().indexOf( this.ChildIterator.Note );
+}
+
+// Get the parent note of the current note.
+// Notes do not keep a pointer to parents.
+// The iterator has this information for active notes.
+NoteIterator.prototype.GetParentNote = function() {
+    if (this.ChildIterator == null) {
+        // We are at the current note.  Let the caller supply the parent.
+        return null;
+    }
+
+    var parent = this.ChildIterator.GetParentNote();
+    if (parent == null) {
+        // This level contains the parent.
+        parent = this.Note;
+    }
+
+    return parent;
 }
 
 
+// We use this to see (peek) if next or previous should be disabled.
+NoteIterator.prototype.IsStart = function() {
+    if (this.ChildIterator == null) {
+        return true;
+    }
+    return false;
+}
 
 
+NoteIterator.prototype.IsEnd = function() {
+    if ( ! this.Note) { return true; }
 
-// Advance through a stack for DPA2015
-var stopDemo = false;
-var demoInc = 1;
-function demoFrame() {
-    var n = NOTES_WIDGET.GetCurrentNote();
-    var num = n.ViewerRecords.length;
-    if (n.StartIndex >= num-2) {
-        demoInc = -1;
+    // Case note is active.
+    if (this.ChildIterator == null) {
+        if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
+            return false;
+        }
+        return true;
     }
-    if (n.StartIndex <= 0) {
-        demoInc = 1;
+
+    // sub answer is active.
+    var childIndex = this.GetChildIndex();
+
+    // sub child is active
+    if (childIndex == this.GetChildArray().length - 1) {
+        return this.ChildIterator.IsEnd();
     }
-    if (demoInc == 1) {
-        NAVIGATION_WIDGET.NextNote();
-    } else {
-        NAVIGATION_WIDGET.PreviousNote();
+    return false;
+}
+
+
+// Parent note is traversed before children.
+// Move forward one step.  Return the new note. At end the last note returned again.
+// IsEnd method used to detect terminal case.
+NoteIterator.prototype.Next = function() {
+    if ( ! this.Note) { return; }
+
+    // Case 1:  Iterator is on its own node.
+    if (this.ChildIterator == null) {
+        // Next check for children notes
+        if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
+            // Move to the first child.
+            this.ChildIterator = this.GetChildArray()[0].NewIterator();
+            return this.ChildIterator.GetNote();
+        }
+        // No answers or children: we are at the end.
+        return this.Note;
     }
-    
-    if ( ! stopDemo) {
-        setTimeout(demoFrame, 2000);
+
+    // Try to advance the child iterator.
+    if ( ! this.ChildIterator.IsEnd()) {
+        return this.ChildIterator.Next();
+    }
+
+    // Child iterator is finished.
+    // Try to create a new iterator with the next child in the array.
+    var childIndex = this.GetChildIndex();
+    if (childIndex < this.GetChildArray().length-1) {
+        this.ChildIterator = this.GetChildArray()[childIndex+1].NewIterator();
+        return this.ChildIterator.GetNote();
+    }
+
+    // We are at the end of the children array.
+    return this.ChildIterator.GetNote();
+}
+
+
+// Move backward one step.  See "Next" method comments for description of tree traversal.
+NoteIterator.prototype.Previous = function() {
+    if ( ! this.Note) { return; }
+
+    if (this.ChildIterator == null) {
+        // At start.
+        return this.Note;
+    }
+    if ( ! this.ChildIterator.IsStart()) {
+        return this.ChildIterator.Previous();
+    }
+
+    // Move to the previous child.
+    var childIndex = this.GetChildIndex() - 1;
+    if (childIndex >= 0) {
+        this.ChildIterator = this.GetChildArray()[childIndex].NewIterator();
+        this.ChildIterator.ToEnd();
+        return this.ChildIterator.GetNote();
+    }
+
+    // No more sub notes left.  Move to the root.
+    this.ChildIterator = null;
+    return this.Note;
+}
+
+// Move the iterator to the start.
+NoteIterator.prototype.ToStart = function() {
+    if (this.ChildIterator) {
+        this.ChildIterator = null;
     }
 }
+
+// Move the iterator to the end. Used in Previous method.
+NoteIterator.prototype.ToEnd = function() {
+    if ( ! this.Note) { return; }
+
+    if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
+        this.ChildArray = this.Note.Children;
+        var childIndex = this.ChildArray.length - 1;
+        this.ChildIterator = this.ChildArray[childIndex].NewIterator();
+        return this.ChildIterator.ToEnd();
+    }
+    // leaf note
+    this.ChildArray = null;
+    this.ChildIterator = null;
+    return this.Note;
+}
+
+// If the note is not in the tree, Set the note as root.
+// Otherwise, point the iterator to the note in the tree.
+NoteIterator.prototype.SetNote = function(note) {
+    if (this.GetNote() == note) { return; }
+    // See if the note is in the tree.
+    this.ToStart();
+    while (true) {
+        if (this.IsEnd()) {
+            // not found.  New tree.
+            this.ToStart();
+            this.Note = note;
+            return;
+        }
+        if (this.GetNote() == note) {
+            return;
+        }
+        this.Next();
+    }
+}
+
+NoteIterator.prototype.GetNote = function() {
+    if (this.ChildIterator != null) {
+        return this.ChildIterator.GetNote();
+    }
+    return this.Note;
+}
+
