@@ -117,13 +117,21 @@ function Viewer (parent, args) {
 			  function (event){
             // So key events go the the right viewer.
             this.focus();
+            // Firefox does not set which for mouse move events.
+            event.which = event.buttons;
+            if (event.which == 2) { 
+                event.which = 3;
+            } else if (event.which == 3) {
+                event.which = 2;
+            }
             return self.HandleMouseMove(event);
         });
     // We need to detect the mouse up even if it happens outside the canvas,
     $(document.body).on(
         "mouseup.viewer",
 			  function (event){
-            return self.HandleMouseUp(event);
+            self.HandleMouseUp(event);
+            return true;
         });
     can.on(
         "wheel.viewer",
@@ -146,7 +154,8 @@ function Viewer (parent, args) {
     can.on(
         "touchend.viewer",
         function(event){
-            return EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+            EVENT_MANAGER.HandleTouchEnd(event.originalEvent, self);
+            return true;
         });
 
     // necesary to respond to keyevents.
@@ -196,6 +205,7 @@ function Viewer (parent, args) {
 }
 
 Viewer.prototype.SetOverViewVisibility = function(visible) {
+    if ( ! this.OverViewDiv) { return;}
     if (visible) {
         this.OverViewDiv.show();
     } else {
@@ -1833,6 +1843,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          if ( ! SAVING_IMAGE) {
              SAVING_IMAGE = new Dialog();
              SAVING_IMAGE.Title.text('Saving');
+             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
              SAVING_IMAGE.WaitingImage = $('<img>')
                  .appendTo(SAVING_IMAGE.Body)
                  .attr("src", "/webgl-viewer/static/circular.gif")

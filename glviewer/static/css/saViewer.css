@@ -101,22 +101,17 @@
     display: none;
     position: fixed;
     width: 380px;
-    top: 50%;
+    top: 10%;
     left: 50%;
     margin-left: -190px;
-    margin-top: -100px;
     background-color: #ffffff;
     border: 2px solid #336699;
     padding: 0px;
     z-index: 102;
     font-family: Verdana;
     font-size: 10pt;
-}
-.sa-view-dialog-table {
-    width: 100%;
-    border-spacing: 0px;
-    cellpadding: 3;
-    cellspacing: 0;
+    min-height:200px;
+    max-height :600px
 }
 
 .sa-view-dialog-title {
@@ -140,7 +135,12 @@
     padding-left: 15px;
     display: block;
 }
-.sa-view-dialog-apply-div {text-align: center;}
+.sa-view-dialog-apply-div {
+    text-align: center;
+    position:absolute;
+    bottom:0px;
+    width:100%
+}
 .sa-view-dialog-apply-button {margin-bottom: 6px}
 .sa-view-canvas{
         position: absolute;
@@ -230,7 +230,7 @@
     overflow-y: auto
 }
 
-.sa-view-browser-item {left:o}
+.sa-view-browser-item {left:0}
 .sa-view-icon {height: 15px}
 .sa-view-browser-session-list {
     list-style: none;
@@ -340,21 +340,20 @@
 }
 
 @media only screen and (max-device-width: 480px) {
-  .sa-view-annotation-button {
-      height: 60px;
-      width: 60px;
-      opacity: 0.6;
-      margin: 1px;
-      padding: 5px;
-  }
+    .sa-view-annotation-button {
+        height: 60px;
+        width: 60px;
+        opacity: 0.6;
+        margin: 1px;
+        padding: 5px;
+    }
 
-  .sa-view-annotation-div{
-      position: absolute;
-      right : 110px;
-      bottom : 100px;
-      z-index: 5;
-  }
-
+    .sa-view-annotation-div{
+        position: absolute;
+        right : 110px;
+        bottom : 100px;
+        z-index: 5;
+    }
 }
 .sa-view-annotation-button.sa-active {
     border-style: inset;
@@ -363,8 +362,8 @@
 /* End Annotation block */
 
 /*
-*  Begin Navigation block
-*/
+ *  Begin Navigation block
+ */
 
 .sa-view-navigation-panel {
     left: -45px;
@@ -384,6 +383,7 @@
     padding: 5px;
     opacity: 0.2;
 }
+
 /* Done to change the width on small screens    */
 @media only screen and (max-device-width: 480px) {
     .sa-view-navigation-div {
@@ -710,3 +710,18 @@
     top: 100px;
     z-index:4
 }
+
+
+.sa-accordion-tab:hover {
+  background-color: #99CCFF;
+}
+.sa-accordion-tab {
+  background-color: #81ABD5;
+  width     : 100%;
+  padding   : 0.2em 0.7em;
+  border    : 1px solid #AAA;
+  box-sizing: border-box 
+}
+
+
+

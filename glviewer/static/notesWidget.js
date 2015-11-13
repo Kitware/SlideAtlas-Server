@@ -328,6 +328,7 @@ TextEditor.prototype.InsertUrlLink = function() {
         var dialog = new Dialog(function() {
             self.InsertUrlLinkAccept();
         });
+        dialog.Body.css({'margin':'1em 2em'});
         this.UrlDialog = dialog;
         dialog.Dialog.css({'width':'40em'});
         dialog.Title.text("Paste URL link");

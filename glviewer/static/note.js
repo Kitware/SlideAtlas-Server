@@ -807,7 +807,8 @@ Note.prototype.DisplayView = function(display) {
     // We could have more than two in the future.
     if (this.Type != 'Stack') {
         // I want the single view (when set by the user) to persist for rthe stack.
-        display.SetNumberOfViewers(this.ViewerRecords.length);
+        numViewers = this.ViewerRecords.length;
+        display.SetNumberOfViewers(numViewers);
     }
     var idx = this.StartIndex;
     for (var i = 0; i < numViewers; ++i) {
