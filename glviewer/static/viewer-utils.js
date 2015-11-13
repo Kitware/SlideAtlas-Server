@@ -8,7 +8,6 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Check fetal foot (focal point)
 // Stack should open up in dual view mode.
 // Stack screens are not synchronized
 // Open lightbox viewers do not consume key events.
