@@ -807,9 +807,6 @@ NotesWidget.prototype.SelectNote = function(note) {
 
     // This should method should be split between Note and NotesWidget
     if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-    // For when user selects a note from a list.
-    // This is so the next and previous buttons will behave.
-    this.NavigationWidget.SetNote(note);
 
     this.TextEditor.LoadNote(note);
 
@@ -1046,7 +1043,6 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
         this.Update();
     }
     this.RootNote = rootNote;
-    this.NavigationWidget.SetNote(rootNote);
     this.DisplayRootNote();
 
     // Only show user notes for the first image of the root note.

@@ -117,6 +117,13 @@ function Viewer (parent) {
 			  function (event){
             // So key events go the the right viewer.
             this.focus();
+            // Firefox does not set which for mouse move events.
+            event.which = event.buttons;
+            if (event.which == 2) { 
+                event.which = 3;
+            } else if (event.which == 3) {
+                event.which = 2;
+            }
             return self.HandleMouseMove(event);
         });
     // We need to detect the mouse up even if it happens outside the canvas,
@@ -238,6 +245,7 @@ Viewer.prototype.ProcessArguments = function (args) {
 
 Viewer.prototype.SetOverViewVisibility = function(visible) {
     this.OverViewVisibility = visible;
+    if ( ! this.OverViewDiv) { return;}
     if (visible) {
         this.OverViewDiv.show();
     } else {

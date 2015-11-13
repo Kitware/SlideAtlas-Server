@@ -247,9 +247,13 @@ NavigationWidget.prototype.PreviousNote = function() {
     // Copy viewer annotation to the viewer record.
     current.RecordAnnotations(this.Display);
 
-    this.NoteIterator.Previous();
+    var note = this.NoteIterator.Previous();
+    // change this so the NotesWidget dows not display the note in the
+    // view. Trigger an update the notes widget.
     if (SA.NotesWidget) {
-        SA.NotesWidget.SelectNote(this.NoteIterator.GetNote());
+        SA.NotesWidget.SelectNote(note);
+    } else {
+        note.DisplayView(this.Display);
     }
 }
 
@@ -296,8 +300,14 @@ NavigationWidget.prototype.NextNote = function() {
     // Copy viewer annotation to the viewer record.
     current.RecordAnnotations(this.Display);
 
-    this.NoteIterator.Next();
-    SA.NotesWidget.SelectNote(this.NoteIterator.GetNote());
+    var note = this.NoteIterator.Next();
+    // change this so the NotesWidget dows not display the note in the
+    // view. Trigger an update the notes widget.
+    if (SA.NotesWidget) {
+        SA.NotesWidget.SelectNote(note);
+    } else {
+        note.DisplayView(this.Display);
+    }
 }
 
 
@@ -305,13 +315,14 @@ NavigationWidget.prototype.PreviousSlide = function() {
     SA.EventManager.CursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
-    if (SA.NotesWidget.Modified) {
+    if (SA.NotesWidget && SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        SA.NotesWidget.MarkAsNotModified();
+        // TODO: Improve the API here.  Get rid of global access.
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
-        SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);
+        if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -322,27 +333,17 @@ NavigationWidget.prototype.NextSlide = function() {
     SA.EventManager.CursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
-    if (SA.NotesWidget.Modified) {
+    if ( SA.NotesWidget && SA.NotesWidget.Modified) {
         check = confirm("Unsaved edits will be lost.  Are you sure you want to move to the next slide?");
     }
     if (check) {
-        SA.NotesWidget.MarkAsNotModified();
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
-        SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);
+        if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
     }
-}
-
-NavigationWidget.prototype.LoadViewId = function(viewId) {
-    VIEW_ID = viewId;
-    SA.NotesWidget.RootNote = new Note();
-    if (typeof(viewId) != "undefined" && viewId != "") {
-        SA.NotesWidget.RootNote.LoadViewId(viewId);
-    }
-    // Since loading the view is asynchronous,
-    // the SA.NotesWidget.RootNote is not complete at this point.
 }
 
 //==============================================================================

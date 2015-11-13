@@ -8,18 +8,17 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+// reload dual viewer.
+// Get Deep copy stack working.
+// Figure out how user can add a stack with the GUI.
+// Open dual viewer: overview missing.
+//   Overview not showing up when view2 is opened.
+
 // Stack should open up in dual view mode.
 // Stack screens are not synchronized
 // Open lightbox viewers do not consume key events.
-// Open viewers should have navigation widget.
-// reload dual viewer.
-// Resize dual is not working.
-// Open dual viewer: overview missing.
-// delete button is visible in presentation mode.
-// Navigation does nothing in slide show.
+// Navigation does nothing in stack slide show.
 
-// Get Deep copy stack working.
-// Figure out how user can add a stack with the GUI.
 // Save changes to a stack.
 
 
@@ -134,7 +133,8 @@ function saElement(div) {
               'position':'absolute',
               'top':'0px',
               'left':'0px',
-              'cursor':'auto'})
+              'cursor':'auto',
+              'z-index':'1000'})
         // Block the expand event when the delete button is pressed.
         .mousedown(function(){return false;});
     this.DeleteButton = $('<img>')
@@ -624,10 +624,11 @@ saElement.prototype.RaiseToTop = function() {
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
     if (event.which == 0) {
-        if (event.srcElement != this.Div[0]) {
-            this.Div.css({'cursor':'move'});
-            this.MoveState = 0;
-            return true;
+        // Is it dangerous to modify the event object?
+        while (event.srcElement && event.srcElement != this.Div[0]) {
+            event.offsetX += event.srcElement.offsetLeft;
+            event.offsetY += event.srcElement.offsetTop;
+            event.srcElement = event.srcElement.parentElement;
         }
         var handleSize = 6;
         var x = event.offsetX;
@@ -2058,6 +2059,9 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     if ( ! args.zoomWidget) {
         args.zoomWidget = false;
     }
+    if ( ! args.dualWidget) {
+        args.dualWidget = false;
+    }
     if ( ! args.navigation) {
         args.navigation = false;
     }
@@ -2080,12 +2084,14 @@ jQuery.prototype.saLightBoxViewer = function(args) {
                                    navigation: true,
                                    menu      : true,
                                    zoomWidget: true,
+                                   dualWidget: true,
                                    drawWidget: true});
             } else {
                 this.Div.saViewer({overview  : false,
                                    navigation: false,
                                    menu      : false,
                                    zoomWidget: false,
+                                   dualWidget: false,
                                    drawWidget: false});
                 // This is here to restore the viewer to its
                 // initial state when it shrinks

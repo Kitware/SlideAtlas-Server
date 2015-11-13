@@ -118,6 +118,10 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
         if (args.navigation !== undefined) {
             this.NavigationWidget.SetVisibility(args.navigation);
         }
+        if (args.dualWidget !== undefined) {
+            this.HideHandles = ! args.dualWidget;
+            this.UpdateGui();
+        }
         if (args.zoomWidget !== undefined) {
             viewer.SetZoomWidgetVisibility(args.zoomWidget);
         }
@@ -202,6 +206,11 @@ DualViewWidget.prototype.ToggleDualView = function () {
 }
 
 DualViewWidget.prototype.UpdateGui = function () {
+    if ( this.HideHandles) {
+        $('#dualWidgetLeft').hide();
+        $('#dualWidgetRight').hide();
+        return;
+    }
     // Now swap the buttons.
     if (this.DualView) {
         $('#dualWidgetLeft').hide();
