@@ -128,7 +128,7 @@ function saElement(div) {
 
     // I could not get the key events working.  I had to restart the browser.
     this.ButtonDiv = $('<div>')
-        .addClass('.sa-edit-gui') // Remove before saHtml save.
+        .addClass('sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
               'top':'0px',
@@ -1437,7 +1437,7 @@ function saTextEditor(div) {
     this.Div.css({'overflow':'visible'}); // so the buttons are not cut off
     this.EditButtonDiv = $('<div>')
         .appendTo(this.Div.parent())
-        .addClass('.sa-edit-gui') // Remove before saHtml save.
+        .addClass('sa-edit-gui') // Remove before saHtml save.
         .css({'height':'20px',
               'position':'absolute',
               'width':'275px',
@@ -1894,8 +1894,8 @@ function saLightBox(div) {
     if ( this.Mask.length == 0) {
         this.Mask = $('<div>')
             .appendTo(parent)
-            .addClass('.sa-light-box-mask') // So it can be retrieved.
-            .addClass('.sa-edit-gui') // Remove before saHtml save.
+            .addClass('sa-light-box-mask') // So it can be retrieved.
+            .addClass('sa-edit-gui') // Remove before saHtml save.
             .hide()
             .css({'position':'absolute',
                   'left':'0px',
@@ -2399,7 +2399,7 @@ jQuery.prototype.saHtml = function(string) {
     this.find('.sa-quiz-hide').show();
     this.find('.sa-presentation-title').show();
 
-    // Get rid of the gui elements when returning the html.
+    // Get rid of the <gui elements when returning the html.
     var copy = this.clone();
     copy.find('.sa-edit-gui').remove();
     copy.find('.sa-standin').remove();
