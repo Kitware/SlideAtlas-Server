@@ -601,7 +601,6 @@ saElement.prototype.HandleMouseDown = function(event) {
             this.DragLastX = event.screenX;
             this.DragLastY = event.screenY;
             // Add the event to stop dragging
-
             $('body').on(
                 'mousemove.element',
                 function (event) {
@@ -612,6 +611,8 @@ saElement.prototype.HandleMouseDown = function(event) {
                 function(e) {
                     return self.HandleMouseUp(e);
                 });
+            // Hack to keep active even when mouse leaves the div.
+            this.Div[0].saElement.LockActive = true;
         }
         return false;
     }
@@ -686,6 +687,8 @@ saElement.prototype.HandleMouseMove = function(event) {
         // outerWidth. Now it behaves as expected (consistent outer set / get).
         var width = this.Div.outerWidth();
         var height = this.Div.outerHeight();
+        // Hack,  I cannot figure out hos jquery deals with box-sizing.
+        var sizing = this.Div.css('box-sizing');
         if (this.AspectRatio && typeof(this.AspectRatio) != 'number') {
             this.AspectRatio = width / height;
         }
@@ -699,7 +702,11 @@ saElement.prototype.HandleMouseMove = function(event) {
             var left = pos.left + dx;
             width = width - dx;
             this.Div[0].style.left = left.toString()+'px';
-            this.Div.outerWidth(width);
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+            } else {
+                this.Div.outerWidth(width);
+            }
             if (this.AspectRatio) {
                 this.Div.innerHeight(this.Div.innerWidth/this.AspectRatio);
             }
@@ -707,7 +714,11 @@ saElement.prototype.HandleMouseMove = function(event) {
             return false;
         } else if (this.MoveState == 2) {
             width = width + dx;
-            this.Div.outerWidth(width);
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+            } else {
+                this.Div.outerWidth(width);
+            }
             if (this.AspectRatio) {
                 this.Div.innerHeight(this.Div.innerWidth()/this.AspectRatio);
             }
@@ -717,7 +728,11 @@ saElement.prototype.HandleMouseMove = function(event) {
             var top = pos.top + dy;
             height = height - dy;
             this.Div[0].style.top = top.toString()+'px';
-            this.Div.outerHeight(height);
+            if (sizing == 'border-box') {
+                this.Div.height(height);
+            } else {
+                this.Div.outerHeight(height);
+            }
             if (this.AspectRatio) {
                 this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
@@ -725,7 +740,11 @@ saElement.prototype.HandleMouseMove = function(event) {
             return false;
         } else if (this.MoveState == 4) {
             height = height + dy;
-            this.Div.outerHeight(height);
+            if (sizing == 'border-box') {
+                this.Div.height(height);
+            } else {
+                this.Div.outerHeight(height);
+            }
             if (this.AspectRatio) {
                 this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
@@ -748,6 +767,9 @@ saElement.prototype.HandleMouseUp = function(event) {
         }
         $('body').off('mousemove.element');
         $('body').off('mouseleave.element');
+        // hack
+        this.Div[0].saElement.LockActive = false;
+        this.Div[0].saElement.ActiveOff();
     }
 
     // Quick click...
@@ -807,12 +829,15 @@ saElement.prototype.ConvertToPercentages = function() {
     // I had issues with previous slide shows that had images with no width
     // set. Of course it won't scale right but they will still show up.
     var width = this.Div.width();
+    var height = this.Div.height();
+    if (this.Div.css('box-sizing') == 'border-box') {
+        width = this.Div.outerWidth();
+        height = this.Div.outerHeight();
+    }
     if (width > 0) { // TODO: Remove this check after a while.
         // These always return pixel units.
         width = 100 * width / this.Div.parent().width();
         this.Div.width(width.toString()+'%');
-
-        var height = this.Div.height();
         height = 100 * height / this.Div.parent().height();
         this.Div.height(height.toString()+'%');
     }
@@ -3321,7 +3346,8 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
     if (timeStep > this.AnimationDuration) {
         // end the animation.
         this.SetWidth(this.AnimationTarget);
-        // Hack to recompute viewports
+        // Hack to recompute
+ viewports
         // TODO: Get rid of this hack.
         $(window).trigger('resize');
 
