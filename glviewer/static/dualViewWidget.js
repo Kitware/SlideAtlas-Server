@@ -27,7 +27,7 @@ function DualViewWidget(parent) {
     // Rather than getting the current note from the NotesWidget, keep a
     // reference here.  SlideShow can have multiple "displays".
     // We might consider keep a reference in the dua
-    this.Note = null;
+    this.saNote = null;
 
     this.Parent = parent;
     parent.addClass('sa-dual-viewer');
@@ -206,7 +206,7 @@ DualViewWidget.prototype.SetNote = function(note, viewIdx) {
     }
 }
 DualViewWidget.prototype.GetNote = function () {
-    return this.Note;
+    return this.saNote;
 }
 DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var note = GetNoteFromId(noteId);
