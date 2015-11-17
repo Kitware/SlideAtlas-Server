@@ -102,8 +102,8 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
 
     // Hack to make all stack viewers share a single annotation visibility
     // flag. 
-    if (NOTES_WIDGET) {
-        var note = NOTES_WIDGET.GetCurrentNote();
+    if (SA.NotesWidget) {
+        var note = SA.NotesWidget.GetCurrentNote();
         if (note.Type == 'Stack') {
             for (var i = 0; i < note.ViewerRecords.length; ++i) {
                 note.ViewerRecords[i].AnnotationVisibility = visibility;
@@ -187,8 +187,8 @@ AnnotationWidget.prototype.NewCircle = function() {
     var widget = this.ActivateButton(button, CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
-                                                                EVENT_MANAGER.LastMouseY);
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX,
+                                                                SA.EventManager.LastMouseY);
 }
 
 

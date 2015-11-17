@@ -2512,7 +2512,7 @@ function testDebug() {
 var WAITING;
 
 function DeformableAlignViewers() {
-    var note = NOTES_WIDGET.GetCurrentNote();
+    var note = SA.NotesWidget.GetCurrentNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2603,7 +2603,7 @@ function DeformableAlignViewers() {
 
             console.log("Finished alignment");
             // Syncronize views
-            NOTES_WIDGET.SynchronizeViews(0, note);
+            SA.NotesWidget.SynchronizeViews(0, note);
 
             WAITING.hide();
 
@@ -2618,7 +2618,7 @@ function DeformableAlignViewers() {
 // !!!!!!!!!!!!!
 
 function AlignPolylines(replace) {
-//    var note = NOTES_WIDGET.GetCurrentNote();
+//    var note = SA.NotesWidget.GetCurrentNote();
 //    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
 //    trans.Correlations = [];
 
@@ -2697,7 +2697,7 @@ function MaskPolylinesByColor(rgb) {
     }
 
     // Do the note too.
-    var note = NOTES_WIDGET.RootNote;
+    var note = SA.NotesWidget.RootNote;
     for (var i = 0; i < note.ViewerRecords.length; ++i) {
         var vr = note.ViewerRecords[i];
         var newList = [];
@@ -2811,7 +2811,7 @@ function IntegratePolylinesByColor(rgb) {
 
 
 function AlignPolylines2(pLine1, pLine2, replace) {
-    var note = NOTES_WIDGET.GetCurrentNote();
+    var note = SA.NotesWidget.GetCurrentNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2893,7 +2893,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
 
     console.log("Finished alignment");
     // Syncronize views
-    NOTES_WIDGET.SynchronizeViews(0, note);
+    SA.NotesWidget.SynchronizeViews(0, note);
 
     eventuallyRender();
 }

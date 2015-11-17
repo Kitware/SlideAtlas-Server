@@ -4,15 +4,16 @@
 // TODO: Remove GUI from this file.
 
 
-// data is the object retrieved from mongo (with string ids)
-// Right now we expect bookmarks, but it will be generalized later.
-var NOTES = [];
-
 function Note () {
+    if ( ! SA.Notes) {
+        // data is the object retrieved from mongo (with string ids)
+        // Right now we expect bookmarks, but it will be generalized later.
+        SA.Notes = [];
+    }
 
     // A global list of notes so we can find a note by its id.
-    this.TempId = 'tmp'+NOTES.length; // hack for html views.
-    NOTES.push(this);
+    this.TempId = 'tmp'+SA.Notes.length; // hack for html views.
+    SA.Notes.push(this);
 
     var self = this;
 
@@ -173,8 +174,8 @@ Note.prototype.SortCallback = function() {
 
     this.Children = newChildren;
     this.UpdateChildrenGUI();
-    if (NOTES_WIDGET) {
-        NOTES_WIDGET.MarkAsModified();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -182,10 +183,10 @@ Note.prototype.SortCallback = function() {
 function GetNoteFromId(id) {
     if (id.substr(0,3) == 'tmp') {
         var idx = parseInt(id.substr(3));
-        return NOTES[idx];
+        return SA.Notes[idx];
     }
-    for (var i = 0; i < NOTES.length; ++i) {
-        var note = NOTES[i];
+    for (var i = 0; i < SA.Notes.length; ++i) {
+        var note = SA.Notes[i];
         if (note.Id && note.Id == id) {
             return note;
         }
@@ -196,22 +197,22 @@ function GetNoteFromId(id) {
 
 // Every time the "Text" is loaded, they hyper links have to be setup.
 Note.prototype.FormatHyperlink = function() {
-    if ( ! NOTES_WIDGET) { return; }
+    if ( ! SA.NotesWidget) { return; }
     var self = this;
     if (this.Id) {
         span = document.getElementById(this.Id);
         if (span) {
             $(span)
                 //  I do not want the text to change. 
-                .click(function() { self.DisplayView(NOTES_WIDGET.Display);})
-                //.click(function() { NOTES_WIDGET.SelectNote(self);})
+                .click(function() { self.DisplayView(SA.NotesWidget.Display);})
+                //.click(function() { SA.NotesWidget.SelectNote(self);})
                 .css({'color': '#29C'})
                 .hover(function(){ $(this).css("color", "blue");},
                        function(){ $(this).css("color", "#29C");});
             // Let the selection indicate the current note.
             // this highlighting suggests the camera button will
             // will operate on this link rather than inserting a new one.
-            //if (this == NOTES_WIDGET.SelectedNote) {
+            //if (this == SA.NotesWidget.SelectedNote) {
             //    $(span).css({'background':'#CCC'});
             //} else {
                 $(span).css({'background':'white'});
@@ -272,9 +273,9 @@ Note.prototype.SetParent = function(parent) {
 
 Note.prototype.TitleFocusInCallback = function() {
     // Keep the viewer from processing arrow keys.
-    EVENT_MANAGER.FocusOut();
-    if (NOTES_WIDGET) {
-        NOTES_WIDGET.SelectNote(this);
+    SA.EventManager.FocusOut();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.SelectNote(this);
     }
 }
 
@@ -284,12 +285,12 @@ Note.prototype.TitleFocusOutCallback = function() {
         // Move the Title from the GUI to the note.
         this.Modified = false;
         this.Title = this.TitleEntry.text();
-        if (NOTES_WIDGET) {
-            NOTES_WIDGET.MarkAsModified();
+        if (SA.NotesWidget) {
+            SA.NotesWidget.MarkAsModified();
         }
     }
     // Allow the viewer to process arrow keys.
-    EVENT_MANAGER.FocusIn();
+    SA.EventManager.FocusIn();
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
@@ -334,10 +335,10 @@ Note.prototype.DeleteCallback = function() {
 
     this.ClearHyperlink();
 
-    if (NOTES_WIDGET && NOTES_WIDGET.Iterator.GetNote() == this) {
+    if (SA.NotesWidget && SA.NotesWidget.Iterator.GetNote() == this) {
         // Move the current note off this note.
         // There is always a previous.
-        NAVIGATION_WIDGET.PreviousNote();
+        SA.DualDisplay.NavigationWidget.PreviousNote();
     }
 
     // Get rid of the note.
@@ -347,8 +348,8 @@ Note.prototype.DeleteCallback = function() {
 
     // Redraw the GUI.
     parent.UpdateChildrenGUI();
-    if (NOTES_WIDGET) {
-        NOTES_WIDGET.MarkAsModified();
+    if (SA.NotesWidget) {
+        SA.NotesWidget.MarkAsModified();
     }
 }
 
@@ -445,7 +446,7 @@ Note.prototype.UpdateChildrenGUI = function() {
 }
 
 Note.prototype.NewIterator = function() {
-  return new NoteIterator(this);
+    return new NoteIterator(this);
 }
 
 Note.prototype.Contains = function(decendent) {
@@ -535,7 +536,7 @@ Note.prototype.DisplayGUI = function(div) {
 
     this.TitleEntry
         .click(function() {
-            if (NOTES_WIDGET) { NOTES_WIDGET.SelectNote(self); }
+            if (SA.NotesWidget) { SA.NotesWidget.SelectNote(self); }
             self.ButtonsDiv.show();
         })
         .bind('input', function () {
@@ -547,7 +548,7 @@ Note.prototype.DisplayGUI = function(div) {
             if (self.Modified) {
                 self.Modified = false;
                 self.Title = self.TitleEntry.text();
-                if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();}
+                if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();}
             }
         });
 
@@ -555,7 +556,7 @@ Note.prototype.DisplayGUI = function(div) {
         .hover(
             function() {
                 self.TitleEntry.css({'color':'#33D'});
-                if (NOTES_WIDGET && NOTES_WIDGET.SelectedNote == self) {
+                if (SA.NotesWidget && SA.NotesWidget.SelectedNote == self) {
                     self.ButtonsDiv.show();
                 }
             },
@@ -576,7 +577,7 @@ Note.prototype.DisplayGUI = function(div) {
         // Removing and adding removes the callbacks.
         this.AddButton
             .click(function () {
-                if (NOTES_WIDGET) {NOTES_WIDGET.NewCallback();}
+                if (SA.NotesWidget) {SA.NotesWidget.NewCallback();}
             });
         this.LinkButton
             .click(function () {
@@ -742,19 +743,19 @@ Note.prototype.LoadViewId = function(viewId, callback) {
 
 Note.prototype.Collapse = function() {
     this.ChildrenVisibility = false;
-    if (this.Contains(NOTES_WIDGET.SelectedNote)) {
+    if (this.Contains(SA.NotesWidget.SelectedNote)) {
         // Selected note should not be in collapsed branch.
         // Make the visible ancestor active.
-        NOTES_WIDGET.SelectNoteg(this);
+        SA.NotesWidget.SelectNoteg(this);
     }
     this.UpdateChildrenGUI();
-    NAVIGATION_WIDGET.Update();
+    SA.DualDisplay.NavigationWidget.Update();
 }
 
 Note.prototype.Expand = function() {
     this.ChildrenVisibility = true;
     this.UpdateChildrenGUI();
-    NAVIGATION_WIDGET.Update();
+    SA.DualDisplay.NavigationWidget.Update();
 }
 
 // Extra stuff for stack.
@@ -780,10 +781,14 @@ Note.prototype.DisplayStack = function(display) {
 
 // Set the state of the WebGL viewer from this notes ViewerRecords.
 Note.prototype.DisplayView = function(display) {
+    if (display.NavigationWidget) {
+        display.NavigationWidget.SetNote(this);
+    }
+
     // To determine which notes camera to save.
     // For when the user creates a camera link.
-    if (NOTES_WIDGET) {
-        NOTES_WIDGET.DisplayedNote = this;
+    if (SA.NotesWidget) {
+        SA.NotesWidget.DisplayedNote = this;
     }
 
     var numViewers = display.GetNumberOfViewers();
@@ -800,16 +805,17 @@ Note.prototype.DisplayView = function(display) {
 
     // Set the state of the notes widget.
     // Should we ever turn it off?
-    if (NOTES_WIDGET && this.NotesPanelOpen && ! NOTES_WIDGET.Visibility) {
-        NOTES_WIDGET.ToggleNotesWindow();
+    if (SA.NotesWidget && this.NotesPanelOpen && ! SA.NotesWidget.Visibility) {
+        SA.NotesWidget.ToggleNotesWindow();
     }
 
     // We could have more than two in the future.
     if (this.Type != 'Stack') {
         // I want the single view (when set by the user) to persist for rthe stack.
         numViewers = this.ViewerRecords.length;
-        display.SetNumberOfViewers(numViewers);
     }
+    display.SetNumberOfViewers(numViewers);
+
     var idx = this.StartIndex;
     for (var i = 0; i < numViewers; ++i) {
         var viewer = display.GetViewer(i);

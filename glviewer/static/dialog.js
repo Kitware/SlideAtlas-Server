@@ -1,10 +1,7 @@
 
-var DIALOG_OVERLAY = null;
-
-
 function Dialog(callback) {
-    if ( ! DIALOG_OVERLAY) {
-        DIALOG_OVERLAY = $('<div>')
+    if ( ! SA.DialogOverlay) {
+        SA.DialogOverlay = $('<div>')
         .appendTo('body')
         .css({
             'position':'fixed',
@@ -68,14 +65,14 @@ function Dialog(callback) {
 
 Dialog.prototype.Show = function(modal) {
     var self = this;
-    DIALOG_OVERLAY.show();
+    SA.DialogOverlay.show();
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        EVENT_MANAGER.HasFocus = false;
-        DIALOG_OVERLAY.off('click.dialog');
+        SA.EventManager.HasFocus = false;
+        SA.DialogOverlay.off('click.dialog');
     } else {
-        DIALOG_OVERLAY.on(
+        SA.DialogOverlay.on(
             'click.dialog',
             function (e) { self.Hide(); });
     }
@@ -83,9 +80,9 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    EVENT_MANAGER.HasFocus = true;
-    DIALOG_OVERLAY.off('click.dialog');
-    DIALOG_OVERLAY.hide();
+    SA.EventManager.HasFocus = true;
+    SA.DialogOverlay.off('click.dialog');
+    SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
     CONTENT_EDITABLE_HAS_FOCUS = false;
 } 

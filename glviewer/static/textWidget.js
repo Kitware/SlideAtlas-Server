@@ -235,7 +235,7 @@ TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
     this.Text.Position[1] = mouseWorldPt[1];
     this.UpdateArrow();
     this.Viewer.EventuallyRender(true);
-    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
 }
 
 
@@ -458,12 +458,12 @@ TextWidget.prototype.ScreenPixelToTextPixelPoint = function(x,y) {
 
 TextWidget.prototype.HandleMouseMove = function(event) {
     if (this.State == TEXT_WIDGET_DRAG) {
-        if (NOTES_WIDGET) {
+        if (SA.NotesWidget) {
             // Hack.
-            NOTES_WIDGET.MarkAsModified();
+            SA.NotesWidget.MarkAsModified();
         }
-        w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
-                                                   EVENT_MANAGER.LastMouseY);
+        w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
+                                                   SA.EventManager.LastMouseY);
         w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         // This is the translation.
         var dx = w1[0] - w0[0];
@@ -473,21 +473,21 @@ TextWidget.prototype.HandleMouseMove = function(event) {
         this.Text.Position[1] += dy;
         this.Arrow.Origin = this.Text.Position;
         this.PlacePopup();
-        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
         this.Viewer.EventuallyRender(true);
         return true;
     }
     if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
-        if (NOTES_WIDGET) {
+        if (SA.NotesWidget) {
             // Hack.
-            NOTES_WIDGET.MarkAsModified();
+            SA.NotesWidget.MarkAsModified();
         }
-        this.Text.Anchor[0] -= EVENT_MANAGER.MouseDeltaX;
-        this.Text.Anchor[1] -= EVENT_MANAGER.MouseDeltaY;
+        this.Text.Anchor[0] -= SA.EventManager.MouseDeltaX;
+        this.Text.Anchor[1] -= SA.EventManager.MouseDeltaY;
         this.UpdateArrow();
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
-        if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+        if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
         return true;
     }
     // We do not want to deactivate the widget while the properties dialog is showing.
@@ -668,7 +668,7 @@ TextWidget.prototype.DialogApplyCallback = function () {
     RecordState();
 
     this.Viewer.EventuallyRender(true);
-    if (NOTES_WIDGET) { NOTES_WIDGET.MarkAsModified(); } // Hack
+    if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
 }
 
 //Function to apply line breaks to textarea text.

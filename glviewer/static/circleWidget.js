@@ -242,7 +242,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
     }
     
     if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
-        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
         this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -256,7 +256,7 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
         // Change units from pixels to world.
         this.Shape.Radius = Math.sqrt(dx*dx + dy*dy) * cam.Height / viewport[3];
         this.Shape.UpdateBuffers();
-        if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+        if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
     }
@@ -268,8 +268,8 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
 
 
 CircleWidget.prototype.HandleTouchPan = function(event) {
-  w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
-                                             EVENT_MANAGER.LastMouseY);
+  w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
+                                             SA.EventManager.LastMouseY);
   w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
   // This is the translation.
@@ -284,7 +284,7 @@ CircleWidget.prototype.HandleTouchPan = function(event) {
 CircleWidget.prototype.HandleTouchPinch = function(event) {
     this.Shape.Radius *= event.PinchScale;
     this.Shape.UpdateBuffers();
-    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
     this.Viewer.EventuallyRender(true);
 }
 
@@ -415,7 +415,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     this.Viewer.EventuallyRender(false);
 
     localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
-    if (NOTES_WIDGET) {NOTES_WIDGET.MarkAsModified();} // hack
+    if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
 }
 
 

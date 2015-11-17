@@ -10,7 +10,7 @@
 
 
 // Create and repond to the dual / single view toggle button.
-// How the window is deived between viewer1 and viewer1.
+// How the window is derived between viewer1 and viewer1.
 // Default: viewer1 uses all available space.
 
 
@@ -23,6 +23,14 @@ var VIEWER2;
 function DualViewWidget(parent) {
     var self = this;
     this.Viewers = [];
+
+    // Rather than getting the current note from the NotesWidget, keep a
+    // reference here.  SlideShow can have multiple "displays".
+    // We might consider keep a reference in the dua
+    this.Note = null;
+
+    this.Parent = parent;
+    parent.addClass('sa-dual-viewer');
 
     // This parent used to be CANVAS.
     var width = parent.innerWidth();
@@ -76,8 +84,118 @@ function DualViewWidget(parent) {
 
         this.Viewers[0].AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
         this.Viewers[0].AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
+
+        // DualViewer is the navigation widgets temporary home.
+        // SlideShow can have multiple nagivation widgets so it is no
+        // longer a singlton.
+        // This is for moving through notes, session views and stacks.
+        // It is not exactly related to dual viewer. It is sort of a child
+        // of the dual viewer.
+        this.NavigationWidget = new NavigationWidget(parent,this);
     }
 }
+
+// Astracting the saViewer class to support dual viewers and stacks.
+DualViewWidget.prototype.ProcessArguments = function (args) {
+    if (args.note) {
+        // TODO: DO we need both?
+        this.saNote = args.note;
+        //args.note.DisplayView(this);
+        this.SetNote(args.note,args.viewIndex);
+        this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+    }
+
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        var viewer = this.Viewers[i];
+
+        // TODO:  Handle zoomWidget options
+        if (args.overview !== undefined) {
+            viewer.SetOverViewVisibility(args.overview);
+        }
+        if (args.navigation !== undefined) {
+            this.NavigationWidget.SetVisibility(args.navigation);
+        }
+        if (args.dualWidget !== undefined) {
+            this.HideHandles = ! args.dualWidget;
+            this.UpdateGui();
+        }
+        if (args.zoomWidget !== undefined) {
+            viewer.SetZoomWidgetVisibility(args.zoomWidget);
+        }
+        if (args.drawWidget !== undefined) {
+            viewer.SetAnnotationWidgetVisibility(args.drawWidget);
+        }
+        // The way I handle the viewer edit menu is messy.
+        // TODO: Find a more elegant way to add tabs.
+        // Maybe the way we handle the anntation tab shouodl be our pattern.
+        if (args.menu !== undefined) {
+            if ( ! viewer.Menu) {
+                viewer.Menu = new ViewEditMenu(viewer, null);
+            }
+            viewer.Menu.SetVisibility(args.menu);
+        }
+
+        if (args.hideCopyright) {
+            viewer.CopyrightWrapper.hide();
+        }
+        if (args.interaction !== undefined) {
+            viewer.SetInteractionEnabled(args.interaction);
+        }
+    }
+}
+
+// Which is better calling Note.Apply, or viewer.SetNote?  I think this
+// will  win.
+DualViewWidget.prototype.SetNote = function(note, viewIdx) {
+    if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
+        console.log("Cannot set viewer record of note");
+        return;
+    }
+    if (viewIdx !== undefined) {
+        note.StartIndex = viewIdx;
+    }
+    this.saNote = note;
+    this.saViewerIndex = viewIdx;
+    if (this.NavigationWidget) {
+        this.NavigationWidget.SetNote(note);
+    }
+    if (note.Type == "Stack") {
+        // TODO: Can I move this logic into the display? SetNote maybe?
+        // Possibly nagivationWidget (we need to know which viewer is referecne.
+        // Select only gets called when the stack is first loaded.
+        var self = this;
+        this.GetViewer(0).OnInteraction(function () {
+            self.SynchronizeViews(0, note);});
+        this.GetViewer(1).OnInteraction(function () {
+            self.SynchronizeViews(1, note);});
+        note.DisplayStack(this);
+        // First view is set by viewer record camera.
+        // Second is set relative to the first.
+        this.SynchronizeViews(0, note);
+    } else {
+        note.DisplayView(this);
+    }
+}
+DualViewWidget.prototype.GetNote = function () {
+    return this.Note;
+}
+DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
+    var note = GetNoteFromId(noteId);
+    if ( ! note) {
+        note = new Note();
+        var self = this;
+        note.LoadViewId(
+            noteId,
+            function () {
+                self.SetNote(note, viewIdx);
+            });
+        return note;
+    }
+    this.SetNote(note,viewIdx);
+    return note;
+}
+
+
 
 // API for ViewerSet
 DualViewWidget.prototype.GetNumberOfViewers = function() {
@@ -103,7 +221,7 @@ DualViewWidget.prototype.SetNumberOfViewers = function(numViews) {
         this.Viewer1Fraction = 1.0;
     }
 
-    handleResize();
+    this.UpdateSize();
     this.UpdateGui();
 }
 
@@ -138,6 +256,11 @@ DualViewWidget.prototype.ToggleDualView = function () {
 }
 
 DualViewWidget.prototype.UpdateGui = function () {
+    if ( this.HideHandles) {
+        $('#dualWidgetLeft').hide();
+        $('#dualWidgetRight').hide();
+        return;
+    }
     // Now swap the buttons.
     if (this.DualView) {
         $('#dualWidgetLeft').hide();
@@ -159,7 +282,7 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
     if (timeStep > this.AnimationDuration) {
         // end the animation.
         this.Viewer1Fraction = this.AnimationTarget;
-        handleResize();
+        this.UpdateSize();
         this.UpdateGui();
         // this function is defined in init.js
         this.Draw();
@@ -172,7 +295,7 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
     this.AnimationDuration *= (1.0-k);
     this.Viewer1Fraction += (this.AnimationTarget - this.Viewer1Fraction) * k;
 
-    handleResize();
+    this.UpdateSize();
     // 2d canvas does not draw without this.
     this.Draw();
     var self = this;
@@ -235,3 +358,182 @@ DualViewWidget.prototype.Draw = function () {
     }
     if (this.Viewers[1] && this.DualView) { this.Viewers[1].Draw(); }
 }
+
+
+DualViewWidget.prototype.UpdateSize = function () {
+    var height = this.Parent.height();
+    var width = this.Parent.width();
+
+    var width1 = width * this.Viewer1Fraction;
+    var width2 = width - width1;
+
+
+    if (width2 <= 10) {
+        this.Viewers[1].Hide();
+    } else {
+        this.Viewers[1].Show();
+    }
+
+    // GL was odd because both viewer wer pu in the same canvas.
+
+    // TODO: Let css handle positioning the viewers.
+    //       This call positions the overview and still affect the main view.
+    if (this.Viewers[0]) {
+        // this should call UpdateSize
+        this.Viewers[0].SetViewport([0, 0, width1, height]);
+        this.Viewers[0].EventuallyRender(false);
+    }
+    if (this.Viewers[1]) {
+        // this should call UpdateSize
+        this.Viewers[1].SetViewport([width1, 0, width2, height]);
+        this.Viewers[1].EventuallyRender(false);
+    }
+}
+
+
+DualViewWidget.prototype.AnnotationWidgetOn = function() {
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        this.Viewers.AnnotationWidgetOn();
+    }
+}
+
+DualViewWidget.prototype.AnnotationWidgetOff = function() {
+    for (var i = 0; i < this.Viewers.length; ++i) {
+        this.Viewers.AnnotationWidgetOff();
+    }
+}
+
+// refViewerIdx is the viewer that changed and other viewers need 
+// to be updated to match that reference viewer.
+DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
+    // We allow the viewer to go one past the end.
+    if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
+        return;
+    }
+
+    // Special case for when the shift key is pressed.
+    // Translate only one camera and modify the tranform to match.
+    if (EDIT && SA.EventManager.CursorFlag) {
+        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
+        if ( ! note.ActiveCorrelation) {
+            if ( ! trans) {
+                alert("Missing transform");
+                return;
+            }
+            // Remove all correlations visible in the window.
+            var cam = this.GetViewer(0).GetCamera();
+            var bds = cam.GetBounds();
+            var idx = 0;
+            while (idx < trans.Correlations.length) {
+                var cor = trans.Correlations[idx];
+                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
+                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
+                    trans.Correlations.splice(idx,1);
+                } else {
+                    ++idx;
+                }
+            }
+
+            // Now make a new replacement correlation.
+            note.ActiveCorrelation = new PairCorrelation();
+            trans.Correlations.push(note.ActiveCorrelation);
+        }
+        var cam0 = this.GetViewer(0).GetCamera();
+        var cam1 = this.GetViewer(1).GetCamera();
+        note.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
+        note.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
+        // I really do not want to set the roll unless the user specifically changed it.
+        // It would be hard to correct if the wrong value got set early in the aligment.
+        var deltaRoll = cam1.Roll - cam0.Roll;
+        if (trans.Correlations.length > 1) {
+            deltaRoll = 0;
+            // Let roll be set by multiple correlation points.
+        }
+        note.ActiveCorrelation.SetRoll(deltaRoll);
+        note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
+        return; 
+    } else {
+        // A round about way to set and unset the active correlation.
+        // Note is OK, because if there is no interaction without the shift key
+        // the active correlation will not change anyway.
+        note.ActiveCorrelation = undefined;
+    }
+
+    // No shift modifier:
+    // Synchronize all the cameras.
+    // Hard coded for two viewers (recored 0 and 1 too).
+    // First place all the cameras into an array for code simplicity.
+    // Cameras used for preloading.
+    if (! note.PreCamera) { note.PreCamera = new Camera();}
+    if (! note.PostCamera) { note.PostCamera = new Camera();}
+    var cameras = [note.PreCamera, 
+                   this.GetViewer(0).GetCamera(), 
+                   this.GetViewer(1).GetCamera(), 
+                   note.PostCamera];
+    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
+    // Start with the reference section and move forward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx+1; i < cameras.length; ++i) {
+        var transIdx = i - 1 + note.StartIndex;
+        if (transIdx < note.ViewerRecords.length) {
+            note.ViewerRecords[transIdx].Transform
+                .ForwardTransformCamera(cameras[i-1],cameras[i]);
+        } else {
+            cameras[i] = undefined;
+        }
+    }
+
+    // Start with the reference section and move backward.
+    // With two sections, the second has the transform.
+    for (var i = refCamIdx; i > 0; --i) {
+        var transIdx = i + note.StartIndex-1;
+        if (transIdx > 0) { // First section does not have a transform
+            note.ViewerRecords[transIdx].Transform
+                .ReverseTransformCamera(cameras[i],cameras[i-1]);
+        } else {
+            cameras[i-1] = undefined;
+        }
+    }
+
+    // Preload the adjacent sections.
+    if (cameras[0]) {
+        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
+        cameras[0].SetViewport(this.GetViewer(0).GetViewport());
+        var tiles = cache.ChooseTiles(cameras[0], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            tiles[i].LoadQueueAdd();
+        }
+        LoadQueueUpdate();
+    }
+    if (cameras[3]) {
+        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
+        cameras[3].SetViewport(this.GetViewer(0).GetViewport());
+        var tiles = cache.ChooseTiles(cameras[3], 0, []);
+        for (var i = 0; i < tiles.length; ++i) {
+            tiles[i].LoadQueueAdd();
+        }
+        LoadQueueUpdate();
+    }
+
+    // OverView cameras need to be updated.
+    if (refViewerIdx == 0) {
+        this.GetViewer(1).UpdateCamera();
+        this.GetViewer(1).EventuallyRender(false);
+    } else {
+        this.GetViewer(0).UpdateCamera();
+        this.GetViewer(0).EventuallyRender(false);
+    }
+
+    // Synchronize annitation visibility.
+    var refViewer = this.GetViewer(refViewerIdx);
+    for (var i = 0; i < 2; ++i) {
+        if (i != refViewerIdx) {
+            var viewer = this.GetViewer(i);
+            if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
+                viewer.AnnotationWidget.SetVisibility(
+                    refViewer.AnnotationWidget.GetVisibility());
+            }
+        }
+    }
+}
+

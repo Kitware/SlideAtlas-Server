@@ -130,10 +130,10 @@ function TextEditor(parent, display) {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            EVENT_MANAGER.FocusOut();
+            SA.EventManager.FocusOut();
         })
         .focusout(function() {
-            EVENT_MANAGER.FocusIn();
+            SA.EventManager.FocusIn();
             self.Update();
         })
         // Mouse leave events are not triggering.
@@ -220,10 +220,10 @@ TextEditor.prototype.EditOn = function() {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            EVENT_MANAGER.FocusOut();
+            SA.EventManager.FocusOut();
         })
         .focusout(function() {
-            EVENT_MANAGER.FocusIn();
+            SA.EventManager.FocusIn();
             self.Update();
         })
         .mouseleave(function() { // back button does not cause loss of focus.
@@ -470,7 +470,7 @@ TextEditor.prototype.InsertCameraLink = function() {
     // Create a child note.
     var parentNote = this.Note;
     if ( ! parentNote) {
-        parentNote = NOTES_WIDGET.RootNote;
+        parentNote = SA.NotesWidget.RootNote;
     }
     // Put the new note at the end of the list.
     var childIdx = parentNote.Children.length;
@@ -507,7 +507,7 @@ TextEditor.prototype.InsertCameraLink = function() {
             self.UpdateNote();
             // Do not automatically select new hyperlinks.
             // The user may want to insert one after another.
-            //NOTES_WIDGET.SelectNote(note);
+            //SA.NotesWidget.SelectNote(note);
             if (range.noCursor) {
                 // Leave the selection the same as we found it.
                 // Ready for the next link.
@@ -717,9 +717,9 @@ function NotesWidget(parent, display) {
 
     // Root of the note tree.
     this.RootNote;
+    // Keeps track of the current note.
+    this.NavigationWidget;
 
-    // Iterator is used to implement the next and previous note buttons.
-    this.Iterator;
     // For clearing selected GUI setting.
     this.SelectedNote;
 
@@ -774,6 +774,10 @@ function NotesWidget(parent, display) {
         });
 }
 
+NotesWidget.prototype.SetNavigationWidget = function(nav) {
+    this.NavigationWidget = nav;
+}
+
 NotesWidget.prototype.SetModifiedCallback = function(callback) {
     this.ModifiedCallback = callback;
 }
@@ -803,25 +807,6 @@ NotesWidget.prototype.SelectNote = function(note) {
 
     // This should method should be split between Note and NotesWidget
     if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
-    // For when user selects a note from a list.
-    // Find the note and set a new iterator
-    // This is so the next and previous buttons will behave.
-    if (this.Iterator.GetNote() != note) {
-        var iter = this.RootNote.NewIterator();
-        while (iter.GetNote() != note) {
-            if ( iter.IsEnd()) {
-                // I am supporting hyperlinks in UserNote.
-                // They are not in the links tree yet.
-                // Hack, Just display the view.
-                note.DisplayView(this.Display);
-                // Hilight the text.
-                note.SelectHyperlink();
-                return;
-            }
-            iter.Next();
-        }
-        this.Iterator = iter;
-    }
 
     this.TextEditor.LoadNote(note);
 
@@ -839,11 +824,14 @@ NotesWidget.prototype.SelectNote = function(note) {
     note.TitleEntry.css({'background':'#f0f0f0'});
     // This highlighting can be confused with the selection highlighting.
     // Indicate hyperlink current note.
-    //$('#'+NOTES_WIDGET.SelectedNote.Id).css({'background':'#CCC'});
+    //$('#'+SA.NotesWidget.SelectedNote.Id).css({'background':'#CCC'});
     // Select the current hyper link
     note.SelectHyperlink();
 
-    if (NAVIGATION_WIDGET) {NAVIGATION_WIDGET.Update(); }
+    if (SA.DualDisplay && 
+        SA.DualDisplay.NavigationWidget) {
+        SA.DualDisplay.NavigationWidget.Update();
+    }
 
     if (this.Display.GetNumberOfViewers() > 1) {
         this.Display.GetViewer(1).Reset();
@@ -861,154 +849,6 @@ NotesWidget.prototype.SelectNote = function(note) {
         if (EDIT) {
             // These record changes in the viewers to the notes.
             this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-        }
-    }
-
-    if (note.Type == "Stack") {
-        // Select only gets called when the stack is first loaded.
-        this.Display.GetViewer(0).OnInteraction(function () {
-            self.SynchronizeViews(0, note);});
-        this.Display.GetViewer(1).OnInteraction(function () {
-            self.SynchronizeViews(1, note);});
-        note.DisplayStack(this.Display);
-        // First view is set by viewer record camera.
-        // Second is set relative to the first.
-        this.SynchronizeViews(0, note);
-    } else {
-        note.DisplayView(this.Display);
-    }
-}
-
-// refViewerIdx is the viewer that changed and other viewers need 
-// to be updated to match that reference viewer.
-NotesWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
-    // We allow the viewer to go one past the end.
-    if (refViewerIdx + note.StartIndex >= note.ViewerRecords.length) {
-        return;
-    }
-
-    // Special case for when the shift key is pressed.
-    // Translate only one camera and modify the tranform to match.
-    if (EDIT && EVENT_MANAGER.CursorFlag) {
-        var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-        if ( ! note.ActiveCorrelation) {
-            if ( ! trans) {
-                alert("Missing transform");
-                return;
-            }
-            // Remove all correlations visible in the window.
-            var cam = this.Display.GetViewer(0).GetCamera();
-            var bds = cam.GetBounds();
-            var idx = 0;
-            while (idx < trans.Correlations.length) {
-                var cor = trans.Correlations[idx];
-                if (cor.point0[0] > bds[0] && cor.point0[0] < bds[1] && 
-                    cor.point0[1] > bds[2] && cor.point0[1] < bds[3]) {
-                    trans.Correlations.splice(idx,1);
-                } else {
-                    ++idx;
-                }
-            }
-
-            // Now make a new replacement correlation.
-            note.ActiveCorrelation = new PairCorrelation();
-            trans.Correlations.push(note.ActiveCorrelation);
-        }
-        var cam0 = this.Display.GetViewer(0).GetCamera();
-        var cam1 = this.Display.GetViewer(1).GetCamera();
-        note.ActiveCorrelation.SetPoint0(cam0.GetFocalPoint());
-        note.ActiveCorrelation.SetPoint1(cam1.GetFocalPoint());
-        // I really do not want to set the roll unless the user specifically changed it.
-        // It would be hard to correct if the wrong value got set early in the aligment.
-        var deltaRoll = cam1.Roll - cam0.Roll;
-        if (trans.Correlations.length > 1) {
-            deltaRoll = 0;
-            // Let roll be set by multiple correlation points.
-        }
-        note.ActiveCorrelation.SetRoll(deltaRoll);
-        note.ActiveCorrelation.SetHeight(0.5*(cam1.Height + cam0.Height));
-        return; 
-    } else {
-        // A round about way to set and unset the active correlation.
-        // Note is OK, because if there is no interaction without the shift key
-        // the active correlation will not change anyway.
-        note.ActiveCorrelation = undefined;
-    }
-
-    // No shift modifier:
-    // Synchronize all the cameras.
-    // Hard coded for two viewers (recored 0 and 1 too).
-    // First place all the cameras into an array for code simplicity.
-    // Cameras used for preloading.
-    if (! note.PreCamera) { note.PreCamera = new Camera();}
-    if (! note.PostCamera) { note.PostCamera = new Camera();}
-    var cameras = [note.PreCamera, 
-                   this.Display.GetViewer(0).GetCamera(), 
-                   this.Display.GetViewer(1).GetCamera(), 
-                   note.PostCamera];
-    var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
-    // Start with the reference section and move forward.
-    // With two sections, the second has the transform.
-    for (var i = refCamIdx+1; i < cameras.length; ++i) {
-        var transIdx = i - 1 + note.StartIndex;
-        if (transIdx < note.ViewerRecords.length) {
-            note.ViewerRecords[transIdx].Transform
-                .ForwardTransformCamera(cameras[i-1],cameras[i]);
-        } else {
-            cameras[i] = undefined;
-        }
-    }
-
-    // Start with the reference section and move backward.
-    // With two sections, the second has the transform.
-    for (var i = refCamIdx; i > 0; --i) {
-        var transIdx = i + note.StartIndex-1;
-        if (transIdx > 0) { // First section does not have a transform
-            note.ViewerRecords[transIdx].Transform
-                .ReverseTransformCamera(cameras[i],cameras[i-1]);
-        } else {
-            cameras[i-1] = undefined;
-        }
-    }
-
-    // Preload the adjacent sections.
-    if (cameras[0]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex-1].Image);
-        cameras[0].SetViewport(this.Display.GetViewer(0).GetViewport());
-        var tiles = cache.ChooseTiles(cameras[0], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-    if (cameras[3]) {
-        var cache = FindCache(note.ViewerRecords[note.StartIndex+2].Image);
-        cameras[3].SetViewport(this.Display.GetViewer(0).GetViewport());
-        var tiles = cache.ChooseTiles(cameras[3], 0, []);
-        for (var i = 0; i < tiles.length; ++i) {
-            tiles[i].LoadQueueAdd();
-        }
-        LoadQueueUpdate();
-    }
-
-    // OverView cameras need to be updated.
-    if (refViewerIdx == 0) {
-        this.Display.GetViewer(1).UpdateCamera();
-        this.Display.GetViewer(1).EventuallyRender(false);
-    } else {
-        this.Display.GetViewer(0).UpdateCamera();
-        this.Display.GetViewer(0).EventuallyRender(false);
-    }
-
-    // Synchronize annitation visibility.
-    var refViewer = this.Display.GetViewer(refViewerIdx);
-    for (var i = 0; i < 2; ++i) {
-        if (i != refViewerIdx) {
-            var viewer = this.Display.GetViewer(i);
-            if (viewer.AnnotationWidget && refViewer.AnnotationWidget) {
-                viewer.AnnotationWidget.SetVisibility(
-                    refViewer.AnnotationWidget.GetVisibility());
-            }
         }
     }
 }
@@ -1055,7 +895,6 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
         this.Update();
     }
     this.RootNote = rootNote;
-    this.Iterator = this.RootNote.NewIterator();
     this.DisplayRootNote();
 
     // Only show user notes for the first image of the root note.
@@ -1133,10 +972,10 @@ NotesWidget.prototype.StartDrag = function () {
     $('body').css({'cursor': 'col-resize'});
 }
 NotesWidgetResizeDrag = function (e) {
-    NOTES_WIDGET.SetWidth(e.pageX - 1);
-    if (NOTES_WIDGET.Width < 200) {
+    SA.NotesWidget.SetWidth(e.pageX - 1);
+    if (SA.NotesWidget.Width < 200) {
         NotesWidgetResizeStopDrag();
-        NOTES_WIDGET.ToggleNotesWindow();
+        SA.NotesWidget.ToggleNotesWindow();
     }
 
     return false;
@@ -1167,168 +1006,9 @@ NotesWidget.prototype.Resize = function(width, height) {
     this.LinksDiv.height(height - pos.top);
 }
 
-//------------------------------------------------------------------------------
-// Iterator to perform depth first search through note tree.
-// Collapsed branches (children not visible) are not traversed.
-// This iterator is a bit over engineered.  I made it so we can subclasses
-// that iterate over internal states.  However, internal states require
-// notes so I made an array of answers (which are hidden).
-function NoteIterator(note) {
-  this.Note = note;
-  this.ChildIterator = null;
-}
-
-// Because of sorting, the child array gets reset on us.
-// I need a dynamic way to get the Children array based on the state.
-NoteIterator.prototype.GetChildArray = function() {
-  if ( ! this.Note) {
-    return [];
-  }
-  return this.Note.Children;
-}
-
-// Because of sorting, I have to make the index dynamic
-// and it cannot be stored as an ivar.
-NoteIterator.prototype.GetChildIndex = function() {
-  if (this.ChildIterator == null) {
-    return -1;
-  }
-  return this.GetChildArray().indexOf( this.ChildIterator.Note );
-}
-
-
-
-NoteIterator.prototype.GetNote = function() {
-  if (this.ChildIterator != null) {
-    return this.ChildIterator.GetNote();
-  }
-  return this.Note;
-}
-
-// Get the parent note of the current note.
-// Notes do not keep a pointer to parents.
-// The iterator has this information for active notes.
-NoteIterator.prototype.GetParentNote = function() {
-  if (this.ChildIterator == null) {
-    // We are at the current note.  Let the caller supply the parent.
-    return null;
-  }
-
-  var parent = this.ChildIterator.GetParentNote();
-  if (parent == null) {
-    // This level contains the parent.
-    parent = this.Note;
-  }
-
-  return parent;
-}
-
-
-// We use this to see (peek) if next or previous should be disabled.
-NoteIterator.prototype.IsStart = function() {
-  if (this.ChildIterator == null) {
-    return true;
-  }
-  return false;
-}
-
-
-NoteIterator.prototype.IsEnd = function() {
-  // Case note is active.
-  if (this.ChildIterator == null) {
-    if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
-      return false;
-    }
-    return true;
-  }
-
-  // sub answer is active.
-  var childIndex = this.GetChildIndex();
-
-  // sub child is active
-  if (childIndex == this.GetChildArray().length - 1) {
-    return this.ChildIterator.IsEnd();
-  }
-  return false;
-}
-
-
-// Parent note is traversed before children.
-// Move forward one step.  Return the new note. At end the last note returned again.
-// IsEnd method used to detect terminal case.
-NoteIterator.prototype.Next = function() {
-  // Case 1:  Iterator is on its own node.
-  if (this.ChildIterator == null) {
-    // Next check for children notes
-    if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
-      // Move to the first child.
-      this.ChildIterator = this.GetChildArray()[0].NewIterator();
-      return this.ChildIterator.GetNote();
-    }
-    // No answers or children: we are at the end.
-    return this.Note;
-  }
-
-  // Try to advance the child iterator.
-  if ( ! this.ChildIterator.IsEnd()) {
-    return this.ChildIterator.Next();
-  }
-
-  // Child iterator is finished.
-  // Try to create a new iterator with the next child in the array.
-  var childIndex = this.GetChildIndex();
-  if (childIndex < this.GetChildArray().length-1) {
-    this.ChildIterator = this.GetChildArray()[childIndex+1].NewIterator();
-    return this.ChildIterator.GetNote();
-  }
-
-  // We are at the end of the children array.
-  return this.ChildIterator.GetNote();
-}
-
-
-// Move backward one step.  See "Next" method comments for description of tree traversal.
-NoteIterator.prototype.Previous = function() {
-  if (this.ChildIterator == null) {
-    // At start.
-    return this.Note;
-  }
-  if ( ! this.ChildIterator.IsStart()) {
-    return this.ChildIterator.Previous();
-  }
-
-  // Move to the previous child.
-  var childIndex = this.GetChildIndex() - 1;
-  if (childIndex >= 0) {
-    this.ChildIterator = this.GetChildArray()[childIndex].NewIterator();
-    this.ChildIterator.ToEnd();
-    return this.ChildIterator.GetNote();
-  }
-
-  // No more sub notes left.  Move to the root.
-  this.ChildIterator = null;
-  return this.Note;
-}
-
-
-// Move the iterator to the end. Used in Previous method.
-NoteIterator.prototype.ToEnd = function() {
-  if (this.Note.Children.length > 0 && this.Note.ChildrenVisibility) {
-    this.ChildArray = this.Note.Children;
-    var childIndex = this.ChildArray.length - 1;
-    this.ChildIterator = this.ChildArray[childIndex].NewIterator();
-    return this.ChildIterator.ToEnd();
-  }
-  // leaf note
-  this.ChildArray = null;
-  this.ChildIterator = null;
-  return this.Note;
-}
-
-
 
 NotesWidget.prototype.GetCurrentNote = function() {
-    return this.Iterator.GetNote();
+    return this.NavigationWidget.GetNote();
 }
 
 
@@ -1348,7 +1028,7 @@ NotesWidget.prototype.SaveUserNote = function() {
     }
 
     // Now add the note as the last child to the current note.
-    parentNote = this.Iterator.GetNote();
+    parentNote = this.GetCurrentNote();
     parentNote.Children.push(childNote);
     // ParentId is how we retrieve notes from the database.
     // It is the only tree structure saved.
@@ -1373,9 +1053,7 @@ NotesWidget.prototype.SaveUserNote = function() {
     });
 
     // Redraw the GUI. should we make the parent or the new child active?
-    // If we choose the child, then we need to update the iterator,
-    // which will also update the gui and viewers.
-    NAVIGATION_WIDGET.NextNote();
+    this.NavigationWidget.NextNote();
 }
 
 NotesWidget.prototype.SaveBrownNote = function() {
@@ -1384,7 +1062,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     note.RecordView(this.Display);
 
     // This is not used and will probably be taken out of the scheme,
-    note.SetParent(this.Iterator.GetNote());
+    note.SetParent(this.GetCurrentNote());
 
     // Make a thumbnail image to represent the favorite.
     // Bug: canvas.getDataUrl() not supported in Safari on iPad.
@@ -1437,7 +1115,7 @@ NotesWidget.prototype.ToggleNotesWindow = function() {
 
 // Randomize the order of the children
 NotesWidget.prototype.RandomCallback = function() {
-  var note = this.Iterator.GetNote();
+  var note = this.GetCurrentNote();
   note.Children.sort(function(a,b){return Math.random() - 0.5;});
   note.UpdateChildrenGUI();
 }
@@ -1488,7 +1166,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.AddViewButton
             .appendTo(this.LinksDiv)
             .click(function () {
-                var parentNote = NOTES_WIDGET.RootNote;
+                var parentNote = SA.NotesWidget.RootNote;
                 var childIdx = parentNote.Children.length;
                 var childNote = parentNote.NewChild(childIdx, "New View");
                 // Setup and save
@@ -1521,8 +1199,8 @@ NotesWidget.prototype.LoadViewId = function(viewId) {
         note.LoadViewId(
             viewId,
             function () {
-                NOTES_WIDGET.SetRootNote(note);
-                NOTES_WIDGET.DisplayRootNote();
+                SA.NotesWidget.SetRootNote(note);
+                SA.NotesWidget.DisplayRootNote();
             }
         );
     }
@@ -1533,7 +1211,7 @@ NotesWidget.prototype.LoadViewId = function(viewId) {
 
 // Add a user note to the currently selected notes children.
 NotesWidget.prototype.NewCallback = function() {
-    var note = this.Iterator.GetNote();
+    var note = this.GetCurrentNote();
     var childIdx = 0;
     if (note.Parent) {
         var idx = note.Children.indexOf(note);

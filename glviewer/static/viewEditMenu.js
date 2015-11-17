@@ -49,7 +49,7 @@ function ViewEditMenu (viewer, otherViewer) {
             .addClass("sa-view-edit-button")
             .click(function(){self.SaveView();});
     }
-    if (NOTES_WIDGET) {
+    if (SA.NotesWidget) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Download Image")
@@ -158,7 +158,7 @@ ViewEditMenu.prototype.ToggleHistory = function() {
 // Record the viewer into the current note and save into the database.
 ViewEditMenu.prototype.SaveView = function() {
     this.Tab.PanelOff();
-    if (NOTES_WIDGET) NOTES_WIDGET.SaveCallback();
+    if (SA.NotesWidget) SA.NotesWidget.SaveCallback();
 }
 
 ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
@@ -173,7 +173,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = NOTES_WIDGET.GetCurrentNote();
+    var note = SA.DualDisplay.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -189,7 +189,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     // Save automatically if user has permission.
     if (EDIT) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
-        //NOTES_WIDGET.SaveCallback();
+        //SA.NotesWidget.SaveCallback();
         // Lets try just setting this one note.
         var noteObj = JSON.stringify(note.Serialize(false));
         var d = new Date();
@@ -208,7 +208,6 @@ ViewEditMenu.prototype.SetViewBounds = function() {
 ViewEditMenu.prototype.SetImageBounds = function() {
     this.Tab.PanelOff();
 
-    //var viewer = EVENT_MANAGER.CurrentViewer;
     var viewer = this.Viewer;
     var imageDb = viewer.GetCache().Image.database;
     var imageId = viewer.GetCache().Image._id;
@@ -324,7 +323,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (NOTES_WIDGET.GetCurrentNote().Type == "Stack") {
+        if (SA.DualDisplay.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();

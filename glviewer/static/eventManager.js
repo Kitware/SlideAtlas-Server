@@ -198,13 +198,13 @@ EventManager.prototype.HandleKeyDown = function(event) {
         return true;
     }
 
-    if (typeof(PRESENTATION) != "undefined" && PRESENTATION) {
-        PRESENTATION.HandleKeyDown(event);
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
         return true;
     }
 
-    if (typeof(NAVIGATION_WIDGET) != "undefined") {
-        if (NAVIGATION_WIDGET.HandleKeyPress(event.keyCode, this)) {
+    if (SA.DualDisplay.NavigationWidget) {
+        if (SA.DualDisplay.NavigationWidget.HandleKeyPress(event.keyCode, this)) {
             return true;
         }
     }
@@ -251,8 +251,8 @@ EventManager.prototype.HandleKeyUp = function(event) {
         this.ControlKeyPressed = false;
     }
 
-    if (typeof(PRESENTATION) != "undefined" && PRESENTATION) {
-        PRESENTATION.HandleKeyUp(event);
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyUp(event);
         return true;
     }
 
@@ -512,11 +512,11 @@ EventManager.prototype.HandleTouchMove = function(e, viewer) {
     // Put a throttle on events
     if ( ! this.HandleTouch(e, false, viewer)) { return; }
 
-    if (typeof(NAVIGATION_WIDGET) != "undefined" && 
-        NAVIGATION_WIDGET.Visibility) {
+    if (SA.DualDisplay.NavigationWidget && 
+        SA.DualDisplay.NavigationWidget.Visibility) {
         // No slide interaction with the interface up.
         // I had bad interaction with events going to browser.
-        NAVIGATION_WIDGET.ToggleVisibility();
+        SA.DualDisplay.NavigationWidget.ToggleVisibility();
     }
 
     if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
@@ -551,8 +551,10 @@ EventManager.prototype.HandleTouchEnd = function(e, viewer) {
     if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
         this.StartTouchTime = 0;
         if (t < 90) {
-            if (typeof(NAVIGATION_WIDGET) != "undefined") {
-                NAVIGATION_WIDGET.ToggleVisibility();
+            // We should not have a navigation widget on mobile
+            // devices. (maybe iPad?).
+            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
+                SA.DualDisplay.NavigationWidget.ToggleVisibility();
             }
             if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
                 MOBILE_ANNOTATION_WIDGET.ToggleVisibility();

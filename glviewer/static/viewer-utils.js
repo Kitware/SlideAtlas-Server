@@ -1,3 +1,4 @@
+
 //==============================================================================
 // saElement: borders, shadow, drag and resize
 // saRectangle: BackgroundColor / gradient.
@@ -8,9 +9,17 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Cannot delete title of new slide.
-// Add the drag handle.
-// Move editor buttons outside div (change deactivate event.)
+// Text bbox changing from transparent to visible automatically.
+// Copyright management not working for dual display.
+// Delete a dual view should delete the note too.
+// Get Deep copy stack working.
+// Figure out how user can add a stack with the GUI.
+// Open dual viewer: overview bounds different (foot)
+// Open lightbox viewers do not consume key events.
+// Save changes to a stack.
+// Resize puts edit buttons in the wrong location.
+
+
 // bug: question buttons div are active on load
 
 // Make sure the active border stays on during resize.
@@ -34,6 +43,7 @@
 // Start with draggable, resizable, deletable and click.
 // Highlight border to indicate an active element.
 // args = {click: function (dom) {...}
+//         delete: function (dom) {...}
 //         editable: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
@@ -57,38 +67,14 @@ function saElement(div) {
     this.Editable = false;
     this.Div = div;
     this.ClickCallback = null;
+    this.DeleteCallback = null;
     // Hack to keep the element active.
     this.LockActive = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
-            function (e) {
-                if ( self.LockActive) {return true;}
-                self.SavedBorder = this.style.border;
-                $(this).css({'border-color':'#7BF'});
-                if (self.Editable) {
-                    self.ButtonDiv.appendTo(self.Div);
-                    // Rmove an element destroys bindings.
-                    self.MenuButton
-                        .on('mousedown',
-                            function () {
-                                self.DialogOpenCallback();
-                                return false;
-                            });
-                    self.DeleteButton
-                        .on('mousedown',
-                            function () {
-                                self.Div.remove();
-                                return false;
-                            });
-                }
-            },
-            function (e) {
-                if ( self.LockActive) {return true;}
-                this.style.border = self.SavedBorder;
-                self.ButtonDiv.remove();
-            }
-        );
+            function () { self.ActiveOn(); },
+            function () { self.ActiveOff(); });
 
     // I cannot move this to EditOn because we need the mouse down event
     // to detect clicks.
@@ -114,7 +100,8 @@ function saElement(div) {
               'position':'absolute',
               'top':'0px',
               'left':'0px',
-              'cursor':'auto'})
+              'cursor':'auto',
+              'z-index':'1000'})
         // Block the expand event when the delete button is pressed.
         .mousedown(function(){return false;});
     this.DeleteButton = $('<img>')
@@ -141,6 +128,43 @@ function saElement(div) {
         .prop('title', "properties");
 
     this.InitializeDialog();
+}
+
+saElement.prototype.ActiveOn = function () {
+    var self = this;
+    if ( this.LockActive) {return true;}
+    if ( ! this.SavedBorder) {
+        this.SavedBorder = this.Div[0].style.border;
+    }
+    this.Div.css({'border-color':'#7BF'});
+    if (this.Editable) {
+        this.ButtonDiv.appendTo(this.Div);
+        // Remove an element destroys bindings.
+        this.MenuButton
+            .on('mousedown',
+                function () {
+                    self.DialogOpenCallback();
+                    return false;
+                });
+        this.DeleteButton
+            .on('mousedown',
+                function () {
+                    if (self.DeleteCallback) {
+                        (self.DeleteCallback)(self.Div[0]);
+                    }
+                    self.Div.remove();
+                    return false;
+                });
+    }
+}
+
+saElement.prototype.ActiveOff = function () {
+    if ( this.LockActive) {return true;}
+    if ( this.SavedBorder) {
+        this.Div[0].style.border = this.SavedBorder;
+        delete this.SavedBorder;
+    }
+    this.ButtonDiv.remove();
 }
 
 saElement.prototype.InitializeDialog = function () {
@@ -432,7 +456,8 @@ saElement.prototype.DialogApplyCallback = function() {
 
 
 saElement.prototype.DialogApply = function() {
-    this.SavedBorder = this.Div[0].style.border;
+    // ActiveOff was setting border back after dialog changed it.
+    delete this.SavedBorder;
     if (this.Dialog.BorderCheck.is(":checked")) {
         var color = this.Dialog.BorderColor.spectrum('get');
         var width = parseFloat(this.Dialog.BorderWidth.val());
@@ -509,6 +534,10 @@ saElement.prototype.ProcessArguments = function(args) {
 
     if (args.click !== undefined) {
         this.ClickCallback = args.click;
+    }
+
+    if (args.delete !== undefined) {
+        this.DeleteCallback = args.delete;
     }
 
     this.ConvertToPercentages();
@@ -599,13 +628,15 @@ saElement.prototype.RaiseToTop = function() {
 
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
+    saFirefoxWhich(event);
     if (event.which == 0) {
-        if (event.srcElement != this.Div[0]) {
-            this.Div.css({'cursor':'move'});
-            this.MoveState = 0;
-            return true;
+        // Is it dangerous to modify the event object?
+        while (event.srcElement && event.srcElement != this.Div[0]) {
+            event.offsetX += event.srcElement.offsetLeft;
+            event.offsetY += event.srcElement.offsetTop;
+            event.srcElement = event.srcElement.parentElement;
         }
-        var handleSize = 7;
+        var handleSize = 6;
         var x = event.offsetX;
         var y = event.offsetY;
         var width = this.Div.outerWidth() - handleSize;
@@ -632,6 +663,7 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
 
 
 saElement.prototype.HandleMouseMove = function(event) {
+    saFirefoxWhich(event);
     if (event.which == 1) {
         // Wait for the click duration to start dragging.
         if (Date.now() - this.ClickStart < 200) {
@@ -650,8 +682,10 @@ saElement.prototype.HandleMouseMove = function(event) {
 
         // Maybe we should not let the object leave the page.
         var pos  = this.Div.position();
-        var width = this.Div.width();
-        var height = this.Div.height();
+        // It is odd.  First setting width has the same value as getting
+        // outerWidth. Now it behaves as expected (consistent outer set / get).
+        var width = this.Div.outerWidth();
+        var height = this.Div.outerHeight();
         if (this.AspectRatio && typeof(this.AspectRatio) != 'number') {
             this.AspectRatio = width / height;
         }
@@ -665,17 +699,17 @@ saElement.prototype.HandleMouseMove = function(event) {
             var left = pos.left + dx;
             width = width - dx;
             this.Div[0].style.left = left.toString()+'px';
-            this.Div[0].style.width = width.toString()+'px';
+            this.Div.outerWidth(width);
             if (this.AspectRatio) {
-                this.Div[0].style.height = (width/this.AspectRatio)+'px';
+                this.Div.innerHeight(this.Div.innerWidth/this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
         } else if (this.MoveState == 2) {
             width = width + dx;
-            this.Div[0].style.width = width.toString()+'px';
+            this.Div.outerWidth(width);
             if (this.AspectRatio) {
-                this.Div[0].style.height = (width/this.AspectRatio)+'px';
+                this.Div.innerHeight(this.Div.innerWidth()/this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
@@ -683,17 +717,17 @@ saElement.prototype.HandleMouseMove = function(event) {
             var top = pos.top + dy;
             height = height - dy;
             this.Div[0].style.top = top.toString()+'px';
-            this.Div[0].style.height = height.toString()+'px';
+            this.Div.outerHeight(height);
             if (this.AspectRatio) {
-                this.Div[0].style.width = (height*this.AspectRatio)+'px';
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
         } else if (this.MoveState == 4) {
             height = height + dy;
-            this.Div[0].style.height = height.toString()+'px';
+            this.Div.outerHeight(height);
             if (this.AspectRatio) {
-                this.Div[0].style.width = (height*this.AspectRatio)+'px';
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
@@ -776,11 +810,11 @@ saElement.prototype.ConvertToPercentages = function() {
     if (width > 0) { // TODO: Remove this check after a while.
         // These always return pixel units.
         width = 100 * width / this.Div.parent().width();
-        this.Div[0].style.width = width.toString()+'%';
+        this.Div.width(width.toString()+'%');
 
         var height = this.Div.height();
         height = 100 * height / this.Div.parent().height();
-        this.Div[0].style.height = height.toString()+'%';
+        this.Div.height(height.toString()+'%');
     }
 
     var pos  = this.Div.position();
@@ -1464,17 +1498,19 @@ saTextEditor.prototype.EditingOn = function() {
         .show();
 
     // I use mouse up because it should always propagate.
+    var self = this;
     $('body').on(
-        'mouseup.textEditor',
+        'mousedown.textEditor',
         function (e) {
-            if (e.currentTarget != self.Div[0] &&
-                e.currentTarget != self.EditButtonDiv[0]) {
+            // We do not want click in the text box (or buttons) to turn
+            // off editing.
+            if ( self.Div[0] != e.srcElement &&
+                 self.EditButtonDiv[0] != e.srcElement && 
+                 ! $.contains(self.Div[0], e.srcElement) &&
+                 ! $.contains(self.EditButtonDiv[0], e.srcElement)) {
                 self.EditingOff();
             }
         });
-    // Try to block the editing off call when clicking in our own.
-    this.Div.on('mouseup.textEditor', function () { return false;});
-    this.EditButtonDiv.on('mouseup.textEditor', function () { return false;});
 
     // TODO: Get rid of this hack.
     // Keyup should return false.
@@ -1495,13 +1531,12 @@ saTextEditor.prototype.EditingOn = function() {
 }
 
 saTextEditor.prototype.EditingOff = function() {
-    $('body').off('mouseup.textEditor');
-    this.Div.off('mouseup.textEditor');
-    this.EditButtonDiv.off('mouseup.textEditor');
+    $('body').off('mousedown.textEditor');
 
     this.EditButtonDiv.hide();
     // hack
     this.Div[0].saElement.LockActive = false;
+    this.Div[0].saElement.ActiveOff();
 
     if (this.SavedMovable) {
         this.Div[0].saElement.EditableOn();
@@ -1510,6 +1545,7 @@ saTextEditor.prototype.EditingOff = function() {
     this.Div
         .attr('contenteditable', 'false')
         .off('mouseleave.textEditor');
+    
 }
 
 saTextEditor.prototype.AddButton = function(src, tooltip, callback, prepend) {
@@ -1924,7 +1960,7 @@ saLightBox.prototype.UpdateSize = function() {
             this.Div[0].onresize =
                 function() {
                     self.UpdateSize();
-                }
+                };
             this.Div.addClass('sa-resize');
         }
 
@@ -2030,35 +2066,55 @@ jQuery.prototype.saLightBoxViewer = function(args) {
     if ( ! args.hideCopyright) {
         args.hideCopyright = true;
     }
+    // No zoom widget when minimized.
+    if ( ! args.zoomWidget) {
+        args.zoomWidget = false;
+    }
+    if ( ! args.dualWidget) {
+        args.dualWidget = false;
+    }
+    if ( ! args.navigation) {
+        args.navigation = false;
+    }
+    if ( args.interaction === undefined) {
+        args.interaction = false;
+    }
+
     // Small viewer does not have overview
     args.overview = false;
     var editable = args.editable;
 
-    this.saViewer(args)
-        .saAnnotationWidget("hide")
-        .saLightBox(
-            {editable:editable,
-             onExpand : function(expanded) {
-                 this.Div.saViewer({interaction:expanded});
-                 if (expanded) {
-                     this.Div.saAnnotationWidget("show");
-                     this.Div.saViewer({overview : true,
-                                        menu     : true});
-                 } else {
-                     this.Div.saAnnotationWidget("hide");
-                     this.Div.saViewer({overview : false,
-                                        menu     : false});
-                     // TODO: Formalize this hack. Viewer formally needs a note.
-                     // If not editable, restore the note.
-                     var viewer = this.Div[0].saViewer;
-                     var note = viewer.saNote;
-                     var index = viewer.saViewerIndex || 0;
-                     if ( ! this.Div[0].saLightBox.Editable && note) {
-                         note.ViewerRecords[index].Apply(viewer);
-                     }
-                 }
-             }
-            });
+    // sa viewer is separate.  We need to pass the args to saLightBoxToo.
+    this.saViewer(args);
+    // sa viewer is separate.  We need to pass the args to saLightBoxToo.
+    args.onExpand = 
+        function (expanded) {
+            this.Div.saViewer({interaction:expanded});
+            if (expanded) {
+                this.Div.saViewer({overview  : true,
+                                   navigation: true,
+                                   menu      : true,
+                                   zoomWidget: true,
+                                   dualWidget: true,
+                                   drawWidget: true});
+            } else {
+                this.Div.saViewer({overview  : false,
+                                   navigation: false,
+                                   menu      : false,
+                                   zoomWidget: false,
+                                   dualWidget: false,
+                                   drawWidget: false});
+                // This is here to restore the viewer to its
+                // initial state when it shrinks
+                // TODO: Formalize this hack. Viewer formally needs a note.
+                // If not editable, restore the note.
+                var display = this.Div[0].saViewer;
+                var note = display.saNote;
+                var index = display.saViewerIndex || 0;
+                display.SetNote(note, index);
+            }
+        };
+    this.saLightBox(args);
 
     this.addClass('sa-lightbox-viewer');
 
@@ -2115,6 +2171,7 @@ var saDialogApplyCallback = function(element) {
 
 
 //==============================================================================
+// This is legacy and not used anymore.
 // A common parent for all sa buttons (for this element).
 // Handle showing and hiding buttons.  Internal helper.
 
@@ -2293,21 +2350,14 @@ jQuery.prototype.saHtml = function(string) {
                            'interaction':   false});
 
         for (var i = 0; i < viewDivs.length; ++i) {
-            var viewer = viewDivs[i].saViewer;
+            var display = viewDivs[i].saViewer;
             var noteId = $(viewDivs[i]).attr('sa-note-id');
             var viewerIdx = $(viewDivs[i]).attr('sa-viewer-index') || 0;
             viewerIdx = parseInt(viewerIdx);
+            // TODO: This should not be here.
+            // The saViewer should handle this internally.
             if (noteId) {
-                // TODO: Rethink this.
-                // The viewer does not actually keep a refrence to the note.
-                // We may not even care if we load a sceond copy of the
-                // note. So when changes are made, the note is important.
-                var note = GetNoteFromId(noteId);
-                if (note) {
-                    note.ViewerRecords[viewerIdx].Apply(viewer);
-                    viewer.saNote = note;
-                    viewer.saViewerIndex = viewerIdx;
-                }
+                display.SetNoteFromId(noteId, viewerIdx);
             }
         }
 
@@ -2328,7 +2378,7 @@ jQuery.prototype.saHtml = function(string) {
                               editable   : true});
 
             items = this.find('.sa-lightbox-viewer');
-            items.saAnnotationWidget('hide');
+            items.saViewer({drawWidget: false});
         }
 
         return;
@@ -2404,6 +2454,7 @@ jQuery.prototype.saResizable = function(args) {
 // args = {interaction:true,
 //         overview:true,
 //         menu:true, 
+//         drawWidget:true,
 //         zoomWidget:true,
 //         viewId:"55f834dd3f24e56314a56b12", note: {...}
 //         viewerIndex: 0,
@@ -2436,13 +2487,37 @@ jQuery.prototype.saViewer = function(args) {
     return this;
 }
 
+// I am struggling for an API to choose between single view and dual view.
+// - I considered saDualViewer, but it is nearly identical to saViewer and
+// saLightBoxViewer does not know which to create because it does not have
+// the note early enough.
+// - I consider hinging it on the existence of sa-viewer-index but that is
+// hidden and not obvious.
+// I choose to pass an argument flag "dual", but am sure how to store the
+// flag in html. I could have an attribute "dual", but I think I like to 
+// change the class from sa-viewer to sa-dual-viewer better. 
+// TODO: Make the argument calls not dependant on order.
 function saViewerSetup(self, args) {
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
+            if (args.dual == undefined) {
+                // look for class name.
+                if (self.hasClass('sa-dual-viewer')) {
+                    args.dual = true;
+                }
+            }
+
             // Add the viewer as an instance variable to the dom object.
-            self[i].saViewer = new Viewer($(self[i]), args);
-            // TODO: Get rid of the event manager.
-            EVENT_MANAGER.AddViewer(self[i].saViewer);
+            if (args.dual) {
+                // TODO: dual has to be set on the first call.  Make this
+                // order independant. Also get rid of args here. We should
+                // use process arguments to setup options.
+                self[i].saViewer = new DualViewWidget($(self[i]));
+            } else {
+                self[i].saViewer = new Viewer($(self[i]));
+                // TODO: Get rid of the event manager.
+                SA.EventManager.AddViewer(self[i].saViewer);
+            }
 
             // When the div resizes, we need to synch the camera and
             // canvas.
@@ -2454,39 +2529,9 @@ function saViewerSetup(self, args) {
             // it explicitly (from the body onresize function).
             $(self[i]).addClass('sa-resize');
         }
-        var viewer = self[i].saViewer;
-        // TODO:  Handle zoomWidget options
-        if (args.overview !== undefined) {
-            viewer.SetOverViewVisibility(args.overview);
-        }
-        // The way I handle the viewer edit menu is messy.
-        // TODO: Find a more elegant way to add tabs.
-        // Maybe the way we handle the anntation tab shouodl be our pattern.
-        if (args.menu !== undefined) {
-            if ( ! viewer.Menu) {
-                viewer.Menu = new ViewEditMenu(viewer, null);
-            }
-            viewer.Menu.SetVisibility(args.menu);
-        }
-        
-        if (args.note) {
-            viewer.saNote = args.note;
-            viewer.saViewerIndex = args.viewerIndex || 0;
-            // .... TODO ....
-            // Note note record. DUALDisplay?
-            args.note.ViewerRecords[args.viewerIndex].Apply(viewer);
-            $(self[i]).attr('sa-note-id', args.note.Id || args.note.TempId);
-            $(self[i]).attr('sa-viewer-index', viewer.saViewerIndex);
-        }
-        if (args.hideCopyright) {
-            viewer.CopyrightWrapper.hide();
-        }
-        if (args.interaction !== undefined) {
-            viewer.SetInteractionEnabled(args.interaction);
-        }
+        self[i].saViewer.ProcessArguments(args);
     }
 }
-
 
 // This put changes from the viewer in to the note.
 // Is there a better way to do this?
@@ -2499,8 +2544,6 @@ jQuery.prototype.saRecordViewer = function() {
         }
     }
 }
-    
-
 
 
 //==============================================================================
@@ -2711,21 +2754,6 @@ saPresentation.prototype.HandleMouseUp = function (event) {
         $('body').off('mouseleave.presentation');
     }
 
-    // Quick click...
-    /* to sensitive.  maybe double click
-    var clickDuration = Date.now() - this.ClickStart;
-    if (clickDuration < 200) {
-        if (event.which == 1) {
-            this.Zoom *= 1.5;
-            this.Resize();
-        }
-        if (event.which == 3) {
-            this.Zoom /= 1.5;
-            this.Resize();
-        }
-    }
-*/
-
     return true;
 }
 
@@ -2788,6 +2816,7 @@ jQuery.prototype.saScalableFont = function(args) {
 
 
 //==============================================================================
+// legacy: not used anymore
 // draggable with a handle
 // TODO: This uses percentages now.  Exxtend with the option to position
 // with pixel units.
@@ -3071,9 +3100,6 @@ function saFullWindowOption(div) {
 saFullWindowOption.prototype.SetFullWindow = function(div, flag) {
     if (flag) {
         // TODO: Put this in a call back.
-        //PRESENTATION.EditOff();
-        //this.BottomDiv.hide();
-        //this.ViewPanel.css({'height':'100%'});
         saButtonsDisable(div[0]);
         this.FullWindowOptionOffButton.show();
         this.FullWindowOptionButton.hide();
@@ -3458,22 +3484,18 @@ saMenuButton.prototype.EventuallyHideInsertMenu = function() {
 }
 
 
-
-
-
-
 //==============================================================================
 // Although this is only an option for saViewers,  Make it separate to keep
 // it clean. NOTE: .saViewer has to be setup before this call.
 
-
+// This is not compatable with the dual viewer.  We need two widgets (one
+// per viewer).  Legacy now.
 
 //args: 
 jQuery.prototype.saAnnotationWidget = function(args) {
     for (var i = 0; i < this.length; ++i) {
         var item = this[i];
         if ( ! item.saViewer) {
-            console.log("Setup the viewer before the annotation widget.");
             return this;
         } else if ( ! item.saAnnotationWidget) {
             $(item).addClass("sa-annotation-widget")
