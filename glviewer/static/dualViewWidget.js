@@ -187,6 +187,7 @@ DualViewWidget.prototype.SetNote = function(note, viewIdx) {
     this.saViewerIndex = viewIdx;
     if (this.NavigationWidget) {
         this.NavigationWidget.SetNote(note);
+        //this.NavigationWidget.Update(); // not sure if this is necessary
     }
     if (note.Type == "Stack") {
         // TODO: Can I move this logic into the display? SetNote maybe?
@@ -204,9 +205,20 @@ DualViewWidget.prototype.SetNote = function(note, viewIdx) {
     } else {
         note.DisplayView(this);
     }
+
+    if (SA.NotesWidget) { 
+        SA.NotesWidget.SelectNote(note);
+    }
 }
 DualViewWidget.prototype.GetNote = function () {
     return this.saNote;
+}
+DualViewWidget.prototype.GetRootNote = function () {
+    var note = this.saNote;
+    while (note.Parent) {
+        note = note.Parent;
+    }
+    return note;
 }
 DualViewWidget.prototype.SetNoteFromId = function(noteId, viewIdx) {
     var note = GetNoteFromId(noteId);

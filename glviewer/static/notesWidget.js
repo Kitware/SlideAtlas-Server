@@ -470,7 +470,7 @@ TextEditor.prototype.InsertCameraLink = function() {
     // Create a child note.
     var parentNote = this.Note;
     if ( ! parentNote) {
-        parentNote = SA.NotesWidget.RootNote;
+        parentNote = SA.DualDisplay.GetRootNote();
     }
     // Put the new note at the end of the list.
     var childIdx = parentNote.Children.length;
@@ -715,8 +715,6 @@ function NotesWidget(parent, display) {
 
     //--------------------------------------------------------------------------
 
-    // Root of the note tree.
-    this.RootNote;
     // Keeps track of the current note.
     this.NavigationWidget;
 
@@ -786,7 +784,6 @@ NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
     this.ModifiedClearCallback = callback;
 }
 
-
 // Two types of select.  This one is from the views tab.
 // It sets the text from the note.
 // There has to be another from text links.  That does not set the
@@ -794,7 +791,7 @@ NotesWidget.prototype.SetModifiedClearCallback = function(callback) {
 NotesWidget.prototype.SelectNote = function(note) {
     if (note == this.SelectedNote) {
         // Just reset the camera.
-        note.DisplayView(this.Display);
+        //note.DisplayView(this.Display);
         return;
     }
     // Flush the timers before moving to another view.
@@ -828,29 +825,29 @@ NotesWidget.prototype.SelectNote = function(note) {
     // Select the current hyper link
     note.SelectHyperlink();
 
-    if (SA.DualDisplay && 
-        SA.DualDisplay.NavigationWidget) {
-        SA.DualDisplay.NavigationWidget.Update();
-    }
+    //if (SA.DualDisplay &&
+    //    SA.DualDisplay.NavigationWidget) {
+    //    SA.DualDisplay.NavigationWidget.Update();
+    //}
 
-    if (this.Display.GetNumberOfViewers() > 1) {
-        this.Display.GetViewer(1).Reset();
-        // TODO:
-        // It would be nice to store the viewer configuration
-        // as a separate state variable.  We might want a stack
-        // that defaults to a single viewer.
-        this.Display.SetNumberOfViewers(note.ViewerRecords.length);
-    }
+    //if (this.Display.GetNumberOfViewers() > 1) {
+    //    this.Display.GetViewer(1).Reset();
+    //    // TODO:
+    //    // It would be nice to store the viewer configuration
+    //    // as a separate state variable.  We might want a stack
+    //    // that defaults to a single viewer.
+    //    this.Display.SetNumberOfViewers(note.ViewerRecords.length);
+    //}
 
     // Clear the sync callback.
-    var self = this;
-    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        this.Display.GetViewer(i).OnInteraction();
-        if (EDIT) {
-            // These record changes in the viewers to the notes.
-            this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
-        }
-    }
+    //var self = this;
+    //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+    //    this.Display.GetViewer(i).OnInteraction();
+    //    if (EDIT) {
+    //        // These record changes in the viewers to the notes.
+    //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
+    //    }
+    //}
 }
 
 NotesWidget.prototype.RecordView = function() {
@@ -888,12 +885,13 @@ NotesWidget.prototype.MarkAsNotModified = function() {
     this.Modified = false;
 }
 
-
 NotesWidget.prototype.SetRootNote = function(rootNote) {
     if (this.UpdateTimer) {
         clearTimeout(this.UpdateTimer);
         this.Update();
     }
+    //this.Display.SetNote();
+
     this.RootNote = rootNote;
     this.DisplayRootNote();
 
@@ -949,14 +947,14 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     // Lets save the state of the notes widget.
     note.NotesPanelOpen = this.Visibility;
 
-    this.RootNote;
-    if (this.RootNote.Type == "Stack") {
+    var rootNote = this.Display.GetRootNote();
+    if (rootNote.Type == "Stack") {
         // Copy viewer annotation to the viewer record.
-        this.RootNote.RecordAnnotations(this.Display);
+        rootNote.RecordAnnotations(this.Display);
     }
 
     var self = this;
-    this.RootNote.Save(function () {
+    rootNote.Save(function () {
         self.Modified = false;
         if (finishedCallback) {
             finishedCallback();
@@ -1013,48 +1011,48 @@ NotesWidget.prototype.GetCurrentNote = function() {
 
 
 // TODO: ??? Check if this is legacy
-NotesWidget.prototype.SaveUserNote = function() {
-    // Create a new note.
-    var childNote = new Note();
-    var d = new Date();
-    this.Date = d.getTime(); // Also reset later.
-
-    childNote.ViewerRecords = [];
-    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-        var viewer = this.Display.GetViewer(i);
-        var viewerRecord = new ViewerRecord();
-        viewerRecord.CopyViewer(viewer);
-        childNote.ViewerRecords.push(viewerRecord);
-    }
-
-    // Now add the note as the last child to the current note.
-    parentNote = this.GetCurrentNote();
-    parentNote.Children.push(childNote);
-    // ParentId is how we retrieve notes from the database.
-    // It is the only tree structure saved.
-    childNote.SetParent(parentNote);
-    // Expand the parent so that the new note is visible.
-    parentNote.ChildrenVisible = true;
-
-    // Save the note in the database for this specific user.
-    // TODO: If author privileges, save note in the actual session / view.
-    var bug = JSON.stringify( childNote );
-    $.ajax({
-        type: "post",
-        url: "/webgl-viewer/saveusernote",
-        data: {"note": JSON.stringify(childNote.Serialize(false)),
-               "col" : "notes",
-               "date": d.getTime(),
-               "type": "UserNote"},
-        success: function(data,status) { childNote.Id = data;},
-        error: function() {
-            saDebug( "AJAX - error() : saveusernote 1" );
-        },
-    });
-
-    // Redraw the GUI. should we make the parent or the new child active?
-    this.NavigationWidget.NextNote();
-}
+//NotesWidget.prototype.SaveUserNote = function() {
+//    // Create a new note.
+//    var childNote = new Note();
+//    var d = new Date();
+//    this.Date = d.getTime(); // Also reset later.
+//
+//   childNote.ViewerRecords = [];
+//    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
+//        var viewer = this.Display.GetViewer(i);
+//        var viewerRecord = new ViewerRecord();
+//        viewerRecord.CopyViewer(viewer);
+//        childNote.ViewerRecords.push(viewerRecord);
+//    }
+//
+//    // Now add the note as the last child to the current note.
+//    parentNote = this.GetCurrentNote();
+//    parentNote.Children.push(childNote);
+//    // ParentId is how we retrieve notes from the database.
+//    // It is the only tree structure saved.
+//    childNote.SetParent(parentNote);
+//    // Expand the parent so that the new note is visible.
+//    parentNote.ChildrenVisible = true;
+//
+//    // Save the note in the database for this specific user.
+//    // TODO: If author privileges, save note in the actual session / view.
+//    var bug = JSON.stringify( childNote );
+//    $.ajax({
+//        type: "post",
+//        url: "/webgl-viewer/saveusernote",
+//        data: {"note": JSON.stringify(childNote.Serialize(false)),
+//               "col" : "notes",
+//               "date": d.getTime(),
+//               "type": "UserNote"},
+//        success: function(data,status) { childNote.Id = data;},
+//        error: function() {
+//            saDebug( "AJAX - error() : saveusernote 1" );
+//        },
+//    });
+//
+//    // Redraw the GUI. should we make the parent or the new child active?
+//    this.NavigationWidget.NextNote();
+//}
 
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
@@ -1174,11 +1172,10 @@ NotesWidget.prototype.DisplayRootNote = function() {
                 // We need to save the note to get its Id (for the link div).
                 childNote.Save();
                 parentNote.UpdateChildrenGUI();
-
-                self.SelectNote(childNote);
+                this.Display.SetNote(childNote);
+                //self.SelectNote(childNote);
             });
     }
-
     // Default to old style when no text exists (for backward compatability).
     if (this.RootNote.Text == "") {
         this.TabbedWindow.ShowTabDiv(this.LinksDiv);
@@ -1191,22 +1188,23 @@ NotesWidget.prototype.DisplayRootNote = function() {
     }
 }
 
-
-NotesWidget.prototype.LoadViewId = function(viewId) {
-    VIEW_ID = viewId;
-    var note = new Note();
-    if (typeof(viewId) != "undefined" && viewId != "") {
-        note.LoadViewId(
-            viewId,
-            function () {
-                SA.NotesWidget.SetRootNote(note);
-                SA.NotesWidget.DisplayRootNote();
-            }
-        );
-    }
-    // Since loading the view is asynchronous,
-    // the this.RootNote is not complete at this point.
-}
+// Is this called anymore?
+// No
+//NotesWidget.prototype.LoadViewId = function(viewId) {
+//    VIEW_ID = viewId;
+//    var note = new Note();
+//    if (typeof(viewId) != "undefined" && viewId != "") {
+//        note.LoadViewId(
+//            viewId,
+//            function () {
+//                SA.NotesWidget.SetRootNote(note);
+//                SA.NotesWidget.DisplayRootNote();
+//            }
+//        );
+//    }
+//    // Since loading the view is asynchronous,
+//    // the this.RootNote is not complete at this point.
+//}
 
 
 // Add a user note to the currently selected notes children.
@@ -1228,7 +1226,8 @@ NotesWidget.prototype.NewCallback = function() {
     note.UpdateChildrenGUI();
 
     note.Save();
-    this.SelectNote(childNote);
+    //this.SelectNote(childNote);
+    this.Display.SetNote(childNote);
 }
 
 // UserNotes used to be attached to a parent note.  Now I am indexing them
@@ -1251,9 +1250,6 @@ NotesWidget.prototype.RequestUserNote = function(imageId) {
 }
 
 
-
-
-// What should i do if the user starts editing before the note loads?
 // Note will not be active until it has a note.
 // Edit to a previous note are saved before it is replaced.
 NotesWidget.prototype.LoadUserNote = function(data, imageId) {
