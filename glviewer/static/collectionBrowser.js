@@ -444,7 +444,7 @@ CollectionBrowser = (function (){
         this.Id = data.id;
         this.ImageId = data.image_id;
         this.ImageDb = data.image_store_id;
-        this.Label = data.label;
+        this.Label = data.label.replace("|AC34","");
         this.CopyFlag = false;
         this.Source = "";
         return this;
