@@ -225,9 +225,6 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         --current.StartIndex;
         current.DisplayStack(this.Display);
-        if (SA.NotesWidget) {
-            SA.NotesWidget.SynchronizeViews(1, current);
-        }
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -250,8 +247,9 @@ NavigationWidget.prototype.PreviousNote = function() {
     var note = this.NoteIterator.Previous();
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
-    if (SA.NotesWidget) {
-        SA.NotesWidget.SelectNote(note);
+    // TODO: Clean this up. Is a call to display SetNote enough?
+    if (SA.DualDisplay) {
+        SA.DualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -278,9 +276,7 @@ NavigationWidget.prototype.NextNote = function() {
 
         ++current.StartIndex;
         current.DisplayStack(this.Display);
-        if (SA.NotesWidget) {
-            SA.NotesWidget.SynchronizeViews(0, current);
-        }
+        this.Display.SynchronizeViews(0, current);
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
@@ -303,8 +299,8 @@ NavigationWidget.prototype.NextNote = function() {
     var note = this.NoteIterator.Next();
     // change this so the NotesWidget dows not display the note in the
     // view. Trigger an update the notes widget.
-    if (SA.NotesWidget) {
-        SA.NotesWidget.SelectNote(note);
+    if (SA.DualDisplay) {
+        SA.DualDisplay.SetNote(note);
     } else {
         note.DisplayView(this.Display);
     }
@@ -322,7 +318,8 @@ NavigationWidget.prototype.PreviousSlide = function() {
         // TODO: Improve the API here.  Get rid of global access.
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
-        if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
+        this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
+        //if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -339,7 +336,8 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
-        if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
+        this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
+        //if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }

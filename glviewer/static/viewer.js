@@ -118,12 +118,7 @@ function Viewer (parent) {
             // So key events go the the right viewer.
             this.focus();
             // Firefox does not set which for mouse move events.
-            event.which = event.buttons;
-            if (event.which == 2) { 
-                event.which = 3;
-            } else if (event.which == 3) {
-                event.which = 2;
-            }
+            saFirefoxWhich(event);
             return self.HandleMouseMove(event);
         });
     // We need to detect the mouse up even if it happens outside the canvas,
@@ -243,6 +238,37 @@ Viewer.prototype.ProcessArguments = function (args) {
     }
 }
 
+// Which is better calling Note.Apply, or viewer.SetNote?  I think this
+// will  win.
+Viewer.prototype.SetViewerRecord = function(viewerRecord) {
+    viewerRecord.Apply(this);
+}
+Viewer.prototype.SetNote = function(note, viewIdx) {
+    if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
+        console.log("Cannot set viewer record of note");
+        return;
+    }
+    this.SetViewerRecord(note.ViewerRecords[viewIdx]);
+    this.saNote = note;
+    this.saViewerIndex = viewIdx;
+}
+Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
+    var note = GetNoteFromId(noteId);
+    if ( ! note) {
+        note = new Note();
+        var self = this;
+        note.LoadViewId(
+            viewId,
+            function () {
+                self.SetNote(self, viewIdx);
+            });
+        return note;
+    }
+    this.SetNote(note,viewIdx);
+    return note;
+}
+
+
 Viewer.prototype.SetOverViewVisibility = function(visible) {
     this.OverViewVisibility = visible;
     if ( ! this.OverViewDiv) { return;}
@@ -251,6 +277,10 @@ Viewer.prototype.SetOverViewVisibility = function(visible) {
     } else {
         this.OverViewDiv.hide();
     }
+}
+
+Viewer.prototype.GetOverViewVisibility = function() {
+    return this.OverViewVisibility;
 }
 
 Viewer.prototype.Hide = function() {
@@ -262,7 +292,7 @@ Viewer.prototype.Hide = function() {
 
 Viewer.prototype.Show = function() {
     this.MainView.CanvasDiv.show();
-    if (this.OverView && this.OverVIewVisibility) {
+    if (this.OverView && this.OverViewVisibility) {
         this.OverView.CanvasDiv.show();
     }
 }
@@ -550,7 +580,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
                                             finishedCallback) {
     var sectionFileName = fileName;
     if (stack) {
-        var note = SA.NotesWidget.GetCurrentNote();
+        var note = SA.DualDisplay.GetNote();
         var idx = fileName.indexOf('.');
         if (idx < 0) {
             sectionFileName = fileName + ZERO_PAD(note.StartIndex, 4) + ".png";
@@ -574,7 +604,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
 
     view.Canvas[0].toBlob(function(blob) {saveAs(blob, sectionFileName);}, "image/png");
     if (stack) {
-        var note = SA.NotesWidget.GetCurrentNote();
+        var note = SA.DualDisplay.GetNote();
         if (note.StartIndex < note.ViewerRecords.length-1) {
             SA.DualDisplay.NavigationWidget.NextNote();
             var self = this;
@@ -619,7 +649,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
 
 Viewer.prototype.SaveStackImage = function(fileNameRoot) {
     var self = this;
-    var note = SA.NotesWidget.GetCurrentNote();
+    var note = SA.DualDisplay.GetNote();
     var fileName = fileNameRoot + ZERO_PAD(note.StartIndex, 4);
     this.SaveImage(fileName);
     if (note.StartIndex < note.ViewerRecords.length-1) {

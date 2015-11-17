@@ -64,6 +64,9 @@
 
 //==============================================================================
 function Presentation(rootNote, edit) {
+    // Disable the next/previous slide buttons in navigator.
+    delete localStorage.session;
+
     var self = this;
     this.RootNote = rootNote;
     this.Edit = edit;
@@ -387,7 +390,8 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
                     self.InsertNewSlide("HTML");},
                 'Copy Slide'      : function () {self.InsertSlideCopy();},
                 'Insert Text'     : function () {
-                    self.HtmlPage.InsertTextBox();},
+                    self.HtmlPage.InsertTextBox()
+                        .css({'height':'25%'});},
                 'Insert Question' : function () {self.HtmlPage.InsertQuestion();},
                 'Insert Rectangle': function () {
                     self.HtmlPage.InsertRectangle('#073E87','0%','60%','97.5%','14%');},
@@ -825,8 +829,8 @@ Presentation.prototype.Save = function () {
     // This is also important for the user notes.  They have to save the
     // correct parent id.
     var waitingCount = 0;
-    for (var i = 0; i < NOTES.length; ++i) {
-        note = NOTES[i];
+    for (var i = 0; i < SA.Notes.length; ++i) {
+        note = SA.Notes[i];
         if ( ! note.Id && note.Type != "UserNote" ) {
             ++waitingCount;
             note.Save(function() {
@@ -846,8 +850,8 @@ Presentation.prototype.Save = function () {
 
     // Save the user notes.  They are not saved with the parent notes like
     // the children are.
-    for (var i = 0; i < NOTES.length; ++i) {
-        note = NOTES[i];
+    for (var i = 0; i < SA.Notes.length; ++i) {
+        note = SA.Notes[i];
         if ( note.Type == "UserNote" ) {
             if (note.Id || note.Text != "") {
                 // Parent will have an id at this point.
@@ -891,15 +895,23 @@ Presentation.prototype.Save = function () {
     }
 
     // Replacing the temp ids in the html is harder than I would expect.
-    // I change it in the save callback, but cosure magic change it back
+    // I change it in the save callback, but closure magic changes it back
     // Before the root note was saved.
     // Try changing them here.
-    for (var i = 0; i < NOTES.length; ++i) {
-        note = NOTES[i];
+    for (var i = 0; i < SA.Notes.length; ++i) {
+        note = SA.Notes[i];
         if (note.TempId) {
             // Replace al the occurances of the id in the string.
             note.Text = note.Text.replace(
                 new RegExp(note.TempId, 'g'), note.Id);
+            // Parent too.
+            // TODO: There has to be a more elegant way of doing this.
+            // Search for temp ids in all text and use 'GetNoteFromId'.
+            if (note.Parent) {
+                note.Parent.Text = note.Parent.Text.replace(
+                    new RegExp(note.TempId, 'g'), note.Id);
+            }
+
             delete note.TempId;
         }
     }
@@ -945,6 +957,7 @@ Presentation.prototype.InsertNewSlide = function (type){
     var note = new Note();
     if (type) { note.Type = type; }
     this.RootNote.Children.splice(idx-1,0,note);
+    note.Parent = this.RootNote;
     this.GotoSlide(idx);
     this.UpdateSlidesTab();
     if (type == 'HTML') {
@@ -1866,15 +1879,25 @@ HtmlPage.prototype.DisplayNote = function (note) {
     }
 
     // hack to get rid of tmp ids.  I can not reproduce the problem.
+    // Sometimes the temp ids are not replaced by the real ids (in the text).
     if ( ! note.TempId && note.Text && note.Id) {
         var idx0 = note.Text.indexOf('sa-note-id="tmp');
         while (idx0 >= 0) {
             idx0 += 12;
             var idx1 = note.Text.indexOf('"',idx0);
             var tmpId = note.Text.substring(idx0,idx1);
-            console.log("Replacing temp id " + tmpId + " with " + note.Id);
-            note.Text = note.Text.replace(tmpId, note.Id);
-            idx0 = note.Text.indexOf('sa-note-id="tmp');
+            // Now that we are adding children for dual displays ....
+            var found = false;
+            for (var j = 0; j < note.Children.length; ++j) {
+                if (note.Children[j].TempId == tmpId) {
+                    found = true;
+                }
+            }
+            if ( ! found ) {
+                console.log("Replacing temp id " + tmpId + " with " + note.Id);
+                note.Text = note.Text.replace(tmpId, note.Id);
+            }
+            idx0 = note.Text.indexOf('sa-note-id="tmp', idx0+1);
         }
     }
 
@@ -2237,11 +2260,20 @@ HtmlPage.prototype.InsertView = function(viewObj) {
 
     // First make a copy of the view as a child.
     var newNote = new Note();
+    var tmpId = newNote.TempId;
     newNote.Load(viewObj);
-    if (newNote.ViewerRecords.length > 0) {
+    delete newNote.Id;
+    newNote.TempId = tmpId;
+    if (newNote.ViewerRecords.length == 0) {
+        saDebug("Insert failed: Note has no viewer records.");
+    } else if (newNote.ViewerRecords.length == 1 || ! this.Note.Parent) {
+        // We cannot add a dual view to a tile page because the child note
+        // will be interpreted as a new slide.
         this.InsertViewerRecord(newNote.ViewerRecords[0]);
     } else {
-        saDebug("Insert failed: Note has no viewer records.");
+        this.Note.Children.push(newNote);
+        newNote.Parent = this.Note;
+        this.InsertView2(newNote);
     }
 }
 
@@ -2287,7 +2319,38 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
 // viewerRecords.
 // Helper method
 // TODO: Change newNote to viewerRecord.
-HtmlPage.prototype.InsertView2 = function(viewId) {
+HtmlPage.prototype.InsertView2 = function(view) {
+    if ( ! this.Note) {
+        return;
+    }
+
+    var defaultPosition = {left:'5%',top:'25%',width:'45%',height:'45%'};
+    if (this.DefaultViewerPositions.length > 0) {
+        defaultPosition = this.DefaultViewerPositions.splice(0,1)[0];
+    }
+
+    var self = this;
+    var viewerDiv = $('<div>')
+        .appendTo(this.Div)
+        .css({'position':'absolute',
+              'box-shadow': '10px 10px 5px #AAA',
+              'background-color':'#FFF',
+              'opacity':'1.0',
+              'left'   : defaultPosition.left,
+              'width'  : defaultPosition.width,
+              'top'    : defaultPosition.top,
+              'height' : defaultPosition.height})
+        .saLightBoxViewer({
+            'note'         : view,
+            'dual'         : true,
+            'hideCopyright': true,
+            'delete' : function (dom) {self.ViewDeleteCallback(dom);},
+            'editable'     : EDIT});
+
+    return viewerDiv;
+}
+// This was for development debugging
+HtmlPage.prototype.InsertViewId2 = function(viewId) {
     if ( ! this.Note) {
         return;
     }
@@ -2316,13 +2379,22 @@ HtmlPage.prototype.InsertView2 = function(viewId) {
     return viewerDiv;
 }
 
-// When a viewer is deleted the next should replace it.
 HtmlPage.prototype.ViewDeleteCallback = function (dom) {
+    // When a viewer is deleted the next should replace it.
     this.DefaultViewerPositions.push(
         {left:dom.style.left,
          top:dom.style.top,
          width:dom.style.width,
          height:dom.style.height});
+
+    // Extra viewer records get pruned when the page is converted to html
+    // Get rid of dual viewer notes.
+    if (dom.saViewer.saNote != this.Note) {
+        var childIdx = this.Note.Children.indexOf(dom.saViewer.saNote);
+        if ( childIdx >= 0) {
+            this.Note.Children.splice(childIdx,1);
+        }
+    }
 }
 
 // NOTE: This should be lagacy now.  The jquery extensions should handle this.

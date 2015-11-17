@@ -1,5 +1,15 @@
 var SA = {};
 
+// Firefox does not set which for mouse move events.
+function saFirefoxWhich(event) {
+    event.which = event.buttons;
+    if (event.which == 2) {
+        event.which = 3;
+    } else if (event.which == 3) {
+        event.which = 2;
+    }
+}
+
 function saDebug(msg) {
     console.log(msg);
 }
@@ -678,10 +688,11 @@ function Main2(rootNote) {
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
     SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    SA.NotesWidget.SetRootNote(rootNote);
 
     // It handles the singlton global.
     new RecorderWidget(SA.DualDisplay);
+
+    SA.DualDisplay.SetNote(rootNote);
 
     // Do not let guests create favorites.
     // TODO: Rework how favorites behave on mobile devices.
@@ -770,7 +781,7 @@ function Main2(rootNote) {
 
 // I had to prune all the annotations (lassos) that were not visible.
 function keepVisible(){
-  var n = SA.NotesWidget.GetCurrentNote();
+  var n = SA.DualDisplay.GetNote();
   var r = n.ViewerRecords[n.StartIndex];
   var w = VIEWER1.WidgetList;
   var c = VIEWER1.GetCamera();

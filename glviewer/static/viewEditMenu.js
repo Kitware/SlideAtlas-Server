@@ -173,7 +173,7 @@ ViewEditMenu.prototype.GetViewerBounds = function (viewer) {
 ViewEditMenu.prototype.SetViewBounds = function() {
     this.Tab.PanelOff();
     var bounds = this.GetViewerBounds(this.Viewer);
-    var note = SA.NotesWidget.GetCurrentNote();
+    var note = SA.DualDisplay.GetNote();
     // Which view record?
     var viewerRecord = note.ViewerRecords[this.Viewer.RecordIndex];
 
@@ -323,7 +323,7 @@ var DownloadImage = (function () {
         d.AspectRatio = viewport[2] / viewport[3];
 
         // Hide or show the stack option.
-        if (SA.NotesWidget.GetCurrentNote().Type == "Stack") {
+        if (SA.DualDisplay.GetNote().Type == "Stack") {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.show();
         } else {
             DOWNLOAD_WIDGET.DimensionDialog.StackDiv.hide();

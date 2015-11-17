@@ -4,15 +4,16 @@
 // TODO: Remove GUI from this file.
 
 
-// data is the object retrieved from mongo (with string ids)
-// Right now we expect bookmarks, but it will be generalized later.
-var NOTES = [];
-
 function Note () {
+    if ( ! SA.Notes) {
+        // data is the object retrieved from mongo (with string ids)
+        // Right now we expect bookmarks, but it will be generalized later.
+        SA.Notes = [];
+    }
 
     // A global list of notes so we can find a note by its id.
-    this.TempId = 'tmp'+NOTES.length; // hack for html views.
-    NOTES.push(this);
+    this.TempId = 'tmp'+SA.Notes.length; // hack for html views.
+    SA.Notes.push(this);
 
     var self = this;
 
@@ -182,10 +183,10 @@ Note.prototype.SortCallback = function() {
 function GetNoteFromId(id) {
     if (id.substr(0,3) == 'tmp') {
         var idx = parseInt(id.substr(3));
-        return NOTES[idx];
+        return SA.Notes[idx];
     }
-    for (var i = 0; i < NOTES.length; ++i) {
-        var note = NOTES[i];
+    for (var i = 0; i < SA.Notes.length; ++i) {
+        var note = SA.Notes[i];
         if (note.Id && note.Id == id) {
             return note;
         }
@@ -812,8 +813,9 @@ Note.prototype.DisplayView = function(display) {
     if (this.Type != 'Stack') {
         // I want the single view (when set by the user) to persist for rthe stack.
         numViewers = this.ViewerRecords.length;
-        display.SetNumberOfViewers(numViewers);
     }
+    display.SetNumberOfViewers(numViewers);
+
     var idx = this.StartIndex;
     for (var i = 0; i < numViewers; ++i) {
         var viewer = display.GetViewer(i);
