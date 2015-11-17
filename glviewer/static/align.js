@@ -2512,7 +2512,7 @@ function testDebug() {
 var WAITING;
 
 function DeformableAlignViewers() {
-    var note = SA.NotesWidget.GetCurrentNote();
+    var note = SA.DualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2603,7 +2603,7 @@ function DeformableAlignViewers() {
 
             console.log("Finished alignment");
             // Syncronize views
-            SA.NotesWidget.SynchronizeViews(0, note);
+            SA.DualDisplay.SynchronizeViews(0, note);
 
             WAITING.hide();
 
@@ -2618,9 +2618,6 @@ function DeformableAlignViewers() {
 // !!!!!!!!!!!!!
 
 function AlignPolylines(replace) {
-//    var note = SA.NotesWidget.GetCurrentNote();
-//    var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
-//    trans.Correlations = [];
 
     var viewer1 = VIEWERS[0];
     var camBds1 = viewer1.GetCamera().GetBounds();
@@ -2697,7 +2694,11 @@ function MaskPolylinesByColor(rgb) {
     }
 
     // Do the note too.
-    var note = SA.NotesWidget.RootNote;
+    var note = SA.DualDisplay.GetNote();
+    // Display has no get root.
+    while (note.Parent) {
+        note = note.Parent;
+    }
     for (var i = 0; i < note.ViewerRecords.length; ++i) {
         var vr = note.ViewerRecords[i];
         var newList = [];
@@ -2811,7 +2812,7 @@ function IntegratePolylinesByColor(rgb) {
 
 
 function AlignPolylines2(pLine1, pLine2, replace) {
-    var note = SA.NotesWidget.GetCurrentNote();
+    var note = SA.DualDisplay.GetNote();
     var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
     if ( ! trans) {
         return;
@@ -2893,7 +2894,7 @@ function AlignPolylines2(pLine1, pLine2, replace) {
 
     console.log("Finished alignment");
     // Syncronize views
-    SA.NotesWidget.SynchronizeViews(0, note);
+    SA.DualDisplay.SynchronizeViews(0, note);
 
     eventuallyRender();
 }
