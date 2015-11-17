@@ -274,8 +274,8 @@ Note.prototype.SetParent = function(parent) {
 Note.prototype.TitleFocusInCallback = function() {
     // Keep the viewer from processing arrow keys.
     SA.EventManager.FocusOut();
-    if (SA.NotesWidget) {
-        SA.NotesWidget.SelectNote(this);
+    if (SA.DualDisplay) {
+        SA.DualDisplay.SetNote(this);
     }
 }
 
@@ -536,7 +536,7 @@ Note.prototype.DisplayGUI = function(div) {
 
     this.TitleEntry
         .click(function() {
-            if (SA.NotesWidget) { SA.NotesWidget.SelectNote(self); }
+            if (SA.DualDisplay) { SA.DualDisplay.SetNote(self); }
             self.ButtonsDiv.show();
         })
         .bind('input', function () {
@@ -721,8 +721,13 @@ Note.prototype.Load = function(obj){
             this.ViewerRecords[i].Load(obj);
         }
     }
-}
 
+    // Only show user notes for the first image of the root note.
+    // I can rethink this later.
+    //if (SA.NotesWidget && this.ViewerRecords.length > 0) {
+    //    SA.NotesWidget.RequestUserNote(this.ViewerRecords[0].Image._id);
+    //}
+}
 
 Note.prototype.LoadViewId = function(viewId, callback) {
   var self = this;
@@ -746,7 +751,7 @@ Note.prototype.Collapse = function() {
     if (this.Contains(SA.NotesWidget.SelectedNote)) {
         // Selected note should not be in collapsed branch.
         // Make the visible ancestor active.
-        SA.NotesWidget.SelectNoteg(this);
+        SA.DualDisplay.SetNote(this);
     }
     this.UpdateChildrenGUI();
     SA.DualDisplay.NavigationWidget.Update();

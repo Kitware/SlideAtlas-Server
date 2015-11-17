@@ -9,6 +9,7 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+// make sure html notes still work.
 // Copyright management not working for dual display.
 // Open dual viewer: overview bounds different (foot)
 // Open lightbox viewers do not consume key events.

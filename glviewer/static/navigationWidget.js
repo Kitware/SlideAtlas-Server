@@ -319,7 +319,6 @@ NavigationWidget.prototype.PreviousSlide = function() {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
-        //if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -337,7 +336,6 @@ NavigationWidget.prototype.NextSlide = function() {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
-        //if (SA.NotesWidget) {SA.NotesWidget.LoadViewId(this.Session[this.SlideIndex]);}
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -517,13 +515,19 @@ NoteIterator.prototype.SetNote = function(note) {
     // See if the note is in the tree.
     this.ToStart();
     while (true) {
+        if (this.GetNote() == note) { 
+            // Found the note in the tree.
+            return; 
+        }
         if (this.IsEnd()) {
             // not found.  New tree.
             this.ToStart();
             this.Note = note;
-            return;
-        }
-        if (this.GetNote() == note) {
+            // BIG Hack here.
+            // I got rid of a special SetRootNote call too soon.
+            if (SA.NotesWidget) {
+                SA.NotesWidget.SetRootNote(note);
+            }
             return;
         }
         this.Next();
