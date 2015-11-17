@@ -9,11 +9,7 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Text bbox changing from transparent to visible automatically.
 // Copyright management not working for dual display.
-// Delete a dual view should delete the note too.
-// Get Deep copy stack working.
-// Figure out how user can add a stack with the GUI.
 // Open dual viewer: overview bounds different (foot)
 // Open lightbox viewers do not consume key events.
 // Save changes to a stack.
@@ -2133,10 +2129,12 @@ jQuery.prototype.saLightBoxViewer = function(args) {
                 // initial state when it shrinks
                 // TODO: Formalize this hack. Viewer formally needs a note.
                 // If not editable, restore the note.
-                var display = this.Div[0].saViewer;
-                var note = display.saNote;
-                var index = display.saViewerIndex || 0;
-                display.SetNote(note, index);
+                if ( ! this.Div[0].saLightBox.Editable && note) {
+                    var display = this.Div[0].saViewer;
+                    var note = display.saNote;
+                    var index = display.saViewerIndex || 0;
+                    display.SetNote(note, index);
+                }
             }
         };
     this.saLightBox(args);
@@ -2563,9 +2561,10 @@ function saViewerSetup(self, args) {
 // Maybe a save method?
 jQuery.prototype.saRecordViewer = function() {
     for (var i = 0; i < this.length; ++i) {
-        if (this[i].saViewer.saNote && this[i].saViewer) {
+        if (this[i].saViewer && this[i].saViewer.saNote) {
             var idx = this[i].saViewer.saViewerIndex || 0;
-            this[i].saViewer.saNote.ViewerRecords[idx].CopyViewer(this[i].saViewer);
+            var note = this[i].saViewer.saNote;
+            this[i].saViewer.Record(note, idx);
         }
     }
 }

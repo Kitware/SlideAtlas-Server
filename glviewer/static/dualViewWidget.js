@@ -95,6 +95,35 @@ function DualViewWidget(parent) {
     }
 }
 
+// Abstracting saViewer  for viewer and dualViewWidget.
+// Save viewer state in a note.
+DualViewWidget.prototype.Record = function (note, startViewIdx) {
+    if (startViewIdx) {
+        note.StartIndex = startViewIdx;
+    }
+    startViewIdx = startViewIdx || 0;
+    // TODO: Deal with multiple  windows consistently.
+    // Now num viewRecords indicates the number of views in the display,
+    // but not for stacks.  We have this start index which implies stack behavior.
+    if ( note.Type != "Stack") {
+        if (! this.DualView && note.ViewerRecords.length > 1) {
+            note.ViewerRecords = [note.ViewerRecords[0]];
+        }
+        if (this.DualView && note.ViewerRecords.length < 2) {
+            while ( note.ViewerRecords.length < 2) {
+                note.ViewerRecords.push(new ViewerRecord());
+            }
+        }
+    }
+
+    for (var i = 0; i  < this.GetNumberOfViewers(); ++i) {
+        if (i + startViewIdx < note.ViewerRecords.length) {
+            this.GetViewer(i).Record(note, i+startViewIdx);
+        }
+    }
+}
+
+
 // Astracting the saViewer class to support dual viewers and stacks.
 DualViewWidget.prototype.ProcessArguments = function (args) {
     if (args.note) {

@@ -199,6 +199,13 @@ function Viewer (parent) {
         .addClass("sa-view-copyright");
 }
 
+// Abstracting saViewer  for viewer and dualViewWidget.
+// Save viewer state in a note.
+Viewer.prototype.Record = function (note, viewIdx) {
+    viewIdx = viewIdx || 0;
+    note.ViewerRecords[viewIdx].CopyViewer(this);
+}
+
 // I am moving some of the saViewer code into this viewer object because
 // I am trying to abstract the single viewer used for the HTML presentation
 // note and the full dual view / stack note.
