@@ -2266,14 +2266,15 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     newNote.TempId = tmpId;
     if (newNote.ViewerRecords.length == 0) {
         saDebug("Insert failed: Note has no viewer records.");
-    } else if (newNote.ViewerRecords.length == 1 || ! this.Note.Parent) {
-        // We cannot add a dual view to a tile page because the child note
-        // will be interpreted as a new slide.
-        this.InsertViewerRecord(newNote.ViewerRecords[0]);
-    } else {
+    } else if (this.Note.Parent && (newNote.ViewerRecords.length > 1 ||
+                                    newNote.Children.length > 0)) {
         this.Note.Children.push(newNote);
         newNote.Parent = this.Note;
         this.InsertView2(newNote);
+    } else {
+        // We cannot add a dual view to a tile page because the child note
+        // will be interpreted as a new slide.
+        this.InsertViewerRecord(newNote.ViewerRecords[0]);
     }
 }
 

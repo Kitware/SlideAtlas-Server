@@ -65,7 +65,7 @@ ViewBrowser.prototype.SelectImage = function(imgobj) {
 
     // We have to get rid of annotation which does not apply to the new image.
     this.Viewer.Reset();
-    this.Viewer.SetCache(source);    
+    this.Viewer.SetCache(source);
 
     RecordState();
 
@@ -83,7 +83,74 @@ ViewBrowser.prototype.Open = function(viewer) {
 
 
 //==============================================================================
+// Open close item
+function BrowserFolder(parent, label, data, initCallback) {
+    var self = this;
+    this.Data = data;
+    this.InitializeCallback = initCallback;
+    this.TitleDiv = $('<div>')
+        .css({'position':'relative'})
+        .appendTo(parent);
+    this.Bullet = $('<span>')
+        .appendTo(this.TitleDiv)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'1px',
+              'opacity':'0.75'})
+        .addClass('ui-icon ui-icon-plus')
+        .on('click.open',
+            function() {
+                self.OpenCallback();
+            })
+        .addClass('saButton'); // for hover highlighting
 
+    this.Title = $('<div>')
+        .appendTo(this.TitleDiv)
+        .css({'margin-left':'20px'})
+        .text(label);
+    this.List = $('<ul>')
+        .appendTo(parent)
+        .addClass('sa-ul')
+        .hide();
+}
+
+BrowserFolder.prototype.OpenCallback = function() {
+    var self = this;
+    if (this.InitializeCallback) {
+        (this.InitializeCallback)(this);
+        delete this.InitializeCallback;
+    }
+    // Remove the binding.
+    this.Bullet.off('click.open');
+    // Setup next click to close.
+    this.Bullet
+        .removeClass('ui-icon-plus')
+        .addClass('ui-icon-minus');
+    this.Bullet.on(
+        'click.close',
+        function () {
+            self.CloseCallback();
+        });
+    this.List.show();
+}
+
+BrowserFolder.prototype.CloseCallback = function() {
+    var self = this;
+    this.Bullet.off('click.close');
+    // Setup next click to open.
+    this.Bullet
+        .removeClass('ui-icon-minus')
+        .addClass('ui-icon-plus');
+    this.Bullet.on(
+        'click.open',
+        function () {
+            self.OpenCallback();
+        });
+    this.List.hide();
+}
+
+
+//==============================================================================
 
 function BrowserPanel(browserDiv, callback) {
     this.BrowserDiv = browserDiv;
@@ -97,20 +164,27 @@ BrowserPanel.prototype.LoadGUI = function() {
     var self = this;
     var data = this.BrowserInfo;
     this.BrowserDiv.empty();
-    groupList = $('<ul>').appendTo(this.BrowserDiv)
+    groupList = $('<ul>')
+        .addClass('sa-ul')
+        .appendTo(this.BrowserDiv);
 
     for (i=0; i < data.sessions.length; ++i) {
+        groupItem = $('<li>')
+            .appendTo(groupList);
         var group = data.sessions[i];
-        var groupItem = $('<li>').appendTo(groupList).text(group.rule);
-        var sessionList = $('<ul>').appendTo(groupItem)
+        var groupFolder = new BrowserFolder(groupItem, group.rule);
+        // Initialize immediately.
+        var sessionList = groupFolder.List;
         for (j=0; j < group.sessions.length; ++j) {
             var session = group.sessions[j];
-            $('<li>').appendTo(sessionList)
-                .text(session.label)
-                .attr('db', session.sessdb).attr('sessid', session.sessid)
-                .bind('click',function(){self.SessionClickCallback(this);})
-                .addClass('saButton'); // for hover highlighting
-
+            var sessionData = {'db': session.sessdb, 'sessid': session.sessid};
+            sessionItem = $('<li>')
+                .appendTo(sessionList);
+            new BrowserFolder(
+                sessionItem, session.label, sessionData,
+                function (folder) {
+                    self.RequestSessionViews(folder)
+                });
         }
     }
 }
@@ -128,53 +202,72 @@ BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
                   // I might want to open a session to avoid an extra click.
                   // I might want to sort the sessions to put the recent at the top.
                   self.LoadGUI(data);
-              } else { 
-                  saDebug("ajax failed."); 
+              } else {
+                  saDebug("ajax failed.");
               }
           });
 }
 
-
-BrowserPanel.prototype.SessionClickCallback = function(obj) {
+BrowserPanel.prototype.RequestSessionViews = function(sessionFolder) {
     var self = this;
-    // No closing yet.
-    // Already open. disable iopening twice.
-    $(obj).unbind('click');
-    $(obj).removeClass('saButton'); // for hover highlighting
-
-    // We need the information in view, image and bookmark (startup_view) object.
-    var sess = $(obj).attr('sessid');
     this.BrowserDiv.css({'cursor':'progress'});
-    $.get("/sessions?json=true"+"&sessid="+$(obj).attr('sessid'),
+    var sessId = sessionFolder.Data.sessid;
+    $.get("/sessions?json=true"+"&sessid="+sessId,
           function(data,status){
               self.BrowserDiv.css({'cursor':'default'});
               if (status == "success") {
-                  self.AddSessionViews(data);
+                  self.AddSessionViews(sessionFolder, data);
               } else { saDebug("ajax failed."); }
           });
 }
 
-
-BrowserPanel.prototype.AddSessionViews = function(sessionData) {
+BrowserPanel.prototype.AddSessionViews = function(sessionFolder, sessionData) {
     var self = this;
-    var sessionItem = $("[sessid="+sessionData.sessid+"]");
-    var viewList = $('<ul>').appendTo(sessionItem)
+    var viewList = sessionFolder.List;
     for (var i = 0; i < sessionData.images.length; ++i) {
-      var image = sessionData.images[i];
-      var item = $('<li>').appendTo(viewList)
-        // image.db did not work for ibriham stack (why?)
+        var image = sessionData.images[i];
+        var item = $('<li>')
+            .appendTo(viewList)
+        // We do not know if views have subviews until we get the viewObj.
+        // Just make them all folders for now.
+        var viewData = {db:image.db, sessid:sessionData.sessid, viewid:image.view};
+        var viewFolder = new BrowserFolder(
+            item, image.label, viewData,
+            function (folder) {
+                self.RequestViewChildren(folder)
+            });
+        // Add the image to the label.
+        $('<img>').prependTo(viewFolder.Title)
+            .attr('src', "/thumb?db="+image.db+"&img="+image.img)
+            .css({'height': '50px',
+                  'display':'inline-block'});
+        viewFolder.Title
             .attr('db', image.db)
             .attr('sessid', sessionData.sessid)
             .attr('viewid', image.view)
             .click(function(){self.ViewClickCallback(this);})
             .addClass('saButton'); // for hover highlighting
-      $('<img>').appendTo(item)
-          .attr('src', "/thumb?db="+image.db+"&img="+image.img)
-          .css({'height': '50px'});
-      $('<span>').appendTo(item)
-          .text(image.label);
-      }
+    }
 }
+
+BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
+    /*
+    var self = this;
+    this.BrowserDiv.css({'cursor':'progress'});
+    var sessId = sessionFolder.Data.sessid;
+    $.get("/sessions?json=true"+"&sessid="+sessId,
+          function(data,status){
+              self.BrowserDiv.css({'cursor':'default'});
+              if (status == "success") {
+                  self.AddSessionViews(sessionFolder, data);
+              } else { saDebug("ajax failed."); }
+          });
+    */
+}
+
+
+
+
 
 
 BrowserPanel.prototype.ViewClickCallback = function(obj) {
