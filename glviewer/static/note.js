@@ -54,7 +54,6 @@ function Note () {
               'opacity':'0.5'})
         .addClass('ui-icon ui-icon-bullet');
 
-
     this.ButtonsDiv = $('<div>')
         .appendTo(this.TitleDiv)
         .css({'float':'right'})
