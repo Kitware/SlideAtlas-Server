@@ -158,7 +158,23 @@ function BrowserPanel(browserDiv, callback) {
 
     this.BrowserInfo = null;
     this.ReloadViewBrowserInfo();
+    this.ProgressCount = 0;
 }
+
+BrowserPanel.prototype.PushProgress = function() {
+    this.BrowserDiv.css({'cursor':'progress'});
+    this.ProgressCount += 1;
+}
+
+BrowserPanel.prototype.PopProgress = function() {
+    this.ProgressCount -= 1;
+    if (this.ProgressCount <= 0) {
+        this.BrowserDiv.css({'cursor':'default'});
+    }
+}
+
+
+
 
 BrowserPanel.prototype.LoadGUI = function() {
     var self = this;
@@ -193,10 +209,10 @@ BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
     var self = this;
     // Get the sessions this user has access to.
 
-    this.BrowserDiv.css({'cursor':'progress'});
+    this.PushProgress();
     $.get("/sessions?json=true",
           function(data,status){
-              self.BrowserDiv.css({'cursor':'default'});
+              self.PopProgress();
               if (status == "success") {
                   self.BrowserInfo = data;
                   // I might want to open a session to avoid an extra click.
@@ -210,11 +226,11 @@ BrowserPanel.prototype.ReloadViewBrowserInfo = function() {
 
 BrowserPanel.prototype.RequestSessionViews = function(sessionFolder) {
     var self = this;
-    this.BrowserDiv.css({'cursor':'progress'});
+    this.PushProgress();
     var sessId = sessionFolder.Data.sessid;
     $.get("/sessions?json=true"+"&sessid="+sessId,
           function(data,status){
-              self.BrowserDiv.css({'cursor':'default'});
+              self.PopProgress();
               if (status == "success") {
                   self.AddSessionViews(sessionFolder, data);
               } else { saDebug("ajax failed."); }
@@ -226,77 +242,104 @@ BrowserPanel.prototype.AddSessionViews = function(sessionFolder, sessionData) {
     var viewList = sessionFolder.List;
     for (var i = 0; i < sessionData.images.length; ++i) {
         var image = sessionData.images[i];
-        var item = $('<li>')
-            .appendTo(viewList)
-        // We do not know if views have subviews until we get the viewObj.
-        // Just make them all folders for now.
-        var viewData = {db:image.db, sessid:sessionData.sessid, viewid:image.view};
-        var viewFolder = new BrowserFolder(
-            item, image.label, viewData,
-            function (folder) {
-                self.RequestViewChildren(folder)
-            });
-        // Add the image to the label.
-        $('<img>').prependTo(viewFolder.Title)
-            .attr('src', "/thumb?db="+image.db+"&img="+image.img)
-            .css({'height': '50px',
-                  'display':'inline-block'});
-        viewFolder.Title
-            .attr('db', image.db)
-            .attr('sessid', sessionData.sessid)
-            .attr('viewid', image.view)
-            .click(function(){self.ViewClickCallback(this);})
-            .addClass('saButton'); // for hover highlighting
+        var viewFolder = self.AddViewFolder(viewList,image.label,image.view,
+                                            image.db,image.img);
+        this.RequestViewChildren(viewFolder);
     }
+}
+
+
+// NOTE: It would be cleaner to wait for the view data before creating the folder.
+// However, we might loose the order of the views in a session.
+BrowserPanel.prototype.AddViewFolder = function(viewList, label, viewId, imageDb, imageId) {
+    var self = this;
+    var item = $('<li>')
+        .appendTo(viewList);
+    // We do not know if views have subviews until we get the viewObj.
+    // Just make them all folders for now.
+    var viewData = {viewid:viewId, db:imageDb, imageid:imageId};
+    var viewFolder = new BrowserFolder(item, label, viewData);
+    viewFolder.Bullet.hide();
+    // Add the image to the label.
+    $('<img>').prependTo(viewFolder.Title)
+        .attr('src', "/thumb?db="+imageDb+"&img="+imageId)
+        .css({'height': '50px',
+              'display':'inline-block'});
+    // TODO: get rid of these attributes and replace with folder.
+    viewFolder.Title
+        .attr('db', imageDb)
+        //.attr('sessid', sessionData.sessid)
+        .attr('viewid', viewId)
+            .click(function(){self.ViewClickCallback(viewFolder);})
+        .addClass('saButton'); // for hover highlighting
+
+    return viewFolder;
 }
 
 BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
-    /*
     var self = this;
-    this.BrowserDiv.css({'cursor':'progress'});
-    var sessId = sessionFolder.Data.sessid;
-    $.get("/sessions?json=true"+"&sessid="+sessId,
-          function(data,status){
-              self.BrowserDiv.css({'cursor':'default'});
-              if (status == "success") {
-                  self.AddSessionViews(sessionFolder, data);
-              } else { saDebug("ajax failed."); }
-          });
-    */
-}
-
-
-
-
-
-
-BrowserPanel.prototype.ViewClickCallback = function(obj) {
-    var self = this;
-
-    // null implies the user wants an empty view.
-    if (obj == null) {
-        this.SelectView(null);
-        return;
-    }
-
-    var db = $(obj).attr('db');
-    var viewid = $(obj).attr('viewid');
-
-    // Ok, so we only have the viewId at this point.
-    // We need to get the view object to get the image id.
-    this.BrowserDiv.css({'cursor':'progress'});
+    this.PushProgress();
+    var viewId = viewFolder.Data.viewid;
+    var sessId = viewFolder.Data.sessid;
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
-        data: {"sessid": $(obj).attr('sessid'),
-               "viewid": $(obj).attr('viewid'),
-               "db"  : $(obj).attr('db')},
+        data: {"sessid": sessId,
+               "viewid": viewId},
         success: function(data,status) {
-            self.BrowserDiv.css({'cursor':'default'});
+            self.PopProgress();
+            self.LoadViewChildren(viewFolder, data);
+        },
+        error: function() { 
+            saDebug( "AJAX - error() : getview" ); 
+            self.PopProgress();
+        },
+    });
+}
+
+BrowserPanel.prototype.LoadViewChildren = function(viewFolder, data) {
+    // Replace image with thumb?
+    if ( ! data.Children || data.Children.length < 1) { return; }
+    viewFolder.Bullet.show();
+    for (var i = 0; i < data.Children.length; ++i) {
+        var child = data.Children[i];
+        var childFolder = this.AddViewFolder(viewFolder.List, child.Title,
+                                             child._id,
+                                             child.ViewerRecords[0].Image.database,
+                                             child.ViewerRecords[0].Image._id);
+        this.LoadViewChildren(childFolder, child);
+    }
+}
+
+
+BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
+    var self = this;
+
+    // null implies the user wants an empty view. ?????????????????
+    //if (obj == null) {
+    //    this.SelectView(null);
+    //    return;
+    //}
+
+    // TODO: Get rid of this arg.
+    var db = viewFolder.Data.db; // Why do we need this?
+    var viewid = viewFolder.Data.viewid;
+
+    // "sessid": $(obj).attr('sessid'),
+    // Ok, so we only have the viewId at this point.
+    // We need to get the view object to get the image id.
+    this.PushProgress();
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/getview",
+        data: {"viewid": viewid,
+               "db"    : db},
+        success: function(data,status) {
+            self.PopProgress();
             self.SelectView(data);
         },
         error: function() {
-            self.BrowserDiv.css({'cursor':'default'});
+            self.PopProgress();
             saDebug( "AJAX - error() : getview (browser)" );
         },
     });

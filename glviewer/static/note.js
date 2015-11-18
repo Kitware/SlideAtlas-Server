@@ -729,19 +729,19 @@ Note.prototype.Load = function(obj){
 }
 
 Note.prototype.LoadViewId = function(viewId, callback) {
-  var self = this;
-  $.ajax({
-    type: "get",
-    url: "/webgl-viewer/getview",
-    data: {"sessid": localStorage.sessionId,
-           "viewid": viewId},
-    success: function(data,status) {
-        self.Load(data);
-        if (callback) {
-            (callback)();
-        }
-    },
-    error: function() { saDebug( "AJAX - error() : getview" ); },
+    var self = this;
+    $.ajax({
+        type: "get",
+        url: "/webgl-viewer/getview",
+        data: {"sessid": localStorage.sessionId,
+               "viewid": viewId},
+        success: function(data,status) {
+            self.Load(data);
+            if (callback) {
+                (callback)();
+            }
+        },
+        error: function() { saDebug( "AJAX - error() : getview" ); },
     });
 }
 
