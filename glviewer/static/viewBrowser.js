@@ -88,6 +88,8 @@ function BrowserFolder(parent, label, data, initCallback) {
     var self = this;
     this.Data = data;
     this.InitializeCallback = initCallback;
+    // Bad name for this div because it contains the bullet too.
+    // TODO: Change the name.
     this.TitleDiv = $('<div>')
         .css({'position':'relative'})
         .appendTo(parent);
@@ -106,7 +108,10 @@ function BrowserFolder(parent, label, data, initCallback) {
 
     this.Title = $('<div>')
         .appendTo(this.TitleDiv)
-        .css({'margin-left':'20px'})
+        .css({'margin-left':'20px'});
+    this.Label = $('<div>')
+        .appendTo(this.Title)
+        .css({'display':'block'})
         .text(label);
     this.List = $('<ul>')
         .appendTo(parent)
@@ -121,31 +126,29 @@ BrowserFolder.prototype.OpenCallback = function() {
         delete this.InitializeCallback;
     }
     // Remove the binding.
-    this.Bullet.off('click.open');
     // Setup next click to close.
-    this.Bullet
+    this.Bullet.off('click.open')
         .removeClass('ui-icon-plus')
-        .addClass('ui-icon-minus');
-    this.Bullet.on(
-        'click.close',
-        function () {
-            self.CloseCallback();
-        });
+        .addClass('ui-icon-minus')
+        .on(
+            'click.close',
+            function () {
+                self.CloseCallback();
+            });
     this.List.show();
 }
 
 BrowserFolder.prototype.CloseCallback = function() {
     var self = this;
-    this.Bullet.off('click.close');
     // Setup next click to open.
-    this.Bullet
+    this.Bullet.off('click.close')
         .removeClass('ui-icon-minus')
-        .addClass('ui-icon-plus');
-    this.Bullet.on(
-        'click.open',
-        function () {
-            self.OpenCallback();
-        });
+        .addClass('ui-icon-plus')
+        .on(
+            'click.open',
+            function () {
+                self.OpenCallback();
+            });
     this.List.hide();
 }
 
@@ -242,8 +245,7 @@ BrowserPanel.prototype.AddSessionViews = function(sessionFolder, sessionData) {
     var viewList = sessionFolder.List;
     for (var i = 0; i < sessionData.images.length; ++i) {
         var image = sessionData.images[i];
-        var viewFolder = self.AddViewFolder(viewList,image.label,image.view,
-                                            image.db,image.img);
+        var viewFolder = self.AddViewFolder(viewList,image.label,image.view);
         this.RequestViewChildren(viewFolder);
     }
 }
@@ -251,41 +253,31 @@ BrowserPanel.prototype.AddSessionViews = function(sessionFolder, sessionData) {
 
 // NOTE: It would be cleaner to wait for the view data before creating the folder.
 // However, we might loose the order of the views in a session.
-BrowserPanel.prototype.AddViewFolder = function(viewList, label, viewId, imageDb, imageId) {
+BrowserPanel.prototype.AddViewFolder = function(viewList, label, viewId) {
     var self = this;
     var item = $('<li>')
         .appendTo(viewList);
     // We do not know if views have subviews until we get the viewObj.
     // Just make them all folders for now.
-    var viewData = {viewid:viewId, db:imageDb, imageid:imageId};
+    var viewData = {viewid:viewId};
     var viewFolder = new BrowserFolder(item, label, viewData);
     viewFolder.Bullet.hide();
-    // Add the image to the label.
-    $('<img>').prependTo(viewFolder.Title)
-        .attr('src', "/thumb?db="+imageDb+"&img="+imageId)
-        .css({'height': '50px',
-              'display':'inline-block'});
-    // TODO: get rid of these attributes and replace with folder.
     viewFolder.Title
-        .attr('db', imageDb)
-        //.attr('sessid', sessionData.sessid)
-        .attr('viewid', viewId)
-            .click(function(){self.ViewClickCallback(viewFolder);})
+        .click(function(){self.ViewClickCallback(viewFolder);})
         .addClass('saButton'); // for hover highlighting
 
     return viewFolder;
 }
 
+
 BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
     var self = this;
     this.PushProgress();
     var viewId = viewFolder.Data.viewid;
-    var sessId = viewFolder.Data.sessid;
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
-        data: {"sessid": sessId,
-               "viewid": viewId},
+        data: {"viewid": viewId},
         success: function(data,status) {
             self.PopProgress();
             self.LoadViewChildren(viewFolder, data);
@@ -299,14 +291,47 @@ BrowserPanel.prototype.RequestViewChildren = function(viewFolder) {
 
 BrowserPanel.prototype.LoadViewChildren = function(viewFolder, data) {
     // Replace image with thumb?
+    if (data.Type == 'HTML') {
+        // Add a small slide html page.
+        var div1 = $('<div>')
+            .appendTo(viewFolder.Title)
+            .css({'position': 'relative',
+                  'height': '100px',
+                  'width':  '134px',
+                  'margin-bottom':'2px',
+                  'border' :'1px solid #AAA'})
+        var div = $('<div>')
+            .appendTo(div1)
+            .saPresentation({aspectRatio : 1.3333});
+        div.saHtml(data.Text);
+        // Viewers do not work yet.
+        div.find('.sa-viewer').remove();
+        div.trigger('resize');
+        div.find('.sa-element').saElement({editable:false, lock:true});
+        // Look for an alternative label.
+        if (! data.Title || data.Title == "") {
+            var titleDiv = div.find('.sa-presentation-title');
+            if (titleDiv.length > 0) {
+                viewFolder.Label.text(titleDiv.text());
+            }
+        }
+    } else if (data.ViewerRecords && data.ViewerRecords.length > 0) {
+        // Add the image to the label.
+        var image = data.ViewerRecords[0].Image;
+        $('<img>')
+            .appendTo(viewFolder.Title)
+            .attr('src', "/thumb?db="+image.database+"&img="+image._id)
+            .css({'height': '50px',
+                  'display':'block'});
+    }
+
     if ( ! data.Children || data.Children.length < 1) { return; }
     viewFolder.Bullet.show();
     for (var i = 0; i < data.Children.length; ++i) {
         var child = data.Children[i];
         var childFolder = this.AddViewFolder(viewFolder.List, child.Title,
-                                             child._id,
-                                             child.ViewerRecords[0].Image.database,
-                                             child.ViewerRecords[0].Image._id);
+                                             child._id);
+
         this.LoadViewChildren(childFolder, child);
     }
 }
@@ -322,7 +347,6 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
     //}
 
     // TODO: Get rid of this arg.
-    var db = viewFolder.Data.db; // Why do we need this?
     var viewid = viewFolder.Data.viewid;
 
     // "sessid": $(obj).attr('sessid'),
@@ -332,8 +356,7 @@ BrowserPanel.prototype.ViewClickCallback = function(viewFolder) {
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
-        data: {"viewid": viewid,
-               "db"    : db},
+        data: {"viewid": viewid},
         success: function(data,status) {
             self.PopProgress();
             self.SelectView(data);

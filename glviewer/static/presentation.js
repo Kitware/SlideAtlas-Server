@@ -727,6 +727,21 @@ Presentation.prototype.TimerCallback = function(duration) {
 
 // Adds a view to the current slide.
 Presentation.prototype.AddViewCallback = function(viewObj) {
+    if (viewObj.Type == "HTML") {
+        // What will happen if you insert a whole presentation (root)?
+        // Insert a new slide
+        var idx = this.Index+1;
+        var note = new Note();
+        note.Load(viewObj);
+        // Record changes in the note before the copy.
+        this.HtmlPage.UpdateEdits();
+
+        this.RootNote.Children.splice(idx-1,0,note);
+        this.GotoSlide(idx);
+        this.UpdateSlidesTab();
+        return;
+    }
+
     if (this.Note.Type == "HTML") {
         // TODO: Change this to pass a viewer record of the view.
         //       Maybe show all the records as options.

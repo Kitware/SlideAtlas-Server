@@ -260,14 +260,15 @@ Viewer.prototype.SetNote = function(note, viewIdx) {
     this.saViewerIndex = viewIdx;
 }
 Viewer.prototype.SetNoteFromId = function(noteId, viewIdx) {
+    var self = this;
     var note = GetNoteFromId(noteId);
     if ( ! note) {
         note = new Note();
         var self = this;
         note.LoadViewId(
-            viewId,
+            noteId,
             function () {
-                self.SetNote(self, viewIdx);
+                self.SetNote(note, viewIdx);
             });
         return note;
     }
