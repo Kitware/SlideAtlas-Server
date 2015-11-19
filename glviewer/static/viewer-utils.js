@@ -9,6 +9,14 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+// Clean up the whole editable / clickable / lock state.
+//    Browser slides are completely passive.
+// Insert / copy html note into presentation.
+// Display html note "Text" in the view browser.
+// LoadViewChildren has to tolerate notes with no viewer record (get rid of
+//   image db stuff?
+
+
 // make sure html notes still work.
 // Copyright management not working for dual display.
 // Open dual viewer: overview bounds different (foot)
@@ -42,6 +50,7 @@
 // args = {click: function (dom) {...}
 //         delete: function (dom) {...}
 //         editable: true,
+//         lock: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
  
@@ -51,6 +60,7 @@ jQuery.prototype.saElement = function(args) {
             var helper = new saElement($(this[i]));
             // Add the helper as an instance variable to the dom object.
             this[i].saElement = helper;
+            $(this[i]).addClass('sa-element');
         }
         this[i].saElement.ProcessArguments(args);
     }
@@ -526,7 +536,19 @@ saElement.prototype.ProcessArguments = function(args) {
             this.EditableOn();
         } else {
             this.EditableOff();
+            // hack hack hack (for view browser).
+            // Trying to make slide thumbnails completly passive.
+            this.Div.attr('contenteditable', 'false')
+                .addClass('sa-noselect')
+                .off();
+            this.Div.find('div').attr('contenteditable', 'false')
+                .addClass('sa-noselect')
+                .off();
         }
+    }
+
+    if (args.lock !== undefined) {
+        this.LockActive = args.lock;
     }
 
     if (args.click !== undefined) {
@@ -576,6 +598,7 @@ saElement.prototype.EditableOff = function() {
 
 
 saElement.prototype.HandleMouseDown = function(event) {
+    if (this.LockActive) { return true;}
     if (event.which == 1) {
         // Hack tp allow content editable to work with text editor.
         // This event does not let content editable receive events
@@ -626,6 +649,7 @@ saElement.prototype.RaiseToTop = function() {
 
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
+    if (this.LockActive) { return true;}
     saFirefoxWhich(event);
     if (event.which == 0) {
         // Is it dangerous to modify the event object?
@@ -1919,6 +1943,7 @@ function saLightBox(div) {
     this.Expanded = false;
     this.ExpandCallback = null;
     this.AspectRatio = false;
+    this.Lock = false;
 
     // Mask is to gray out background and consume events.
     // All lightbox items in this parent will share a mask.
@@ -1957,6 +1982,10 @@ saLightBox.prototype.ProcessArguments = function(args) {
     // External control of expanding or shrinking.
     if (args.expand !== undefined) {
         this.Expand(args.expand, args.animate);
+    }
+
+    if (args.lock !== undefined) {
+        this.Lock = args.lock;
     }
 
     // Callback when expanded state changes.
@@ -2014,6 +2043,7 @@ saLightBox.prototype.UpdateSize = function() {
 }
 
 saLightBox.prototype.Expand = function(flag, animate) {
+    if (this.Lock) {return;}
     if (flag == this.Expanded) { return; }
     var self = this;
     if (flag) {
