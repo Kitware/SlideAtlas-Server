@@ -77,6 +77,7 @@ function saElement(div) {
     this.DeleteCallback = null;
     // Hack to keep the element active.
     this.LockActive = false;
+    this.Lock = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
@@ -139,7 +140,7 @@ function saElement(div) {
 
 saElement.prototype.ActiveOn = function () {
     var self = this;
-    if ( this.LockActive) {return true;}
+    if ( this.Lock) {return true;}
     if ( ! this.SavedBorder) {
         this.SavedBorder = this.Div[0].style.border;
     }
@@ -166,7 +167,7 @@ saElement.prototype.ActiveOn = function () {
 }
 
 saElement.prototype.ActiveOff = function () {
-    if ( this.LockActive) {return true;}
+    if ( this.Lock) {return true;}
     if ( this.SavedBorder) {
         this.Div[0].style.border = this.SavedBorder;
         delete this.SavedBorder;
@@ -539,16 +540,14 @@ saElement.prototype.ProcessArguments = function(args) {
             // hack hack hack (for view browser).
             // Trying to make slide thumbnails completly passive.
             this.Div.attr('contenteditable', 'false')
-                .addClass('sa-noselect')
-                .off();
+                .addClass('sa-noselect');
             this.Div.find('div').attr('contenteditable', 'false')
-                .addClass('sa-noselect')
-                .off();
+                .addClass('sa-noselect');
         }
     }
 
     if (args.lock !== undefined) {
-        this.LockActive = args.lock;
+        this.Lock = args.lock;
     }
 
     if (args.click !== undefined) {
@@ -598,7 +597,7 @@ saElement.prototype.EditableOff = function() {
 
 
 saElement.prototype.HandleMouseDown = function(event) {
-    if (this.LockActive) { return true;}
+    if (this.Lock) { return true;}
     if (event.which == 1) {
         // Hack tp allow content editable to work with text editor.
         // This event does not let content editable receive events
@@ -649,7 +648,7 @@ saElement.prototype.RaiseToTop = function() {
 
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
-    if (this.LockActive) { return true;}
+    if (this.Lock) { return true;}
     saFirefoxWhich(event);
     if (event.which == 0) {
         // Is it dangerous to modify the event object?
