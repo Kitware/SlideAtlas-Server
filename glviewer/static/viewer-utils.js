@@ -552,6 +552,7 @@ saElement.prototype.ProcessArguments = function(args) {
 
     if (args.click !== undefined) {
         this.ClickCallback = args.click;
+        this.Clickable = true;
     }
 
     if (args.delete !== undefined) {
