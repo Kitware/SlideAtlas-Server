@@ -650,8 +650,10 @@ saElement.prototype.HandleMouseMove = function(event) {
 
         // Maybe we should not let the object leave the page.
         var pos  = this.Div.position();
-        var width = this.Div.width();
-        var height = this.Div.height();
+        var width = this.Div.outerWidth();
+        var height = this.Div.outerHeight();
+        // Hack,  I cannot figure out hos jquery deals with box-sizing.
+        var sizing = this.Div.css('box-sizing');
         if (this.AspectRatio && typeof(this.AspectRatio) != 'number') {
             this.AspectRatio = width / height;
         }
@@ -665,17 +667,25 @@ saElement.prototype.HandleMouseMove = function(event) {
             var left = pos.left + dx;
             width = width - dx;
             this.Div[0].style.left = left.toString()+'px';
-            this.Div[0].style.width = width.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+            } else {
+                this.Div.outerWidth(width);
+            }
             if (this.AspectRatio) {
-                this.Div[0].style.height = (width/this.AspectRatio)+'px';
+                this.Div.innerHeight(this.Div.innerWidth/this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
         } else if (this.MoveState == 2) {
             width = width + dx;
-            this.Div[0].style.width = width.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+            } else {
+                this.Div.outerWidth(width);
+            }
             if (this.AspectRatio) {
-                this.Div[0].style.height = (width/this.AspectRatio)+'px';
+                this.Div.innerHeight(this.Div.innerWidth()/this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
@@ -683,17 +693,25 @@ saElement.prototype.HandleMouseMove = function(event) {
             var top = pos.top + dy;
             height = height - dy;
             this.Div[0].style.top = top.toString()+'px';
-            this.Div[0].style.height = height.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.height(height);
+            } else {
+                this.Div.outerHeight(height);
+            }
             if (this.AspectRatio) {
-                this.Div[0].style.width = (height*this.AspectRatio)+'px';
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
         } else if (this.MoveState == 4) {
             height = height + dy;
-            this.Div[0].style.height = height.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.height(height);
+            } else {
+                this.Div.outerHeight(height);
+            }
             if (this.AspectRatio) {
-                this.Div[0].style.width = (height*this.AspectRatio)+'px';
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
             }
             this.Div.trigger('resize');
             return false;
@@ -773,14 +791,17 @@ saElement.prototype.ConvertToPercentages = function() {
     // I had issues with previous slide shows that had images with no width
     // set. Of course it won't scale right but they will still show up.
     var width = this.Div.width();
+    var height = this.Div.height();
+    if (this.Div.css('box-sizing') == 'border-box') {
+        width = this.Div.outerWidth();
+        height = this.Div.outerHeight();
+    }
     if (width > 0) { // TODO: Remove this check after a while.
         // These always return pixel units.
         width = 100 * width / this.Div.parent().width();
-        this.Div[0].style.width = width.toString()+'%';
-
-        var height = this.Div.height();
+        this.Div.width(width.toString()+'%');
         height = 100 * height / this.Div.parent().height();
-        this.Div[0].style.height = height.toString()+'%';
+        this.Div.height(height.toString()+'%');
     }
 
     var pos  = this.Div.position();
