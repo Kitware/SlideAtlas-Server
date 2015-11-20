@@ -137,7 +137,9 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
     for (var i = 0; i < this.Viewers.length; ++i) {
         var viewer = this.Viewers[i];
 
-        // TODO:  Handle zoomWidget options
+        if (args.hideCopyright) {
+            viewer.SetCopyrightVisibility( ! args.hideCopyright);
+        }
         if (args.overview !== undefined) {
             viewer.SetOverViewVisibility(args.overview);
         }

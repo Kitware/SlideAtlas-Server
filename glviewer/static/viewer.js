@@ -237,9 +237,9 @@ Viewer.prototype.ProcessArguments = function (args) {
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
         this.Parent.attr('sa-viewer-index', this.saViewerIndex);
     }
-        if (args.hideCopyright) {
-            this.CopyrightWrapper.hide();
-        }
+    if (args.hideCopyright) {
+        this.CopyrightWrapper.hide();
+    }
     if (args.interaction !== undefined) {
         this.SetInteractionEnabled(args.interaction);
     }
@@ -2287,6 +2287,14 @@ Viewer.prototype.SetZoomWidgetVisibility = function(vis) {
         if ( this.ZoomTab) {
             this.ZoomTab.hide();
         }
+    }
+}
+
+Viewer.prototype.SetCopyrightVisibility = function(vis) {
+    if (vis) {
+        this.CopyrightWrapper.show();
+    } else {
+        this.CopyrightWrapper.hide();
     }
 }
 
