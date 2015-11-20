@@ -9,8 +9,28 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+
 // Clean up the whole editable / clickable / lock state.
 //    Browser slides are completely passive.
+
+// Modes:
+// Edit:
+//    Editable: on, off
+//    draggable, deletable, properties menu, resizable, record viewer, text
+//    click to edit, cursor changing.
+// Student:
+//    Interactive: on, off.
+//    Click to expand viewer and image.
+//    Interactive border.
+// Thumb:
+//    Both Editable and Interactive off.
+
+
+
+
+
+
+
 // Insert / copy html note into presentation.
 // Display html note "Text" in the view browser.
 // LoadViewChildren has to tolerate notes with no viewer record (get rid of
@@ -50,7 +70,7 @@
 // args = {click: function (dom) {...}
 //         delete: function (dom) {...}
 //         editable: true,
-//         lock: true,
+//         interactive: true,
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
  
@@ -72,12 +92,12 @@ function saElement(div) {
     var self = this;
 
     this.Editable = false;
+    this.Interactive = true;
     this.Div = div;
     this.ClickCallback = null;
     this.DeleteCallback = null;
     // Hack to keep the element active.
     this.LockActive = false;
-    this.Lock = false;
     this.Div
         .css({'overflow': 'hidden'}) // for borderRadius 
         .hover(
@@ -138,9 +158,10 @@ function saElement(div) {
     this.InitializeDialog();
 }
 
+// This changes the border to active color.
 saElement.prototype.ActiveOn = function () {
     var self = this;
-    if ( this.Lock) {return true;}
+    if ( ! this.Interactive) {return true;}
     if ( ! this.SavedBorder) {
         this.SavedBorder = this.Div[0].style.border;
     }
@@ -167,7 +188,7 @@ saElement.prototype.ActiveOn = function () {
 }
 
 saElement.prototype.ActiveOff = function () {
-    if ( this.Lock) {return true;}
+    if ( ! this.Interactive) {return true;}
     if ( this.SavedBorder) {
         this.Div[0].style.border = this.SavedBorder;
         delete this.SavedBorder;
@@ -546,8 +567,13 @@ saElement.prototype.ProcessArguments = function(args) {
         }
     }
 
-    if (args.lock !== undefined) {
-        this.Lock = args.lock;
+    if (args.interactive !== undefined) {
+        this.Interactive = args.interactive;
+        if (this.Interactive) {
+            this.Div.removeClass("sa-noselect");
+        } else {
+            this.Div.addClass("sa-noselect");
+        }
     }
 
     if (args.click !== undefined) {
@@ -598,7 +624,7 @@ saElement.prototype.EditableOff = function() {
 
 
 saElement.prototype.HandleMouseDown = function(event) {
-    if (this.Lock) { return true;}
+    if ( ! this.Interactive) { return true;}
     if (event.which == 1) {
         // Hack tp allow content editable to work with text editor.
         // This event does not let content editable receive events
@@ -649,7 +675,7 @@ saElement.prototype.RaiseToTop = function() {
 
 
 saElement.prototype.HandleMouseMoveCursor = function(event) {
-    if (this.Lock) { return true;}
+    if (! this.Interactive) { return true;}
     saFirefoxWhich(event);
     if (event.which == 0) {
         // Is it dangerous to modify the event object?
@@ -849,28 +875,42 @@ saElement.prototype.HandleMouseWheel = function(event) {
 saElement.prototype.ConvertToPercentages = function() {
     // I had issues with previous slide shows that had images with no width
     // set. Of course it won't scale right but they will still show up.
-    var width = this.Div.width();
-    var height = this.Div.height();
-    if (this.Div.css('box-sizing') == 'border-box') {
-        width = this.Div.outerWidth();
-        height = this.Div.outerHeight();
-    }
-    if (width > 0) { // TODO: Remove this check after a while.
-        // These always return pixel units.
+    // NOTE: this.Div.width() also misbehaves when the div is not visible.
+    // It does not convert percent to pixels (returns percent).
+    var width = this.Div.css('width');
+    if (width.indexOf('%') == -1) {
+        width = parseFloat(width);
+        if (this.Div.css('box-sizing') == 'border-box') {
+            width += parseFloat(this.Div.css('padding-left'));
+            width += parseFloat(this.Div.css('padding-right'));
+        }
         width = 100 * width / this.Div.parent().width();
-        this.Div.width(width.toString()+'%');
+        this.Div.css({'width': width.toString()+'%'});
+    }
+    var height = this.Div.css('height');
+    if (height.indexOf('%') == -1) {
+        height = parseFloat(height);
+        if (this.Div.css('box-sizing') == 'border-box') {
+            height += parseFloat(this.Div.css('padding-top'));
+            height += parseFloat(this.Div.css('padding-bottom'));
+        }
         height = 100 * height / this.Div.parent().height();
-        this.Div.height(height.toString()+'%');
+        this.Div.css({'height': height.toString()+'%'});
     }
 
-    var pos  = this.Div.position();
-    var left = pos.left;
-    var top  = pos.top;
-
-    top  = 100 * top / this.Div.parent().height();
-    left = 100 * left / this.Div.parent().width();
-    this.Div[0].style.top  = top.toString()+'%';
-    this.Div[0].style.left = left.toString()+'%';
+    // Note: We cannot use this.Div.position() when the div is hidden.
+    var top = this.Div.css('top');
+    if (top.indexOf('%') == -1) {
+        top = parseFloat(top);
+        top  = 100 * top / this.Div.parent().height();
+        this.Div[0].style.top  = top.toString()+'%';
+    }
+    var left = this.Div.css('left');
+    if (left.indexOf('%') == -1) {
+        left = parseFloat(left);
+        left = 100 * left / this.Div.parent().width();
+        this.Div[0].style.left = left.toString()+'%';
+    }
 }
 
 //==============================================================================
@@ -1943,7 +1983,7 @@ function saLightBox(div) {
     this.Expanded = false;
     this.ExpandCallback = null;
     this.AspectRatio = false;
-    this.Lock = false;
+    this.Interactive = true;
 
     // Mask is to gray out background and consume events.
     // All lightbox items in this parent will share a mask.
@@ -1984,8 +2024,8 @@ saLightBox.prototype.ProcessArguments = function(args) {
         this.Expand(args.expand, args.animate);
     }
 
-    if (args.lock !== undefined) {
-        this.Lock = args.lock;
+    if (args.Interactive !== undefined) {
+        this.Interactive = args.interactive;
     }
 
     // Callback when expanded state changes.
@@ -2043,7 +2083,7 @@ saLightBox.prototype.UpdateSize = function() {
 }
 
 saLightBox.prototype.Expand = function(flag, animate) {
-    if (this.Lock) {return;}
+    if ( ! this.Interactive) {return;}
     if (flag == this.Expanded) { return; }
     var self = this;
     if (flag) {
@@ -2134,7 +2174,6 @@ jQuery.prototype.saLightBoxViewer = function(args) {
 
     // Small viewer does not have overview
     args.overview = false;
-    var editable = args.editable;
 
     // sa viewer is separate.  We need to pass the args to saLightBoxToo.
     this.saViewer(args);
@@ -2160,9 +2199,9 @@ jQuery.prototype.saLightBoxViewer = function(args) {
                 // initial state when it shrinks
                 // TODO: Formalize this hack. Viewer formally needs a note.
                 // If not editable, restore the note.
+                var display = this.Div[0].saViewer;
+                var note = display.saNote;
                 if ( ! this.Div[0].saLightBox.Editable && note) {
-                    var display = this.Div[0].saViewer;
-                    var note = display.saNote;
                     var index = display.saViewerIndex || 0;
                     display.SetNote(note, index);
                 }
@@ -2400,8 +2439,8 @@ jQuery.prototype.saHtml = function(string) {
 
         // We need to load the note.
         viewDivs = this.find('.sa-lightbox-viewer');
-        viewDivs.saViewer({'hideCopyright': true,
-                           'interaction':   false});
+        viewDivs.saLightBoxViewer({'hideCopyright': true,
+                                   'interaction':   false});
 
         for (var i = 0; i < viewDivs.length; ++i) {
             var display = viewDivs[i].saViewer;
@@ -2439,8 +2478,7 @@ jQuery.prototype.saHtml = function(string) {
     }
 
     // Shrink any light box elements that are expanded.
-    // We do not have an s-light-box class yet.
-    $('.sa-light-box').saLightBox({'expand':false, 'animate':false});
+    this.find('.sa-light-box').saLightBox({'expand':false, 'animate':false});
 
     // Items that are not visible loos their position.
     this.find('.sa-quiz-hide').show();

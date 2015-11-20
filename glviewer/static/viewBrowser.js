@@ -299,15 +299,16 @@ BrowserPanel.prototype.LoadViewChildren = function(viewFolder, data) {
                   'height': '100px',
                   'width':  '134px',
                   'margin-bottom':'2px',
+                  'overflow':'hidden',
                   'border' :'1px solid #AAA'})
         var div = $('<div>')
             .appendTo(div1)
             .saPresentation({aspectRatio : 1.3333});
         div.saHtml(data.Text);
-        // Viewers do not work yet.
-        div.find('.sa-viewer').remove();
         div.trigger('resize');
-        div.find('.sa-element').saElement({editable:false, lock:true});
+        div.find('.sa-element').saElement({editable:false, interactive:false});
+        // hack,  This should be off by default.
+        div.find('.sa-viewer').saElement({hideCopyright:true});
         // Look for an alternative label.
         if (! data.Title || data.Title == "") {
             var titleDiv = div.find('.sa-presentation-title');
