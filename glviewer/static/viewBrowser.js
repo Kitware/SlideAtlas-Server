@@ -56,7 +56,12 @@ ViewBrowser.prototype.SelectView = function(viewObj) {
         eventuallyRender();
     }
 
-    this.SelectImage(viewObj.ViewerRecords[0].Image);
+    // This will get the camera and the annotations too.
+    var record = new ViewerRecord();
+    record.Load(viewObj.ViewerRecords[0]);
+    record.Apply(this.Viewer);
+    delete record;
+    //this.SelectImage(viewObj.ViewerRecords[0].Image);
 }
 
 ViewBrowser.prototype.SelectImage = function(imgobj) {
