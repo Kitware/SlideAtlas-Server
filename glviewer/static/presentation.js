@@ -222,8 +222,11 @@ function Presentation(rootNote, edit) {
     // Keep the browser from showing the left click menu.
     document.oncontextmenu = cancelContextMenu;
 
-    //document.onkeyup = function(e) {self.HandleKeyUp(e);};
-    $('body').keyup(function(e) {self.HandleKeyUp(e);});
+    $('body').on(
+        'keydown.presentation',
+        function(e) {
+            return self.HandleKeyDown(e);
+        });
 
     this.UpdateSlidesTab();
 }
@@ -790,11 +793,6 @@ Presentation.prototype.AddImageCallback = function(image) {
 
 
 Presentation.prototype.HandleKeyDown = function(event) {
-    return true;
-}
-
-
-Presentation.prototype.HandleKeyUp = function(event) {
     // Hack to keep the slides from changing when editing.
     if ( CONTENT_EDITABLE_HAS_FOCUS) {
         return true;
@@ -816,18 +814,22 @@ Presentation.prototype.HandleKeyUp = function(event) {
         event.keyCode == "40" || // down arrow
         event.keyCode == "13") { // enter
         this.GotoSlide(this.Index + 1);
+        return false;
     }
     if (event.keyCode == "80" || // p
         event.keyCode == "37" || // back arrow
         event.keyCode == "38" || // up arrow
         event.keyCode == "33") { // page up
         this.GotoSlide(this.Index - 1);
+        return false;
     }
     if (event.keyCode == "36") { // home
         this.GotoSetSlide(0);
+        return false;
     }
     if (event.keyCode == "35") { // end
         this.GotoSlide(this.GetNumberOfSlides() - 1);
+        return false;
     }
 }
 

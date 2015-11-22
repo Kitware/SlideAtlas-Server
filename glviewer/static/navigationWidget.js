@@ -118,6 +118,37 @@ function NavigationWidget(parent,display) {
             'width': '100%',
             'text-align': 'center'
         }).html();
+
+
+    display.Parent.on(
+        'keydown.navigation',
+        function (event) {
+            return self.HandleKeyDown(event);
+        });
+}
+
+NavigationWidget.prototype.HandleKeyDown = function(event) {
+    keyCode = event.keyCode;
+    // 34=page down, 78=n, 32=space
+    if (keyCode == 34) {
+        this.NextSlide();
+        return false;
+    }
+    if (keyCode == 78 || keyCode == 32) {
+        this.NextNote();
+        return false;
+    }
+    // 33=page up, 80=p
+    if (keyCode == 33) {
+        this.PreviousSlide();
+        return false;
+    }
+    if (keyCode == 80) {
+        this.PreviousNote();
+        return false;
+    }
+
+    return true;
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
@@ -128,30 +159,6 @@ NavigationWidget.prototype.SetNote = function(note) {
 NavigationWidget.prototype.GetNote = function() {
     return this.NoteIterator.GetNote();
 }
-
-NavigationWidget.prototype.HandleKeyPress = function(keyCode, modifiers) {
-    // 34=page down, 78=n, 32=space
-    if (keyCode == 34) {
-        this.NextSlide();
-        return true;
-    }
-    if (keyCode == 78 || keyCode == 32) {
-        this.NextNote();
-        return true;
-    }
-    // 33=page up, 80=p
-    if (keyCode == 33) {
-        this.PreviousSlide();
-        return true;
-    }
-    if (keyCode == 80) {
-        this.PreviousNote();
-        return true;
-    }
-
-    return false;
-}
-
 
 NavigationWidget.prototype.ToggleVisibility = function() {
     this.SetVisibility( ! this.Visibility);
