@@ -1938,7 +1938,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
          if ( ! SAVING_IMAGE.SavingFlag) {
              SAVING_IMAGE.SavingFlag = true;
              SAVING_IMAGE.Show(1);
-             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3), 
+             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
                                       function() {
                                           SAVING_IMAGE.SavingFlag = false;
                                           SAVING_IMAGE.Count += 1;

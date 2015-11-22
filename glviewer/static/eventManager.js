@@ -191,22 +191,16 @@ EventManager.prototype.HandleKeyDown = function(event) {
     if (this.ControlKeyPressed && event.keyCode == 90) {
         // Function in recordWidget.
         UndoState();
-        return true;
+        return false;
     } else if (this.ControlKeyPressed && event.keyCode == 89) {
         // Function in recordWidget.
         RedoState();
-        return true;
+        return false;
     }
 
     if (SA.Presentation) {
         SA.Presentation.HandleKeyDown(event);
         return true;
-    }
-
-    if (SA.DualDisplay.NavigationWidget) {
-        if (SA.DualDisplay.NavigationWidget.HandleKeyPress(event.keyCode, this)) {
-            return true;
-        }
     }
 
     return true;

@@ -877,25 +877,17 @@ saElement.prototype.ConvertToPercentages = function() {
     // set. Of course it won't scale right but they will still show up.
     // NOTE: this.Div.width() also misbehaves when the div is not visible.
     // It does not convert percent to pixels (returns percent).
-    var width = this.Div.css('width');
+    var width = this.Div[0].style.width;
     if (width.indexOf('%') == -1) {
         width = parseFloat(width);
-        if (this.Div.css('box-sizing') == 'border-box') {
-            width += parseFloat(this.Div.css('padding-left'));
-            width += parseFloat(this.Div.css('padding-right'));
-        }
         width = 100 * width / this.Div.parent().width();
-        this.Div.css({'width': width.toString()+'%'});
+        this.Div[0].style.width = width.toString()+'%';
     }
-    var height = this.Div.css('height');
+    var height = this.Div[0].style.height;
     if (height.indexOf('%') == -1) {
         height = parseFloat(height);
-        if (this.Div.css('box-sizing') == 'border-box') {
-            height += parseFloat(this.Div.css('padding-top'));
-            height += parseFloat(this.Div.css('padding-bottom'));
-        }
         height = 100 * height / this.Div.parent().height();
-        this.Div.css({'height': height.toString()+'%'});
+        this.Div[0].style.height = height.toString()+'%';
     }
 
     // Note: We cannot use this.Div.position() when the div is hidden.
@@ -1597,10 +1589,6 @@ saTextEditor.prototype.EditingOn = function() {
                 self.EditingOff();
             }
         });
-
-    // TODO: Get rid of this hack.
-    // Keyup should return false.
-    CONTENT_EDITABLE_HAS_FOCUS = true;
 
     // Bad name. Actually movable.
     // TODO: Change this name.
