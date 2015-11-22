@@ -2283,8 +2283,7 @@ HtmlPage.prototype.InsertView = function(viewObj) {
     newNote.TempId = tmpId;
     if (newNote.ViewerRecords.length == 0) {
         saDebug("Insert failed: Note has no viewer records.");
-    } else if (this.Note.Parent && (newNote.ViewerRecords.length > 1 ||
-                                    newNote.Children.length > 0)) {
+    } else if (this.Note.Parent) {
         this.Note.Children.push(newNote);
         newNote.Parent = this.Note;
         this.InsertView2(newNote);

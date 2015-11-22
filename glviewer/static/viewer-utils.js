@@ -3402,8 +3402,7 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
     if (timeStep > this.AnimationDuration) {
         // end the animation.
         this.SetWidth(this.AnimationTarget);
-        // Hack to recompute
- viewports
+        // Hack to recompute viewports
         // TODO: Get rid of this hack.
         $(window).trigger('resize');
 
