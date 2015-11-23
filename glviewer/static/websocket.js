@@ -1,7 +1,7 @@
 // TODO: Make this a singleton module 
 
 // Make bson available
-TILELOADER = "http";
+SA.TileLoader = "http";
 var BSON = bson().BSON;
 
 // Definition for WebSocketLoader
@@ -48,19 +48,19 @@ function WebSocketLoader(wsuri) {
 		};
 	}
 	else {
-		TILELOADER = "http";
+		SA.TileLoader = "http";
 	}
 };
 
 WebSocketLoader.prototype.OnConnect = function(e) {
     console.log("WebSocketLoader connected ..");
-    TILELOADER = "websocket"; 
+    SA.TileLoader = "websocket"; 
 };
 
 WebSocketLoader.prototype.OnClose = function(e) {
     console.log("WebSocketLoader closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
     this.sock = null;
-    TILELOADER = "http";
+    SA.TileLoader = "http";
 };
 
 WebSocketLoader.prototype.InitTileStore =function(tilestore) {

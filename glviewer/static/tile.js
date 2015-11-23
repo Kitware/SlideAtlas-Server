@@ -212,30 +212,27 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
-  if (this.LoadState >= 2) {
-    return;
-  }
+    if (this.LoadState >= 2) {
+        return;
+    }
 
-  // Reusing the image caused problems.
-  //if (this.Image == null) {
-  this.Image = new Image();
+    // Reusing the image caused problems.
+    //if (this.Image == null) {
+    this.Image = new Image();
 
-  this.starttime = new Date().getTime();
-  // Setup callbacks
-  var callback = new LoadTileCallback(this, cache);
-  this.Image.onload = GetLoadImageFunction(callback);
-  this.Image.onerror = GetErrorImageFunction(callback);
-  //}
-  // This starts the loading.
+    this.starttime = new Date().getTime();
+    // Setup callbacks
+    var callback = new LoadTileCallback(this, cache);
+    this.Image.onload = GetLoadImageFunction(callback);
+    this.Image.onerror = GetErrorImageFunction(callback);
+    // This starts the loading.
 
-  if(TILELOADER === "http") {
-      this.LoadHttp(cache);
-  } else if(TILELOADER === "websocket") {
-      this.LoadWebSocket(cache);
-  }
-};
-
-
+    if(SA.TileLoader == "http") {
+        this.LoadHttp(cache);
+    } else if(SA.TileLoader == "websocket") {
+        this.LoadWebSocket(cache);
+    }
+}
 
 Tile.prototype.LoadHttp = function (cache) {
     // For http simply set the data url and wait 

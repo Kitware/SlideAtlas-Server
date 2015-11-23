@@ -643,6 +643,8 @@ function SaveCallback() {
 // It might speed up loading.
 // Note is the same as a view.
 function Main2(rootNote) {
+    SA.TileLoader = "http";
+
     if (STYLE == "Presentation" ||
         rootNote.Type == "Presentation" ||
         rootNote.Type == "HTML") {
