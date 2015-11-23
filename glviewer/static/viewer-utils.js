@@ -2351,6 +2351,9 @@ jQuery.prototype.saHtml = function(string) {
 
             items = this.find('.sa-lightbox-viewer');
             items.saAnnotationWidget('hide');
+        } else {
+            items = this.find('.sa-text-editor');
+            items.css({'overflow':'visible'});
         }
 
         return;
