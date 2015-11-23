@@ -223,7 +223,7 @@ function Presentation(rootNote, edit) {
     document.oncontextmenu = cancelContextMenu;
 
     $('body').on(
-        'keydown.presentation',
+        'keydown',
         function(e) {
             return self.HandleKeyDown(e);
         });
@@ -235,6 +235,7 @@ function Presentation(rootNote, edit) {
 Presentation.prototype.StartTimerShow = function () {
     var self = this;
     // hack to turn off key events.
+
     CONTENT_EDITABLE_HAS_FOCUS = true;
     var dialog = $('<div>')
         .dialog({
@@ -835,6 +836,10 @@ Presentation.prototype.HandleKeyDown = function(event) {
 
 
 Presentation.prototype.Save = function () {
+    // Get rid of interactive question formating.
+    this.HtmlPage.Div.find('.sa-answer')
+        .css({'color':'#000'});
+
     var self = this;
     this.TitlePage.UpdateEdits();
     this.SlidePage.UpdateEdits();
@@ -1862,15 +1867,19 @@ HtmlPage.prototype.EditOn = function () {
 HtmlPage.prototype.SaEditOff = function () {
     $('.sa-edit-gui').saButtons('disable');
     $('.sa-presentation-text').attr('contenteditable', 'false');
-    $('.sa-presentation-rectangle').saElement({'editable':false});
-    $('.sa-light-box').saLightBox({'editable':false});
+    $('.sa-presentation-rectangle').saElement({'editable':false,
+                                               'interactive':false});
+    $('.sa-light-box').saLightBox({'editable':false,
+                                   'interactive':true});
 }
 
 HtmlPage.prototype.SaEditOn = function () {
     $('.sa-edit-gui').saButtons('enable');
     $('.sa-presentation-text').attr('contenteditable', 'true');
-    $('.sa-presentation-rectangle').saElement({'editable':true});
-    $('.sa-light-box').saLightBox({'editable':true});
+    $('.sa-presentation-rectangle').saElement({'editable':true,
+                                               'interactive':true});
+    $('.sa-light-box').saLightBox({'editable':true,
+                                   'interactive':true});
 }
 
 
@@ -1954,9 +1963,10 @@ HtmlPage.prototype.DisplayNote = function (note) {
     $('sa-draggable').saDraggable();
     // still needed for iframes.
     this.BindElements();
-    if (EDIT) {
-        this.ShuffleQuestion();
-    }
+    // I do not want to shuffle questions between test and review.
+    //if (EDIT) {
+    //    this.ShuffleQuestion();
+    //}
 }
 
 
@@ -2231,7 +2241,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
 }
 
 HtmlPage.prototype.ShuffleQuestion = function() {
-    var questions = this.Div.find('.sa-multiple-choice-question');
+    var questions = this.Div.find('.sa-q [type="multiple-choice"]');
     for (var i = 0; i < questions.length; ++i) {
         var q = questions[i];
         // Shuffle the list.

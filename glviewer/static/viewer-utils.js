@@ -1350,7 +1350,7 @@ saQuestion.prototype.DialogInitialize = function () {
             var options = this.Div.find('.sa-answer');
             for (var i = 0; i < options.length; ++i) {
                 var item = $(options[i]);
-                var checked = item.css('font-weight') == 'bold';
+                var checked = item.hasClass('sa-true');
                 this.AddAnswer(this.MultipleChoiceDiv,
                                this.MultipleChoiceAnswers,
                                item.text(), checked);
@@ -1386,6 +1386,17 @@ saQuestion.prototype.DialogApply = function () {
         tmp = $('<ol>')
             .appendTo(this.Div)
             .css({'margin':'0px 0px 0px 0.5em'});
+
+        // Shuffle the answers.
+        var shuffled = [];
+        while (this.MultipleChoiceAnswers.length > 0) {
+            var idx = Math.floor(Math.random() * this.MultipleChoiceAnswers.length);
+            var answer = this.MultipleChoiceAnswers.splice(idx, 1)[0];
+            shuffled.push(answer);
+        }
+        this.MultipleChoiceAnswers = shuffled;
+
+        // Convert to html
         for (var i = 0; i < this.MultipleChoiceAnswers.length; ++i) {
             var answer = this.MultipleChoiceAnswers[i];
             if (answer.Input.text() != "") {
@@ -1454,9 +1465,9 @@ jQuery.prototype.saTextEditor = function(args) {
     return this;
 }
 
-// TODO: Get rid of this.  KeyHandler can return false, even if we have not
-// gotten rid of the event manager.
-// I hate to use this hack, but I need to stop other events from triggering.
+// TODO: Figure out a way to get rid of this.
+// content editable in divs do not consume key events.
+// They propagate to parents. i.e. space causes a slide to advance.
 var CONTENT_EDITABLE_HAS_FOCUS = false;
 
 function saTextEditor(div) {
@@ -1576,7 +1587,7 @@ saTextEditor.prototype.EditingOn = function() {
               'height': height+'px'})
         .show();
 
-    // I use mouse up because it should always propagate.
+    // mouse up because it should always propagate.
     var self = this;
     $('body').on(
         'mousedown.textEditor',
@@ -1584,7 +1595,7 @@ saTextEditor.prototype.EditingOn = function() {
             // We do not want click in the text box (or buttons) to turn
             // off editing.
             if ( self.Div[0] != e.srcElement &&
-                 self.EditButtonDiv[0] != e.srcElement && 
+                 self.EditButtonDiv[0] != e.srcElement &&
                  ! $.contains(self.Div[0], e.srcElement) &&
                  ! $.contains(self.EditButtonDiv[0], e.srcElement)) {
                 self.EditingOff();
@@ -1603,6 +1614,8 @@ saTextEditor.prototype.EditingOn = function() {
     this.Div
         .attr('contenteditable', 'true')
         .css({'cursor':'text'});
+
+    CONTENT_EDITABLE_HAS_FOCUS = true;
 }
 
 saTextEditor.prototype.EditingOff = function() {
@@ -1620,7 +1633,8 @@ saTextEditor.prototype.EditingOff = function() {
     this.Div
         .attr('contenteditable', 'false')
         .off('mouseleave.textEditor');
-    
+
+    CONTENT_EDITABLE_HAS_FOCUS = false;
 }
 
 saTextEditor.prototype.AddButton = function(src, tooltip, callback, prepend) {
