@@ -1,4 +1,5 @@
 
+
 //==============================================================================
 // saElement: borders, shadow, drag and resize
 // saRectangle: BackgroundColor / gradient.
@@ -2460,6 +2461,10 @@ jQuery.prototype.saHtml = function(string) {
 
             items = this.find('.sa-lightbox-viewer');
             items.saViewer({drawWidget: false});
+        } else {
+            // I need the text to show when the bounds are too small.
+            items = this.find('.sa-text-editor');
+            items.css({'overflow':'visible'});
         }
 
         return;
