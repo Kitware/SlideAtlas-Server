@@ -35,13 +35,12 @@ def jsonifyView(db, viewid, viewobj):
 
 # view and note are the same in the new schema.
 # It becomes so simple!
-def glnote(db, viewid, viewobj, edit, style):
+def glnote(db, viewid, viewobj, edit):
     email = getattr(security.current_user, 'email', '')
     return make_response(render_template('view.html',
                                          view=viewid,
                                          user=email,
-                                         edit=edit,
-                                         style=style))
+                                         edit=edit))
 
 
 
@@ -109,25 +108,15 @@ mod = Blueprint('glviewer', __name__,
 @mod.route('')
 #@security.login_required
 def glview():
+
     # if a presentation sets the sessid, but not the view,
     # I will create a new presentation object.
     sessid = request.args.get('sess', None)
-
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
-    # default, simple or presentation
-    style = request.args.get('style', "default")
 
-    # handle presentation with a different template.
-    if  style == "presentation":
-        email = getattr(security.current_user, 'email', '')
-        return make_response(render_template('view.html',
-                                             sess=sessid,
-                                             view=viewid,
-                                             edit=edit,
-                                             user=email))
 
     """
     - /glview?view=10239094124&db=507619bb0a3ee10434ae0827
@@ -153,14 +142,21 @@ def glview():
     admindb = models.ImageStore._get_db()
     db = admindb
 
+    viewobj = None
     if viewid:
         viewobj = readViewTree(db, viewid)
 
-        if ajax:
-            return jsonifyView(db,viewid,viewobj)
+    if ajax:
+        return jsonifyView(db,viewid,viewobj)
 
-        # default
-        return glnote(db,viewid,viewobj,edit,style)
+    # default
+    email = getattr(security.current_user, 'email', '')
+    return make_response(render_template('view.html',
+                                         view=viewid,
+                                         user=email,
+                                         sess=sessid,
+                                         edit=edit))
+
 
 
 

@@ -64,9 +64,6 @@
 
 //==============================================================================
 function Presentation(rootNote, edit) {
-    // Disable the next/previous slide buttons in navigator.
-    delete localStorage.session;
-
     var self = this;
     this.RootNote = rootNote;
     this.Edit = edit;
@@ -236,7 +233,7 @@ Presentation.prototype.StartTimerShow = function () {
     var self = this;
     // hack to turn off key events.
 
-    CONTENT_EDITABLE_HAS_FOCUS = true;
+    SA.ContentEditableHasFocus = true;
     var dialog = $('<div>')
         .dialog({
             modal: false,
@@ -247,7 +244,7 @@ Presentation.prototype.StartTimerShow = function () {
                 of: window
             },
             beforeClose: function() {
-                CONTENT_EDITABLE_HAS_FOCUS = false;
+                SA.ContentEditableHasFocus = false;
             },
             buttons: {
                 "Start": function () {
@@ -314,7 +311,7 @@ Presentation.prototype.StartFullScreen = function () {
 
 
 Presentation.prototype.EditOff = function () {
-    if (EDIT && this.Edit) {
+    if (SA.Edit && this.Edit) {
         this.Edit = false;
 
         this.SaveButton.hide();
@@ -334,7 +331,7 @@ Presentation.prototype.EditOff = function () {
 
 Presentation.prototype.EditOn = function () {
     if (this.FullScreen) { return; }
-    if (EDIT && ! this.Edit) {
+    if (SA.Edit && ! this.Edit) {
         this.Edit = true;
 
         this.SaveButton.show();
@@ -371,7 +368,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
               'bottom':'3px',
               'overflow-y':'auto'});
 
-    if (EDIT) {
+    if (SA.Edit) {
         this.BrowserDiv = this.EditTabs.NewTabDiv("Browse");
         this.SearchDiv = this.EditTabs.NewTabDiv("Search");
         this.ClipboardDiv = this.EditTabs.NewTabDiv("Clipboard");
@@ -505,10 +502,10 @@ function UserNoteEditor(parent) {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            CONTENT_EDITABLE_HAS_FOCUS = true;
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            CONTENT_EDITABLE_HAS_FOCUS = false;
+            SA.ContentEditableHasFocus = false;
             self.UpdateNote();
         })
         // Mouse leave events are not triggering.
@@ -691,7 +688,7 @@ Presentation.prototype.TimerCallback = function(duration) {
     if (this.Index == this.GetNumberOfSlides() - 1) {
         // Stop but stay in full screen mode.
         this.GotoSlide(0);
-        CONTENT_EDITABLE_HAS_FOCUS = false;
+        SA.ContentEditableHasFocus = false;
         return;
     }   
 
@@ -795,7 +792,7 @@ Presentation.prototype.AddImageCallback = function(image) {
 
 Presentation.prototype.HandleKeyDown = function(event) {
     // Hack to keep the slides from changing when editing.
-    if ( CONTENT_EDITABLE_HAS_FOCUS) {
+    if ( SA.ContentEditableHasFocus) {
         return true;
     }
 
@@ -1132,7 +1129,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
     // Add the title page 
     this.SlideList.empty();
 
-    if (EDIT) {
+    if (SA.Edit) {
         this.SlideList
             .sortable({update: function(event,ui){self.SortCallback();},
                        handle: ".ui-icon"});
@@ -1189,7 +1186,7 @@ Presentation.prototype.UpdateSlidesTab = function (){
                   'top' :'2px',
                   'opacity':'0.5'})
             .addClass('ui-icon ui-icon-bullet');
-        if (EDIT) {
+        if (SA.Edit) {
             sortHandle.addClass('sa-sort-handle');
         }
 
@@ -1446,7 +1443,7 @@ SlidePage.prototype.SetFullWindowView = function (viewerDiv) {
         this.ViewPanel.css({
             'bottom': '300px',
             'height': 'auto'});
-        if (EDIT) {
+        if (SA.Edit) {
             SA.Presentation.EditOn();
         }
 
@@ -1475,7 +1472,7 @@ SlidePage.prototype.RecordView2 = function() {
 
 
 SlidePage.prototype.EditOff = function () {
-    if (EDIT && this.Edit) {
+    if (SA.Edit && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
         this.AnnotationWidget1.hide();
@@ -1493,7 +1490,7 @@ SlidePage.prototype.EditOff = function () {
 
 
 SlidePage.prototype.EditOn = function () {
-    if (EDIT &&  ! this.Edit) {
+    if (SA.Edit &&  ! this.Edit) {
         this.Edit = true;
         //this.Div.css({'width': '100%', 'left': '0px'}); ???
         this.AnnotationWidget1.show();
@@ -1729,17 +1726,17 @@ function TitlePage (parent, edit) {
     if (this.Edit) {
         var self = this;
         this.Title
-            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
-            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+            .focusin(function() { SA.ContentEditableHasFocus = true;})
+            .focusout(function() { SA.ContentEditableHasFocus = false;});
         this.AuthorText
-            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
-            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+            .focusin(function() { SA.ContentEditableHasFocus = true;})
+            .focusout(function() { SA.ContentEditableHasFocus = false;});
     }
 }
 
 
 TitlePage.prototype.EditOff = function () {
-    if (EDIT && this.Edit) {
+    if (SA.Edit && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
         this.Title
@@ -1759,19 +1756,19 @@ TitlePage.prototype.EditOff = function () {
 
 
 TitlePage.prototype.EditOn = function () {
-    if (EDIT &&  ! this.Edit) {
+    if (SA.Edit &&  ! this.Edit) {
         this.Edit = true;
         //this.Div.css({'width': '100%', 'left': '0px'}); ???
         this.Title
             .attr('contenteditable', 'true')
             .attr('spellcheck', 'true')
-            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
-            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+            .focusin(function() { SA.ContentEditableHasFocus = true;})
+            .focusout(function() { SA.ContentEditableHasFocus = false;});
         this.AuthorText.attr('readonly', 'readonly')
             .attr('contenteditable', 'true')
             .attr('spellcheck', 'true')
-            .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
-            .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+            .focusin(function() { SA.ContentEditableHasFocus = true;})
+            .focusout(function() { SA.ContentEditableHasFocus = false;});
     }
 }
 
@@ -1849,14 +1846,14 @@ function HtmlPage (parent, edit, background) {
 
 
 HtmlPage.prototype.EditOff = function () {
-    if (EDIT && this.Edit) {
+    if (SA.Edit && this.Edit) {
         this.Edit = false;
         this.Div.css({'width': '100%', 'left': '0px'});
         this.SaEditOff();
     }
 }
 HtmlPage.prototype.EditOn = function () {
-    if (EDIT &&  ! this.Edit) {
+    if (SA.Edit &&  ! this.Edit) {
         this.Edit = true;
         // this.Div.css({'width': '100%', 'left': '0px'}); ???
         this.SaEditOn();
@@ -1940,21 +1937,21 @@ HtmlPage.prototype.DisplayNote = function (note) {
     }
     // hack
     // Do not let students edit text.
-    if ( ! EDIT) {
+    if ( ! SA.Edit) {
         $('.sa-text-editor').attr('contenteditable', "false")
     }
 
     // Change the edit status of the elements.
     var self = this;
     this.Div.find('.sa-presentation-image')
-        .saLightBox({'editable':EDIT,
+        .saLightBox({'editable':SA.Edit,
                      'aspectRatio':true});
     this.Div.find('.sa-lightbox-viewer')
         .saLightBoxViewer({
-            'editable':EDIT,
+            'editable':SA.Edit,
             'delete' : function (dom) {self.ViewDeleteCallback(dom);}});
     this.Div.find('.sa-presentation-rectangle')
-        .saRectangle({'editable':EDIT});
+        .saRectangle({'editable':SA.Edit});
     // Make viewers into lightbox elements.
     // MOVE
     //this.InitializeViews(this.Div.find('.sa-presentation-view'));
@@ -1964,7 +1961,7 @@ HtmlPage.prototype.DisplayNote = function (note) {
     // still needed for iframes.
     this.BindElements();
     // I do not want to shuffle questions between test and review.
-    //if (EDIT) {
+    //if (SA.Edit) {
     //    this.ShuffleQuestion();
     //}
 }
@@ -2043,7 +2040,7 @@ HtmlPage.prototype.InsertImage = function(src) {
               'top'     :top+'%',
               'z-index' :'1'})
         .saLightBox({aspectRatio: true,
-                     editable: EDIT})
+                     editable: SA.Edit})
         .addClass('sa-presentation-image');
     var img = $('<img>')
         .css({'width':'100%',
@@ -2099,7 +2096,7 @@ HtmlPage.prototype.InsertRectangle = function(color, left, top, width, height) {
               'width':width,
               'top':top,
               'height':height})
-        .saRectangle({editable: EDIT});
+        .saRectangle({editable: SA.Edit});
 }
 
 // The execCommand paste does not work
@@ -2227,7 +2224,7 @@ HtmlPage.prototype.InsertTextBox = function(size) {
         .addClass('sa-presentation-text')
         // This makes the font scale with height of the window.
         .saScalableFont({scale:scale,
-                         editable: EDIT})
+                         editable: SA.Edit})
         // default content
         .text("Text");
 
@@ -2266,7 +2263,7 @@ HtmlPage.prototype.InsertQuestion = function() {
               'padding':'1% 1% 1% 1%', // top right bottom left
               'z-index' :'1'})
         .saScalableFont({scale:'0.03'})
-        .saQuestion({editable: EDIT});
+        .saQuestion({editable: SA.Edit});
 
     // This is not the best api.  Delay appending the div until after the
     // dialog has been applied
@@ -2337,7 +2334,7 @@ HtmlPage.prototype.InsertViewerRecord = function(viewerRecord) {
             'note'         : this.Note,
             'viewerIndex'  : viewerIdx,
             'hideCopyright': true,
-            'editable'     : EDIT,
+            'editable'     : SA.Edit,
             'delete' : function (dom) {self.ViewDeleteCallback(dom);}});
 
     return viewerDiv;
@@ -2372,7 +2369,7 @@ HtmlPage.prototype.InsertView2 = function(view) {
             'dual'         : true,
             'hideCopyright': true,
             'delete' : function (dom) {self.ViewDeleteCallback(dom);},
-            'editable'     : EDIT});
+            'editable'     : SA.Edit});
 
     return viewerDiv;
 }
@@ -2401,7 +2398,7 @@ HtmlPage.prototype.InsertViewId2 = function(viewId) {
             'viewId'       : viewId,
             'dual'         : true,
             'hideCopyright': true,
-            'editable'     : EDIT});
+            'editable'     : SA.Edit});
 
     return viewerDiv;
 }
@@ -2525,8 +2522,8 @@ function SearchPanel(parent, callback) {
         .css({'width':'95%',
               'display':'table-cell',
               'border':'2px inset #CCC'})
-        .focusin(function() { CONTENT_EDITABLE_HAS_FOCUS = true;})
-        .focusout(function() { CONTENT_EDITABLE_HAS_FOCUS = false;});
+        .focusin(function() { SA.ContentEditableHasFocus = true;})
+        .focusout(function() { SA.ContentEditableHasFocus = false;});
     this.SearchResults = $('<div>')
         .appendTo(parent)
         .css({'position':'absolute',

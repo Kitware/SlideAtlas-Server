@@ -1468,7 +1468,7 @@ jQuery.prototype.saTextEditor = function(args) {
 // TODO: Figure out a way to get rid of this.
 // content editable in divs do not consume key events.
 // They propagate to parents. i.e. space causes a slide to advance.
-var CONTENT_EDITABLE_HAS_FOCUS = false;
+//SA.ContentEditableHasFocus = false;
 
 function saTextEditor(div) {
     var self = this;
@@ -1615,7 +1615,7 @@ saTextEditor.prototype.EditingOn = function() {
         .attr('contenteditable', 'true')
         .css({'cursor':'text'});
 
-    CONTENT_EDITABLE_HAS_FOCUS = true;
+    SA.ContentEditableHasFocus = true;
 }
 
 saTextEditor.prototype.EditingOff = function() {
@@ -1634,7 +1634,7 @@ saTextEditor.prototype.EditingOff = function() {
         .attr('contenteditable', 'false')
         .off('mouseleave.textEditor');
 
-    CONTENT_EDITABLE_HAS_FOCUS = false;
+    SA.ContentEditableHasFocus = false;
 }
 
 saTextEditor.prototype.AddButton = function(src, tooltip, callback, prepend) {
@@ -2457,7 +2457,7 @@ jQuery.prototype.saHtml = function(string) {
             }
         }
 
-        if (EDIT) {
+        if (SA.Edit) {
             var items = this.find('.sa-resizable');
             // temporary to make previous editors draggable.
             items = this.find('.sa-text-editor');

@@ -64,7 +64,7 @@ function Note () {
         .text(this.Title)
         .addClass('sa-title');
 
-    if (EDIT) {
+    if (SA.Edit) {
         this.AddButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .attr('src',"webgl-viewer/static/page_add.png")
@@ -100,7 +100,7 @@ function Note () {
     }
 
 
-    if (EDIT) {
+    if (SA.Edit) {
         this.Modified = false;
         this.TitleEntry
             .attr('contenteditable', "true");
@@ -114,7 +114,7 @@ function Note () {
         .addClass('sa-ul')
         .appendTo(this.Div);
 
-    if (EDIT) {
+    if (SA.Edit) {
         this.ChildrenDiv
             .sortable({update: function(event,ui){self.SortCallback();},
                        handle: ".ui-icon"});
@@ -265,7 +265,7 @@ Note.prototype.UnselectHyperlink = function () {
 Note.prototype.SetParent = function(parent) {
     var self = this;
     this.Parent = parent;
-    if (parent && EDIT) {
+    if (parent && SA.Edit) {
         this.RemoveButton.show();
     }
 }
@@ -360,7 +360,7 @@ Note.prototype.SetUserNote = function(userNote) {
 }
 
 Note.prototype.UserCanEdit = function() {
-    return EDIT;
+    return SA.Edit;
 }
 
 Note.prototype.RecordView = function(display) {
@@ -572,7 +572,7 @@ Note.prototype.DisplayGUI = function(div) {
 
     // Changing a div "parent/appendTo" removes all event bindings like click.
     // I would like to find a better solution to redraw.
-    if (EDIT) {
+    if (SA.Edit) {
         // Removing and adding removes the callbacks.
         this.AddButton
             .click(function () {
@@ -733,8 +733,7 @@ Note.prototype.LoadViewId = function(viewId, callback) {
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
-        data: {"sessid": localStorage.sessionId,
-               "viewid": viewId},
+        data: {"viewid": viewId},
         success: function(data,status) {
             self.Load(data);
             if (callback) {
@@ -766,7 +765,7 @@ Note.prototype.Expand = function() {
 Note.prototype.DisplayStack = function(display) {
     this.DisplayView(display);
     // For editing correlations
-    if (EDIT && this.StartIndex+1 < this.ViewerRecords.length) {
+    if (SA.Edit && this.StartIndex+1 < this.ViewerRecords.length) {
         var trans = this.ViewerRecords[this.StartIndex + 1].Transform;
         if (trans) {
             display.GetViewer(0).StackCorrelations = trans.Correlations;

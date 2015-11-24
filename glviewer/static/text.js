@@ -65,8 +65,6 @@ var ASCII_LOOKUP =
 
 
 // All text object use the same texture map.
-//var TEXT_TEXTURE;
-//var TEXT_IMAGE;
 
 function GetTextureLoadedFunction (text) {
   return function () {text.HandleLoadedTexture();}
@@ -87,7 +85,7 @@ function Text() {
     this.Image.onload = GetTextureLoadedFunction(this);
     //this.Image.onerror = TextError(); // Always fires for some reason.
     // This starts the loading.
-    this.Image.src = IMAGE_PATH_URL +"letters.gif";
+    this.Image.src = SA.ImagePathUrl +"letters.gif";
   }
   this.Color = [0.5, 1.0, 1.0];
   this.Size = 12; // Height in pixels

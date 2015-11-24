@@ -1,7 +1,6 @@
 // TODO: Make this a singleton module 
 
 // Make bson available
-SA.TileLoader = "http";
 var BSON = bson().BSON;
 
 // Definition for WebSocketLoader

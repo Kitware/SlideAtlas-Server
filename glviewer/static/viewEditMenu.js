@@ -42,7 +42,7 @@ function ViewEditMenu (viewer, otherViewer) {
                     VIEW_BROWSER.Open(self.Viewer);
                 });
     }
-    if (EDIT) {
+    if (SA.Edit) {
         $('<button>')
             .appendTo(this.Tab.Panel)
             .text("Save View")
@@ -114,7 +114,7 @@ function ViewEditMenu (viewer, otherViewer) {
 
         // I need some indication that the behavior id different in edit mode.
         // If the user is authorized, the new bounds are automatically saved.
-        if (EDIT) {
+        if (SA.Edit) {
             $('<button>').appendTo(this.Tab.Panel)
                 .text("Save Overview Bounds")
                 .addClass("sa-view-edit-button")
@@ -187,7 +187,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
     eventuallyRender();
 
     // Save automatically if user has permission.
-    if (EDIT) {
+    if (SA.Edit) {
         // I cannot do this because it first sets the viewer record and bounds are lost.
         //SA.NotesWidget.SaveCallback();
         // Lets try just setting this one note.
@@ -276,23 +276,6 @@ ViewEditMenu.prototype.FlipHorizontal = function() {
     this.Viewer.SetCamera(cam.GetFocalPoint(), cam.GetRotation()+180.0, cam.Height);
     RecordState();
 }
-
-
-ViewEditMenu.prototype.SessionAdvance = function() {
-// I do not have the session id and it is hard to get!
-//    $.get(SESSIONS_URL+"?json=true&sessid="+$(obj).attr('sessid')+"&sessdb="+$(obj).attr('sessdb'),
-//          function(data,status){
-//            if (status == "success") {
-//              ShowViewMenuAjax(data);
-//            } else { saDebug("ajax failed."); }
-//          });
-}
-
-ViewEditMenu.prototype.SessionAdvanceAjax = function() {
-}
-
-
-
 
 
 // Stuff that should be moved to some other file.
