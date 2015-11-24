@@ -10,22 +10,7 @@ function NavigationWidget(parent,display) {
    // Load the session slides from the localStorage
     this.SlideIndex = 0;
     this.Session = [];
-
     this.NoteIterator = new NoteIterator();
-
-    if (localStorage && localStorage.session) {
-        this.Session = JSON.parse(localStorage.session);
-        // Find the index of the current slide.
-        while (this.SlideIndex < this.Session.length &&
-               this.Session[this.SlideIndex] != VIEW_ID) {
-            ++this.SlideIndex;
-        }
-        if (this.SlideIndex >= this.Session.length) {
-            // We did not find the slide.
-            this.SlideIndex = 0;
-            this.Session = [];
-        }
-    }
 
     var self = this;
     var size = '40px';
@@ -152,6 +137,21 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 }
 
 NavigationWidget.prototype.SetNote = function(note) {
+    var self = this;
+    if (note.SessionId && SA.RootNote.Type != "HTML") {
+        $.ajax({
+            type: "get",
+            url: SA.SessionUrl+"?json=true&sessid="+note.SessionId,
+            success: function(data,status) {
+                self.Session = data.session.views;
+                self.Update();
+            },
+            error: function() {
+                saDebug("AJAX - error() : session" );
+            },
+        });
+    }
+
     this.NoteIterator.SetNote(note);
     this.Update();
 }
@@ -325,7 +325,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         // TODO: Improve the API here.  Get rid of global access.
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
+        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -342,7 +342,7 @@ NavigationWidget.prototype.NextSlide = function() {
     if (check) {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
-        this.Display.SetNoteFromId(this.Session[this.SlideIndex]);
+        this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }

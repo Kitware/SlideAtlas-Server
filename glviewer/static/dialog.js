@@ -76,7 +76,7 @@ Dialog.prototype.Show = function(modal) {
             'click.dialog',
             function (e) { self.Hide(); });
     }
-    CONTENT_EDITABLE_HAS_FOCUS = true; // blocks viewer events.
+    SA.ContentEditableHasFocus = true; // blocks viewer events.
 }
 
 Dialog.prototype.Hide = function () {
@@ -84,7 +84,7 @@ Dialog.prototype.Hide = function () {
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
-    CONTENT_EDITABLE_HAS_FOCUS = false;
+    SA.ContentEditableHasFocus = false;
 } 
 
 

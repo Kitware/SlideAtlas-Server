@@ -551,7 +551,7 @@ TextEditor.prototype.LoadNote = function(note) {
     }
     
     this.MakeLinksClickable();
-    if (EDIT) {
+    if (SA.Edit) {
         this.EditOn();
     }
 }
@@ -575,7 +575,7 @@ TextEditor.prototype.UpdateNote = function() {
 // Link are not active in content editable divs.
 // Work around this.
 TextEditor.prototype.MakeLinksClickable = function() {
-    if (EDIT) {
+    if (SA.Edit) {
         // This is only necesary when div is editable.
         // Links work the same in both situations with this.
         links = $("a");
@@ -619,10 +619,10 @@ function NotesWidget(parent, display) {
         .hide()
         .mouseleave(function() { LINK_DIV.fadeOut(); });
 
-    // There is not option to show the link when EDIT is not on,
+    // There is not option to show the link when SA.Edit is not on,
     // so this really does nothing.  Editable is probably necessary
     // for selection to copy.
-    if (EDIT) {
+    if (SA.Edit) {
         LINK_DIV.attr('contenteditable', "true");
     }
 
@@ -746,7 +746,7 @@ function NotesWidget(parent, display) {
     // no longer needed, but interesting: 'box-sizing': 'border-box'
 
     // This is the button for the links tab div.
-    if (EDIT) {
+    if (SA.Edit) {
         this.AddViewButton = $('<button>')
             .appendTo(this.LinksDiv)
             .css({'border-radius': '4px',
@@ -756,7 +756,7 @@ function NotesWidget(parent, display) {
 
     // Now for the text tab:
     this.TextEditor = new TextEditor(this.TextDiv, this.Display);
-    if ( ! EDIT) {
+    if ( ! SA.Edit) {
         this.TextEditor.EditableOff();
     } else {
         this.TextEditor.Change(
@@ -843,7 +843,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     //var self = this;
     //for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
     //    this.Display.GetViewer(i).OnInteraction();
-    //    if (EDIT) {
+    //    if (SA.Edit) {
     //        // These record changes in the viewers to the notes.
     //        this.Display.GetViewer(i).OnInteraction(function () {self.RecordView();});
     //    }
@@ -851,7 +851,7 @@ NotesWidget.prototype.SelectNote = function(note) {
 }
 
 NotesWidget.prototype.RecordView = function() {
-    if ( ! EDIT) { return; }
+    if ( ! SA.Edit) { return; }
 
     if (this.RecordViewTimer) {
         clearTimeout(this.RecordViewTimer);
@@ -1159,7 +1159,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
     this.SelectNote(this.RootNote);
 
     // Add an obvious way to add a link / view to the root note.
-    if (EDIT) {
+    if (SA.Edit) {
         var self = this;
         this.AddViewButton
             .appendTo(this.LinksDiv)
@@ -1187,25 +1187,6 @@ NotesWidget.prototype.DisplayRootNote = function() {
         }
     }
 }
-
-// Is this called anymore?
-// No
-//NotesWidget.prototype.LoadViewId = function(viewId) {
-//    VIEW_ID = viewId;
-//    var note = new Note();
-//    if (typeof(viewId) != "undefined" && viewId != "") {
-//        note.LoadViewId(
-//            viewId,
-//            function () {
-//                SA.NotesWidget.SetRootNote(note);
-//                SA.NotesWidget.DisplayRootNote();
-//            }
-//        );
-//    }
-//    // Since loading the view is asynchronous,
-//    // the this.RootNote is not complete at this point.
-//}
-
 
 // Add a user note to the currently selected notes children.
 NotesWidget.prototype.NewCallback = function() {
@@ -1289,7 +1270,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
     // Must display the text.
     this.UserTextEditor.LoadNote(this.UserNote);
     // User notes are always editable. Unless it tis the demo account.
-    if (USER != "") {
+    if (SA.User != "") {
         this.UserTextEditor.EditOn();
     }
 }

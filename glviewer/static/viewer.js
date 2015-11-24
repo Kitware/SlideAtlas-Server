@@ -1203,7 +1203,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (SA.EventManager.CursorFlag && EDIT) {
+    if (SA.EventManager.CursorFlag && SA.Edit) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);

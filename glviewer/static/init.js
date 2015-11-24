@@ -1,4 +1,3 @@
-var SA = {};
 
 // Firefox does not set which for mouse move events.
 function saFirefoxWhich(event) {
@@ -32,6 +31,7 @@ function ZERO_PAD(i, n) {
 var ROOT_DIV;
 
 // globals (for now)
+var SA = {};
 var imageProgram;
 var textProgram;
 var polyProgram;
@@ -76,9 +76,6 @@ function detectMobile() {
     if (MOBILE_DEVICE) {
         MAXIMUM_NUMBER_OF_TILES = 5000;
     }
-    if (STYLE == "simple") {
-        MOBILE_DEVICE = "Simple";
-    }
 
     return MOBILE_DEVICE;
 }
@@ -91,11 +88,8 @@ function detectMobile() {
 var GL;
 
 function GetUser() {
-    if (typeof(USER) != "undefined") {
-        return USER;
-    }
-    if (typeof(ARGS) != "undefined") {
-        return ARGS.User;
+    if (typeof(SA.User) != "undefined") {
+        return SA.User;
     }
     saDebug("Could not find user");
     return "";
@@ -103,11 +97,8 @@ function GetUser() {
 
 
 function GetViewId () {
-    if (typeof(VIEW_ID) != "undefined") {
-        return VIEW_ID;
-    }
-    if (typeof(ARGS) != "undefined") {
-        return ARGS.Viewer1.viewid;
+    if (typeof(SA.ViewId) != "undefined") {
+        return SA.ViewId;
     }
     if ( ! SA.NotesWidget && ! SA.NotesWidget.RootNote) {
         return SA.NotesWidget.RootNote._id;
@@ -567,12 +558,19 @@ function cancelContextMenu(e) {
 
 
 // Main function called by the default view.html template
-function Main(style,sessId,viewId) {
+function Main() {
+    if (SA.ViewId == "" || SA.ViewId == "None") {
+        delete SA.ViewId;
+    }
+    if (SA.SessionId == "" || SA.SessionId == "None") {
+        delete SA.SessionId;
+    }
+
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
 
     // Hack to create a new presenation.
-    if (viewId == "" || viewId == "None") {
+    if ( ! SA.ViewId) {
         var title = window.prompt("Please enter the presentation title.",
                                   "SlideShow");
         if (title == null) {
@@ -588,7 +586,7 @@ function Main(style,sessId,viewId) {
             // Save the note in the session.
             $.ajax({
                 type: "post",
-                data: {"sess" : sessId,
+                data: {"sess" : SA.SessionId,
                        "view" : note.Id},
                 url: "webgl-viewer/session-add-view",
                 success: function(data,status){
@@ -605,24 +603,24 @@ function Main(style,sessId,viewId) {
         });
 
     } else {
-        if (viewId == "") {
+        if (SA.ViewId == "") {
             saDebug("Missing view id");
             return;
         }
-        rootNote.LoadViewId(viewId,
+        rootNote.LoadViewId(SA.ViewId,
                             function () {Main2(rootNote);});
     }
 }
 
 // Call back from NotesWidget.
 function NotesModified() {
-    if (EDIT) {
+    if (SA.Edit) {
         SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
     }
 }
 
 function NotesNotModified() {
-    if (EDIT) {
+    if (SA.Edit) {
         SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
     }
 }
@@ -644,11 +642,11 @@ function SaveCallback() {
 // Note is the same as a view.
 function Main2(rootNote) {
     SA.TileLoader = "http";
+    SA.RootNote = rootNote;
 
-    if (STYLE == "Presentation" ||
-        rootNote.Type == "Presentation" ||
+    if (rootNote.Type == "Presentation" ||
         rootNote.Type == "HTML") {
-        SA.Presentation = new Presentation(rootNote, EDIT);
+        SA.Presentation = new Presentation(rootNote, SA.Edit);
         return;
     }
 
@@ -698,8 +696,8 @@ function Main2(rootNote) {
 
     // Do not let guests create favorites.
     // TODO: Rework how favorites behave on mobile devices.
-    if (USER != "" && ! MOBILE_DEVICE) {
-        if ( EDIT) {
+    if (SA.User != "" && ! MOBILE_DEVICE) {
+        if ( SA.Edit) {
             // Put a save button here when editing.
             SAVE_BUTTON = $('<img>')
                 .appendTo(VIEW_PANEL)
