@@ -181,6 +181,12 @@ NavigationWidget.prototype.Update = function() {
     this.NextNoteButton.removeClass("sa-active");
     var note = this.NoteIterator.GetNote();
     if (note) {
+        for (var i = 0; i < this.Session.length; ++i) {
+            if (this.Session[i].id == note.Id) {
+                this.SlideIndex = i;
+            }
+        }
+
         if (note.Type == "Stack") {
             // Next note refers to ViewerRecords.
             if (note.StartIndex > 0) {
