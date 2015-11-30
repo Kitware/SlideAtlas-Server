@@ -535,7 +535,7 @@ def readViewTree(db, viewId):
     if not 'SessionId' in viewObj:
         sessObj = db['sessions'].find_one({'views':viewId},{'_id':True})
         if sessObj:
-            viewObj['SessionId'] = str(sessObj['_id']);
+            viewObj['SessionId'] = sessObj['_id'];
 
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
@@ -784,4 +784,7 @@ def getview():
         ],
         'Children': [],
     }
+    if 'SessionId' in viewObj:
+        noteObj['SessionId'] = str(viewObj['SessionId'])
+
     return jsonify(noteObj)

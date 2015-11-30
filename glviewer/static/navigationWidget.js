@@ -138,12 +138,13 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 
 NavigationWidget.prototype.SetNote = function(note) {
     var self = this;
-    if (note.SessionId && SA.RootNote.Type != "HTML") {
+    if (note.SessionId && note.SessionId != this.SessionId && SA.RootNote.Type != "HTML") {
         $.ajax({
             type: "get",
             url: SA.SessionUrl+"?json=true&sessid="+note.SessionId,
             success: function(data,status) {
                 self.Session = data.session.views;
+                self.SessionId = data.sessid;
                 self.Update();
             },
             error: function() {
