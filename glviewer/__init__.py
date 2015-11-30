@@ -532,6 +532,11 @@ def readViewTree(db, viewId):
     if viewObj is None:
         return None
 
+    if not 'SessionId' in viewObj:
+        sessObj = db['sessions'].find_one({'views':viewId},{'_id':True})
+        if sessObj:
+            viewObj['SessionId'] = str(sessObj['_id']);
+
     # Read and add the image objects
     if 'ViewerRecords' in viewObj:
         for record in viewObj['ViewerRecords']:
