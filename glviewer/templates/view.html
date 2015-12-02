@@ -219,22 +219,24 @@ shape has visibility and
   }
 </script> <!---->
 <script type="text/javascript">
-  SA.Template = "view.html";
-  SA.User = "{{user}}";
-  // A view has the same structure as a note.
-  SA.ViewId = "{{view}}";
-  SA.SessionId = "{{sess}}";
-  SA.Edit = {{edit}}; // Temporary way to hide editing.
-  SA.SessionUrl = "{{url_for('session.sessions_view')}}";
-  SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
-
 
   //********************************************************
 
   $(document).ready(function() {
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
-      Main();
+      SA = new SlideAtlas("{{view}}");
+      SA.Template = "view.html";
+      SA.User = "{{user}}";
+      // A view has the same structure as a note.
+      SA.SessionId = "{{sess}}";
+      SA.Edit = {{edit}}; // Temporary way to hide editing.
+      SA.SessionUrl = "{{url_for('session.sessions_view')}}";
+      SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
+
+      if (SA.SessionId == "" || SA.SessionId == "None") {
+          delete SA.SessionId;
+      }
   });
 
 </script>

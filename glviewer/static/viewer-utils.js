@@ -2597,6 +2597,7 @@ jQuery.prototype.saViewer = function(args) {
 // change the class from sa-viewer to sa-dual-viewer better. 
 // TODO: Make the argument calls not dependant on order.
 function saViewerSetup(self, args) {
+    //TODO: Think about making this viewer specific rather than a global.
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
             if (args.dual == undefined) {
@@ -2735,14 +2736,13 @@ function saPresentation(div, args) {
             return self.HandleMouseDown(e);
         });
     */
-    /* Text is not scaling properly
+    //Text is not scaling properly
     this.Div.on(
         'mousewheel.presentation',
         function(event){
             // Resize from the middle.
             return self.HandleMouseWheel(event.originalEvent);
         });
-    */
 }
 
 saPresentation.prototype.Resize = function () {
@@ -2812,17 +2812,17 @@ saPresentation.prototype.HandleMouseWheel = function(event) {
     } else if (event.wheelDelta) {
         tmp = event.wheelDelta;
     }
+    if (tmp == 0) { return;}
     // Wheel event seems to be in increments of 3.
     // depreciated mousewheel had increments of 120....
     // Initial delta cause another bug.
     // Lets restrict to one zoom step per event.
     if (tmp > 0) {
         this.Zoom *= 1.01;
-        this.Resize();
     } else if (tmp < 0) {
         this.Zoom *= .99;
-        this.Resize();
     }
+    this.Resize();
 
     return false;
 }

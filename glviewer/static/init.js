@@ -558,19 +558,18 @@ function cancelContextMenu(e) {
 
 
 // Main function called by the default view.html template
-function Main() {
-    if (SA.ViewId == "" || SA.ViewId == "None") {
-        delete SA.ViewId;
-    }
-    if (SA.SessionId == "" || SA.SessionId == "None") {
-        delete SA.SessionId;
+// SA global will be set to this object.
+function SlideAtlas(viewId) {
+    self = this;
+    if (viewId != "" && viewId == "None") {
+        this.ViewId = viewId;
     }
 
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
 
     // Hack to create a new presenation.
-    if ( ! SA.ViewId) {
+    if ( ! this.ViewId) {
         var title = window.prompt("Please enter the presentation title.",
                                   "SlideShow");
         if (title == null) {
@@ -586,7 +585,7 @@ function Main() {
             // Save the note in the session.
             $.ajax({
                 type: "post",
-                data: {"sess" : SA.SessionId,
+                data: {"sess" : self.SessionId,
                        "view" : note.Id},
                 url: "webgl-viewer/session-add-view",
                 success: function(data,status){
@@ -603,12 +602,14 @@ function Main() {
         });
 
     } else {
-        if (SA.ViewId == "") {
+        if (this.ViewId == "") {
             saDebug("Missing view id");
             return;
         }
-        rootNote.LoadViewId(SA.ViewId,
-                            function () {Main2(rootNote);});
+        // Sort of a hack that we rely on main getting called after this
+        // method returns and other variables of SA are initialize.
+        rootNote.LoadViewId(this.ViewId,
+                            function () {Main(rootNote);});
     }
 }
 
@@ -640,7 +641,7 @@ function SaveCallback() {
 // so we can coustomize the webApp.  The server could pass the type to us.
 // It might speed up loading.
 // Note is the same as a view.
-function Main2(rootNote) {
+function Main(rootNote) {
     SA.TileLoader = "http";
     SA.RootNote = rootNote;
 
