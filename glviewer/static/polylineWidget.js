@@ -177,7 +177,7 @@ function PolylineWidget (viewer, newFlag) {
     // Lets save the zoom level (sort of).
     // Load will overwrite this for existing annotations.
     // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize;
+    this.CreationCamera = viewer.GetCamera().Serialize();
 
     // Set to be the width of a pixel.
     this.MinLine = 1.0;

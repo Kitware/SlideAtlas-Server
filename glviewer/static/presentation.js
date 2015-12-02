@@ -436,15 +436,15 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
                   'margin-top':'4px'})
             .text("quiz");
         // Set the question mode
-        if (this.RootNote.Mode) {
-                if (this.RootNote.Mode == 'answer-hide') {
-                    this.QuizMenu.val("hidden");
-                } else if (this.RootNote.Mode == 'answer-interactive') {
-                    this.QuizMenu.val("interactive");
-                } else {
-                    this.QuizMenu.val("review");
-                }
+        if (this.RootNote.Mode == 'answer-hide') {
+            this.QuizMenu.val("hidden");
+        } else if (this.RootNote.Mode == 'answer-interactive') {
+            this.QuizMenu.val("interactive");
+        } else {
+            this.RootNote.Mode = 'answer-show';
+            this.QuizMenu.val("review");
         }
+
 
         this.BrowserPanel = new BrowserPanel(
             this.BrowserDiv,
@@ -859,7 +859,7 @@ Presentation.prototype.Save = function () {
                     // reenter this method to finish the rest.
                     self.Save();
                 }
-            });
+            }, true);
         }
     }
     // It will take time for the ids to come back

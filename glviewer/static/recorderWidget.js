@@ -366,7 +366,7 @@ RecorderWidget.prototype.RecordStateCallback = function() {
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveusernote",
-        data: {"note": JSON.stringify(note.Serialize(false)),
+        data: {"note": JSON.stringify(note.Serialize(true)),
                "col" : "tracking",
                "type": "Record"},
         success: function(data,status) {

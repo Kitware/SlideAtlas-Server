@@ -1010,50 +1010,6 @@ NotesWidget.prototype.GetCurrentNote = function() {
 }
 
 
-// TODO: ??? Check if this is legacy
-//NotesWidget.prototype.SaveUserNote = function() {
-//    // Create a new note.
-//    var childNote = new Note();
-//    var d = new Date();
-//    this.Date = d.getTime(); // Also reset later.
-//
-//   childNote.ViewerRecords = [];
-//    for (var i = 0; i < this.Display.GetNumberOfViewers(); ++i) {
-//        var viewer = this.Display.GetViewer(i);
-//        var viewerRecord = new ViewerRecord();
-//        viewerRecord.CopyViewer(viewer);
-//        childNote.ViewerRecords.push(viewerRecord);
-//    }
-//
-//    // Now add the note as the last child to the current note.
-//    parentNote = this.GetCurrentNote();
-//    parentNote.Children.push(childNote);
-//    // ParentId is how we retrieve notes from the database.
-//    // It is the only tree structure saved.
-//    childNote.SetParent(parentNote);
-//    // Expand the parent so that the new note is visible.
-//    parentNote.ChildrenVisible = true;
-//
-//    // Save the note in the database for this specific user.
-//    // TODO: If author privileges, save note in the actual session / view.
-//    var bug = JSON.stringify( childNote );
-//    $.ajax({
-//        type: "post",
-//        url: "/webgl-viewer/saveusernote",
-//        data: {"note": JSON.stringify(childNote.Serialize(false)),
-//               "col" : "notes",
-//               "date": d.getTime(),
-//               "type": "UserNote"},
-//        success: function(data,status) { childNote.Id = data;},
-//        error: function() {
-//            saDebug( "AJAX - error() : saveusernote 1" );
-//        },
-//    });
-//
-//    // Redraw the GUI. should we make the parent or the new child active?
-//    this.NavigationWidget.NextNote();
-//}
-
 NotesWidget.prototype.SaveBrownNote = function() {
     // Create a new note.
     var note = new Note();
@@ -1078,7 +1034,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveusernote",
-        data: {"note": JSON.stringify(note.Serialize(false)),
+        data: {"note": JSON.stringify(note.Serialize(true)),
                "thumb": src,
                "col" : "views",
                "type": "Favorite"},//"favorites"
