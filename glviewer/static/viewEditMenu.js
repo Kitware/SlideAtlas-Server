@@ -191,7 +191,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
         // I cannot do this because it first sets the viewer record and bounds are lost.
         //SA.NotesWidget.SaveCallback();
         // Lets try just setting this one note.
-        var noteObj = JSON.stringify(note.Serialize(false));
+        var noteObj = JSON.stringify(note.Serialize(true));
         var d = new Date();
         $.ajax({
             type: "post",

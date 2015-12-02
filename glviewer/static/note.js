@@ -490,12 +490,12 @@ Note.prototype.LoadIds = function(data) {
 
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
-Note.prototype.Save = function(callback) {
+Note.prototype.Save = function(callback, excludeChildren) {
     console.log("Save note " + this.Title);
 
     var self = this;
     // Save this users notes in the user specific collection.
-    var noteObj = JSON.stringify(this.Serialize(true));
+    var noteObj = JSON.stringify(this.Serialize(excludeChildren));
     var d = new Date();
     $('body').css({'cursor':'progress'});
     $.ajax({
@@ -592,7 +592,7 @@ Note.prototype.DisplayGUI = function(div) {
 }
 
 
-Note.prototype.Serialize = function(includeChildren) {
+Note.prototype.Serialize = function(excludeChildren) {
     var obj = {};
     obj.SessionId = localStorage.sessionId;
     obj.Type = this.Type;
@@ -658,10 +658,10 @@ Note.prototype.Serialize = function(includeChildren) {
     obj.CoordinateSystem = "Pixel";
 
     // Will this erase children if includeChildren is off?
-    if (includeChildren) {
+    if ( ! excludeChildren) {
         obj.Children = [];
         for (var i = 0; i < this.Children.length; ++i) {
-            obj.Children.push(this.Children[i].Serialize(includeChildren));
+            obj.Children.push(this.Children[i].Serialize(excludeChildren));
         }
     }
 

@@ -3637,7 +3637,7 @@ var HAGFISH_DATA_STACK;
 function saveHagFishStack() {
     var d = new Date();
     // Save this users notes in the user specific collection.
-    var noteObj = JSON.stringify(HAGFISH_STACK.Serialize(true));
+    var noteObj = JSON.stringify(HAGFISH_STACK.Serialize());
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
