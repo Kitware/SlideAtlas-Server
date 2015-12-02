@@ -481,8 +481,10 @@ Note.prototype.LoadIds = function(data) {
     if ( ! this.Id) {
         this.Id = data._id;
     }
-    for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
-        this.Children[i].LoadIds(data.Children[i]);
+    if (data.Children && this.Children) {
+        for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
+            this.Children[i].LoadIds(data.Children[i]);
+        }
     }
     
 }
