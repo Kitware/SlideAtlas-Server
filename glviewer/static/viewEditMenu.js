@@ -22,7 +22,7 @@ function ViewEditMenu (viewer, otherViewer) {
     this.Viewer = viewer;
     // Other viewer is a hack for copy camera.
     this.OtherViewer = otherViewer;
-    this.Tab = new Tab(viewer.GetDiv(),"/webgl-viewer/static/Menu.jpg", "editTab");
+    this.Tab = new Tab(viewer.GetDiv(),SA.ImagePathUrl+"Menu.jpg", "editTab");
     this.Tab.Div
         .css({'position':'absolute',
               'right':'47px',
@@ -195,7 +195,7 @@ ViewEditMenu.prototype.SetViewBounds = function() {
         var d = new Date();
         $.ajax({
             type: "post",
-            url: "/webgl-viewer/saveviewnotes",
+            url: "webgl-viewer/saveviewnotes",
             data: {"note" : noteObj,
                    "date" : d.getTime()},
             success: function(data,status) {},
@@ -224,7 +224,7 @@ ViewEditMenu.prototype.SetImageBounds = function() {
     var data = JSON.stringify(bounds);
     $.ajax({
         type: "post",
-        url: "/webgl-viewer/set-image-bounds",
+        url: "webgl-viewer/set-image-bounds",
         data: {"img" : imageId,
                "imgdb"  : imageDb,
                "bds" : JSON.stringify(bounds)},
@@ -575,7 +575,7 @@ var DownloadImage = (function () {
 
         d.WaitingImage = $('<img>')
             .appendTo(d.Body)
-            .attr("src", "/webgl-viewer/static/circular.gif")
+            .attr("src", SA.ImagePathUrl+"circular.gif")
             .attr("alt", "waiting...")
             .css({'width':'40px'});
 

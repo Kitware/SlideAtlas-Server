@@ -2524,7 +2524,7 @@ function DeformableAlignViewers() {
     if (WAITING === undefined) {
         WAITING = $('<img>')
             .appendTo('body')
-            .attr("src", "/webgl-viewer/static/circular.gif")
+            .attr("src", SA.ImagePathUrl+"circular.gif")
             .attr("alt", "waiting...")
             .hide()
             .addClass("sa-view-align-waiting");
@@ -3041,7 +3041,7 @@ function DrawImageData(viewer, data) {
     /*if ( ! IMAGE_ANNOTATION) {
         IMAGE_ANNOTATION = new ImageAnnotation();
         IMAGE_ANNOTATION.Image = new Image();
-        IMAGE_ANNOTATION.Image.src = "/webgl-viewer/static/nextNote.png";
+        IMAGE_ANNOTATION.Image.src = SA.ImagePathUrl+"nextNote.png";
         IMAGE_ANNOTATION.Origin = [80000, 40000];
         IMAGE_ANNOTATION.Height = 5000;
 */

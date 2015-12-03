@@ -66,6 +66,18 @@ function GigamacroSource () {
     }
 }
 
+function GirderSource () {
+    this.height = 18432;
+    this.width = 18432;
+    this.tileSize = 256;
+    this.minLevel = 0;
+    this.maxLevel = 7;
+    this.getTileUrl = function (level,x,y) {
+        return 'http://lemon:8081/api/v1/item/564e42fe3f24e538e9a20eb9/tiles/zxy/'
+            + level + '/' + x + '/' + y;
+    }
+}
+
 // Our subdivision of leaves is arbitrary.
 function IIIFSource () {
     this.Prefix = "http://ids.lib.harvard.edu/ids/view/Converter?id=834753&c=jpgnocap";
@@ -362,13 +374,13 @@ Cache.prototype.SetImageData = function(image) {
             Math.ceil(image.dimensions[1]/(image.TileSize<<level)));
     }
 
-    // TODO:  This should not be here.
-    // Source sound be initialized someplace else.
-    // Other sources have to overwrite this default.
-    this.TileSource = new SlideAtlasSource();
-
-    this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
-    
+    if ( ! this.TileSource) {
+        // TODO:  This should not be here.
+        // Source should be initialized someplace else.
+        // Other sources have to overwrite this default.
+        this.TileSource = new SlideAtlasSource();
+        this.TileSource.Prefix = "/tile?img="+image._id+"&db="+image.database+"&name=";
+    }
     this.Warp = null;
     this.RootSpacing = [1<<(image.levels-1), 1<<(image.levels-1), 10.0];
 

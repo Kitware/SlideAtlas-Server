@@ -76,38 +76,38 @@ function TextEditor(parent, display) {
     this.ChangeCallback = null;
 
     this.EditButtons = [];
-    this.AddEditButton("webgl-viewer/static/camera.png", "link view",
+    this.AddEditButton(SA.ImagePathUrl+"camera.png", "link view",
                        function() {self.InsertCameraLink();});
-    this.AddEditButton("webgl-viewer/static/link.png", "link URL",
+    this.AddEditButton(SA.ImagePathUrl+"link.png", "link URL",
                        function() {self.InsertUrlLink();});
-    this.AddEditButton("webgl-viewer/static/font_bold.png", "bold",
+    this.AddEditButton(SA.ImagePathUrl+"font_bold.png", "bold",
                        function() {document.execCommand('bold',false,null);});
-    this.AddEditButton("webgl-viewer/static/text_italic.png", "italic",
+    this.AddEditButton(SA.ImagePathUrl+"text_italic.png", "italic",
                        function() {document.execCommand('italic',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_underline.png", "underline",
+    this.AddEditButton(SA.ImagePathUrl+"edit_underline.png", "underline",
                        function() {document.execCommand('underline',false,null);});
-    this.AddEditButton("webgl-viewer/static/list_bullets.png", "unorded list",
+    this.AddEditButton(SA.ImagePathUrl+"list_bullets.png", "unorded list",
                        function() {document.execCommand('InsertUnorderedList',false,null);});
-    this.AddEditButton("webgl-viewer/static/list_numbers.png", "ordered list",
+    this.AddEditButton(SA.ImagePathUrl+"list_numbers.png", "ordered list",
                        function() {document.execCommand('InsertOrderedList',false,null);});
-    this.AddEditButton("webgl-viewer/static/indent_increase.png", "indent",
+    this.AddEditButton(SA.ImagePathUrl+"indent_increase.png", "indent",
                        function() {document.execCommand('indent',false,null);});
-    this.AddEditButton("webgl-viewer/static/indent_decrease.png", "outdent",
+    this.AddEditButton(SA.ImagePathUrl+"indent_decrease.png", "outdent",
                        function() {document.execCommand('outdent',false,null);});
-    this.AddEditButton("webgl-viewer/static/alignment_left.png", "align left",
+    this.AddEditButton(SA.ImagePathUrl+"alignment_left.png", "align left",
                        function() {document.execCommand('justifyLeft',false,null);});
-    this.AddEditButton("webgl-viewer/static/alignment_center.png", "align center",
+    this.AddEditButton(SA.ImagePathUrl+"alignment_center.png", "align center",
                        function() {document.execCommand('justifyCenter',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_superscript.png", "superscript",
+    this.AddEditButton(SA.ImagePathUrl+"edit_superscript.png", "superscript",
                        function() {document.execCommand('superscript',false,null);});
-    this.AddEditButton("webgl-viewer/static/edit_subscript.png", "subscript",
+    this.AddEditButton(SA.ImagePathUrl+"edit_subscript.png", "subscript",
                        function() {document.execCommand('subscript',false,null);});
-    this.AddEditButton("webgl-viewer/static/font_increase.png", "large font", 
+    this.AddEditButton(SA.ImagePathUrl+"font_increase.png", "large font", 
                        function(){
                            document.execCommand('fontSize',false,'5');
                            self.ChangeBulletSize('1.5em');
                        });
-    this.AddEditButton("webgl-viewer/static/font_decrease.png", "small font", 
+    this.AddEditButton(SA.ImagePathUrl+"font_decrease.png", "small font", 
                        function() {
                            document.execCommand('fontSize',false,'2');
                            self.ChangeBulletSize('0.9em');
@@ -686,7 +686,7 @@ function NotesWidget(parent, display) {
                   '-moz-user-select': 'none',
                   '-webkit-user-select': 'none',
                   'z-index': '6'})
-            .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+            .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
             .click(function(){self.ToggleNotesWindow();})
             .attr('draggable','false')
             .on("dragstart", function() {
@@ -705,7 +705,7 @@ function NotesWidget(parent, display) {
                   '-webkit-user-select': 'none',
                   'z-index': '6'})
             .hide()
-            .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+            .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
             .click(function(){self.ToggleNotesWindow();})
             .attr('draggable','false')
             .on("dragstart", function() {
@@ -909,7 +909,7 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
 NotesWidget.prototype.EditOn = function() {
     SAVE_BUTTON
         .prop('title', "save to database")
-        .attr('src',"webgl-viewer/static/save22.png")
+        .attr('src',SA.ImagePathUrl+"save22.png")
         .click(function(){self.SaveCallback();});
     this.AddViewButton.show();
     this.TextEditor.EditOn();
@@ -918,7 +918,7 @@ NotesWidget.prototype.EditOn = function() {
 NotesWidget.prototype.EditOff = function() {
     SAVE_BUTTON
         .prop('title', "edit view")
-        .attr('src',"webgl-viewer/static/text_edit.png")
+        .attr('src',SA.ImagePathUrl+"text_edit.png")
         .click(function(){self.EditOn();});
     this.AddViewButton.hide();
     this.TextEditor.EditOff();

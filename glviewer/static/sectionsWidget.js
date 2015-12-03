@@ -49,7 +49,7 @@ function SectionsWidget (viewer, newFlag) {
         .css({'height': '20px',
               'position': 'absolute',
               'z-index': '5'})
-        .attr('src',"/webgl-viewer/static/deleteSmall.png")
+        .attr('src',SA.ImagePathUrl+"deleteSmall.png")
         .click(function(){
                    self.DeleteActiveSection();
                });

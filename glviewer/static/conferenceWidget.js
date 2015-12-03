@@ -25,7 +25,7 @@ function ConferenceWidget () {
     var self = this; // trick to set methods in callbacks.
     
     if ( ! MOBILE_DEVICE) {
-        this.Tab = new Tab("/webgl-viewer/static/conference1.png", "conferenceTab");
+        this.Tab = new Tab(SA.ImagePathUrl+"conference1.png", "conferenceTab");
         this.Tab.Div
             .addClass("sa-view-conference-div");
         // Needs to be a child of view panel to fill 100%.

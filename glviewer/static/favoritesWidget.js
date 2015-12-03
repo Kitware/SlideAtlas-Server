@@ -8,7 +8,7 @@
 function FavoritesWidget(parent, display) {
 
     this.Tab = new Tab(parent,
-                       "/webgl-viewer/static/star.png",
+                       SA.ImagePathUrl+"star.png",
                        "favorites");
     this.Tab.Div
         .css({'position':'absolute',

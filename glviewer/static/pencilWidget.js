@@ -86,7 +86,7 @@ function PencilWidget (viewer, newFlag) {
     this.ActiveCenter = [0,0];
     this.State = PENCIL_WIDGET_DRAWING;
     this.Viewer.MainView.CanvasDiv.css(
-        {'cursor':'url(/webgl-viewer/static/Pencil-icon.png) 0 24,crosshair'});
+        {'cursor':'url('+SA.ImagePathUrl+'Pencil-icon.png) 0 24,crosshair'});
 
     if ( ! newFlag) {
         this.State = PENCIL_WIDGET_WAITING;

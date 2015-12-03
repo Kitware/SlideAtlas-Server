@@ -37,7 +37,7 @@ function MobileAnnotationWidget() {
               'margin': '1px',
               'padding': '5px'})
         //.addClass("sa-view-annotation-button")
-        .attr('src',"webgl-viewer/static/Circle128.jpg")
+        .attr('src',SA.ImagePathUrl+"Circle128.jpg")
         .on('touchend', function(){self.CircleCallback();});
     this.CircleButton.prop('title', "Circle Annotation");
 
@@ -49,7 +49,7 @@ function MobileAnnotationWidget() {
               'margin': '1px',
               'padding': '5px'})
         //.addClass("sa-view-annotation-button")
-        .attr('src',"webgl-viewer/static/Text128.jpg")
+        .attr('src',SA.ImagePathUrl+"Text128.jpg")
         .on('touchend', function(){self.TextCallback();});
     this.TextButton.prop('title', "Text Annotation");
 

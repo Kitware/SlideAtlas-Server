@@ -142,7 +142,7 @@ function saElement(div) {
               'position':'absolute',
               'top':'0px',
               'left':'0px'})
-        .attr('src','webgl-viewer/static/remove.png')
+        .attr('src', SA.ImagePathUrl+'remove.png')
         .prop('title', "delete");
     this.MenuButton = $('<img>')
         .appendTo(this.ButtonDiv)
@@ -153,7 +153,7 @@ function saElement(div) {
               'position':'absolute',
               'top':'0px',
               'left':'20px'})
-        .attr('src','webgl-viewer/static/Menu.jpg')
+        .attr('src',SA.ImagePathUrl+'Menu.jpg')
         .prop('title', "properties");
 
     this.InitializeDialog();
@@ -1545,32 +1545,32 @@ function saTextEditor(div) {
         // Block the saElement click event.
         .mousedown(function(){return false;});
 
-    this.AddButton("webgl-viewer/static/link.png", "link URL",
+    this.AddButton(SA.ImagePathUrl+"link.png", "link URL",
                    function() {self.InsertUrlLink();});
-    this.AddButton("webgl-viewer/static/font_bold.png", "bold",
+    this.AddButton(SA.ImagePathUrl+"font_bold.png", "bold",
                    function() {
                        document.execCommand('bold',false,null);});
-    this.AddButton("webgl-viewer/static/text_italic.png", "italic",
+    this.AddButton(SA.ImagePathUrl+"text_italic.png", "italic",
                    function() {document.execCommand('italic',false,null);});
-    this.AddButton("webgl-viewer/static/edit_underline.png", "underline",
+    this.AddButton(SA.ImagePathUrl+"edit_underline.png", "underline",
                    function() {document.execCommand('underline',false,null);});
-    this.AddButton("webgl-viewer/static/list_bullets.png", "unorded list",
+    this.AddButton(SA.ImagePathUrl+"list_bullets.png", "unorded list",
                    function() {document.execCommand('InsertUnorderedList',false,null);});
-    this.AddButton("webgl-viewer/static/list_numbers.png", "ordered list",
+    this.AddButton(SA.ImagePathUrl+"list_numbers.png", "ordered list",
                    function() {document.execCommand('InsertOrderedList',false,null);});
-    this.AddButton("webgl-viewer/static/indent_increase.png", "indent",
+    this.AddButton(SA.ImagePathUrl+"indent_increase.png", "indent",
                    function() {document.execCommand('indent',false,null);});
-    this.AddButton("webgl-viewer/static/indent_decrease.png", "outdent",
+    this.AddButton(SA.ImagePathUrl+"indent_decrease.png", "outdent",
                    function() {document.execCommand('outdent',false,null);});
-    this.AddButton("webgl-viewer/static/alignment_left.png", "align left",
+    this.AddButton(SA.ImagePathUrl+"alignment_left.png", "align left",
                    function() {document.execCommand('justifyLeft',false,null);});
-    this.AddButton("webgl-viewer/static/alignment_center.png", "align center",
+    this.AddButton(SA.ImagePathUrl+"alignment_center.png", "align center",
                    function() {document.execCommand('justifyCenter',false,null);});
-    this.AddButton("webgl-viewer/static/alignment_full.png", "align full",
+    this.AddButton(SA.ImagePathUrl+"alignment_full.png", "align full",
                    function() {document.execCommand('justifyFull',false,null);});
-    this.AddButton("webgl-viewer/static/edit_superscript.png", "superscript",
+    this.AddButton(SA.ImagePathUrl+"edit_superscript.png", "superscript",
                    function() {document.execCommand('superscript',false,null);});
-    this.AddButton("webgl-viewer/static/edit_subscript.png", "subscript",
+    this.AddButton(SA.ImagePathUrl+"edit_subscript.png", "subscript",
                    function() {document.execCommand('subscript',false,null);});
 }
 
@@ -2228,7 +2228,7 @@ function saGetDialog(domElement, showCallback, applyCallback) {
         var helper = new Dialog(function () {saDialogApplyCallback(domElement);});
         if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
         if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
-        saAddButton(domElement, "webgl-viewer/static/Menu.jpg", "properties",
+        saAddButton(domElement, SA.ImagePathUrl+"Menu.jpg", "properties",
                     function() { saDialogShowCallback(domElement); });
         domElement.saDialog = helper;
     }
@@ -2598,6 +2598,10 @@ jQuery.prototype.saViewer = function(args) {
 // TODO: Make the argument calls not dependant on order.
 function saViewerSetup(self, args) {
     //TODO: Think about making this viewer specific rather than a global.
+    if (args.prefixUrl) {
+        SA.ImagePathUrl = args.prefixUrl;
+    }
+
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
             if (args.dual == undefined) {
@@ -2737,12 +2741,14 @@ function saPresentation(div, args) {
         });
     */
     //Text is not scaling properly
+    /*
     this.Div.on(
         'mousewheel.presentation',
         function(event){
             // Resize from the middle.
             return self.HandleMouseWheel(event.originalEvent);
         });
+        */
 }
 
 saPresentation.prototype.Resize = function () {
@@ -2943,7 +2949,7 @@ function saDraggable(div) {
     this.Div = div;
 
     var self = this;
-    var d = saAddButton(div[0], 'webgl-viewer/static/fullscreen.png',
+    var d = saAddButton(div[0], SA.ImagePathUrl+'fullscreen.png',
                         'drag', null, true);
     d.mousedown(
         function (e) {
@@ -3163,7 +3169,7 @@ function saFullWindowOption(div) {
     var self = this;
     this.FullWindowOptionButton = $('<img>')
         .appendTo(div)
-        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .attr('src',SA.ImagePathUrl+"fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
               'width':'12px',
@@ -3180,7 +3186,7 @@ function saFullWindowOption(div) {
     this.FullWindowOptionOffButton = $('<img>')
         .appendTo(div)
         .hide()
-        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .attr('src',SA.ImagePathUrl+"fullscreenOff.png")
         .prop('title', "full window off")
         .css({'position':'absolute',
               'background':'#FFF',
@@ -3248,7 +3254,7 @@ jQuery.prototype.saDeletable = function(args) {
 // check dom
 function saDeletable(domItem) {
     this.Button = saAddButton(
-        domItem, 'webgl-viewer/static/remove.png', 'delete',
+        domItem, SA.ImagePathUrl+'remove.png', 'delete',
         function () {
             // if we want to get rid of the viewer records,
             if (item.saViewer) { saPruneViewerRecord(item.saViewer);}
@@ -3328,7 +3334,7 @@ function ResizePanel(parent) {
               '-moz-user-select': 'none',
               '-webkit-user-select': 'none',
               'z-index': '6'})
-        .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+        .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
         .click(function(){self.SetVisibility(true);})
         .attr('draggable','false')
         .hide()
@@ -3347,7 +3353,7 @@ function ResizePanel(parent) {
               '-webkit-user-select': 'none',
               'z-index': '6'})
         //.hide()
-        .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+        .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
         .click(function(){self.SetVisibility(false);})
         .attr('draggable','false')
         .on("dragstart", function() {

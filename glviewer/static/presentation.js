@@ -164,7 +164,7 @@ function Presentation(rootNote, edit) {
         .appendTo(this.PresentationDiv)
         .prop('title', "present")
         .addClass('editButton')
-        .attr('src','webgl-viewer/static/slide_show.png')
+        .attr('src',SA.ImagePathUrl+'slide_show.png')
         .css({'position':'absolute',
               'top':'2px',
               'right':'20px',
@@ -177,7 +177,7 @@ function Presentation(rootNote, edit) {
         .appendTo(this.PresentationDiv)
         .prop('title', "present timed")
         .addClass('editButton')
-        .attr('src','webgl-viewer/static/timer.png')
+        .attr('src',SA.ImagePathUrl+'timer.png')
         .css({'position':'absolute',
               'top':'2px',
               'right':'46px',
@@ -194,7 +194,7 @@ function Presentation(rootNote, edit) {
         // Temporary way to delete a this.
         this.DeleteSlideButton = $('<img>')
             .appendTo(this.AspectDiv)
-            .attr('src',"webgl-viewer/static/remove.png")
+            .attr('src',SA.ImagePathUrl+"remove.png")
             .prop('title', "delete slide")
             .addClass('editButton')
             .css({'position':'absolute',
@@ -378,7 +378,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
             .appendTo(this.SlidesDiv)
             .prop('title', "save")
             .addClass('editButton')
-            .attr('src','webgl-viewer/static/save22.png')
+            .attr('src',SA.ImagePathUrl+'save22.png')
             .css({'float':'right'})
             .click(function () { self.Save();});
         this.InsertMenuButton = $('<div>')
@@ -403,7 +403,7 @@ Presentation.prototype.InitializeLeftPanel = function (parent) {
 
         $('<img>')
             .appendTo(this.InsertMenuButton)
-            .attr('src','webgl-viewer/static/new_window.png');
+            .attr('src',SA.ImagePathUrl+'new_window.png');
 
 
         this.QuizMenu = $('<select name="quiz" id="quiz">')
@@ -1301,7 +1301,7 @@ function SlidePage(parent, edit) {
         this.ViewerDiv2[0].saViewer.OnInteraction(function () {self.RecordView2();});
         this.RemoveView1Button = $('<img>')
             .appendTo(this.ViewerDiv1)
-            .attr('src',"webgl-viewer/static/remove.png")
+            .attr('src',SA.ImagePathUrl+"remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
@@ -1317,7 +1317,7 @@ function SlidePage(parent, edit) {
             });
         this.RemoveView2Button = $('<img>')
             .appendTo(this.ViewerDiv2)
-            .attr('src',"webgl-viewer/static/remove.png")
+            .attr('src',SA.ImagePathUrl+"remove.png")
             .prop('title', "remove view")
             .addClass('editButton')
             .css({'position':'absolute',
@@ -1377,7 +1377,7 @@ function SlidePage(parent, edit) {
     // on each of the viewers.
     this.FullWindowView1Button = $('<img>')
         .appendTo(this.ViewerDiv1)
-        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .attr('src',SA.ImagePathUrl+"fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
               'width':'12px',
@@ -1392,7 +1392,7 @@ function SlidePage(parent, edit) {
         });
     this.FullWindowView2Button = $('<img>')
         .appendTo(this.ViewerDiv2)
-        .attr('src',"webgl-viewer/static/fullscreenOn.png")
+        .attr('src',SA.ImagePathUrl+"fullscreenOn.png")
         .prop('title', "full window")
         .css({'position':'absolute',
               'width':'12px',
@@ -1410,7 +1410,7 @@ function SlidePage(parent, edit) {
     this.FullWindowViewOffButton = $('<img>')
         .appendTo(this.ViewPanel)
         .hide()
-        .attr('src',"webgl-viewer/static/fullscreenOff.png")
+        .attr('src',SA.ImagePathUrl+"fullscreenOff.png")
         .prop('title', "full window off")
         .css({'position':'absolute',
               'background':'#FFF',

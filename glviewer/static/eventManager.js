@@ -308,7 +308,7 @@ function SweepListener () {
                           'width': '20px',
                           'z-index': '1',
                           'opacity': '0.8'})
-                        .attr('src',"webgl-viewer/static/sweepArrowUp.png");
+                        .attr('src',SA.ImagePathUrl+"sweepArrowUp.png");
 
   this.Div =
     $('<div>').appendTo('body')
@@ -347,7 +347,7 @@ SweepListener.prototype.Update = function() {
   var x = this.Location[0];
   var y = this.Location[1];
   if (this.Direction[0] == 1) {
-    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowRight.png")
+    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowRight.png")
               .css({'left': x+'px',
                     'bottom' : (y-arrowWidth/2)+'px'});
     // I cannot predict the location with rotated text.
@@ -357,20 +357,20 @@ SweepListener.prototype.Update = function() {
     this.Div.css({'left': (x+(arrowWidth-divWidth)/2)+'px',
                   'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
   } else if (this.Direction[0] == -1) {
-    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowLeft.png")
+    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowLeft.png")
               .css({'left': (x-arrowWidth)+'px',
                     'bottom' : (y-arrowWidth/2)+'px'});
     this.Div.css({'left': (x+(-arrowWidth-divWidth)/2)+'px',
                   'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
   } else if (this.Direction[1] == 1) {
-    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowUp.png")
+    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
               .css({'left': (x-arrowWidth/2)+'px',
                     'bottom' : y+'px'});
     this.Div.css({'left': (x-divWidth/2)+'px',
                   'bottom' : (y-divHeight)+'px'});
   } else if (this.Direction[1] == -1) {
-    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowDown.png");
-    this.Arrow.attr('src',"webgl-viewer/static/sweepArrowUp.png")
+    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowDown.png");
+    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
               .css({'left': (x-arrowWidth/2)+'px',
                     'bottom' : (y-arrowHeight)+'px'});
     this.Div.css({'left': (x-divWidth)+'px',

@@ -11,7 +11,7 @@ function FavoritesBar(parent, display){
         $('<img>')
         .appendTo(this.FavoritesList)
         .addClass("sa-view-favorites-icon")
-        .attr('src',"webgl-viewer/static/saveNew.png")
+        .attr('src',SA.ImagePathUrl+"saveNew.png")
         .click(function(){SaveFavorite();});
     this.SaveFavoriteButton.prop('title', "Save Favorite");
 

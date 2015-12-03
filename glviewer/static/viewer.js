@@ -75,7 +75,7 @@ function Viewer (parent) {
         this.RotateIcon =
             $('<img>')
             .appendTo(this.OverView.CanvasDiv)
-            .attr("src", "/webgl-viewer/static/rotate.png")
+            .attr("src", SA.ImagePathUrl+"rotate.png")
             .addClass("sa-view-rotate")
             .mouseenter(function (e) {return self.RollEnter(e);})
             .mouseleave(function (e) {return self.RollLeave(e);})
@@ -228,6 +228,29 @@ Viewer.prototype.ProcessArguments = function (args) {
             this.Menu = new ViewEditMenu(this, null);
         }
         this.Menu.SetVisibility(args.menu);
+    }
+
+    if (args.tileSource) {
+        var w = args.tileSource.width;
+        var h = args.tileSource.height;
+        var cache = new Cache();
+        cache.TileSource = args.tileSource;
+        // Use the note tmp id as an image id so the viewer can index the
+        // cache.
+        var note = new Note();
+        var image = {levels:     args.tileSource.maxLevel + 1,
+                     dimensions: [w,h],
+                     bounds: [0,w-1, 0,h-1],
+                     _id: note.TempId};
+        var record = new ViewerRecord();
+        record.Image = image;
+        record.OverviewBounds = [0,w-1,0,h-1];
+        record.Camera = {FocalPoint: [w/2, h/2],
+                         Roll: 0,
+                         Height: h};
+        note.ViewerRecords.push(record);
+        cache.SetImageData(image);
+        args.note = note;
     }
 
     if (args.note) {
@@ -458,7 +481,7 @@ Viewer.prototype.GetDiv = function() {
 Viewer.prototype.InitializeZoomGui = function() {
     // Put the zoom bottons in a tab.
     this.ZoomTab = new Tab(this.GetDiv(),
-                           "/webgl-viewer/static/mag.png",
+                           SA.ImagePathUrl+"mag.png",
                            "zoomTab");
     this.ZoomTab.Div
         .css({'position':'absolute',
@@ -487,7 +510,7 @@ Viewer.prototype.InitializeZoomGui = function() {
         .appendTo(this.ZoomDiv)
         .addClass("sa-view-zoom-button sa-zoom-in")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/zoomin2.png")
+        .attr('src',SA.ImagePathUrl+"zoomin2.png")
         .click(function(){ self.AnimateZoom(0.5);})
         .attr('draggable','false')
         .on("dragstart", function() {
@@ -496,7 +519,7 @@ Viewer.prototype.InitializeZoomGui = function() {
     this.ZoomOutButton = $('<img>').appendTo(this.ZoomDiv)
         .addClass("sa-view-zoom-button sa-zoom-out")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/zoomout2.png")
+        .attr('src',SA.ImagePathUrl+"zoomout2.png")
         .click(function(){self.AnimateZoom(2.0);})
         .attr('draggable','false')
         .on("dragstart", function() {
@@ -1928,7 +1951,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
              SAVING_IMAGE.Body.css({'margin':'1em 2em'});
              SAVING_IMAGE.WaitingImage = $('<img>')
                  .appendTo(SAVING_IMAGE.Body)
-                 .attr("src", "/webgl-viewer/static/circular.gif")
+                 .attr("src", SA.ImagePathUrl+"circular.gif")
                  .attr("alt", "waiting...")
                  .addClass("sa-view-save")
              SAVING_IMAGE.ApplyButton.hide();

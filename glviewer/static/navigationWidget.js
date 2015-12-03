@@ -29,7 +29,7 @@ function NavigationWidget(parent,display) {
                   'bottom': '20px',
                   'z-index': '5'});
     } else {
-        this.Tab = new Tab(parent,"/webgl-viewer/static/nav.png", "navigationTab");
+        this.Tab = new Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");
         this.Tab.Div.addClass("sa-view-navigation-div");
         this.Tab.Panel.addClass("sa-view-navigation-panel");
@@ -44,28 +44,28 @@ function NavigationWidget(parent,display) {
     this.PreviousSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
-        .attr('src',"webgl-viewer/static/previousSlide.png")
+        .attr('src',SA.ImagePathUrl+"previousSlide.png")
         .prop('title', "Previous Slide. (page-up)")
         .click(function(){self.PreviousSlide();});
 
     this.PreviousNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
-        .attr('src',"webgl-viewer/static/previousNote.png")
+        .attr('src',SA.ImagePathUrl+"previousNote.png")
         .prop('title', "Previous Note. (p)")
         .click(function(){self.PreviousNote();});
 
     this.NextNoteButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
-        .attr('src',"webgl-viewer/static/nextNote.png")
+        .attr('src',SA.ImagePathUrl+"nextNote.png")
         .prop('title',"Next Note, (n, space)")
         .click(function(){self.NextNote();});
 
     this.NextSlideButton =
         $('<img>').appendTo(this.Tab.Panel)
         .addClass("sa-view-navigation-button")
-        .attr('src',"webgl-viewer/static/nextSlide.png")
+        .attr('src',SA.ImagePathUrl+"nextSlide.png")
         .prop('title',"Next Slide. (page-down)")
         .click(function(){self.NextSlide();});
 

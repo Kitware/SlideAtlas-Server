@@ -559,10 +559,18 @@ function cancelContextMenu(e) {
 
 // Main function called by the default view.html template
 // SA global will be set to this object.
-function SlideAtlas(viewId) {
+function SlideAtlas() {
+}
+
+// Main function called by the default view.html template
+// SA global will be set to this object.
+SlideAtlas.prototype.Run = function() {
     self = this;
-    if (viewId != "" && viewId == "None") {
-        this.ViewId = viewId;
+    if (this.ViewId == "" || this.ViewId == "None") {
+        delete this.ViewId;
+    }
+    if (this.SessionId == "" ||this.SessionId == "None") {
+        delete this.SessionId;
     }
 
     // We need to get the view so we know how to initialize the app.
@@ -616,13 +624,13 @@ function SlideAtlas(viewId) {
 // Call back from NotesWidget.
 function NotesModified() {
     if (SA.Edit) {
-        SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
+        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save.png");
     }
 }
 
 function NotesNotModified() {
     if (SA.Edit) {
-        SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
     }
 }
 
@@ -632,7 +640,7 @@ function SaveCallback() {
     SA.NotesWidget.SaveCallback(
         function () {
             // finished
-            SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+            SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
         });
 }
 
@@ -709,7 +717,7 @@ function Main(rootNote) {
                       'z-index': '5'})
                 .prop('title', "save to databse")
                 .addClass('editButton')
-                .attr('src',"webgl-viewer/static/save22.png")
+                .attr('src',SA.ImagePathUrl+"save22.png")
                 .click(SaveCallback);
             for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
                 SA.DualDisplay.Viewers[i].OnInteraction(
