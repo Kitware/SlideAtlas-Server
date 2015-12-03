@@ -58,7 +58,7 @@ function FillWidget (viewer, newFlag) {
     this.Cursor = $('<img>').appendTo('body')
         .addClass("sa-view-fill-cursor")
         .attr('type','image')
-        .attr('src',"webgl-viewer/static/brush1.jpg");
+        .attr('src',SA.ImagePathUrl+"brush1.jpg");
 
     var self = this;
     // I am trying to stop images from getting move events and displaying a circle/slash.
@@ -155,13 +155,13 @@ FillWidget.prototype.HandleMouseDown = function(event) {
     
     if (event.SystemEvent.which == 1) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-        this.Cursor.attr('src',"webgl-viewer/static/brush1.jpg");
+        this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
         this.Cursor.show();
         this.Segmentation.AddPositive(ptWorld);
     }
     if (event.SystemEvent.which == 3) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
-        this.Cursor.attr('src',"webgl-viewer/static/eraser1.jpg");
+        this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
         this.Cursor.show();
         this.Segmentation.AddNegative(ptWorld);
     }

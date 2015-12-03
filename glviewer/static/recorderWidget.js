@@ -265,7 +265,7 @@ var RecorderWidget = function(display) {
             'bottom' : '120px',
             'right' : '20px',
             'z-index': '1'})
-        .attr('src','webgl-viewer/static/stopRecording2.png')
+        .attr('src',SA.ImagePathUrl+'stopRecording2.png')
         .hide()
         .click(function () {self.RecordingStop()});
 
@@ -279,7 +279,7 @@ var RecorderWidget = function(display) {
             'bottom' : '5px',
             'right' : '100px',
             'z-index': '1'})
-        .attr('src','webgl-viewer/static/undo.png')
+        .attr('src',SA.ImagePathUrl+'undo.png')
         .hide()
         .click(function(){alert("undo");});
     this.RedoButton = $('<img>').appendTo('body').css({
@@ -289,7 +289,7 @@ var RecorderWidget = function(display) {
         'bottom' : '5px',
         'right' : '70px',
         'z-index': '1'})
-        .attr('src','webgl-viewer/static/redo.png')
+        .attr('src',SA.ImagePathUrl+'redo.png')
         .hide()
         .click(function(){alert("REDO");});
 

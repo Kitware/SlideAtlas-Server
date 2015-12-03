@@ -67,7 +67,7 @@ function Note () {
     if (SA.Edit) {
         this.AddButton = $('<img>')
             .appendTo(this.ButtonsDiv)
-            .attr('src',"webgl-viewer/static/page_add.png")
+            .attr('src',SA.ImagePathUrl+"page_add.png")
             .addClass('editButton')
             .prop('title', "add view")
             .css({
@@ -76,7 +76,7 @@ function Note () {
                 'opacity':'0.5'});
         this.LinkButton = $('<img>')
             .appendTo(this.ButtonsDiv)
-            .attr('src',"webgl-viewer/static/link.png")
+            .attr('src',SA.ImagePathUrl+"link.png")
             .prop('title', "show url")
             .addClass('editButton')
             .css({
@@ -86,7 +86,7 @@ function Note () {
         this.RemoveButton = $('<img>')
             .appendTo(this.ButtonsDiv)
             .hide()
-            .attr('src',"webgl-viewer/static/remove.png")
+            .attr('src',SA.ImagePathUrl+"remove.png")
             .prop('title', "delete")
             .addClass('editButton')
             .css({

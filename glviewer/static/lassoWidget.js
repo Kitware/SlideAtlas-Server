@@ -97,7 +97,7 @@ function LassoWidget (viewer, newFlag) {
     if ( newFlag) {
         this.State = LASSO_WIDGET_DRAWING;
         this.Viewer.MainView.CanvasDiv.css(
-            {'cursor':'url(/webgl-viewer/static/select_lasso.png) 5 30,crosshair'});
+            {'cursor':'url('+SA.ImagePathUrl+'select_lasso.png) 5 30,crosshair'});
     } else {
         this.State = LASSO_WIDGET_WAITING;
     }

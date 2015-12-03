@@ -17,7 +17,7 @@ function AnnotationWidget (viewer) {
     viewer.AnnotationWidget = this;
 
     this.Tab = new Tab(viewer.GetDiv(),
-                       "/webgl-viewer/static/pencil3Up.png",
+                       SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
         .css({'position':'absolute',
@@ -34,43 +34,43 @@ function AnnotationWidget (viewer) {
         .appendTo(this.VisibilityDiv)
         .addClass('sa-view-annotation-vis-img')
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/toggleswitch.jpg");
+        .attr('src',SA.ImagePathUrl+"toggleswitch.jpg");
 
     this.TextButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/Text.gif")
+        .attr('src',SA.ImagePathUrl+"Text.gif")
         .click(function(){self.NewText();});
     this.CircleButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/Circle.gif")
+        .attr('src',SA.ImagePathUrl+"Circle.gif")
         .click(function(){self.NewCircle();});
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/FreeForm.gif")
+        .attr('src',SA.ImagePathUrl+"FreeForm.gif")
         .click(function(){self.NewPolyline();});
     this.PencilButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/Pencil-icon.jpg")
+        .attr('src',SA.ImagePathUrl+"Pencil-icon.jpg")
         .click(function(){self.NewPencil();});
     this.LassoButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/select_lasso.png")
+        .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .click(function(){self.NewLasso();});
     this.SectionsButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button")
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/sections.png")
+        .attr('src',SA.ImagePathUrl+"sections.png")
         .click(function(){self.DetectSections();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
@@ -81,7 +81,7 @@ function AnnotationWidget (viewer) {
               'border-radius': '4px',
               'border-thickness':'2px'})
         .attr('type','image')
-        .attr('src',"/webgl-viewer/static/brush1.jpg")
+        .attr('src',SA.ImagePathUrl+"brush1.jpg")
         .click(function(){self.NewFill();});
         */
 }

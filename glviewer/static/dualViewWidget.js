@@ -66,7 +66,7 @@ function DualViewWidget(parent) {
             .appendTo(parent)
             .addClass("sa-view-dualview-div")
             .attr('id', 'dualWidgetLeft')
-            .attr('src',"webgl-viewer/static/dualArrowLeft2.png")
+            .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
             .click(function(){self.ToggleDualView();})
             .attr('draggable','false')
             .on("dragstart", function() {
@@ -76,7 +76,7 @@ function DualViewWidget(parent) {
             .hide()
             .addClass("sa-view-dualview-img")
             .attr('id', 'dualWidgetRight')
-            .attr('src',"webgl-viewer/static/dualArrowRight2.png")
+            .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
             .click(function(){self.ToggleDualView();})
             .attr('draggable','false')
             .on("dragstart", function() {
@@ -132,6 +132,29 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
         //args.note.DisplayView(this);
         this.SetNote(args.note,args.viewIndex);
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
+    }
+
+    if (args.tileSource) {
+        var w = args.tileSource.width;
+        var h = args.tileSource.height;
+        var cache = new Cache();
+        cache.TileSource = args.tileSource;
+        // Use the note tmp id as an image id so the viewer can index the
+        // cache.
+        var note = new Note();
+        var image = {levels:     args.maxLevel + 1,
+                     dimensions: [w,h],
+                     bounds: [0,w-1, 0,h-1],
+                     _id: note.TempId};
+        var record = new ViewerRecord();
+        record.Image = image;
+        record.OverviewBounds = [0,w-1,0,h-1];
+        record.Camera = {FocalPoint: [w/2, h/2],
+                         Roll: 0,
+                         Height: h};
+        note.ViewerRecords.push(record);
+        cache.SetImageData(image);
+        this.SetNote(args.note,args.viewIndex);
     }
 
     for (var i = 0; i < this.Viewers.length; ++i) {

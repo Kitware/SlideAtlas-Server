@@ -558,19 +558,26 @@ function cancelContextMenu(e) {
 
 
 // Main function called by the default view.html template
-function Main() {
-    if (SA.ViewId == "" || SA.ViewId == "None") {
-        delete SA.ViewId;
+// SA global will be set to this object.
+function SlideAtlas() {
+}
+
+// Main function called by the default view.html template
+// SA global will be set to this object.
+SlideAtlas.prototype.Run = function() {
+    self = this;
+    if (this.ViewId == "" || this.ViewId == "None") {
+        delete this.ViewId;
     }
-    if (SA.SessionId == "" || SA.SessionId == "None") {
-        delete SA.SessionId;
+    if (this.SessionId == "" ||this.SessionId == "None") {
+        delete this.SessionId;
     }
 
     // We need to get the view so we know how to initialize the app.
     var rootNote = new Note();
 
     // Hack to create a new presenation.
-    if ( ! SA.ViewId) {
+    if ( ! this.ViewId) {
         var title = window.prompt("Please enter the presentation title.",
                                   "SlideShow");
         if (title == null) {
@@ -586,7 +593,7 @@ function Main() {
             // Save the note in the session.
             $.ajax({
                 type: "post",
-                data: {"sess" : SA.SessionId,
+                data: {"sess" : self.SessionId,
                        "view" : note.Id},
                 url: "webgl-viewer/session-add-view",
                 success: function(data,status){
@@ -603,25 +610,27 @@ function Main() {
         });
 
     } else {
-        if (SA.ViewId == "") {
+        if (this.ViewId == "") {
             saDebug("Missing view id");
             return;
         }
-        rootNote.LoadViewId(SA.ViewId,
-                            function () {Main2(rootNote);});
+        // Sort of a hack that we rely on main getting called after this
+        // method returns and other variables of SA are initialize.
+        rootNote.LoadViewId(this.ViewId,
+                            function () {Main(rootNote);});
     }
 }
 
 // Call back from NotesWidget.
 function NotesModified() {
     if (SA.Edit) {
-        SAVE_BUTTON.attr('src',"webgl-viewer/static/save.png");
+        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save.png");
     }
 }
 
 function NotesNotModified() {
     if (SA.Edit) {
-        SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
     }
 }
 
@@ -631,7 +640,7 @@ function SaveCallback() {
     SA.NotesWidget.SaveCallback(
         function () {
             // finished
-            SAVE_BUTTON.attr('src',"webgl-viewer/static/save22.png");
+            SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
         });
 }
 
@@ -640,7 +649,7 @@ function SaveCallback() {
 // so we can coustomize the webApp.  The server could pass the type to us.
 // It might speed up loading.
 // Note is the same as a view.
-function Main2(rootNote) {
+function Main(rootNote) {
     SA.TileLoader = "http";
     SA.RootNote = rootNote;
 
@@ -708,7 +717,7 @@ function Main2(rootNote) {
                       'z-index': '5'})
                 .prop('title', "save to databse")
                 .addClass('editButton')
-                .attr('src',"webgl-viewer/static/save22.png")
+                .attr('src',SA.ImagePathUrl+"save22.png")
                 .click(SaveCallback);
             for (var i = 0; i < SA.DualDisplay.Viewers.length; ++i) {
                 SA.DualDisplay.Viewers[i].OnInteraction(
