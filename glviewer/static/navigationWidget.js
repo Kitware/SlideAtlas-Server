@@ -220,7 +220,7 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -270,7 +270,7 @@ NavigationWidget.prototype.PreviousNote = function() {
 }
 
 NavigationWidget.prototype.NextNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -322,7 +322,7 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
     if (SA.NotesWidget && SA.NotesWidget.Modified) {
@@ -340,7 +340,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
     if ( SA.NotesWidget && SA.NotesWidget.Modified) {

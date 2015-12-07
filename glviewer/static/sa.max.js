@@ -8410,17 +8410,12 @@ function draw() {
 function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
 // I am getting rid of the right click feature now.
 
-
-function handleTouchStart(event) {SA.EventManager.HandleTouchStart(event);}
-function handleTouchMove(event) {SA.EventManager.HandleTouchMove(event);}
-function handleTouchEnd(event) {SA.EventManager.HandleTouchEnd(event);}
-function handleTouchCancel(event) {SA.EventManager.HandleTouchCancel(event);}
-
+// TODO: Move these out of the global SLideAtlas object.
 function handleKeyDown(event) {
-    return SA.EventManager.HandleKeyDown(event);
+    return SA.HandleKeyDownStack(event);
 }
 function handleKeyUp(event) {
-    return SA.EventManager.HandleKeyUp(event);
+    return SA.HandleKeyUpStack(event);
 }
 
 function cancelContextMenu(e) {
@@ -8496,6 +8491,112 @@ SlideAtlas.prototype.Run = function() {
     }
 }
 
+// Stack editing stuff (should not be in the global class).
+// It used to be in the event manager.  Skipping the focus stuff.
+// TODO:
+// Modifier could be handled better with keypress events.
+SlideAtlas.prototype.HandleKeyDownStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
+    }
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return false;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return false;
+    }
+
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
+        return true;
+    }
+
+    return true;
+}
+
+SlideAtlas.prototype.HandleKeyUpStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;} 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
+    if (event.keyCode == 88) { // x = 88
+        // I am using the 'c' key to display to focal point cursor
+        //this.StackCursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.StackCursorFlag =  ! this.StackCursorFlag;
+        if (event.shiftKey && this.StackCursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
+        }
+
+        eventuallyRender();
+        return false;
+    }
+
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        //this.StackCursorFlag = false;
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
+
+    // Is this really necessary?
+    // TODO: Try to remove this and test presentation stuff.
+    if (this.Presentation) {
+        this.Presentation.HandleKeyUp(event);
+        return true;
+    }
+
+    return true;
+}
+
+// TODO: THis should be in viewer.
+SlideAtlas.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+SlideAtlas.prototype.TriggerStartInteraction = function() {
+    if ( ! this.StartInteractionListeners) { return; }
+    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+        callback = this.StartInteractionListeners[i];
+        callback();
+    }
+}
+
+
+
+
+
+
+
+
 // Call back from NotesWidget.
 function NotesModified() {
     if (SA.Edit) {
@@ -8551,7 +8652,6 @@ function Main(rootNote) {
     } else {
         initGC();
     }
-    SA.EventManager = new EventManager(CANVAS);
 
     SA.DualDisplay = new DualViewWidget(VIEW_PANEL);
 
@@ -8614,14 +8714,6 @@ function Main(rootNote) {
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();
-
-    // Events are not received by the viewers.
-    //var can = VIEW_PANEL[0];
-    //can.addEventListener("touchstart", handleTouchStart, false);
-    //can.addEventListener("touchmove", handleTouchMove, true);
-    //can.addEventListener("touchend", handleTouchEnd, false);
-    //document.body.addEventListener("mouseup", handleMouseUp, false);
-    //document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
     // The event manager still handles stack alignment.
     // This should be moved to a stack helper class.
@@ -10404,7 +10496,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
 
     // Special case for when the shift key is pressed.
     // Translate only one camera and modify the tranform to match.
-    if (SA.Edit && SA.EventManager.CursorFlag) {
+    if (SA.Edit && SA.StackCursorFlag) {
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! note.ActiveCorrelation) {
             if ( ! trans) {
@@ -10971,7 +11063,7 @@ Note.prototype.SetParent = function(parent) {
 
 Note.prototype.TitleFocusInCallback = function() {
     // Keep the viewer from processing arrow keys.
-    SA.EventManager.FocusOut();
+    SA.ContentEditableHasFocus = true;
     if (SA.DualDisplay) {
         SA.DualDisplay.SetNote(this);
     }
@@ -10988,7 +11080,7 @@ Note.prototype.TitleFocusOutCallback = function() {
         }
     }
     // Allow the viewer to process arrow keys.
-    SA.EventManager.FocusIn();
+    SA.ContentEditableHasFocus = false;
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
@@ -11003,12 +11095,13 @@ Note.prototype.TitleFocusOutCallback = function() {
 }
 
 Note.prototype.LinkCallback = function() {
+    if ( ! SA.LinkDiv) { return; }
     var text = "slide-atlas.org/webgl-viewer?view="+this.Id;
-    LINK_DIV.html(text);
-    LINK_DIV.show();
+    SA.LinkDiv.html(text);
+    SA.LinkDiv.show();
     // Select the text so it is easy to copy.
     var range = document.createRange();
-    range.selectNodeContents(LINK_DIV[0]);
+    range.selectNodeContents(SA.LinkDiv[0]);
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
@@ -11681,10 +11774,10 @@ function TextEditor(parent, display) {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         // Mouse leave events are not triggering.
@@ -11771,10 +11864,10 @@ TextEditor.prototype.EditOn = function() {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         .mouseleave(function() { // back button does not cause loss of focus.
@@ -12153,7 +12246,7 @@ function NotesWidget(parent, display) {
     this.DisplayedNote = null;
 
     // Popup div to display permalink.
-    LINK_DIV =
+    SA.LinkDiv =
         $("<div>")
         .appendTo('body')
         .css({'top':'30px',
@@ -12168,13 +12261,13 @@ function NotesWidget(parent, display) {
               'text-align': 'center',
               'padding-top': '26px'})
         .hide()
-        .mouseleave(function() { LINK_DIV.fadeOut(); });
+        .mouseleave(function() { SA.LinkDiv.fadeOut(); });
 
     // There is not option to show the link when SA.Edit is not on,
     // so this really does nothing.  Editable is probably necessary
     // for selection to copy.
     if (SA.Edit) {
-        LINK_DIV.attr('contenteditable', "true");
+        SA.LinkDiv.attr('contenteditable', "true");
     }
 
     var self = this;
@@ -12354,7 +12447,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     }
 
     // This should method should be split between Note and NotesWidget
-    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
     this.TextEditor.LoadNote(note);
 
@@ -13896,7 +13989,7 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -13946,7 +14039,7 @@ NavigationWidget.prototype.PreviousNote = function() {
 }
 
 NavigationWidget.prototype.NextNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -13998,7 +14091,7 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
     if (SA.NotesWidget && SA.NotesWidget.Modified) {
@@ -14016,7 +14109,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
     if ( SA.NotesWidget && SA.NotesWidget.Modified) {
@@ -14472,7 +14565,7 @@ function MobileAnnotationWidget() {
     this.Visibility = false;
 
     var self = this;
-    SA.EventManager.OnStartInteraction( function () { self.SetVisibility(false);} );
+    SA.OnStartInteraction( function () { self.SetVisibility(false);} );
 }
 
 
@@ -18288,6 +18381,11 @@ jQuery.prototype.saResizable = function(args) {
 // viewerIndex of the note defaults to 0.
 // Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
+    if (typeof(SA) == "undefined") {
+        // A place for globals that will have delete method in the future.
+        SA = new SlideAtlas();
+    }
+
     // default
     args = args || {};
     // This is ignored if there is not viewId or note.
@@ -18344,8 +18442,6 @@ function saViewerSetup(self, args) {
                 self[i].saViewer = new DualViewWidget($(self[i]));
             } else {
                 self[i].saViewer = new Viewer($(self[i]));
-                // TODO: Get rid of the event manager.
-                SA.EventManager.AddViewer(self[i].saViewer);
             }
 
             // When the div resizes, we need to synch the camera and
@@ -19721,8 +19817,6 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-    // This is necessary for some reason.
-    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
@@ -23415,8 +23509,8 @@ function GenerateContourContainingSeed(d, threshold, xSeed, ySeed) {
 // The seed is in screen coordinates.
 // TODO: Reduce the resolution. Keep the data for altering the threshold.
 function GenerateContourFromViewer(viewer, threshold) {
-    var xSeed = SA.EventManager.LastMouseX;
-    var ySeed = SA.EventManager.LastMouseY;
+    var xSeed = viewer.LastMouseX;
+    var ySeed = viewer.LastMouseY;
 
     var ctx = viewer.MainView.Context2d;
     var viewport = viewer.GetViewport();
@@ -27257,7 +27351,6 @@ Dialog.prototype.Show = function(modal) {
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        SA.EventManager.HasFocus = false;
         SA.DialogOverlay.off('click.dialog');
     } else {
         SA.DialogOverlay.on(
@@ -27268,7 +27361,6 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    SA.EventManager.HasFocus = true;
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
@@ -29243,17 +29335,17 @@ function Viewer (parent) {
     can.on(
         "touchstart.viewer",
         function(event){
-            return SA.EventManager.HandleTouchStart(event.originalEvent, self);
+            return self.HandleTouchStart(event.originalEvent);
         });
     can.on(
         "touchmove.viewer",
         function(event){
-            return SA.EventManager.HandleTouchMove(event.originalEvent, self);
+            return self.HandleTouchMove(event.originalEvent);
         });
     can.on(
         "touchend.viewer",
         function(event){
-            SA.EventManager.HandleTouchEnd(event.originalEvent, self);
+            self.HandleTouchEnd(event.originalEvent);
             return true;
         });
 
@@ -30110,7 +30202,7 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
@@ -30330,7 +30422,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (SA.EventManager.CursorFlag && SA.Edit) {
+    if (SA.StackCursorFlag && SA.Edit) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
@@ -30446,9 +30538,135 @@ Viewer.prototype.DisableInteraction = function() {
     this.InteractionEnabled = false;
 }
 
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.RecordMouseDown = function(event) {
+    // Evaluate where LastMouseX / Y are used.
+    this.LastMouseX = this.MouseX || 0;
+    this.LastMouseY = this.MouseY || 0;
+    this.LastMouseTime = this.MouseTime || 0;
+    this.SetMousePositionFromEvent(event);
+
+    // TODO:  Formalize a call back to make GUI disappear when
+    // navigation starts.  I think I did this already but have not
+    // converted this code yet.
+    // Get rid of the favorites and the link divs if they are visible
+    if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
+	      SA.LinkDiv.fadeOut();
+    }
+    if (typeof FAVORITES_WIDGET !== 'undefined' &&
+	      FAVORITES_WIDGET.hidden == false) {
+	      FAVORITES_WIDGET.ShowHideFavorites();
+    }
+
+    var date = new Date();
+    var dTime = date.getTime() - this.MouseUpTime;
+    if (dTime < 200.0) { // 200 milliseconds
+        this.DoubleClick = true;
+    }
+
+    //this.TriggerStartInteraction();
+}
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.SetMousePositionFromEvent = function(event) {
+    if (event.offsetX && event.offsetY) {
+        this.MouseX = event.offsetX;
+        this.MouseY = event.offsetY;
+        this.MouseTime = (new Date()).getTime();
+    } else if (event.layerX && event.layerY) {
+        this.MouseX = event.layerX;
+        this.MouseY = event.layerY;
+        this.MouseTime = (new Date()).getTime();
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
+}
+Viewer.prototype.RecordMouseMove = function(event) {
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    this.MouseDeltaX = this.MouseX - this.LastMouseX;
+    this.MouseDeltaY = this.MouseY - this.LastMouseY;
+    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
+}
+Viewer.prototype.RecordMouseUp = function(event) {
+    this.SetMousePositionFromEvent(event);
+    this.MouseDown = false;
+
+    // Record time so we can detect double click.
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.DoubleClick = false;
+}
+
+
+
 /**/
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+Viewer.prototype.HandleTouch = function(e, startFlag) {
+    var date = new Date();
+    var t = date.getTime();
+    // I have had trouble on the iPad with 0 delta times.
+    // Lets see how it behaves with fewer events.
+    // It was a bug in iPad4 Javascript.
+    // This throttle is not necessary.
+    if (t-this.Time < 20 && ! startFlag) { return false; }
+
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    if (!e) {
+        var e = event;
+    }
+
+    // Still used on mobile devices?
+    var viewport = this.GetViewport();
+    this.LastTouches = this.Touches;
+    var can = this.Canvas;
+    this.Touches = [];
+    for (var i = 0; i < e.targetTouches.length; ++i) {
+        var offset = this.MainView.Canvas.offset();
+        var x = e.targetTouches[i].pageX - offset.left;
+        var y = e.targetTouches[i].pageY - offset.top;
+        this.Touches.push([x,y]);
+    }
+
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+
+    // Compute the touch average.
+    var numTouches = this.Touches.length;
+    this.MouseX = this.MouseY = 0.0;
+    for (var i = 0; i < numTouches; ++i) {
+        this.MouseX += this.Touches[i][0];
+        this.MouseY += this.Touches[i][1];
+    }
+    this.MouseX = this.MouseX / numTouches;
+    this.MouseY = this.MouseY / numTouches;
+
+    // Hack because we are moving away from using the event manager
+    // Mouse interaction are already independant...
+    this.offsetX = this.MouseX;
+    this.offsetY = this.MouseY;
+
+    return true;
+}
+
 Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
+    // Stuff from event manager
+    this.HandleTouch(e, true);
+    if (this.StartTouchTime == 0) {
+        this.StartTouchTime = this.Time;
+    }
+
+    this.TriggerStartInteraction();
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -30474,8 +30692,8 @@ Viewer.prototype.HandleTouchStart = function(event) {
     // See if any widget became active.
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            event.MouseX = event.Touches[touchIdx][0];
-            event.MouseY = event.Touches[touchIdx][1];
+            this.MouseX = event.Touches[touchIdx][0];
+            this.MouseY = event.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -30493,7 +30711,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -30513,13 +30731,13 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
     // Convert to world by inverting the camera matrix.
     // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
 
     // This is the new focal point.
     var dx = w1[0] - w0[0];
     var dy = w1[1] - w0[1];
-    var dt = event.Time - event.LastTime;
+    var dt = event.Time - this.LastTime;
 
     // Remember the last motion to implement momentum.
     var momentumX = dx/dt;
@@ -30539,7 +30757,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 3) {
+    if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
     }
@@ -30551,9 +30769,9 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
 
     // Compute rotation.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
@@ -30562,11 +30780,11 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     var y;
     var a = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -30607,7 +30825,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 2) {
+    if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
     }
@@ -30619,9 +30837,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
     // iPad / iPhone must have low precision time
     if (dt == 0) {
         return;
@@ -30635,11 +30853,11 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     var s0 = 0;
     var s1 = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -30690,491 +30908,480 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 
+Viewer.prototype.HandleMomentum = function(event) {
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    var t = new Date().getTime();
+    if (t - this.LastTime < 50) {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        return;
+    }
+
+    // Integrate the momentum.
+    this.LastTime = event.Time;
+    event.Time = t;
+    var dt = event.Time - this.LastTime;
+
+    var k = 200.0;
+    var decay = Math.exp(-dt/k);
+    var integ = (-k * decay + k);
+
+    var cam = this.MainView.Camera;
+    cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+    cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
+    cam.Roll = cam.Roll - (this.MomentumRoll* integ);
+    cam.ComputeMatrix();
+    if (this.OverView) {
+        var cam2 = this.OverView.Camera;
+        cam2.Roll = cam.Roll;
+        cam2.ComputeMatrix();
+    }
+    // I think the problem with the ipad is thie asynchronous render.
+    // Maybe two renders occur at the same time.
+    //this.EventuallyRender();
+    draw();
+
+    // Decay the momentum.
+    this.MomentumX *= decay;
+    this.MomentumY *= decay;
+    this.MomentumScale *= decay;
+    this.MomentumRoll *= decay;
+
+    if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
+        Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+        // Change is small. Stop the motion.
+        this.MomentumTimerId = 0;
+        if (this.InteractionState != INTERACTION_NONE) {
+            this.InteractionState = INTERACTION_NONE;
+            if (RECORDER_WIDGET) {
+                RECORDER_WIDGET.RecordState();
+            }
+        }
+        this.UpdateZoomGui();
+    } else {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+    }
+}
 
 
+Viewer.prototype.ConstrainCamera = function () {
+    var bounds = this.GetOverViewBounds();
+    if ( ! bounds) {
+        // Cache has not been set.
+        return;
+    }
+    var spacing = this.MainView.GetLeafSpacing();
+    var viewport = this.MainView.GetViewport();
+    var cam = this.MainView.Camera;
 
+    var modified = false;
+    if (cam.FocalPoint[0] < bounds[0]) {
+        cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[0] > bounds[1]) {
+        cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] < bounds[2]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] > bounds[3]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
+        modified = true;
+    }
+    var heightMax = 2*(bounds[3]-bounds[2]);
+    if (cam.GetHeight() > heightMax) {
+        cam.SetHeight(heightMax);
+        this.ZoomTarget = heightMax;
+        modified = true;
+    }
+    var heightMin = viewport[3] * spacing * 0.5;
+    if (cam.GetHeight() < heightMin) {
+        cam.SetHeight(heightMin);
+        this.ZoomTarget = heightMin;
+        modified = true;
+    }
+    if (modified) {
+        cam.ComputeMatrix();
+    }
+}
 
- Viewer.prototype.HandleMomentum = function(event) {
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+Viewer.prototype.HandleMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     var t = new Date().getTime();
-     if (t - event.LastTime < 50) {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-         return;
-     }
+    this.FireFoxWhich = event.which;
+    event.preventDefault(); // Keep browser from selecting images.
+    this.RecordMouseDown(event);
 
-     // Integrate the momentum.
-     event.LastTime = event.Time;
-     event.Time = t;
-     var dt = event.Time - event.LastTime;
+    if (this.RotateIconDrag) {
+        // Problem with leaving the browser with mouse down.
+        // This is a mouse down outside the icon, so the mouse must
+        // have been let up and we did not get the event.
+        this.RotateIconDrag = false;
+    }
 
-     var k = 200.0;
-     var decay = Math.exp(-dt/k);
-     var integ = (-k * decay + k);
+    if (this.DoubleClick) {
+        // Without this, double click selects sub elementes.
+        event.preventDefault();
+        return this.HandleDoubleClick(event);
+    }
 
-     var cam = this.MainView.Camera;
-     cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
-     cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
-     cam.Roll = cam.Roll - (this.MomentumRoll* integ);
-     cam.ComputeMatrix();
-     if (this.OverView) {
-         var cam2 = this.OverView.Camera;
-         cam2.Roll = cam.Roll;
-         cam2.ComputeMatrix();
-     }
-     // I think the problem with the ipad is thie asynchronous render.
-     // Maybe two renders occur at the same time.
-     //this.EventuallyRender();
-     draw();
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleMouseDown(event);
+    }
 
-     // Decay the momentum.
-     this.MomentumX *= decay;
-     this.MomentumY *= decay;
-     this.MomentumScale *= decay;
-     this.MomentumRoll *= decay;
+    // Choose what interaction will be performed.
+    if (event.which == 1 ) {
+        if (event.ctrlKey) {
+            this.InteractionState = INTERACTION_ROTATE;
+        } else if (event.altKey) {
+            this.InteractionState = INTERACTION_ZOOM;
+        } else {
+            this.InteractionState = INTERACTION_DRAG;
+        }
+        return false;
+    }
+    if (event.which == 2 ) {
+        this.InteractionState = INTERACTION_ROTATE;
+        return false;
+    }
+    return true;
+}
 
-     if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
-         Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
-         // Change is small. Stop the motion.
-         this.MomentumTimerId = 0;
-         if (this.InteractionState != INTERACTION_NONE) {
-             this.InteractionState = INTERACTION_NONE;
-             if (RECORDER_WIDGET) {
-                 RECORDER_WIDGET.RecordState();
-             }
-         }
-         this.UpdateZoomGui();
-     } else {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-     }
- }
+Viewer.prototype.HandleDoubleClick = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleDoubleClick(event);
+    }
 
+    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    if (event.which == 1) {
+        this.AnimateZoomTo(0.5, mWorld);
+    } else if (event.which == 3) {
+        this.AnimateZoomTo(2.0, mWorld);
+    }
+    return true;
+}
 
- Viewer.prototype.ConstrainCamera = function () {
-     var bounds = this.GetOverViewBounds();
-     if ( ! bounds) {
-         // Cache has not been set.
-         return;
-     }
-     var spacing = this.MainView.GetLeafSpacing();
-     var viewport = this.MainView.GetViewport();
-     var cam = this.MainView.Camera;
+Viewer.prototype.HandleMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.FireFoxWhich = 0;
+    this.RecordMouseUp(event);
 
-     var modified = false;
-     if (cam.FocalPoint[0] < bounds[0]) {
-         cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[0] > bounds[1]) {
-         cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] < bounds[2]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] > bounds[3]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
-         modified = true;
-     }
-     var heightMax = 2*(bounds[3]-bounds[2]);
-     if (cam.GetHeight() > heightMax) {
-         cam.SetHeight(heightMax);
-         this.ZoomTarget = heightMax;
-         modified = true;
-     }
-     var heightMin = viewport[3] * spacing * 0.5;
-     if (cam.GetHeight() < heightMin) {
-         cam.SetHeight(heightMin);
-         this.ZoomTarget = heightMin;
-         modified = true;
-     }
-     if (modified) {
-         cam.ComputeMatrix();
-     }
- }
+    if (this.RotateIconDrag) {
+        this.RollUp(event);
+        return false;
+    }
 
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseUp(event);
+    }
 
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseUp(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    if (this.InteractionState != INTERACTION_NONE) {
+        this.InteractionState = INTERACTION_NONE;
+        if (RECORDER_WIDGET) {
+            RECORDER_WIDGET.RecordState();
+        }
+    }
 
-     this.FireFoxWhich = event.which;
-     event.preventDefault(); // Keep browser from selecting images.
-     SA.EventManager.RecordMouseDown(event);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.RotateIconDrag) {
-         // Problem with leaving the browser with mouse down.
-         // This is a mouse down outside the icon, so the mouse must
-         // have been let up and we did not get the event.
-         this.RotateIconDrag = false;
-     }
+Viewer.prototype.ComputeMouseWorld = function(event) {
+    // We need to save these for pasting annotation.
+    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    // Put this extra ivar in the even object.
+    // This could be obsolete because we never pass this event to another object.
+    event.worldX = this.MouseWorld[0];
+    event.worldY= this.MouseWorld[1];
+}
 
-     if (SA.EventManager.DoubleClick) {
-         // Without this, double click selects sub elementes.
-         event.preventDefault();
-         return this.HandleDoubleClick(event);
-     }
+Viewer.prototype.HandleMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleMouseDown(event);
-     }
+    event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return; }
+    this.ComputeMouseWorld(event);
 
-     // Choose what interaction will be performed.
-     if (event.which == 1 ) {
-         if (event.ctrlKey) {
-             this.InteractionState = INTERACTION_ROTATE;
-         } else if (event.altKey) {
-             this.InteractionState = INTERACTION_ZOOM;
-         } else {
-             this.InteractionState = INTERACTION_DRAG;
-         }
-         return false;
-     }
-     if (event.which == 2 ) {
-         this.InteractionState = INTERACTION_ROTATE;
-         return false;
-     }
-     return true;
- }
+    // I think we need to deal with the move here because the mouse can
+    // exit the icon and the events are lost.
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
 
- Viewer.prototype.HandleDoubleClick = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleDoubleClick(event);
-     }
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseMove(event);
+    }
 
-     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     if (event.which == 1) {
-         this.AnimateZoomTo(0.5, mWorld);
-     } else if (event.which == 3) {
-         this.AnimateZoomTo(2.0, mWorld);
-     }
-     return true;
- }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseMove(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     this.FireFoxWhich = 0;
-     SA.EventManager.RecordMouseUp(event);
+    //if (event.which == 0) { // Firefox does not set which for motion events.
+    if ( ! this.FireFoxWhich) {
+        // See if any widget became active.
+        if (this.AnnotationVisibility) {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if (this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return false; // trying to keep the browser from selecting images
+                }
+            }
+        }
 
-     if (this.RotateIconDrag) {
-         this.RollUp(event);
-         return false;
-     }
+        return false; // trying to keep the browser from selecting images
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseUp(event);
-     }
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseUp(event);
-         return false; // trying to keep the browser from selecting images
-     }
+    // Drag camera in main view.
+    // Dragging is too slow.  I want to accelerate dragging the further
+    // this mouse moves.  This is a moderate change, so I am
+    // going to try to accelerate with speed.
+    if (this.InteractionState == INTERACTION_ROTATE) {
+        // Rotate
+        // Origin in the center.
+        // GLOBAL GL will use view's viewport instead.
+        var cx = x - (this.MainView.Viewport[2]*0.5);
+        var cy = y - (this.MainView.Viewport[3]*0.5);
+        // GLOBAL views will go away when views handle this.
+        this.MainView.Camera.HandleRoll(cx, cy,
+                                        this.MouseDeltaX,
+                                        this.MouseDeltaY);
+        this.RollTarget = this.MainView.Camera.Roll;
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_ZOOM) {
+        var dy = this.MouseDeltaY / this.MainView.Viewport[2];
+        this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
+                                       / (1.0 + (dy* 5.0)));
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_DRAG) {
+        // Translate
+        // Convert to view [-0.5,0.5] coordinate system.
+        // Note: the origin gets subtracted out in delta above.
+        var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
+        var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
+        // compute the speed of the movement.
+        var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
+        speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+        // I am not sure I like the speed acceleration.
+        // Lets try a limit.
+        if (speed > 3.0) { speed = 3.0; }
+        dx = dx * speed;
+        dy = dy * speed;
+        this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+    }
+    // The only interaction that does not go through animate camera.
+    this.TriggerInteraction();
+    this.EventuallyRender(true);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.InteractionState != INTERACTION_NONE) {
-         this.InteractionState = INTERACTION_NONE;
-         if (RECORDER_WIDGET) {
-             RECORDER_WIDGET.RecordState();
-         }
-     }
+Viewer.prototype.HandleMouseWheel = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+            return false;
+        }
+    }
 
-     return false; // trying to keep the browser from selecting images
- }
+    if ( ! event.offsetX) {
+        // for firefox
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
 
- Viewer.prototype.ComputeMouseWorld = function(event) {
-     // We need to save these for pasting annotation.
-     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     // Put this extra ivar in the even object.
-     // This could be obsolete because we never pass this event to another object.
-     event.worldX = this.MouseWorld[0];
-     event.worldY= this.MouseWorld[1];
- }
+    // We want to accumulate the target, but not the duration.
+    var tmp = 0;
+    if (event.deltaY) {
+        tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+        tmp = event.wheelDelta;
+    }
+    // Wheel event seems to be in increments of 3.
+    // depreciated mousewheel had increments of 120....
+    // Initial delta cause another bug.
+    // Lets restrict to one zoom step per event.
+    if (tmp > 0) {
+        this.ZoomTarget *= 1.1;
+    } else if (tmp < 0) {
+        this.ZoomTarget /= 1.1;
+    }
 
+    // Compute translate target to keep position in the same place.
+    //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+    this.TranslateTarget[0] = position[0]
+        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+    this.TranslateTarget[1] = position[1]
+        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
- Viewer.prototype.HandleMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     event.preventDefault(); // Keep browser from selecting images.
-     if ( ! SA.EventManager.RecordMouseMove(event)) { return; }
-     this.ComputeMouseWorld(event);
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+    return true;
+}
 
-     // I think we need to deal with the move here because the mouse can
-     // exit the icon and the events are lost.
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
+// returns false if the event was "consumed" (browser convention).
+// Returns true if nothing was done with the event.
+Viewer.prototype.HandleKeyDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
+        if ( ! SAVING_IMAGE) {
+            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE.Title.text('Saving');
+            SAVING_IMAGE.Body.css({'margin':'1em 2em'});
+            SAVING_IMAGE.WaitingImage = $('<img>')
+                .appendTo(SAVING_IMAGE.Body)
+                .attr("src", SA.ImagePathUrl+"circular.gif")
+                .attr("alt", "waiting...")
+                .addClass("sa-view-save")
+            SAVING_IMAGE.ApplyButton.hide();
+            SAVING_IMAGE.SavingFlag = false;
+            SAVING_IMAGE.Count = 0;
+        }
+        if ( ! SAVING_IMAGE.SavingFlag) {
+            SAVING_IMAGE.SavingFlag = true;
+            SAVING_IMAGE.Show(1);
+            this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                                     function() {
+                                         SAVING_IMAGE.SavingFlag = false;
+                                         SAVING_IMAGE.Count += 1;
+                                         SAVING_IMAGE.Hide();
+                                     });
+        }
+        return false;
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseMove(event);
-     }
+    // Handle paste
+    if (event.keyCode == 86 && event.ctrlKey) {
+        // control-v for paste
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseMove(event);
-         return false; // trying to keep the browser from selecting images
-     }
+        var clip = JSON.parse(localStorage.ClipBoard);
+        if (clip.Type == "CircleWidget") {
+            var widget = new CircleWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "PolylineWidget") {
+            var widget = new PolylineWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "TextWidget") {
+            var widget = new TextWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
-     //if (event.which == 0) { // Firefox does not set which for motion events.
-     if ( ! this.FireFoxWhich) {
-         // See if any widget became active.
-         if (this.AnnotationVisibility) {
-             for (var i = 0; i < this.WidgetList.length; ++i) {
-                 if (this.WidgetList[i].CheckActive(event)) {
-                     this.ActivateWidget(this.WidgetList[i]);
-                     return false; // trying to keep the browser from selecting images
-                 }
-             }
-         }
+        return false;
+    }    
 
-         return false; // trying to keep the browser from selecting images
-     }
+    //----------------------
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
+            return false;
+        }
+    }
 
-     var x = event.offsetX;
-     var y = event.offsetY;
+    if (String.fromCharCode(event.keyCode) == 'R') {
+        //this.MainView.Camera.Reset();
+        this.MainView.Camera.ComputeMatrix();
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.EventuallyRender(true);
+        return false;
+    }
 
-     // Drag camera in main view.
-     // Dragging is too slow.  I want to accelerate dragging the further
-     // this mouse moves.  This is a moderate change, so I am
-     // going to try to accelerate with speed.
-     if (this.InteractionState == INTERACTION_ROTATE) {
-         // Rotate
-         // Origin in the center.
-         // GLOBAL GL will use view's viewport instead.
-         var cx = x - (this.MainView.Viewport[2]*0.5);
-         var cy = y - (this.MainView.Viewport[3]*0.5);
-         // GLOBAL views will go away when views handle this.
-         this.MainView.Camera.HandleRoll(cx, cy,
-                                         SA.EventManager.MouseDeltaX,
-                                         SA.EventManager.MouseDeltaY);
-         //if (this.OverView) {
-         //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
-         //}
-         this.RollTarget = this.MainView.Camera.Roll;
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_ZOOM) {
-         var dy = SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
-                                        / (1.0 + (dy* 5.0)));
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_DRAG) {
-         // Translate
-         // Convert to view [-0.5,0.5] coordinate system.
-         // Note: the origin gets subtracted out in delta above.
-         var dx = -SA.EventManager.MouseDeltaX / this.MainView.Viewport[2];
-         var dy = -SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         // compute the speed of the movement.
-         var speed = Math.sqrt(dx*dx + dy*dy) / SA.EventManager.MouseDeltaTime;
-         speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
-         // I am not sure I like the speed acceleration.
-         // Lets try a limit.
-         if (speed > 3.0) { speed = 3.0; }
-         dx = dx * speed;
-         dy = dy * speed;
-         this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
-     }
-     // The only interaction that does not go through animate camera.
-     this.TriggerInteraction();
-     this.EventuallyRender(true);
-     return false; // trying to keep the browser from selecting images
- }
-
- Viewer.prototype.HandleMouseWheel = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-             return false;
-         }
-     }
-
-     if ( ! event.offsetX) {
-         // for firefox
-         event.offsetX = event.layerX;
-         event.offsetY = event.layerY;
-     }
-
-     // We want to accumulate the target, but not the duration.
-     var tmp = 0;
-     if (event.deltaY) {
-         tmp = event.deltaY;
-     } else if (event.wheelDelta) {
-         tmp = event.wheelDelta;
-     }
-     // Wheel event seems to be in increments of 3.
-     // depreciated mousewheel had increments of 120....
-     // Initial delta cause another bug.
-     // Lets restrict to one zoom step per event.
-     if (tmp > 0) {
-         this.ZoomTarget *= 1.1;
-     } else if (tmp < 0) {
-         this.ZoomTarget /= 1.1;
-     }
-
-     // Compute translate target to keep position in the same place.
-     //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-     //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-     var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-     this.TranslateTarget[0] = position[0]
-         - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-     this.TranslateTarget[1] = position[1]
-         - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-     this.RollTarget = this.MainView.Camera.Roll;
-
-     this.AnimateLast = new Date().getTime();
-     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     this.EventuallyRender(true);
-     return true;
- }
-
- var SAVING_IMAGE = undefined;
-
- // returns false if the event was "consumed" (browser convention).
- // Returns true if nothing was done with the event.
- Viewer.prototype.HandleKeyDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
-         if ( ! SAVING_IMAGE) {
-             SAVING_IMAGE = new Dialog();
-             SAVING_IMAGE.Title.text('Saving');
-             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
-             SAVING_IMAGE.WaitingImage = $('<img>')
-                 .appendTo(SAVING_IMAGE.Body)
-                 .attr("src", SA.ImagePathUrl+"circular.gif")
-                 .attr("alt", "waiting...")
-                 .addClass("sa-view-save")
-             SAVING_IMAGE.ApplyButton.hide();
-             SAVING_IMAGE.SavingFlag = false;
-             SAVING_IMAGE.Count = 0;
-         }
-         if ( ! SAVING_IMAGE.SavingFlag) {
-             SAVING_IMAGE.SavingFlag = true;
-             SAVING_IMAGE.Show(1);
-             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
-                                      function() {
-                                          SAVING_IMAGE.SavingFlag = false;
-                                          SAVING_IMAGE.Count += 1;
-                                          SAVING_IMAGE.Hide();
-                                      });
-         }
-         return false;
-     }
-
-     // Handle paste
-     if (event.keyCode == 86 && event.ctrlKey) {
-         // control-v for paste
-
-         var clip = JSON.parse(localStorage.ClipBoard);
-         if (clip.Type == "CircleWidget") {
-             var widget = new CircleWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "PolylineWidget") {
-             var widget = new PolylineWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "TextWidget") {
-             var widget = new TextWidget(this, "");
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-
-         return false;
-     }    
-
-     //----------------------
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-             return false;
-         }
-     }
-
-     if (String.fromCharCode(event.keyCode) == 'R') {
-         //this.MainView.Camera.Reset();
-         this.MainView.Camera.ComputeMatrix();
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.EventuallyRender(true);
-         return false;
-     }
-
-     if (event.keyCode == 38) {
-         // Up cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = -0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 40) {
-         // Down cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = 0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 37) {
-         // Left cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = -0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 39) {
-         // Right cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     }
-     return true;
- }
-
+    if (event.keyCode == 38) {
+        // Up cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = -0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 40) {
+        // Down cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = 0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 37) {
+        // Left cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = -0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 39) {
+        // Right cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    }
+    return true;
+}
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
@@ -31424,579 +31631,6 @@ Viewer.prototype.SetCopyrightVisibility = function(vis) {
         this.CopyrightWrapper.hide();
     }
 }
-
-
-
-
-
-
-// This used to receive all events and route them to the two viewers.
-// Now the viewers receive their own events, and this class is less
-// necessary.  I may be able to get rid of it (or make it a minimal helper).
-
-
-
-function EventManager (canvas) {
-    this.MouseUpTime = 0;
-    this.MouseTime = 0;
-    this.DoubleClick = false;
-
-    // I cannot figure out how to do this with focus of canvas ...
-    // KeyFocus
-    this.HasFocus = true;
-    this.Canvas = canvas[0];
-    this.Viewers = [];
-    this.CurrentViewer = undefined;
-
-    this.ShiftKeyPressed = false;
-    this.ControlKeyPressed = false;
-    this.Key = '';
-    this.MouseX = 0;
-    this.MouseY = 0;
-    this.LastMouseX = 0;
-    this.LastMouseY = 0;
-    this.MouseDown = false;
-    this.SweepListeners = [];
-    this.SelectedSweepListener = undefined;
-    this.StartTouchTime = 0;
-
-    // TODO: Move these events into a stack manager.
-    var self = this;
-    //$('body').keydown(function (e) {self.HandleKeyDown(e);});
-    //$('body').keyup(function (e) {self.HandleKeyUp(e);});
-
-    this.CursorFlag = false;
-
-    if (MOBILE_DEVICE == 'Andriod') {
-        var width = CANVAS.innerWidth();
-        var height = CANVAS.innerHeight();
-        var self = this;
-        //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
-        //                                             function(sweep) {self.GoFullScreen();});
-    }
-
-    this.StartInteractionListeners = [];
-
-    var self = this;
-    document.body.addEventListener(
-        "touchcancel", 
-        function () {
-            self.HandleTouchCancel();
-        },
-        false);
-}
-
-EventManager.prototype.OnStartInteraction = function(callback) {
-  this.StartInteractionListeners.push(callback);
-}
-
-EventManager.prototype.TriggerStartInteraction = function() {
-  for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
-    callback = this.StartInteractionListeners[i];
-    callback();
-  }
-}
-
-
-EventManager.prototype.AddViewer = function(viewer) {
-    this.Viewers.push(viewer);
-}
-
-EventManager.prototype.SetMousePositionFromEvent = function(event) {
-    // TODO: Get rid of system event.
-    this.SystemEvent = event;
-    if (event.offsetX && event.offsetY) {
-        this.MouseX = event.offsetX;
-        this.MouseY = event.offsetY;
-        this.MouseTime = (new Date()).getTime();
-    } else if (event.layerX && event.layerY) {
-        this.MouseX = event.layerX;
-        this.MouseY = event.layerY;
-        this.MouseTime = (new Date()).getTime();
-        event.offsetX = event.layerX;
-        event.offsetY = event.layerY;
-    }
-}
-
-
-var PENDING_SHOW_PROPERTIES_MENU = false;
-var SHOW_PROPERTIES_MOUSE_POSITION;
-function ShowPendingPropertiesMenu() {
-  if (PENDING_SHOW_PROPERTIES_MENU) {
-    ShowPropertiesMenu(SHOW_PROPERTIES_MOUSE_POSITION[0], SHOW_PROPERTIES_MOUSE_POSITION[1]);
-  }
-}
-
-EventManager.prototype.RecordMouseDown = function(event) {
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-    this.LastMouseTime = this.MouseTime;
-    this.SetMousePositionFromEvent(event);
-    
-    // TODO:  Formalize a call back to make GUI disappear when 
-    // navigation starts.  I think I did this already but have not
-    // converted this code yet.
-    // Get rid of the favorites and the link divs if they are visible
-    if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { 
-	      LINK_DIV.fadeOut();
-    }
-    if (typeof FAVORITES_WIDGET !== 'undefined' && 
-	      FAVORITES_WIDGET.hidden == false) { 
-	      FAVORITES_WIDGET.ShowHideFavorites();
-    }
-    
-    var date = new Date();
-    var dTime = date.getTime() - this.MouseUpTime;
-    if (dTime < 200.0) { // 200 milliseconds
-        this.DoubleClick = true;
-    }
-            
-    /*
-      if (this.CurrentViewer) {
-      this.TriggerStartInteraction();
-      }
-    */
-}
-
-EventManager.prototype.RecordMouseUp = function(event) {
-    //if ( ! this.MouseDown) {
-        // This will occur if on double clicks (and probably if mouse down was outside canvas).
-   //     return;
-    //}
-    this.SetMousePositionFromEvent(event);
-    this.MouseDown = false;
-    
-    // Record time so we can detect double click.
-    var date = new Date();
-    this.MouseUpTime = date.getTime();
-    this.DoubleClick = false;
-}
-
-EventManager.prototype.RecordMouseMove = function(event) {
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-    this.LastMouseTime = this.MouseTime;
-    this.SetMousePositionFromEvent(event);
-    this.MouseDeltaX = this.MouseX - this.LastMouseX;
-    this.MouseDeltaY = this.MouseY - this.LastMouseY;
-    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
-    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
-}
-
-EventManager.prototype.HandleMouseWheel = function(event) {
-  this.SetMousePositionFromEvent(event);
-  if (this.CurrentViewer) {
-    event.preventDefault();
-    //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
-    if (this.CurrentViewer.HandleMouseWheel(this)) {
-      this.TriggerStartInteraction();
-    }
-  }
-}
-
-//------------- Keys ---------------
-
-EventManager.prototype.FocusIn = function() {
-  this.HasFocus = true;
-}
-
-EventManager.prototype.FocusOut = function() {
-  this.HasFocus = false;
-}
-
-EventManager.prototype.HandleKeyDown = function(event) {
-    if ( ! this.HasFocus) {return true;}
-    
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = true;
-        // Do not forward modifier keys events to objects that consume keypresses.
-        return true;
-    }
-    if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = true;
-        return true;
-    }
-
-    // Handle undo and redo (cntrl-z, cntrl-y)
-    if (this.ControlKeyPressed && event.keyCode == 90) {
-        // Function in recordWidget.
-        UndoState();
-        return false;
-    } else if (this.ControlKeyPressed && event.keyCode == 89) {
-        // Function in recordWidget.
-        RedoState();
-        return false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyDown(event);
-        return true;
-    }
-
-    return true;
-}
-
-EventManager.prototype.HandleKeyUp = function(event) {
-    if ( ! this.HasFocus) {return true;} 
-
-
-    // For debugging deformable alignment in stacks.
-    if (event.keyCode == 90) { // z = 90
-        if (event.shiftKey) {
-            DeformableAlignViewers();
-            return true;
-        }
-    }
-
-    // It is sort of a hack to check for the cursor mode here, but it
-    // affects both viewers.
-    if (event.keyCode == 88) { // x = 88
-        // I am using the 'c' key to display to focal point cursor
-        //this.CursorFlag = false;
-        // what a pain.  Holding x down sometimes blocks mouse events.
-        // Have to change to toggle.
-        this.CursorFlag =  ! this.CursorFlag;
-        if (event.shiftKey && this.CursorFlag) {
-            testAlignTranslation();
-            var self = this;
-            window.setTimeout(function() {self.CursorFlag = false;}, 1000);
-        }
-
-        eventuallyRender();
-        return false;
-    }
-
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = false;
-        //this.CursorFlag = false;
-    } else if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyUp(event);
-        return true;
-    }
-
-    return true;
-}
-
-
-//==============================================================================
-// Touch events.
-
-EventManager.prototype.IsFullScreen = function() {
-    return (document.fullScreenElement && document.fullScreenElement !==  null) ||
-           (document.mozFullScreen || document.webkitIsFullScreen);
-}
-
-
-EventManager.prototype.GoFullScreen = function () {
-    // Deactivate the listener
-    if (this.FullScreenSweep) {
-        this.FullScreenSweep.Active = false;
-    }
-
-    if (! this.IsFullScreen()) {
-        var docElm = document.documentElement;
-        if (docElm.requestFullscreen) {
-            docElm.requestFullscreen();
-        }
-        else if (docElm.mozRequestFullScreen) {
-            docElm.mozRequestFullScreen();
-        }
-        else if (docElm.webkitRequestFullScreen) {
-            docElm.webkitRequestFullScreen();
-        }
-    }
-    handleResize();
-    eventuallyRender();
-}
-
-
-EventManager.prototype.NextNote = function () {
-    NextNoteCallback();
-}
-EventManager.prototype.PreviousNote = function () {
-    PreviousNoteCallback();
-}
-
-
-
-function SweepListener () {
-  this.Active = true;
-  this.Location = [0,0];
-  this.Direction = [1,0];
-  this.Label = "Sweep Here";
-
-  this.Arrow = $('<img>').appendTo('body')
-                        .hide()
-                        .css({
-                          'position': 'absolute',
-                          'width': '20px',
-                          'z-index': '1',
-                          'opacity': '0.8'})
-                        .attr('src',SA.ImagePathUrl+"sweepArrowUp.png");
-
-  this.Div =
-    $('<div>').appendTo('body')
-              .hide()
-              .text("sweep")
-              .attr('id','TEST')
-              .css({'opacity': '0.8',
-                    'z-index': '1',
-                    'position': 'absolute',
-                    'color': '#90b0ff',
-                    'background-color' : '#ffffff'
-                    });
-}
-
-SweepListener.prototype.Hide = function() {
-  this.Arrow.hide();
-  this.Div.hide();
-}
-
-SweepListener.prototype.Show = function() {
-  if ( ! this.Active) {
-    this.Hide();
-    return;
-  }
-  this.Arrow.show();
-  this.Div.show();
-}
-
-SweepListener.prototype.Update = function() {
-  this.Div.text(this.Label);
-  var arrowWidth = this.Arrow.innerWidth();
-  var arrowHeight = this.Arrow.innerWidth();
-  var divWidth = this.Div.innerWidth();
-  var divHeight = this.Div.innerHeight();
-
-  var x = this.Location[0];
-  var y = this.Location[1];
-  if (this.Direction[0] == 1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowRight.png")
-              .css({'left': x+'px',
-                    'bottom' : (y-arrowWidth/2)+'px'});
-    // I cannot predict the location with rotated text.
-    //this.Div.css({'transform' : 'rotate(90deg)',
-    //              '-ms-transform' : 'rotate(90deg)',
-    //              '-webkit-transform' : 'rotate(90deg)'});
-    this.Div.css({'left': (x+(arrowWidth-divWidth)/2)+'px',
-                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
-  } else if (this.Direction[0] == -1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowLeft.png")
-              .css({'left': (x-arrowWidth)+'px',
-                    'bottom' : (y-arrowWidth/2)+'px'});
-    this.Div.css({'left': (x+(-arrowWidth-divWidth)/2)+'px',
-                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
-  } else if (this.Direction[1] == 1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
-              .css({'left': (x-arrowWidth/2)+'px',
-                    'bottom' : y+'px'});
-    this.Div.css({'left': (x-divWidth/2)+'px',
-                  'bottom' : (y-divHeight)+'px'});
-  } else if (this.Direction[1] == -1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowDown.png");
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
-              .css({'left': (x-arrowWidth/2)+'px',
-                    'bottom' : (y-arrowHeight)+'px'});
-    this.Div.css({'left': (x-divWidth)+'px',
-                  'bottom' : y+'px'});
-  }
-}
-
-
-// Configurable sweep events.
-// Only horizontal and vertical sweep directions for now.
-EventManager.prototype.AddSweepListener = function(x, y, dx, dy, label, callback) {
-  var sweep = new SweepListener();
-  sweep.Location = [x,y];
-  sweep.Direction = [dx,dy];
-  sweep.Label = label;
-  sweep.Callback = callback;
-  sweep.Update();
-  this.SweepListeners.push(sweep);
-  return sweep;
-}
-
-EventManager.prototype.DetectSweepEvent = function(dx,dy) {
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    if (sweep.Active) {
-      if (dx*sweep.Direction[0] + dy*sweep.Direction[1] > 0.5) {
-        // The sweep is the correct direction.
-        if ((this.MouseX-sweep.Location[0])*sweep.Direction[0] +
-            (this.MouseY-sweep.Location[1])*sweep.Direction[1] >= 0.0) {
-          if ((this.LastMouseX-sweep.Location[0])*sweep.Direction[0] +
-              (this.LastMouseY-sweep.Location[1])*sweep.Direction[1] < 0.0) {
-            this.SelectedSweepListener = sweep;
-          }
-        }
-      }
-    }
-  }
-}
-
-EventManager.prototype.ShowSweepListeners = function() {
-  // User may have taken it out of fullscreen.
-  if ( ! this.IsFullScreen() && this.FullScreenSweep) {
-    this.FullScreenSweep.Active = true;
-  }
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    sweep.Show();
-  }
-}
-
-EventManager.prototype.HideSweepListeners = function() {
-  this.SelectedSweepListener = undefined;
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    sweep.Hide();
-  }
-}
-
-
-
-
-
-// Save the previous touches and record the new
-// touch locations in viewport coordinates.
-EventManager.prototype.HandleTouch = function(e, startFlag, viewer) {
-    e.preventDefault();
-    var date = new Date();
-    var t = date.getTime();
-    // I have had trouble on the iPad with 0 delta times.
-    // Lets see how it behaves with fewer events.
-    // It was a bug in iPad4 Javascript.
-    // This throttle is not necessary.
-    if (t-this.Time < 20 && ! startFlag) { return false; }
-
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    if (!e) {
-        var e = event;
-    }
-
-    // Still used on mobile devices?
-    var viewport = viewer.GetViewport();
-    this.SystemEvent = e;
-    this.LastTouches = this.Touches;
-    var can = this.Canvas;
-    this.Touches = [];
-    for (var i = 0; i < e.targetTouches.length; ++i) {
-        var offset = viewer.MainView.Canvas.offset();
-        var x = e.targetTouches[i].pageX - offset.left;
-        var y = e.targetTouches[i].pageY - offset.top;
-        this.Touches.push([x,y]);
-    }
-
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-
-    // Compute the touch average.
-    var numTouches = this.Touches.length;
-    this.MouseX = this.MouseY = 0.0;
-    for (var i = 0; i < numTouches; ++i) {
-        this.MouseX += this.Touches[i][0];
-        this.MouseY += this.Touches[i][1];
-    }
-    this.MouseX = this.MouseX / numTouches;
-    this.MouseY = this.MouseY / numTouches;
-
-    // Hack because we are moving away from using the event manager
-    // Mouse interaction are already independant...
-    this.offsetX = this.MouseX;
-    this.offsetY = this.MouseY;
-
-
-    return true;
-}
-
-
-EventManager.prototype.HandleTouchStart = function(e, viewer) {
-    this.HandleTouch(e, true, viewer);
-    if (this.StartTouchTime == 0) {
-        this.StartTouchTime = this.Time;
-    }
-
-    if (viewer) {
-        if (viewer.HandleTouchStart(this)) {
-            this.TriggerStartInteraction();
-        }
-    }
-}
-
-
-EventManager.prototype.HandleTouchMove = function(e, viewer) {
-    // Put a throttle on events
-    if ( ! this.HandleTouch(e, false, viewer)) { return; }
-
-    if (SA.DualDisplay.NavigationWidget && 
-        SA.DualDisplay.NavigationWidget.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        SA.DualDisplay.NavigationWidget.ToggleVisibility();
-    }
-
-    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
-               MOBILE_ANNOTATION_WIDGET.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-    }
-
-    if (this.Touches.length == 1 && viewer) {
-        viewer.HandleTouchPan(this);
-        return;
-    }
-    if (this.Touches.length == 2 && viewer) {
-        viewer.HandleTouchPinch(this);
-        return
-    }
-    if (this.Touches.length == 3 && viewer) {
-        viewer.HandleTouchRotate(this);
-        return
-    }
-}
-
-EventManager.prototype.HandleTouchEnd = function(e, viewer) {
-    e.preventDefault();
-
-    var t = new Date().getTime();
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    t = t - this.StartTouchTime;
-    if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
-        this.StartTouchTime = 0;
-        if (t < 90) {
-            // We should not have a navigation widget on mobile
-            // devices. (maybe iPad?).
-            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                SA.DualDisplay.NavigationWidget.ToggleVisibility();
-            }
-            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
-                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-            }
-            return;
-        }
-        if (viewer) {
-            viewer.HandleTouchEnd(this);
-        }
-    }
-}
-
-EventManager.prototype.HandleTouchCancel = function(event) {
-    this.MouseDown = false;
-}
-
 
 
 
@@ -32411,8 +32045,6 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-    // This is necessary for some reason.
-    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
@@ -36105,8 +35737,8 @@ function GenerateContourContainingSeed(d, threshold, xSeed, ySeed) {
 // The seed is in screen coordinates.
 // TODO: Reduce the resolution. Keep the data for altering the threshold.
 function GenerateContourFromViewer(viewer, threshold) {
-    var xSeed = SA.EventManager.LastMouseX;
-    var ySeed = SA.EventManager.LastMouseY;
+    var xSeed = viewer.LastMouseX;
+    var ySeed = viewer.LastMouseY;
 
     var ctx = viewer.MainView.Context2d;
     var viewport = viewer.GetViewport();
@@ -39947,7 +39579,6 @@ Dialog.prototype.Show = function(modal) {
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        SA.EventManager.HasFocus = false;
         SA.DialogOverlay.off('click.dialog');
     } else {
         SA.DialogOverlay.on(
@@ -39958,7 +39589,6 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    SA.EventManager.HasFocus = true;
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
@@ -41933,17 +41563,17 @@ function Viewer (parent) {
     can.on(
         "touchstart.viewer",
         function(event){
-            return SA.EventManager.HandleTouchStart(event.originalEvent, self);
+            return self.HandleTouchStart(event.originalEvent);
         });
     can.on(
         "touchmove.viewer",
         function(event){
-            return SA.EventManager.HandleTouchMove(event.originalEvent, self);
+            return self.HandleTouchMove(event.originalEvent);
         });
     can.on(
         "touchend.viewer",
         function(event){
-            SA.EventManager.HandleTouchEnd(event.originalEvent, self);
+            self.HandleTouchEnd(event.originalEvent);
             return true;
         });
 
@@ -42800,7 +42430,7 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
@@ -43020,7 +42650,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (SA.EventManager.CursorFlag && SA.Edit) {
+    if (SA.StackCursorFlag && SA.Edit) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
@@ -43136,9 +42766,135 @@ Viewer.prototype.DisableInteraction = function() {
     this.InteractionEnabled = false;
 }
 
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.RecordMouseDown = function(event) {
+    // Evaluate where LastMouseX / Y are used.
+    this.LastMouseX = this.MouseX || 0;
+    this.LastMouseY = this.MouseY || 0;
+    this.LastMouseTime = this.MouseTime || 0;
+    this.SetMousePositionFromEvent(event);
+
+    // TODO:  Formalize a call back to make GUI disappear when
+    // navigation starts.  I think I did this already but have not
+    // converted this code yet.
+    // Get rid of the favorites and the link divs if they are visible
+    if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
+	      SA.LinkDiv.fadeOut();
+    }
+    if (typeof FAVORITES_WIDGET !== 'undefined' &&
+	      FAVORITES_WIDGET.hidden == false) {
+	      FAVORITES_WIDGET.ShowHideFavorites();
+    }
+
+    var date = new Date();
+    var dTime = date.getTime() - this.MouseUpTime;
+    if (dTime < 200.0) { // 200 milliseconds
+        this.DoubleClick = true;
+    }
+
+    //this.TriggerStartInteraction();
+}
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.SetMousePositionFromEvent = function(event) {
+    if (event.offsetX && event.offsetY) {
+        this.MouseX = event.offsetX;
+        this.MouseY = event.offsetY;
+        this.MouseTime = (new Date()).getTime();
+    } else if (event.layerX && event.layerY) {
+        this.MouseX = event.layerX;
+        this.MouseY = event.layerY;
+        this.MouseTime = (new Date()).getTime();
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
+}
+Viewer.prototype.RecordMouseMove = function(event) {
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    this.MouseDeltaX = this.MouseX - this.LastMouseX;
+    this.MouseDeltaY = this.MouseY - this.LastMouseY;
+    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
+}
+Viewer.prototype.RecordMouseUp = function(event) {
+    this.SetMousePositionFromEvent(event);
+    this.MouseDown = false;
+
+    // Record time so we can detect double click.
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.DoubleClick = false;
+}
+
+
+
 /**/
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+Viewer.prototype.HandleTouch = function(e, startFlag) {
+    var date = new Date();
+    var t = date.getTime();
+    // I have had trouble on the iPad with 0 delta times.
+    // Lets see how it behaves with fewer events.
+    // It was a bug in iPad4 Javascript.
+    // This throttle is not necessary.
+    if (t-this.Time < 20 && ! startFlag) { return false; }
+
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    if (!e) {
+        var e = event;
+    }
+
+    // Still used on mobile devices?
+    var viewport = this.GetViewport();
+    this.LastTouches = this.Touches;
+    var can = this.Canvas;
+    this.Touches = [];
+    for (var i = 0; i < e.targetTouches.length; ++i) {
+        var offset = this.MainView.Canvas.offset();
+        var x = e.targetTouches[i].pageX - offset.left;
+        var y = e.targetTouches[i].pageY - offset.top;
+        this.Touches.push([x,y]);
+    }
+
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+
+    // Compute the touch average.
+    var numTouches = this.Touches.length;
+    this.MouseX = this.MouseY = 0.0;
+    for (var i = 0; i < numTouches; ++i) {
+        this.MouseX += this.Touches[i][0];
+        this.MouseY += this.Touches[i][1];
+    }
+    this.MouseX = this.MouseX / numTouches;
+    this.MouseY = this.MouseY / numTouches;
+
+    // Hack because we are moving away from using the event manager
+    // Mouse interaction are already independant...
+    this.offsetX = this.MouseX;
+    this.offsetY = this.MouseY;
+
+    return true;
+}
+
 Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
+    // Stuff from event manager
+    this.HandleTouch(e, true);
+    if (this.StartTouchTime == 0) {
+        this.StartTouchTime = this.Time;
+    }
+
+    this.TriggerStartInteraction();
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -43164,8 +42920,8 @@ Viewer.prototype.HandleTouchStart = function(event) {
     // See if any widget became active.
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            event.MouseX = event.Touches[touchIdx][0];
-            event.MouseY = event.Touches[touchIdx][1];
+            this.MouseX = event.Touches[touchIdx][0];
+            this.MouseY = event.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -43183,7 +42939,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -43203,13 +42959,13 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
     // Convert to world by inverting the camera matrix.
     // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
 
     // This is the new focal point.
     var dx = w1[0] - w0[0];
     var dy = w1[1] - w0[1];
-    var dt = event.Time - event.LastTime;
+    var dt = event.Time - this.LastTime;
 
     // Remember the last motion to implement momentum.
     var momentumX = dx/dt;
@@ -43229,7 +42985,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 3) {
+    if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
     }
@@ -43241,9 +42997,9 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
 
     // Compute rotation.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
@@ -43252,11 +43008,11 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     var y;
     var a = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -43297,7 +43053,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 2) {
+    if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
     }
@@ -43309,9 +43065,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
     // iPad / iPhone must have low precision time
     if (dt == 0) {
         return;
@@ -43325,11 +43081,11 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     var s0 = 0;
     var s1 = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -43380,491 +43136,480 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 
+Viewer.prototype.HandleMomentum = function(event) {
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    var t = new Date().getTime();
+    if (t - this.LastTime < 50) {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        return;
+    }
+
+    // Integrate the momentum.
+    this.LastTime = event.Time;
+    event.Time = t;
+    var dt = event.Time - this.LastTime;
+
+    var k = 200.0;
+    var decay = Math.exp(-dt/k);
+    var integ = (-k * decay + k);
+
+    var cam = this.MainView.Camera;
+    cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+    cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
+    cam.Roll = cam.Roll - (this.MomentumRoll* integ);
+    cam.ComputeMatrix();
+    if (this.OverView) {
+        var cam2 = this.OverView.Camera;
+        cam2.Roll = cam.Roll;
+        cam2.ComputeMatrix();
+    }
+    // I think the problem with the ipad is thie asynchronous render.
+    // Maybe two renders occur at the same time.
+    //this.EventuallyRender();
+    draw();
+
+    // Decay the momentum.
+    this.MomentumX *= decay;
+    this.MomentumY *= decay;
+    this.MomentumScale *= decay;
+    this.MomentumRoll *= decay;
+
+    if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
+        Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+        // Change is small. Stop the motion.
+        this.MomentumTimerId = 0;
+        if (this.InteractionState != INTERACTION_NONE) {
+            this.InteractionState = INTERACTION_NONE;
+            if (RECORDER_WIDGET) {
+                RECORDER_WIDGET.RecordState();
+            }
+        }
+        this.UpdateZoomGui();
+    } else {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+    }
+}
 
 
+Viewer.prototype.ConstrainCamera = function () {
+    var bounds = this.GetOverViewBounds();
+    if ( ! bounds) {
+        // Cache has not been set.
+        return;
+    }
+    var spacing = this.MainView.GetLeafSpacing();
+    var viewport = this.MainView.GetViewport();
+    var cam = this.MainView.Camera;
 
+    var modified = false;
+    if (cam.FocalPoint[0] < bounds[0]) {
+        cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[0] > bounds[1]) {
+        cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] < bounds[2]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] > bounds[3]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
+        modified = true;
+    }
+    var heightMax = 2*(bounds[3]-bounds[2]);
+    if (cam.GetHeight() > heightMax) {
+        cam.SetHeight(heightMax);
+        this.ZoomTarget = heightMax;
+        modified = true;
+    }
+    var heightMin = viewport[3] * spacing * 0.5;
+    if (cam.GetHeight() < heightMin) {
+        cam.SetHeight(heightMin);
+        this.ZoomTarget = heightMin;
+        modified = true;
+    }
+    if (modified) {
+        cam.ComputeMatrix();
+    }
+}
 
- Viewer.prototype.HandleMomentum = function(event) {
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+Viewer.prototype.HandleMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     var t = new Date().getTime();
-     if (t - event.LastTime < 50) {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-         return;
-     }
+    this.FireFoxWhich = event.which;
+    event.preventDefault(); // Keep browser from selecting images.
+    this.RecordMouseDown(event);
 
-     // Integrate the momentum.
-     event.LastTime = event.Time;
-     event.Time = t;
-     var dt = event.Time - event.LastTime;
+    if (this.RotateIconDrag) {
+        // Problem with leaving the browser with mouse down.
+        // This is a mouse down outside the icon, so the mouse must
+        // have been let up and we did not get the event.
+        this.RotateIconDrag = false;
+    }
 
-     var k = 200.0;
-     var decay = Math.exp(-dt/k);
-     var integ = (-k * decay + k);
+    if (this.DoubleClick) {
+        // Without this, double click selects sub elementes.
+        event.preventDefault();
+        return this.HandleDoubleClick(event);
+    }
 
-     var cam = this.MainView.Camera;
-     cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
-     cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
-     cam.Roll = cam.Roll - (this.MomentumRoll* integ);
-     cam.ComputeMatrix();
-     if (this.OverView) {
-         var cam2 = this.OverView.Camera;
-         cam2.Roll = cam.Roll;
-         cam2.ComputeMatrix();
-     }
-     // I think the problem with the ipad is thie asynchronous render.
-     // Maybe two renders occur at the same time.
-     //this.EventuallyRender();
-     draw();
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleMouseDown(event);
+    }
 
-     // Decay the momentum.
-     this.MomentumX *= decay;
-     this.MomentumY *= decay;
-     this.MomentumScale *= decay;
-     this.MomentumRoll *= decay;
+    // Choose what interaction will be performed.
+    if (event.which == 1 ) {
+        if (event.ctrlKey) {
+            this.InteractionState = INTERACTION_ROTATE;
+        } else if (event.altKey) {
+            this.InteractionState = INTERACTION_ZOOM;
+        } else {
+            this.InteractionState = INTERACTION_DRAG;
+        }
+        return false;
+    }
+    if (event.which == 2 ) {
+        this.InteractionState = INTERACTION_ROTATE;
+        return false;
+    }
+    return true;
+}
 
-     if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
-         Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
-         // Change is small. Stop the motion.
-         this.MomentumTimerId = 0;
-         if (this.InteractionState != INTERACTION_NONE) {
-             this.InteractionState = INTERACTION_NONE;
-             if (RECORDER_WIDGET) {
-                 RECORDER_WIDGET.RecordState();
-             }
-         }
-         this.UpdateZoomGui();
-     } else {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-     }
- }
+Viewer.prototype.HandleDoubleClick = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleDoubleClick(event);
+    }
 
+    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    if (event.which == 1) {
+        this.AnimateZoomTo(0.5, mWorld);
+    } else if (event.which == 3) {
+        this.AnimateZoomTo(2.0, mWorld);
+    }
+    return true;
+}
 
- Viewer.prototype.ConstrainCamera = function () {
-     var bounds = this.GetOverViewBounds();
-     if ( ! bounds) {
-         // Cache has not been set.
-         return;
-     }
-     var spacing = this.MainView.GetLeafSpacing();
-     var viewport = this.MainView.GetViewport();
-     var cam = this.MainView.Camera;
+Viewer.prototype.HandleMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.FireFoxWhich = 0;
+    this.RecordMouseUp(event);
 
-     var modified = false;
-     if (cam.FocalPoint[0] < bounds[0]) {
-         cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[0] > bounds[1]) {
-         cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] < bounds[2]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] > bounds[3]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
-         modified = true;
-     }
-     var heightMax = 2*(bounds[3]-bounds[2]);
-     if (cam.GetHeight() > heightMax) {
-         cam.SetHeight(heightMax);
-         this.ZoomTarget = heightMax;
-         modified = true;
-     }
-     var heightMin = viewport[3] * spacing * 0.5;
-     if (cam.GetHeight() < heightMin) {
-         cam.SetHeight(heightMin);
-         this.ZoomTarget = heightMin;
-         modified = true;
-     }
-     if (modified) {
-         cam.ComputeMatrix();
-     }
- }
+    if (this.RotateIconDrag) {
+        this.RollUp(event);
+        return false;
+    }
 
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseUp(event);
+    }
 
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseUp(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    if (this.InteractionState != INTERACTION_NONE) {
+        this.InteractionState = INTERACTION_NONE;
+        if (RECORDER_WIDGET) {
+            RECORDER_WIDGET.RecordState();
+        }
+    }
 
-     this.FireFoxWhich = event.which;
-     event.preventDefault(); // Keep browser from selecting images.
-     SA.EventManager.RecordMouseDown(event);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.RotateIconDrag) {
-         // Problem with leaving the browser with mouse down.
-         // This is a mouse down outside the icon, so the mouse must
-         // have been let up and we did not get the event.
-         this.RotateIconDrag = false;
-     }
+Viewer.prototype.ComputeMouseWorld = function(event) {
+    // We need to save these for pasting annotation.
+    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    // Put this extra ivar in the even object.
+    // This could be obsolete because we never pass this event to another object.
+    event.worldX = this.MouseWorld[0];
+    event.worldY= this.MouseWorld[1];
+}
 
-     if (SA.EventManager.DoubleClick) {
-         // Without this, double click selects sub elementes.
-         event.preventDefault();
-         return this.HandleDoubleClick(event);
-     }
+Viewer.prototype.HandleMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleMouseDown(event);
-     }
+    event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return; }
+    this.ComputeMouseWorld(event);
 
-     // Choose what interaction will be performed.
-     if (event.which == 1 ) {
-         if (event.ctrlKey) {
-             this.InteractionState = INTERACTION_ROTATE;
-         } else if (event.altKey) {
-             this.InteractionState = INTERACTION_ZOOM;
-         } else {
-             this.InteractionState = INTERACTION_DRAG;
-         }
-         return false;
-     }
-     if (event.which == 2 ) {
-         this.InteractionState = INTERACTION_ROTATE;
-         return false;
-     }
-     return true;
- }
+    // I think we need to deal with the move here because the mouse can
+    // exit the icon and the events are lost.
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
 
- Viewer.prototype.HandleDoubleClick = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleDoubleClick(event);
-     }
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseMove(event);
+    }
 
-     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     if (event.which == 1) {
-         this.AnimateZoomTo(0.5, mWorld);
-     } else if (event.which == 3) {
-         this.AnimateZoomTo(2.0, mWorld);
-     }
-     return true;
- }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseMove(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     this.FireFoxWhich = 0;
-     SA.EventManager.RecordMouseUp(event);
+    //if (event.which == 0) { // Firefox does not set which for motion events.
+    if ( ! this.FireFoxWhich) {
+        // See if any widget became active.
+        if (this.AnnotationVisibility) {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if (this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return false; // trying to keep the browser from selecting images
+                }
+            }
+        }
 
-     if (this.RotateIconDrag) {
-         this.RollUp(event);
-         return false;
-     }
+        return false; // trying to keep the browser from selecting images
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseUp(event);
-     }
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseUp(event);
-         return false; // trying to keep the browser from selecting images
-     }
+    // Drag camera in main view.
+    // Dragging is too slow.  I want to accelerate dragging the further
+    // this mouse moves.  This is a moderate change, so I am
+    // going to try to accelerate with speed.
+    if (this.InteractionState == INTERACTION_ROTATE) {
+        // Rotate
+        // Origin in the center.
+        // GLOBAL GL will use view's viewport instead.
+        var cx = x - (this.MainView.Viewport[2]*0.5);
+        var cy = y - (this.MainView.Viewport[3]*0.5);
+        // GLOBAL views will go away when views handle this.
+        this.MainView.Camera.HandleRoll(cx, cy,
+                                        this.MouseDeltaX,
+                                        this.MouseDeltaY);
+        this.RollTarget = this.MainView.Camera.Roll;
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_ZOOM) {
+        var dy = this.MouseDeltaY / this.MainView.Viewport[2];
+        this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
+                                       / (1.0 + (dy* 5.0)));
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_DRAG) {
+        // Translate
+        // Convert to view [-0.5,0.5] coordinate system.
+        // Note: the origin gets subtracted out in delta above.
+        var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
+        var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
+        // compute the speed of the movement.
+        var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
+        speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+        // I am not sure I like the speed acceleration.
+        // Lets try a limit.
+        if (speed > 3.0) { speed = 3.0; }
+        dx = dx * speed;
+        dy = dy * speed;
+        this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+    }
+    // The only interaction that does not go through animate camera.
+    this.TriggerInteraction();
+    this.EventuallyRender(true);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.InteractionState != INTERACTION_NONE) {
-         this.InteractionState = INTERACTION_NONE;
-         if (RECORDER_WIDGET) {
-             RECORDER_WIDGET.RecordState();
-         }
-     }
+Viewer.prototype.HandleMouseWheel = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+            return false;
+        }
+    }
 
-     return false; // trying to keep the browser from selecting images
- }
+    if ( ! event.offsetX) {
+        // for firefox
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
 
- Viewer.prototype.ComputeMouseWorld = function(event) {
-     // We need to save these for pasting annotation.
-     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     // Put this extra ivar in the even object.
-     // This could be obsolete because we never pass this event to another object.
-     event.worldX = this.MouseWorld[0];
-     event.worldY= this.MouseWorld[1];
- }
+    // We want to accumulate the target, but not the duration.
+    var tmp = 0;
+    if (event.deltaY) {
+        tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+        tmp = event.wheelDelta;
+    }
+    // Wheel event seems to be in increments of 3.
+    // depreciated mousewheel had increments of 120....
+    // Initial delta cause another bug.
+    // Lets restrict to one zoom step per event.
+    if (tmp > 0) {
+        this.ZoomTarget *= 1.1;
+    } else if (tmp < 0) {
+        this.ZoomTarget /= 1.1;
+    }
 
+    // Compute translate target to keep position in the same place.
+    //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+    this.TranslateTarget[0] = position[0]
+        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+    this.TranslateTarget[1] = position[1]
+        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
- Viewer.prototype.HandleMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     event.preventDefault(); // Keep browser from selecting images.
-     if ( ! SA.EventManager.RecordMouseMove(event)) { return; }
-     this.ComputeMouseWorld(event);
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+    return true;
+}
 
-     // I think we need to deal with the move here because the mouse can
-     // exit the icon and the events are lost.
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
+// returns false if the event was "consumed" (browser convention).
+// Returns true if nothing was done with the event.
+Viewer.prototype.HandleKeyDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
+        if ( ! SAVING_IMAGE) {
+            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE.Title.text('Saving');
+            SAVING_IMAGE.Body.css({'margin':'1em 2em'});
+            SAVING_IMAGE.WaitingImage = $('<img>')
+                .appendTo(SAVING_IMAGE.Body)
+                .attr("src", SA.ImagePathUrl+"circular.gif")
+                .attr("alt", "waiting...")
+                .addClass("sa-view-save")
+            SAVING_IMAGE.ApplyButton.hide();
+            SAVING_IMAGE.SavingFlag = false;
+            SAVING_IMAGE.Count = 0;
+        }
+        if ( ! SAVING_IMAGE.SavingFlag) {
+            SAVING_IMAGE.SavingFlag = true;
+            SAVING_IMAGE.Show(1);
+            this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                                     function() {
+                                         SAVING_IMAGE.SavingFlag = false;
+                                         SAVING_IMAGE.Count += 1;
+                                         SAVING_IMAGE.Hide();
+                                     });
+        }
+        return false;
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseMove(event);
-     }
+    // Handle paste
+    if (event.keyCode == 86 && event.ctrlKey) {
+        // control-v for paste
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseMove(event);
-         return false; // trying to keep the browser from selecting images
-     }
+        var clip = JSON.parse(localStorage.ClipBoard);
+        if (clip.Type == "CircleWidget") {
+            var widget = new CircleWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "PolylineWidget") {
+            var widget = new PolylineWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "TextWidget") {
+            var widget = new TextWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
-     //if (event.which == 0) { // Firefox does not set which for motion events.
-     if ( ! this.FireFoxWhich) {
-         // See if any widget became active.
-         if (this.AnnotationVisibility) {
-             for (var i = 0; i < this.WidgetList.length; ++i) {
-                 if (this.WidgetList[i].CheckActive(event)) {
-                     this.ActivateWidget(this.WidgetList[i]);
-                     return false; // trying to keep the browser from selecting images
-                 }
-             }
-         }
+        return false;
+    }    
 
-         return false; // trying to keep the browser from selecting images
-     }
+    //----------------------
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
+            return false;
+        }
+    }
 
-     var x = event.offsetX;
-     var y = event.offsetY;
+    if (String.fromCharCode(event.keyCode) == 'R') {
+        //this.MainView.Camera.Reset();
+        this.MainView.Camera.ComputeMatrix();
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.EventuallyRender(true);
+        return false;
+    }
 
-     // Drag camera in main view.
-     // Dragging is too slow.  I want to accelerate dragging the further
-     // this mouse moves.  This is a moderate change, so I am
-     // going to try to accelerate with speed.
-     if (this.InteractionState == INTERACTION_ROTATE) {
-         // Rotate
-         // Origin in the center.
-         // GLOBAL GL will use view's viewport instead.
-         var cx = x - (this.MainView.Viewport[2]*0.5);
-         var cy = y - (this.MainView.Viewport[3]*0.5);
-         // GLOBAL views will go away when views handle this.
-         this.MainView.Camera.HandleRoll(cx, cy,
-                                         SA.EventManager.MouseDeltaX,
-                                         SA.EventManager.MouseDeltaY);
-         //if (this.OverView) {
-         //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
-         //}
-         this.RollTarget = this.MainView.Camera.Roll;
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_ZOOM) {
-         var dy = SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
-                                        / (1.0 + (dy* 5.0)));
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_DRAG) {
-         // Translate
-         // Convert to view [-0.5,0.5] coordinate system.
-         // Note: the origin gets subtracted out in delta above.
-         var dx = -SA.EventManager.MouseDeltaX / this.MainView.Viewport[2];
-         var dy = -SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         // compute the speed of the movement.
-         var speed = Math.sqrt(dx*dx + dy*dy) / SA.EventManager.MouseDeltaTime;
-         speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
-         // I am not sure I like the speed acceleration.
-         // Lets try a limit.
-         if (speed > 3.0) { speed = 3.0; }
-         dx = dx * speed;
-         dy = dy * speed;
-         this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
-     }
-     // The only interaction that does not go through animate camera.
-     this.TriggerInteraction();
-     this.EventuallyRender(true);
-     return false; // trying to keep the browser from selecting images
- }
-
- Viewer.prototype.HandleMouseWheel = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-             return false;
-         }
-     }
-
-     if ( ! event.offsetX) {
-         // for firefox
-         event.offsetX = event.layerX;
-         event.offsetY = event.layerY;
-     }
-
-     // We want to accumulate the target, but not the duration.
-     var tmp = 0;
-     if (event.deltaY) {
-         tmp = event.deltaY;
-     } else if (event.wheelDelta) {
-         tmp = event.wheelDelta;
-     }
-     // Wheel event seems to be in increments of 3.
-     // depreciated mousewheel had increments of 120....
-     // Initial delta cause another bug.
-     // Lets restrict to one zoom step per event.
-     if (tmp > 0) {
-         this.ZoomTarget *= 1.1;
-     } else if (tmp < 0) {
-         this.ZoomTarget /= 1.1;
-     }
-
-     // Compute translate target to keep position in the same place.
-     //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-     //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-     var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-     this.TranslateTarget[0] = position[0]
-         - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-     this.TranslateTarget[1] = position[1]
-         - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-     this.RollTarget = this.MainView.Camera.Roll;
-
-     this.AnimateLast = new Date().getTime();
-     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     this.EventuallyRender(true);
-     return true;
- }
-
- var SAVING_IMAGE = undefined;
-
- // returns false if the event was "consumed" (browser convention).
- // Returns true if nothing was done with the event.
- Viewer.prototype.HandleKeyDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
-         if ( ! SAVING_IMAGE) {
-             SAVING_IMAGE = new Dialog();
-             SAVING_IMAGE.Title.text('Saving');
-             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
-             SAVING_IMAGE.WaitingImage = $('<img>')
-                 .appendTo(SAVING_IMAGE.Body)
-                 .attr("src", SA.ImagePathUrl+"circular.gif")
-                 .attr("alt", "waiting...")
-                 .addClass("sa-view-save")
-             SAVING_IMAGE.ApplyButton.hide();
-             SAVING_IMAGE.SavingFlag = false;
-             SAVING_IMAGE.Count = 0;
-         }
-         if ( ! SAVING_IMAGE.SavingFlag) {
-             SAVING_IMAGE.SavingFlag = true;
-             SAVING_IMAGE.Show(1);
-             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
-                                      function() {
-                                          SAVING_IMAGE.SavingFlag = false;
-                                          SAVING_IMAGE.Count += 1;
-                                          SAVING_IMAGE.Hide();
-                                      });
-         }
-         return false;
-     }
-
-     // Handle paste
-     if (event.keyCode == 86 && event.ctrlKey) {
-         // control-v for paste
-
-         var clip = JSON.parse(localStorage.ClipBoard);
-         if (clip.Type == "CircleWidget") {
-             var widget = new CircleWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "PolylineWidget") {
-             var widget = new PolylineWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "TextWidget") {
-             var widget = new TextWidget(this, "");
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-
-         return false;
-     }    
-
-     //----------------------
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-             return false;
-         }
-     }
-
-     if (String.fromCharCode(event.keyCode) == 'R') {
-         //this.MainView.Camera.Reset();
-         this.MainView.Camera.ComputeMatrix();
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.EventuallyRender(true);
-         return false;
-     }
-
-     if (event.keyCode == 38) {
-         // Up cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = -0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 40) {
-         // Down cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = 0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 37) {
-         // Left cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = -0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 39) {
-         // Right cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     }
-     return true;
- }
-
+    if (event.keyCode == 38) {
+        // Up cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = -0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 40) {
+        // Down cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = 0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 37) {
+        // Left cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = -0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 39) {
+        // Right cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    }
+    return true;
+}
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
@@ -45696,8 +45441,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
-                                                   SA.EventManager.LastMouseY);
+        w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
+                                                   this.Viewer.LastMouseY);
         w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         // This is the translation.
         var dx = w1[0] - w0[0];
@@ -45716,8 +45461,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        this.Text.Anchor[0] -= SA.EventManager.MouseDeltaX;
-        this.Text.Anchor[1] -= SA.EventManager.MouseDeltaY;
+        this.Text.Anchor[0] -= this.Viewer.MouseDeltaX;
+        this.Text.Anchor[1] -= this.Viewer.MouseDeltaY;
         this.UpdateArrow();
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -45736,28 +45481,25 @@ TextWidget.prototype.HandleMouseMove = function(event) {
 
 
 TextWidget.prototype.HandleTouchPan = function(event) {
-  // We should probably have a handle touch start too.
-  // Touch start calls CheckActive() ...
-  if (this.State == TEXT_WIDGET_ACTIVE) {
-    if (this.Arrow.Visibility && this.ActiveReason == 0) {
-      this.State = TEXT_WIDGET_DRAG_TEXT;
-    } else {
-      this.State = TEXT_WIDGET_DRAG;
+    // We should probably have a handle touch start too.
+    // Touch start calls CheckActive() ...
+    if (this.State == TEXT_WIDGET_ACTIVE) {
+        if (this.Arrow.Visibility && this.ActiveReason == 0) {
+            this.State = TEXT_WIDGET_DRAG_TEXT;
+        } else {
+            this.State = TEXT_WIDGET_DRAG;
+        }
     }
-  }
-  event.MouseDeltaX = event.MouseX - event.LastMouseX;
-  event.MouseDeltaY = event.MouseY - event.LastMouseY;
-  this.HandleMouseMove(event);
+    this.Viewer.MouseDeltaX = this.Viewer.MouseX - this.Viewer.LastMouseX;
+    this.Viewer.MouseDeltaY = this.Viewer.MouseY - this.Viewer.LastMouseY;
+    this.HandleMouseMove(event);
 }
 TextWidget.prototype.HandleTouchPinch = function(event) {
 }
 TextWidget.prototype.HandleTouchEnd = function(event) {
-  this.State = TEXT_WIDGET_ACTIVE;
-  this.SetActive(false);
+    this.State = TEXT_WIDGET_ACTIVE;
+    this.SetActive(false);
 }
-
-
-
 
 
 
@@ -47752,16 +47494,16 @@ FillWidget.prototype.Deactivate = function() {
 }
 
 FillWidget.prototype.HandleMouseDown = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
-    
-    if (event.SystemEvent.which == 1) {
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
+
+    if (event.which == 1) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
         this.Cursor.show();
         this.Segmentation.AddPositive(ptWorld);
     }
-    if (event.SystemEvent.which == 3) {
+    if (event.which == 3) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
         this.Cursor.show();
@@ -47771,13 +47513,13 @@ FillWidget.prototype.HandleMouseDown = function(event) {
 
 FillWidget.prototype.HandleMouseUp = function(event) {
   // Middle mouse deactivates the widget.
-  if (event.SystemEvent.which == 2) {
+  if (event.which == 2) {
     // Middle mouse was pressed.
     this.Deactivate();
   }
 
   // A stroke has just been finished.
-  if (event.SystemEvent.which == 1 || event.SystemEvent.which == 3) {
+  if (event.which == 1 || event.which == 3) {
       this.Cursor.hide();
       this.Segmentation.Update();
       this.Segmentation.Draw();
@@ -47789,18 +47531,18 @@ FillWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 FillWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
 
     // Move the paint bucket icon to follow the mouse.
     this.Cursor.css({'left': (x+4), 'top': (y-32)});
 
-    if (event.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
-        if (event.SystemEvent.which == 1 ) {
+    if (this.Viewer.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
+        if (event.which == 1 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddPositive(ptWorld);
         }
-        if (event.SystemEvent.which == 3 ) {
+        if (event.which == 3 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddNegative(ptWorld);
         }
@@ -47847,8 +47589,8 @@ FillWidget.prototype.CheckActive = function(event) {
   var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
 
-  var dx = event.MouseX - pt[0];
-  var dy = event.MouseY - pt[1];
+  var dx = this.Viewer.MouseX - pt[0];
+  var dy = this.Viewer.MouseY - pt[1];
   var active = false;
 
   if (dx*dx + dy*dy < 1600) {
@@ -49286,46 +49028,46 @@ ArrowWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 ArrowWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which != 1)
+    if (event.which != 1)
     {
-    return;
+        return;
     }
-  if (this.State == ARROW_WIDGET_NEW) {
-    this.TipPosition = [event.MouseX, event.MouseY];
-    this.State = ARROW_WIDGET_DRAG_TAIL;
-  }
-  if (this.State == ARROW_WIDGET_ACTIVE) {
-    if (this.ActiveTail) {
-      this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.State = ARROW_WIDGET_DRAG_TAIL;
-    } else {
-      var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.TipOffset[0] = tipPosition[0] - event.MouseX;
-      this.TipOffset[1] = tipPosition[1] - event.MouseY;
-      this.State = ARROW_WIDGET_DRAG;
+    if (this.State == ARROW_WIDGET_NEW) {
+        this.TipPosition = [this.Viewer.MouseX, this.Viewer.MouseY];
+        this.State = ARROW_WIDGET_DRAG_TAIL;
     }
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE) {
+        if (this.ActiveTail) {
+            this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.State = ARROW_WIDGET_DRAG_TAIL;
+        } else {
+            var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.TipOffset[0] = tipPosition[0] - this.Viewer.MouseX;
+            this.TipOffset[1] = tipPosition[1] - this.Viewer.MouseY;
+            this.State = ARROW_WIDGET_DRAG;
+        }
+    }
 }
 
 // returns false when it is finished doing its work.
 ArrowWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == ARROW_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript).
-    this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-  } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
-    this.SetActive(false);
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE && event.which == 3) {
+        // Right mouse was pressed.
+        // Pop up the properties dialog.
+        // Which one should we popup?
+        // Add a ShowProperties method to the widget. (With the magic of javascript).
+        this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
+        this.ShowPropertiesDialog();
+    } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
+        this.SetActive(false);
+    }
 }
 
 ArrowWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = this.Viewer.MouseX;
+  var y = this.Viewer.MouseY;
 
-  if (event.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
+  if (this.Viewer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
     this.CheckActive(event);
     return;
   }
@@ -49371,8 +49113,8 @@ ArrowWidget.prototype.CheckActive = function(event) {
   yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
 
   // Use this point as the origin.
-  x = event.MouseX - xNew;
-  y = event.MouseY - yNew;
+  x = this.Viewer.MouseX - xNew;
+  y = this.Viewer.MouseY - yNew;
   // Rotate so arrow lies along the x axis.
   var tmp = this.Shape.Orientation * Math.PI / 180.0;
   var ct = Math.cos(tmp);
@@ -58898,17 +58640,12 @@ function draw() {
 function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
 // I am getting rid of the right click feature now.
 
-
-function handleTouchStart(event) {SA.EventManager.HandleTouchStart(event);}
-function handleTouchMove(event) {SA.EventManager.HandleTouchMove(event);}
-function handleTouchEnd(event) {SA.EventManager.HandleTouchEnd(event);}
-function handleTouchCancel(event) {SA.EventManager.HandleTouchCancel(event);}
-
+// TODO: Move these out of the global SLideAtlas object.
 function handleKeyDown(event) {
-    return SA.EventManager.HandleKeyDown(event);
+    return SA.HandleKeyDownStack(event);
 }
 function handleKeyUp(event) {
-    return SA.EventManager.HandleKeyUp(event);
+    return SA.HandleKeyUpStack(event);
 }
 
 function cancelContextMenu(e) {
@@ -58984,6 +58721,112 @@ SlideAtlas.prototype.Run = function() {
     }
 }
 
+// Stack editing stuff (should not be in the global class).
+// It used to be in the event manager.  Skipping the focus stuff.
+// TODO:
+// Modifier could be handled better with keypress events.
+SlideAtlas.prototype.HandleKeyDownStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
+    }
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return false;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return false;
+    }
+
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
+        return true;
+    }
+
+    return true;
+}
+
+SlideAtlas.prototype.HandleKeyUpStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;} 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
+    if (event.keyCode == 88) { // x = 88
+        // I am using the 'c' key to display to focal point cursor
+        //this.StackCursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.StackCursorFlag =  ! this.StackCursorFlag;
+        if (event.shiftKey && this.StackCursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
+        }
+
+        eventuallyRender();
+        return false;
+    }
+
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        //this.StackCursorFlag = false;
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
+
+    // Is this really necessary?
+    // TODO: Try to remove this and test presentation stuff.
+    if (this.Presentation) {
+        this.Presentation.HandleKeyUp(event);
+        return true;
+    }
+
+    return true;
+}
+
+// TODO: THis should be in viewer.
+SlideAtlas.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+SlideAtlas.prototype.TriggerStartInteraction = function() {
+    if ( ! this.StartInteractionListeners) { return; }
+    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+        callback = this.StartInteractionListeners[i];
+        callback();
+    }
+}
+
+
+
+
+
+
+
+
 // Call back from NotesWidget.
 function NotesModified() {
     if (SA.Edit) {
@@ -59039,7 +58882,6 @@ function Main(rootNote) {
     } else {
         initGC();
     }
-    SA.EventManager = new EventManager(CANVAS);
 
     SA.DualDisplay = new DualViewWidget(VIEW_PANEL);
 
@@ -59102,14 +58944,6 @@ function Main(rootNote) {
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();
-
-    // Events are not received by the viewers.
-    //var can = VIEW_PANEL[0];
-    //can.addEventListener("touchstart", handleTouchStart, false);
-    //can.addEventListener("touchmove", handleTouchMove, true);
-    //can.addEventListener("touchend", handleTouchEnd, false);
-    //document.body.addEventListener("mouseup", handleMouseUp, false);
-    //document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
     // The event manager still handles stack alignment.
     // This should be moved to a stack helper class.
@@ -60892,7 +60726,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
 
     // Special case for when the shift key is pressed.
     // Translate only one camera and modify the tranform to match.
-    if (SA.Edit && SA.EventManager.CursorFlag) {
+    if (SA.Edit && SA.StackCursorFlag) {
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! note.ActiveCorrelation) {
             if ( ! trans) {
@@ -61459,7 +61293,7 @@ Note.prototype.SetParent = function(parent) {
 
 Note.prototype.TitleFocusInCallback = function() {
     // Keep the viewer from processing arrow keys.
-    SA.EventManager.FocusOut();
+    SA.ContentEditableHasFocus = true;
     if (SA.DualDisplay) {
         SA.DualDisplay.SetNote(this);
     }
@@ -61476,7 +61310,7 @@ Note.prototype.TitleFocusOutCallback = function() {
         }
     }
     // Allow the viewer to process arrow keys.
-    SA.EventManager.FocusIn();
+    SA.ContentEditableHasFocus = false;
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
@@ -61491,12 +61325,13 @@ Note.prototype.TitleFocusOutCallback = function() {
 }
 
 Note.prototype.LinkCallback = function() {
+    if ( ! SA.LinkDiv) { return; }
     var text = "slide-atlas.org/webgl-viewer?view="+this.Id;
-    LINK_DIV.html(text);
-    LINK_DIV.show();
+    SA.LinkDiv.html(text);
+    SA.LinkDiv.show();
     // Select the text so it is easy to copy.
     var range = document.createRange();
-    range.selectNodeContents(LINK_DIV[0]);
+    range.selectNodeContents(SA.LinkDiv[0]);
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
@@ -62169,10 +62004,10 @@ function TextEditor(parent, display) {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         // Mouse leave events are not triggering.
@@ -62259,10 +62094,10 @@ TextEditor.prototype.EditOn = function() {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         .mouseleave(function() { // back button does not cause loss of focus.
@@ -62641,7 +62476,7 @@ function NotesWidget(parent, display) {
     this.DisplayedNote = null;
 
     // Popup div to display permalink.
-    LINK_DIV =
+    SA.LinkDiv =
         $("<div>")
         .appendTo('body')
         .css({'top':'30px',
@@ -62656,13 +62491,13 @@ function NotesWidget(parent, display) {
               'text-align': 'center',
               'padding-top': '26px'})
         .hide()
-        .mouseleave(function() { LINK_DIV.fadeOut(); });
+        .mouseleave(function() { SA.LinkDiv.fadeOut(); });
 
     // There is not option to show the link when SA.Edit is not on,
     // so this really does nothing.  Editable is probably necessary
     // for selection to copy.
     if (SA.Edit) {
-        LINK_DIV.attr('contenteditable', "true");
+        SA.LinkDiv.attr('contenteditable', "true");
     }
 
     var self = this;
@@ -62842,7 +62677,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     }
 
     // This should method should be split between Note and NotesWidget
-    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
     this.TextEditor.LoadNote(note);
 
@@ -64384,7 +64219,7 @@ NavigationWidget.prototype.Update = function() {
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -64434,7 +64269,7 @@ NavigationWidget.prototype.PreviousNote = function() {
 }
 
 NavigationWidget.prototype.NextNote = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     var current = this.NoteIterator.GetNote();
     if (current.Type == "Stack") {
@@ -64486,7 +64321,7 @@ NavigationWidget.prototype.NextNote = function() {
 
 
 NavigationWidget.prototype.PreviousSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex <= 0) { return; }
     var check = true;
     if (SA.NotesWidget && SA.NotesWidget.Modified) {
@@ -64504,7 +64339,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
 }
 
 NavigationWidget.prototype.NextSlide = function() {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
     if (this.SlideIndex >= this.Session.length - 1) { return; }
     var check = true;
     if ( SA.NotesWidget && SA.NotesWidget.Modified) {
@@ -64960,7 +64795,7 @@ function MobileAnnotationWidget() {
     this.Visibility = false;
 
     var self = this;
-    SA.EventManager.OnStartInteraction( function () { self.SetVisibility(false);} );
+    SA.OnStartInteraction( function () { self.SetVisibility(false);} );
 }
 
 
@@ -68776,6 +68611,11 @@ jQuery.prototype.saResizable = function(args) {
 // viewerIndex of the note defaults to 0.
 // Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
+    if (typeof(SA) == "undefined") {
+        // A place for globals that will have delete method in the future.
+        SA = new SlideAtlas();
+    }
+
     // default
     args = args || {};
     // This is ignored if there is not viewId or note.
@@ -68832,8 +68672,6 @@ function saViewerSetup(self, args) {
                 self[i].saViewer = new DualViewWidget($(self[i]));
             } else {
                 self[i].saViewer = new Viewer($(self[i]));
-                // TODO: Get rid of the event manager.
-                SA.EventManager.AddViewer(self[i].saViewer);
             }
 
             // When the div resizes, we need to synch the camera and
@@ -70209,8 +70047,6 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-    // This is necessary for some reason.
-    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
@@ -73903,8 +73739,8 @@ function GenerateContourContainingSeed(d, threshold, xSeed, ySeed) {
 // The seed is in screen coordinates.
 // TODO: Reduce the resolution. Keep the data for altering the threshold.
 function GenerateContourFromViewer(viewer, threshold) {
-    var xSeed = SA.EventManager.LastMouseX;
-    var ySeed = SA.EventManager.LastMouseY;
+    var xSeed = viewer.LastMouseX;
+    var ySeed = viewer.LastMouseY;
 
     var ctx = viewer.MainView.Context2d;
     var viewport = viewer.GetViewport();
@@ -77745,7 +77581,6 @@ Dialog.prototype.Show = function(modal) {
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        SA.EventManager.HasFocus = false;
         SA.DialogOverlay.off('click.dialog');
     } else {
         SA.DialogOverlay.on(
@@ -77756,7 +77591,6 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    SA.EventManager.HasFocus = true;
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
@@ -79731,17 +79565,17 @@ function Viewer (parent) {
     can.on(
         "touchstart.viewer",
         function(event){
-            return SA.EventManager.HandleTouchStart(event.originalEvent, self);
+            return self.HandleTouchStart(event.originalEvent);
         });
     can.on(
         "touchmove.viewer",
         function(event){
-            return SA.EventManager.HandleTouchMove(event.originalEvent, self);
+            return self.HandleTouchMove(event.originalEvent);
         });
     can.on(
         "touchend.viewer",
         function(event){
-            SA.EventManager.HandleTouchEnd(event.originalEvent, self);
+            self.HandleTouchEnd(event.originalEvent);
             return true;
         });
 
@@ -80598,7 +80432,7 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
@@ -80818,7 +80652,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (SA.EventManager.CursorFlag && SA.Edit) {
+    if (SA.StackCursorFlag && SA.Edit) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
@@ -80934,9 +80768,135 @@ Viewer.prototype.DisableInteraction = function() {
     this.InteractionEnabled = false;
 }
 
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.RecordMouseDown = function(event) {
+    // Evaluate where LastMouseX / Y are used.
+    this.LastMouseX = this.MouseX || 0;
+    this.LastMouseY = this.MouseY || 0;
+    this.LastMouseTime = this.MouseTime || 0;
+    this.SetMousePositionFromEvent(event);
+
+    // TODO:  Formalize a call back to make GUI disappear when
+    // navigation starts.  I think I did this already but have not
+    // converted this code yet.
+    // Get rid of the favorites and the link divs if they are visible
+    if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
+	      SA.LinkDiv.fadeOut();
+    }
+    if (typeof FAVORITES_WIDGET !== 'undefined' &&
+	      FAVORITES_WIDGET.hidden == false) {
+	      FAVORITES_WIDGET.ShowHideFavorites();
+    }
+
+    var date = new Date();
+    var dTime = date.getTime() - this.MouseUpTime;
+    if (dTime < 200.0) { // 200 milliseconds
+        this.DoubleClick = true;
+    }
+
+    //this.TriggerStartInteraction();
+}
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.SetMousePositionFromEvent = function(event) {
+    if (event.offsetX && event.offsetY) {
+        this.MouseX = event.offsetX;
+        this.MouseY = event.offsetY;
+        this.MouseTime = (new Date()).getTime();
+    } else if (event.layerX && event.layerY) {
+        this.MouseX = event.layerX;
+        this.MouseY = event.layerY;
+        this.MouseTime = (new Date()).getTime();
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
+}
+Viewer.prototype.RecordMouseMove = function(event) {
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    this.MouseDeltaX = this.MouseX - this.LastMouseX;
+    this.MouseDeltaY = this.MouseY - this.LastMouseY;
+    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
+}
+Viewer.prototype.RecordMouseUp = function(event) {
+    this.SetMousePositionFromEvent(event);
+    this.MouseDown = false;
+
+    // Record time so we can detect double click.
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.DoubleClick = false;
+}
+
+
+
 /**/
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+Viewer.prototype.HandleTouch = function(e, startFlag) {
+    var date = new Date();
+    var t = date.getTime();
+    // I have had trouble on the iPad with 0 delta times.
+    // Lets see how it behaves with fewer events.
+    // It was a bug in iPad4 Javascript.
+    // This throttle is not necessary.
+    if (t-this.Time < 20 && ! startFlag) { return false; }
+
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    if (!e) {
+        var e = event;
+    }
+
+    // Still used on mobile devices?
+    var viewport = this.GetViewport();
+    this.LastTouches = this.Touches;
+    var can = this.Canvas;
+    this.Touches = [];
+    for (var i = 0; i < e.targetTouches.length; ++i) {
+        var offset = this.MainView.Canvas.offset();
+        var x = e.targetTouches[i].pageX - offset.left;
+        var y = e.targetTouches[i].pageY - offset.top;
+        this.Touches.push([x,y]);
+    }
+
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+
+    // Compute the touch average.
+    var numTouches = this.Touches.length;
+    this.MouseX = this.MouseY = 0.0;
+    for (var i = 0; i < numTouches; ++i) {
+        this.MouseX += this.Touches[i][0];
+        this.MouseY += this.Touches[i][1];
+    }
+    this.MouseX = this.MouseX / numTouches;
+    this.MouseY = this.MouseY / numTouches;
+
+    // Hack because we are moving away from using the event manager
+    // Mouse interaction are already independant...
+    this.offsetX = this.MouseX;
+    this.offsetY = this.MouseY;
+
+    return true;
+}
+
 Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
+    // Stuff from event manager
+    this.HandleTouch(e, true);
+    if (this.StartTouchTime == 0) {
+        this.StartTouchTime = this.Time;
+    }
+
+    this.TriggerStartInteraction();
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -80962,8 +80922,8 @@ Viewer.prototype.HandleTouchStart = function(event) {
     // See if any widget became active.
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            event.MouseX = event.Touches[touchIdx][0];
-            event.MouseY = event.Touches[touchIdx][1];
+            this.MouseX = event.Touches[touchIdx][0];
+            this.MouseY = event.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -80981,7 +80941,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -81001,13 +80961,13 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
     // Convert to world by inverting the camera matrix.
     // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
 
     // This is the new focal point.
     var dx = w1[0] - w0[0];
     var dy = w1[1] - w0[1];
-    var dt = event.Time - event.LastTime;
+    var dt = event.Time - this.LastTime;
 
     // Remember the last motion to implement momentum.
     var momentumX = dx/dt;
@@ -81027,7 +80987,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 3) {
+    if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
     }
@@ -81039,9 +80999,9 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
 
     // Compute rotation.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
@@ -81050,11 +81010,11 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     var y;
     var a = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -81095,7 +81055,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 2) {
+    if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
     }
@@ -81107,9 +81067,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
     // iPad / iPhone must have low precision time
     if (dt == 0) {
         return;
@@ -81123,11 +81083,11 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     var s0 = 0;
     var s1 = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -81178,491 +81138,480 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 
+Viewer.prototype.HandleMomentum = function(event) {
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    var t = new Date().getTime();
+    if (t - this.LastTime < 50) {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        return;
+    }
+
+    // Integrate the momentum.
+    this.LastTime = event.Time;
+    event.Time = t;
+    var dt = event.Time - this.LastTime;
+
+    var k = 200.0;
+    var decay = Math.exp(-dt/k);
+    var integ = (-k * decay + k);
+
+    var cam = this.MainView.Camera;
+    cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+    cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
+    cam.Roll = cam.Roll - (this.MomentumRoll* integ);
+    cam.ComputeMatrix();
+    if (this.OverView) {
+        var cam2 = this.OverView.Camera;
+        cam2.Roll = cam.Roll;
+        cam2.ComputeMatrix();
+    }
+    // I think the problem with the ipad is thie asynchronous render.
+    // Maybe two renders occur at the same time.
+    //this.EventuallyRender();
+    draw();
+
+    // Decay the momentum.
+    this.MomentumX *= decay;
+    this.MomentumY *= decay;
+    this.MomentumScale *= decay;
+    this.MomentumRoll *= decay;
+
+    if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
+        Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+        // Change is small. Stop the motion.
+        this.MomentumTimerId = 0;
+        if (this.InteractionState != INTERACTION_NONE) {
+            this.InteractionState = INTERACTION_NONE;
+            if (RECORDER_WIDGET) {
+                RECORDER_WIDGET.RecordState();
+            }
+        }
+        this.UpdateZoomGui();
+    } else {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+    }
+}
 
 
+Viewer.prototype.ConstrainCamera = function () {
+    var bounds = this.GetOverViewBounds();
+    if ( ! bounds) {
+        // Cache has not been set.
+        return;
+    }
+    var spacing = this.MainView.GetLeafSpacing();
+    var viewport = this.MainView.GetViewport();
+    var cam = this.MainView.Camera;
 
+    var modified = false;
+    if (cam.FocalPoint[0] < bounds[0]) {
+        cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[0] > bounds[1]) {
+        cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] < bounds[2]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] > bounds[3]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
+        modified = true;
+    }
+    var heightMax = 2*(bounds[3]-bounds[2]);
+    if (cam.GetHeight() > heightMax) {
+        cam.SetHeight(heightMax);
+        this.ZoomTarget = heightMax;
+        modified = true;
+    }
+    var heightMin = viewport[3] * spacing * 0.5;
+    if (cam.GetHeight() < heightMin) {
+        cam.SetHeight(heightMin);
+        this.ZoomTarget = heightMin;
+        modified = true;
+    }
+    if (modified) {
+        cam.ComputeMatrix();
+    }
+}
 
- Viewer.prototype.HandleMomentum = function(event) {
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+Viewer.prototype.HandleMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     var t = new Date().getTime();
-     if (t - event.LastTime < 50) {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-         return;
-     }
+    this.FireFoxWhich = event.which;
+    event.preventDefault(); // Keep browser from selecting images.
+    this.RecordMouseDown(event);
 
-     // Integrate the momentum.
-     event.LastTime = event.Time;
-     event.Time = t;
-     var dt = event.Time - event.LastTime;
+    if (this.RotateIconDrag) {
+        // Problem with leaving the browser with mouse down.
+        // This is a mouse down outside the icon, so the mouse must
+        // have been let up and we did not get the event.
+        this.RotateIconDrag = false;
+    }
 
-     var k = 200.0;
-     var decay = Math.exp(-dt/k);
-     var integ = (-k * decay + k);
+    if (this.DoubleClick) {
+        // Without this, double click selects sub elementes.
+        event.preventDefault();
+        return this.HandleDoubleClick(event);
+    }
 
-     var cam = this.MainView.Camera;
-     cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
-     cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
-     cam.Roll = cam.Roll - (this.MomentumRoll* integ);
-     cam.ComputeMatrix();
-     if (this.OverView) {
-         var cam2 = this.OverView.Camera;
-         cam2.Roll = cam.Roll;
-         cam2.ComputeMatrix();
-     }
-     // I think the problem with the ipad is thie asynchronous render.
-     // Maybe two renders occur at the same time.
-     //this.EventuallyRender();
-     draw();
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleMouseDown(event);
+    }
 
-     // Decay the momentum.
-     this.MomentumX *= decay;
-     this.MomentumY *= decay;
-     this.MomentumScale *= decay;
-     this.MomentumRoll *= decay;
+    // Choose what interaction will be performed.
+    if (event.which == 1 ) {
+        if (event.ctrlKey) {
+            this.InteractionState = INTERACTION_ROTATE;
+        } else if (event.altKey) {
+            this.InteractionState = INTERACTION_ZOOM;
+        } else {
+            this.InteractionState = INTERACTION_DRAG;
+        }
+        return false;
+    }
+    if (event.which == 2 ) {
+        this.InteractionState = INTERACTION_ROTATE;
+        return false;
+    }
+    return true;
+}
 
-     if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
-         Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
-         // Change is small. Stop the motion.
-         this.MomentumTimerId = 0;
-         if (this.InteractionState != INTERACTION_NONE) {
-             this.InteractionState = INTERACTION_NONE;
-             if (RECORDER_WIDGET) {
-                 RECORDER_WIDGET.RecordState();
-             }
-         }
-         this.UpdateZoomGui();
-     } else {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-     }
- }
+Viewer.prototype.HandleDoubleClick = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleDoubleClick(event);
+    }
 
+    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    if (event.which == 1) {
+        this.AnimateZoomTo(0.5, mWorld);
+    } else if (event.which == 3) {
+        this.AnimateZoomTo(2.0, mWorld);
+    }
+    return true;
+}
 
- Viewer.prototype.ConstrainCamera = function () {
-     var bounds = this.GetOverViewBounds();
-     if ( ! bounds) {
-         // Cache has not been set.
-         return;
-     }
-     var spacing = this.MainView.GetLeafSpacing();
-     var viewport = this.MainView.GetViewport();
-     var cam = this.MainView.Camera;
+Viewer.prototype.HandleMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.FireFoxWhich = 0;
+    this.RecordMouseUp(event);
 
-     var modified = false;
-     if (cam.FocalPoint[0] < bounds[0]) {
-         cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[0] > bounds[1]) {
-         cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] < bounds[2]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] > bounds[3]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
-         modified = true;
-     }
-     var heightMax = 2*(bounds[3]-bounds[2]);
-     if (cam.GetHeight() > heightMax) {
-         cam.SetHeight(heightMax);
-         this.ZoomTarget = heightMax;
-         modified = true;
-     }
-     var heightMin = viewport[3] * spacing * 0.5;
-     if (cam.GetHeight() < heightMin) {
-         cam.SetHeight(heightMin);
-         this.ZoomTarget = heightMin;
-         modified = true;
-     }
-     if (modified) {
-         cam.ComputeMatrix();
-     }
- }
+    if (this.RotateIconDrag) {
+        this.RollUp(event);
+        return false;
+    }
 
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseUp(event);
+    }
 
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseUp(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    if (this.InteractionState != INTERACTION_NONE) {
+        this.InteractionState = INTERACTION_NONE;
+        if (RECORDER_WIDGET) {
+            RECORDER_WIDGET.RecordState();
+        }
+    }
 
-     this.FireFoxWhich = event.which;
-     event.preventDefault(); // Keep browser from selecting images.
-     SA.EventManager.RecordMouseDown(event);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.RotateIconDrag) {
-         // Problem with leaving the browser with mouse down.
-         // This is a mouse down outside the icon, so the mouse must
-         // have been let up and we did not get the event.
-         this.RotateIconDrag = false;
-     }
+Viewer.prototype.ComputeMouseWorld = function(event) {
+    // We need to save these for pasting annotation.
+    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    // Put this extra ivar in the even object.
+    // This could be obsolete because we never pass this event to another object.
+    event.worldX = this.MouseWorld[0];
+    event.worldY= this.MouseWorld[1];
+}
 
-     if (SA.EventManager.DoubleClick) {
-         // Without this, double click selects sub elementes.
-         event.preventDefault();
-         return this.HandleDoubleClick(event);
-     }
+Viewer.prototype.HandleMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleMouseDown(event);
-     }
+    event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return; }
+    this.ComputeMouseWorld(event);
 
-     // Choose what interaction will be performed.
-     if (event.which == 1 ) {
-         if (event.ctrlKey) {
-             this.InteractionState = INTERACTION_ROTATE;
-         } else if (event.altKey) {
-             this.InteractionState = INTERACTION_ZOOM;
-         } else {
-             this.InteractionState = INTERACTION_DRAG;
-         }
-         return false;
-     }
-     if (event.which == 2 ) {
-         this.InteractionState = INTERACTION_ROTATE;
-         return false;
-     }
-     return true;
- }
+    // I think we need to deal with the move here because the mouse can
+    // exit the icon and the events are lost.
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
 
- Viewer.prototype.HandleDoubleClick = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleDoubleClick(event);
-     }
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseMove(event);
+    }
 
-     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     if (event.which == 1) {
-         this.AnimateZoomTo(0.5, mWorld);
-     } else if (event.which == 3) {
-         this.AnimateZoomTo(2.0, mWorld);
-     }
-     return true;
- }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseMove(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     this.FireFoxWhich = 0;
-     SA.EventManager.RecordMouseUp(event);
+    //if (event.which == 0) { // Firefox does not set which for motion events.
+    if ( ! this.FireFoxWhich) {
+        // See if any widget became active.
+        if (this.AnnotationVisibility) {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if (this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return false; // trying to keep the browser from selecting images
+                }
+            }
+        }
 
-     if (this.RotateIconDrag) {
-         this.RollUp(event);
-         return false;
-     }
+        return false; // trying to keep the browser from selecting images
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseUp(event);
-     }
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseUp(event);
-         return false; // trying to keep the browser from selecting images
-     }
+    // Drag camera in main view.
+    // Dragging is too slow.  I want to accelerate dragging the further
+    // this mouse moves.  This is a moderate change, so I am
+    // going to try to accelerate with speed.
+    if (this.InteractionState == INTERACTION_ROTATE) {
+        // Rotate
+        // Origin in the center.
+        // GLOBAL GL will use view's viewport instead.
+        var cx = x - (this.MainView.Viewport[2]*0.5);
+        var cy = y - (this.MainView.Viewport[3]*0.5);
+        // GLOBAL views will go away when views handle this.
+        this.MainView.Camera.HandleRoll(cx, cy,
+                                        this.MouseDeltaX,
+                                        this.MouseDeltaY);
+        this.RollTarget = this.MainView.Camera.Roll;
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_ZOOM) {
+        var dy = this.MouseDeltaY / this.MainView.Viewport[2];
+        this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
+                                       / (1.0 + (dy* 5.0)));
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_DRAG) {
+        // Translate
+        // Convert to view [-0.5,0.5] coordinate system.
+        // Note: the origin gets subtracted out in delta above.
+        var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
+        var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
+        // compute the speed of the movement.
+        var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
+        speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+        // I am not sure I like the speed acceleration.
+        // Lets try a limit.
+        if (speed > 3.0) { speed = 3.0; }
+        dx = dx * speed;
+        dy = dy * speed;
+        this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+    }
+    // The only interaction that does not go through animate camera.
+    this.TriggerInteraction();
+    this.EventuallyRender(true);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.InteractionState != INTERACTION_NONE) {
-         this.InteractionState = INTERACTION_NONE;
-         if (RECORDER_WIDGET) {
-             RECORDER_WIDGET.RecordState();
-         }
-     }
+Viewer.prototype.HandleMouseWheel = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+            return false;
+        }
+    }
 
-     return false; // trying to keep the browser from selecting images
- }
+    if ( ! event.offsetX) {
+        // for firefox
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
 
- Viewer.prototype.ComputeMouseWorld = function(event) {
-     // We need to save these for pasting annotation.
-     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     // Put this extra ivar in the even object.
-     // This could be obsolete because we never pass this event to another object.
-     event.worldX = this.MouseWorld[0];
-     event.worldY= this.MouseWorld[1];
- }
+    // We want to accumulate the target, but not the duration.
+    var tmp = 0;
+    if (event.deltaY) {
+        tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+        tmp = event.wheelDelta;
+    }
+    // Wheel event seems to be in increments of 3.
+    // depreciated mousewheel had increments of 120....
+    // Initial delta cause another bug.
+    // Lets restrict to one zoom step per event.
+    if (tmp > 0) {
+        this.ZoomTarget *= 1.1;
+    } else if (tmp < 0) {
+        this.ZoomTarget /= 1.1;
+    }
 
+    // Compute translate target to keep position in the same place.
+    //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+    this.TranslateTarget[0] = position[0]
+        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+    this.TranslateTarget[1] = position[1]
+        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
- Viewer.prototype.HandleMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     event.preventDefault(); // Keep browser from selecting images.
-     if ( ! SA.EventManager.RecordMouseMove(event)) { return; }
-     this.ComputeMouseWorld(event);
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+    return true;
+}
 
-     // I think we need to deal with the move here because the mouse can
-     // exit the icon and the events are lost.
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
+// returns false if the event was "consumed" (browser convention).
+// Returns true if nothing was done with the event.
+Viewer.prototype.HandleKeyDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
+        if ( ! SAVING_IMAGE) {
+            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE.Title.text('Saving');
+            SAVING_IMAGE.Body.css({'margin':'1em 2em'});
+            SAVING_IMAGE.WaitingImage = $('<img>')
+                .appendTo(SAVING_IMAGE.Body)
+                .attr("src", SA.ImagePathUrl+"circular.gif")
+                .attr("alt", "waiting...")
+                .addClass("sa-view-save")
+            SAVING_IMAGE.ApplyButton.hide();
+            SAVING_IMAGE.SavingFlag = false;
+            SAVING_IMAGE.Count = 0;
+        }
+        if ( ! SAVING_IMAGE.SavingFlag) {
+            SAVING_IMAGE.SavingFlag = true;
+            SAVING_IMAGE.Show(1);
+            this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                                     function() {
+                                         SAVING_IMAGE.SavingFlag = false;
+                                         SAVING_IMAGE.Count += 1;
+                                         SAVING_IMAGE.Hide();
+                                     });
+        }
+        return false;
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseMove(event);
-     }
+    // Handle paste
+    if (event.keyCode == 86 && event.ctrlKey) {
+        // control-v for paste
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseMove(event);
-         return false; // trying to keep the browser from selecting images
-     }
+        var clip = JSON.parse(localStorage.ClipBoard);
+        if (clip.Type == "CircleWidget") {
+            var widget = new CircleWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "PolylineWidget") {
+            var widget = new PolylineWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "TextWidget") {
+            var widget = new TextWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
-     //if (event.which == 0) { // Firefox does not set which for motion events.
-     if ( ! this.FireFoxWhich) {
-         // See if any widget became active.
-         if (this.AnnotationVisibility) {
-             for (var i = 0; i < this.WidgetList.length; ++i) {
-                 if (this.WidgetList[i].CheckActive(event)) {
-                     this.ActivateWidget(this.WidgetList[i]);
-                     return false; // trying to keep the browser from selecting images
-                 }
-             }
-         }
+        return false;
+    }    
 
-         return false; // trying to keep the browser from selecting images
-     }
+    //----------------------
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
+            return false;
+        }
+    }
 
-     var x = event.offsetX;
-     var y = event.offsetY;
+    if (String.fromCharCode(event.keyCode) == 'R') {
+        //this.MainView.Camera.Reset();
+        this.MainView.Camera.ComputeMatrix();
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.EventuallyRender(true);
+        return false;
+    }
 
-     // Drag camera in main view.
-     // Dragging is too slow.  I want to accelerate dragging the further
-     // this mouse moves.  This is a moderate change, so I am
-     // going to try to accelerate with speed.
-     if (this.InteractionState == INTERACTION_ROTATE) {
-         // Rotate
-         // Origin in the center.
-         // GLOBAL GL will use view's viewport instead.
-         var cx = x - (this.MainView.Viewport[2]*0.5);
-         var cy = y - (this.MainView.Viewport[3]*0.5);
-         // GLOBAL views will go away when views handle this.
-         this.MainView.Camera.HandleRoll(cx, cy,
-                                         SA.EventManager.MouseDeltaX,
-                                         SA.EventManager.MouseDeltaY);
-         //if (this.OverView) {
-         //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
-         //}
-         this.RollTarget = this.MainView.Camera.Roll;
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_ZOOM) {
-         var dy = SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
-                                        / (1.0 + (dy* 5.0)));
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_DRAG) {
-         // Translate
-         // Convert to view [-0.5,0.5] coordinate system.
-         // Note: the origin gets subtracted out in delta above.
-         var dx = -SA.EventManager.MouseDeltaX / this.MainView.Viewport[2];
-         var dy = -SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         // compute the speed of the movement.
-         var speed = Math.sqrt(dx*dx + dy*dy) / SA.EventManager.MouseDeltaTime;
-         speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
-         // I am not sure I like the speed acceleration.
-         // Lets try a limit.
-         if (speed > 3.0) { speed = 3.0; }
-         dx = dx * speed;
-         dy = dy * speed;
-         this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
-     }
-     // The only interaction that does not go through animate camera.
-     this.TriggerInteraction();
-     this.EventuallyRender(true);
-     return false; // trying to keep the browser from selecting images
- }
-
- Viewer.prototype.HandleMouseWheel = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-             return false;
-         }
-     }
-
-     if ( ! event.offsetX) {
-         // for firefox
-         event.offsetX = event.layerX;
-         event.offsetY = event.layerY;
-     }
-
-     // We want to accumulate the target, but not the duration.
-     var tmp = 0;
-     if (event.deltaY) {
-         tmp = event.deltaY;
-     } else if (event.wheelDelta) {
-         tmp = event.wheelDelta;
-     }
-     // Wheel event seems to be in increments of 3.
-     // depreciated mousewheel had increments of 120....
-     // Initial delta cause another bug.
-     // Lets restrict to one zoom step per event.
-     if (tmp > 0) {
-         this.ZoomTarget *= 1.1;
-     } else if (tmp < 0) {
-         this.ZoomTarget /= 1.1;
-     }
-
-     // Compute translate target to keep position in the same place.
-     //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-     //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-     var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-     this.TranslateTarget[0] = position[0]
-         - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-     this.TranslateTarget[1] = position[1]
-         - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-     this.RollTarget = this.MainView.Camera.Roll;
-
-     this.AnimateLast = new Date().getTime();
-     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     this.EventuallyRender(true);
-     return true;
- }
-
- var SAVING_IMAGE = undefined;
-
- // returns false if the event was "consumed" (browser convention).
- // Returns true if nothing was done with the event.
- Viewer.prototype.HandleKeyDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
-         if ( ! SAVING_IMAGE) {
-             SAVING_IMAGE = new Dialog();
-             SAVING_IMAGE.Title.text('Saving');
-             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
-             SAVING_IMAGE.WaitingImage = $('<img>')
-                 .appendTo(SAVING_IMAGE.Body)
-                 .attr("src", SA.ImagePathUrl+"circular.gif")
-                 .attr("alt", "waiting...")
-                 .addClass("sa-view-save")
-             SAVING_IMAGE.ApplyButton.hide();
-             SAVING_IMAGE.SavingFlag = false;
-             SAVING_IMAGE.Count = 0;
-         }
-         if ( ! SAVING_IMAGE.SavingFlag) {
-             SAVING_IMAGE.SavingFlag = true;
-             SAVING_IMAGE.Show(1);
-             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
-                                      function() {
-                                          SAVING_IMAGE.SavingFlag = false;
-                                          SAVING_IMAGE.Count += 1;
-                                          SAVING_IMAGE.Hide();
-                                      });
-         }
-         return false;
-     }
-
-     // Handle paste
-     if (event.keyCode == 86 && event.ctrlKey) {
-         // control-v for paste
-
-         var clip = JSON.parse(localStorage.ClipBoard);
-         if (clip.Type == "CircleWidget") {
-             var widget = new CircleWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "PolylineWidget") {
-             var widget = new PolylineWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "TextWidget") {
-             var widget = new TextWidget(this, "");
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-
-         return false;
-     }    
-
-     //----------------------
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-             return false;
-         }
-     }
-
-     if (String.fromCharCode(event.keyCode) == 'R') {
-         //this.MainView.Camera.Reset();
-         this.MainView.Camera.ComputeMatrix();
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.EventuallyRender(true);
-         return false;
-     }
-
-     if (event.keyCode == 38) {
-         // Up cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = -0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 40) {
-         // Down cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = 0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 37) {
-         // Left cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = -0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 39) {
-         // Right cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     }
-     return true;
- }
-
+    if (event.keyCode == 38) {
+        // Up cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = -0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 40) {
+        // Down cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = 0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 37) {
+        // Left cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = -0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 39) {
+        // Right cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    }
+    return true;
+}
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
@@ -81912,579 +81861,6 @@ Viewer.prototype.SetCopyrightVisibility = function(vis) {
         this.CopyrightWrapper.hide();
     }
 }
-
-
-
-
-
-
-// This used to receive all events and route them to the two viewers.
-// Now the viewers receive their own events, and this class is less
-// necessary.  I may be able to get rid of it (or make it a minimal helper).
-
-
-
-function EventManager (canvas) {
-    this.MouseUpTime = 0;
-    this.MouseTime = 0;
-    this.DoubleClick = false;
-
-    // I cannot figure out how to do this with focus of canvas ...
-    // KeyFocus
-    this.HasFocus = true;
-    this.Canvas = canvas[0];
-    this.Viewers = [];
-    this.CurrentViewer = undefined;
-
-    this.ShiftKeyPressed = false;
-    this.ControlKeyPressed = false;
-    this.Key = '';
-    this.MouseX = 0;
-    this.MouseY = 0;
-    this.LastMouseX = 0;
-    this.LastMouseY = 0;
-    this.MouseDown = false;
-    this.SweepListeners = [];
-    this.SelectedSweepListener = undefined;
-    this.StartTouchTime = 0;
-
-    // TODO: Move these events into a stack manager.
-    var self = this;
-    //$('body').keydown(function (e) {self.HandleKeyDown(e);});
-    //$('body').keyup(function (e) {self.HandleKeyUp(e);});
-
-    this.CursorFlag = false;
-
-    if (MOBILE_DEVICE == 'Andriod') {
-        var width = CANVAS.innerWidth();
-        var height = CANVAS.innerHeight();
-        var self = this;
-        //this.FullScreenSweep = this.AddSweepListener(width*0.5, height*0.95,  0,1, "Full Screen",
-        //                                             function(sweep) {self.GoFullScreen();});
-    }
-
-    this.StartInteractionListeners = [];
-
-    var self = this;
-    document.body.addEventListener(
-        "touchcancel", 
-        function () {
-            self.HandleTouchCancel();
-        },
-        false);
-}
-
-EventManager.prototype.OnStartInteraction = function(callback) {
-  this.StartInteractionListeners.push(callback);
-}
-
-EventManager.prototype.TriggerStartInteraction = function() {
-  for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
-    callback = this.StartInteractionListeners[i];
-    callback();
-  }
-}
-
-
-EventManager.prototype.AddViewer = function(viewer) {
-    this.Viewers.push(viewer);
-}
-
-EventManager.prototype.SetMousePositionFromEvent = function(event) {
-    // TODO: Get rid of system event.
-    this.SystemEvent = event;
-    if (event.offsetX && event.offsetY) {
-        this.MouseX = event.offsetX;
-        this.MouseY = event.offsetY;
-        this.MouseTime = (new Date()).getTime();
-    } else if (event.layerX && event.layerY) {
-        this.MouseX = event.layerX;
-        this.MouseY = event.layerY;
-        this.MouseTime = (new Date()).getTime();
-        event.offsetX = event.layerX;
-        event.offsetY = event.layerY;
-    }
-}
-
-
-var PENDING_SHOW_PROPERTIES_MENU = false;
-var SHOW_PROPERTIES_MOUSE_POSITION;
-function ShowPendingPropertiesMenu() {
-  if (PENDING_SHOW_PROPERTIES_MENU) {
-    ShowPropertiesMenu(SHOW_PROPERTIES_MOUSE_POSITION[0], SHOW_PROPERTIES_MOUSE_POSITION[1]);
-  }
-}
-
-EventManager.prototype.RecordMouseDown = function(event) {
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-    this.LastMouseTime = this.MouseTime;
-    this.SetMousePositionFromEvent(event);
-    
-    // TODO:  Formalize a call back to make GUI disappear when 
-    // navigation starts.  I think I did this already but have not
-    // converted this code yet.
-    // Get rid of the favorites and the link divs if they are visible
-    if (typeof LINK_DIV !== 'undefined' && LINK_DIV.is(':visible')) { 
-	      LINK_DIV.fadeOut();
-    }
-    if (typeof FAVORITES_WIDGET !== 'undefined' && 
-	      FAVORITES_WIDGET.hidden == false) { 
-	      FAVORITES_WIDGET.ShowHideFavorites();
-    }
-    
-    var date = new Date();
-    var dTime = date.getTime() - this.MouseUpTime;
-    if (dTime < 200.0) { // 200 milliseconds
-        this.DoubleClick = true;
-    }
-            
-    /*
-      if (this.CurrentViewer) {
-      this.TriggerStartInteraction();
-      }
-    */
-}
-
-EventManager.prototype.RecordMouseUp = function(event) {
-    //if ( ! this.MouseDown) {
-        // This will occur if on double clicks (and probably if mouse down was outside canvas).
-   //     return;
-    //}
-    this.SetMousePositionFromEvent(event);
-    this.MouseDown = false;
-    
-    // Record time so we can detect double click.
-    var date = new Date();
-    this.MouseUpTime = date.getTime();
-    this.DoubleClick = false;
-}
-
-EventManager.prototype.RecordMouseMove = function(event) {
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-    this.LastMouseTime = this.MouseTime;
-    this.SetMousePositionFromEvent(event);
-    this.MouseDeltaX = this.MouseX - this.LastMouseX;
-    this.MouseDeltaY = this.MouseY - this.LastMouseY;
-    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
-    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
-}
-
-EventManager.prototype.HandleMouseWheel = function(event) {
-  this.SetMousePositionFromEvent(event);
-  if (this.CurrentViewer) {
-    event.preventDefault();
-    //event.stopPropagation(); // does not work.  Right mouse still brings up browser menu.
-    if (this.CurrentViewer.HandleMouseWheel(this)) {
-      this.TriggerStartInteraction();
-    }
-  }
-}
-
-//------------- Keys ---------------
-
-EventManager.prototype.FocusIn = function() {
-  this.HasFocus = true;
-}
-
-EventManager.prototype.FocusOut = function() {
-  this.HasFocus = false;
-}
-
-EventManager.prototype.HandleKeyDown = function(event) {
-    if ( ! this.HasFocus) {return true;}
-    
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = true;
-        // Do not forward modifier keys events to objects that consume keypresses.
-        return true;
-    }
-    if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = true;
-        return true;
-    }
-
-    // Handle undo and redo (cntrl-z, cntrl-y)
-    if (this.ControlKeyPressed && event.keyCode == 90) {
-        // Function in recordWidget.
-        UndoState();
-        return false;
-    } else if (this.ControlKeyPressed && event.keyCode == 89) {
-        // Function in recordWidget.
-        RedoState();
-        return false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyDown(event);
-        return true;
-    }
-
-    return true;
-}
-
-EventManager.prototype.HandleKeyUp = function(event) {
-    if ( ! this.HasFocus) {return true;} 
-
-
-    // For debugging deformable alignment in stacks.
-    if (event.keyCode == 90) { // z = 90
-        if (event.shiftKey) {
-            DeformableAlignViewers();
-            return true;
-        }
-    }
-
-    // It is sort of a hack to check for the cursor mode here, but it
-    // affects both viewers.
-    if (event.keyCode == 88) { // x = 88
-        // I am using the 'c' key to display to focal point cursor
-        //this.CursorFlag = false;
-        // what a pain.  Holding x down sometimes blocks mouse events.
-        // Have to change to toggle.
-        this.CursorFlag =  ! this.CursorFlag;
-        if (event.shiftKey && this.CursorFlag) {
-            testAlignTranslation();
-            var self = this;
-            window.setTimeout(function() {self.CursorFlag = false;}, 1000);
-        }
-
-        eventuallyRender();
-        return false;
-    }
-
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = false;
-        //this.CursorFlag = false;
-    } else if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyUp(event);
-        return true;
-    }
-
-    return true;
-}
-
-
-//==============================================================================
-// Touch events.
-
-EventManager.prototype.IsFullScreen = function() {
-    return (document.fullScreenElement && document.fullScreenElement !==  null) ||
-           (document.mozFullScreen || document.webkitIsFullScreen);
-}
-
-
-EventManager.prototype.GoFullScreen = function () {
-    // Deactivate the listener
-    if (this.FullScreenSweep) {
-        this.FullScreenSweep.Active = false;
-    }
-
-    if (! this.IsFullScreen()) {
-        var docElm = document.documentElement;
-        if (docElm.requestFullscreen) {
-            docElm.requestFullscreen();
-        }
-        else if (docElm.mozRequestFullScreen) {
-            docElm.mozRequestFullScreen();
-        }
-        else if (docElm.webkitRequestFullScreen) {
-            docElm.webkitRequestFullScreen();
-        }
-    }
-    handleResize();
-    eventuallyRender();
-}
-
-
-EventManager.prototype.NextNote = function () {
-    NextNoteCallback();
-}
-EventManager.prototype.PreviousNote = function () {
-    PreviousNoteCallback();
-}
-
-
-
-function SweepListener () {
-  this.Active = true;
-  this.Location = [0,0];
-  this.Direction = [1,0];
-  this.Label = "Sweep Here";
-
-  this.Arrow = $('<img>').appendTo('body')
-                        .hide()
-                        .css({
-                          'position': 'absolute',
-                          'width': '20px',
-                          'z-index': '1',
-                          'opacity': '0.8'})
-                        .attr('src',SA.ImagePathUrl+"sweepArrowUp.png");
-
-  this.Div =
-    $('<div>').appendTo('body')
-              .hide()
-              .text("sweep")
-              .attr('id','TEST')
-              .css({'opacity': '0.8',
-                    'z-index': '1',
-                    'position': 'absolute',
-                    'color': '#90b0ff',
-                    'background-color' : '#ffffff'
-                    });
-}
-
-SweepListener.prototype.Hide = function() {
-  this.Arrow.hide();
-  this.Div.hide();
-}
-
-SweepListener.prototype.Show = function() {
-  if ( ! this.Active) {
-    this.Hide();
-    return;
-  }
-  this.Arrow.show();
-  this.Div.show();
-}
-
-SweepListener.prototype.Update = function() {
-  this.Div.text(this.Label);
-  var arrowWidth = this.Arrow.innerWidth();
-  var arrowHeight = this.Arrow.innerWidth();
-  var divWidth = this.Div.innerWidth();
-  var divHeight = this.Div.innerHeight();
-
-  var x = this.Location[0];
-  var y = this.Location[1];
-  if (this.Direction[0] == 1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowRight.png")
-              .css({'left': x+'px',
-                    'bottom' : (y-arrowWidth/2)+'px'});
-    // I cannot predict the location with rotated text.
-    //this.Div.css({'transform' : 'rotate(90deg)',
-    //              '-ms-transform' : 'rotate(90deg)',
-    //              '-webkit-transform' : 'rotate(90deg)'});
-    this.Div.css({'left': (x+(arrowWidth-divWidth)/2)+'px',
-                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
-  } else if (this.Direction[0] == -1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowLeft.png")
-              .css({'left': (x-arrowWidth)+'px',
-                    'bottom' : (y-arrowWidth/2)+'px'});
-    this.Div.css({'left': (x+(-arrowWidth-divWidth)/2)+'px',
-                  'bottom' : (y-divHeight-(arrowHeight/2))+'px'});
-  } else if (this.Direction[1] == 1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
-              .css({'left': (x-arrowWidth/2)+'px',
-                    'bottom' : y+'px'});
-    this.Div.css({'left': (x-divWidth/2)+'px',
-                  'bottom' : (y-divHeight)+'px'});
-  } else if (this.Direction[1] == -1) {
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowDown.png");
-    this.Arrow.attr('src',SA.ImagePathUrl+"sweepArrowUp.png")
-              .css({'left': (x-arrowWidth/2)+'px',
-                    'bottom' : (y-arrowHeight)+'px'});
-    this.Div.css({'left': (x-divWidth)+'px',
-                  'bottom' : y+'px'});
-  }
-}
-
-
-// Configurable sweep events.
-// Only horizontal and vertical sweep directions for now.
-EventManager.prototype.AddSweepListener = function(x, y, dx, dy, label, callback) {
-  var sweep = new SweepListener();
-  sweep.Location = [x,y];
-  sweep.Direction = [dx,dy];
-  sweep.Label = label;
-  sweep.Callback = callback;
-  sweep.Update();
-  this.SweepListeners.push(sweep);
-  return sweep;
-}
-
-EventManager.prototype.DetectSweepEvent = function(dx,dy) {
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    if (sweep.Active) {
-      if (dx*sweep.Direction[0] + dy*sweep.Direction[1] > 0.5) {
-        // The sweep is the correct direction.
-        if ((this.MouseX-sweep.Location[0])*sweep.Direction[0] +
-            (this.MouseY-sweep.Location[1])*sweep.Direction[1] >= 0.0) {
-          if ((this.LastMouseX-sweep.Location[0])*sweep.Direction[0] +
-              (this.LastMouseY-sweep.Location[1])*sweep.Direction[1] < 0.0) {
-            this.SelectedSweepListener = sweep;
-          }
-        }
-      }
-    }
-  }
-}
-
-EventManager.prototype.ShowSweepListeners = function() {
-  // User may have taken it out of fullscreen.
-  if ( ! this.IsFullScreen() && this.FullScreenSweep) {
-    this.FullScreenSweep.Active = true;
-  }
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    sweep.Show();
-  }
-}
-
-EventManager.prototype.HideSweepListeners = function() {
-  this.SelectedSweepListener = undefined;
-  for (var i = 0; i < this.SweepListeners.length; ++i) {
-    var sweep = this.SweepListeners[i];
-    sweep.Hide();
-  }
-}
-
-
-
-
-
-// Save the previous touches and record the new
-// touch locations in viewport coordinates.
-EventManager.prototype.HandleTouch = function(e, startFlag, viewer) {
-    e.preventDefault();
-    var date = new Date();
-    var t = date.getTime();
-    // I have had trouble on the iPad with 0 delta times.
-    // Lets see how it behaves with fewer events.
-    // It was a bug in iPad4 Javascript.
-    // This throttle is not necessary.
-    if (t-this.Time < 20 && ! startFlag) { return false; }
-
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    if (!e) {
-        var e = event;
-    }
-
-    // Still used on mobile devices?
-    var viewport = viewer.GetViewport();
-    this.SystemEvent = e;
-    this.LastTouches = this.Touches;
-    var can = this.Canvas;
-    this.Touches = [];
-    for (var i = 0; i < e.targetTouches.length; ++i) {
-        var offset = viewer.MainView.Canvas.offset();
-        var x = e.targetTouches[i].pageX - offset.left;
-        var y = e.targetTouches[i].pageY - offset.top;
-        this.Touches.push([x,y]);
-    }
-
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-
-    // Compute the touch average.
-    var numTouches = this.Touches.length;
-    this.MouseX = this.MouseY = 0.0;
-    for (var i = 0; i < numTouches; ++i) {
-        this.MouseX += this.Touches[i][0];
-        this.MouseY += this.Touches[i][1];
-    }
-    this.MouseX = this.MouseX / numTouches;
-    this.MouseY = this.MouseY / numTouches;
-
-    // Hack because we are moving away from using the event manager
-    // Mouse interaction are already independant...
-    this.offsetX = this.MouseX;
-    this.offsetY = this.MouseY;
-
-
-    return true;
-}
-
-
-EventManager.prototype.HandleTouchStart = function(e, viewer) {
-    this.HandleTouch(e, true, viewer);
-    if (this.StartTouchTime == 0) {
-        this.StartTouchTime = this.Time;
-    }
-
-    if (viewer) {
-        if (viewer.HandleTouchStart(this)) {
-            this.TriggerStartInteraction();
-        }
-    }
-}
-
-
-EventManager.prototype.HandleTouchMove = function(e, viewer) {
-    // Put a throttle on events
-    if ( ! this.HandleTouch(e, false, viewer)) { return; }
-
-    if (SA.DualDisplay.NavigationWidget && 
-        SA.DualDisplay.NavigationWidget.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        SA.DualDisplay.NavigationWidget.ToggleVisibility();
-    }
-
-    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
-               MOBILE_ANNOTATION_WIDGET.Visibility) {
-        // No slide interaction with the interface up.
-        // I had bad interaction with events going to browser.
-        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-    }
-
-    if (this.Touches.length == 1 && viewer) {
-        viewer.HandleTouchPan(this);
-        return;
-    }
-    if (this.Touches.length == 2 && viewer) {
-        viewer.HandleTouchPinch(this);
-        return
-    }
-    if (this.Touches.length == 3 && viewer) {
-        viewer.HandleTouchRotate(this);
-        return
-    }
-}
-
-EventManager.prototype.HandleTouchEnd = function(e, viewer) {
-    e.preventDefault();
-
-    var t = new Date().getTime();
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    t = t - this.StartTouchTime;
-    if (e.targetTouches.length == 0 && MOBILE_DEVICE) {
-        this.StartTouchTime = 0;
-        if (t < 90) {
-            // We should not have a navigation widget on mobile
-            // devices. (maybe iPad?).
-            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
-                SA.DualDisplay.NavigationWidget.ToggleVisibility();
-            }
-            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
-                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
-            }
-            return;
-        }
-        if (viewer) {
-            viewer.HandleTouchEnd(this);
-        }
-    }
-}
-
-EventManager.prototype.HandleTouchCancel = function(event) {
-    this.MouseDown = false;
-}
-
 
 
 
@@ -82899,8 +82275,6 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-    // This is necessary for some reason.
-    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')
@@ -86593,8 +85967,8 @@ function GenerateContourContainingSeed(d, threshold, xSeed, ySeed) {
 // The seed is in screen coordinates.
 // TODO: Reduce the resolution. Keep the data for altering the threshold.
 function GenerateContourFromViewer(viewer, threshold) {
-    var xSeed = SA.EventManager.LastMouseX;
-    var ySeed = SA.EventManager.LastMouseY;
+    var xSeed = viewer.LastMouseX;
+    var ySeed = viewer.LastMouseY;
 
     var ctx = viewer.MainView.Context2d;
     var viewport = viewer.GetViewport();
@@ -90435,7 +89809,6 @@ Dialog.prototype.Show = function(modal) {
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        SA.EventManager.HasFocus = false;
         SA.DialogOverlay.off('click.dialog');
     } else {
         SA.DialogOverlay.on(
@@ -90446,7 +89819,6 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    SA.EventManager.HasFocus = true;
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);
@@ -92421,17 +91793,17 @@ function Viewer (parent) {
     can.on(
         "touchstart.viewer",
         function(event){
-            return SA.EventManager.HandleTouchStart(event.originalEvent, self);
+            return self.HandleTouchStart(event.originalEvent);
         });
     can.on(
         "touchmove.viewer",
         function(event){
-            return SA.EventManager.HandleTouchMove(event.originalEvent, self);
+            return self.HandleTouchMove(event.originalEvent);
         });
     can.on(
         "touchend.viewer",
         function(event){
-            SA.EventManager.HandleTouchEnd(event.originalEvent, self);
+            self.HandleTouchEnd(event.originalEvent);
             return true;
         });
 
@@ -93288,7 +92660,7 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
-    SA.EventManager.CursorFlag = false;
+    SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
@@ -93508,7 +92880,7 @@ Viewer.prototype.Draw = function() {
 
     // I am using shift for stack interaction.
     // Turn on the focal point when shift is pressed.
-    if (SA.EventManager.CursorFlag && SA.Edit) {
+    if (SA.StackCursorFlag && SA.Edit) {
         this.MainView.DrawFocalPoint();
         if (this.StackCorrelations) {
             this.MainView.DrawCorrelations(this.StackCorrelations, this.RecordIndex);
@@ -93624,9 +92996,135 @@ Viewer.prototype.DisableInteraction = function() {
     this.InteractionEnabled = false;
 }
 
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.RecordMouseDown = function(event) {
+    // Evaluate where LastMouseX / Y are used.
+    this.LastMouseX = this.MouseX || 0;
+    this.LastMouseY = this.MouseY || 0;
+    this.LastMouseTime = this.MouseTime || 0;
+    this.SetMousePositionFromEvent(event);
+
+    // TODO:  Formalize a call back to make GUI disappear when
+    // navigation starts.  I think I did this already but have not
+    // converted this code yet.
+    // Get rid of the favorites and the link divs if they are visible
+    if ( SA.LinkDiv && SA.LinkDiv.is(':visible')) {
+	      SA.LinkDiv.fadeOut();
+    }
+    if (typeof FAVORITES_WIDGET !== 'undefined' &&
+	      FAVORITES_WIDGET.hidden == false) {
+	      FAVORITES_WIDGET.ShowHideFavorites();
+    }
+
+    var date = new Date();
+    var dTime = date.getTime() - this.MouseUpTime;
+    if (dTime < 200.0) { // 200 milliseconds
+        this.DoubleClick = true;
+    }
+
+    //this.TriggerStartInteraction();
+}
+// Used to be in EventManager. 
+// TODO: Evaluate and cleanup.
+Viewer.prototype.SetMousePositionFromEvent = function(event) {
+    if (event.offsetX && event.offsetY) {
+        this.MouseX = event.offsetX;
+        this.MouseY = event.offsetY;
+        this.MouseTime = (new Date()).getTime();
+    } else if (event.layerX && event.layerY) {
+        this.MouseX = event.layerX;
+        this.MouseY = event.layerY;
+        this.MouseTime = (new Date()).getTime();
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
+}
+Viewer.prototype.RecordMouseMove = function(event) {
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+    this.LastMouseTime = this.MouseTime;
+    this.SetMousePositionFromEvent(event);
+    this.MouseDeltaX = this.MouseX - this.LastMouseX;
+    this.MouseDeltaY = this.MouseY - this.LastMouseY;
+    this.MouseDeltaTime = this.MouseTime - this.LastMouseTime;
+    return this.MouseDeltaX != 0 || this.MouseDeltaY != 0;
+}
+Viewer.prototype.RecordMouseUp = function(event) {
+    this.SetMousePositionFromEvent(event);
+    this.MouseDown = false;
+
+    // Record time so we can detect double click.
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.DoubleClick = false;
+}
+
+
+
 /**/
+// Save the previous touches and record the new
+// touch locations in viewport coordinates.
+Viewer.prototype.HandleTouch = function(e, startFlag) {
+    var date = new Date();
+    var t = date.getTime();
+    // I have had trouble on the iPad with 0 delta times.
+    // Lets see how it behaves with fewer events.
+    // It was a bug in iPad4 Javascript.
+    // This throttle is not necessary.
+    if (t-this.Time < 20 && ! startFlag) { return false; }
+
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    if (!e) {
+        var e = event;
+    }
+
+    // Still used on mobile devices?
+    var viewport = this.GetViewport();
+    this.LastTouches = this.Touches;
+    var can = this.Canvas;
+    this.Touches = [];
+    for (var i = 0; i < e.targetTouches.length; ++i) {
+        var offset = this.MainView.Canvas.offset();
+        var x = e.targetTouches[i].pageX - offset.left;
+        var y = e.targetTouches[i].pageY - offset.top;
+        this.Touches.push([x,y]);
+    }
+
+    this.LastMouseX = this.MouseX;
+    this.LastMouseY = this.MouseY;
+
+    // Compute the touch average.
+    var numTouches = this.Touches.length;
+    this.MouseX = this.MouseY = 0.0;
+    for (var i = 0; i < numTouches; ++i) {
+        this.MouseX += this.Touches[i][0];
+        this.MouseY += this.Touches[i][1];
+    }
+    this.MouseX = this.MouseX / numTouches;
+    this.MouseY = this.MouseY / numTouches;
+
+    // Hack because we are moving away from using the event manager
+    // Mouse interaction are already independant...
+    this.offsetX = this.MouseX;
+    this.offsetY = this.MouseY;
+
+    return true;
+}
+
 Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
+
+    // Stuff from event manager
+    this.HandleTouch(e, true);
+    if (this.StartTouchTime == 0) {
+        this.StartTouchTime = this.Time;
+    }
+
+    this.TriggerStartInteraction();
+
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
     this.MomentumRoll = 0.0;
@@ -93652,8 +93150,8 @@ Viewer.prototype.HandleTouchStart = function(event) {
     // See if any widget became active.
     if (this.AnnotationVisibility) {
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            event.MouseX = event.Touches[touchIdx][0];
-            event.MouseY = event.Touches[touchIdx][1];
+            this.MouseX = event.Touches[touchIdx][0];
+            this.MouseY = event.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -93671,7 +93169,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || event.LastTouches.length != 1) {
+    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -93691,13 +93189,13 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
     // Convert to world by inverting the camera matrix.
     // I could simplify and just process the vector.
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
 
     // This is the new focal point.
     var dx = w1[0] - w0[0];
     var dy = w1[1] - w0[1];
-    var dt = event.Time - event.LastTime;
+    var dt = event.Time - this.LastTime;
 
     // Remember the last motion to implement momentum.
     var momentumX = dx/dt;
@@ -93717,7 +93215,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 3) {
+    if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
     }
@@ -93729,9 +93227,9 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
 
     // Compute rotation.
     // Consider weighting rotation by vector length to avoid over contribution of short vectors.
@@ -93740,11 +93238,11 @@ Viewer.prototype.HandleTouchRotate = function(event) {
     var y;
     var a = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -93785,7 +93283,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     var numTouches = event.Touches.length;
-    if (event.LastTouches.length != numTouches || numTouches  != 2) {
+    if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
     }
@@ -93797,9 +93295,9 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         this.MomentumTimerId = 0;
     }
 
-    w0 = this.ConvertPointViewerToWorld(event.LastMouseX, event.LastMouseY);
-    w1 = this.ConvertPointViewerToWorld(    event.MouseX,     event.MouseY);
-    var dt = event.Time - event.LastTime;
+    w0 = this.ConvertPointViewerToWorld(this.LastMouseX, this.LastMouseY);
+    w1 = this.ConvertPointViewerToWorld(    this.MouseX,     this.MouseY);
+    var dt = event.Time - this.LastTime;
     // iPad / iPhone must have low precision time
     if (dt == 0) {
         return;
@@ -93813,11 +93311,11 @@ Viewer.prototype.HandleTouchPinch = function(event) {
     var s0 = 0;
     var s1 = 0;
     for (var i = 0; i < numTouches; ++i) {
-        x = event.LastTouches[i][0] - event.LastMouseX;
-        y = event.LastTouches[i][1] - event.LastMouseY;
+        x = this.LastTouches[i][0] - this.LastMouseX;
+        y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - event.MouseX;
-        y = event.Touches[i][1] - event.MouseY;
+        x = event.Touches[i][0] - this.MouseX;
+        y = event.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -93868,491 +93366,480 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 
+Viewer.prototype.HandleMomentum = function(event) {
+    // I see an odd intermittent camera matrix problem
+    // on the iPad that looks like a thread safety issue.
+    if (this.MomentumTimerId) {
+        window.cancelAnimationFrame(this.MomentumTimerId)
+        this.MomentumTimerId = 0;
+    }
+
+    var t = new Date().getTime();
+    if (t - this.LastTime < 50) {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        return;
+    }
+
+    // Integrate the momentum.
+    this.LastTime = event.Time;
+    event.Time = t;
+    var dt = event.Time - this.LastTime;
+
+    var k = 200.0;
+    var decay = Math.exp(-dt/k);
+    var integ = (-k * decay + k);
+
+    var cam = this.MainView.Camera;
+    cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
+    cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
+    cam.Roll = cam.Roll - (this.MomentumRoll* integ);
+    cam.ComputeMatrix();
+    if (this.OverView) {
+        var cam2 = this.OverView.Camera;
+        cam2.Roll = cam.Roll;
+        cam2.ComputeMatrix();
+    }
+    // I think the problem with the ipad is thie asynchronous render.
+    // Maybe two renders occur at the same time.
+    //this.EventuallyRender();
+    draw();
+
+    // Decay the momentum.
+    this.MomentumX *= decay;
+    this.MomentumY *= decay;
+    this.MomentumScale *= decay;
+    this.MomentumRoll *= decay;
+
+    if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
+        Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
+        // Change is small. Stop the motion.
+        this.MomentumTimerId = 0;
+        if (this.InteractionState != INTERACTION_NONE) {
+            this.InteractionState = INTERACTION_NONE;
+            if (RECORDER_WIDGET) {
+                RECORDER_WIDGET.RecordState();
+            }
+        }
+        this.UpdateZoomGui();
+    } else {
+        var self = this;
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+    }
+}
 
 
+Viewer.prototype.ConstrainCamera = function () {
+    var bounds = this.GetOverViewBounds();
+    if ( ! bounds) {
+        // Cache has not been set.
+        return;
+    }
+    var spacing = this.MainView.GetLeafSpacing();
+    var viewport = this.MainView.GetViewport();
+    var cam = this.MainView.Camera;
 
+    var modified = false;
+    if (cam.FocalPoint[0] < bounds[0]) {
+        cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[0] > bounds[1]) {
+        cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] < bounds[2]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
+        modified = true;
+    }
+    if (cam.FocalPoint[1] > bounds[3]) {
+        cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
+        modified = true;
+    }
+    var heightMax = 2*(bounds[3]-bounds[2]);
+    if (cam.GetHeight() > heightMax) {
+        cam.SetHeight(heightMax);
+        this.ZoomTarget = heightMax;
+        modified = true;
+    }
+    var heightMin = viewport[3] * spacing * 0.5;
+    if (cam.GetHeight() < heightMin) {
+        cam.SetHeight(heightMin);
+        this.ZoomTarget = heightMin;
+        modified = true;
+    }
+    if (modified) {
+        cam.ComputeMatrix();
+    }
+}
 
- Viewer.prototype.HandleMomentum = function(event) {
-     // I see an odd intermittent camera matrix problem
-     // on the iPad that looks like a thread safety issue.
-     if (this.MomentumTimerId) {
-         window.cancelAnimationFrame(this.MomentumTimerId)
-         this.MomentumTimerId = 0;
-     }
+Viewer.prototype.HandleMouseDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     var t = new Date().getTime();
-     if (t - event.LastTime < 50) {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-         return;
-     }
+    this.FireFoxWhich = event.which;
+    event.preventDefault(); // Keep browser from selecting images.
+    this.RecordMouseDown(event);
 
-     // Integrate the momentum.
-     event.LastTime = event.Time;
-     event.Time = t;
-     var dt = event.Time - event.LastTime;
+    if (this.RotateIconDrag) {
+        // Problem with leaving the browser with mouse down.
+        // This is a mouse down outside the icon, so the mouse must
+        // have been let up and we did not get the event.
+        this.RotateIconDrag = false;
+    }
 
-     var k = 200.0;
-     var decay = Math.exp(-dt/k);
-     var integ = (-k * decay + k);
+    if (this.DoubleClick) {
+        // Without this, double click selects sub elementes.
+        event.preventDefault();
+        return this.HandleDoubleClick(event);
+    }
 
-     var cam = this.MainView.Camera;
-     cam.Translate(-(this.MomentumX * integ), -(this.MomentumY * integ), 0);
-     cam.SetHeight(cam.Height / ((this.MomentumScale * integ) + 1));
-     cam.Roll = cam.Roll - (this.MomentumRoll* integ);
-     cam.ComputeMatrix();
-     if (this.OverView) {
-         var cam2 = this.OverView.Camera;
-         cam2.Roll = cam.Roll;
-         cam2.ComputeMatrix();
-     }
-     // I think the problem with the ipad is thie asynchronous render.
-     // Maybe two renders occur at the same time.
-     //this.EventuallyRender();
-     draw();
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleMouseDown(event);
+    }
 
-     // Decay the momentum.
-     this.MomentumX *= decay;
-     this.MomentumY *= decay;
-     this.MomentumScale *= decay;
-     this.MomentumRoll *= decay;
+    // Choose what interaction will be performed.
+    if (event.which == 1 ) {
+        if (event.ctrlKey) {
+            this.InteractionState = INTERACTION_ROTATE;
+        } else if (event.altKey) {
+            this.InteractionState = INTERACTION_ZOOM;
+        } else {
+            this.InteractionState = INTERACTION_DRAG;
+        }
+        return false;
+    }
+    if (event.which == 2 ) {
+        this.InteractionState = INTERACTION_ROTATE;
+        return false;
+    }
+    return true;
+}
 
-     if (Math.abs(this.MomentumX) < 0.01 && Math.abs(this.MomentumY) < 0.01 &&
-         Math.abs(this.MomentumRoll) < 0.0002 && Math.abs(this.MomentumScale) < 0.00005) {
-         // Change is small. Stop the motion.
-         this.MomentumTimerId = 0;
-         if (this.InteractionState != INTERACTION_NONE) {
-             this.InteractionState = INTERACTION_NONE;
-             if (RECORDER_WIDGET) {
-                 RECORDER_WIDGET.RecordState();
-             }
-         }
-         this.UpdateZoomGui();
-     } else {
-         var self = this;
-         this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
-     }
- }
+Viewer.prototype.HandleDoubleClick = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (this.ActiveWidget != null) {
+        return this.ActiveWidget.HandleDoubleClick(event);
+    }
 
+    mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    if (event.which == 1) {
+        this.AnimateZoomTo(0.5, mWorld);
+    } else if (event.which == 3) {
+        this.AnimateZoomTo(2.0, mWorld);
+    }
+    return true;
+}
 
- Viewer.prototype.ConstrainCamera = function () {
-     var bounds = this.GetOverViewBounds();
-     if ( ! bounds) {
-         // Cache has not been set.
-         return;
-     }
-     var spacing = this.MainView.GetLeafSpacing();
-     var viewport = this.MainView.GetViewport();
-     var cam = this.MainView.Camera;
+Viewer.prototype.HandleMouseUp = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    var date = new Date();
+    this.MouseUpTime = date.getTime();
+    this.FireFoxWhich = 0;
+    this.RecordMouseUp(event);
 
-     var modified = false;
-     if (cam.FocalPoint[0] < bounds[0]) {
-         cam.SetFocalPoint( [bounds[0], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[0] > bounds[1]) {
-         cam.SetFocalPoint( [bounds[1], cam.FocalPoint[1]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] < bounds[2]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[2]]);
-         modified = true;
-     }
-     if (cam.FocalPoint[1] > bounds[3]) {
-         cam.SetFocalPoint( [cam.FocalPoint[0], bounds[3]]);
-         modified = true;
-     }
-     var heightMax = 2*(bounds[3]-bounds[2]);
-     if (cam.GetHeight() > heightMax) {
-         cam.SetHeight(heightMax);
-         this.ZoomTarget = heightMax;
-         modified = true;
-     }
-     var heightMin = viewport[3] * spacing * 0.5;
-     if (cam.GetHeight() < heightMin) {
-         cam.SetHeight(heightMin);
-         this.ZoomTarget = heightMin;
-         modified = true;
-     }
-     if (modified) {
-         cam.ComputeMatrix();
-     }
- }
+    if (this.RotateIconDrag) {
+        this.RollUp(event);
+        return false;
+    }
 
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseUp(event);
+    }
 
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseUp(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    if (this.InteractionState != INTERACTION_NONE) {
+        this.InteractionState = INTERACTION_NONE;
+        if (RECORDER_WIDGET) {
+            RECORDER_WIDGET.RecordState();
+        }
+    }
 
-     this.FireFoxWhich = event.which;
-     event.preventDefault(); // Keep browser from selecting images.
-     SA.EventManager.RecordMouseDown(event);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.RotateIconDrag) {
-         // Problem with leaving the browser with mouse down.
-         // This is a mouse down outside the icon, so the mouse must
-         // have been let up and we did not get the event.
-         this.RotateIconDrag = false;
-     }
+Viewer.prototype.ComputeMouseWorld = function(event) {
+    // We need to save these for pasting annotation.
+    this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    // Put this extra ivar in the even object.
+    // This could be obsolete because we never pass this event to another object.
+    event.worldX = this.MouseWorld[0];
+    event.worldY= this.MouseWorld[1];
+}
 
-     if (SA.EventManager.DoubleClick) {
-         // Without this, double click selects sub elementes.
-         event.preventDefault();
-         return this.HandleDoubleClick(event);
-     }
+Viewer.prototype.HandleMouseMove = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleMouseDown(event);
-     }
+    event.preventDefault(); // Keep browser from selecting images.
+    if ( ! this.RecordMouseMove(event)) { return; }
+    this.ComputeMouseWorld(event);
 
-     // Choose what interaction will be performed.
-     if (event.which == 1 ) {
-         if (event.ctrlKey) {
-             this.InteractionState = INTERACTION_ROTATE;
-         } else if (event.altKey) {
-             this.InteractionState = INTERACTION_ZOOM;
-         } else {
-             this.InteractionState = INTERACTION_DRAG;
-         }
-         return false;
-     }
-     if (event.which == 2 ) {
-         this.InteractionState = INTERACTION_ROTATE;
-         return false;
-     }
-     return true;
- }
+    // I think we need to deal with the move here because the mouse can
+    // exit the icon and the events are lost.
+    if (this.RotateIconDrag) {
+        this.RollMove(event);
+        return false;
+    }
 
- Viewer.prototype.HandleDoubleClick = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (this.ActiveWidget != null) {
-         return this.ActiveWidget.HandleDoubleClick(event);
-     }
+    if (this.InteractionState == INTERACTION_OVERVIEW ||
+        this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
+        return this.HandleOverViewMouseMove(event);
+    }
 
-     mWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     if (event.which == 1) {
-         this.AnimateZoomTo(0.5, mWorld);
-     } else if (event.which == 3) {
-         this.AnimateZoomTo(2.0, mWorld);
-     }
-     return true;
- }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        this.ActiveWidget.HandleMouseMove(event);
+        return false; // trying to keep the browser from selecting images
+    }
 
- Viewer.prototype.HandleMouseUp = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     this.FireFoxWhich = 0;
-     SA.EventManager.RecordMouseUp(event);
+    //if (event.which == 0) { // Firefox does not set which for motion events.
+    if ( ! this.FireFoxWhich) {
+        // See if any widget became active.
+        if (this.AnnotationVisibility) {
+            for (var i = 0; i < this.WidgetList.length; ++i) {
+                if (this.WidgetList[i].CheckActive(event)) {
+                    this.ActivateWidget(this.WidgetList[i]);
+                    return false; // trying to keep the browser from selecting images
+                }
+            }
+        }
 
-     if (this.RotateIconDrag) {
-         this.RollUp(event);
-         return false;
-     }
+        return false; // trying to keep the browser from selecting images
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseUp(event);
-     }
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseUp(event);
-         return false; // trying to keep the browser from selecting images
-     }
+    // Drag camera in main view.
+    // Dragging is too slow.  I want to accelerate dragging the further
+    // this mouse moves.  This is a moderate change, so I am
+    // going to try to accelerate with speed.
+    if (this.InteractionState == INTERACTION_ROTATE) {
+        // Rotate
+        // Origin in the center.
+        // GLOBAL GL will use view's viewport instead.
+        var cx = x - (this.MainView.Viewport[2]*0.5);
+        var cy = y - (this.MainView.Viewport[3]*0.5);
+        // GLOBAL views will go away when views handle this.
+        this.MainView.Camera.HandleRoll(cx, cy,
+                                        this.MouseDeltaX,
+                                        this.MouseDeltaY);
+        this.RollTarget = this.MainView.Camera.Roll;
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_ZOOM) {
+        var dy = this.MouseDeltaY / this.MainView.Viewport[2];
+        this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
+                                       / (1.0 + (dy* 5.0)));
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.UpdateCamera();
+    } else if (this.InteractionState == INTERACTION_DRAG) {
+        // Translate
+        // Convert to view [-0.5,0.5] coordinate system.
+        // Note: the origin gets subtracted out in delta above.
+        var dx = -this.MouseDeltaX / this.MainView.Viewport[2];
+        var dy = -this.MouseDeltaY / this.MainView.Viewport[2];
+        // compute the speed of the movement.
+        var speed = Math.sqrt(dx*dx + dy*dy) / this.MouseDeltaTime;
+        speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
+        // I am not sure I like the speed acceleration.
+        // Lets try a limit.
+        if (speed > 3.0) { speed = 3.0; }
+        dx = dx * speed;
+        dy = dy * speed;
+        this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
+    }
+    // The only interaction that does not go through animate camera.
+    this.TriggerInteraction();
+    this.EventuallyRender(true);
+    return false; // trying to keep the browser from selecting images
+}
 
-     if (this.InteractionState != INTERACTION_NONE) {
-         this.InteractionState = INTERACTION_NONE;
-         if (RECORDER_WIDGET) {
-             RECORDER_WIDGET.RecordState();
-         }
-     }
+Viewer.prototype.HandleMouseWheel = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    // Forward the events to the widget if one is active.
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
+            return false;
+        }
+    }
 
-     return false; // trying to keep the browser from selecting images
- }
+    if ( ! event.offsetX) {
+        // for firefox
+        event.offsetX = event.layerX;
+        event.offsetY = event.layerY;
+    }
 
- Viewer.prototype.ComputeMouseWorld = function(event) {
-     // We need to save these for pasting annotation.
-     this.MouseWorld = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     // Put this extra ivar in the even object.
-     // This could be obsolete because we never pass this event to another object.
-     event.worldX = this.MouseWorld[0];
-     event.worldY= this.MouseWorld[1];
- }
+    // We want to accumulate the target, but not the duration.
+    var tmp = 0;
+    if (event.deltaY) {
+        tmp = event.deltaY;
+    } else if (event.wheelDelta) {
+        tmp = event.wheelDelta;
+    }
+    // Wheel event seems to be in increments of 3.
+    // depreciated mousewheel had increments of 120....
+    // Initial delta cause another bug.
+    // Lets restrict to one zoom step per event.
+    if (tmp > 0) {
+        this.ZoomTarget *= 1.1;
+    } else if (tmp < 0) {
+        this.ZoomTarget /= 1.1;
+    }
 
+    // Compute translate target to keep position in the same place.
+    //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
+    //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
+    var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+    var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
+    this.TranslateTarget[0] = position[0]
+        - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
+    this.TranslateTarget[1] = position[1]
+        - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
 
- Viewer.prototype.HandleMouseMove = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
+    this.RollTarget = this.MainView.Camera.Roll;
 
-     event.preventDefault(); // Keep browser from selecting images.
-     if ( ! SA.EventManager.RecordMouseMove(event)) { return; }
-     this.ComputeMouseWorld(event);
+    this.AnimateLast = new Date().getTime();
+    this.AnimateDuration = 200.0; // hard code 200 milliseconds
+    this.EventuallyRender(true);
+    return true;
+}
 
-     // I think we need to deal with the move here because the mouse can
-     // exit the icon and the events are lost.
-     if (this.RotateIconDrag) {
-         this.RollMove(event);
-         return false;
-     }
+// returns false if the event was "consumed" (browser convention).
+// Returns true if nothing was done with the event.
+Viewer.prototype.HandleKeyDown = function(event) {
+    if ( ! this.InteractionEnabled) { return true; }
+    if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
+        if ( ! SAVING_IMAGE) {
+            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE.Title.text('Saving');
+            SAVING_IMAGE.Body.css({'margin':'1em 2em'});
+            SAVING_IMAGE.WaitingImage = $('<img>')
+                .appendTo(SAVING_IMAGE.Body)
+                .attr("src", SA.ImagePathUrl+"circular.gif")
+                .attr("alt", "waiting...")
+                .addClass("sa-view-save")
+            SAVING_IMAGE.ApplyButton.hide();
+            SAVING_IMAGE.SavingFlag = false;
+            SAVING_IMAGE.Count = 0;
+        }
+        if ( ! SAVING_IMAGE.SavingFlag) {
+            SAVING_IMAGE.SavingFlag = true;
+            SAVING_IMAGE.Show(1);
+            this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
+                                     function() {
+                                         SAVING_IMAGE.SavingFlag = false;
+                                         SAVING_IMAGE.Count += 1;
+                                         SAVING_IMAGE.Hide();
+                                     });
+        }
+        return false;
+    }
 
-     if (this.InteractionState == INTERACTION_OVERVIEW ||
-         this.InteractionState == INTERACTION_OVERVIEW_DRAG) {
-         return this.HandleOverViewMouseMove(event);
-     }
+    // Handle paste
+    if (event.keyCode == 86 && event.ctrlKey) {
+        // control-v for paste
 
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         this.ActiveWidget.HandleMouseMove(event);
-         return false; // trying to keep the browser from selecting images
-     }
+        var clip = JSON.parse(localStorage.ClipBoard);
+        if (clip.Type == "CircleWidget") {
+            var widget = new CircleWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "PolylineWidget") {
+            var widget = new PolylineWidget(this, false);
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
+        if (clip.Type == "TextWidget") {
+            var widget = new TextWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
-     //if (event.which == 0) { // Firefox does not set which for motion events.
-     if ( ! this.FireFoxWhich) {
-         // See if any widget became active.
-         if (this.AnnotationVisibility) {
-             for (var i = 0; i < this.WidgetList.length; ++i) {
-                 if (this.WidgetList[i].CheckActive(event)) {
-                     this.ActivateWidget(this.WidgetList[i]);
-                     return false; // trying to keep the browser from selecting images
-                 }
-             }
-         }
+        return false;
+    }    
 
-         return false; // trying to keep the browser from selecting images
-     }
+    //----------------------
+    if (this.ActiveWidget != null) {
+        if ( ! this.ActiveWidget.HandleKeyPress(event)) {
+            return false;
+        }
+    }
 
-     var x = event.offsetX;
-     var y = event.offsetY;
+    if (String.fromCharCode(event.keyCode) == 'R') {
+        //this.MainView.Camera.Reset();
+        this.MainView.Camera.ComputeMatrix();
+        this.ZoomTarget = this.MainView.Camera.GetHeight();
+        this.EventuallyRender(true);
+        return false;
+    }
 
-     // Drag camera in main view.
-     // Dragging is too slow.  I want to accelerate dragging the further
-     // this mouse moves.  This is a moderate change, so I am
-     // going to try to accelerate with speed.
-     if (this.InteractionState == INTERACTION_ROTATE) {
-         // Rotate
-         // Origin in the center.
-         // GLOBAL GL will use view's viewport instead.
-         var cx = x - (this.MainView.Viewport[2]*0.5);
-         var cy = y - (this.MainView.Viewport[3]*0.5);
-         // GLOBAL views will go away when views handle this.
-         this.MainView.Camera.HandleRoll(cx, cy,
-                                         SA.EventManager.MouseDeltaX,
-                                         SA.EventManager.MouseDeltaY);
-         //if (this.OverView) {
-         //    this.OverView.Camera.HandleRoll(cx, cy, event.MouseDeltaX, event.MouseDeltaY);
-         //}
-         this.RollTarget = this.MainView.Camera.Roll;
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_ZOOM) {
-         var dy = SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         this.MainView.Camera.SetHeight(this.MainView.Camera.GetHeight()
-                                        / (1.0 + (dy* 5.0)));
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.UpdateCamera();
-     } else if (this.InteractionState == INTERACTION_DRAG) {
-         // Translate
-         // Convert to view [-0.5,0.5] coordinate system.
-         // Note: the origin gets subtracted out in delta above.
-         var dx = -SA.EventManager.MouseDeltaX / this.MainView.Viewport[2];
-         var dy = -SA.EventManager.MouseDeltaY / this.MainView.Viewport[2];
-         // compute the speed of the movement.
-         var speed = Math.sqrt(dx*dx + dy*dy) / SA.EventManager.MouseDeltaTime;
-         speed = 1.0 + speed*1000; // f(0) = 1 and increasing.
-         // I am not sure I like the speed acceleration.
-         // Lets try a limit.
-         if (speed > 3.0) { speed = 3.0; }
-         dx = dx * speed;
-         dy = dy * speed;
-         this.MainView.Camera.HandleTranslate(dx, dy, 0.0);
-     }
-     // The only interaction that does not go through animate camera.
-     this.TriggerInteraction();
-     this.EventuallyRender(true);
-     return false; // trying to keep the browser from selecting images
- }
-
- Viewer.prototype.HandleMouseWheel = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     // Forward the events to the widget if one is active.
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleMouseWheel(event)) {
-             return false;
-         }
-     }
-
-     if ( ! event.offsetX) {
-         // for firefox
-         event.offsetX = event.layerX;
-         event.offsetY = event.layerY;
-     }
-
-     // We want to accumulate the target, but not the duration.
-     var tmp = 0;
-     if (event.deltaY) {
-         tmp = event.deltaY;
-     } else if (event.wheelDelta) {
-         tmp = event.wheelDelta;
-     }
-     // Wheel event seems to be in increments of 3.
-     // depreciated mousewheel had increments of 120....
-     // Initial delta cause another bug.
-     // Lets restrict to one zoom step per event.
-     if (tmp > 0) {
-         this.ZoomTarget *= 1.1;
-     } else if (tmp < 0) {
-         this.ZoomTarget /= 1.1;
-     }
-
-     // Compute translate target to keep position in the same place.
-     //this.TranslateTarget[0] = this.MainView.Camera.FocalPoint[0];
-     //this.TranslateTarget[1] = this.MainView.Camera.FocalPoint[1];
-     var position = this.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-     var factor = this.ZoomTarget / this.MainView.Camera.GetHeight();
-     this.TranslateTarget[0] = position[0]
-         - factor * (position[0] - this.MainView.Camera.FocalPoint[0]);
-     this.TranslateTarget[1] = position[1]
-         - factor * (position[1] - this.MainView.Camera.FocalPoint[1]);
-
-     this.RollTarget = this.MainView.Camera.Roll;
-
-     this.AnimateLast = new Date().getTime();
-     this.AnimateDuration = 200.0; // hard code 200 milliseconds
-     this.EventuallyRender(true);
-     return true;
- }
-
- var SAVING_IMAGE = undefined;
-
- // returns false if the event was "consumed" (browser convention).
- // Returns true if nothing was done with the event.
- Viewer.prototype.HandleKeyDown = function(event) {
-     if ( ! this.InteractionEnabled) { return true; }
-     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
-         if ( ! SAVING_IMAGE) {
-             SAVING_IMAGE = new Dialog();
-             SAVING_IMAGE.Title.text('Saving');
-             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
-             SAVING_IMAGE.WaitingImage = $('<img>')
-                 .appendTo(SAVING_IMAGE.Body)
-                 .attr("src", SA.ImagePathUrl+"circular.gif")
-                 .attr("alt", "waiting...")
-                 .addClass("sa-view-save")
-             SAVING_IMAGE.ApplyButton.hide();
-             SAVING_IMAGE.SavingFlag = false;
-             SAVING_IMAGE.Count = 0;
-         }
-         if ( ! SAVING_IMAGE.SavingFlag) {
-             SAVING_IMAGE.SavingFlag = true;
-             SAVING_IMAGE.Show(1);
-             this.EventuallySaveImage("slideAtlas"+ZERO_PAD(SAVING_IMAGE.Count,3),
-                                      function() {
-                                          SAVING_IMAGE.SavingFlag = false;
-                                          SAVING_IMAGE.Count += 1;
-                                          SAVING_IMAGE.Hide();
-                                      });
-         }
-         return false;
-     }
-
-     // Handle paste
-     if (event.keyCode == 86 && event.ctrlKey) {
-         // control-v for paste
-
-         var clip = JSON.parse(localStorage.ClipBoard);
-         if (clip.Type == "CircleWidget") {
-             var widget = new CircleWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "PolylineWidget") {
-             var widget = new PolylineWidget(this, false);
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-         if (clip.Type == "TextWidget") {
-             var widget = new TextWidget(this, "");
-             widget.PasteCallback(clip.Data, this.MouseWorld);
-         }
-
-         return false;
-     }    
-
-     //----------------------
-     if (this.ActiveWidget != null) {
-         if ( ! this.ActiveWidget.HandleKeyPress(event)) {
-             return false;
-         }
-     }
-
-     if (String.fromCharCode(event.keyCode) == 'R') {
-         //this.MainView.Camera.Reset();
-         this.MainView.Camera.ComputeMatrix();
-         this.ZoomTarget = this.MainView.Camera.GetHeight();
-         this.EventuallyRender(true);
-         return false;
-     }
-
-     if (event.keyCode == 38) {
-         // Up cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = -0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 40) {
-         // Down cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.0;
-         var dy = 0.9 * cam.GetHeight();
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 37) {
-         // Left cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = -0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     } else if (event.keyCode == 39) {
-         // Right cursor key
-         var cam = this.GetCamera();
-         var c = Math.cos(cam.Roll);
-         var s = -Math.sin(cam.Roll);
-         var dx = 0.9 * cam.GetWidth();
-         var dy = 0.0;
-         var rx = dx*c - dy*s;
-         var ry = dx*s + dy*c;
-         this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
-         this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
-         this.AnimateLast = new Date().getTime();
-         this.AnimateDuration = 200.0;
-         this.EventuallyRender(true);
-         return false;
-     }
-     return true;
- }
-
+    if (event.keyCode == 38) {
+        // Up cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = -0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 40) {
+        // Down cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.0;
+        var dy = 0.9 * cam.GetHeight();
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 37) {
+        // Left cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = -0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    } else if (event.keyCode == 39) {
+        // Right cursor key
+        var cam = this.GetCamera();
+        var c = Math.cos(cam.Roll);
+        var s = -Math.sin(cam.Roll);
+        var dx = 0.9 * cam.GetWidth();
+        var dy = 0.0;
+        var rx = dx*c - dy*s;
+        var ry = dx*s + dy*c;
+        this.TranslateTarget[0] = cam.FocalPoint[0] + rx;
+        this.TranslateTarget[1] = cam.FocalPoint[1] + ry;
+        this.AnimateLast = new Date().getTime();
+        this.AnimateDuration = 200.0;
+        this.EventuallyRender(true);
+        return false;
+    }
+    return true;
+}
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
@@ -96184,8 +95671,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
-                                                   SA.EventManager.LastMouseY);
+        w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
+                                                   this.Viewer.LastMouseY);
         w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         // This is the translation.
         var dx = w1[0] - w0[0];
@@ -96204,8 +95691,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        this.Text.Anchor[0] -= SA.EventManager.MouseDeltaX;
-        this.Text.Anchor[1] -= SA.EventManager.MouseDeltaY;
+        this.Text.Anchor[0] -= this.Viewer.MouseDeltaX;
+        this.Text.Anchor[1] -= this.Viewer.MouseDeltaY;
         this.UpdateArrow();
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -96224,28 +95711,25 @@ TextWidget.prototype.HandleMouseMove = function(event) {
 
 
 TextWidget.prototype.HandleTouchPan = function(event) {
-  // We should probably have a handle touch start too.
-  // Touch start calls CheckActive() ...
-  if (this.State == TEXT_WIDGET_ACTIVE) {
-    if (this.Arrow.Visibility && this.ActiveReason == 0) {
-      this.State = TEXT_WIDGET_DRAG_TEXT;
-    } else {
-      this.State = TEXT_WIDGET_DRAG;
+    // We should probably have a handle touch start too.
+    // Touch start calls CheckActive() ...
+    if (this.State == TEXT_WIDGET_ACTIVE) {
+        if (this.Arrow.Visibility && this.ActiveReason == 0) {
+            this.State = TEXT_WIDGET_DRAG_TEXT;
+        } else {
+            this.State = TEXT_WIDGET_DRAG;
+        }
     }
-  }
-  event.MouseDeltaX = event.MouseX - event.LastMouseX;
-  event.MouseDeltaY = event.MouseY - event.LastMouseY;
-  this.HandleMouseMove(event);
+    this.Viewer.MouseDeltaX = this.Viewer.MouseX - this.Viewer.LastMouseX;
+    this.Viewer.MouseDeltaY = this.Viewer.MouseY - this.Viewer.LastMouseY;
+    this.HandleMouseMove(event);
 }
 TextWidget.prototype.HandleTouchPinch = function(event) {
 }
 TextWidget.prototype.HandleTouchEnd = function(event) {
-  this.State = TEXT_WIDGET_ACTIVE;
-  this.SetActive(false);
+    this.State = TEXT_WIDGET_ACTIVE;
+    this.SetActive(false);
 }
-
-
-
 
 
 
@@ -98240,16 +97724,16 @@ FillWidget.prototype.Deactivate = function() {
 }
 
 FillWidget.prototype.HandleMouseDown = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
-    
-    if (event.SystemEvent.which == 1) {
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
+
+    if (event.which == 1) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
         this.Cursor.show();
         this.Segmentation.AddPositive(ptWorld);
     }
-    if (event.SystemEvent.which == 3) {
+    if (event.which == 3) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
         this.Cursor.show();
@@ -98259,13 +97743,13 @@ FillWidget.prototype.HandleMouseDown = function(event) {
 
 FillWidget.prototype.HandleMouseUp = function(event) {
   // Middle mouse deactivates the widget.
-  if (event.SystemEvent.which == 2) {
+  if (event.which == 2) {
     // Middle mouse was pressed.
     this.Deactivate();
   }
 
   // A stroke has just been finished.
-  if (event.SystemEvent.which == 1 || event.SystemEvent.which == 3) {
+  if (event.which == 1 || event.which == 3) {
       this.Cursor.hide();
       this.Segmentation.Update();
       this.Segmentation.Draw();
@@ -98277,18 +97761,18 @@ FillWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 FillWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
 
     // Move the paint bucket icon to follow the mouse.
     this.Cursor.css({'left': (x+4), 'top': (y-32)});
 
-    if (event.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
-        if (event.SystemEvent.which == 1 ) {
+    if (this.Viewer.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
+        if (event.which == 1 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddPositive(ptWorld);
         }
-        if (event.SystemEvent.which == 3 ) {
+        if (event.which == 3 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddNegative(ptWorld);
         }
@@ -98335,8 +97819,8 @@ FillWidget.prototype.CheckActive = function(event) {
   var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
 
-  var dx = event.MouseX - pt[0];
-  var dy = event.MouseY - pt[1];
+  var dx = this.Viewer.MouseX - pt[0];
+  var dy = this.Viewer.MouseY - pt[1];
   var active = false;
 
   if (dx*dx + dy*dy < 1600) {
@@ -99774,46 +99258,46 @@ ArrowWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 ArrowWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which != 1)
+    if (event.which != 1)
     {
-    return;
+        return;
     }
-  if (this.State == ARROW_WIDGET_NEW) {
-    this.TipPosition = [event.MouseX, event.MouseY];
-    this.State = ARROW_WIDGET_DRAG_TAIL;
-  }
-  if (this.State == ARROW_WIDGET_ACTIVE) {
-    if (this.ActiveTail) {
-      this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.State = ARROW_WIDGET_DRAG_TAIL;
-    } else {
-      var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.TipOffset[0] = tipPosition[0] - event.MouseX;
-      this.TipOffset[1] = tipPosition[1] - event.MouseY;
-      this.State = ARROW_WIDGET_DRAG;
+    if (this.State == ARROW_WIDGET_NEW) {
+        this.TipPosition = [this.Viewer.MouseX, this.Viewer.MouseY];
+        this.State = ARROW_WIDGET_DRAG_TAIL;
     }
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE) {
+        if (this.ActiveTail) {
+            this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.State = ARROW_WIDGET_DRAG_TAIL;
+        } else {
+            var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.TipOffset[0] = tipPosition[0] - this.Viewer.MouseX;
+            this.TipOffset[1] = tipPosition[1] - this.Viewer.MouseY;
+            this.State = ARROW_WIDGET_DRAG;
+        }
+    }
 }
 
 // returns false when it is finished doing its work.
 ArrowWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == ARROW_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript).
-    this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-  } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
-    this.SetActive(false);
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE && event.which == 3) {
+        // Right mouse was pressed.
+        // Pop up the properties dialog.
+        // Which one should we popup?
+        // Add a ShowProperties method to the widget. (With the magic of javascript).
+        this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
+        this.ShowPropertiesDialog();
+    } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
+        this.SetActive(false);
+    }
 }
 
 ArrowWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = this.Viewer.MouseX;
+  var y = this.Viewer.MouseY;
 
-  if (event.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
+  if (this.Viewer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
     this.CheckActive(event);
     return;
   }
@@ -99859,8 +99343,8 @@ ArrowWidget.prototype.CheckActive = function(event) {
   yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
 
   // Use this point as the origin.
-  x = event.MouseX - xNew;
-  y = event.MouseY - yNew;
+  x = this.Viewer.MouseX - xNew;
+  y = this.Viewer.MouseY - yNew;
   // Rotate so arrow lies along the x axis.
   var tmp = this.Shape.Orientation * Math.PI / 180.0;
   var ct = Math.cos(tmp);

@@ -130,10 +130,10 @@ function TextEditor(parent, display) {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         // Mouse leave events are not triggering.
@@ -220,10 +220,10 @@ TextEditor.prototype.EditOn = function() {
             self.EventuallyUpdate();
         })
         .focusin(function() {
-            SA.EventManager.FocusOut();
+            SA.ContentEditableHasFocus = true;
         })
         .focusout(function() {
-            SA.EventManager.FocusIn();
+            SA.ContentEditableHasFocus = false;
             self.Update();
         })
         .mouseleave(function() { // back button does not cause loss of focus.
@@ -602,7 +602,7 @@ function NotesWidget(parent, display) {
     this.DisplayedNote = null;
 
     // Popup div to display permalink.
-    LINK_DIV =
+    SA.LinkDiv =
         $("<div>")
         .appendTo('body')
         .css({'top':'30px',
@@ -617,13 +617,13 @@ function NotesWidget(parent, display) {
               'text-align': 'center',
               'padding-top': '26px'})
         .hide()
-        .mouseleave(function() { LINK_DIV.fadeOut(); });
+        .mouseleave(function() { SA.LinkDiv.fadeOut(); });
 
     // There is not option to show the link when SA.Edit is not on,
     // so this really does nothing.  Editable is probably necessary
     // for selection to copy.
     if (SA.Edit) {
-        LINK_DIV.attr('contenteditable', "true");
+        SA.LinkDiv.attr('contenteditable', "true");
     }
 
     var self = this;
@@ -803,7 +803,7 @@ NotesWidget.prototype.SelectNote = function(note) {
     }
 
     // This should method should be split between Note and NotesWidget
-    if (LINK_DIV.is(':visible')) { LINK_DIV.fadeOut();}
+    if (SA.LinkDiv.is(':visible')) { SA.LinkDiv.fadeOut();}
 
     this.TextEditor.LoadNote(note);
 

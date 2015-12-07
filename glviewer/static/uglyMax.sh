@@ -44,7 +44,6 @@ cat cache.js >> sa.max.js
 cat section.js >> sa.max.js 
 cat view.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
-cat eventManager.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
 cat presentation.js >> sa.max.js 
 cat loader.js >> sa.max.js 

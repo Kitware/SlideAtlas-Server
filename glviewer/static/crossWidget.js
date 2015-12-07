@@ -53,7 +53,7 @@ CrossWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 CrossWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which != 1)
+  if (event.which != 1)
     {
     return;
     }
@@ -69,7 +69,7 @@ CrossWidget.prototype.HandleMouseDown = function(event) {
 
 // returns false when it is finished doing its work.
 CrossWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == CROSS_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
+  if (this.State == CROSS_WIDGET_ACTIVE && event.which == 3) {
     // Right mouse was pressed.
     // Pop up the properties dialog.
     //this.State = CROSS_WIDGET_PROPERTIES_DIALOG;
@@ -80,10 +80,10 @@ CrossWidget.prototype.HandleMouseUp = function(event) {
 }
 
 CrossWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = this.Viewer.MouseX;
+  var y = this.Viewer.MouseY;
 
-  if (event.MouseDown == false && this.State == CROSS_WIDGET_ACTIVE) {
+  if (this.Viewer.MouseDown == false && this.State == CROSS_WIDGET_ACTIVE) {
     this.CheckActive(event);
     return;
   }

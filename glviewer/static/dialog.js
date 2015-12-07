@@ -69,7 +69,6 @@ Dialog.prototype.Show = function(modal) {
     this.Dialog.fadeIn(300);
 
     if (modal) {
-        SA.EventManager.HasFocus = false;
         SA.DialogOverlay.off('click.dialog');
     } else {
         SA.DialogOverlay.on(
@@ -80,7 +79,6 @@ Dialog.prototype.Show = function(modal) {
 }
 
 Dialog.prototype.Hide = function () {
-    SA.EventManager.HasFocus = true;
     SA.DialogOverlay.off('click.dialog');
     SA.DialogOverlay.hide();
     this.Dialog.fadeOut(300);

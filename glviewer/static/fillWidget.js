@@ -150,16 +150,16 @@ FillWidget.prototype.Deactivate = function() {
 }
 
 FillWidget.prototype.HandleMouseDown = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
-    
-    if (event.SystemEvent.which == 1) {
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
+
+    if (event.which == 1) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"brush1.jpg");
         this.Cursor.show();
         this.Segmentation.AddPositive(ptWorld);
     }
-    if (event.SystemEvent.which == 3) {
+    if (event.which == 3) {
         var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
         this.Cursor.attr('src',SA.ImagePathUrl+"eraser1.jpg");
         this.Cursor.show();
@@ -169,13 +169,13 @@ FillWidget.prototype.HandleMouseDown = function(event) {
 
 FillWidget.prototype.HandleMouseUp = function(event) {
   // Middle mouse deactivates the widget.
-  if (event.SystemEvent.which == 2) {
+  if (event.which == 2) {
     // Middle mouse was pressed.
     this.Deactivate();
   }
 
   // A stroke has just been finished.
-  if (event.SystemEvent.which == 1 || event.SystemEvent.which == 3) {
+  if (event.which == 1 || event.which == 3) {
       this.Cursor.hide();
       this.Segmentation.Update();
       this.Segmentation.Draw();
@@ -187,18 +187,18 @@ FillWidget.prototype.HandleDoubleClick = function(event) {
 }
 
 FillWidget.prototype.HandleMouseMove = function(event) {
-    var x = event.MouseX;
-    var y = event.MouseY;
+    var x = this.Viewer.MouseX;
+    var y = this.Viewer.MouseY;
 
     // Move the paint bucket icon to follow the mouse.
     this.Cursor.css({'left': (x+4), 'top': (y-32)});
 
-    if (event.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
-        if (event.SystemEvent.which == 1 ) {
+    if (this.Viewer.MouseDown == true && this.State == FILL_WIDGET_DRAWING) {
+        if (event.which == 1 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddPositive(ptWorld);
         }
-        if (event.SystemEvent.which == 3 ) {
+        if (event.which == 3 ) {
             var ptWorld = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.Segmentation.AddNegative(ptWorld);
         }
@@ -245,8 +245,8 @@ FillWidget.prototype.CheckActive = function(event) {
   var pt = this.Viewer.ConvertPointWorldToViewer(this.ActiveCenter[0],
                                                  this.ActiveCenter[1]);
 
-  var dx = event.MouseX - pt[0];
-  var dy = event.MouseY - pt[1];
+  var dx = this.Viewer.MouseX - pt[0];
+  var dy = this.Viewer.MouseY - pt[1];
   var active = false;
 
   if (dx*dx + dy*dy < 1600) {

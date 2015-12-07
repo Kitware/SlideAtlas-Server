@@ -173,8 +173,8 @@ function GenerateContourContainingSeed(d, threshold, xSeed, ySeed) {
 // The seed is in screen coordinates.
 // TODO: Reduce the resolution. Keep the data for altering the threshold.
 function GenerateContourFromViewer(viewer, threshold) {
-    var xSeed = SA.EventManager.LastMouseX;
-    var ySeed = SA.EventManager.LastMouseY;
+    var xSeed = viewer.LastMouseX;
+    var ySeed = viewer.LastMouseY;
 
     var ctx = viewer.MainView.Context2d;
     var viewport = viewer.GetViewport();
