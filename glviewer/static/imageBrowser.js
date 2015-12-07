@@ -22,17 +22,6 @@ function Load() {
           });
 }
 
-
-
-function ShowImageBrowser() {
-  ACTIVE_VIEWER = SA.EventManager.CurrentViewer;
-  if ( ! ACTIVE_VIEWER) { return; }
-
-  $('#ImageBrowser').show();
-}
-
-
-
 function LoadImageBrowserGUI() {
   var data = VIEW_BROWSER_INFO;
   $('#ImageBrowser').empty();

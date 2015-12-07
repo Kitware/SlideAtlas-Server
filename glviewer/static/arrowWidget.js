@@ -135,46 +135,46 @@ ArrowWidget.prototype.HandleKeyPress = function(keyCode, shift) {
 }
 
 ArrowWidget.prototype.HandleMouseDown = function(event) {
-  if (event.SystemEvent.which != 1)
+    if (event.which != 1)
     {
-    return;
+        return;
     }
-  if (this.State == ARROW_WIDGET_NEW) {
-    this.TipPosition = [event.MouseX, event.MouseY];
-    this.State = ARROW_WIDGET_DRAG_TAIL;
-  }
-  if (this.State == ARROW_WIDGET_ACTIVE) {
-    if (this.ActiveTail) {
-      this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.State = ARROW_WIDGET_DRAG_TAIL;
-    } else {
-      var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
-      this.TipOffset[0] = tipPosition[0] - event.MouseX;
-      this.TipOffset[1] = tipPosition[1] - event.MouseY;
-      this.State = ARROW_WIDGET_DRAG;
+    if (this.State == ARROW_WIDGET_NEW) {
+        this.TipPosition = [this.Viewer.MouseX, this.Viewer.MouseY];
+        this.State = ARROW_WIDGET_DRAG_TAIL;
     }
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE) {
+        if (this.ActiveTail) {
+            this.TipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.State = ARROW_WIDGET_DRAG_TAIL;
+        } else {
+            var tipPosition = this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], this.Shape.Origin[1]);
+            this.TipOffset[0] = tipPosition[0] - this.Viewer.MouseX;
+            this.TipOffset[1] = tipPosition[1] - this.Viewer.MouseY;
+            this.State = ARROW_WIDGET_DRAG;
+        }
+    }
 }
 
 // returns false when it is finished doing its work.
 ArrowWidget.prototype.HandleMouseUp = function(event) {
-  if (this.State == ARROW_WIDGET_ACTIVE && event.SystemEvent.which == 3) {
-    // Right mouse was pressed.
-    // Pop up the properties dialog.
-    // Which one should we popup?
-    // Add a ShowProperties method to the widget. (With the magic of javascript).
-    this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
-    this.ShowPropertiesDialog();
-  } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
-    this.SetActive(false);
-  }
+    if (this.State == ARROW_WIDGET_ACTIVE && event.which == 3) {
+        // Right mouse was pressed.
+        // Pop up the properties dialog.
+        // Which one should we popup?
+        // Add a ShowProperties method to the widget. (With the magic of javascript).
+        this.State = ARROW_WIDGET_PROPERTIES_DIALOG;
+        this.ShowPropertiesDialog();
+    } else if (this.State != ARROW_WIDGET_PROPERTIES_DIALOG) {
+        this.SetActive(false);
+    }
 }
 
 ArrowWidget.prototype.HandleMouseMove = function(event) {
-  var x = event.MouseX;
-  var y = event.MouseY;
+  var x = this.Viewer.MouseX;
+  var y = this.Viewer.MouseY;
 
-  if (event.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
+  if (this.Viewer.MouseDown == false && this.State == ARROW_WIDGET_ACTIVE) {
     this.CheckActive(event);
     return;
   }
@@ -220,8 +220,8 @@ ArrowWidget.prototype.CheckActive = function(event) {
   yNew = (yNew + 1.0)*0.5*viewport[3] + viewport[1];
 
   // Use this point as the origin.
-  x = event.MouseX - xNew;
-  y = event.MouseY - yNew;
+  x = this.Viewer.MouseX - xNew;
+  y = this.Viewer.MouseY - yNew;
   // Rotate so arrow lies along the x axis.
   var tmp = this.Shape.Orientation * Math.PI / 180.0;
   var ct = Math.cos(tmp);

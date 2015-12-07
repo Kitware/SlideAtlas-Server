@@ -535,17 +535,12 @@ function draw() {
 function ShowPropertiesMenu(x, y) {} // This used to show the view edit.
 // I am getting rid of the right click feature now.
 
-
-function handleTouchStart(event) {SA.EventManager.HandleTouchStart(event);}
-function handleTouchMove(event) {SA.EventManager.HandleTouchMove(event);}
-function handleTouchEnd(event) {SA.EventManager.HandleTouchEnd(event);}
-function handleTouchCancel(event) {SA.EventManager.HandleTouchCancel(event);}
-
+// TODO: Move these out of the global SLideAtlas object.
 function handleKeyDown(event) {
-    return SA.EventManager.HandleKeyDown(event);
+    return SA.HandleKeyDownStack(event);
 }
 function handleKeyUp(event) {
-    return SA.EventManager.HandleKeyUp(event);
+    return SA.HandleKeyUpStack(event);
 }
 
 function cancelContextMenu(e) {
@@ -621,6 +616,112 @@ SlideAtlas.prototype.Run = function() {
     }
 }
 
+// Stack editing stuff (should not be in the global class).
+// It used to be in the event manager.  Skipping the focus stuff.
+// TODO:
+// Modifier could be handled better with keypress events.
+SlideAtlas.prototype.HandleKeyDownStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
+    }
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return false;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return false;
+    }
+
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
+        return true;
+    }
+
+    return true;
+}
+
+SlideAtlas.prototype.HandleKeyUpStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;} 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
+    if (event.keyCode == 88) { // x = 88
+        // I am using the 'c' key to display to focal point cursor
+        //this.StackCursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.StackCursorFlag =  ! this.StackCursorFlag;
+        if (event.shiftKey && this.StackCursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
+        }
+
+        eventuallyRender();
+        return false;
+    }
+
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        //this.StackCursorFlag = false;
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
+
+    // Is this really necessary?
+    // TODO: Try to remove this and test presentation stuff.
+    if (this.Presentation) {
+        this.Presentation.HandleKeyUp(event);
+        return true;
+    }
+
+    return true;
+}
+
+// TODO: THis should be in viewer.
+SlideAtlas.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+SlideAtlas.prototype.TriggerStartInteraction = function() {
+    if ( ! this.StartInteractionListeners) { return; }
+    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+        callback = this.StartInteractionListeners[i];
+        callback();
+    }
+}
+
+
+
+
+
+
+
+
 // Call back from NotesWidget.
 function NotesModified() {
     if (SA.Edit) {
@@ -676,7 +777,6 @@ function Main(rootNote) {
     } else {
         initGC();
     }
-    SA.EventManager = new EventManager(CANVAS);
 
     SA.DualDisplay = new DualViewWidget(VIEW_PANEL);
 
@@ -739,14 +839,6 @@ function Main(rootNote) {
     }
 
     //CONFERENCE_WIDGET = new ConferenceWidget();
-
-    // Events are not received by the viewers.
-    //var can = VIEW_PANEL[0];
-    //can.addEventListener("touchstart", handleTouchStart, false);
-    //can.addEventListener("touchmove", handleTouchMove, true);
-    //can.addEventListener("touchend", handleTouchEnd, false);
-    //document.body.addEventListener("mouseup", handleMouseUp, false);
-    //document.body.addEventListener("touchcancel", handleTouchCancel, false);
 
     // The event manager still handles stack alignment.
     // This should be moved to a stack helper class.

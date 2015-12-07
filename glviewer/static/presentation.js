@@ -97,8 +97,6 @@ function Presentation(rootNote, edit) {
                 'left' : '0px',
                 'z-index': '-1'
             });
-    // This is necessary for some reason.
-    SA.EventManager = new EventManager(CANVAS);
 
     this.WindowDiv = $('<div>')
         .appendTo('body')

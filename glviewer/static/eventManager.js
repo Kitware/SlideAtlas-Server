@@ -54,10 +54,6 @@ function EventManager (canvas) {
         false);
 }
 
-EventManager.prototype.OnStartInteraction = function(callback) {
-  this.StartInteractionListeners.push(callback);
-}
-
 EventManager.prototype.TriggerStartInteraction = function() {
   for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
     callback = this.StartInteractionListeners[i];
@@ -428,65 +424,6 @@ EventManager.prototype.HideSweepListeners = function() {
     sweep.Hide();
   }
 }
-
-
-
-
-
-// Save the previous touches and record the new
-// touch locations in viewport coordinates.
-EventManager.prototype.HandleTouch = function(e, startFlag, viewer) {
-    e.preventDefault();
-    var date = new Date();
-    var t = date.getTime();
-    // I have had trouble on the iPad with 0 delta times.
-    // Lets see how it behaves with fewer events.
-    // It was a bug in iPad4 Javascript.
-    // This throttle is not necessary.
-    if (t-this.Time < 20 && ! startFlag) { return false; }
-
-    this.LastTime = this.Time;
-    this.Time = t;
-
-    if (!e) {
-        var e = event;
-    }
-
-    // Still used on mobile devices?
-    var viewport = viewer.GetViewport();
-    this.SystemEvent = e;
-    this.LastTouches = this.Touches;
-    var can = this.Canvas;
-    this.Touches = [];
-    for (var i = 0; i < e.targetTouches.length; ++i) {
-        var offset = viewer.MainView.Canvas.offset();
-        var x = e.targetTouches[i].pageX - offset.left;
-        var y = e.targetTouches[i].pageY - offset.top;
-        this.Touches.push([x,y]);
-    }
-
-    this.LastMouseX = this.MouseX;
-    this.LastMouseY = this.MouseY;
-
-    // Compute the touch average.
-    var numTouches = this.Touches.length;
-    this.MouseX = this.MouseY = 0.0;
-    for (var i = 0; i < numTouches; ++i) {
-        this.MouseX += this.Touches[i][0];
-        this.MouseY += this.Touches[i][1];
-    }
-    this.MouseX = this.MouseX / numTouches;
-    this.MouseY = this.MouseY / numTouches;
-
-    // Hack because we are moving away from using the event manager
-    // Mouse interaction are already independant...
-    this.offsetX = this.MouseX;
-    this.offsetY = this.MouseY;
-
-
-    return true;
-}
-
 
 EventManager.prototype.HandleTouchStart = function(e, viewer) {
     this.HandleTouch(e, true, viewer);

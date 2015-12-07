@@ -462,8 +462,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
-                                                   SA.EventManager.LastMouseY);
+        w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
+                                                   this.Viewer.LastMouseY);
         w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
         // This is the translation.
         var dx = w1[0] - w0[0];
@@ -482,8 +482,8 @@ TextWidget.prototype.HandleMouseMove = function(event) {
             // Hack.
             SA.NotesWidget.MarkAsModified();
         }
-        this.Text.Anchor[0] -= SA.EventManager.MouseDeltaX;
-        this.Text.Anchor[1] -= SA.EventManager.MouseDeltaY;
+        this.Text.Anchor[0] -= this.Viewer.MouseDeltaX;
+        this.Text.Anchor[1] -= this.Viewer.MouseDeltaY;
         this.UpdateArrow();
         this.PlacePopup();
         this.Viewer.EventuallyRender(true);
@@ -502,28 +502,25 @@ TextWidget.prototype.HandleMouseMove = function(event) {
 
 
 TextWidget.prototype.HandleTouchPan = function(event) {
-  // We should probably have a handle touch start too.
-  // Touch start calls CheckActive() ...
-  if (this.State == TEXT_WIDGET_ACTIVE) {
-    if (this.Arrow.Visibility && this.ActiveReason == 0) {
-      this.State = TEXT_WIDGET_DRAG_TEXT;
-    } else {
-      this.State = TEXT_WIDGET_DRAG;
+    // We should probably have a handle touch start too.
+    // Touch start calls CheckActive() ...
+    if (this.State == TEXT_WIDGET_ACTIVE) {
+        if (this.Arrow.Visibility && this.ActiveReason == 0) {
+            this.State = TEXT_WIDGET_DRAG_TEXT;
+        } else {
+            this.State = TEXT_WIDGET_DRAG;
+        }
     }
-  }
-  event.MouseDeltaX = event.MouseX - event.LastMouseX;
-  event.MouseDeltaY = event.MouseY - event.LastMouseY;
-  this.HandleMouseMove(event);
+    this.Viewer.MouseDeltaX = this.Viewer.MouseX - this.Viewer.LastMouseX;
+    this.Viewer.MouseDeltaY = this.Viewer.MouseY - this.Viewer.LastMouseY;
+    this.HandleMouseMove(event);
 }
 TextWidget.prototype.HandleTouchPinch = function(event) {
 }
 TextWidget.prototype.HandleTouchEnd = function(event) {
-  this.State = TEXT_WIDGET_ACTIVE;
-  this.SetActive(false);
+    this.State = TEXT_WIDGET_ACTIVE;
+    this.SetActive(false);
 }
-
-
-
 
 
 

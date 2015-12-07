@@ -479,7 +479,7 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
 
     // Special case for when the shift key is pressed.
     // Translate only one camera and modify the tranform to match.
-    if (SA.Edit && SA.EventManager.CursorFlag) {
+    if (SA.Edit && SA.StackCursorFlag) {
         var trans = note.ViewerRecords[note.StartIndex + 1].Transform;
         if ( ! note.ActiveCorrelation) {
             if ( ! trans) {

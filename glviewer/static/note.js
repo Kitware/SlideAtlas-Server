@@ -272,7 +272,7 @@ Note.prototype.SetParent = function(parent) {
 
 Note.prototype.TitleFocusInCallback = function() {
     // Keep the viewer from processing arrow keys.
-    SA.EventManager.FocusOut();
+    SA.ContentEditableHasFocus = true;
     if (SA.DualDisplay) {
         SA.DualDisplay.SetNote(this);
     }
@@ -289,7 +289,7 @@ Note.prototype.TitleFocusOutCallback = function() {
         }
     }
     // Allow the viewer to process arrow keys.
-    SA.EventManager.FocusIn();
+    SA.ContentEditableHasFocus = false;
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
@@ -304,12 +304,13 @@ Note.prototype.TitleFocusOutCallback = function() {
 }
 
 Note.prototype.LinkCallback = function() {
+    if ( ! SA.LinkDiv) { return; }
     var text = "slide-atlas.org/webgl-viewer?view="+this.Id;
-    LINK_DIV.html(text);
-    LINK_DIV.show();
+    SA.LinkDiv.html(text);
+    SA.LinkDiv.show();
     // Select the text so it is easy to copy.
     var range = document.createRange();
-    range.selectNodeContents(LINK_DIV[0]);
+    range.selectNodeContents(SA.LinkDiv[0]);
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
