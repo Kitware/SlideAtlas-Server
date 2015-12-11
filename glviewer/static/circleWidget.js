@@ -268,8 +268,8 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
 
 
 CircleWidget.prototype.HandleTouchPan = function(event) {
-  w0 = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX, 
-                                             SA.EventManager.LastMouseY);
+  w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
+                                             this.Viewer.LastMouseY);
   w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
   // This is the translation.

@@ -187,8 +187,8 @@ AnnotationWidget.prototype.NewCircle = function() {
     var widget = this.ActivateButton(button, CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(SA.EventManager.LastMouseX,
-                                                                SA.EventManager.LastMouseY);
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
+                                                                this.Viewer.LastMouseY);
 }
 
 
