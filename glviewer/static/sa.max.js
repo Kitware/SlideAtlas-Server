@@ -29251,7 +29251,7 @@ function Viewer (parent) {
     this.Parent = parent;
     parent.addClass('sa-viewer');
 
-    this.Div = $('div')
+    this.Div = $('<div>')
         .appendTo(this.Parent)
         .css({'position':'absolute',
               'left':'0px',
@@ -41518,7 +41518,7 @@ function Viewer (parent) {
     this.Parent = parent;
     parent.addClass('sa-viewer');
 
-    this.Div = $('div')
+    this.Div = $('<div>')
         .appendTo(this.Parent)
         .css({'position':'absolute',
               'left':'0px',
