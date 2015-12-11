@@ -40,7 +40,9 @@ function DualViewWidget(parent) {
     for (var i = 0; i < 2; ++i) {
         var viewerDiv = $('<div>')
             .appendTo(parent)
-            .saViewer({overview:true, zoomWidget:true});
+            .saViewer({overview:true, zoomWidget:true})
+            .addClass("sa-view-canvas-div");
+
         this.Viewers[i] = viewerDiv[0].saViewer;
         // TODO: Get rid of this.
         // I beleive the note should sets this, and we do not need to do it

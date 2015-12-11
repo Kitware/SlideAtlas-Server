@@ -52,9 +52,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     if ( ! this.CanvasDiv) {
         this.CanvasDiv = $('<div>');
     }
+    // TODO: Get Rid of this.
     this.CanvasDiv
-        .addClass('view')
-        .addClass("sa-view-canvas-div")
+        .addClass('view');
 
     this.Canvas
         .appendTo(this.CanvasDiv)

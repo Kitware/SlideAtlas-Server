@@ -12,9 +12,38 @@ function LoadTileCallback(tile,cache) {
 
 // Cache is now saved in tile ivar.
 LoadTileCallback.prototype.HandleLoadedImage = function () {
-  var curtime = new Date().getTime();
-  TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
-  LoadQueueLoaded(this.Tile);
+    /* experimetation with trasparent tiles for layer
+    if ( ! SA.FilterCanvas) {
+        SA.FilterCanvas = new Canvas();
+    }
+    var canvas = SA.FilterCanvas;
+    var image = this.Tile.Image;
+    if (image.width != canvas.width)
+        canvas.width = image.width;
+    if (image.height != canvas.height)
+        canvas.height = image.height;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    // Make white transparent.
+    var d = imageData.data;
+    for (var i = 0; i < d.length; i += 4) {
+        var r = d[i];
+        var g = d[i + 1];
+        var b = d[i + 2];
+        if (r == 255 && g == 255 && b == 255) {
+            d[i+3] = 0;
+        }
+    }
+    context.putImageData(imageData, 0, 0);
+    image.src = canvas.toDataURL();
+    */
+
+
+
+    var curtime = new Date().getTime();
+    TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
+    LoadQueueLoaded(this.Tile);
 }
 
 // If we cannot load a tile, we need to inform the cache so it can start
