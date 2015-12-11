@@ -28802,6 +28802,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.CanvasDiv
         .addClass('view');
 
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
+
     this.Canvas
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
@@ -28874,27 +28877,23 @@ View.prototype.UpdateCanvasSize = function() {
 // TODO: Now that the browser in managing the position and size of the
 // canvasDiv, get rid of this function.  I still need to synchronize the
 // canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport) {
+View.prototype.SetViewport = function(viewport, parent) {
+    parent = parent || this.CanvasDiv;
+
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
     // Allow for border.
     viewport[2] -=2;
     viewport[3] -=2;
-    if (this.CanvasDiv) {
-        /* get rid of this hack
-           if (viewport[2] < 3 || viewport[3] < 1) {
-           this.CanvasDiv.hide();
-           } else {
-           this.CanvasDiv.show();
-           }
-        */
-        this.CanvasDiv.css({
+    if (parent) {
+        parent.css({
             'left'  : viewport[0]+"px",
             'width' : viewport[2]+"px",
             'top'   : viewport[1]+"px",
             'height': viewport[3]+"px"
         });
+        // Needed for canvas to have the correct drawing transformation.
         this.Canvas.attr("width", viewport[2].toString());
         this.Canvas.attr("height", viewport[3].toString());
     }
@@ -29252,6 +29251,14 @@ function Viewer (parent) {
     this.Parent = parent;
     parent.addClass('sa-viewer');
 
+    this.Div = $('div')
+        .appendTo(this.Parent)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
+              'width':'100%',
+              'height':'100%'});
+
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
@@ -29274,7 +29281,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new View(parent);
+    this.MainView = new View(this.Div);
     this.MainView.InitializeViewport(viewport, 1);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -29285,7 +29292,7 @@ function Viewer (parent) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-        this.OverViewDiv = $('<div>').appendTo(parent);
+        this.OverViewDiv = $('<div>').appendTo(this.Div);
         this.OverView = new View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport, 1);
 	      this.OverView.Camera.ZRange = [-1,0];
@@ -30079,7 +30086,10 @@ Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
 // When I remove this function, move the logic to UpdateSize().
 Viewer.prototype.SetViewport = function(viewport) {
 
-    this.MainView.SetViewport(viewport);
+    // TODO: Get rid of this positioning hack.
+    // Caller should be positioning the parent.
+    // The whole "viewport" concept needs to be eliminated.
+    this.MainView.SetViewport(viewport, this.Parent);
     this.MainView.Camera.ComputeMatrix();
 
     // I do not know the way the viewport is used to place
@@ -41059,6 +41069,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.CanvasDiv
         .addClass('view');
 
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
+
     this.Canvas
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
@@ -41131,27 +41144,23 @@ View.prototype.UpdateCanvasSize = function() {
 // TODO: Now that the browser in managing the position and size of the
 // canvasDiv, get rid of this function.  I still need to synchronize the
 // canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport) {
+View.prototype.SetViewport = function(viewport, parent) {
+    parent = parent || this.CanvasDiv;
+
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
     // Allow for border.
     viewport[2] -=2;
     viewport[3] -=2;
-    if (this.CanvasDiv) {
-        /* get rid of this hack
-           if (viewport[2] < 3 || viewport[3] < 1) {
-           this.CanvasDiv.hide();
-           } else {
-           this.CanvasDiv.show();
-           }
-        */
-        this.CanvasDiv.css({
+    if (parent) {
+        parent.css({
             'left'  : viewport[0]+"px",
             'width' : viewport[2]+"px",
             'top'   : viewport[1]+"px",
             'height': viewport[3]+"px"
         });
+        // Needed for canvas to have the correct drawing transformation.
         this.Canvas.attr("width", viewport[2].toString());
         this.Canvas.attr("height", viewport[3].toString());
     }
@@ -41509,6 +41518,14 @@ function Viewer (parent) {
     this.Parent = parent;
     parent.addClass('sa-viewer');
 
+    this.Div = $('div')
+        .appendTo(this.Parent)
+        .css({'position':'absolute',
+              'left':'0px',
+              'top':'0px',
+              'width':'100%',
+              'height':'100%'});
+
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
     this.RenderPending = false;
@@ -41531,7 +41548,7 @@ function Viewer (parent) {
     this.AnimateDuration = 0.0;
     this.TranslateTarget = [0.0,0.0];
 
-    this.MainView = new View(parent);
+    this.MainView = new View(this.Div);
     this.MainView.InitializeViewport(viewport, 1);
     this.MainView.OutlineColor = [0,0,0];
     this.MainView.Camera.ZRange = [0,1];
@@ -41542,7 +41559,7 @@ function Viewer (parent) {
         this.OverViewScale = 0.02; // Experimenting with scroll
 	      this.OverViewport = [viewport[0]+viewport[2]*0.8, viewport[3]*0.02,
                              viewport[2]*0.18, viewport[3]*0.18];
-        this.OverViewDiv = $('<div>').appendTo(parent);
+        this.OverViewDiv = $('<div>').appendTo(this.Div);
         this.OverView = new View(this.OverViewDiv);
 	      this.OverView.InitializeViewport(this.OverViewport, 1);
 	      this.OverView.Camera.ZRange = [-1,0];
@@ -42336,7 +42353,10 @@ Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
 // When I remove this function, move the logic to UpdateSize().
 Viewer.prototype.SetViewport = function(viewport) {
 
-    this.MainView.SetViewport(viewport);
+    // TODO: Get rid of this positioning hack.
+    // Caller should be positioning the parent.
+    // The whole "viewport" concept needs to be eliminated.
+    this.MainView.SetViewport(viewport, this.Parent);
     this.MainView.Camera.ComputeMatrix();
 
     // I do not know the way the viewport is used to place

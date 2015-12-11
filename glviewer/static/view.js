@@ -56,6 +56,9 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.CanvasDiv
         .addClass('view');
 
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
+
     this.Canvas
         .appendTo(this.CanvasDiv)
         .css({'width':'100%',
@@ -128,27 +131,23 @@ View.prototype.UpdateCanvasSize = function() {
 // TODO: Now that the browser in managing the position and size of the
 // canvasDiv, get rid of this function.  I still need to synchronize the
 // canvas with the canvasDiv.  see  UpdateCanvas();
-View.prototype.SetViewport = function(viewport) {
+View.prototype.SetViewport = function(viewport, parent) {
+    parent = parent || this.CanvasDiv;
+
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
     // Allow for border.
     viewport[2] -=2;
     viewport[3] -=2;
-    if (this.CanvasDiv) {
-        /* get rid of this hack
-           if (viewport[2] < 3 || viewport[3] < 1) {
-           this.CanvasDiv.hide();
-           } else {
-           this.CanvasDiv.show();
-           }
-        */
-        this.CanvasDiv.css({
+    if (parent) {
+        parent.css({
             'left'  : viewport[0]+"px",
             'width' : viewport[2]+"px",
             'top'   : viewport[1]+"px",
             'height': viewport[3]+"px"
         });
+        // Needed for canvas to have the correct drawing transformation.
         this.Canvas.attr("width", viewport[2].toString());
         this.Canvas.attr("height", viewport[3].toString());
     }
