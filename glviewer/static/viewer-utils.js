@@ -2607,6 +2607,10 @@ function saViewerSetup(self, args) {
         SA.ImagePathUrl = args.prefixUrl;
     }
 
+    $(window)
+        .off('resize.sa')
+        .on('resize.sa', saResizeCallback);
+
     for (var i = 0; i < self.length; ++i) {
         if ( ! self[i].saViewer) {
             if (args.dual == undefined) {
@@ -2661,6 +2665,31 @@ jQuery.prototype.saRecordViewer = function() {
 
 // TODO: Convert the viewer to use this.
 
+function saResizeCallback() {
+    var height = window.innerHeight;
+    var width = window.innerWidth;
+    var top = 0;
+    var left = 0;
+    items = $('.sa-full-height');
+    for (var i = 0; i < items.length; ++i) {
+        item = items[i];
+        $(item).css({'top': '0px',
+                     'height': height+'px'});
+    }
+    // Hack until I can figure out why the resize event is not
+    // firing for descendants.
+    // This did not work.  It also triggered resize on the window
+    // causeing infinite recusion.
+    //$('.sa-resize').trigger('resize');
+    // call onresize manually.
+    var elements = $('.sa-resize');
+    for (var i = 0; i < elements.length; ++i) {
+        if (elements[i].onresize) {
+            elements[i].onresize();
+        }
+    }
+}
+
 // Args: not used
 jQuery.prototype.saFullHeight = function(args) {
     this.css({'top':'0px'});
@@ -2672,31 +2701,9 @@ jQuery.prototype.saFullHeight = function(args) {
         this[i].saFullHeight = args;
     }
 
-    $(window).resize(
-        function() {
-            var height = window.innerHeight;
-            var width = window.innerWidth;
-            var top = 0;
-            var left = 0;
-            items = $('.sa-full-height');
-            for (var i = 0; i < items.length; ++i) {
-                item = items[i];
-                $(item).css({'top': '0px',
-                             'height': height+'px'});
-            }
-            // Hack until I can figure out why the resize event is not
-            // firing for descendants.
-            // This did not work.  It also triggered resize on the window
-            // causeing infinite recusion.
-            //$('.sa-resize').trigger('resize');
-            // call onresize manually.
-            var elements = $('.sa-resize');
-            for (var i = 0; i < elements.length; ++i) {
-                if (elements[i].onresize) {
-                    elements[i].onresize();
-                }
-            }
-        })
+    $(window)
+        .off('resize.sa')
+        .on('resize.sa', saResizeCallback)
         .trigger('resize');
 
     return this;
@@ -2711,6 +2718,12 @@ jQuery.prototype.saFullHeight = function(args) {
 jQuery.prototype.saPresentation = function(args) {
     this.addClass('sa-presentation');
     this.addClass('sa-resize');
+
+    $(window)
+        .off('resize.sa')
+        .on('resize.sa', saResizeCallback)
+        .trigger('resize');
+
     for (var i = 0; i < this.length; ++i) {
         var item = this[i];
         if ( ! item.saPresentation) {
@@ -2875,6 +2888,10 @@ saPresentation.prototype.HandleMouseUp = function (event) {
 jQuery.prototype.saScalableFont = function(args) {
     this.addClass('sa-scalable-font');
     this.addClass('sa-resize');
+
+    $(window)
+        .off('resize.sa')
+        .on('resize.sa', saResizeCallback);
 
     for (var i = 0; i < this.length; ++i) {
         var text = this[i];

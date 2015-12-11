@@ -27,9 +27,7 @@ function Viewer (parent) {
 
     this.Div = $('<div>')
         .appendTo(this.Parent)
-        .css({'position':'absolute',
-              'left':'0px',
-              'top':'0px',
+        .css({'position':'relative',
               'width':'100%',
               'height':'100%'});
 
