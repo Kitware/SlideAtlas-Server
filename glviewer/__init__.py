@@ -142,9 +142,9 @@ def glview():
     admindb = models.ImageStore._get_db()
     db = admindb
 
-    viewobj = None
-    if viewid:
-        viewobj = readViewTree(db, viewid)
+    #viewobj = None
+    #if viewid:
+    #    viewobj = readViewTree(db, viewid)
 
     if ajax:
         return jsonifyView(db,viewid,viewobj)
