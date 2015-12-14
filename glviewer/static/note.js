@@ -16,6 +16,10 @@ function Note () {
     SA.Notes.push(this);
 
     var self = this;
+    // 0: just an id
+    // 1: requested
+    // 2: received
+    this.LoadState = 0;
 
     this.User = GetUser(); // Reset by flask.
     var d = new Date();
@@ -676,6 +680,9 @@ Note.prototype.Serialize = function(excludeChildren) {
 Note.prototype.Load = function(obj){
     var self = this;
 
+    // Received
+    this.LoadState = 2;
+
     for (ivar in obj) {
         this[ivar] = obj[ivar];
     }
@@ -699,10 +706,17 @@ Note.prototype.Load = function(obj){
     }
 
     for (var i = 0; i < this.Children.length; ++i) {
-        var childObj = this.Children[i];
+        var child = this.Children[i];
         var childNote = new Note();
         childNote.SetParent(this);
-        childNote.Load(childObj);
+        if (typeof(child) == "string") {
+            // Asynchronous.  This may cause problems (race condition)
+            // We should have a load state in note.
+            //childNote.LoadViewId(child);
+            child.Id = child;
+        } else {
+            childNote.Load(child);
+        }
         this.Children[i] = childNote;
         childNote.Div.data("index", i);
     }
@@ -733,6 +747,9 @@ Note.prototype.Load = function(obj){
 
 Note.prototype.LoadViewId = function(viewId, callback) {
     var self = this;
+    // Received
+    this.LoadState = 1;
+
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
