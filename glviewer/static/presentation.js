@@ -1136,32 +1136,37 @@ Presentation.prototype.UpdateSlidesTab = function (){
     for (var i = 0; i < this.GetNumberOfSlides(); ++i) {
         // get a title
         var note = this.GetSlide(i);
-        var title = note.Title;
-        if (title == "") { // No title set in the note
-            title = note.Text;
-            var idx = title.indexOf('sa-presentation-text');
-            if (idx == -1) {
+        var title;
+        var title = note.Text;
+        var idx = title.indexOf('sa-presentation-text');
+        if (idx == -1) {
+            title = note.Title;
+            if (title == "") {
                 // Nothing i the text / html to use as a title.
                 title = "Slide " + i;
-            } else {
-                title = title.substring(idx);
+            }
+        } else {
+            title = title.substring(idx);
+            idx = title.indexOf('>');
+            title = title.substring(idx+1);
+            idx = title.indexOf('<');
+            // We may have other formating blocks.
+            // An xml parser would be nice.
+            while (idx == 0) {
                 idx = title.indexOf('>');
                 title = title.substring(idx+1);
                 idx = title.indexOf('<');
-                // We may have other formating blocks.
-                // An xml parser would be nice.
-                while (idx == 0) {
-                    idx = title.indexOf('>');
-                    title = title.substring(idx+1);
-                    idx = title.indexOf('<');
-                }
-                title = title.substring(0,idx);
             }
-            // Hide titles
-            if (this.RootNote.Mode == 'answer-hide') {
-                title = "#"+i;
+            title = title.substring(0,idx);
+            if (note.Title == "") {
+                note.Title = title;
             }
         }
+        // Hide titles
+        if (this.RootNote.Mode == 'answer-hide') {
+            title = "#"+i;
+        }
+
         var slideDiv = $('<div>')
             .appendTo(this.SlideList)
             .css({'position':'relative',

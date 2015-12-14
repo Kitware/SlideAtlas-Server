@@ -203,6 +203,17 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
 // Which is better calling Note.Apply, or viewer.SetNote?  I think this
 // will  win.
 DualViewWidget.prototype.SetNote = function(note, viewIdx) {
+    var self = this;
+    // If the note is not loaded, request the note, and call this method
+    // when the note is finally loaded.
+    if (note && note.LoadState == 0) {
+        note.LoadViewId(
+            note.Id,
+            function () {
+                self.SetNote(note, viewIdx);
+            });
+    }
+
     if (! note || viewIdx < 0 || viewIdx >= note.ViewerRecords.length) {
         console.log("Cannot set viewer record of note");
         return;
