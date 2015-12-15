@@ -29,7 +29,9 @@ function Viewer (parent) {
         .appendTo(this.Parent)
         .css({'position':'relative',
               'width':'100%',
-              'height':'100%'});
+              'height':'100%',
+              // necessary to block inheriting border-box
+              'box-sizing':'content-box'});
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -104,8 +106,7 @@ function Viewer (parent) {
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
-    this.GuiElements = [];
-    
+
     // For stack correlations.
     this.StackCorrelations = undefined;
     // This is only for drawing correlations.
@@ -203,6 +204,27 @@ function Viewer (parent) {
     this.CopyrightWrapper = $('<div>')
         .appendTo(this.MainView.CanvasDiv)
         .addClass("sa-view-copyright");
+}
+
+// Try to remove all global references to this viewer.
+Viewer.prototype.Delete = function () {
+    this.Div.remove();
+    // Remove circular references too?
+    // This will probably affect all viewers.
+    $(document.body).off('mouseup.viewer');
+    this.MainView.Delete();
+    if (this.OverView) {
+        this.OverView.Delete();
+        delete this.OverView;
+    }
+    delete this.MainView;
+    delete this.Parent;
+    delete this.Div;
+    delete this.InteractionListeners;
+    delete this.RotateIcon;
+    delete this.WidgetList;
+    delete this.StackCorrelations;
+    delete this.CopyrightWrapper;
 }
 
 // Abstracting saViewer  for viewer and dualViewWidget.
@@ -503,12 +525,12 @@ Viewer.prototype.InitializeZoomGui = function() {
         .addClass("sa-view-zoom-text")
         .html("");
 
-
     // Place the zoom in / out buttons.
     // Todo: Make the button become more opaque when pressed.
     // Associate with viewer (How???).
     // Place properly (div per viewer?) (viewer.SetViewport also places buttons).
     var self = this;
+
     this.ZoomDiv = $('<div>')
         .appendTo(this.ZoomTab.Panel)
         .addClass("sa-view-zoom-panel-div");
@@ -532,7 +554,6 @@ Viewer.prototype.InitializeZoomGui = function() {
             return false;});
 
 
-    this.AddGuiObject(this.ZoomDiv,  "Bottom", 4, "Right", 60);
 }
 
 Viewer.prototype.UpdateZoomGui = function() {
@@ -634,7 +655,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
     }
     if (this.AnnotationVisibility) {
         this.MainView.DrawShapes();
-        for(i in this.WidgetList){
+        for(i=0; i < this.WidgetList.length; ++i) {
             this.WidgetList[i].Draw(view, this.AnnotationVisibility);
         }
     }
@@ -810,47 +831,6 @@ Viewer.prototype.SetSection = function(section) {
      return this.MainView.GetCache();
  }
 
- Viewer.prototype.ShowGuiElements = function() {
-   for (var i = 0; i < this.GuiElements.length; ++i) {
-     var element = this.GuiElements[i];
-     if ('Object' in element) {
-       element.Object.show();
-     } else if ('Id' in element) {
-       $(element.Id).show();
-     }
-   }
- }
-
-Viewer.prototype.HideGuiElements = function() {
-    for (var i = 0; i < this.GuiElements.length; ++i) {
-        var element = this.GuiElements[i];
-        if ('Object' in element) {
-            element.Object.hide();
-        } else if ('Id' in element) {
-            $(element.Id).hide();
-        }
-    }
-}
-
-// legacy
-Viewer.prototype.AddGuiElement = function(idString, relativeX, x, relativeY, y) {
-    var element = {};
-    element.Id = idString;
-    element[relativeX] = x;
-    element[relativeY] = y;
-    this.GuiElements.push(element);
-}
-
-Viewer.prototype.AddGuiObject = function(object, relativeX, x, relativeY, y) {
-    var element = {};
-    element.Object = object;
-    element[relativeX] = x;
-    element[relativeY] = y;
-    this.GuiElements.push(element);
-}
-
-
-
 // ORIGIN SEEMS TO BE BOTTOM LEFT !!!
 // I intend this method to get called when the window resizes.
 // TODO: Redo all this overview viewport junk.
@@ -890,57 +870,6 @@ Viewer.prototype.SetViewport = function(viewport) {
 
         this.OverView.SetViewport(this.OverViewport);
         this.OverView.Camera.ComputeMatrix();
-    }
-
-    this.PlaceGuiElements();
-}
-
-Viewer.prototype.PlaceGuiElements = function() {
-    var viewport = this.GetViewport();
-
-    // I am working to depreciate GUI elements.
-    // The browser / css should place gui elements.
-    for (var i = 0; i < this.GuiElements.length; ++i) {
-        var element = this.GuiElements[i];
-        var object;
-        if ('Object' in element) {
-            object = element.Object;
-        } else if ('Id' in element) {
-            object = $(element.Id);
-        } else {
-            continue;
-        }
-
-        // When the viewports are too small, large elements overlap ....
-        // This stomps on the dual view arrow elementts visibility.
-        // We would need our own visibility state ...
-        //if (viewport[2] < 300 || viewport[3] < 300) {
-        //  object.hide();
-        //} else {
-        //  object.show();
-        //}
-
-        if ('Bottom' in element) {
-            var pos = element.Bottom.toString() + "px";
-            object.css({
-                'bottom' : pos});
-        } else if ('Top' in element) {
-            var pos = element.Top.toString() + "px";
-            object.css({
-                'top' : pos});
-        }
-
-        if ('Left' in element) {
-            var pos = viewport[0] + element.Left;
-            pos = pos.toString() + "px";
-            object.css({
-                'left' : pos});
-        } else if ('Right' in element) {
-            var pos = viewport[0] + viewport[2] - element.Right;
-            pos = pos.toString() + "px";
-            object.css({
-                'left' : pos});
-        }
     }
 }
 

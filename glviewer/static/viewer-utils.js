@@ -2612,6 +2612,19 @@ function saViewerSetup(self, args) {
         .on('resize.sa', saResizeCallback);
 
     for (var i = 0; i < self.length; ++i) {
+        if (args == 'destroy') {
+            $(self[i]).removeClass('sa-resize');
+            // This should not cause a problem.
+            // Only one resize element should be using this element.
+            $(self[i]).removeClass('sa-resize');
+            $(self[i]).removeClass('sa-viewer');
+            if (self[i].saViewer) {
+                self[i].saViewer.Delete();
+                delete self[i].saViewer;
+            }
+            continue;
+        }
+
         if ( ! self[i].saViewer) {
             if (args.dual == undefined) {
                 // look for class name.

@@ -34,6 +34,24 @@ function View (parent) {
     }
 }
 
+// Try to remove all global and circular references to this view.
+View.prototype.Delete = function() {
+    this.CanvasDiv.off('mousedown.viewer');
+    this.CanvasDiv.off('mousemove.viewer');
+    this.CanvasDiv.off('wheel.viewer');
+    this.CanvasDiv.off('touchstart.viewer');
+    this.CanvasDiv.off('touchmove.viewer');
+    this.CanvasDiv.off('touchend.viewer');
+    this.CanvasDiv.off('keydown.viewer');
+    this.CanvasDiv.off('wheel.viewer');
+    delete this.ShapeList;
+    delete this.Section;
+    delete this.Camera;
+    delete this.Tiles;
+    delete this.CanvasDiv;
+    delete this.Canvas;
+}
+
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
 View.prototype.InitializeViewport = function(viewport, layer, hide) {
