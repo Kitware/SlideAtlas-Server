@@ -65,7 +65,10 @@ function DualViewWidget(parent) {
     if ( ! MOBILE_DEVICE) {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
-            .appendTo(parent)
+            .appendTo(this.Viewers[0].Div)
+            .css({'position':'absolute',
+                  'right':'0px',
+                  'top':'0px'})
             .addClass("sa-view-dualview-div")
             .attr('id', 'dualWidgetLeft')
             .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
@@ -75,6 +78,10 @@ function DualViewWidget(parent) {
                 return false;});
 
         $('<img>').appendTo(parent)
+            .appendTo(this.Viewers[1].Div)
+            .css({'position':'absolute',
+                  'left':'0px',
+                  'top':'0px'})
             .hide()
             .addClass("sa-view-dualview-img")
             .attr('id', 'dualWidgetRight')
@@ -84,8 +91,6 @@ function DualViewWidget(parent) {
             .on("dragstart", function() {
                 return false;});
 
-        this.Viewers[0].AddGuiElement("#dualWidgetLeft", "Top", 0, "Right", 20);
-        this.Viewers[0].AddGuiElement("#dualWidgetRight", "Top", 0, "Right", 0);
 
         // DualViewer is the navigation widgets temporary home.
         // SlideShow can have multiple nagivation widgets so it is no
@@ -344,13 +349,11 @@ DualViewWidget.prototype.UpdateGui = function () {
     if (this.DualView) {
         $('#dualWidgetLeft').hide();
         $('#dualWidgetRight').show();
-        this.Viewers[1].ShowGuiElements();
         // Edit menu option to copy camera zoom between views.
         $('#dualViewCopyZoom').show();
     } else {
         $('#dualWidgetRight').hide();
         $('#dualViewCopyZoom').hide();
-        this.Viewers[1].HideGuiElements();
         $('#dualWidgetLeft').show();
         // Edit menu option to copy camera zoom between views.
     }
