@@ -89,13 +89,14 @@ def convertImageToPixelCoordinateSystem(imageObj):
             imageObj["CoordinateSystem"] = "Pixel"
 
 def convertViewToPixelCoordinateSystem(viewObj):
-    if viewObj.has_key("Children"):
-        for child in viewObj["Children"]:
-            convertViewToPixelCoordinateSystem(child)
-    if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Photo":
-        for record in viewObj["ViewerRecords"]:
-            flipViewerRecord(record)
-    viewObj["CoordinateSystem"] = "Pixel"
+    if isinstance(viewObj, dict):
+        if viewObj.has_key("Children"):
+            for child in viewObj["Children"]:
+                convertViewToPixelCoordinateSystem(child)
+        if viewObj.has_key("CoordinateSystem") and viewObj["CoordinateSystem"] == "Photo":
+            for record in viewObj["ViewerRecords"]:
+                flipViewerRecord(record)
+        viewObj["CoordinateSystem"] = "Pixel"
 
 
 
@@ -142,11 +143,10 @@ def glview():
     admindb = models.ImageStore._get_db()
     db = admindb
 
-    #viewobj = None
-    #if viewid:
-    #    viewobj = readViewTree(db, viewid)
-
     if ajax:
+        viewobj = None
+        if viewid:
+            viewobj = readViewTree(db, viewid, 0)
         return jsonifyView(db,viewid,viewobj)
 
     # default
@@ -248,7 +248,7 @@ def bookmark():
     db = admindb
 
     if viewid:
-        viewobj = readViewTree(db, viewid)
+        viewobj = readViewTree(db, viewid, -1)
 
         if ajax:
             return jsonifyView(db,viewid,viewobj)
@@ -290,7 +290,7 @@ def getusernotes():
     noteArray = []
     for note in notecursor:
         # this handles viewid as an object too
-        viewobj = readViewTree(db, note)
+        viewobj = readViewTree(db, note,-1)
         if note.has_key("ParentId"):
             note["ParentId"] = str(note["ParentId"])
         noteArray.append(note)
@@ -503,7 +503,7 @@ def getfavoriteviews():
     )
     viewArray = []
     for viewId in viewItr:
-        viewObj = readViewTree(admindb, viewId["_id"])
+        viewObj = readViewTree(admindb, viewId["_id"], -1)
         # There should be no legacy views, but keep the check just in case.
         if "Type" in viewObj:
             convertViewToPixelCoordinateSystem(viewObj)
@@ -516,7 +516,7 @@ def getfavoriteviews():
 # This function reads a view from the database.  It collects all
 # children sub view and image objects and puts them inline
 # and returns a single structure.
-def readViewTree(db, viewId):
+def readViewTree(db, viewId, levels):
     if isinstance(viewId, basestring):
         try:
             viewId = ObjectId(viewId)
@@ -571,13 +571,14 @@ def readViewTree(db, viewId):
                     del record['Image']['thumb']
 
     # read and add the children
-    if 'Children' in viewObj:
-        children = []
-        for child in viewObj["Children"]:
-            child = readViewTree(db, child)
-            if child is not None:
-                children.append(child)
-        viewObj["Children"] = children
+    if not levels == 0 :
+        if 'Children' in viewObj:
+            children = []
+            for child in viewObj["Children"]:
+                child = readViewTree(db, child, levels - 1)
+                if child is not None:
+                    children.append(child)
+            viewObj["Children"] = children
 
     # Read the user note.
     # We do not have a reference to a user note.
@@ -590,7 +591,7 @@ def readViewTree(db, viewId):
     })
     if userViewObj:
         # It is ok to pass in an object instead of an id.
-        viewObj["UserNote"] = readViewTree(db, userViewObj)
+        viewObj["UserNote"] = readViewTree(db, userViewObj, levels-1)
 
     return viewObj
 
@@ -665,7 +666,7 @@ def saveviewnotes():
 
     # I want the client editor to display the correct links immediatly after saving, so
     # I have to return the entire note tree with any new ids created.
-    viewObj = readViewTree(db, viewObj)
+    viewObj = readViewTree(db, viewObj, 0)
     return jsonify(viewObj)
 
 @mod.route('/gettrackingdata')
@@ -710,7 +711,7 @@ def getview():
 
     admindb = models.ImageStore._get_db()
 
-    viewObj = readViewTree(admindb, viewid)
+    viewObj = readViewTree(admindb, viewid, 1)
     if viewObj is None:
         abort(404)
 
