@@ -20,7 +20,8 @@ function AnnotationWidget (viewer) {
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
-        .css({'position':'absolute',
+        .css({'box-sizing':'content-box',
+              'position':'absolute',
               'bottom':'0px',
               'right':'110px'})
         .prop('title', "Annotation");
