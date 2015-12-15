@@ -512,7 +512,8 @@ Viewer.prototype.InitializeZoomGui = function() {
                            SA.ImagePathUrl+"mag.png",
                            "zoomTab");
     this.ZoomTab.Div
-        .css({'position':'absolute',
+        .css({'box-sizing': 'content-box',
+              'position':'absolute',
               'bottom':'0px',
               'right':'7px'})
         .prop('title', "Zoom scroll");

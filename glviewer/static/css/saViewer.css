@@ -17,15 +17,18 @@
 }
  
 .sa-view-body{
- overflow-x: hidden;
- overflow-y: hidden
+    box-sizing: content-box;
+    overflow-x: hidden;
+    overflow-y: hidden
 }
 .sa-view-div{
+    box-sizing: content-box;
     z-index: 5;
     position: absolute
 }
  
 .sa-view-button {
+    box-sizing: content-box;
     height: 28px;
     padding: 2px;
     border-width: 1px;
@@ -65,6 +68,7 @@
 }
 
 .sa-view-panel {
+    box-sizing: content-box;
     background-color: white;
     border-style: solid;
     border-width: 1px;
@@ -319,6 +323,7 @@
 *
 */
 .sa-view-annotation-panel {
+    box-sizing: content-box;
     width: 108px;
     left: -38px;
 }
@@ -377,6 +382,7 @@
  */
 
 .sa-view-navigation-panel {
+    box-sizing: content-box;
     left: -45px;
     width: 200px;
     height: 50px;
@@ -419,6 +425,7 @@
 */
 
 .sa-view-edit-panel {
+    box-sizing: content-box;
     left: -78px;
     width: 170px;
     padding: 0px 2px;
@@ -439,12 +446,14 @@
 *  Begin zoom block
 */
 .sa-view-zoom-panel {
+    box-sizing: content-box;
     left: -25px;
     width: 55px;
     padding: 0px 2px;
 }
 
 .sa-view-zoom-panel-div {
+    box-sizing: content-box;
     opacity: 0.6;
     background-color: #fff;
     height: 104px;
@@ -493,6 +502,7 @@
 }
 
 .sa-view-conference-panel {
+    box-sizing: content-box;
     width: auto;
     left: 2px;
     right: 62px;
@@ -637,6 +647,7 @@
 *  Start of gallery.js 
 */
 .sa-view-gallery-panel {
+    box-sizing: content-box;
     height: 100%;
     width: auto
 }
