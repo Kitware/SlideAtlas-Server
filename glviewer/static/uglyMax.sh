@@ -3,7 +3,6 @@ cat css/main.css >> css/sa.css
 cat css/saViewer.css >> css/sa.css
 cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css >> css/sa.css
 cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
-cat ../../slideatlas/static/thirdparty/jquery/1.7.2/jquery.min.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.min.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/spectrum/spectrum.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/glmatrix/0.9.5-r1/glMatrix-min.js >> sa.max.js
