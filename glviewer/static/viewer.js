@@ -1991,7 +1991,7 @@ Viewer.prototype.HandleMouseWheel = function(event) {
     this.AnimateLast = new Date().getTime();
     this.AnimateDuration = 200.0; // hard code 200 milliseconds
     this.EventuallyRender(true);
-    return true;
+    return false;
 }
 
 // returns false if the event was "consumed" (browser convention).
