@@ -30,8 +30,7 @@ function Viewer (parent) {
         .css({'position':'relative',
               'width':'100%',
               'height':'100%',
-              // necessary to block inheriting border-box
-              'box-sizing':'content-box'});
+              'box-sizing':'border-box'});
 
     // I am moving the eventually render feature into viewers.
     this.Drawing = false;
@@ -512,7 +511,7 @@ Viewer.prototype.InitializeZoomGui = function() {
                            SA.ImagePathUrl+"mag.png",
                            "zoomTab");
     this.ZoomTab.Div
-        .css({'box-sizing': 'content-box',
+        .css({'box-sizing': 'border-box',
               'position':'absolute',
               'bottom':'0px',
               'right':'7px'})
