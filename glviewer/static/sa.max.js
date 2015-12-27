@@ -8429,26 +8429,28 @@ function cancelContextMenu(e) {
 function SlideAtlas() {
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
-    SA.TimeStamp = 0;
-    SA.NumberOfTiles = 0;
-    SA.NumberOfTextures = 0;
-    SA.MaximumNumberOfTiles = 50000;
-    SA.MaximumNumberOfTextures = 5000;
-    SA.PruneTimeTiles = 0;
-    SA.PruneTimeTextures = 0;
+    this.TimeStamp = 0;
+    this.NumberOfTiles = 0;
+    this.NumberOfTextures = 0;
+    this.MaximumNumberOfTiles = 50000;
+    this.MaximumNumberOfTextures = 5000;
+    this.PruneTimeTiles = 0;
+    this.PruneTimeTextures = 0;
 
     // Keep a queue of tiles to load so we can sort them as
     // new requests come in.
-    SA.LoadQueue = [];
-    SA.LoadingCount = 0;
-    SA.LoadingMaximum = 10;
-    SA.LoadTimeoutId = 0;
+    this.LoadQueue = [];
+    this.LoadingCount = 0;
+    this.LoadingMaximum = 10;
+    this.LoadTimeoutId = 0;
 
-    SA.LoadProgressMax = 0;
-    SA.ProgressBar = null;
+    this.LoadProgressMax = 0;
+    this.ProgressBar = null;
 
     // Only used for saving images right now.
-    SA.FinishedLoadingCallbacks = [];
+    this.FinishedLoadingCallbacks = [];
+
+    this.Caches = [];
 }
 
 // Main function called by the default view.html template
@@ -22391,6 +22393,10 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
                       tile_size : imgObj.TileSize,
                       bounds    : imgObj.bounds,
                       label     : imgObj.label};
+        if ( ! image.bounds ) {
+            image.bounds = [0, imgObj.dimensions[0], 0,
+                      imgObj.dimensions[1]];
+        }
         var thumb = new CutoutThumb(image, 100);
         thumb.Div.appendTo(imageDiv)
         var labelDiv = $('<div>')
@@ -34586,6 +34592,10 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
                       tile_size : imgObj.TileSize,
                       bounds    : imgObj.bounds,
                       label     : imgObj.label};
+        if ( ! image.bounds ) {
+            image.bounds = [0, imgObj.dimensions[0], 0,
+                      imgObj.dimensions[1]];
+        }
         var thumb = new CutoutThumb(image, 100);
         thumb.Div.appendTo(imageDiv)
         var labelDiv = $('<div>')

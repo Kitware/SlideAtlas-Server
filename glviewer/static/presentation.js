@@ -2588,6 +2588,10 @@ SearchPanel.prototype.LoadSearchResults = function(data) {
                       tile_size : imgObj.TileSize,
                       bounds    : imgObj.bounds,
                       label     : imgObj.label};
+        if ( ! image.bounds ) {
+            image.bounds = [0, imgObj.dimensions[0], 0,
+                      imgObj.dimensions[1]];
+        }
         var thumb = new CutoutThumb(image, 100);
         thumb.Div.appendTo(imageDiv)
         var labelDiv = $('<div>')
