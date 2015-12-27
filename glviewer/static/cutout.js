@@ -77,7 +77,7 @@ function GetCutoutImage(cache, dimensions, focalPoint, scale, roll, fileName,
 
     LoadQueueUpdate();
 
-    console.log("trigger " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+    console.log("trigger " + SA.LoadQueue.length + " " + SA.LoadingCount);
 }
 
 GetCutoutImage2 = function(view, fileName, returnCallback) {

@@ -648,7 +648,7 @@ Viewer.prototype.SaveLargeImage2 = function(view, fileName,
                 fileName.substring(idx, fileName.length);
         }
     }
-    console.log(sectionFileName + " " + LOAD_QUEUE.length + " " + LOADING_COUNT);
+    console.log(sectionFileName + " " + SA.LoadQueue.length + " " + SA.LoadingCount);
 
     if ( ! view.DrawTiles() ) {
         console.log("Sanity check failed. Not all tiles were available.");
@@ -1114,7 +1114,7 @@ Viewer.prototype.Draw = function() {
     //console.time("ViewerDraw");
 
     // connectome
-    if ( ! this.MainView.Section) {
+    if ( ! this.MainView || ! this.MainView.Section) {
         return;
     }
 
@@ -1171,7 +1171,7 @@ Viewer.prototype.Draw = function() {
         }
     }
 
-    // Here to trigger FINISHED_LOADING_CALLBACK
+    // Here to trigger SA.FinishedLoadingCallbacks
     LoadQueueUpdate();
     //console.timeEnd("ViewerDraw");
     this.Drawing = false;
