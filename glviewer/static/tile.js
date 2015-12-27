@@ -103,8 +103,8 @@ function Tile(x, y, z, level, name, cache) {
     this.LoadState = 0;
     this.Name = name;
     this.Texture = null;
-    this.TimeStamp = TIME_STAMP;
-    this.BranchTimeStamp = TIME_STAMP;
+    this.TimeStamp = SA.TimeStamp;
+    this.BranchTimeStamp = SA.TimeStamp;
 
     this.Matrix = mat4.create();
     mat4.identity(this.Matrix);
@@ -135,12 +135,12 @@ function Tile(x, y, z, level, name, cache) {
         this.CreateWarpBuffer(cache.Warp);
     }
 
-    ++NUMBER_OF_TILES;
+    ++SA.NumberOfTiles;
 }
 
 Tile.prototype.destructor=function()
 {
-    --NUMBER_OF_TILES;
+    --SA.NumberOfTiles;
     this.DeleteTexture();
     delete this.Matrix;
     this.Matrix = null;
@@ -163,8 +163,8 @@ Tile.prototype.LoadQueueAdd = function() {
   // Record that the tile is used (for prioritizing loading and pruning).
   // Mark all lower res tiles so they will be loaded inthe correct order.
   var tmp = this;
-  while (tmp && tmp.TimeStamp != TIME_STAMP) {
-    tmp.TimeStamp = TIME_STAMP;
+  while (tmp && tmp.TimeStamp != SA.TimeStamp) {
+    tmp.TimeStamp = SA.TimeStamp;
     tmp = tmp.Parent;
   }
 
@@ -380,7 +380,7 @@ Tile.prototype.Draw = function (program, context) {
 Tile.prototype.CreateTexture = function () {
   if (this.Texture != null) { return;}
 
-  ++NUMBER_OF_TEXTURES; // To determine when to prune textures.
+  ++SA.NumberOfTextures; // To determine when to prune textures.
   this.Texture = GL.createTexture();
   var texture = this.Texture;
   //alert(tile);
@@ -396,7 +396,7 @@ Tile.prototype.CreateTexture = function () {
 
 Tile.prototype.DeleteTexture = function () {
   if (this.Texture) {
-    --NUMBER_OF_TEXTURES; // To determine when to prune textures.
+    --SA.NumberOfTextures; // To determine when to prune textures.
     GL.deleteTexture(this.Texture);
     this.Texture = null;
   }

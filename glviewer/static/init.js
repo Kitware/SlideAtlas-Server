@@ -74,7 +74,7 @@ function detectMobile() {
         MOBILE_DEVICE = "Windows Phone";
     }
     if (MOBILE_DEVICE) {
-        MAXIMUM_NUMBER_OF_TILES = 5000;
+        SA.MaximumNumberOfTiles = 5000;
     }
 
     return MOBILE_DEVICE;
@@ -555,6 +555,28 @@ function cancelContextMenu(e) {
 // Main function called by the default view.html template
 // SA global will be set to this object.
 function SlideAtlas() {
+    // How can we distribute the initialization of these?
+    // TODO: Many of these are not used anymore. Clean them up.
+    SA.TimeStamp = 0;
+    SA.NumberOfTiles = 0;
+    SA.NumberOfTextures = 0;
+    SA.MaximumNumberOfTiles = 50000;
+    SA.MaximumNumberOfTextures = 5000;
+    SA.PruneTimeTiles = 0;
+    SA.PruneTimeTextures = 0;
+
+    // Keep a queue of tiles to load so we can sort them as
+    // new requests come in.
+    SA.LoadQueue = [];
+    SA.LoadingCount = 0;
+    SA.LoadingMaximum = 10;
+    SA.LoadTimeoutId = 0;
+
+    SA.LoadProgressMax = 0;
+    SA.ProgressBar = null;
+
+    // Only used for saving images right now.
+    SA.FinishedLoadingCallbacks = [];
 }
 
 // Main function called by the default view.html template

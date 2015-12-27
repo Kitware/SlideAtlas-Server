@@ -69,7 +69,7 @@ function Cache() {
     this.Levels = [];
 
     // Keep a global list for pruning tiles.
-    CACHES.push(this);
+    SA.Caches.push(this);
     this.NumberOfSections = 1;
 }
 
@@ -401,13 +401,13 @@ Cache.prototype.RecursiveGetTile = function(node, deltaDepth, x, y, z) {
 
 // Find the oldest tile, remove it from the tree and return it to be recycled.
 // This also prunes texture maps.
-// PRUNE_TIME_TILES and PRUNE_TIME_TEXTURES are compared with used time of tile.
+// SA.PruneTimeTiles and SA.PruneTimeTextures are compared with used time of tile.
 Cache.prototype.PruneTiles = function()
 {
   for (var i = 0; i < this.RootTiles.length; ++i) {
     var node = this.RootTiles[i];
     if (node != null) {
-      if (node.BranchTimeStamp < PRUNE_TIME_TILES || node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+      if (node.BranchTimeStamp < SA.PruneTimeTiles || node.BranchTimeStamp < SA.PruneTimeTextures) {
         this.RecursivePruneTiles(node);
       }
     }
@@ -422,17 +422,17 @@ Cache.prototype.RecursivePruneTiles = function(node)
     var child = node.Children[i];
     if (child != null) {
       leaf = false;
-      if (child.BranchTimeStamp < PRUNE_TIME_TILES ||
-          child.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+      if (child.BranchTimeStamp < SA.PruneTimeTiles ||
+          child.BranchTimeStamp < SA.PruneTimeTextures) {
         this.RecursivePruneTiles(child);
       }
     }
   }
   if (leaf && node.Parent != null) { // Roots have null parents.  Do not prune roots.
-    if (node.BranchTimeStamp < PRUNE_TIME_TEXTURES) {
+    if (node.BranchTimeStamp < SA.PruneTimeTextures) {
       node.DeleteTexture();
     }
-    if (node.BranchTimeStamp < PRUNE_TIME_TILES) {
+    if (node.BranchTimeStamp < SA.PruneTimeTiles) {
       if ( node.LoadState == 1) {
         LoadQueueRemove(node);
       }

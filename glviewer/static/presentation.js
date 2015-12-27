@@ -918,6 +918,8 @@ Presentation.prototype.Save = function () {
     for (var i = 0; i < SA.Notes.length; ++i) {
         note = SA.Notes[i];
         if (note.TempId) {
+            // Replace references in dom
+            $('[sa-note-id="'+note.TempId+'"]').attr('sa-note-id',note.Id);
             // Replace al the occurances of the id in the string.
             note.Text = note.Text.replace(
                 new RegExp(note.TempId, 'g'), note.Id);

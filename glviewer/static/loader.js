@@ -6,33 +6,10 @@
 
 
 
-var TIME_STAMP = 0;
-var NUMBER_OF_TILES = 0;
-var NUMBER_OF_TEXTURES = 0;
-var MAXIMUM_NUMBER_OF_TILES = 50000;
-var MAXIMUM_NUMBER_OF_TEXTURES = 5000;
-var PRUNE_TIME_TILES = 0;
-var PRUNE_TIME_TEXTURES = 0;
-
-// Keep a queue of tiles to load so we can sort them as
-// new requests come in.
-var LOAD_QUEUE = [];
-var LOADING_COUNT = 0;
-var LOADING_MAXIMUM = 10;
-var LOAD_TIMEOUT_ID = 0;
-
-var LOAD_PROGRESS_MAX = 0;
-var PROGRESS_BAR = null;
-
-// Only used for saving images right now.
-var FINISHED_LOADING_CALLBACKS = [];
-
-
-
 
 function InitProgressBar () {
-  if (PROGRESS_BAR) { return;}
-  PROGRESS_BAR = $("<div>")
+  if (SA.ProgressBar) { return;}
+  SA.ProgressBar = $("<div>")
    .appendTo('body')
    .addClass("sa-view-progress-bar");
 }
@@ -40,52 +17,52 @@ function InitProgressBar () {
 
 
 function AdvanceTimeStamp() {
-  ++TIME_STAMP;
+  ++SA.TimeStamp;
 }
 
 function GetCurrentTime() {
-  return TIME_STAMP;
+  return SA.TimeStamp;
 }
 
 // Prunning could be rethought to avoid so much depdency on the cache.
 function Prune() {
   var prune = false;
-  if (NUMBER_OF_TILES >= MAXIMUM_NUMBER_OF_TILES) {
+  if (SA.NumberOfTiles >= SA.MaximumNumberOfTiles) {
     // Overflow may be possible after running for a while.
-    if (PRUNE_TIME_TILES > TIME_STAMP) {
-      PRUNE_TIME_TILES = 0;
+    if (SA.PruneTimeTiles > SA.TimeStamp) {
+      SA.PruneTimeTiles = 0;
     }
     // Advance the prune threshold.
-    PRUNE_TIME_TILES += 0.05 * (TIME_STAMP - PRUNE_TIME_TILES);
+    SA.PruneTimeTiles += 0.05 * (SA.TimeStamp - SA.PruneTimeTiles);
     prune = true;
   }
 
-  if (NUMBER_OF_TEXTURES >= MAXIMUM_NUMBER_OF_TEXTURES) {
+  if (SA.NumberOfTextures >= SA.MaximumNumberOfTextures) {
     // Overflow may be possible after running for a while.
-    if (PRUNE_TIME_TEXTURES > TIME_STAMP) {
-      PRUNE_TIME_TEXTURES = 0;
+    if (SA.PruneTimeTextures > SA.TimeStamp) {
+      SA.PruneTimeTextures = 0;
     }
     // Advance the prune threshold.
-    PRUNE_TIME_TEXTURES += 0.05 * (TIME_STAMP - PRUNE_TIME_TEXTURES);
+    SA.PruneTimeTextures += 0.05 * (SA.TimeStamp - SA.PruneTimeTextures);
     prune = true;
   }
 
   if (prune) {
-    for (i in CACHES) {
-      cache = CACHES[i];
+    for (i in SA.Caches) {
+      cache = SA.Caches[i];
       cache.PruneTiles();
     }
   }
 }
 
 function ClearQueue() {
-    for (var i = 0; i < LOAD_QUEUE.length; ++i) {
-        var tile = LOAD_QUEUE[i];
+    for (var i = 0; i < SA.LoadQueue.length; ++i) {
+        var tile = SA.LoadQueue[i];
         if (tile) {
             tile.LoadState = 0;
         }
     }
-    LOAD_QUEUE = [];
+    SA.LoadQueue = [];
     LoadQueueUpdate();
 }
 
@@ -95,15 +72,15 @@ function ClearQueue() {
 function LoadQueueAddTile(tile) {
   tile.LoadState = 1;
   // Add the tile at the front of the queue.
-  LOAD_QUEUE.push(tile);
+  SA.LoadQueue.push(tile);
 }
 
 // Push the best tile to the end of the queue.
 function PushBestToLast() {
   // Do a sort pass (pushing high priority items to the end.
-  var t0 = LOAD_QUEUE[0];
-  for (var i = 1; i < LOAD_QUEUE.length; ++i) {
-    var t1 = LOAD_QUEUE[i];
+  var t0 = SA.LoadQueue[0];
+  for (var i = 1; i < SA.LoadQueue.length; ++i) {
+    var t1 = SA.LoadQueue[i];
     var swap = false;
     if (t1 != null) {
       if (t0 == null) {
@@ -116,8 +93,8 @@ function PushBestToLast() {
     }
     if (swap) {
       // Swap the pair.
-      LOAD_QUEUE[i] = t0;
-      LOAD_QUEUE[i-1] = t1;
+      SA.LoadQueue[i] = t0;
+      SA.LoadQueue[i-1] = t1;
     } else {
       t0 = t1;
     }
@@ -129,11 +106,11 @@ function PushBestToLast() {
 // I need a way to remove tiles from the queue when they are deleted.
 // I know this is inefficient.
 function LoadQueueRemove(tile) {
-  var length = LOAD_QUEUE.length;
+  var length = SA.LoadQueue.length;
   for (var i = 0; i < length; ++i) {
-    if (LOAD_QUEUE[i] == tile) {
+    if (SA.LoadQueue[i] == tile) {
       tile.LoadState = 0;
-      LOAD_QUEUE[i] = null;
+      SA.LoadQueue[i] = null;
       return;
     }
   }
@@ -144,7 +121,7 @@ function LoadTimeout() {
   // 4 images requests are too slow.  Reset
   // I do not know which requests failed so I cannot mak another request.
   // TODO: Remember loading tiles (even if only for debugging).
-  LOADING_COUNT = 0;
+  SA.LoadingCount = 0;
   LoadQueueUpdate();
 }
 
@@ -153,50 +130,50 @@ function LoadTimeout() {
 // Too many and we cannot abort loading.
 // Too few and we will serialize loading.
 function LoadQueueUpdate() {
-    if (LOADING_COUNT < 0) {
+    if (SA.LoadingCount < 0) {
         // Tiles must have arrived after timeout.
-        LOADING_COUNT = 0;
+        SA.LoadingCount = 0;
     }
-    while (LOADING_COUNT < LOADING_MAXIMUM &&
-           LOAD_QUEUE.length > 0) {
+    while (SA.LoadingCount < SA.LoadingMaximum &&
+           SA.LoadQueue.length > 0) {
         PushBestToLast();
-        var tile = LOAD_QUEUE.pop();
+        var tile = SA.LoadQueue.pop();
         // For debugging
         //this.PendingTiles.push(tile);
         if (tile != null && tile.LoadState == 1) {
             tile.StartLoad(tile.Cache);
             tile.LoadState = 2; // Loading.
-            ++LOADING_COUNT;
+            ++SA.LoadingCount;
         }
     }
 
     // Observed bug: If 4 tile requests never return, loading stops.
     // Do a time out to clear this hang.
-    if (LOAD_TIMEOUT_ID) {
-        clearTimeout(LOAD_TIMEOUT_ID);
-        LOAD_TIMEOUT_ID = 0;
+    if (SA.LoadTimeoutId) {
+        clearTimeout(SA.LoadTimeoutId);
+        SA.LoadTimeoutId = 0;
     }
-    if (LOADING_COUNT) {
-        LOAD_TIMEOUT_ID = setTimeout(function(){LoadTimeout();}, 1000);
+    if (SA.LoadingCount) {
+        SA.LoadTimeoutId = setTimeout(function(){LoadTimeout();}, 1000);
     }
 
-    if (PROGRESS_BAR) {
-        if (LOAD_PROGRESS_MAX < LOAD_QUEUE.length) {
-            LOAD_PROGRESS_MAX = LOAD_QUEUE.length;
+    if (SA.ProgressBar) {
+        if (SA.LoadProgressMax < SA.LoadQueue.length) {
+            SA.LoadProgressMax = SA.LoadQueue.length;
         }
-        var width = (100 * LOAD_QUEUE.length / LOAD_PROGRESS_MAX).toFixed();
+        var width = (100 * SA.LoadQueue.length / SA.LoadProgressMax).toFixed();
         width = width + "%";
-        PROGRESS_BAR.css({"width" : width});
+        SA.ProgressBar.css({"width" : width});
         // Reset maximum
-        if (LOAD_QUEUE.length == 0) {
-            LOAD_PROGRESS_MAX = 0;
+        if (SA.LoadQueue.length == 0) {
+            SA.LoadProgressMax = 0;
         }
     }
 
-    if (FINISHED_LOADING_CALLBACKS.length > 0 &&
-        LOAD_QUEUE.length == 0 && LOADING_COUNT == 0) {
-        var tmp = FINISHED_LOADING_CALLBACKS.slice(0); // copy
-        FINISHED_LOADING_CALLBACKS = [];
+    if (SA.FinishedLoadingCallbacks.length > 0 &&
+        SA.LoadQueue.length == 0 && SA.LoadingCount == 0) {
+        var tmp = SA.FinishedLoadingCallbacks.slice(0); // copy
+        SA.FinishedLoadingCallbacks = [];
         for (var i = 0; i < tmp.length; ++i) {
             (tmp[i])();
         }
@@ -204,11 +181,11 @@ function LoadQueueUpdate() {
 }
 
 function AddFinishedLoadingCallback(callback) {
-    FINISHED_LOADING_CALLBACKS.push(callback);
+    SA.FinishedLoadingCallbacks.push(callback);
 }
 
 function ClearFinishedLoadingCallbacks() {
-    FINISHED_LOADING_CALLBACKS = [];
+    SA.FinishedLoadingCallbacks = [];
 }
 
 
@@ -217,7 +194,7 @@ function ClearFinishedLoadingCallbacks() {
 // How does the tile know which cache it belongs too.
 // Marks a tile as loaded so another can start.
 function LoadQueueLoaded(tile) {
-    --LOADING_COUNT;
+    --SA.LoadingCount;
     tile.LoadState = 3; // Loaded
     LoadQueueUpdate();
 }
@@ -225,7 +202,7 @@ function LoadQueueLoaded(tile) {
 // This is called if their was a 404 image not found error.
 function LoadQueueError(tile) {
   tile.LoadState = 4; // Error Loading
-  --LOADING_COUNT;
+  --SA.LoadingCount;
   LoadQueueUpdate();
 }
 
