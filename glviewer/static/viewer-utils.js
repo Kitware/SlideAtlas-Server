@@ -685,22 +685,39 @@ saElement.prototype.HandleMouseMoveCursor = function(event) {
             event.offsetY += event.srcElement.offsetTop;
             event.srcElement = event.srcElement.parentElement;
         }
-        var handleSize = 6;
         var x = event.offsetX;
         var y = event.offsetY;
-        var width = this.Div.outerWidth() - handleSize;
-        var height = this.Div.outerHeight() - handleSize;
-        if ( x < handleSize) {
-            this.Div.css({'cursor':'col-resize'});
+        var width = this.Div.outerWidth();
+        var height = this.Div.outerHeight();
+        var handleSize = (width+height) / 100;
+        if (handleSize < 6) {
+            handleSize = 6;
+        }
+        var xMax = width-handleSize;
+        var yMax = height-handleSize;
+        if ( x < handleSize && y < handleSize) {
+            this.Div.css({'cursor':'nwse-resize'});
+            this.MoveState = 5;
+        } else if ( x > xMax && y > yMax) {
+            this.Div.css({'cursor':'nwse-resize'});
+            this.MoveState = 6;
+        } else if ( x < handleSize && y > yMax) {
+            this.Div.css({'cursor':'nesw-resize'});
+            this.MoveState = 7;
+        } else if ( x > xMax && y < handleSize) {
+            this.Div.css({'cursor':'nesw-resize'});
+            this.MoveState = 8;
+        } else if ( x < handleSize) {
+            this.Div.css({'cursor':'ew-resize'});
             this.MoveState = 1;
-        } else if ( x > width) {
-            this.Div.css({'cursor':'col-resize'});
+        } else if ( x > xMax) {
+            this.Div.css({'cursor':'ew-resize'});
             this.MoveState = 2;
         } else if ( y < handleSize) {
-            this.Div.css({'cursor':'row-resize'});
+            this.Div.css({'cursor':'ns-resize'});
             this.MoveState = 3;
-        } else if ( y > height) {
-            this.Div.css({'cursor':'row-resize'});
+        } else if ( y > yMax) {
+            this.Div.css({'cursor':'ns-resize'});
             this.MoveState = 4;
         } else {
             this.Div.css({'cursor':'move'});
@@ -791,6 +808,81 @@ saElement.prototype.HandleMouseMove = function(event) {
             if (sizing == 'border-box') {
                 this.Div.height(height);
             } else {
+                this.Div.outerHeight(height);
+            }
+            if (this.AspectRatio) {
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
+            }
+            this.Div.trigger('resize');
+            return false;
+
+
+
+        } else if (this.MoveState == 5) {
+            // upper left corner resize
+            var left = pos.left + dx;
+            var top  = pos.top + dy;
+            width = width - dx;
+            height = height - dy;
+            this.Div[0].style.top  = top.toString()+'px';
+            this.Div[0].style.left = left.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+                this.Div.height(height);
+            } else {
+                this.Div.outerWidth(width);
+                this.Div.outerHeight(height);
+            }
+            if (this.AspectRatio) {
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
+            }
+            this.Div.trigger('resize');
+            return false;
+        } else if (this.MoveState == 6) {
+            // lower right corner resize
+            width = width + dx;
+            height = height + dy;
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+                this.Div.height(height);
+            } else {
+                this.Div.outerWidth(width);
+                this.Div.outerHeight(height);
+            }
+            if (this.AspectRatio) {
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
+            }
+            this.Div.trigger('resize');
+            return false;
+        } else if (this.MoveState == 7) {
+            // lower left corner resize
+            var left = pos.left + dx;
+            width = width - dx;
+            height = height + dy;
+            this.Div[0].style.left = left.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+                this.Div.height(height);
+            } else {
+                this.Div.outerWidth(width);
+                this.Div.outerHeight(height);
+            }
+            if (this.AspectRatio) {
+                this.Div.innerWidth(this.Div.innerHeight()*this.AspectRatio);
+            }
+            this.Div.trigger('resize');
+            return false;
+        } else if (this.MoveState == 8) {
+            // upper right corner resize
+            var top  = pos.top + dy;
+            width = width + dx;
+            height = height - dy;
+            this.Div[0].style.top  = top.toString()+'px';
+            if (sizing == 'border-box') {
+                this.Div.width(width);
+                this.Div.height(height);
+            } else {
+                this.Div.outerWidth(width);
                 this.Div.outerHeight(height);
             }
             if (this.AspectRatio) {
