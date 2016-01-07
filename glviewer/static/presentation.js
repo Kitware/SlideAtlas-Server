@@ -840,6 +840,7 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
+
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
     // sa-presentation-views)
@@ -850,9 +851,28 @@ Presentation.prototype.Save = function () {
         note = SA.Notes[i];
         if ( ! note.Id && note.Type != "UserNote" ) {
             ++waitingCount;
-            note.Save(function() {
-                --waitingCount;
+            note.Save(function (note) {
+                if (note == self.RootNote) {
+                    // if this is the first time we are saving the root note, then
+                    // add it to the session.
+                    $.ajax({
+                        type: "post",
+                        data: {"sess" : SA.SessionId,
+                               "view" : note.Id},
+                        url: "webgl-viewer/session-add-view",
+                        success: function(data,status){
+                            if (status != "success") {
+                                saDebug("ajax failed - session-add-view");
+                            }
+                        },
+                        error: function() {
+                            saDebug( "AJAX - error() : session-add-view" );
+                        },
+                    });
+                }
+                // For every note.
                 // Synchonize asynchronous calls.
+                --waitingCount;
                 if (waitingCount == 0) {
                     // reenter this method to finish the rest.
                     self.Save();
