@@ -608,6 +608,7 @@ SlideAtlas.prototype.Run = function() {
         rootNote.Text = "";
         rootNote.Type = "HTML";
         // Get the new notes id.
+        /* Saving this note without a viewer record is causing errors.
         rootNote.Save(function (note) {
             // Save the note in the session.
             $.ajax({
@@ -617,7 +618,7 @@ SlideAtlas.prototype.Run = function() {
                 url: "webgl-viewer/session-add-view",
                 success: function(data,status){
                     if (status == "success") {
-                        Main2(rootNote);
+                        Main(rootNote);
                     } else {
                         saDebug("ajax failed - session-add-view");
                     }
@@ -627,7 +628,8 @@ SlideAtlas.prototype.Run = function() {
                 },
             });
         });
-
+        */
+        Main(rootNote);
     } else {
         if (this.ViewId == "") {
             saDebug("Missing view id");

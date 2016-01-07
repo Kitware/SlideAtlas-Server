@@ -8480,6 +8480,7 @@ SlideAtlas.prototype.Run = function() {
         rootNote.Text = "";
         rootNote.Type = "HTML";
         // Get the new notes id.
+        /* Saving this note without a viewer record is causing errors.
         rootNote.Save(function (note) {
             // Save the note in the session.
             $.ajax({
@@ -8489,7 +8490,7 @@ SlideAtlas.prototype.Run = function() {
                 url: "webgl-viewer/session-add-view",
                 success: function(data,status){
                     if (status == "success") {
-                        Main2(rootNote);
+                        Main(rootNote);
                     } else {
                         saDebug("ajax failed - session-add-view");
                     }
@@ -8499,7 +8500,8 @@ SlideAtlas.prototype.Run = function() {
                 },
             });
         });
-
+        */
+        Main(rootNote);
     } else {
         if (this.ViewId == "") {
             saDebug("Missing view id");
@@ -17494,6 +17496,19 @@ saTextEditor.prototype.EditingOn = function() {
 saTextEditor.prototype.EditingOff = function() {
     $('body').off('mousedown.textEditor');
 
+    // Grow the parent div to contain the text.
+    var textHeight = this.Div[0].scrollHeight;
+    if (textHeight > this.Div.outerHeight()) {
+        if (this.Div.css('box-sizing') == 'border-box') {
+            this.Div.height(textHeight + 4);
+        } else {
+            this.Div.outerHeight(textHeight + 4);
+        }
+        // Aspect ratio on TextEditor is not supported.
+        this.Div.trigger('resize');
+        this.Div[0].saElement.ConvertToPercentages();
+    }
+
     this.EditButtonDiv.hide();
     // hack
     this.Div[0].saElement.LockActive = false;
@@ -20645,6 +20660,7 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
+
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
     // sa-presentation-views)
@@ -20655,9 +20671,28 @@ Presentation.prototype.Save = function () {
         note = SA.Notes[i];
         if ( ! note.Id && note.Type != "UserNote" ) {
             ++waitingCount;
-            note.Save(function() {
-                --waitingCount;
+            note.Save(function (note) {
+                if (note == self.RootNote) {
+                    // if this is the first time we are saving the root note, then
+                    // add it to the session.
+                    $.ajax({
+                        type: "post",
+                        data: {"sess" : SA.SessionId,
+                               "view" : note.Id},
+                        url: "webgl-viewer/session-add-view",
+                        success: function(data,status){
+                            if (status != "success") {
+                                saDebug("ajax failed - session-add-view");
+                            }
+                        },
+                        error: function() {
+                            saDebug( "AJAX - error() : session-add-view" );
+                        },
+                    });
+                }
+                // For every note.
                 // Synchonize asynchronous calls.
+                --waitingCount;
                 if (waitingCount == 0) {
                     // reenter this method to finish the rest.
                     self.Save();
@@ -32844,6 +32879,7 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
+
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
     // sa-presentation-views)
@@ -32854,9 +32890,28 @@ Presentation.prototype.Save = function () {
         note = SA.Notes[i];
         if ( ! note.Id && note.Type != "UserNote" ) {
             ++waitingCount;
-            note.Save(function() {
-                --waitingCount;
+            note.Save(function (note) {
+                if (note == self.RootNote) {
+                    // if this is the first time we are saving the root note, then
+                    // add it to the session.
+                    $.ajax({
+                        type: "post",
+                        data: {"sess" : SA.SessionId,
+                               "view" : note.Id},
+                        url: "webgl-viewer/session-add-view",
+                        success: function(data,status){
+                            if (status != "success") {
+                                saDebug("ajax failed - session-add-view");
+                            }
+                        },
+                        error: function() {
+                            saDebug( "AJAX - error() : session-add-view" );
+                        },
+                    });
+                }
+                // For every note.
                 // Synchonize asynchronous calls.
+                --waitingCount;
                 if (waitingCount == 0) {
                     // reenter this method to finish the rest.
                     self.Save();

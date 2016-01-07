@@ -1621,6 +1621,19 @@ saTextEditor.prototype.EditingOn = function() {
 saTextEditor.prototype.EditingOff = function() {
     $('body').off('mousedown.textEditor');
 
+    // Grow the parent div to contain the text.
+    var textHeight = this.Div[0].scrollHeight;
+    if (textHeight > this.Div.outerHeight()) {
+        if (this.Div.css('box-sizing') == 'border-box') {
+            this.Div.height(textHeight + 4);
+        } else {
+            this.Div.outerHeight(textHeight + 4);
+        }
+        // Aspect ratio on TextEditor is not supported.
+        this.Div.trigger('resize');
+        this.Div[0].saElement.ConvertToPercentages();
+    }
+
     this.EditButtonDiv.hide();
     // hack
     this.Div[0].saElement.LockActive = false;
