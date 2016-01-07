@@ -11,7 +11,6 @@ cat ../../slideatlas/static/thirdparty/blob/g7246d68/Blob.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.max.js
 cat ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.max.js
-cat init.js >> sa.max.js 
 cat websocket.js >> sa.max.js
 cat cookies.js >> sa.max.js 
 cat viewEditMenu.js >> sa.max.js 
@@ -74,5 +73,6 @@ cat circle.js >> sa.max.js
 cat circleWidget.js >> sa.max.js 
 cat cutoutWidget.js >> sa.max.js 
 cat imageAnnotation.js >> sa.max.js 
+cat init.js >> sa.max.js 
 
 

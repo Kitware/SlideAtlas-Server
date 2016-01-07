@@ -2695,11 +2695,6 @@ jQuery.prototype.saResizable = function(args) {
 // viewerIndex of the note defaults to 0.
 // Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
-    if (typeof(SA) == "undefined") {
-        // A place for globals that will have delete method in the future.
-        SA = new SlideAtlas();
-    }
-
     // default
     args = args || {};
     // This is ignored if there is not viewId or note.
