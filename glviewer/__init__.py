@@ -115,6 +115,8 @@ def glview():
     sessid = request.args.get('sess', None)
     # See if the user is requesting a view or session
     viewid = request.args.get('view', None)
+    if not viewid:
+        abort(400)
     # See if editing will be enabled.
     edit = request.args.get('edit', "false")
 
