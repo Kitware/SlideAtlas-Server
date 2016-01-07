@@ -27,11 +27,198 @@ function ZERO_PAD(i, n) {
 
 // This file contains some global variables and misc procedures to
 // initials shaders and some buffers we need and to render.
+// Main function called by the default view.html template
+// SA global will be set to this object.
+function SlideAtlas() {
+    // How can we distribute the initialization of these?
+    // TODO: Many of these are not used anymore. Clean them up.
+    this.TimeStamp = 0;
+    this.NumberOfTiles = 0;
+    this.NumberOfTextures = 0;
+    this.MaximumNumberOfTiles = 50000;
+    this.MaximumNumberOfTextures = 5000;
+    this.PruneTimeTiles = 0;
+    this.PruneTimeTextures = 0;
 
+    // Keep a queue of tiles to load so we can sort them as
+    // new requests come in.
+    this.LoadQueue = [];
+    this.LoadingCount = 0;
+    this.LoadingMaximum = 10;
+    this.LoadTimeoutId = 0;
+
+    this.LoadProgressMax = 0;
+    this.ProgressBar = null;
+
+    // Only used for saving images right now.
+    this.FinishedLoadingCallbacks = [];
+
+    this.Caches = [];
+}
+
+// Main function called by the default view.html template
+// SA global will be set to this object.
+SlideAtlas.prototype.Run = function() {
+    self = this;
+    if (this.ViewId == "" || this.ViewId == "None") {
+        delete this.ViewId;
+    }
+    if (this.SessionId == "" ||this.SessionId == "None") {
+        delete this.SessionId;
+    }
+
+    // We need to get the view so we know how to initialize the app.
+    var rootNote = new Note();
+
+    // Hack to create a new presenation.
+    if ( ! this.ViewId) {
+        var title = window.prompt("Please enter the presentation title.",
+                                  "SlideShow");
+        if (title == null) {
+            // Go back in browser?
+            return;
+        }
+        rootNote.Title = title;
+        rootNote.HiddenTitle = title;
+        rootNote.Text = "";
+        rootNote.Type = "HTML";
+        // Get the new notes id.
+        /* Saving this note without a viewer record is causing errors.
+        rootNote.Save(function (note) {
+            // Save the note in the session.
+            $.ajax({
+                type: "post",
+                data: {"sess" : self.SessionId,
+                       "view" : note.Id},
+                url: "webgl-viewer/session-add-view",
+                success: function(data,status){
+                    if (status == "success") {
+                        Main(rootNote);
+                    } else {
+                        saDebug("ajax failed - session-add-view");
+                    }
+                },
+                error: function() {
+                    saDebug( "AJAX - error() : session-add-view" );
+                },
+            });
+        });
+        */
+        Main(rootNote);
+    } else {
+        if (this.ViewId == "") {
+            saDebug("Missing view id");
+            return;
+        }
+        // Sort of a hack that we rely on main getting called after this
+        // method returns and other variables of SA are initialize.
+        rootNote.LoadViewId(this.ViewId,
+                            function () {Main(rootNote);});
+    }
+}
+
+// Stack editing stuff (should not be in the global class).
+// It used to be in the event manager.  Skipping the focus stuff.
+// TODO:
+// Modifier could be handled better with keypress events.
+SlideAtlas.prototype.HandleKeyDownStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;}
+    
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = true;
+        // Do not forward modifier keys events to objects that consume keypresses.
+        return true;
+    }
+    if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = true;
+        return true;
+    }
+
+    // Handle undo and redo (cntrl-z, cntrl-y)
+    if (this.ControlKeyPressed && event.keyCode == 90) {
+        // Function in recordWidget.
+        UndoState();
+        return false;
+    } else if (this.ControlKeyPressed && event.keyCode == 89) {
+        // Function in recordWidget.
+        RedoState();
+        return false;
+    }
+
+    if (SA.Presentation) {
+        SA.Presentation.HandleKeyDown(event);
+        return true;
+    }
+
+    return true;
+}
+
+SlideAtlas.prototype.HandleKeyUpStack = function(event) {
+    if ( this.ContentEditableHasFocus) {return true;} 
+
+    // For debugging deformable alignment in stacks.
+    if (event.keyCode == 90) { // z = 90
+        if (event.shiftKey) {
+            DeformableAlignViewers();
+            return true;
+        }
+    }
+
+    // It is sort of a hack to check for the cursor mode here, but it
+    // affects both viewers.
+    if (event.keyCode == 88) { // x = 88
+        // I am using the 'c' key to display to focal point cursor
+        //this.StackCursorFlag = false;
+        // what a pain.  Holding x down sometimes blocks mouse events.
+        // Have to change to toggle.
+        this.StackCursorFlag =  ! this.StackCursorFlag;
+        if (event.shiftKey && this.StackCursorFlag) {
+            testAlignTranslation();
+            var self = this;
+            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
+        }
+
+        eventuallyRender();
+        return false;
+    }
+
+    if (event.keyCode == 16) {
+        // Shift key modifier.
+        this.ShiftKeyPressed = false;
+        //this.StackCursorFlag = false;
+    } else if (event.keyCode == 17) {
+        // Control key modifier.
+        this.ControlKeyPressed = false;
+    }
+
+    // Is this really necessary?
+    // TODO: Try to remove this and test presentation stuff.
+    if (this.Presentation) {
+        this.Presentation.HandleKeyUp(event);
+        return true;
+    }
+
+    return true;
+}
+
+// TODO: THis should be in viewer.
+SlideAtlas.prototype.OnStartInteraction = function(callback) {
+  this.StartInteractionListeners.push(callback);
+}
+
+SlideAtlas.prototype.TriggerStartInteraction = function() {
+    if ( ! this.StartInteractionListeners) { return; }
+    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
+        callback = this.StartInteractionListeners[i];
+        callback();
+    }
+}
+
+
+var SA = SA || new SlideAtlas();
 var ROOT_DIV;
-
-// globals (for now)
-var SA = {};
 var imageProgram;
 var textProgram;
 var polyProgram;
@@ -550,201 +737,6 @@ function cancelContextMenu(e) {
     }
     return false;
 }
-
-
-// Main function called by the default view.html template
-// SA global will be set to this object.
-function SlideAtlas() {
-    // How can we distribute the initialization of these?
-    // TODO: Many of these are not used anymore. Clean them up.
-    this.TimeStamp = 0;
-    this.NumberOfTiles = 0;
-    this.NumberOfTextures = 0;
-    this.MaximumNumberOfTiles = 50000;
-    this.MaximumNumberOfTextures = 5000;
-    this.PruneTimeTiles = 0;
-    this.PruneTimeTextures = 0;
-
-    // Keep a queue of tiles to load so we can sort them as
-    // new requests come in.
-    this.LoadQueue = [];
-    this.LoadingCount = 0;
-    this.LoadingMaximum = 10;
-    this.LoadTimeoutId = 0;
-
-    this.LoadProgressMax = 0;
-    this.ProgressBar = null;
-
-    // Only used for saving images right now.
-    this.FinishedLoadingCallbacks = [];
-
-    this.Caches = [];
-}
-
-// Main function called by the default view.html template
-// SA global will be set to this object.
-SlideAtlas.prototype.Run = function() {
-    self = this;
-    if (this.ViewId == "" || this.ViewId == "None") {
-        delete this.ViewId;
-    }
-    if (this.SessionId == "" ||this.SessionId == "None") {
-        delete this.SessionId;
-    }
-
-    // We need to get the view so we know how to initialize the app.
-    var rootNote = new Note();
-
-    // Hack to create a new presenation.
-    if ( ! this.ViewId) {
-        var title = window.prompt("Please enter the presentation title.",
-                                  "SlideShow");
-        if (title == null) {
-            // Go back in browser?
-            return;
-        }
-        rootNote.Title = title;
-        rootNote.HiddenTitle = title;
-        rootNote.Text = "";
-        rootNote.Type = "HTML";
-        // Get the new notes id.
-        /* Saving this note without a viewer record is causing errors.
-        rootNote.Save(function (note) {
-            // Save the note in the session.
-            $.ajax({
-                type: "post",
-                data: {"sess" : self.SessionId,
-                       "view" : note.Id},
-                url: "webgl-viewer/session-add-view",
-                success: function(data,status){
-                    if (status == "success") {
-                        Main(rootNote);
-                    } else {
-                        saDebug("ajax failed - session-add-view");
-                    }
-                },
-                error: function() {
-                    saDebug( "AJAX - error() : session-add-view" );
-                },
-            });
-        });
-        */
-        Main(rootNote);
-    } else {
-        if (this.ViewId == "") {
-            saDebug("Missing view id");
-            return;
-        }
-        // Sort of a hack that we rely on main getting called after this
-        // method returns and other variables of SA are initialize.
-        rootNote.LoadViewId(this.ViewId,
-                            function () {Main(rootNote);});
-    }
-}
-
-// Stack editing stuff (should not be in the global class).
-// It used to be in the event manager.  Skipping the focus stuff.
-// TODO:
-// Modifier could be handled better with keypress events.
-SlideAtlas.prototype.HandleKeyDownStack = function(event) {
-    if ( this.ContentEditableHasFocus) {return true;}
-    
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = true;
-        // Do not forward modifier keys events to objects that consume keypresses.
-        return true;
-    }
-    if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = true;
-        return true;
-    }
-
-    // Handle undo and redo (cntrl-z, cntrl-y)
-    if (this.ControlKeyPressed && event.keyCode == 90) {
-        // Function in recordWidget.
-        UndoState();
-        return false;
-    } else if (this.ControlKeyPressed && event.keyCode == 89) {
-        // Function in recordWidget.
-        RedoState();
-        return false;
-    }
-
-    if (SA.Presentation) {
-        SA.Presentation.HandleKeyDown(event);
-        return true;
-    }
-
-    return true;
-}
-
-SlideAtlas.prototype.HandleKeyUpStack = function(event) {
-    if ( this.ContentEditableHasFocus) {return true;} 
-
-    // For debugging deformable alignment in stacks.
-    if (event.keyCode == 90) { // z = 90
-        if (event.shiftKey) {
-            DeformableAlignViewers();
-            return true;
-        }
-    }
-
-    // It is sort of a hack to check for the cursor mode here, but it
-    // affects both viewers.
-    if (event.keyCode == 88) { // x = 88
-        // I am using the 'c' key to display to focal point cursor
-        //this.StackCursorFlag = false;
-        // what a pain.  Holding x down sometimes blocks mouse events.
-        // Have to change to toggle.
-        this.StackCursorFlag =  ! this.StackCursorFlag;
-        if (event.shiftKey && this.StackCursorFlag) {
-            testAlignTranslation();
-            var self = this;
-            window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
-        }
-
-        eventuallyRender();
-        return false;
-    }
-
-    if (event.keyCode == 16) {
-        // Shift key modifier.
-        this.ShiftKeyPressed = false;
-        //this.StackCursorFlag = false;
-    } else if (event.keyCode == 17) {
-        // Control key modifier.
-        this.ControlKeyPressed = false;
-    }
-
-    // Is this really necessary?
-    // TODO: Try to remove this and test presentation stuff.
-    if (this.Presentation) {
-        this.Presentation.HandleKeyUp(event);
-        return true;
-    }
-
-    return true;
-}
-
-// TODO: THis should be in viewer.
-SlideAtlas.prototype.OnStartInteraction = function(callback) {
-  this.StartInteractionListeners.push(callback);
-}
-
-SlideAtlas.prototype.TriggerStartInteraction = function() {
-    if ( ! this.StartInteractionListeners) { return; }
-    for (var i = 0; i < this.StartInteractionListeners.length; ++i) {
-        callback = this.StartInteractionListeners[i];
-        callback();
-    }
-}
-
-
-
-
-
 
 
 

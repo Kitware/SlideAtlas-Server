@@ -11,7 +11,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/filesaver/g4d049e9/FileSaver.js >> sa.min.js
 ~/bin/uglifyjs -nc ../../slideatlas/static/thirdparty/bson/0.2.9/bson.js >> sa.min.js
-~/bin/uglifyjs -nc init.js >> sa.min.js 
 ~/bin/uglifyjs -nc websocket.js >> sa.min.js
 ~/bin/uglifyjs -nc cookies.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewEditMenu.js >> sa.min.js 
@@ -74,5 +73,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc circleWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc imageAnnotation.js >> sa.min.js 
+~/bin/uglifyjs -nc init.js >> sa.min.js 
 
 

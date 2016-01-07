@@ -10,6 +10,7 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
+// Bug: Pasting into textEditor leaves edito buttons hanging around. 
 
 // Clean up the whole editable / clickable / lock state.
 //    Browser slides are completely passive.
@@ -1667,6 +1668,15 @@ function saTextEditor(div) {
 }
 
 saTextEditor.prototype.EditingOn = function() {
+    // Keep text editors from stepping on eachothers events.
+    // Only one text editor can edit at a time.
+    // I could look if body has the binding 'mousedown.textEditor', but the
+    // is now a pain.
+    if ($('body')[0].saTextEditing) {
+        $('body')[0].saTextEditing.EditingOff();
+    }
+    $('body')[0].saTextEditing = this;
+
     var offset = 20;
     var pos = this.Div.position();
     var width = this.Div.outerWidth();
@@ -1681,6 +1691,8 @@ saTextEditor.prototype.EditingOn = function() {
 
     // mouse up because it should always propagate.
     var self = this;
+
+
     $('body').on(
         'mousedown.textEditor',
         function (e) {
@@ -1711,7 +1723,22 @@ saTextEditor.prototype.EditingOn = function() {
 }
 
 saTextEditor.prototype.EditingOff = function() {
+    delete $('body')[0].saTextEditing;
     $('body').off('mousedown.textEditor');
+
+    // Convert the line heights of pasted text to percentages.
+    // It will over ride line height set in the properties, maybe I can
+    // clear the decendant line heights when the text line height is set
+    // explicitly.  I could also ally line height to selected text, but
+    // that would be messy.
+    var decendants = this.Div.find('*');
+    for (var i = 0; i < decendants.length; ++i) {
+        if (decendants[i].style.lineHeight.indexOf('px') > -1) {
+            var percentage = parseFloat(decendants[i].style.lineHeight);
+            percentage = 100*percentage / parseFloat($(decendants[i]).css('font-size'))
+            decendants[i].style.lineHeight = percentage.toString() + '%'; 
+        }
+    }
 
     // Grow the parent div to contain the text.
     var textHeight = this.Div[0].scrollHeight;
@@ -2668,11 +2695,6 @@ jQuery.prototype.saResizable = function(args) {
 // viewerIndex of the note defaults to 0.
 // Note: hideCopyright will turn off when a new note is loaded.
 jQuery.prototype.saViewer = function(args) {
-    if (typeof(SA) == "undefined") {
-        // A place for globals that will have delete method in the future.
-        SA = new SlideAtlas();
-    }
-
     // default
     args = args || {};
     // This is ignored if there is not viewId or note.
