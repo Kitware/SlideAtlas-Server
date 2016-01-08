@@ -30,6 +30,7 @@ function ZERO_PAD(i, n) {
 // Main function called by the default view.html template
 // SA global will be set to this object.
 function SlideAtlas() {
+    this.TileLoader = "http";
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
     this.TimeStamp = 0;
@@ -769,7 +770,6 @@ function SaveCallback() {
 // It might speed up loading.
 // Note is the same as a view.
 function Main(rootNote) {
-    SA.TileLoader = "http";
     SA.RootNote = rootNote;
 
     if (rootNote.Type == "Presentation" ||

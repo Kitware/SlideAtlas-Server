@@ -39,10 +39,6 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
     image.src = canvas.toDataURL();
     */
 
-    if (this.Tile.Level == 0) {
-        console.log("LoadTileCallback " + this.Tile.Name);
-    }
-
     var curtime = new Date().getTime();
     TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
     LoadQueueLoaded(this.Tile);
@@ -93,9 +89,6 @@ TILESTATS = new TileStats();
 // 2: Initialize the texture.
 // 3: onload is called indicating the image has been loaded.
 function Tile(x, y, z, level, name, cache) {
-    if (level == 0) {
-        console.log("Constructing " + name);
-    }
     // This should be implicit.
     //this is just for debugging
     //this.Id = x + (y<<level)
@@ -108,6 +101,7 @@ function Tile(x, y, z, level, name, cache) {
     this.Children = [];
     this.Parent = null;
     this.LoadState = 0;
+
     this.Name = name;
     this.Texture = null;
     this.TimeStamp = SA.TimeStamp;
@@ -248,10 +242,6 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
-    if (this.Level == 0) {
-        console.log("StartLoad " + SA.TileLoader + " " + this.LoadState + " " + this.Name);
-    }
-
     if (this.LoadState >= 2) {
         return;
     }
@@ -267,17 +257,15 @@ Tile.prototype.StartLoad = function (cache) {
     this.Image.onerror = GetErrorImageFunction(callback);
     // This starts the loading.
 
-    if(SA.TileLoader == "http") {
-        this.LoadHttp(cache);
-    } else if(SA.TileLoader == "websocket") {
+    if (SA.TileLoader == "websocket") {
         this.LoadWebSocket(cache);
+    } else {
+        // "http"
+        this.LoadHttp(cache);
     }
 }
 
 Tile.prototype.LoadHttp = function (cache) {
-    if (this.Level == 0) {
-        console.log("LoadHttp " + this.Name);
-    }
     // For http simply set the data url and wait 
     if (cache.TileSource) {
         // This should eventually displace all other methods
@@ -287,12 +275,9 @@ Tile.prototype.LoadHttp = function (cache) {
                                                  this.X, this.Y, this.Z);
         // Name is just for debugging.
         this.Image.src = this.Name;
-        if (this.Level == 0) {
-            console.log("    src = " + this.Name);
-        }
 
         return;
-        
+
     }
 
     // Legacy
@@ -302,34 +287,31 @@ Tile.prototype.LoadHttp = function (cache) {
     } else {
         imageSrc = cache.GetSource() + this.Name + ".jpg";
     }
-    
+
     if (cache.UseIIP) {
         var level = this.Level + 2;
         var xDim = Math.ceil(cache.Image.dimensions[0] / (cache.Image.TileSize << (cache.Image.levels - this.Level - 1)));
         var idx = this.Y * xDim + this.X;
         imageSrc = "http://iip.slide-atlas.org/iipsrv.fcgi?FIF=" + cache.Image.filename + "&jtl=" + level + "," + idx;
     }
-    
+
     this.Image.src = imageSrc;
-    if (this.Level == 0) {
-        console.log("legacy src = " + imageSrc);
-    }
-};
+}
 
 
 Tile.prototype.LoadWebSocket = function (cache) {
-  // Right now doing exact same thing
-  var name = '';
-  if (cache.Image.type && cache.Image.type == "stack") {
-    name = this.Name + ".png";
-  } else {
-    name = this.Name + ".jpg";
-  }
+    // Right now doing exact same thing
+    var name = '';
+    if (cache.Image.type && cache.Image.type == "stack") {
+        name = this.Name + ".png";
+    } else {
+        name = this.Name + ".jpg";
+    }
 
-  var image = cache.Image._id;
+    var image = cache.Image._id;
 
-  ws.FetchTile(name, image, cache, this.Image);
-};
+    ws.FetchTile(name, image, cache, this.Image);
+}
 
 Tile.prototype.Draw = function (program, context) {
   // Load state 0 is: Not loaded and not scheduled to be loaded yet.

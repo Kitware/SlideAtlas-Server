@@ -70,9 +70,6 @@ function ClearQueue() {
 // We could chop off the lowest priority tiles if the queue gets too long.
 // Simply add the tile to the queue.
 function LoadQueueAddTile(tile) {
-    if (tile.Level == 0) {
-        console.log("LoadQueueAddTile " + tile.Name);
-    }
     if (tile.LoadState == 0 || tile.LoadState == 4) {
         // New tile or error
         tile.LoadState = 1;
