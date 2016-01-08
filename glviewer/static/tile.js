@@ -249,7 +249,7 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
     if (this.Level == 0) {
-        console.log("StartLoad " +  this.Name);
+        console.log("StartLoad " + SA.TileLoader + " " + this.LoadState + " " + this.Name);
     }
 
     if (this.LoadState >= 2) {
@@ -275,6 +275,9 @@ Tile.prototype.StartLoad = function (cache) {
 }
 
 Tile.prototype.LoadHttp = function (cache) {
+    if (this.Level == 0) {
+        console.log("LoadHttp " + this.Name);
+    }
     // For http simply set the data url and wait 
     if (cache.TileSource) {
         // This should eventually displace all other methods
@@ -285,7 +288,7 @@ Tile.prototype.LoadHttp = function (cache) {
         // Name is just for debugging.
         this.Image.src = this.Name;
         if (this.Level == 0) {
-            console.log("LoadHttp " + this.Name);
+            console.log("    src = " + this.Name);
         }
 
         return;
@@ -309,7 +312,7 @@ Tile.prototype.LoadHttp = function (cache) {
     
     this.Image.src = imageSrc;
     if (this.Level == 0) {
-        console.log("legacy LoadHttp " + imageSrc);
+        console.log("legacy src = " + imageSrc);
     }
 };
 
