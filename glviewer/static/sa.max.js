@@ -21782,9 +21782,15 @@ function ClearQueue() {
 // We could chop off the lowest priority tiles if the queue gets too long.
 // Simply add the tile to the queue.
 function LoadQueueAddTile(tile) {
-  tile.LoadState = 1;
-  // Add the tile at the front of the queue.
-  SA.LoadQueue.push(tile);
+    if (tile.Level == 0) {
+        console.log("LoadQueueAddTile " + tile.Name);
+    }
+    if (tile.LoadState == 0 || tile.LoadState == 4) {
+        // New tile or error
+        tile.LoadState = 1;
+        // Add the tile at the front of the queue.
+        SA.LoadQueue.push(tile);
+    }
 }
 
 // Push the best tile to the end of the queue.
@@ -26689,7 +26695,9 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
     image.src = canvas.toDataURL();
     */
 
-
+    if (this.Tile.Level == 0) {
+        console.log("LoadTileCallback " + this.Tile.Name);
+    }
 
     var curtime = new Date().getTime();
     TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
@@ -26699,6 +26707,8 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 // If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
 LoadTileCallback.prototype.HandleErrorImage = function () {
+    console.log("LoadTile error " + this.Tile.Name);
+
     LoadQueueError(this.Tile);
 }
 
@@ -26711,17 +26721,17 @@ TileStats.prototype.add = function(atile) {
 }
 
 TileStats.prototype.report = function() {
-  var total = 0;
-  
-  for(var i = 0; i < this.tiles.length; i ++) {
-    total = total + this.tiles[i].loadtime;
-  }
+    var total = 0;
 
-  var report = {};
-  report.count = this.tiles.length;
-  report.average = total / this.tiles.length; 
-  report.total = total; 
-  console.log(report);
+    for(var i = 0; i < this.tiles.length; i ++) {
+        total = total + this.tiles[i].loadtime;
+    }
+
+    var report = {};
+    report.count = this.tiles.length;
+    report.average = total / this.tiles.length;
+    report.total = total;
+    console.log(report);
 }
 
 function GetLoadImageFunction (callback) {
@@ -26739,6 +26749,9 @@ TILESTATS = new TileStats();
 // 2: Initialize the texture.
 // 3: onload is called indicating the image has been loaded.
 function Tile(x, y, z, level, name, cache) {
+    if (level == 0) {
+        console.log("Constructing " + name);
+    }
     // This should be implicit.
     //this is just for debugging
     //this.Id = x + (y<<level)
@@ -26891,6 +26904,10 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
+    if (this.Level == 0) {
+        console.log("StartLoad " +  this.Name);
+    }
+
     if (this.LoadState >= 2) {
         return;
     }
@@ -26918,11 +26935,14 @@ Tile.prototype.LoadHttp = function (cache) {
     if (cache.TileSource) {
         // This should eventually displace all other methods
         // of getting the tile source.
-        
+
         this.Name  = cache.TileSource.getTileUrl(this.Level,
                                                  this.X, this.Y, this.Z);
         // Name is just for debugging.
         this.Image.src = this.Name;
+        if (this.Level == 0) {
+            console.log("LoadHttp " + this.Name);
+        }
 
         return;
         
@@ -26944,6 +26964,9 @@ Tile.prototype.LoadHttp = function (cache) {
     }
     
     this.Image.src = imageSrc;
+    if (this.Level == 0) {
+        console.log("legacy LoadHttp " + imageSrc);
+    }
 };
 
 
@@ -34001,9 +34024,15 @@ function ClearQueue() {
 // We could chop off the lowest priority tiles if the queue gets too long.
 // Simply add the tile to the queue.
 function LoadQueueAddTile(tile) {
-  tile.LoadState = 1;
-  // Add the tile at the front of the queue.
-  SA.LoadQueue.push(tile);
+    if (tile.Level == 0) {
+        console.log("LoadQueueAddTile " + tile.Name);
+    }
+    if (tile.LoadState == 0 || tile.LoadState == 4) {
+        // New tile or error
+        tile.LoadState = 1;
+        // Add the tile at the front of the queue.
+        SA.LoadQueue.push(tile);
+    }
 }
 
 // Push the best tile to the end of the queue.
@@ -38908,7 +38937,9 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
     image.src = canvas.toDataURL();
     */
 
-
+    if (this.Tile.Level == 0) {
+        console.log("LoadTileCallback " + this.Tile.Name);
+    }
 
     var curtime = new Date().getTime();
     TILESTATS.add({"name" : this.Tile.Name, "loadtime" : curtime - this.Tile.starttime });
@@ -38918,6 +38949,8 @@ LoadTileCallback.prototype.HandleLoadedImage = function () {
 // If we cannot load a tile, we need to inform the cache so it can start
 // loading another tile.
 LoadTileCallback.prototype.HandleErrorImage = function () {
+    console.log("LoadTile error " + this.Tile.Name);
+
     LoadQueueError(this.Tile);
 }
 
@@ -38930,17 +38963,17 @@ TileStats.prototype.add = function(atile) {
 }
 
 TileStats.prototype.report = function() {
-  var total = 0;
-  
-  for(var i = 0; i < this.tiles.length; i ++) {
-    total = total + this.tiles[i].loadtime;
-  }
+    var total = 0;
 
-  var report = {};
-  report.count = this.tiles.length;
-  report.average = total / this.tiles.length; 
-  report.total = total; 
-  console.log(report);
+    for(var i = 0; i < this.tiles.length; i ++) {
+        total = total + this.tiles[i].loadtime;
+    }
+
+    var report = {};
+    report.count = this.tiles.length;
+    report.average = total / this.tiles.length;
+    report.total = total;
+    console.log(report);
 }
 
 function GetLoadImageFunction (callback) {
@@ -38958,6 +38991,9 @@ TILESTATS = new TileStats();
 // 2: Initialize the texture.
 // 3: onload is called indicating the image has been loaded.
 function Tile(x, y, z, level, name, cache) {
+    if (level == 0) {
+        console.log("Constructing " + name);
+    }
     // This should be implicit.
     //this is just for debugging
     //this.Id = x + (y<<level)
@@ -39110,6 +39146,10 @@ Tile.prototype.CreateWarpBuffer = function (warp) {
 // Loading is asynchronous, so the tile will not
 // immediately change its state.
 Tile.prototype.StartLoad = function (cache) {
+    if (this.Level == 0) {
+        console.log("StartLoad " +  this.Name);
+    }
+
     if (this.LoadState >= 2) {
         return;
     }
@@ -39137,11 +39177,14 @@ Tile.prototype.LoadHttp = function (cache) {
     if (cache.TileSource) {
         // This should eventually displace all other methods
         // of getting the tile source.
-        
+
         this.Name  = cache.TileSource.getTileUrl(this.Level,
                                                  this.X, this.Y, this.Z);
         // Name is just for debugging.
         this.Image.src = this.Name;
+        if (this.Level == 0) {
+            console.log("LoadHttp " + this.Name);
+        }
 
         return;
         
@@ -39163,6 +39206,9 @@ Tile.prototype.LoadHttp = function (cache) {
     }
     
     this.Image.src = imageSrc;
+    if (this.Level == 0) {
+        console.log("legacy LoadHttp " + imageSrc);
+    }
 };
 
 
