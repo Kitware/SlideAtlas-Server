@@ -2068,10 +2068,17 @@ HtmlPage.prototype.InsertImage = function(src) {
                      editable: SA.Edit})
         .addClass('sa-presentation-image');
     var img = $('<img>')
-        .css({'width':'100%',
-              'height':'100%'})
         .appendTo(imgDiv)
-        .attr('src',src);
+        .css({'width':'100%',
+              'height':'100%'});
+    img[0].onload = function () {
+        // Bug.  imgDiv had no style.width
+        // Not scalling
+        this.parentNode.style.width = this.width + 'px';
+        this.parentNode.style.height = this.height + 'px';
+        this.parentNode.saElement.ConvertToPercentages();
+    }
+    img.attr('src',src);
 
     return imgDiv;
 }
