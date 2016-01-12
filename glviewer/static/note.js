@@ -484,7 +484,11 @@ Note.prototype.NewChild = function(childIdx, title) {
 
 Note.prototype.LoadIds = function(data) {
     if ( ! this.Id) {
+        if (this.TempId) {
+            console.log("Converting " + this.TempId + " to " + data._id);
+        }
         this.Id = data._id;
+        // Leave TempId in place until we convert all references.
     }
     if (data.Children && this.Children) {
         for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
@@ -498,7 +502,7 @@ Note.prototype.LoadIds = function(data) {
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback, excludeChildren) {
-    console.log("Save note " + this.Title);
+    console.log("Save note " + (this.Id || this.TempId) + " " + this.Title);
 
     var self = this;
     // Save this users notes in the user specific collection.
@@ -713,7 +717,8 @@ Note.prototype.Load = function(obj){
             // Asynchronous.  This may cause problems (race condition)
             // We should have a load state in note.
             //childNote.LoadViewId(child);
-            child.Id = child;
+            childNote.Id = child;
+            delete childNote.TempId;
         } else {
             childNote.Load(child);
         }
