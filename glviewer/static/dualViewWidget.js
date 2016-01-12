@@ -167,7 +167,7 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
     for (var i = 0; i < this.Viewers.length; ++i) {
         var viewer = this.Viewers[i];
 
-        if (args.hideCopyright) {
+        if (args.hideCopyright != undefined) {
             viewer.SetCopyrightVisibility( ! args.hideCopyright);
         }
         if (args.overview !== undefined) {
@@ -196,9 +196,6 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
             viewer.Menu.SetVisibility(args.menu);
         }
 
-        if (args.hideCopyright) {
-            viewer.CopyrightWrapper.hide();
-        }
         if (args.interaction !== undefined) {
             viewer.SetInteractionEnabled(args.interaction);
         }
