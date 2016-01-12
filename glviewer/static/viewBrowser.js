@@ -169,6 +169,8 @@ function BrowserPanel(browserDiv, callback) {
     this.ProgressCount = 0;
 }
 
+// I have the same functionality in the SlideAtlas object.
+// I am leaving this because this only displays progress in the browser.
 BrowserPanel.prototype.PushProgress = function() {
     this.BrowserDiv.css({'cursor':'progress'});
     this.ProgressCount += 1;

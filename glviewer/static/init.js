@@ -30,6 +30,9 @@ function ZERO_PAD(i, n) {
 // Main function called by the default view.html template
 // SA global will be set to this object.
 function SlideAtlas() {
+    // For managing progress with multiple ajax calls.
+    this.ProgressCount = 0;
+
     this.TileLoader = "http";
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
@@ -55,6 +58,18 @@ function SlideAtlas() {
     this.FinishedLoadingCallbacks = [];
 
     this.Caches = [];
+}
+
+SlideAtlas.prototype.PushProgress = function() {
+    $('body').css({'cursor':'progress'});
+    this.ProgressCount += 1;
+}
+
+SlideAtlas.prototype.PopProgress = function() {
+    this.ProgressCount -= 1;
+    if (this.ProgressCount <= 0) {
+        $('body').css({'cursor':'default'});
+    }
 }
 
 // Main function called by the default view.html template

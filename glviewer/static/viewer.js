@@ -287,8 +287,8 @@ Viewer.prototype.ProcessArguments = function (args) {
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
         this.Parent.attr('sa-viewer-index', this.saViewerIndex);
     }
-    if (args.hideCopyright) {
-        this.CopyrightWrapper.hide();
+    if (args.hideCopyright != undefined) {
+        this.SetCopyrightVisibility( ! args.hideCopyright);
     }
     if (args.interaction !== undefined) {
         this.SetInteractionEnabled(args.interaction);
@@ -799,8 +799,7 @@ Viewer.prototype.SetSection = function(section) {
              cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
          this.CopyrightWrapper
-             .html(cache.Image.copyright)
-             .show();
+             .html(cache.Image.copyright);
      }
 
      this.MainView.SetCache(cache);

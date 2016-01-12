@@ -753,7 +753,7 @@ saElement.prototype.HandleMouseMove = function(event) {
         // outerWidth. Now it behaves as expected (consistent outer set / get).
         var width = this.Div.outerWidth();
         var height = this.Div.outerHeight();
-        // Hack,  I cannot figure out hos jquery deals with box-sizing.
+        // Hack,  I cannot figure out how jquery deals with box-sizing.
         var sizing = this.Div.css('box-sizing');
         if (this.AspectRatio && typeof(this.AspectRatio) != 'number') {
             this.AspectRatio = width / height;
@@ -939,11 +939,11 @@ saElement.prototype.HandleMouseWheel = function(event) {
     // Initial delta cause another bug.
     // Lets restrict to one zoom step per event.
     if (tmp > 0) {
-        dWidth = 0.1 * width;
-        dHeight = 0.1 * height;
+        dWidth = 0.05 * width;
+        dHeight = 0.05 * height;
     } else if (tmp < 0) {
-        dWidth = width * (-0.091);
-        dHeight = height * (-0.091);
+        dWidth = width * (-0.0476);
+        dHeight = height * (-0.0476);
     }
 
     width += dWidth;
@@ -960,7 +960,9 @@ saElement.prototype.HandleMouseWheel = function(event) {
     this.Div[0].style.top  = top.toString()+'px';
     this.Div[0].style.left = left.toString()+'px';
 
-    this.ConvertToPercentages();
+    // the resize callback might deal with converting to percentages.
+    //this.ConvertToPercentages();
+    this.Div.trigger('resize');
     return false;
 }
 

@@ -8886,6 +8886,8 @@ function BrowserPanel(browserDiv, callback) {
     this.ProgressCount = 0;
 }
 
+// I have the same functionality in the SlideAtlas object.
+// I am leaving this because this only displays progress in the browser.
 BrowserPanel.prototype.PushProgress = function() {
     this.BrowserDiv.css({'cursor':'progress'});
     this.ProgressCount += 1;
@@ -9265,7 +9267,7 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
     for (var i = 0; i < this.Viewers.length; ++i) {
         var viewer = this.Viewers[i];
 
-        if (args.hideCopyright) {
+        if (args.hideCopyright != undefined) {
             viewer.SetCopyrightVisibility( ! args.hideCopyright);
         }
         if (args.overview !== undefined) {
@@ -9294,9 +9296,6 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
             viewer.Menu.SetVisibility(args.menu);
         }
 
-        if (args.hideCopyright) {
-            viewer.CopyrightWrapper.hide();
-        }
         if (args.interaction !== undefined) {
             viewer.SetInteractionEnabled(args.interaction);
         }
@@ -10372,34 +10371,37 @@ Note.prototype.NewChild = function(childIdx, title) {
 
 Note.prototype.LoadIds = function(data) {
     if ( ! this.Id) {
+        if (this.TempId) {
+            console.log("Converting " + this.TempId + " to " + data._id);
+        }
         this.Id = data._id;
+        // Leave TempId in place until we convert all references.
     }
     if (data.Children && this.Children) {
         for (var i = 0; i < this.Children.length && i < data.Children.length; ++i) {
             this.Children[i].LoadIds(data.Children[i]);
         }
     }
-    
 }
 
 
 // Save the note in the database and set the note's id if it is new.
 // callback function can be set to execute an action with the new id.
 Note.prototype.Save = function(callback, excludeChildren) {
-    console.log("Save note " + this.Title);
+    console.log("Save note " + (this.Id || this.TempId) + " " + this.Title);
 
     var self = this;
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.Serialize(excludeChildren));
     var d = new Date();
-    $('body').css({'cursor':'progress'});
+    SA.PushProgress();
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
         data: {"note" : noteObj,
                "date" : d.getTime()},
         success: function(data,status) {
-            $('body').css({'cursor':'default'});
+            SA.PopProgress();
             // get the children ids too.
             // Assumes the order of children did not change.
             self.LoadIds(data);
@@ -10408,7 +10410,7 @@ Note.prototype.Save = function(callback, excludeChildren) {
             }
         },
         error: function() {
-            $('body').css({'cursor':'default'});
+            SA.PopProgress();
             saDebug("AJAX - error() : saveviewnotes" );
         },
     });
@@ -10601,7 +10603,8 @@ Note.prototype.Load = function(obj){
             // Asynchronous.  This may cause problems (race condition)
             // We should have a load state in note.
             //childNote.LoadViewId(child);
-            child.Id = child;
+            childNote.Id = child;
+            delete childNote.TempId;
         } else {
             childNote.Load(child);
         }
@@ -10638,17 +10641,23 @@ Note.prototype.LoadViewId = function(viewId, callback) {
     // Received
     this.LoadState = 1;
 
+    SA.PushProgress();
+
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
         data: {"viewid": viewId},
         success: function(data,status) {
+            SA.PopProgress();
             self.Load(data);
             if (callback) {
                 (callback)();
             }
         },
-        error: function() { saDebug( "AJAX - error() : getview" ); },
+        error: function() { 
+            SA.PopProgress();
+            saDebug( "AJAX - error() : getview" ); 
+        },
     });
 }
 
@@ -15686,7 +15695,7 @@ saElement.prototype.HandleMouseMove = function(event) {
         // outerWidth. Now it behaves as expected (consistent outer set / get).
         var width = this.Div.outerWidth();
         var height = this.Div.outerHeight();
-        // Hack,  I cannot figure out hos jquery deals with box-sizing.
+        // Hack,  I cannot figure out how jquery deals with box-sizing.
         var sizing = this.Div.css('box-sizing');
         if (this.AspectRatio && typeof(this.AspectRatio) != 'number') {
             this.AspectRatio = width / height;
@@ -15872,11 +15881,11 @@ saElement.prototype.HandleMouseWheel = function(event) {
     // Initial delta cause another bug.
     // Lets restrict to one zoom step per event.
     if (tmp > 0) {
-        dWidth = 0.1 * width;
-        dHeight = 0.1 * height;
+        dWidth = 0.05 * width;
+        dHeight = 0.05 * height;
     } else if (tmp < 0) {
-        dWidth = width * (-0.091);
-        dHeight = height * (-0.091);
+        dWidth = width * (-0.0476);
+        dHeight = height * (-0.0476);
     }
 
     width += dWidth;
@@ -15893,7 +15902,9 @@ saElement.prototype.HandleMouseWheel = function(event) {
     this.Div[0].style.top  = top.toString()+'px';
     this.Div[0].style.left = left.toString()+'px';
 
-    this.ConvertToPercentages();
+    // the resize callback might deal with converting to percentages.
+    //this.ConvertToPercentages();
+    this.Div.trigger('resize');
     return false;
 }
 
@@ -21060,10 +21071,17 @@ HtmlPage.prototype.InsertImage = function(src) {
                      editable: SA.Edit})
         .addClass('sa-presentation-image');
     var img = $('<img>')
-        .css({'width':'100%',
-              'height':'100%'})
         .appendTo(imgDiv)
-        .attr('src',src);
+        .css({'width':'100%',
+              'height':'100%'});
+    img[0].onload = function () {
+        // Bug.  imgDiv had no style.width
+        // Not scalling
+        this.parentNode.style.width = this.width + 'px';
+        this.parentNode.style.height = this.height + 'px';
+        this.parentNode.saElement.ConvertToPercentages();
+    }
+    img.attr('src',src);
 
     return imgDiv;
 }
@@ -28813,8 +28831,8 @@ Viewer.prototype.ProcessArguments = function (args) {
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
         this.Parent.attr('sa-viewer-index', this.saViewerIndex);
     }
-    if (args.hideCopyright) {
-        this.CopyrightWrapper.hide();
+    if (args.hideCopyright != undefined) {
+        this.SetCopyrightVisibility( ! args.hideCopyright);
     }
     if (args.interaction !== undefined) {
         this.SetInteractionEnabled(args.interaction);
@@ -29325,8 +29343,7 @@ Viewer.prototype.SetSection = function(section) {
              cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
          this.CopyrightWrapper
-             .html(cache.Image.copyright)
-             .show();
+             .html(cache.Image.copyright);
      }
 
      this.MainView.SetCache(cache);
@@ -33284,10 +33301,17 @@ HtmlPage.prototype.InsertImage = function(src) {
                      editable: SA.Edit})
         .addClass('sa-presentation-image');
     var img = $('<img>')
-        .css({'width':'100%',
-              'height':'100%'})
         .appendTo(imgDiv)
-        .attr('src',src);
+        .css({'width':'100%',
+              'height':'100%'});
+    img[0].onload = function () {
+        // Bug.  imgDiv had no style.width
+        // Not scalling
+        this.parentNode.style.width = this.width + 'px';
+        this.parentNode.style.height = this.height + 'px';
+        this.parentNode.saElement.ConvertToPercentages();
+    }
+    img.attr('src',src);
 
     return imgDiv;
 }
@@ -41037,8 +41061,8 @@ Viewer.prototype.ProcessArguments = function (args) {
         this.Parent.attr('sa-note-id', args.note.Id || args.note.TempId);
         this.Parent.attr('sa-viewer-index', this.saViewerIndex);
     }
-    if (args.hideCopyright) {
-        this.CopyrightWrapper.hide();
+    if (args.hideCopyright != undefined) {
+        this.SetCopyrightVisibility( ! args.hideCopyright);
     }
     if (args.interaction !== undefined) {
         this.SetInteractionEnabled(args.interaction);
@@ -41549,8 +41573,7 @@ Viewer.prototype.SetSection = function(section) {
              cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
          }
          this.CopyrightWrapper
-             .html(cache.Image.copyright)
-             .show();
+             .html(cache.Image.copyright);
      }
 
      this.MainView.SetCache(cache);
@@ -49524,6 +49547,9 @@ function ZERO_PAD(i, n) {
 // Main function called by the default view.html template
 // SA global will be set to this object.
 function SlideAtlas() {
+    // For managing progress with multiple ajax calls.
+    this.ProgressCount = 0;
+
     this.TileLoader = "http";
     // How can we distribute the initialization of these?
     // TODO: Many of these are not used anymore. Clean them up.
@@ -49549,6 +49575,18 @@ function SlideAtlas() {
     this.FinishedLoadingCallbacks = [];
 
     this.Caches = [];
+}
+
+SlideAtlas.prototype.PushProgress = function() {
+    $('body').css({'cursor':'progress'});
+    this.ProgressCount += 1;
+}
+
+SlideAtlas.prototype.PopProgress = function() {
+    this.ProgressCount -= 1;
+    if (this.ProgressCount <= 0) {
+        $('body').css({'cursor':'default'});
+    }
 }
 
 // Main function called by the default view.html template

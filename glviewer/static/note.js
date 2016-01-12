@@ -495,7 +495,6 @@ Note.prototype.LoadIds = function(data) {
             this.Children[i].LoadIds(data.Children[i]);
         }
     }
-    
 }
 
 
@@ -508,14 +507,14 @@ Note.prototype.Save = function(callback, excludeChildren) {
     // Save this users notes in the user specific collection.
     var noteObj = JSON.stringify(this.Serialize(excludeChildren));
     var d = new Date();
-    $('body').css({'cursor':'progress'});
+    SA.PushProgress();
     $.ajax({
         type: "post",
         url: "/webgl-viewer/saveviewnotes",
         data: {"note" : noteObj,
                "date" : d.getTime()},
         success: function(data,status) {
-            $('body').css({'cursor':'default'});
+            SA.PopProgress();
             // get the children ids too.
             // Assumes the order of children did not change.
             self.LoadIds(data);
@@ -524,7 +523,7 @@ Note.prototype.Save = function(callback, excludeChildren) {
             }
         },
         error: function() {
-            $('body').css({'cursor':'default'});
+            SA.PopProgress();
             saDebug("AJAX - error() : saveviewnotes" );
         },
     });
@@ -755,17 +754,23 @@ Note.prototype.LoadViewId = function(viewId, callback) {
     // Received
     this.LoadState = 1;
 
+    SA.PushProgress();
+
     $.ajax({
         type: "get",
         url: "/webgl-viewer/getview",
         data: {"viewid": viewId},
         success: function(data,status) {
+            SA.PopProgress();
             self.Load(data);
             if (callback) {
                 (callback)();
             }
         },
-        error: function() { saDebug( "AJAX - error() : getview" ); },
+        error: function() { 
+            SA.PopProgress();
+            saDebug( "AJAX - error() : getview" ); 
+        },
     });
 }
 
