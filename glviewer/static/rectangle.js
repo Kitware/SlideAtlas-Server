@@ -13,9 +13,13 @@
     var RECT_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
     var RECT_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
+
     function Rect() {
         Shape.call(this);
         this.Radius = 10; // Radius in pixels
+        this.Length = 15;
+        this.Width = 10;
+        this.Orientation = 45; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
@@ -29,34 +33,32 @@
 
     Rect.prototype.UpdateBuffers = function() {
         this.PointBuffer = [];
-        var cellData = [];
-        var lineCellData = [];
-        var numEdges = Math.floor(this.Radius/2)+10;
-        // NOTE: numEdges logic will not work in world coordinates.
-        // Limit numEdges to 180 to mitigate this issue.
-        if (numEdges > 50 || ! this.FixedSize ) {
-        numEdges = 50;
-        }
 
         this.Matrix = mat4.create();
         mat4.identity(this.Matrix);
+        mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
-        var i, theta;
+        this.PointBuffer.push(1 *this.Width / 2.0);
+        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(0.0);
 
-        for (i = 0; i <= numEdges; ++i) {
-            theta = i*2*3.14159265359/numEdges;
-            this.PointBuffer.push(this.Radius*Math.cos(theta));
-            this.PointBuffer.push(this.Radius*Math.sin(theta));
-            this.PointBuffer.push(0.0);
-        }
+        this.PointBuffer.push(-1 *this.Width / 2.0);
+        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(0.0);
 
-        for (i = 0; i <= numEdges; ++i) {
-            theta = i*2*3.14159265359/numEdges;
-            this.PointBuffer.push(this.Radius*Math.cos(theta)* 1.2 );
-            this.PointBuffer.push(this.Radius*Math.sin(theta)* 1.2 );
-            this.PointBuffer.push(0.0);
-        }
+        this.PointBuffer.push(-1 *this.Width / 2.0);
+        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(1 *this.Width / 2.0);
+        this.PointBuffer.push(-1 *this.Length / 2.0);
+        this.PointBuffer.push(0.0);
+
+        this.PointBuffer.push(1 *this.Width / 2.0);
+        this.PointBuffer.push(1 *this.Length / 2.0);
+        this.PointBuffer.push(0.0);
     };
+
 
 
     function RectWidget (viewer, newFlag) {

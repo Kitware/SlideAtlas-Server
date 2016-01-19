@@ -199,6 +199,15 @@ AnnotationWidget.prototype.NewCircle = function() {
 }
 
 
+AnnotationWidget.prototype.NewRect = function() {
+    var button = this.RectButton;
+    var widget = this.ActivateButton(button, RectWidget);
+    // DJ: Make sure the rect is around the circle
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+                                                                            EVENT_MANAGER.LastMouseY);
+};
+
+
 AnnotationWidget.prototype.NewFill = function() {
     var button = this.FillButton;
     var widget = this.ActivateButton(button, FillWidget);

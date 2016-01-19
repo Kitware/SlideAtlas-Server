@@ -1065,6 +1065,9 @@ Viewer.prototype.LoadWidget = function(obj) {
     case "sections":
         widget = new SectionsWidget(this);
         break;
+    case "rect":
+        widget = new RectWidget(this, false);
+        break;
     }
     widget.Load(obj);
     return widget;
