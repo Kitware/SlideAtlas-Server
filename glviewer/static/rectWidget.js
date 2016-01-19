@@ -198,6 +198,9 @@
       obj.origin = this.Shape.Origin;
       obj.outlinecolor = this.Shape.OutlineColor;
       obj.radius = this.Shape.Radius;
+      obj.length = this.Shape.Length;
+      obj.width = this.Shape.Width;
+      obj.orientation = this.Shape.Orientation;
       obj.linewidth = this.Shape.LineWidth;
       obj.creation_camera = this.CreationCamera;
       return obj;
@@ -205,20 +208,23 @@
 
     // Load a widget from a json object (origin MongoDB).
     RectWidget.prototype.Load = function(obj) {
-      this.Shape.Origin[0] = parseFloat(obj.origin[0]);
-      this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-      this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-      this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-      this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-      this.Shape.Radius = parseFloat(obj.radius);
-      this.Shape.LineWidth = parseFloat(obj.linewidth);
-      this.Shape.FixedSize = false;
-      this.Shape.UpdateBuffers();
+        this.Shape.Origin[0] = parseFloat(obj.origin[0]);
+        this.Shape.Origin[1] = parseFloat(obj.origin[1]);
+        this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+        this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+        this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+        this.Shape.Radius = parseFloat(obj.radius);
+        this.Shape.Width = parseFloat(obj.width);
+        this.Shape.Length = parseFloat(obj.length);
+        this.Shape.Orientation = parseFloat(obj.orientation);
+        this.Shape.LineWidth = parseFloat(obj.linewidth);
+        this.Shape.FixedSize = false;
+        this.Shape.UpdateBuffers();
 
-      // How zoomed in was the view when the annotation was created.
-      if (obj.creation_camera !== undefined) {
-        this.CreationCamera = obj.CreationCamera;
-      }
+        // How zoomed in was the view when the annotation was created.
+        if (obj.creation_camera !== undefined) {
+            this.CreationCamera = obj.CreationCamera;
+        }
     };
 
     RectWidget.prototype.HandleKeyPress = function(keyCode, shift) {
