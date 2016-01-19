@@ -78,7 +78,7 @@ function AnnotationWidget (viewer) {
         .addClass("sa-view-annotation-button")
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"rectangle.gif")
-        .click(function(){self.NewCar();});
+        .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
@@ -203,8 +203,8 @@ AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
     var widget = this.ActivateButton(button, RectWidget);
     // DJ: Make sure the rect is around the circle
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
-                                                                            EVENT_MANAGER.LastMouseY);
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
+                                                                this.Viewer.LastMouseY);
 };
 
 

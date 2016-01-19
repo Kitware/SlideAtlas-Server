@@ -358,7 +358,7 @@
     RectWidget.prototype.CheckActive = function(event) {
       var x = event.offsetX;
       var y = event.offsetY;
-
+      var dx, dy;
       // change dx and dy to vector from center of circle.
       if (this.FixedSize) {
         dx = event.offsetX - this.Shape.Origin[0];
