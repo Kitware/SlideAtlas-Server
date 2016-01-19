@@ -1065,6 +1065,9 @@ Viewer.prototype.LoadWidget = function(obj) {
     case "sections":
         widget = new SectionsWidget(this);
         break;
+    case "rect":
+        widget = new RectWidget(this, false);
+        break;
     }
     widget.Load(obj);
     return widget;
@@ -2041,9 +2044,13 @@ Viewer.prototype.HandleKeyDown = function(event) {
             var widget = new TextWidget(this, "");
             widget.PasteCallback(clip.Data, this.MouseWorld);
         }
+        if (clip.Type == "RectWidget") {
+            var widget = new RectWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
         return false;
-    }    
+    }
 
     //----------------------
     if (this.ActiveWidget != null) {
