@@ -16,9 +16,10 @@
 
     function Rect() {
         Shape.call(this);
+        // DJ:TODO relative defaults
         this.Radius = 10; // Radius in pixels
-        this.Length = 15;
-        this.Width = 10;
+        this.Length = 50;
+        this.Width = 35;
         this.Orientation = 45; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
@@ -193,7 +194,7 @@
     RectWidget.prototype.Serialize = function() {
       if(this.Shape === undefined){ return null; }
       var obj = {};
-      obj.type = "car";
+      obj.type = "rect";
       obj.origin = this.Shape.Origin;
       obj.outlinecolor = this.Shape.OutlineColor;
       obj.radius = this.Shape.Radius;
@@ -330,7 +331,7 @@
 
 
     RectWidget.prototype.HandleTouchPan = function(event) {
-      w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX, 
+      w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
                                                  EVENT_MANAGER.LastMouseY);
       w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
