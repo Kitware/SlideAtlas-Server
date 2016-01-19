@@ -16,11 +16,11 @@
 
     function Rect() {
         Shape.call(this);
-        // DJ:TODO relative defaults
-        this.Radius = 10; // Radius in pixels
-        this.Length = 50;
-        this.Width = 35;
-        this.Orientation = 45; // Angle with respect to x axis ?
+
+        this.Width = 20.0;
+        this.Length = 50.0;
+        this.Radius = 60;
+        this.Orientation = 90; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // Center in world coordinates.
         this.OutlineColor = [0,0,0];
         this.PointBuffer = [];
@@ -149,6 +149,8 @@
       this.Shape.Origin = [0,0];
       this.Shape.OutlineColor = [0.0,0.0,0.0];
       this.Shape.SetOutlineColor(this.Dialog.ColorInput.val());
+      this.Shape.Length = 50.0*cam.Height/viewport[3];
+      this.Shape.Width = 30*cam.Height/viewport[3];
       this.Shape.Radius = 50*cam.Height/viewport[3];
       this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
       this.Shape.FixedSize = false;
