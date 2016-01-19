@@ -318,10 +318,21 @@
         if (this.State == RECT_WIDGET_ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
+                var direction = 1;
                 if(event.wheelDelta < 0) {
-                    ratio = 0.95;
+                     ratio = 0.95;
+                    direction = -1;
                 }
-                this.Shape.Radius = this.Shape.Radius * ratio;
+                if(event.shiftKey) {
+                    this.Shape.Length = this.Shape.Length * ratio;
+                }
+                if(event.ctrlKey) {
+                    this.Shape.Width = this.Shape.Width * ratio;
+                }
+                if(!event.shiftKey && !event.ctrlKey) {
+                    this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
+                 }
+
                 this.Shape.UpdateBuffers();
                 this.PlacePopup();
                 eventuallyRender();
