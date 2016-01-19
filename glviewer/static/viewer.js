@@ -2044,9 +2044,13 @@ Viewer.prototype.HandleKeyDown = function(event) {
             var widget = new TextWidget(this, "");
             widget.PasteCallback(clip.Data, this.MouseWorld);
         }
+        if (clip.Type == "RectWidget") {
+            var widget = new RectWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
         return false;
-    }    
+    }
 
     //----------------------
     if (this.ActiveWidget != null) {
