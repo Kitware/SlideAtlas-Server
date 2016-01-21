@@ -1374,12 +1374,12 @@ saQuestion.prototype.DialogInitialize = function () {
     this.QuestionTypeMultipleChoice = $('<option>')
         .appendTo(this.QuestionTypeSelect)
         .text("Multiple Choice");
-    this.QuestionTypeSortAnswer = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Short Answer");
-    this.QuestionTypeTrueFalse = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("True or False");
+    //this.QuestionTypeSortAnswer = $('<option>')
+    //    .appendTo(this.QuestionTypeSelect)
+    //    .text("Short Answer");
+    //this.QuestionTypeTrueFalse = $('<option>')
+    //    .appendTo(this.QuestionTypeSelect)
+    //    .text("True or False");
     this.QuestionTypeSelect.change(
         function (){
             if ($(this).val() == "Multiple Choice") {
