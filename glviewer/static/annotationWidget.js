@@ -73,6 +73,12 @@ function AnnotationWidget (viewer) {
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"sections.png")
         .click(function(){self.DetectSections();});
+    this.RectButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button")
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"rectangle.gif")
+        .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
@@ -191,6 +197,15 @@ AnnotationWidget.prototype.NewCircle = function() {
     widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
                                                                 this.Viewer.LastMouseY);
 }
+
+
+AnnotationWidget.prototype.NewRect = function() {
+    var button = this.RectButton;
+    var widget = this.ActivateButton(button, RectWidget);
+    // DJ: Make sure the rect is around the circle
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
+                                                                this.Viewer.LastMouseY);
+};
 
 
 AnnotationWidget.prototype.NewFill = function() {
