@@ -8338,7 +8338,10 @@ var DownloadImage = (function () {
 
         
         var d = new Dialog(StartDownloadCallback);
-        d.Body.css({'margin':'1em 2em'});
+        d.Body.css({'margin':'1em 2em',
+                    // Hack no time to figure out layout with border box option.
+                    'padding-bottom':'2em',
+                    'padding-right':'3em'});
         DOWNLOAD_WIDGET.DimensionDialog = d;
         d.Title.text('Download Image');
         
@@ -12175,6 +12178,12 @@ function AnnotationWidget (viewer) {
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"sections.png")
         .click(function(){self.DetectSections();});
+    //this.RectButton = $('<img>')
+    //    .appendTo(this.Tab.Panel)
+    //    .addClass("sa-view-annotation-button")
+    //    .attr('type','image')
+    //    .attr('src',SA.ImagePathUrl+"rectangle.gif")
+    //    .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
@@ -12293,6 +12302,15 @@ AnnotationWidget.prototype.NewCircle = function() {
     widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
                                                                 this.Viewer.LastMouseY);
 }
+
+
+AnnotationWidget.prototype.NewRect = function() {
+    var button = this.RectButton;
+    var widget = this.ActivateButton(button, RectWidget);
+    // DJ: Make sure the rect is around the circle
+    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
+                                                                this.Viewer.LastMouseY);
+};
 
 
 AnnotationWidget.prototype.NewFill = function() {
@@ -16316,12 +16334,12 @@ saQuestion.prototype.DialogInitialize = function () {
     this.QuestionTypeMultipleChoice = $('<option>')
         .appendTo(this.QuestionTypeSelect)
         .text("Multiple Choice");
-    this.QuestionTypeSortAnswer = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("Short Answer");
-    this.QuestionTypeTrueFalse = $('<option>')
-        .appendTo(this.QuestionTypeSelect)
-        .text("True or False");
+    //this.QuestionTypeSortAnswer = $('<option>')
+    //    .appendTo(this.QuestionTypeSelect)
+    //    .text("Short Answer");
+    //this.QuestionTypeTrueFalse = $('<option>')
+    //    .appendTo(this.QuestionTypeSelect)
+    //    .text("True or False");
     this.QuestionTypeSelect.change(
         function (){
             if ($(this).val() == "Multiple Choice") {
@@ -21915,6 +21933,7 @@ function LoadQueueUpdate() {
 
 function AddFinishedLoadingCallback(callback) {
     SA.FinishedLoadingCallbacks.push(callback);
+    LoadQueueUpdate();
 }
 
 function ClearFinishedLoadingCallbacks() {
@@ -29609,6 +29628,9 @@ Viewer.prototype.LoadWidget = function(obj) {
     case "sections":
         widget = new SectionsWidget(this);
         break;
+    case "rect":
+        widget = new RectWidget(this, false);
+        break;
     }
     widget.Load(obj);
     return widget;
@@ -30585,9 +30607,13 @@ Viewer.prototype.HandleKeyDown = function(event) {
             var widget = new TextWidget(this, "");
             widget.PasteCallback(clip.Data, this.MouseWorld);
         }
+        if (clip.Type == "RectWidget") {
+            var widget = new RectWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
         return false;
-    }    
+    }
 
     //----------------------
     if (this.ActiveWidget != null) {
@@ -34145,6 +34171,7 @@ function LoadQueueUpdate() {
 
 function AddFinishedLoadingCallback(callback) {
     SA.FinishedLoadingCallbacks.push(callback);
+    LoadQueueUpdate();
 }
 
 function ClearFinishedLoadingCallbacks() {
@@ -41839,6 +41866,9 @@ Viewer.prototype.LoadWidget = function(obj) {
     case "sections":
         widget = new SectionsWidget(this);
         break;
+    case "rect":
+        widget = new RectWidget(this, false);
+        break;
     }
     widget.Load(obj);
     return widget;
@@ -42815,9 +42845,13 @@ Viewer.prototype.HandleKeyDown = function(event) {
             var widget = new TextWidget(this, "");
             widget.PasteCallback(clip.Data, this.MouseWorld);
         }
+        if (clip.Type == "RectWidget") {
+            var widget = new RectWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld);
+        }
 
         return false;
-    }    
+    }
 
     //----------------------
     if (this.ActiveWidget != null) {

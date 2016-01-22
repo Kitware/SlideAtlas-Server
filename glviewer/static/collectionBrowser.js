@@ -627,7 +627,7 @@ CollectionBrowser = (function (){
             .addClass("sa-view-browser-item");
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.ListItem)
-            .attr('src',SA.ImagePathUrl+"plus.png")
+            .attr('src',"/webgl-viewer/static/"+"plus.png")
             .addClass("sa-view-icon");
         $('<span>')
             .appendTo(this.ListItem)
@@ -654,7 +654,7 @@ CollectionBrowser = (function (){
         if (this.SessionListOpen) {
             this.SessionListOpen = false;
             this.SessionList.slideUp();
-            this.OpenCloseIcon.attr('src',SA.ImagePathUrl+"plus.png")
+            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/"+"plus.png")
             for (var i = 0; i < this.Sessions.length; ++i) {
                 var session = this.Sessions[i];
                 RemoveDropTarget(session);
@@ -662,7 +662,7 @@ CollectionBrowser = (function (){
         } else {
             this.SessionListOpen = true;
             this.SessionList.slideDown();
-            this.OpenCloseIcon.attr('src',SA.ImagePathUrl+"minus.png")
+            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/"+"minus.png")
             for (var i = 0; i < this.Sessions.length; ++i) {
                 var session = this.Sessions[i];
                 AddDropTarget(session);
@@ -793,7 +793,7 @@ CollectionBrowser = (function (){
             .appendTo(ul);
         this.OpenCloseIcon = $('<img>')
             .appendTo(this.Body)
-            .attr('src',SA.ImagePathUrl+"plus.png")
+            .attr('src',"/webgl-viewer/static/"+"plus.png")
             .addClass("sa-view-icon")
         this.SessionLabel = $('<span>')
             .appendTo(this.Body)
@@ -832,7 +832,7 @@ CollectionBrowser = (function (){
                 // Error callback
                 // Get rid of the loding image.
                 self.ViewList.find('.sa-view-browser-waiting')
-                    .attr("src", SA.ImagePathUrl+"brokenImage.png")
+                    .attr("src", "/webgl-viewer/static/"+"brokenImage.png")
                     .attr("alt", "error");
             });
     }
@@ -888,7 +888,7 @@ CollectionBrowser = (function (){
                 .addClass("sa-view-browser-view-item");
             var image = $('<img>')
                 .appendTo(listItem)
-                .attr("src", SA.ImagePathUrl+"circular.gif")
+                .attr("src", "/webgl-viewer/static/"+"circular.gif")
                 .attr("alt", "waiting...")
                 .addClass("sa-view-browser-waiting");
             $('<div>')
@@ -948,7 +948,7 @@ CollectionBrowser = (function (){
         if (this.ViewListOpen) {
             this.ViewListOpen = false;
             this.ViewList.slideUp();
-            this.OpenCloseIcon.attr('src',SA.ImagePathUrl+"plus.png");
+            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/"+"plus.png");
         } else {
             // Needed to display the waiting gif.
             this.UpdateGUI();
@@ -964,7 +964,7 @@ CollectionBrowser = (function (){
 
             this.ViewListOpen = true;
             this.ViewList.slideDown();
-            this.OpenCloseIcon.attr('src',SA.ImagePathUrl+"minus.png")
+            this.OpenCloseIcon.attr('src',"/webgl-viewer/static/"+"minus.png")
         }
     }
 
