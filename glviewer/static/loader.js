@@ -185,6 +185,7 @@ function LoadQueueUpdate() {
 
 function AddFinishedLoadingCallback(callback) {
     SA.FinishedLoadingCallbacks.push(callback);
+    LoadQueueUpdate();
 }
 
 function ClearFinishedLoadingCallbacks() {
