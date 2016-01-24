@@ -1,4 +1,8 @@
 // TODO: 
+// BUG: Notes now have a sessionId so the navigation widget will work when
+// a note is loaded in issolation.  We are not updating this reference when
+// the view is moved.
+
 // Scroll when dragged to the bottom or top of the screen.
 
 

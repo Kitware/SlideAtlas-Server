@@ -138,20 +138,33 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 
 NavigationWidget.prototype.SetNote = function(note) {
     var self = this;
-    if (note.SessionId && note.SessionId != this.SessionId && SA.RootNote.Type != "HTML") {
+    if (note.SessionId && ! this.SessionId && SA.RootNote.Type != "HTML") {
+        // Remeber we are waiting for an ajax call so we do not queue another.
+        this.SessionId = note.SessionId;
+        // Although this should not happen, support a second session id to
+        // overwrite a previous requested session.
+        // This is for the case when a note is loaded in isolation.
         $.ajax({
             type: "get",
             url: SA.SessionUrl+"?json=true&sessid="+note.SessionId,
             success: function(data,status) {
+                if (self.SessionId != data.sessid) {
+                    console.log("expecting a second session to load.");
+                    return;
+                }
                 self.Session = data.session.views;
-                self.SessionId = data.sessid;
                 self.Update();
             },
             error: function() {
                 saDebug("AJAX - error() : session" );
             },
         });
-    }
+    } else {
+        // Correct an error.  SessionId's are wrong because the
+        // notes sessionId is not being updated when a session is
+        // copied.
+        note.SessionId = this.SessionId;
+    }        
 
     this.NoteIterator.SetNote(note);
     this.Update();
@@ -333,6 +346,7 @@ NavigationWidget.prototype.PreviousSlide = function() {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex -= 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
@@ -350,6 +364,7 @@ NavigationWidget.prototype.NextSlide = function() {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsNotModified();}
         this.SlideIndex += 1;
         this.Display.SetNoteFromId(this.Session[this.SlideIndex].id);
+
         if (this.NoteDisplay) {
             this.NoteDisplay.html("");
         }
