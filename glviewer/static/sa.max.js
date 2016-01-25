@@ -9989,7 +9989,7 @@ function Note () {
                 'opacity':'0.5'});
     }
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     }
 
@@ -10187,11 +10187,11 @@ Note.prototype.TitleFocusOutCallback = function() {
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
-    if (this.Title != text && ! this.HideAnnotations) {
+    if (this.Title != text && ! SA.HideAnnotations) {
         this.Title = text;
         this.Save();
     }
-    if (this.HiddenTitle != text && this.HideAnnotations) {
+    if (this.HiddenTitle != text && SA.HideAnnotations) {
         this.HiddenTitle = text;
         this.Save();
     }
@@ -10309,7 +10309,7 @@ Note.prototype.UpdateChildrenGUI = function() {
             var sectionDiv = $('<div>')
                 .addClass('note')
                 .appendTo(this.ChildrenDiv);
-            if (this.HideAnnotations) {
+            if (SA.HideAnnotations) {
                 sectionDiv.text(i.toString())
             } else {
                 sectionDiv.text(this.ViewerRecords[i].Image.label)
@@ -10464,7 +10464,7 @@ Note.prototype.DisplayGUI = function(div) {
                 self.ButtonsDiv.hide();
             });
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     } else {
         this.TitleEntry.text(this.Title);
@@ -10592,7 +10592,7 @@ Note.prototype.Load = function(obj){
         delete this.ParentId
     }
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     } else {
         this.TitleEntry.text(this.Title);
@@ -13049,33 +13049,36 @@ NavigationWidget.prototype.HandleKeyDown = function(event) {
 
 NavigationWidget.prototype.SetNote = function(note) {
     var self = this;
-    if (note.SessionId && ! this.SessionId && SA.RootNote.Type != "HTML") {
-        // Remeber we are waiting for an ajax call so we do not queue another.
-        this.SessionId = note.SessionId;
-        // Although this should not happen, support a second session id to
-        // overwrite a previous requested session.
-        // This is for the case when a note is loaded in isolation.
-        $.ajax({
-            type: "get",
-            url: SA.SessionUrl+"?json=true&sessid="+note.SessionId,
-            success: function(data,status) {
-                if (self.SessionId != data.sessid) {
-                    console.log("expecting a second session to load.");
-                    return;
-                }
-                self.Session = data.session.views;
-                self.Update();
-            },
-            error: function() {
-                saDebug("AJAX - error() : session" );
-            },
-        });
+    if ( ! this.SessionId) {
+        if (SA.Session) {
+            this.Session = SA.Session.session.views;
+            this.SessionId = SA.Session.sessid;
+            this.Update();
+        } else if (note.SessionId && SA.RootNote.Type != "HTML") {
+            this.SessionId = note.SessionId;
+            $.ajax({
+                type: "get",
+                url: SA.SessionUrl+"?json=true&sessid="+this.SessionId,
+                success: function(data,status) {
+                    if (self.SessionId != data.sessid) {
+                        // This will never happen.
+                        console.log("expecting a second session to load.");
+                        return;
+                    }
+                    self.Session = data.session.views;
+                    self.Update();
+                },
+                error: function() {
+                    saDebug("AJAX - error() : session" );
+                },
+            });
+        }
     } else {
         // Correct an error.  SessionId's are wrong because the
         // notes sessionId is not being updated when a session is
         // copied.
         note.SessionId = this.SessionId;
-    }        
+    }
 
     this.NoteIterator.SetNote(note);
     this.Update();
@@ -49642,6 +49645,31 @@ SlideAtlas.prototype.PopProgress = function() {
 // SA global will be set to this object.
 SlideAtlas.prototype.Run = function() {
     self = this;
+    if (this.SessionId) {
+        $.ajax({
+            type: "get",
+            url: this.SessionUrl+"?json=true&sessid="+this.SessionId,
+            success: function(data,status) {
+                self.Session = data;
+                self.HideAnnotations = data.hide;
+                // TODO: fix this serialization.
+                self.Run2();
+            },
+            error: function() {
+                saDebug("AJAX - error() : session" );
+                self.Run2();
+            },
+        });
+    } else {
+        this.Run2();
+    }
+}
+
+
+// Now we have the session (if the id was passed in).
+SlideAtlas.prototype.Run2 = function() {
+    self = this;
+    // Get the root note.
     if (this.ViewId == "" || this.ViewId == "None") {
         delete this.ViewId;
     }
@@ -49664,28 +49692,7 @@ SlideAtlas.prototype.Run = function() {
         rootNote.HiddenTitle = title;
         rootNote.Text = "";
         rootNote.Type = "HTML";
-        // Get the new notes id.
-        /* Saving this note without a viewer record is causing errors.
-        rootNote.Save(function (note) {
-            // Save the note in the session.
-            $.ajax({
-                type: "post",
-                data: {"sess" : self.SessionId,
-                       "view" : note.Id},
-                url: "webgl-viewer/session-add-view",
-                success: function(data,status){
-                    if (status == "success") {
-                        Main(rootNote);
-                    } else {
-                        saDebug("ajax failed - session-add-view");
-                    }
-                },
-                error: function() {
-                    saDebug( "AJAX - error() : session-add-view" );
-                },
-            });
-        });
-        */
+
         Main(rootNote);
     } else {
         if (this.ViewId == "") {

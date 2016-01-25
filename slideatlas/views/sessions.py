@@ -142,6 +142,7 @@ def view_a_session(session):
             'imagefiles': session_son["imagefiles"],
             'db': session.image_store.id,  # TODO: deprecate and remove
             'sessid': session.id,
+            'hide': session_son['hide_annotations'],
             'next': url_for('.sessions_view', sessid=str(session.id), ajax=1, next=next_arg + NUMBER_ON_PAGE)
         }
         return jsonify(ajax_data)

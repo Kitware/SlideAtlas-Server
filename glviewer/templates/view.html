@@ -232,13 +232,12 @@ shape has visibility and
       SA.Template = "view.html";
       SA.User = "{{user}}";
       // A view has the same structure as a note.
-      SA.SessionId = "{{sess}}";
       SA.Edit = {{edit}}; // Temporary way to hide editing.
       SA.SessionUrl = "{{url_for('session.sessions_view')}}";
       SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
 
+      SA.SessionId = "{{sess}}";
       SA.Run();
-
   });
 
 </script>
