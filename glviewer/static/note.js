@@ -99,7 +99,7 @@ function Note () {
                 'opacity':'0.5'});
     }
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     }
 
@@ -297,11 +297,11 @@ Note.prototype.TitleFocusOutCallback = function() {
     if ( ! this.Modified) { return; }
     this.Modified = false;
     var text = this.TitleEntry.text();
-    if (this.Title != text && ! this.HideAnnotations) {
+    if (this.Title != text && ! SA.HideAnnotations) {
         this.Title = text;
         this.Save();
     }
-    if (this.HiddenTitle != text && this.HideAnnotations) {
+    if (this.HiddenTitle != text && SA.HideAnnotations) {
         this.HiddenTitle = text;
         this.Save();
     }
@@ -419,7 +419,7 @@ Note.prototype.UpdateChildrenGUI = function() {
             var sectionDiv = $('<div>')
                 .addClass('note')
                 .appendTo(this.ChildrenDiv);
-            if (this.HideAnnotations) {
+            if (SA.HideAnnotations) {
                 sectionDiv.text(i.toString())
             } else {
                 sectionDiv.text(this.ViewerRecords[i].Image.label)
@@ -574,7 +574,7 @@ Note.prototype.DisplayGUI = function(div) {
                 self.ButtonsDiv.hide();
             });
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     } else {
         this.TitleEntry.text(this.Title);
@@ -702,7 +702,7 @@ Note.prototype.Load = function(obj){
         delete this.ParentId
     }
 
-    if (this.HideAnnotations && this.HiddenTitle) {
+    if (SA.HideAnnotations && this.HiddenTitle) {
         this.TitleEntry.text(this.HiddenTitle);
     } else {
         this.TitleEntry.text(this.Title);

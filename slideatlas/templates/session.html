@@ -404,8 +404,8 @@
 
             <tbody>
                 {% for view_son in session_son.views %}
-                    {% set viewer_view_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id) %}
-                    {% set viewer_edit_url = url_for('glviewer.glview', db=view_son.image_store_id, view=view_son.id, edit='true') %}
+                    {% set viewer_view_url = url_for('glviewer.glview', sess=session.id, view=view_son.id) %}
+                    {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
                     {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                     <tr>
                         <td>
