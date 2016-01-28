@@ -73,12 +73,12 @@ function AnnotationWidget (viewer) {
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"sections.png")
         .click(function(){self.DetectSections();});
-    //this.RectButton = $('<img>')
-    //    .appendTo(this.Tab.Panel)
-    //    .addClass("sa-view-annotation-button")
-    //    .attr('type','image')
-    //    .attr('src',SA.ImagePathUrl+"rectangle.gif")
-    //    .click(function(){self.NewRect();});
+    this.RectButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button")
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"rectangle.gif")
+        .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
