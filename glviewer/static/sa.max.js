@@ -9648,13 +9648,14 @@ DualViewWidget.prototype.SynchronizeViews = function (refViewerIdx, note) {
     // Cameras used for preloading.
     if (! note.PreCamera) { note.PreCamera = new Camera();}
     if (! note.PostCamera) { note.PostCamera = new Camera();}
-    var cameras = [note.PreCamera, 
-                   this.GetViewer(0).GetCamera(), 
-                   this.GetViewer(1).GetCamera(), 
+    var cameras = [note.PreCamera,
+                   this.GetViewer(0).GetCamera(),
+                   this.GetViewer(1).GetCamera(),
                    note.PostCamera];
     var refCamIdx = refViewerIdx+1; // An extra to account for PreCamera.
     // Start with the reference section and move forward.
     // With two sections, the second has the transform.
+
     for (var i = refCamIdx+1; i < cameras.length; ++i) {
         var transIdx = i - 1 + note.StartIndex;
         if (transIdx < note.ViewerRecords.length) {
@@ -12178,12 +12179,12 @@ function AnnotationWidget (viewer) {
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"sections.png")
         .click(function(){self.DetectSections();});
-    //this.RectButton = $('<img>')
-    //    .appendTo(this.Tab.Panel)
-    //    .addClass("sa-view-annotation-button")
-    //    .attr('type','image')
-    //    .attr('src',SA.ImagePathUrl+"rectangle.gif")
-    //    .click(function(){self.NewRect();});
+    this.RectButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button")
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"rectangle.gif")
+        .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
@@ -13166,6 +13167,7 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         --current.StartIndex;
         current.DisplayStack(this.Display);
+        this.Display.SynchronizeViews(1, current);
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {

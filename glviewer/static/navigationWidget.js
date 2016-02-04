@@ -255,6 +255,7 @@ NavigationWidget.prototype.PreviousNote = function() {
 
         --current.StartIndex;
         current.DisplayStack(this.Display);
+        this.Display.SynchronizeViews(1, current);
         // activate or deactivate buttons.
         this.Update();
         if (this.NoteDisplay) {
