@@ -112,7 +112,7 @@ SlideAtlas.prototype.Run2 = function() {
     var rootNote = new Note();
 
     // Hack to create a new presenation.
-    if ( ! this.ViewId) {
+    if ( this.ViewId == "presentation") {
         var title = window.prompt("Please enter the presentation title.",
                                   "SlideShow");
         if (title == null) {
