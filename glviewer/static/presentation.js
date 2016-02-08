@@ -840,7 +840,6 @@ Presentation.prototype.Save = function () {
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
 
-
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
     // sa-presentation-views)

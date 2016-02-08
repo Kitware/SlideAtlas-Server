@@ -9301,6 +9301,9 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
 
         if (args.interaction !== undefined) {
             viewer.SetInteractionEnabled(args.interaction);
+            if (this.NavigationWidget) {
+                this.NavigationWidget.SetInteractionEnabled(args.interaction);
+            }
         }
     }
 }
@@ -13015,13 +13018,19 @@ function NavigationWidget(parent,display) {
             'width': '100%',
             'text-align': 'center'
         }).html();
+}
 
-
-    display.Parent.on(
-        'keydown.navigation',
-        function (event) {
-            return self.HandleKeyDown(event);
-        });
+NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
+    var self = this;
+    if (flag) {
+        this.Display.Parent.on(
+            'keydown.navigation',
+            function (event) {
+                return self.HandleKeyDown(event);
+            });
+    } else {
+        this.Display.Parent.off('keydown.navigation');
+    }
 }
 
 NavigationWidget.prototype.HandleKeyDown = function(event) {
@@ -19880,7 +19889,6 @@ Presentation.prototype.Save = function () {
     this.TitlePage.UpdateEdits();
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
-
 
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
@@ -32118,7 +32126,6 @@ Presentation.prototype.Save = function () {
     this.TitlePage.UpdateEdits();
     this.SlidePage.UpdateEdits();
     this.HtmlPage.UpdateEdits();
-
 
     // It is necessary to convert
     // temporary note ids to real note ids. (for the html
@@ -49683,7 +49690,7 @@ SlideAtlas.prototype.Run2 = function() {
     var rootNote = new Note();
 
     // Hack to create a new presenation.
-    if ( ! this.ViewId) {
+    if ( this.ViewId == "presentation") {
         var title = window.prompt("Please enter the presentation title.",
                                   "SlideShow");
         if (title == null) {

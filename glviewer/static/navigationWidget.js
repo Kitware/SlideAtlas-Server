@@ -103,13 +103,19 @@ function NavigationWidget(parent,display) {
             'width': '100%',
             'text-align': 'center'
         }).html();
+}
 
-
-    display.Parent.on(
-        'keydown.navigation',
-        function (event) {
-            return self.HandleKeyDown(event);
-        });
+NavigationWidget.prototype.SetInteractionEnabled = function(flag) {
+    var self = this;
+    if (flag) {
+        this.Display.Parent.on(
+            'keydown.navigation',
+            function (event) {
+                return self.HandleKeyDown(event);
+            });
+    } else {
+        this.Display.Parent.off('keydown.navigation');
+    }
 }
 
 NavigationWidget.prototype.HandleKeyDown = function(event) {

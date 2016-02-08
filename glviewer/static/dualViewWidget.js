@@ -198,6 +198,9 @@ DualViewWidget.prototype.ProcessArguments = function (args) {
 
         if (args.interaction !== undefined) {
             viewer.SetInteractionEnabled(args.interaction);
+            if (this.NavigationWidget) {
+                this.NavigationWidget.SetInteractionEnabled(args.interaction);
+            }
         }
     }
 }
