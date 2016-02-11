@@ -381,8 +381,8 @@
 .sa-view-navigation-panel {
     box-sizing: border-box;
     left: -45px;
-    width: 206px;
-    height: 50px;
+    width: 176px;
+    height: 45px;
     padding: 0px 2px;
 }
 
@@ -392,8 +392,8 @@
 }
 
 .sa-view-navigation-button {
-    height: 40px;
-    width: 40px;
+    height: 32px;
+    width: 32px;
     padding: 5px;
     opacity: 0.2;
 }
@@ -414,7 +414,9 @@
     }
 }
 
-.sa-view-navigation-button.sa-active { opacity: 0.5; }
+.sa-view-navigation-button.sa-active        { opacity: 0.5; }
+.sa-view-navigation-button.sa-active:hover  { opacity: 0.8; }
+.sa-view-navigation-button.sa-active:active { opacity: 1.0; }
 /* End Navigation block */
 
 /*
