@@ -1,4 +1,4 @@
-echo "// slide atlas" > css/sa.css
+echo "// auto generated: slide atlas" > css/sa.css
 cat css/main.css >> css/sa.css
 cat css/saViewer.css >> css/sa.css
 cat ../../slideatlas/static/thirdparty/jquery-ui/1.8.22/jquery-ui.css >> css/sa.css
