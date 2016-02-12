@@ -798,7 +798,7 @@ Viewer.prototype.SetSection = function(section) {
          }
 
          if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
+             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
          }
          this.CopyrightWrapper
              .html(cache.Image.copyright);

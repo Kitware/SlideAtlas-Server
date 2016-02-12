@@ -29412,7 +29412,7 @@ Viewer.prototype.SetSection = function(section) {
          }
 
          if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
+             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
          }
          this.CopyrightWrapper
              .html(cache.Image.copyright);
@@ -29570,6 +29570,7 @@ Viewer.prototype.AnimateZoomTo = function(factor, position) {
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
         this.ZoomTarget = 0.9 / (1 << 5);
     }
+
     // Lets restrict discrete zoom values to be standard values.
     var windowHeight = this.GetViewport()[3];
     var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) /
@@ -29592,6 +29593,14 @@ Viewer.prototype.AnimateZoomTo = function(factor, position) {
 }
 
 Viewer.prototype.AnimateZoom = function(factor) {
+    // I cannot get the canvas from processing this event too.
+    // Issue with double click. Hack to stop double click from firing.
+    this.MouseUpTime -= 1000.0;
+
+    if (this.AnimateDuration > 0.0) {
+        return;
+    }
+
     var focalPoint = this.GetCamera().GetFocalPoint();
     this.AnimateZoomTo(factor, focalPoint);
 }
@@ -29818,6 +29827,7 @@ Viewer.prototype.Animate = function() {
     }
     var timeNow = new Date().getTime();
     if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
+        this.AnimateDuration = 0;
         // We have past the target. Just set the target values.
         this.MainView.Camera.SetHeight(this.ZoomTarget);
         this.MainView.Camera.Roll = this.RollTarget;
@@ -29858,6 +29868,7 @@ Viewer.prototype.Animate = function() {
                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
              currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+        this.AnimateDuration -= (timeNow-this.AnimateLast);
         // We are not finished yet.
         // Schedule another render
         this.EventuallyRender(true);
@@ -29866,7 +29877,6 @@ Viewer.prototype.Animate = function() {
     if (this.OverView) {
         this.OverView.Camera.ComputeMatrix();
     }
-    this.AnimateDuration -= (timeNow-this.AnimateLast);
     this.AnimateLast = timeNow;
     // Synchronize cameras is necessary
 }
@@ -41656,7 +41666,7 @@ Viewer.prototype.SetSection = function(section) {
          }
 
          if (cache.Image.copyright == undefined) {
-             cache.Image.copyright = "Copyright 2015. All Rights Reserved.";
+             cache.Image.copyright = "Copyright 2016. All Rights Reserved.";
          }
          this.CopyrightWrapper
              .html(cache.Image.copyright);
@@ -41814,6 +41824,7 @@ Viewer.prototype.AnimateZoomTo = function(factor, position) {
     if (this.ZoomTarget < 0.9 / (1 << 5)) {
         this.ZoomTarget = 0.9 / (1 << 5);
     }
+
     // Lets restrict discrete zoom values to be standard values.
     var windowHeight = this.GetViewport()[3];
     var tmp = Math.round(Math.log(32.0 * windowHeight / this.ZoomTarget) /
@@ -41836,6 +41847,14 @@ Viewer.prototype.AnimateZoomTo = function(factor, position) {
 }
 
 Viewer.prototype.AnimateZoom = function(factor) {
+    // I cannot get the canvas from processing this event too.
+    // Issue with double click. Hack to stop double click from firing.
+    this.MouseUpTime -= 1000.0;
+
+    if (this.AnimateDuration > 0.0) {
+        return;
+    }
+
     var focalPoint = this.GetCamera().GetFocalPoint();
     this.AnimateZoomTo(factor, focalPoint);
 }
@@ -42062,6 +42081,7 @@ Viewer.prototype.Animate = function() {
     }
     var timeNow = new Date().getTime();
     if (timeNow >= (this.AnimateLast + this.AnimateDuration)) {
+        this.AnimateDuration = 0;
         // We have past the target. Just set the target values.
         this.MainView.Camera.SetHeight(this.ZoomTarget);
         this.MainView.Camera.Roll = this.RollTarget;
@@ -42102,6 +42122,7 @@ Viewer.prototype.Animate = function() {
                 *(timeNow-this.AnimateLast)/this.AnimateDuration,
              currentCenter[1] + (this.TranslateTarget[1]-currentCenter[1])
                 *(timeNow-this.AnimateLast)/this.AnimateDuration]);
+        this.AnimateDuration -= (timeNow-this.AnimateLast);
         // We are not finished yet.
         // Schedule another render
         this.EventuallyRender(true);
@@ -42110,7 +42131,6 @@ Viewer.prototype.Animate = function() {
     if (this.OverView) {
         this.OverView.Camera.ComputeMatrix();
     }
-    this.AnimateDuration -= (timeNow-this.AnimateLast);
     this.AnimateLast = timeNow;
     // Synchronize cameras is necessary
 }
@@ -50449,8 +50469,8 @@ function Main(rootNote) {
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
     SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+    SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
 
-    // It handles the singlton global.
     new RecorderWidget(SA.DualDisplay);
 
     SA.DualDisplay.SetNote(rootNote);
