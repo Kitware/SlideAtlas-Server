@@ -553,6 +553,8 @@ Viewer.prototype.InitializeZoomGui = function() {
         .on("dragstart", function() {
             return false;});
 
+    this.ZoomInButton.addClass('sa-active');
+    this.ZoomOutButton.addClass('sa-active');
 
 }
 
@@ -943,6 +945,11 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
+    if (this.AnimateDuration > 0.0) {
+        // Odd effect with multiple fast zoom clicks.  Center shifted.
+        return;
+    }
+
     SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;

@@ -239,6 +239,13 @@ NavigationWidget.prototype.Update = function() {
     } else {
         this.NextSlideButton.addClass("sa-active")
     }
+
+    // Hack because next slide does not with presentations.
+    if (SA.RootNote && SA.RootNote.Type == "HTML") {
+        this.PreviousSlideButton.removeClass("sa-active");
+        this.NextSlideButton.removeClass("sa-active");
+    }
+
 }
 
 NavigationWidget.prototype.PreviousNote = function() {

@@ -12139,55 +12139,71 @@ function AnnotationWidget (viewer) {
     this.VisibilityDiv = $('<div>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-vis")
+        .prop('title', "Visibility")
         .click(function(){self.ToggleVisibility();});
     this.VisibilityImage = $('<img>')
         .appendTo(this.VisibilityDiv)
         .addClass('sa-view-annotation-vis-img')
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"toggleswitch.jpg");
 
     this.TextButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"Text.gif")
+        .prop('title', "Text")
         .click(function(){self.NewText();});
     this.CircleButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"Circle.gif")
+        .prop('title', "Circle")
         .click(function(){self.NewCircle();});
+    this.RectButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"rectangle.gif")
+        .prop('title', "Rectangle")
+        .click(function(){self.NewRect();});
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"FreeForm.gif")
+        .prop('title', "Polygon")
         .click(function(){self.NewPolyline();});
     this.PencilButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
+        .prop('title', "Pencil")
         .attr('src',SA.ImagePathUrl+"Pencil-icon.jpg")
         .click(function(){self.NewPencil();});
     this.LassoButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
+        .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
     this.SectionsButton = $('<img>')
         .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
         .attr('type','image')
         .attr('src',SA.ImagePathUrl+"sections.png")
+        .prop('title', "Segment")
         .click(function(){self.DetectSections();});
-    this.RectButton = $('<img>')
-        .appendTo(this.Tab.Panel)
-        .addClass("sa-view-annotation-button")
-        .attr('type','image')
-        .attr('src',SA.ImagePathUrl+"rectangle.gif")
-        .click(function(){self.NewRect();});
     /*this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
@@ -13154,6 +13170,13 @@ NavigationWidget.prototype.Update = function() {
     } else {
         this.NextSlideButton.addClass("sa-active")
     }
+
+    // Hack because next slide does not with presentations.
+    if (SA.RootNote && SA.RootNote.Type == "HTML") {
+        this.PreviousSlideButton.removeClass("sa-active");
+        this.NextSlideButton.removeClass("sa-active");
+    }
+
 }
 
 NavigationWidget.prototype.PreviousNote = function() {
@@ -29144,6 +29167,8 @@ Viewer.prototype.InitializeZoomGui = function() {
         .on("dragstart", function() {
             return false;});
 
+    this.ZoomInButton.addClass('sa-active');
+    this.ZoomOutButton.addClass('sa-active');
 
 }
 
@@ -29534,6 +29559,11 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
+    if (this.AnimateDuration > 0.0) {
+        // Odd effect with multiple fast zoom clicks.  Center shifted.
+        return;
+    }
+
     SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
@@ -41381,6 +41411,8 @@ Viewer.prototype.InitializeZoomGui = function() {
         .on("dragstart", function() {
             return false;});
 
+    this.ZoomInButton.addClass('sa-active');
+    this.ZoomOutButton.addClass('sa-active');
 
 }
 
@@ -41771,6 +41803,11 @@ Viewer.prototype.GetSpacing = function() {
 
 // I could merge zoom methods if position defaulted to focal point.
 Viewer.prototype.AnimateZoomTo = function(factor, position) {
+    if (this.AnimateDuration > 0.0) {
+        // Odd effect with multiple fast zoom clicks.  Center shifted.
+        return;
+    }
+
     SA.StackCursorFlag = false;
 
     this.ZoomTarget = this.MainView.Camera.GetHeight() * factor;
