@@ -834,8 +834,8 @@ function Main(rootNote) {
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
     SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
+    SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
 
-    // It handles the singlton global.
     new RecorderWidget(SA.DualDisplay);
 
     SA.DualDisplay.SetNote(rootNote);
