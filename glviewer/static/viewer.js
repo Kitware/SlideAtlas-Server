@@ -60,6 +60,13 @@ function Viewer (parent) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
+    this.AnnotationView = new View(this.Div);
+    this.AnnotationView.InitializeViewport(viewport, 1);
+    this.AnnotationView.OutlineColor = [0,0,0];
+
+
+    this.AnnotationView;
+
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
         this.OverViewScale = 0.02; // Experimenting with scroll
