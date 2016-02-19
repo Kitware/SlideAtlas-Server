@@ -58,6 +58,7 @@ function SlideAtlas() {
     this.FinishedLoadingCallbacks = [];
 
     this.Caches = [];
+    this.StartInteractionListeners = [];
 }
 
 SlideAtlas.prototype.PushProgress = function() {
@@ -632,7 +633,6 @@ var VIEW_PANEL; // div that should contain the two viewers.
 var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
-var SAVE_BUTTON;
 
 //==============================================================================
 
@@ -762,14 +762,14 @@ function cancelContextMenu(e) {
 
 // Call back from NotesWidget.
 function NotesModified() {
-    if (SA.Edit) {
-        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save.png");
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
     }
 }
 
 function NotesNotModified() {
-    if (SA.Edit) {
-        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
     }
 }
 
@@ -779,7 +779,7 @@ function SaveCallback() {
     SA.NotesWidget.SaveCallback(
         function () {
             // finished
-            SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
         });
 }
 
@@ -845,7 +845,7 @@ function Main(rootNote) {
     if (SA.User != "" && ! MOBILE_DEVICE) {
         if ( SA.Edit) {
             // Put a save button here when editing.
-            SAVE_BUTTON = $('<img>')
+            SA.SaveButton = $('<img>')
                 .appendTo(VIEW_PANEL)
                 .css({'position':'absolute',
                       'bottom':'4px',

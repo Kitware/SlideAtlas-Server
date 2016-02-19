@@ -905,9 +905,9 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
 
 // TODO:
 // Hmmmm.  I do not think this is used yet.
-// SAVE_BUTTON setup should not be here though.
+// SA.SaveButton setup should not be here though.
 NotesWidget.prototype.EditOn = function() {
-    SAVE_BUTTON
+    SA.SaveButton
         .prop('title', "save to database")
         .attr('src',SA.ImagePathUrl+"save22.png")
         .click(function(){self.SaveCallback();});
@@ -916,7 +916,7 @@ NotesWidget.prototype.EditOn = function() {
 }
 
 NotesWidget.prototype.EditOff = function() {
-    SAVE_BUTTON
+    SA.SaveButton
         .prop('title', "edit view")
         .attr('src',SA.ImagePathUrl+"text_edit.png")
         .click(function(){self.EditOn();});

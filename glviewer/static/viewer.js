@@ -1421,12 +1421,12 @@ Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
     // Stuff from event manager
-    this.HandleTouch(e, true);
+    this.HandleTouch(event, true);
     if (this.StartTouchTime == 0) {
         this.StartTouchTime = this.Time;
     }
 
-    this.TriggerStartInteraction();
+    SA.TriggerStartInteraction();
 
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
@@ -1438,7 +1438,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // Four finger grab resets the view.
-    if ( event.Touches.length >= 4) {
+    if ( this.Touches.length >= 4) {
         var cam = this.GetCamera();
         var bds = this.MainView.Section.GetBounds();
         cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
@@ -1452,9 +1452,9 @@ Viewer.prototype.HandleTouchStart = function(event) {
 
     // See if any widget became active.
     if (this.AnnotationVisibility) {
-        for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
-            this.MouseX = event.Touches[touchIdx][0];
-            this.MouseY = event.Touches[touchIdx][1];
+        for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
+            this.MouseX = this.Touches[touchIdx][0];
+            this.MouseY = this.Touches[touchIdx][1];
             this.ComputeMouseWorld(event);
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -1469,10 +1469,44 @@ Viewer.prototype.HandleTouchStart = function(event) {
     return false;
 }
 
+
+Viewer.prototype.HandleTouchMove = function(e) {
+    // Put a throttle on events
+    if ( ! this.HandleTouch(e, false)) { return; }
+
+    if (SA.DualDisplay.NavigationWidget && 
+        SA.DualDisplay.NavigationWidget.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        SA.DualDisplay.NavigationWidget.ToggleVisibility();
+    }
+
+    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
+               MOBILE_ANNOTATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+    }
+
+    if (this.Touches.length == 1) {
+        this.HandleTouchPan(this);
+        return;
+    }
+    if (this.Touches.length == 2) {
+        this.HandleTouchPinch(this);
+        return
+    }
+    if (this.Touches.length == 3) {
+        this.HandleTouchRotate(this);
+        return
+    }
+}
+
+
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
+    if (this.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -1504,8 +1538,11 @@ Viewer.prototype.HandleTouchPan = function(event) {
     var momentumX = dx/dt;
     var momentumY = dy/dt;
 
-    this.MomentumX = (this.MomentumX + momentumX) * 0.5;
-    this.MomentumY = (this.MomentumY + momentumY) * 0.5;
+    // Integrate momentum over a time period to avoid a fast event
+    // dominating behavior.
+    var k = Math.min(this.Time - this.LastTime, 250) / 250;
+    this.MomentumX += (momentumX-this.MomentumX)*k;
+    this.MomentumY += (momentumY-this.MomentumY)*k;
     this.MomentumRoll = 0.0;
     this.MomentumScale = 0.0;
 
@@ -1517,7 +1554,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = event.Touches.length;
+    var numTouches = this.Touches.length;
     if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
@@ -1544,8 +1581,8 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         x = this.LastTouches[i][0] - this.LastMouseX;
         y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - this.MouseX;
-        y = event.Touches[i][1] - this.MouseY;
+        x = this.Touches[i][0] - this.MouseX;
+        y = this.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -1585,7 +1622,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = event.Touches.length;
+    var numTouches = this.Touches.length;
     if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
@@ -1617,8 +1654,8 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         x = this.LastTouches[i][0] - this.LastMouseX;
         y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - this.MouseX;
-        y = event.Touches[i][1] - this.MouseY;
+        x = this.Touches[i][0] - this.MouseX;
+        y = this.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -1661,15 +1698,42 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 
 Viewer.prototype.HandleTouchEnd = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (this.ActiveWidget != null) {
-        this.ActiveWidget.HandleTouchEnd(event);
-        return;
+
+    var t = new Date().getTime();
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    var k = Math.min(this.Time - this.LastTime, 250) / 250;
+
+    this.MomentumX = this.MomentumX*(1-k);
+    this.MomentumY = this.MomentumY*(1-k);
+    this.MomentumRoll = this.MomentumRoll*(1-k);
+    this.MomentumScale = this.MomentumScale*(1-k);
+
+    t = t - this.StartTouchTime;
+    if (event.targetTouches.length == 0 && MOBILE_DEVICE) {
+        this.StartTouchTime = 0;
+        if (t < 90) {
+            // We should not have a navigation widget on mobile
+            // devices. (maybe iPad?).
+            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
+                SA.DualDisplay.NavigationWidget.ToggleVisibility();
+            }
+            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
+                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+            }
+            return;
+        }
+        if (this.ActiveWidget != null) {
+            this.ActiveWidget.HandleTouchEnd(event);
+            return;
+        }
+        //this.UpdateZoomGui();
+        this.HandleMomentum();
     }
-    //this.UpdateZoomGui();
-    this.HandleMomentum(event);
 }
 
-Viewer.prototype.HandleMomentum = function(event) {
+Viewer.prototype.HandleMomentum = function() {
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
     if (this.MomentumTimerId) {
@@ -1680,14 +1744,14 @@ Viewer.prototype.HandleMomentum = function(event) {
     var t = new Date().getTime();
     if (t - this.LastTime < 50) {
         var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
         return;
     }
 
     // Integrate the momentum.
-    this.LastTime = event.Time;
-    event.Time = t;
-    var dt = event.Time - this.LastTime;
+    this.LastTime = this.Time;
+    this.Time = t;
+    var dt = this.Time - this.LastTime;
 
     var k = 200.0;
     var decay = Math.exp(-dt/k);
@@ -1727,7 +1791,7 @@ Viewer.prototype.HandleMomentum = function(event) {
         this.UpdateZoomGui();
     } else {
         var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
     }
 }
 
