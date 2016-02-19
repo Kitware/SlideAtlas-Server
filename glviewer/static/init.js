@@ -873,7 +873,7 @@ function Main(rootNote) {
         SA.DualDisplay.NavigationWidget) {
         SA.DualDisplay.NavigationWidget.SetVisibility(false);
     }
-    if (MOBILE_DEVICE) {
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     }
 

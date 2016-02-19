@@ -658,7 +658,7 @@ function NotesWidget(parent, display) {
     this.Visibility = false;
     this.Dragging = false;
 
-    if ( true || ! MOBILE_DEVICE) {
+    if ( ! MOBILE_DEVICE || MOBILE_DEVICE == 'iPad') {
         this.ResizeNoteWindowEdge = $('<div>')
             .appendTo(parent)
             .css({'position': 'absolute',
