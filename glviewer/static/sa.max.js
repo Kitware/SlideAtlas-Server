@@ -11432,7 +11432,7 @@ function NotesWidget(parent, display) {
     this.Visibility = false;
     this.Dragging = false;
 
-    if ( ! MOBILE_DEVICE) {
+    if ( true || ! MOBILE_DEVICE) {
         this.ResizeNoteWindowEdge = $('<div>')
             .appendTo(parent)
             .css({'position': 'absolute',
@@ -11858,13 +11858,15 @@ NotesWidget.prototype.AnimateNotesWindow = function() {
         // TODO: Get rid of this hack.
         $(window).trigger('resize');
 
-        if (this.Visibility) {
-            this.CloseNoteWindowButton.show();
-            this.OpenNoteWindowButton.hide();
-            this.Window.fadeIn();
-        } else {
-            this.CloseNoteWindowButton.hide();
-            this.OpenNoteWindowButton.show();
+        if (this.CloseNoteWindowButton) {
+            if (this.Visibility) {
+                this.CloseNoteWindowButton.show();
+                this.OpenNoteWindowButton.hide();
+                this.Window.fadeIn();
+            } else {
+                this.CloseNoteWindowButton.hide();
+                this.OpenNoteWindowButton.show();
+            }
         }
         draw();
         return;
@@ -11912,7 +11914,7 @@ NotesWidget.prototype.DisplayRootNote = function() {
     } else {
         this.TabbedWindow.ShowTabDiv(this.TextDiv);
         // Hack to open the notes window if we have text.
-        if ( ! this.Visibility && ! MOBILE_DEVICE) {
+        if ( ! this.Visibility) { // && ! MOBILE_DEVICE) {
             this.ToggleNotesWindow();
         }
     }
