@@ -2,6 +2,7 @@
 
 
 function FavoritesBar(parent, display){
+    var self = this;
     this.FavoritesGUI = this;
     this.Display = display;
 
@@ -12,7 +13,7 @@ function FavoritesBar(parent, display){
         .appendTo(this.FavoritesList)
         .addClass("sa-view-favorites-icon")
         .attr('src',SA.ImagePathUrl+"saveNew.png")
-        .click(function(){SaveFavorite();});
+        .click(function(){self.SaveFavorite();});
     this.SaveFavoriteButton.prop('title', "Save Favorite");
 
     if(MOBILE_DEVICE){
@@ -57,7 +58,7 @@ FavoritesBar.prototype.SaveFavorite = function() {
     // Hide shifts the other buttons to the left to fill the gap.
     var button = FAVORITES_WIDGET.FavoritesBar.SaveFavoriteButton;
     button.addClass("sa-inactive");
-    setTimeout(function(){ button.removeClass("sa-inactive");}, 
+    setTimeout(function(){ button.removeClass("sa-inactive");},
                500); // one half second
 
     //ShowImage(CreateThumbnailImage(110));
@@ -79,8 +80,8 @@ FavoritesBar.prototype.LoadFavorites = function () {
 
 FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
     //var sessionItem = $("[sessid="+sessionData.sessid+"]");
-
     //var viewList = $('<ul>').appendTo(sessionItem)
+    var self = this;
 
     this.Favorites = sessionData.viewArray;
 
@@ -98,22 +99,22 @@ FavoritesBar.prototype.LoadFavoritesCallback = function(sessionData) {
             .attr('height', '110px')
             .addClass("sa-view-favorites-callback-img")
             .attr('index', i)
-            .click(function(){ loadFavorite(this); });
+            .click(function(){ self.LoadFavorite(this); });
 
         var del = $('<div>').appendTo(favorite)
             .html("X")
             .addClass("sa-view-favorites-callback-del")
             .attr('index', i)
-            .click(function(){ deleteFavorite(this); });
+            .click(function(){ self.DeleteFavorite(this); });
     }
 }
 
 FavoritesBar.prototype.LoadFavorite = function(img){
     var note = new Note();
     var index = $(img).attr('index');
-    note.Load(this.Favorits[index]);
+    note.Load(this.Favorites[index]);
 
-    note.DisplayView();
+    note.DisplayView(SA.DualDisplay);
 }
 
 FavoritesBar.prototype.DeleteFavorite = function(img){
@@ -122,7 +123,7 @@ FavoritesBar.prototype.DeleteFavorite = function(img){
     $.ajax({
         type: "post",
         url: "/webgl-viewer/deleteusernote",
-        data: {"noteId": this.Favorties[index]._id,
+        data: {"noteId": this.Favorites[index]._id,
                "col" : "views"},//"favorites"
         success: function(data,status) {
         },

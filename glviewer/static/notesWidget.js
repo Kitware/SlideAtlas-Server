@@ -1026,7 +1026,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
-        var thumb = CreateThumbnailImage(110);
+        var thumb = SA.DualDisplay.CreateThumbnailImage(110);
         src = thumb.src;
     }
 
@@ -1040,7 +1040,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
                "type": "Favorite"},//"favorites"
         success: function(data,status) {
             note.Id = data;
-            LoadFavorites();
+            FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
             saDebug( "AJAX - error() : saveusernote 2" );
