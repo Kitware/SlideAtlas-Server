@@ -339,7 +339,8 @@ Note.prototype.DeleteCallback = function() {
 
     this.ClearHyperlink();
 
-    if (SA.NotesWidget && SA.NotesWidget.Iterator.GetNote() == this) {
+    if (SA.DualDisplay && SA.DualDisplay.NavigationWidget &&
+        SA.DualDisplay.NavigationWidget.GetNote() == this) {
         // Move the current note off this note.
         // There is always a previous.
         SA.DualDisplay.NavigationWidget.PreviousNote();
