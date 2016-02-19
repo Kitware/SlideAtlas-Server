@@ -824,7 +824,7 @@ function Main(rootNote) {
     handleResize();
 
     // TODO: Get rid of this global variable.
-    if (MOBILE_DEVICE) {
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
@@ -834,7 +834,9 @@ function Main(rootNote) {
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
     SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+    if (SA.DualDisplay.NavigationWidget) {
+      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+    }
 
     new RecorderWidget(SA.DualDisplay);
 

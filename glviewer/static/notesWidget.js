@@ -1006,7 +1006,7 @@ NotesWidget.prototype.Resize = function(width, height) {
 
 
 NotesWidget.prototype.GetCurrentNote = function() {
-    return this.NavigationWidget.GetNote();
+    return this.Display.GetNote();
 }
 
 
