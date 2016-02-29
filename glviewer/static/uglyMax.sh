@@ -41,6 +41,7 @@ cat tile.js >> sa.max.js
 cat cache.js >> sa.max.js 
 cat section.js >> sa.max.js 
 cat view.js >> sa.max.js 
+cat annotationLayer.js >> sa.max.js 
 cat viewer.js >> sa.max.js 
 cat pairTransformation.js >> sa.max.js 
 cat presentation.js >> sa.max.js 

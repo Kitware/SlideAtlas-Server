@@ -61,59 +61,60 @@ function MobileAnnotationWidget() {
 
 
 MobileAnnotationWidget.prototype.CircleCallback = function() {
-  console.log("New circle");
+    console.log("New circle");
 
-  // Hard code only a single view for now.
-  this.Viewer = VIEWERS[0];
+    // Hard code only a single view for now.
+    this.Layer = VIEWERS[0].AnnotationLayer;
 
-  if ( this.Viewer.ActiveWidget != undefined && widget ) {
-    this.Viewer.ActiveWidget.Deactivate();
-  }
-  var widget = new CircleWidget(this.Viewer, false);
-  var cam = this.Viewer.GetCamera();
-  var x = cam.FocalPoint[0];
-  var y = cam.FocalPoint[1];
+    if ( this.Layer.ActiveWidget != undefined && widget ) {
+        this.Layer.ActiveWidget.Deactivate();
+    }
+    var widget = new CircleWidget(this.Layer, false);
+    var cam = this.Layer.GetCamera();
+    var x = cam.FocalPoint[0];
+    var y = cam.FocalPoint[1];
 
-  widget.Shape.Origin = [x, y];
-  widget.Shape.Radius = cam.Height / 4.0;
-  widget.Shape.UpdateBuffers();
-  eventuallyRender();
+    widget.Shape.Origin = [x, y];
+    widget.Shape.Radius = cam.Height / 4.0;
+    widget.Shape.UpdateBuffers();
+    eventuallyRender();
 
-  //this.Viewer.ActiveWidget = widget;
-  this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
+    this.Layer.SetVisibility(true);
 }
 
 MobileAnnotationWidget.prototype.TextCallback = function() {
-  this.Viewer = VIEWERS[0];
-  var widget = this.Viewer.ActiveWidget;
-  if ( widget ) {
-    widget.Deactivate();
-  }
+    this.Layer = VIEWERS[0].AnnotationLayer;
+    var widget = this.Layer.ActiveWidget;
+    if ( widget ) {
+        widget.Deactivate();
+    }
 
-  this.Viewer.SetAnnotationVisibility(ANNOTATION_ON);
-  var widget = new TextWidget(this.Viewer, "");
-  var cam = this.Viewer.GetCamera();
-  var x = cam.FocalPoint[0];
-  var y = cam.FocalPoint[1];
-  widget.Text.Anchor[0] = x;
-  widget.Text.Anchor[1] = y;
-  eventuallyRender();
+    this.Layer.SetVisibility(true);
+    var widget = new TextWidget(this.Layer, "");
+    var cam = this.Layer.GetCamera();
+    var x = cam.FocalPoint[0];
+    var y = cam.FocalPoint[1];
+    widget.Text.Anchor[0] = x;
+    widget.Text.Anchor[1] = y;
+    this.Layer.EventuallyDraw();
 
-  this.Viewer.ActiveWidget = widget;
+    this.Layer.ActivateWidget(widget);
 
-  // The dialog is used to set the initial text.
-  widget.ShowPropertiesDialog();
+    // The dialog is used to set the initial text.
+    widget.ShowPropertiesDialog();
 }
 
+// Show the tool gui.
 MobileAnnotationWidget.prototype.SetVisibility = function(v) {
-  this.Visibility = v;
-  if (v) {
-    this.Div.show();
-  } else {
-    this.Div.hide();
-  }
+    this.Visibility = v;
+    if (v) {
+        this.Div.show();
+    } else {
+        this.Div.hide();
+    }
 }
 
+// Toggle the tool gui.
 MobileAnnotationWidget.prototype.ToggleVisibility = function() {
     this.SetVisibility( ! this.Visibility);
     if (FAVORITES_WIDGET) { 

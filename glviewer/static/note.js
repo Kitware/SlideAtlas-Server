@@ -836,12 +836,6 @@ Note.prototype.DisplayView = function(display) {
         display.GetViewer(i).Reset();
     }
 
-    // Set the state of the notes widget.
-    // Should we ever turn it off?
-    if (SA.NotesWidget && this.NotesPanelOpen && ! SA.NotesWidget.Visibility) {
-        SA.NotesWidget.ToggleNotesWindow();
-    }
-
     // We could have more than two in the future.
     if (this.Type != 'Stack') {
         // I want the single view (when set by the user) to persist for rthe stack.

@@ -57,13 +57,7 @@
 // -Hyperlink selection background color (and color) should not be saved in
 //     the note / database.
 
-
-
-
-
-
 //==============================================================================
-
 
 function TextEditor(parent, display) {
     var self = this;
@@ -630,88 +624,19 @@ function NotesWidget(parent, display) {
     this.Display = display;
 
     this.Modified = false;
-    this.Window = $('<div>').appendTo('body')
+    this.Window = $('<div>')
+        .appendTo(parent)
         .css({
             'background-color': 'white',
             'position': 'absolute',
-            'top' : '0%',
-            'left' : '0%',
+            'top'    : '0%',
+            'left'   : '0%',
             'height' : '100%',
+            'width'  : '100%',
             'z-index': '2'})
-        .hide()
         .attr('draggable','false')
         .on("dragstart", function() {return false;})
         .attr('id', 'NoteWindow');
-
-    //--------------------------------------------------------------------------
-
-    // TODO: Move the resize animation outside of this widget.
-    // It would be more elegant if this widget was size passive.
-
-    // It would be nice to animate the transition
-    // It would be nice to integrate all animation in a flexible utility.
-    this.AnimationLastTime;
-    this.AnimationDuration;
-    this.AnimationTarget;
-    // For animating the display of the notes window (DIV).
-    this.Width = 0;
-    this.Visibility = false;
-    this.Dragging = false;
-
-    if ( ! MOBILE_DEVICE) {
-        this.ResizeNoteWindowEdge = $('<div>')
-            .appendTo(parent)
-            .css({'position': 'absolute',
-                  'height': '100%',
-                  'width': '3px',
-                  'top' : '0px',
-                  'left' : '0px',
-                  'background': '#BDF',
-                  'z-index': '10',
-                  'cursor': 'col-resize'})
-            .hover(function () {$(this).css({'background':'#9BF'});},
-                   function () {$(this).css({'background':'#BDF'});})
-            .mousedown(function () {
-                self.StartDrag();
-            });
-
-        this.OpenNoteWindowButton = $('<img>')
-            .appendTo(parent)
-            .css({'position': 'absolute',
-                  'height': '20px',
-                  'width': '20px',
-                  'top' : '0px',
-                  'left' : '3px',
-                  'opacity': '0.6',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index': '6'})
-            .attr('src',SA.ImagePathUrl+"dualArrowRight2.png")
-            .click(function(){self.ToggleNotesWindow();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
-
-
-        this.CloseNoteWindowButton = $('<img>')
-            .appendTo(this.Window)
-            .css({'position': 'absolute',
-                  'height': '20px',
-                  'width': '20x',
-                  'top' : '0px',
-                  'right' : '0px',
-                  'opacity': '0.6',
-                  '-moz-user-select': 'none',
-                  '-webkit-user-select': 'none',
-                  'z-index': '6'})
-            .hide()
-            .attr('src',SA.ImagePathUrl+"dualArrowLeft2.png")
-            .click(function(){self.ToggleNotesWindow();})
-            .attr('draggable','false')
-            .on("dragstart", function() {
-                return false;});
-
-    }
 
     //--------------------------------------------------------------------------
 
@@ -900,6 +825,12 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
     if (rootNote.ViewerRecords.length > 0) {
         this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
     }
+
+    // Set the state of the notes widget.
+    // Should we ever turn it off?
+    if (SA.ResizePanel) {
+        SA.ResizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
+    }
 }
 
 
@@ -945,7 +876,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
     }
     note = this.GetCurrentNote();
     // Lets save the state of the notes widget.
-    note.NotesPanelOpen = this.Visibility;
+    note.NotesPanelOpen = (SA.ResizePanel && SA.ResizePanel.Visibility);
 
     var rootNote = this.Display.GetRootNote();
     if (rootNote.Type == "Stack") {
@@ -963,47 +894,6 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
 }
 
 //------------------------------------------------------------------------------
-NotesWidget.prototype.StartDrag = function () {
-    this.Dragging = true;
-    $('body').bind('mousemove',NotesWidgetResizeDrag);
-    $('body').bind('mouseup', NotesWidgetResizeStopDrag);
-    $('body').css({'cursor': 'col-resize'});
-}
-NotesWidgetResizeDrag = function (e) {
-    SA.NotesWidget.SetWidth(e.pageX - 1);
-    if (SA.NotesWidget.Width < 200) {
-        NotesWidgetResizeStopDrag();
-        SA.NotesWidget.ToggleNotesWindow();
-    }
-
-    return false;
-}
-NotesWidgetResizeStopDrag = function () {
-    $('body').unbind('mousemove',NotesWidgetResizeDrag);
-    $('body').unbind('mouseup', NotesWidgetResizeStopDrag);
-    $('body').css({'cursor': 'auto'});
-}
-//------------------------------------------------------------------------------
-
-
-
-NotesWidget.prototype.SetWidth = function(width) {
-    this.Width = width;
-    this.Window.width(width);
-    // TODO: Get rid of this hack.
-    $(window).trigger('resize');
-}
-
-// Necessary to set the height.
-NotesWidget.prototype.Resize = function(width, height) {
-    this.TextEditor.Resize(width,height);
-    if (this.UserTextEditor) {
-        this.UserTextEditor.Resize(width,height);
-    }
-    var pos = this.LinksDiv.offset();
-    this.LinksDiv.height(height - pos.top);
-}
-
 
 NotesWidget.prototype.GetCurrentNote = function() {
     return this.NavigationWidget.GetNote();
@@ -1048,63 +938,11 @@ NotesWidget.prototype.SaveBrownNote = function() {
     });
 }
 
-
-NotesWidget.prototype.ToggleNotesWindow = function() {
-    this.Visibility = ! this.Visibility;
-    RecordState();
-
-    if (this.Visibility) {
-        this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 325;
-    } else {
-        this.Window.hide();
-        this.AnimationCurrent = this.Width;
-        this.AnimationTarget = 0;
-    }
-    this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
-    this.AnimateNotesWindow();
-}
-
-
 // Randomize the order of the children
 NotesWidget.prototype.RandomCallback = function() {
   var note = this.GetCurrentNote();
   note.Children.sort(function(a,b){return Math.random() - 0.5;});
   note.UpdateChildrenGUI();
-}
-
-
-NotesWidget.prototype.AnimateNotesWindow = function() {
-    var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
-        // end the animation.
-        this.SetWidth(this.AnimationTarget);
-        // Hack to recompute viewports
-        // TODO: Get rid of this hack.
-        $(window).trigger('resize');
-
-        if (this.Visibility) {
-            this.CloseNoteWindowButton.show();
-            this.OpenNoteWindowButton.hide();
-            this.Window.fadeIn();
-        } else {
-            this.CloseNoteWindowButton.hide();
-            this.OpenNoteWindowButton.show();
-        }
-        draw();
-        return;
-    }
-
-    var k = timeStep / this.AnimationDuration;
-
-    // update
-    this.AnimationDuration *= (1.0-k);
-    this.SetWidth(this.Width + (this.AnimationTarget-this.Width) * k);
-
-    draw();
-    var self = this;
-    requestAnimFrame(function () {self.AnimateNotesWindow();});
 }
 
 // Called when a new slide/view is loaded.
@@ -1137,10 +975,6 @@ NotesWidget.prototype.DisplayRootNote = function() {
         this.TabbedWindow.ShowTabDiv(this.LinksDiv);
     } else {
         this.TabbedWindow.ShowTabDiv(this.TextDiv);
-        // Hack to open the notes window if we have text.
-        if ( ! this.Visibility && ! MOBILE_DEVICE) {
-            this.ToggleNotesWindow();
-        }
     }
 }
 

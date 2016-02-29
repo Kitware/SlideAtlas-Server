@@ -41,6 +41,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc cache.js >> sa.min.js 
 ~/bin/uglifyjs -nc section.js >> sa.min.js 
 ~/bin/uglifyjs -nc view.js >> sa.min.js 
+~/bin/uglifyjs -nc annotationLayer.js >> sa.min.js 
 ~/bin/uglifyjs -nc viewer.js >> sa.min.js 
 ~/bin/uglifyjs -nc pairTransformation.js >> sa.min.js 
 ~/bin/uglifyjs -nc presentation.js >> sa.min.js 

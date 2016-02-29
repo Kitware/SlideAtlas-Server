@@ -15,9 +15,11 @@ function saDebug(msg) {
 
 // for debugging
 function MOVE_TO(x,y) {
-  SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
-  SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
-  eventuallyRender();
+    SA.DualDisplay.Viewers[0].MainView.Camera.SetFocalPoint([x,y]);
+    SA.DualDisplay.Viewers[0].MainView.Camera.ComputeMatrix();
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
 }
 
 function ZERO_PAD(i, n) {
@@ -58,6 +60,7 @@ function SlideAtlas() {
     this.FinishedLoadingCallbacks = [];
 
     this.Caches = [];
+
 }
 
 SlideAtlas.prototype.PushProgress = function() {
@@ -200,7 +203,6 @@ SlideAtlas.prototype.HandleKeyUpStack = function(event) {
             window.setTimeout(function() {self.StackCursorFlag = false;}, 1000);
         }
 
-        eventuallyRender();
         return false;
     }
 
@@ -344,10 +346,6 @@ function initGL() {
     initImageTileBuffers();
     GL.clearColor(1.0, 1.0, 1.0, 1.0);
     GL.enable(GL.DEPTH_TEST);
-
-    VIEW_PANEL = $('<div>')
-        .appendTo('body')
-        .addClass("sa-view-canvas-panel")
 }
 
 
@@ -535,20 +533,20 @@ function initImageTileBuffers() {
 // I put an eveutallyRender method in the viewer, but have not completely
 // converted code yet.
 // Stuff for drawing
-var RENDER_PENDING = false;
-function eventuallyRender() {
-    if (! RENDER_PENDING) {
-      RENDER_PENDING = true;
-      requestAnimFrame(tick);
-    }
-}
+//var RENDER_PENDING = false;
+//function eventuallyRender() {
+//    if (! RENDER_PENDING) {
+//      RENDER_PENDING = true;
+//      requestAnimFrame(tick);
+//    }
+//}
 
-function tick() {
-    //console.timeEnd("system");
-    RENDER_PENDING = false;
-    draw();
-    //console.time("system");
-}
+//function tick() {
+//    //console.timeEnd("system");
+//    RENDER_PENDING = false;
+//    draw();
+//    //console.time("system");
+//}
 
 
 
@@ -560,14 +558,6 @@ function tick() {
 function initGC() {
 
     detectMobile();
-
-    // Add a new canvas.
-    CANVAS = $('<div>')
-        .appendTo('body').addClass("sa-view-canvas");
-
-    VIEW_PANEL = $('<div>')
-        .appendTo('body')
-        .addClass("sa-view-canvas-panel");
 }
 
 
@@ -628,7 +618,6 @@ function LogMessage (message) {
 
 var CANVAS;
 
-var VIEW_PANEL; // div that should contain the two viewers.
 var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
@@ -645,7 +634,7 @@ function ShowAnnotationEditMenu(x, y) {
 // TODO:  Put this into the dual view widget.
 // Getting resize right was a major pain.
 function handleResize() {
-    
+    /*
     var width = CANVAS.width();
     var height = CANVAS.height();
 
@@ -662,8 +651,8 @@ function handleResize() {
     }
 
     if (GL) {
-        VIEW_PANEL[0].width = width;
-        VIEW_PANEL[0].height = height;
+        SA.MainDiv[0].width = width;
+        SA.MainDiv[0].height = height;
         //gl.viewportWidth = canvas.width;
         //gl.viewportHeight = canvas.height;
         GL.viewport(0, 0, width, height);
@@ -695,18 +684,18 @@ function handleResize() {
     var width2 = viewPanelWidth - width1;
 
     if (GL) {
-        // HACK:  view positioning is half managed by browser (VIEW_PANEL)
+        // HACK:  view positioning is half managed by browser (SA.MainDiv)
         // and half by this resize viewport chain.  I want to get rid of the
         // viewport completely, but until then, I have to manage both.
-        // Make the CANVAS match VIEW_PANEL.  Note:  I do not want to create
+        // Make the CANVAS match SA.MainDiv.  Note:  I do not want to create
         // a separate webgl canvas for each view because thay cannot share
         // texture images.
-        VIEW_PANEL.css({"left":viewPanelLeft});
+        SA.MainDiv.css({"left":viewPanelLeft});
     }
 
     // Setup the view panel div to be the same as the two viewers.
-    if (VIEW_PANEL) {
-        VIEW_PANEL.css({'left': viewPanelLeft+'px',
+    if (SA.MainDiv) {
+        SA.MainDiv.css({'left': viewPanelLeft+'px',
                         'width': viewPanelWidth+'px'});
     }
 
@@ -721,21 +710,22 @@ function handleResize() {
         SA.DualDisplay.Viewers[1].SetViewport([width1, 0, width2, height]);
         eventuallyRender();
     }
+    */
+    $('window').trigger('resize');
 }
-
 
 // Hack mutex. iPad2 must execute multiple draw callbacks at the same time
 // in different threads.
 // This was not actually the problem.  iPad had a bug in the javascript interpreter.
-var DRAWING = false;
-function draw() {
-    if (DRAWING) { return; }
-    DRAWING = true;
-    if (SA.DualDisplay) {
-        SA.DualDisplay.Draw();
-    }
-    DRAWING = false;
-}
+//var DRAWING = false;
+//function draw() {
+//    if (DRAWING) { return; }
+//    DRAWING = true;
+//    if (SA.DualDisplay) {
+//        SA.DualDisplay.Draw();
+//    }
+//    DRAWING = false;
+//}
 
 // The event manager detects single right click and double right click.
 // This gets galled on the single.
@@ -815,20 +805,32 @@ function Main(rootNote) {
         initGC();
     }
 
-    SA.DualDisplay = new DualViewWidget(VIEW_PANEL);
-
     if (rootNote.Type == "Stack") {
         SA.DualDisplay.SetNumberOfViewers(2);
     }
-    // TODO: Is this really needed here?  Try it at the end.
-    handleResize();
 
     // TODO: Get rid of this global variable.
     if (MOBILE_DEVICE) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
-    SA.NotesWidget = new NotesWidget(VIEW_PANEL,SA.DualDisplay);
+
+    SA.MainDiv = $('<div>')
+        .appendTo('body')
+        .css({
+            'position':'fixed',
+            'left':'0px',
+            'width': '100%'})
+        .saFullHeight();
+        //.addClass("sa-view-canvas-panel")
+
+    // Left panel for notes.
+    SA.ResizePanel = new ResizePanel(SA.MainDiv);
+    SA.DualDisplay = new DualViewWidget(SA.ResizePanel.MainDiv);
+    SA.NotesWidget = new NotesWidget(SA.ResizePanel.PanelDiv,
+                                     SA.DualDisplay);
+
+
     SA.NotesWidget.SetModifiedCallback(NotesModified);
     SA.NotesWidget.SetModifiedClearCallback(NotesNotModified);
     // Navigation widget keeps track of which note is current.
@@ -846,7 +848,7 @@ function Main(rootNote) {
         if ( SA.Edit) {
             // Put a save button here when editing.
             SAVE_BUTTON = $('<img>')
-                .appendTo(VIEW_PANEL)
+                .appendTo(SA.MainDiv)
                 .css({'position':'absolute',
                       'bottom':'4px',
                       'left':'10px',
@@ -862,8 +864,8 @@ function Main(rootNote) {
             }
         } else {
             // Favorites when not editing.
-            FAVORITES_WIDGET = new FavoritesWidget(VIEW_PANEL, SA.DualDisplay);
-            FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
+            FAVORITES_WIDGET = new FavoritesWidget(SA.MainDiv, SA.DualDisplay);
+            //FAVORITES_WIDGET.HandleResize(CANVAS.innerWidth());
         }
     }
 
@@ -892,15 +894,15 @@ function Main(rootNote) {
 
         // TODO: See if we can get rid of this, or combine it with
         // the view browser.
-        InitSlideSelector(VIEW_PANEL); // What is this?
+        InitSlideSelector(SA.MainDiv); // What is this?
         var viewMenu1 = new ViewEditMenu(SA.DualDisplay.Viewers[0],
                                          SA.DualDisplay.Viewers[1]);
         var viewMenu2 = new ViewEditMenu(SA.DualDisplay.Viewers[1],
                                          SA.DualDisplay.Viewers[0]);
 
-        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0]);
+        var annotationWidget1 = new AnnotationWidget(SA.DualDisplay.Viewers[0].GetAnnotationLayer());
         annotationWidget1.SetVisibility(2);
-        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1]);
+        var annotationWidget2 = new AnnotationWidget(SA.DualDisplay.Viewers[1].GetAnnotationLayer());
         annotationWidget1.SetVisibility(2);
         SA.DualDisplay.UpdateGui();
     }
@@ -913,7 +915,9 @@ function Main(rootNote) {
         handleResize();
     }).trigger('resize');
 
-    eventuallyRender();
+    if (SA.DualDisplay) {
+        SA.DualDisplay.Draw();
+    }
 }
 
 

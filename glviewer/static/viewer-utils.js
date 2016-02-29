@@ -1865,7 +1865,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = this.GetSelectionge();
     var selectedText = sel.toString();
 
     if ( ! this.UrlDialog) {
@@ -2800,6 +2800,27 @@ jQuery.prototype.saRecordViewer = function() {
 }
 
 
+
+
+
+//==============================================================================
+// JQuery items are not responding to resize events.  This fixes the
+// problem by using window resize event for all
+// NOTE: This depends on saFullSize callbacks.
+jQuery.prototype.saOnResize = function(callback) {
+    this.addClass('sa-resize');
+    for (var i = 0; i < this.length; ++i) {
+        this[i].onresize = callback;
+    }
+
+    return this;
+}
+
+jQuery.prototype.saTriggerResize = function() {
+     $(window).trigger('resize');
+}
+
+
 //==============================================================================
 // jQuery extension for a full window div.
 // parent must be the body?  Maybe not.  Lets see if a full height is better.
@@ -3586,7 +3607,7 @@ ResizePanel.prototype.SetWidth = function(width) {
 
 ResizePanel.prototype.AnimateNotesWindow = function() {
     var timeStep = new Date().getTime() - this.AnimationLastTime;
-    if (timeStep > this.AnimationDuration) {
+    if (timeStep > this.AnimationDuration || this.AnimationDuration <= 0) {
         // end the animation.
         this.SetWidth(this.AnimationTarget);
         // Hack to recompute viewports
@@ -3615,20 +3636,21 @@ ResizePanel.prototype.AnimateNotesWindow = function() {
 }
 
 // Open and close the panel
-ResizePanel.prototype.SetVisibility = function(visibility) {
+ResizePanel.prototype.SetVisibility = function(visibility, duration) {
+    if (duration === undefined) { duration = 1000.0;}
     if (this.Visibility == visibility) { return; }
     this.Visibility = visibility;
 
+    this.AnimationCurrent = this.Width;
     if (this.Visibility) {
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 353;
     } else {
         this.PanelDiv.hide();
-        this.AnimationCurrent = this.Width;
         this.AnimationTarget = 0;
     }
+
+    this.AnimationDuration = duration;
     this.AnimationLastTime = new Date().getTime();
-    this.AnimationDuration = 1000.0;
     this.AnimateNotesWindow();
 }
 

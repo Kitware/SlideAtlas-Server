@@ -22,7 +22,8 @@ var VIEWER2;
 
 function DualViewWidget(parent) {
     var self = this;
-    this.Viewers = [];
+    this.Viewers = []; // It would be nice to get rid of this.
+    this.ViewerDivs = [];
 
     // Rather than getting the current note from the NotesWidget, keep a
     // reference here.  SlideShow can have multiple "displays".
@@ -43,6 +44,7 @@ function DualViewWidget(parent) {
             .saViewer({overview:true, zoomWidget:true})
             .addClass("sa-view-canvas-div");
 
+        this.ViewerDivs[i] = viewerDiv;
         this.Viewers[i] = viewerDiv[0].saViewer;
         // TODO: Get rid of this.
         // I beleive the note should sets this, and we do not need to do it
@@ -65,7 +67,7 @@ function DualViewWidget(parent) {
     if ( ! MOBILE_DEVICE) {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
-            .appendTo(this.Viewers[0].Div)
+            .appendTo(this.ViewerDivs[0])
             .css({'position':'absolute',
                   'right':'0px',
                   'top':'0px'})
@@ -78,7 +80,7 @@ function DualViewWidget(parent) {
                 return false;});
 
         $('<img>').appendTo(parent)
-            .appendTo(this.Viewers[1].Div)
+            .appendTo(this.ViewerDivs[1])
             .css({'position':'absolute',
                   'left':'0px',
                   'top':'0px'})
@@ -415,18 +417,6 @@ DualViewWidget.prototype.CreateThumbnailImage = function(height) {
 }
 
 
-DualViewWidget.prototype.ShowImage = function (img) {
-    alert("Do not depricate DualViewWidget.ShowIMage(img)");
-
-    /* I do not think this does anything
-    //document.body.appendChild(img);
-    var disp =
-        $('<img>').appendTo(parent)
-        .addClass("sa-active")
-        .attr('src',img.src);
-    */
-}
-
 DualViewWidget.prototype.Draw = function () {
     if (GL) {
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
@@ -443,33 +433,27 @@ DualViewWidget.prototype.Draw = function () {
 
 
 DualViewWidget.prototype.UpdateSize = function () {
-    var height = this.Parent.height();
-    var width = this.Parent.width();
+    var percent = this.Viewer1Fraction*100;
+    if (this.ViewerDivs[0]) {
+        this.ViewerDivs[0].css({'left':'0%',
+                                'width':percent+'%',
+                                'height':'100%'});
+    }
+    if (this.ViewerDivs[1]) {
+        this.ViewerDivs[1].css({'left':percent+'%',
+                                'width':(100-percent)+'%',
+                               'height':'100%'});
+    }
 
-    var width1 = width * this.Viewer1Fraction;
-    var width2 = width - width1;
-
-
-    if (width2 <= 10) {
+    if (percent >= 90) {
         this.Viewers[1].Hide();
     } else {
         this.Viewers[1].Show();
     }
 
-    // GL was odd because both viewer wer pu in the same canvas.
-
-    // TODO: Let css handle positioning the viewers.
-    //       This call positions the overview and still affect the main view.
-    if (this.Viewers[0]) {
-        // this should call UpdateSize
-        this.Viewers[0].SetViewport([0, 0, width1, height]);
-        this.Viewers[0].EventuallyRender(false);
-    }
-    if (this.Viewers[1]) {
-        // this should call UpdateSize
-        this.Viewers[1].SetViewport([width1, 0, width2, height]);
-        this.Viewers[1].EventuallyRender(false);
-    }
+    // Only window trigger resize events.
+    // Make sure the viewer, views and layers get a resize.
+    $(window).trigger('resize');
 }
 
 

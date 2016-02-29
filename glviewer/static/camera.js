@@ -23,6 +23,11 @@ function Camera () {
     this.ViewportHeight = 100;
 }
 
+// Spacing of pixels of the screen.
+Camera.prototype.GetSpacing = function() {
+    return this.GetHeight() / this.ViewportHeight;
+}
+
 Camera.prototype.DeepCopy = function (inCam) {
     if (inCam.ZRange) { this.ZRange = inCam.ZRange.slice(0); }
     this.Roll = inCam.Roll;

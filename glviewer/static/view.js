@@ -26,12 +26,28 @@ function View (parent) {
     this.OutlineCamMatrix = mat4.create();
 
     this.CanvasDiv = parent;
+    if ( parent) {
+        this.CanvasDiv = parent;
+    } else {
+        this.CanvasDiv = $('<div>');
+    }
     // 2d canvas
     // Add a new canvas.
     this.Canvas = $('<canvas>');
     if ( ! GL) {
         this.Context2d = this.Canvas[0].getContext("2d");
     }
+
+    this.Canvas
+        .appendTo(this.CanvasDiv)
+        .css({'position':'absolute',
+              'left'    : '0%',
+              'top'     : '0%',
+              'width'   :'100%',
+              'height'  :'100%'});
+
+    this.CanvasDiv
+        .addClass("sa-view-canvas-div");
 }
 
 // Try to remove all global and circular references to this view.
@@ -52,9 +68,13 @@ View.prototype.Delete = function() {
     delete this.Canvas;
 }
 
+View.prototype.GetCamera = function() {
+    return this.Camera;
+}
+
 // Only new thing here is appendTo
 // TODO get rid of this eventually (SetViewport).
-View.prototype.InitializeViewport = function(viewport, layer, hide) {
+View.prototype.InitializeViewport = function(viewport) {
     for (var i = 0; i < 4; ++i) {
         viewport[i] = Math.round(viewport[i]);
     }
@@ -65,25 +85,10 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
     this.Viewport = viewport;
     this.Camera.SetViewport(viewport);
 
-    // 2d canvas
-    // Add a new canvas.
-    if ( ! this.CanvasDiv) {
-        this.CanvasDiv = $('<div>');
-    }
     // TODO: Get Rid of this.
-    this.CanvasDiv
-        .addClass('view');
+    //this.CanvasDiv
+    //    .addClass('view');
 
-    this.CanvasDiv
-        .addClass("sa-view-canvas-div");
-
-    this.Canvas
-        .appendTo(this.CanvasDiv)
-        .css({'width':'100%',
-              'height':'100%'});
-    // Css is not enough.  Canvas needs these for rendering.
-    this.Canvas.attr("width", viewport[2]);
-    this.Canvas.attr("height", viewport[3]);
 }
 
 
@@ -229,6 +234,12 @@ View.prototype.DrawShapes = function () {
     }
 }
 
+View.prototype.Clear = function () {
+    this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
+    // TODO: get width and height from the canvas.
+    this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+}
+
 // I want only the annotation to create a mask image.
 var MASK_HACK = false;
 // Note: Tile in the list may not be loaded yet.
@@ -247,8 +258,7 @@ View.prototype.DrawTiles = function () {
         }
         return this.Section.Draw(this, GL);
     } else {
-        this.Context2d.setTransform(1, 0, 0, 1, 0, 0);
-        this.Context2d.clearRect(0,0,this.Viewport[2],this.Viewport[3]);
+        this.Clear();
         // Clear the canvas to start drawing.
         this.Context2d.fillStyle="#ffffff";
         //this.Context2d.fillRect(0,0,this.Viewport[2],this.Viewport[3]);

@@ -59,8 +59,6 @@ FavoritesBar.prototype.SaveFavorite = function() {
     button.addClass("sa-inactive");
     setTimeout(function(){ button.removeClass("sa-inactive");}, 
                500); // one half second
-
-    //ShowImage(CreateThumbnailImage(110));
 }
 
 FavoritesBar.prototype.LoadFavorites = function () {

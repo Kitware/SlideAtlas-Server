@@ -11,12 +11,12 @@
 // - eliminate polyLine verticies when they are dragged ontop of another vert.
 // or maybe the delete key.
 
-function AnnotationWidget (viewer) {
+function AnnotationWidget (layer) {
     var self = this; // trick to set methods in callbacks.
-    this.Viewer = viewer;
-    viewer.AnnotationWidget = this;
+    this.Layer = layer;
+    layer.AnnotationWidget = this;
 
-    this.Tab = new Tab(viewer.GetDiv(),
+    this.Tab = new Tab(layer.GetCanvasDiv(),
                        SA.ImagePathUrl+"pencil3Up.png",
                        "annotationTab");
     this.Tab.Div
@@ -55,6 +55,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"Circle.gif")
         .prop('title', "Circle")
         .click(function(){self.NewCircle();});
+    /*
     this.RectButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -63,6 +64,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"rectangle.gif")
         .prop('title', "Rectangle")
         .click(function(){self.NewRect();});
+    */
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -87,6 +89,7 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"select_lasso.png")
         .prop('title', "Lasso")
         .click(function(){self.NewLasso();});
+    /*
     this.SectionsButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -95,7 +98,9 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"sections.png")
         .prop('title', "Segment")
         .click(function(){self.DetectSections();});
-    /*this.FillButton = $('<img>')
+    */
+    /*
+    this.FillButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .css({'height': '28px',
               'opacity': '0.6',
@@ -119,12 +124,12 @@ AnnotationWidget.prototype.hide = function() {
 }
 
 AnnotationWidget.prototype.SetVisibility = function(visibility) {
-    if (this.Viewer.GetAnnotationVisibility() == visibility) {
+    if (this.Layer.GetVisibility() == visibility) {
         return;
     }
 
     // Hack to make all stack viewers share a single annotation visibility
-    // flag. 
+    // flag.
     if (SA.NotesWidget) {
         var note = SA.NotesWidget.GetCurrentNote();
         if (note.Type == 'Stack') {
@@ -142,13 +147,12 @@ AnnotationWidget.prototype.SetVisibility = function(visibility) {
         }
     }
 
-    this.Viewer.SetAnnotationVisibility(visibility);
-
-    this.Viewer.EventuallyRender(true);
+    this.Layer.SetVisibility(visibility);
+    this.Layer.EventuallyDraw();
 }
 
 AnnotationWidget.prototype.GetVisibility = function() {
-  return this.Viewer.GetAnnotationVisibility();
+  return this.Layer.GetVisibility();
 }
 
 AnnotationWidget.prototype.ToggleVisibility = function() {
@@ -210,8 +214,9 @@ AnnotationWidget.prototype.NewCircle = function() {
     var widget = this.ActivateButton(button, CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
-                                                                this.Viewer.LastMouseY);
+    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
+        this.Layer.LastMouseX,
+        this.Layer.LastMouseY);
 }
 
 
@@ -219,8 +224,9 @@ AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
     var widget = this.ActivateButton(button, RectWidget);
     // DJ: Make sure the rect is around the circle
-    widget.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX,
-                                                                this.Viewer.LastMouseY);
+    widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
+        this.Layer.LastMouseX,
+        this.Layer.LastMouseY);
 };
 
 
@@ -233,7 +239,7 @@ AnnotationWidget.prototype.NewFill = function() {
 
 // Boilerplate code that was in every "newWidget" method.
 AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
-    var widget = this.Viewer.ActiveWidget;
+    var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         if  (button.Pressed) {
             // The user pressed the button again (while it was active).
@@ -247,8 +253,8 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     button.addClass("sa-active");
 
     this.SetVisibility(ANNOTATION_ON);
-    widget = new WidgetType(this.Viewer, true);
-    this.Viewer.ActiveWidget = widget;
+    widget = new WidgetType(this.Layer, true);
+    this.Layer.ActivateWidget(widget);
 
     // Button remains "pressed" until the circle deactivates.
     widget.DeactivateCallback = 
@@ -262,7 +268,7 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
 
 
 AnnotationWidget.prototype.DetectSections = function() {
-    var widget = this.Viewer.ActiveWidget;
+    var widget = this.Layer.GetActiveWidget();
     var button = this.SectionsButton;
     if ( widget ) {
         if  (button.Pressed) {
@@ -278,8 +284,9 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // See if a SectionsWidget already exists.
     var widget = null;
-    for (var i = 0; i < this.Viewer.WidgetList.length && widget == null; ++i) {
-        var w = this.Viewer.WidgetList[i];
+    var widgets = this.Layer.GetWidgets();
+    for (var i = 0; i < widgets.length && widget == null; ++i) {
+        var w = widgets[i];
         //if (w instanceOf SectionsWidget) {
         if (w.Type == "sections") {
             widget = w;
@@ -287,10 +294,10 @@ AnnotationWidget.prototype.DetectSections = function() {
     }
     if (widget == null) {
         // Find sections to initialize sections widget.
-        widget = new SectionsWidget(this.Viewer, false);
+        widget = new SectionsWidget(this.Layer, false);
         widget.ComputeSections();
         if (widget.IsEmpty()) {
-            widget.RemoveFromViewer();
+            this.Layer.RemoveWidget(widget);
             button.removeClass('sa-active');
             button.Pressed = false;
             return;

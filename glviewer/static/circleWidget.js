@@ -13,7 +13,7 @@ var CIRCLE_WIDGET_WAITING = 3; // The normal (resting) state.
 var CIRCLE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
 var CIRCLE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
 
-function CircleWidget (viewer, newFlag) {
+function CircleWidget (layer, newFlag) {
     var self = this;
     this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
     // Customize dialog for a circle.
@@ -83,19 +83,19 @@ function CircleWidget (viewer, newFlag) {
         this.Tolerance = 0.1;
     }
 
-    if (viewer == null) {
+    if (layer == null) {
         return;
     }
 
     // Lets save the zoom level (sort of).
     // Load will overwrite this for existing annotations.
     // This will allow us to expand annotations into notes.
-    this.CreationCamera = viewer.GetCamera().Serialize();
+    this.CreationCamera = layer.GetCamera().Serialize();
 
-    this.Viewer = viewer;
+    this.Layer = layer;
     this.Popup = new WidgetPopup(this);
-    var cam = viewer.MainView.Camera;
-    var viewport = viewer.MainView.Viewport;
+    var cam = layer.GetCamera();
+    var viewport = layer.GetViewport();
     this.Shape = new Circle();
     this.Shape.Origin = [0,0];
     this.Shape.OutlineColor = [0.0,0.0,0.0];
@@ -104,14 +104,14 @@ function CircleWidget (viewer, newFlag) {
     this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
     this.Shape.FixedSize = false;
 
-    this.Viewer.WidgetList.push(this);
+    this.Layer.AddWidget(this);
 
     // Note: If the user clicks before the mouse is in the
     // canvas, this will behave odd.
 
     if (newFlag) {
         this.State = CIRCLE_WIDGET_NEW;
-        this.Viewer.ActivateWidget(this);
+        this.Layer.ActivateWidget(this);
         return;
     }
 
@@ -122,53 +122,42 @@ CircleWidget.prototype.Draw = function(view) {
    this.Shape.Draw(view);
 }
 
-// This needs to be put in the Viewer.
-CircleWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
-}
-
 CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
-  this.Load(data);
-  // Place the widget over the mouse.
-  // This would be better as an argument.
-  this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
-  this.Viewer.EventuallyRender(true);
+    this.Load(data);
+    // Place the widget over the mouse.
+    // This would be better as an argument.
+    this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+    this.Layer.EventuallyDraw();
 }
 
 CircleWidget.prototype.Serialize = function() {
-  if(this.Shape === undefined){ return null; }
-  var obj = new Object();
-  obj.type = "circle";
-  obj.origin = this.Shape.Origin;
-  obj.outlinecolor = this.Shape.OutlineColor;
-  obj.radius = this.Shape.Radius;
-  obj.linewidth = this.Shape.LineWidth;
-  obj.creation_camera = this.CreationCamera;
-  return obj;
+    if(this.Shape === undefined){ return null; }
+    var obj = new Object();
+    obj.type = "circle";
+    obj.origin = this.Shape.Origin;
+    obj.outlinecolor = this.Shape.OutlineColor;
+    obj.radius = this.Shape.Radius;
+    obj.linewidth = this.Shape.LineWidth;
+    obj.creation_camera = this.CreationCamera;
+    return obj;
 }
 
 // Load a widget from a json object (origin MongoDB).
 CircleWidget.prototype.Load = function(obj) {
-  this.Shape.Origin[0] = parseFloat(obj.origin[0]);
-  this.Shape.Origin[1] = parseFloat(obj.origin[1]);
-  this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
-  this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
-  this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-  this.Shape.Radius = parseFloat(obj.radius);
-  this.Shape.LineWidth = parseFloat(obj.linewidth);
-  this.Shape.FixedSize = false;
-  this.Shape.UpdateBuffers();
+    this.Shape.Origin[0] = parseFloat(obj.origin[0]);
+    this.Shape.Origin[1] = parseFloat(obj.origin[1]);
+    this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
+    this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
+    this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
+    this.Shape.Radius = parseFloat(obj.radius);
+    this.Shape.LineWidth = parseFloat(obj.linewidth);
+    this.Shape.FixedSize = false;
+    this.Shape.UpdateBuffers();
 
-  // How zoomed in was the view when the annotation was created.
-  if (obj.creation_camera !== undefined) {
-    this.CreationCamera = obj.CreationCamera;
-  }
+    // How zoomed in was the view when the annotation was created.
+    if (obj.creation_camera !== undefined) {
+        this.CreationCamera = obj.CreationCamera;
+    }
 }
 
 CircleWidget.prototype.HandleMouseWheel = function(event) {
@@ -176,38 +165,40 @@ CircleWidget.prototype.HandleMouseWheel = function(event) {
     return false;
 }
 
-CircleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
-  // The dialog consumes all key events.
-  if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {
-      return false;
-  }
+CircleWidget.prototype.HandleKeyDown = function(keyCode) {
+    // The dialog consumes all key events.
+    if (this.State == CIRCLE_WIDGET_PROPERTIES_DIALOG) {
+        return false;
+    }
 
-  // Copy
-  if (event.keyCode == 67 && event.ctrlKey) {
-    // control-c for copy
-    // The extra identifier is not needed for widgets, but will be
-    // needed if we have some other object on the clipboard.
-    var clip = {Type:"CircleWidget", Data: this.Serialize()};
-    localStorage.ClipBoard = JSON.stringify(clip);
-    return false;
-  }
+    // Copy
+    if (event.keyCode == 67 && event.ctrlKey) {
+        // control-c for copy
+        // The extra identifier is not needed for widgets, but will be
+        // needed if we have some other object on the clipboard.
+        var clip = {Type:"CircleWidget", Data: this.Serialize()};
+        localStorage.ClipBoard = JSON.stringify(clip);
+        return false;
+    }
 
-  return true;
+    return true;
 }
 
 CircleWidget.prototype.HandleDoubleClick = function(event) {
-    return true;
+    ShowPropertiesDialog();
+    return false;
 }
 
 CircleWidget.prototype.HandleMouseDown = function(event) {
     if (event.which != 1) {
         return false;
     }
+    var cam = this.Layer.GetCamera();
     if (this.State == CIRCLE_WIDGET_NEW) {
         // We need the viewer position of the circle center to drag radius.
         this.OriginViewer =
-            this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
-                                                  this.Shape.Origin[1]);
+            cam.ConvertPointWorldToViewer(this.Shape.Origin[0],
+                                          this.Shape.Origin[1]);
         this.State = CIRCLE_WIDGET_DRAG_RADIUS;
     }
     if (this.State == CIRCLE_WIDGET_ACTIVE) {
@@ -216,8 +207,8 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
             this.State = CIRCLE_WIDGET_DRAG;
         } else {
             this.OriginViewer =
-                this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0], 
-                                                      this.Shape.Origin[1]);
+                cam.ConvertPointWorldToViewer(this.Shape.Origin[0],
+                                              this.Shape.Origin[1]);
             this.State = CIRCLE_WIDGET_DRAG_RADIUS;
         }
     }
@@ -226,31 +217,34 @@ CircleWidget.prototype.HandleMouseDown = function(event) {
 
 // returns false when it is finished doing its work.
 CircleWidget.prototype.HandleMouseUp = function(event) {
-    if ( this.State == CIRCLE_WIDGET_DRAG || this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
+    if ( this.State == CIRCLE_WIDGET_DRAG ||
+         this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
         this.SetActive(false);
         RecordState();
     }
+    return false;
 }
 
 CircleWidget.prototype.HandleMouseMove = function(event) {
     var x = event.offsetX;
     var y = event.offsetY;
     
-    if (event.which == 0 && this.State == CIRCLE_WIDGET_ACTIVE) {
-        this.CheckActive(event);
-        return;
-    }
-    
+    //if (event.which == 0 && this.State == CIRCLE_WIDGET_ACTIVE) {
+    //    this.CheckActive(event);
+    //    return;
+    //}
+
+    var cam = this.Layer.GetCamera();
     if (this.State == CIRCLE_WIDGET_NEW || this.State == CIRCLE_WIDGET_DRAG) {
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-        this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
+        this.Shape.Origin = cam.ConvertPointViewerToWorld(x, y);
         this.PlacePopup();
-        this.Viewer.EventuallyRender(true);
+        this.Layer.EventuallyDraw();
     }
-    
+
     if (this.State == CIRCLE_WIDGET_DRAG_RADIUS) {
-        var viewport = this.Viewer.GetViewport();
-        var cam = this.Viewer.MainView.Camera;
+        var viewport = this.Layer.GetViewport();
+        var cam = this.Layer.GetCamera();
         var dx = x-this.OriginViewer[0];
         var dy = y-this.OriginViewer[1];
         // Change units from pixels to world.
@@ -258,149 +252,155 @@ CircleWidget.prototype.HandleMouseMove = function(event) {
         this.Shape.UpdateBuffers();
         if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
         this.PlacePopup();
-        this.Viewer.EventuallyRender(true);
+        this.Layer.EventuallyDraw();
     }
-    
+
     if (this.State == CIRCLE_WIDGET_WAITING) {
         this.CheckActive(event);
     }
+    return false;
 }
 
-
 CircleWidget.prototype.HandleTouchPan = function(event) {
-  w0 = this.Viewer.ConvertPointViewerToWorld(this.Viewer.LastMouseX, 
-                                             this.Viewer.LastMouseY);
-  w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+    var cam = this.Layer.GetCamera();
+    // TODO: Last mouse should net be in layer.
+    w0 = cam.ConvertPointViewerToWorld(this.Layer.LastMouseX,
+                                       this.Layer.LastMouseY);
+    w1 = cam.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
 
-  // This is the translation.
-  var dx = w1[0] - w0[0];
-  var dy = w1[1] - w0[1];
+    // This is the translation.
+    var dx = w1[0] - w0[0];
+    var dy = w1[1] - w0[1];
 
-  this.Shape.Origin[0] += dx;
-  this.Shape.Origin[1] += dy;
-  this.Viewer.EventuallyRender(true);
+    this.Shape.Origin[0] += dx;
+    this.Shape.Origin[1] += dy;
+    this.Layer.EventuallyDraw();
+    return false;
 }
 
 CircleWidget.prototype.HandleTouchPinch = function(event) {
     this.Shape.Radius *= event.PinchScale;
     this.Shape.UpdateBuffers();
     if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack
-    this.Viewer.EventuallyRender(true);
+    this.Layer.EventuallyDraw();
+    return false;
 }
 
 CircleWidget.prototype.HandleTouchEnd = function(event) {
     this.SetActive(false);
+    return false
 }
 
 
 CircleWidget.prototype.CheckActive = function(event) {
-  var x = event.offsetX;
-  var y = event.offsetY;
+    var x = event.offsetX;
+    var y = event.offsetY;
 
-  // change dx and dy to vector from center of circle.
-  if (this.FixedSize) {
-    dx = event.offsetX - this.Shape.Origin[0];
-    dy = event.offsetY - this.Shape.Origin[1];
-  } else {
-    dx = event.worldX - this.Shape.Origin[0];
-    dy = event.worldY - this.Shape.Origin[1];
-  }
-
-  var d = Math.sqrt(dx*dx + dy*dy)/this.Shape.Radius;
-  var active = false;
-  var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
-  this.NormalizedActiveDistance = d;
-
-  if (this.Shape.FillColor == undefined) { // Circle
-    if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance)) ||
-         d < (this.Tolerance+lineWidth)) {
-      active = true;
+    // change dx and dy to vector from center of circle.
+    if (this.FixedSize) {
+        dx = event.offsetX - this.Shape.Origin[0];
+        dy = event.offsetY - this.Shape.Origin[1];
+    } else {
+        dx = event.worldX - this.Shape.Origin[0];
+        dy = event.worldY - this.Shape.Origin[1];
     }
-  } else { // Disk
-    if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) ||
-        d < lineWidth) {
-      active = true;
-    }
-  }
 
-  this.SetActive(active);
-  return active;
+    var d = Math.sqrt(dx*dx + dy*dy)/this.Shape.Radius;
+    var active = false;
+    var lineWidth = this.Shape.LineWidth / this.Shape.Radius;
+    this.NormalizedActiveDistance = d;
+
+    if (this.Shape.FillColor == undefined) { // Circle
+        if ((d < (1.0+ this.Tolerance +lineWidth) && d > (1.0-this.Tolerance)) ||
+            d < (this.Tolerance+lineWidth)) {
+            active = true;
+        }
+    } else { // Disk
+        if (d < (1.0+this.Tolerance+lineWidth) && d > (this.Tolerance+lineWidth) ||
+            d < lineWidth) {
+            active = true;
+        }
+    }
+
+    this.SetActive(active);
+    return active;
 }
 
 // Multiple active states. Active state is a bit confusing.
 CircleWidget.prototype.GetActive = function() {
-  if (this.State == CIRCLE_WIDGET_WAITING) {
-    return false;
-  }
-  return true;
+    if (this.State == CIRCLE_WIDGET_WAITING) {
+        return false;
+    }
+    return true;
 }
 
 CircleWidget.prototype.Deactivate = function() {
     this.Popup.StartHideTimer();
     this.State = CIRCLE_WIDGET_WAITING;
     this.Shape.Active = false;
-    this.Viewer.DeactivateWidget(this);
+    this.Layer.DeactivateWidget(this);
     if (this.DeactivateCallback) {
         this.DeactivateCallback();
     }
-    this.Viewer.EventuallyRender(false);
+    this.Layer.EventuallyDraw();
 }
 
 // Setting to active always puts state into "active".
 // It can move to other states and stay active.
 CircleWidget.prototype.SetActive = function(flag) {
-  if (flag == this.GetActive()) {
-    return;
-  }
+    if (flag == this.GetActive()) {
+        return;
+    }
 
-  if (flag) {
-    this.State = CIRCLE_WIDGET_ACTIVE;
-    this.Shape.Active = true;
-    this.Viewer.ActivateWidget(this);
-    this.Viewer.EventuallyRender(false);
-    // Compute the location for the pop up and show it.
-    this.PlacePopup();
-  } else {
-    this.Deactivate();
-  }
-  this.Viewer.EventuallyRender(false);
+    if (flag) {
+        this.State = CIRCLE_WIDGET_ACTIVE;
+        this.Shape.Active = true;
+        this.Layer.ActivateWidget(this);
+        this.Layer.EventuallyDraw();
+        // Compute the location for the pop up and show it.
+        this.PlacePopup();
+    } else {
+        this.Deactivate();
+    }
+    this.Layer.EventuallyDraw();
 }
 
 
 //This also shows the popup if it is not visible already.
 CircleWidget.prototype.PlacePopup = function () {
-  // Compute the location for the pop up and show it.
-  var roll = this.Viewer.GetCamera().Roll;
-  var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
-  var y = this.Shape.Origin[1] - 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
-  var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
-  this.Popup.Show(pt[0],pt[1]);
+    // Compute the location for the pop up and show it.
+    var cam = this.Layer.GetCamera();
+    var roll = cam.Roll;
+    var x = this.Shape.Origin[0] + 0.8 * this.Shape.Radius * (Math.cos(roll) - Math.sin(roll));
+    var y = this.Shape.Origin[1] - 0.8 * this.Shape.Radius * (Math.cos(roll) + Math.sin(roll));
+    var pt = cam.ConvertPointWorldToViewer(x, y);
+    this.Popup.Show(pt[0],pt[1]);
 }
 
 // Can we bind the dialog apply callback to an objects method?
 var CIRCLE_WIDGET_DIALOG_SELF;
 CircleWidget.prototype.ShowPropertiesDialog = function () {
-  this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
+    this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
 
-  this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
+    this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
 
-  var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius) * 0.25 * 0.25;
-  var areaString = "";
-  if (this.Shape.FixedSize) {
-      areaString += area.toFixed(2);
-      areaString += " pixels^2";
-  } else {
-      if (area > 1000000) {
-          areaString += (area/1000000).toFixed(2);
-          areaString += " mm^2";
-      } else {
-          areaString += area.toFixed(2);
-          areaString += " um^2";
-      }
-  }
-  this.Dialog.Area.text(areaString);
+    var area = (2.0*Math.PI*this.Shape.Radius*this.Shape.Radius) * 0.25 * 0.25;
+    var areaString = "";
+    if (this.Shape.FixedSize) {
+        areaString += area.toFixed(2);
+        areaString += " pixels^2";
+    } else {
+        if (area > 1000000) {
+            areaString += (area/1000000).toFixed(2);
+            areaString += " mm^2";
+        } else {
+            areaString += area.toFixed(2);
+            areaString += " um^2";
+        }
+    }
+    this.Dialog.Area.text(areaString);
 
-  this.Dialog.Show(true);
+    this.Dialog.Show(true);
 }
 
 CircleWidget.prototype.DialogApplyCallback = function() {
@@ -412,7 +412,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     RecordState();
 
     // TODO: See if anything has changed.
-    this.Viewer.EventuallyRender(false);
+    this.Layer.EventuallyDraw();
 
     localStorage.CircleWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     if (SA.NotesWidget) {SA.NotesWidget.MarkAsModified();} // hack

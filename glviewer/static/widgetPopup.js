@@ -8,7 +8,7 @@ function WidgetPopup (widget) {
     this.Visible = false;
     this.HideTimerId = 0;
 
-    var parent = widget.Viewer.MainView.CanvasDiv;
+    var parent = widget.Layer.GetCanvasDiv();
 
     // buttons to replace right click.
     var self = this;
@@ -36,13 +36,13 @@ function WidgetPopup (widget) {
 }
 
 WidgetPopup.prototype.DeleteCallback = function() {
-  this.Widget.SetActive(false);
-  this.Hide();
-  // We need to remove an item from a list.
-  // shape list and widget list.
-  this.Widget.RemoveFromViewer();
-  this.Widget.Viewer.EventuallyRender(true);
-  RecordState();
+    this.Widget.SetActive(false);
+    this.Hide();
+    // Messy.  Maybe closure callback can keep track of the layer.
+    this.Widget.Layer.EventuallyDraw();
+    this.Widget.Layer.RemoveWidget(this.Widget);
+
+    RecordState();
 }
 
 WidgetPopup.prototype.PropertiesCallback = function() {
@@ -54,11 +54,6 @@ WidgetPopup.prototype.PropertiesCallback = function() {
 
 //------------------------------------------------------------------------------
 WidgetPopup.prototype.Show = function(x, y) {
-    // Have to add the viewport offset because I cannot use Canvas as
-    // parent.
-    //var viewport = this.Widget.Viewer.GetViewport();
-    //x += viewport[0];
-    //y += viewport[1];
     this.CancelHideTimer(); // Just in case: Show trumps previous hide.
     this.ButtonDiv.css({
         'left' : x+'px',
