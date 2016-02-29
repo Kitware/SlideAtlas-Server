@@ -1068,6 +1068,9 @@ Viewer.prototype.Draw = function() {
         this.AnnotationLayer.Clear();
     }
 
+    // If we are still waiting for tiles to load, schedule another render.
+    // This works fine, but results in many renders while waiting.
+    // TODO: Consider having the tile load callback scheduling the next render.
     if ( ! this.MainView.DrawTiles() ) {
         this.EventuallyRender();
     }

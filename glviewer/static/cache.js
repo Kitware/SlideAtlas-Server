@@ -2,8 +2,6 @@
 // to the tree.  Eventually I want to get rid fo the tree.
 // I am trying to get rid of the roots now.
 
-
-
 // A stripped down source object.
 // A source object must have a getTileUrl method.
 // It can have any instance variables it needs to
@@ -628,7 +626,7 @@ Cache.prototype.GetVisibleTileIds = function (level, bounds) {
     // solve).  To work for the z axis, tile indexing has to change.
     // Javascript currently can handle 16 levels safely (32 bits) with the
     // current indexing scheme.
-    
+
     for (var y = bds[2]; y <= bds[3]; ++y) {
       for (var x = bds[0]; x <= bds[1]; ++x) {
         id = x | (y << level);

@@ -1,4 +1,10 @@
 
+window.requestAnimationFrame = 
+    window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||             
+    window.msRequestAnimationFrame;
+
 // Firefox does not set which for mouse move events.
 function saFirefoxWhich(event) {
     event.which = event.buttons;
@@ -631,101 +637,10 @@ function ShowAnnotationEditMenu(x, y) {
 }
 
 
-// TODO:  Put this into the dual view widget.
-// Getting resize right was a major pain.
+// TODO:  Get rid of this function.
 function handleResize() {
-    /*
-    var width = CANVAS.width();
-    var height = CANVAS.height();
-
-    if(MOBILE_DEVICE == 'iPad'){
-      width = window.innerWidth;
-      height = window.innerHeight;
-      CANVAS.height(height);
-
-      document.documentElement.setAttribute('height', height + "px");
-    }
-
-    if(height == 0){
-      height = window.innerHeight;
-    }
-
-    if (GL) {
-        SA.MainDiv[0].width = width;
-        SA.MainDiv[0].height = height;
-        //gl.viewportWidth = canvas.width;
-        //gl.viewportHeight = canvas.height;
-        GL.viewport(0, 0, width, height);
-    } // GL.SetViewport does the work for 2d canvases.
-
-    // Handle resizing of the favorites bar.
-    // TODO: Make a resize callback.
-    if(FAVORITES_WIDGET != undefined){
-        FAVORITES_WIDGET.HandleResize(width);
-    }
-
-    // we set the left border to leave space for the notes window.
-    var viewPanelLeft = 0;
-    if (SA.NotesWidget) {
-        viewPanelLeft = SA.NotesWidget.Width;
-        SA.NotesWidget.Resize(viewPanelLeft,height);
-    }
-    if (SA.Presentation) {
-        viewPanelLeft = SA.Presentation.ResizePanel.Width
-    }
-
-    var viewPanelWidth = width - viewPanelLeft;
-    // TODO: let css size the viewers.
-    // The remaining width is split between the two viewers.
-    var width1 = viewPanelWidth;
-    if (SA.DualDisplay) {
-        width1 = viewPanelWidth * SA.DualDisplay.Viewer1Fraction;
-    }
-    var width2 = viewPanelWidth - width1;
-
-    if (GL) {
-        // HACK:  view positioning is half managed by browser (SA.MainDiv)
-        // and half by this resize viewport chain.  I want to get rid of the
-        // viewport completely, but until then, I have to manage both.
-        // Make the CANVAS match SA.MainDiv.  Note:  I do not want to create
-        // a separate webgl canvas for each view because thay cannot share
-        // texture images.
-        SA.MainDiv.css({"left":viewPanelLeft});
-    }
-
-    // Setup the view panel div to be the same as the two viewers.
-    if (SA.MainDiv) {
-        SA.MainDiv.css({'left': viewPanelLeft+'px',
-                        'width': viewPanelWidth+'px'});
-    }
-
-    // TODO: Make a multi-view object.
-    // TODO: Let css handle positioning the viewers.
-    //       This call positions the overview and still affect the main view.
-    if (SA.DualDisplay.Viewers[0]) {
-        SA.DualDisplay.Viewers[0].SetViewport([0, 0, width1, height]);
-        eventuallyRender();
-    }
-    if (SA.DualDisplay.Viewers[1]) {
-        SA.DualDisplay.Viewers[1].SetViewport([width1, 0, width2, height]);
-        eventuallyRender();
-    }
-    */
     $('window').trigger('resize');
 }
-
-// Hack mutex. iPad2 must execute multiple draw callbacks at the same time
-// in different threads.
-// This was not actually the problem.  iPad had a bug in the javascript interpreter.
-//var DRAWING = false;
-//function draw() {
-//    if (DRAWING) { return; }
-//    DRAWING = true;
-//    if (SA.DualDisplay) {
-//        SA.DualDisplay.Draw();
-//    }
-//    DRAWING = false;
-//}
 
 // The event manager detects single right click and double right click.
 // This gets galled on the single.

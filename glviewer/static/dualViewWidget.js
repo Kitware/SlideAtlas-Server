@@ -368,7 +368,6 @@ DualViewWidget.prototype.AnimateViewToggle = function () {
         this.Viewer1Fraction = this.AnimationTarget;
         this.UpdateSize();
         this.UpdateGui();
-        // this function is defined in init.js
         this.Draw();
         return;
     }

@@ -147,6 +147,7 @@ View.prototype.UpdateCanvasSize = function() {
     // There is no reason, the camera needs to know the
     // the position of the cameraDiv.
     this.Camera.SetViewport(this.Viewport);
+
     return true;
 }
 
