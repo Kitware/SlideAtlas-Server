@@ -628,13 +628,50 @@ Cache.prototype.GetVisibleTileIds = function (level, bounds) {
     // solve).  To work for the z axis, tile indexing has to change.
     // Javascript currently can handle 16 levels safely (32 bits) with the
     // current indexing scheme.
-    
+
+    /*
     for (var y = bds[2]; y <= bds[3]; ++y) {
       for (var x = bds[0]; x <= bds[1]; ++x) {
         id = x | (y << level);
         idList.push(id);
       }
     }
+    */
+    // Experiment: Lets try sorting from middle to outside to simulate
+    // fovia sorted request priority.
+    // Reverse order of priority.
+    var cx = Math.floor((bds[0] + bds[1]) * 0.5);
+    var cy = Math.floor((bds[2] + bds[3]) * 0.5);
+    var radius = Math.max((cx-bds[0]),(bds[1]-cx),(cy-bds[2]),(bds[3]-cy));
+    var x,y,i;
+    while (radius > 0) {
+        for (i = -radius; i < radius; ++i) {
+            x = cx-radius;
+            y = cy-i;
+            if (x>=bds[0] && x<=bds[1] && y>=bds[2] && y<=bds[3]) {
+                idList.push(x | (y << level));
+            }
+            x = cx+i;
+            y = cy-radius;
+            if (x>=bds[0] && x<=bds[1] && y>=bds[2] && y<=bds[3]) {
+                idList.push(x | (y << level));
+            }
+            x = cx+radius;
+            y = cy+i;
+            if (x>=bds[0] && x<=bds[1] && y>=bds[2] && y<=bds[3]) {
+                idList.push(x | (y << level));
+            }
+            x = cx-i;
+            y = cy+radius;
+            if (x>=bds[0] && x<=bds[1] && y>=bds[2] && y<=bds[3]) {
+                idList.push(x | (y << level));
+            }
+
+        }
+        radius -= 1;
+    }
+    // Add the special case center.
+    idList.push(cx | (cy << level));
     return idList;
 }
 
