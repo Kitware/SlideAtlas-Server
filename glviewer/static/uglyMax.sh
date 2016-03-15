@@ -71,6 +71,8 @@ cat arrow.js >> sa.max.js
 cat arrowWidget.js >> sa.max.js 
 cat circle.js >> sa.max.js 
 cat circleWidget.js >> sa.max.js 
+cat rectWidget.js >> sa.max.js 
+cat gridWidget.js >> sa.max.js 
 cat cutoutWidget.js >> sa.max.js 
 cat imageAnnotation.js >> sa.max.js 
 cat init.js >> sa.max.js 

@@ -1084,6 +1084,9 @@ Viewer.prototype.LoadWidget = function(obj) {
     case "rect":
         widget = new RectWidget(this, false);
         break;
+    case "grid":
+        widget = new GridWidget(this, false);
+        break;
     }
     widget.Load(obj);
     return widget;
@@ -2113,21 +2116,30 @@ Viewer.prototype.HandleKeyDown = function(event) {
         // control-v for paste
 
         var clip = JSON.parse(localStorage.ClipBoard);
+        var camera;
+        if (clip.Camera) {
+            camera = new Camera();
+            camera.Load(clip.Camera);
+        }
         if (clip.Type == "CircleWidget") {
             var widget = new CircleWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "PolylineWidget") {
             var widget = new PolylineWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "TextWidget") {
             var widget = new TextWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "RectWidget") {
             var widget = new RectWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+        }
+        if (clip.Type == "GridWidget") {
+            var widget = new GridWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
 
         return false;
