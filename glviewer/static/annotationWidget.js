@@ -63,6 +63,14 @@ function AnnotationWidget (viewer) {
         .attr('src',SA.ImagePathUrl+"rectangle.gif")
         .prop('title', "Rectangle")
         .click(function(){self.NewRect();});
+    this.GridButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"grid.png")
+        .prop('title', "Grid")
+        .click(function(){self.NewGrid();});
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -214,7 +222,6 @@ AnnotationWidget.prototype.NewCircle = function() {
                                                                 this.Viewer.LastMouseY);
 }
 
-
 AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
     var widget = this.ActivateButton(button, RectWidget);
@@ -223,6 +230,24 @@ AnnotationWidget.prototype.NewRect = function() {
                                                                 this.Viewer.LastMouseY);
 };
 
+AnnotationWidget.prototype.NewGrid = function() {
+    var button = this.GridButton;
+    var widget = this.ActivateButton(button, GridWidget);
+    var cam = this.Viewer.GetCamera();
+    var fp = cam.GetFocalPoint();
+    // Square grid elements determined by height
+    var height = cam.GetHeight() * 0.75;
+    var yDim = 5;
+    var size = height / yDim;
+    var width = cam.GetWidth() * 0.75;
+    var xDim = Math.floor(width/size);
+    widget.Shape.Origin = [fp[0], fp[1], 0.0];
+    widget.Shape.Dimensions = [xDim, yDim];
+    widget.Shape.Width = widget.Shape.Height = size;
+    widget.Shape.Orientation = cam.GetRotation();
+    widget.Shape.UpdateBuffers();
+    this.Viewer.DeactivateWidget(widget);
+};
 
 AnnotationWidget.prototype.NewFill = function() {
     var button = this.FillButton;
