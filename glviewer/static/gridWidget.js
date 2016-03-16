@@ -381,9 +381,11 @@
         return true;
     };
 
+    // Orientation is a pain,  we need a world to shape transformation.
     GridWidget.prototype.HandleMouseMove = function(event) {
         if (event.which == 1) {
-            var world = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+            var world =
+    this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
             if (this.State == GRID_WIDGET_DRAG) {
                 dx = world[0] - this.DragLast[0];
@@ -392,44 +394,61 @@
                 this.Shape.Origin[0] += dx;
                 this.Shape.Origin[1] += dy;
             } else {
+                // convert mouse from world to Shape coordinate system.
                 dx = world[0] - this.Shape.Origin[0];
                 dy = world[1] - this.Shape.Origin[1];
                 var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
                 var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
-                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
-                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
+                // convert from shape to integer grid indexes.
+                x = (0.5*this.Shape.Dimensions[0]) + (x /
+    this.Shape.Width);
+                y = (0.5*this.Shape.Dimensions[1]) + (y /
+    this.Shape.Height);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
+                // Change grid dimemsions
+                dx = dy = 0;
+                var changed = false;
                 if (this.State == GRID_WIDGET_DRAG_RIGHT) {
                     dx = ix - this.Shape.Dimensions[0];
                     if (dx) {
-                        this.Shape.Dimensions[0] += dx;
-                        this.Shape.Origin[0] += 0.5 * dx * this.Shape.Width;
-                        this.Shape.UpdateBuffers();
+                        this.Shape.Dimensions[0] = ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * dx * this.Shape.Width;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
-                    dx = ix;
-                    if (dx) {
-                        this.Shape.Dimensions[0] -= dx;
-                        this.Shape.Origin[0] += 0.5 * dx * this.Shape.Width;
-                        this.Shape.UpdateBuffers();
+                    if (ix) {
+                        this.Shape.Dimensions[0] -= ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * ix * this.Shape.Width;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
                     dy = iy - this.Shape.Dimensions[1];
                     if (dy) {
-                        this.Shape.Dimensions[1] += dy;
-                        this.Shape.Origin[1] += 0.5 * dy * this.Shape.Height;
-                        this.Shape.UpdateBuffers();
+                        this.Shape.Dimensions[1] = iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * dy * this.Shape.Height;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_TOP) {
-                    dy = iy;
-                    if (dy) {
-                        this.Shape.Dimensions[1] -= dy;
-                        this.Shape.Origin[1] += 0.5 * dy * this.Shape.Height;
-                        this.Shape.UpdateBuffers();
+                    if (iy) {
+                        this.Shape.Dimensions[1] -= iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * iy * this.Shape.Height;
+                        changed = true;
                     }
+                }
+                if (changed) {
+                    // Rotate the translation and apply to the center.
+                    x = c*dx + s*dy;
+                    y = c*dy - s*dx;
+                    this.Shape.Origin[0] += x;
+                    this.Shape.Origin[1] += y;
+                    this.Shape.UpdateBuffers();
                 }
             }
             eventuallyRender();
