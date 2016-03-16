@@ -57,49 +57,45 @@
         var halfHeight = totalHeight / 2;
 
         // Draw all of the x lines.
-        var x = 0;
+        var x = this.Dimensions[1]%2 ? 0 : totalWidth;
         var y = 0;
-        this.PointBuffer.push(x-halfWidth);
-        this.PointBuffer.push(y-halfHeight);
-        this.PointBuffer.push(0.0);
-        x = totalWidth;
         this.PointBuffer.push(x-halfWidth);
         this.PointBuffer.push(y-halfHeight);
         this.PointBuffer.push(0.0);
 
         for (var i = 0; i < this.Dimensions[1]; ++i) {
-            y += this.Height;
-            this.PointBuffer.push(x-halfWidth);
-            this.PointBuffer.push(y-halfHeight);
-            this.PointBuffer.push(0.0);
             //shuttle back and forth.
             x = x ? 0 : totalWidth;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
+            y += this.Height;
+            this.PointBuffer.push(x-halfWidth);
+            this.PointBuffer.push(y-halfHeight);
+            this.PointBuffer.push(0.0);
         }
-        // Draw all of the y lines.
-        var x = 0;
-        var y = 0;
-        this.PointBuffer.push(x-halfWidth);
-        this.PointBuffer.push(y-halfHeight);
-        this.PointBuffer.push(0.0);
-        y = totalHeight;
+        //shuttle back and forth.
+        x = x ? 0 : totalWidth;
         this.PointBuffer.push(x-halfWidth);
         this.PointBuffer.push(y-halfHeight);
         this.PointBuffer.push(0.0);
 
+        // Draw all of the y lines.
         for (var i = 0; i < this.Dimensions[0]; ++i) {
-            x += this.Width;
-            this.PointBuffer.push(x-halfWidth);
-            this.PointBuffer.push(y-halfHeight);
-            this.PointBuffer.push(0.0);
             //shuttle up and down.
             y = y ? 0 : totalHeight;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
+            x += this.Width;
+            this.PointBuffer.push(x-halfWidth);
+            this.PointBuffer.push(y-halfHeight);
+            this.PointBuffer.push(0.0);
         }
+        y = y ? 0 : totalHeight;
+        this.PointBuffer.push(x-halfWidth);
+        this.PointBuffer.push(y-halfHeight);
+        this.PointBuffer.push(0.0);
     };
 
 
@@ -522,12 +518,12 @@
         // Rotate to grid.
         var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
         var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
-        x = c*x - s*y;
-        y = c*y + s*x;
+        var rx = c*x - s*y;
+        var ry = c*y + s*x;
 
         // Convert to grid coordinates (0 -> dims)
-        x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
-        y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
+        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.Width);
+        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.Height);
         var ix = Math.round(x);
         var iy = Math.round(y);
         if (ix < 0 || ix > this.Shape.Dimensions[0] ||
