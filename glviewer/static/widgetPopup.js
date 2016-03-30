@@ -36,13 +36,12 @@ function WidgetPopup (widget) {
 }
 
 WidgetPopup.prototype.DeleteCallback = function() {
-  this.Widget.SetActive(false);
-  this.Hide();
-  // We need to remove an item from a list.
-  // shape list and widget list.
-  this.Widget.RemoveFromViewer();
-  this.Widget.Viewer.EventuallyRender(true);
-  RecordState();
+    this.Widget.SetActive(false);
+    this.Hide();
+    // This has to be called before the viewer is removed (next call).
+    this.Widget.Viewer.EventuallyRender(true);
+    this.Widget.RemoveFromViewer();
+    RecordState();
 }
 
 WidgetPopup.prototype.PropertiesCallback = function() {

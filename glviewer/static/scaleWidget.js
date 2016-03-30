@@ -18,10 +18,9 @@
     function Scale() {
         Shape.call(this);
         // Dimension of scale element
-        this.Length = 100.0; // unit length in pixels
-        this.TickSize = 6;
-        this.NumberOfUnits = 1;
-        //this.NumberOfSubdivisions = 10;
+        this.BinLength = 100.0; // unit length in screen pixels
+        this.TickSize = 6; // Screen pixels
+        this.NumberOfBins = 1;
         this.Orientation = 0; // 0 or 90
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
@@ -57,8 +56,8 @@
         this.PointBuffer.push(y);
         this.PointBuffer.push(0.0);
 
-        for (var i = 0; i < this.NumberOfUnits; ++i) {
-            x += this.Length;
+        for (var i = 0; i < this.NumberOfBins; ++i) {
+            x += this.BinLength;
             this.PointBuffer.push(x);
             this.PointBuffer.push(y);
             this.PointBuffer.push(0.0);
@@ -85,7 +84,7 @@
         this.Shape = new Scale();
         this.Shape.OutlineColor = [0.0, 0.0, 0.0];
         this.Shape.Origin = [30,20];
-        this.Shape.Length = 200;
+        this.Shape.BinLength = 200;
         this.Shape.FixedSize = true;
 
         this.Text = new Text();
@@ -93,7 +92,9 @@
         this.Text.Position = [30,5];
         this.Text.String = "";
         this.Text.Color = [0.0, 0.0, 0.0];
-        this.Text.Anchor = [0,0];
+        // I want the anchor to be the center of the text.
+        // This is a hackl estimate.
+        this.Text.Anchor = [20,0];
 
         this.Update(viewer.GetPixelsPerUnit());
 
@@ -103,6 +104,7 @@
     }
 
 
+    // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
         var scale = Math.round(4e6 * this.Viewer.GetPixelsPerUnit());
@@ -113,9 +115,11 @@
         this.PixelsPerMeter = scale;
         var target = 200; // pixels
         var e = 0;
-        var length = this.PixelsPerMeter;
-        while (length > target) {
-            length = length / 10;
+        // Note: this assumes max bin length is 1 meter.
+        var binLengthViewer = this.PixelsPerMeter;
+        // keep reducing the length until it is reasonable.
+        while (binLengthViewer > target) {
+            binLengthViewer = binLengthViewer / 10;
             --e;
         }
         // Now compute the units from e.
@@ -141,16 +145,28 @@
             this.Units = "km";
             factor = 1000;
         }
-        this.Shape.Length = length;
-        this.Shape.NumberOfUnits = Math.floor(target / length);
+        // Length is set to the viewer pixel length of a tick / unit.
+        this.Shape.BinLength = binLengthViewer;
+        // Now add bins to get close to the target length.
+        this.Shape.NumberOfBins = Math.floor(target / binLengthViewer);
+        // compute the length of entire scale bar (units: viewer pixels).
+        var scaleLengthViewer = binLengthViewer * this.Shape.NumberOfBins;
+        var scaleLengthMeters = scaleLengthViewer / this.PixelsPerMeter;
+        // Compute the label.
+        // The round should not change the value, only get rid of numerical error.
+        var labelNumber = Math.round(scaleLengthMeters / factor);
+        this.Label = labelNumber.toString() + this.Units;
 
-        this.Label = Math.round(length / (this.PixelsPerMeter *
-                                factor))*this.Shape.NumberOfUnits;
-        this.Label = this.Label.toString() + this.Units;
+        // Save the length of the scale bar in world units.
+        // World (highest res image) pixels default to 0.25e-6 meters.
+        this.LengthWorld = scaleLengthMeters * 4e6;
+
+        // Update the label text and position
         this.Text.String = this.Label;
         this.Text.UpdateBuffers();
+        this.Text.Position = [this.Shape.Origin[0]+(scaleLengthViewer/2),
+                              this.Shape.Origin[1]-15];
 
-        console.log(this.Label);
         this.Shape.UpdateBuffers();
     }
 
@@ -290,7 +306,7 @@
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Shape.BinLength = this.Shape.BinLength * ratio;
                 }
                 if(event.ctrlKey) {
                     this.Shape.Width = this.Shape.Width * ratio;

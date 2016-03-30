@@ -17,10 +17,10 @@
 
     function Grid() {
         Shape.call(this);
-        // Dimension of grid element
-        this.Width = 20.0;
-        this.Height = 20.0;
-        // Number of grid elements in x and y
+        // Dimension of grid bin
+        this.BinWidth = 20.0;
+        this.BinHeight = 20.0;
+        // Number of grid bins in x and y
         this.Dimensions = [10,8];
         this.Orientation = 0; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // middle.
@@ -40,7 +40,7 @@
         this.PointBuffer = [];
 
         if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
-            this.Width <= 0.0 || this.Height <= 0.0) {
+            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
             return;
         }
 
@@ -51,8 +51,8 @@
         mat4.identity(this.Matrix);
         //mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
-        var totalWidth = this.Width * this.Dimensions[0];
-        var totalHeight = this.Height * this.Dimensions[1];
+        var totalWidth = this.BinWidth * this.Dimensions[0];
+        var totalHeight = this.BinHeight * this.Dimensions[1];
         var halfWidth = totalWidth / 2;
         var halfHeight = totalHeight / 2;
 
@@ -69,7 +69,7 @@
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
-            y += this.Height;
+            y += this.BinHeight;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
@@ -87,7 +87,7 @@
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
-            x += this.Width;
+            x += this.BinWidth;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
@@ -107,35 +107,35 @@
 
         // Grid Size
         // X
-        this.Dialog.ElementWidthDiv =
+        this.Dialog.BinWidthDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
             .css({'display':'table-row'});
-        this.Dialog.ElementWidthLabel =
+        this.Dialog.BinWidthLabel =
             $('<div>')
-            .appendTo(this.Dialog.ElementWidthDiv)
-            .text("Element Width:")
+            .appendTo(this.Dialog.BinWidthDiv)
+            .text("Bin Width:")
             .css({'display':'table-cell',
                   'text-align': 'left'});
-        this.Dialog.ElementWidthInput =
+        this.Dialog.BinWidthInput =
             $('<input>')
-            .appendTo(this.Dialog.ElementWidthDiv)
+            .appendTo(this.Dialog.BinWidthDiv)
             .css({'display':'table-cell'})
             .keypress(function(event) { return event.keyCode != 13; });
         // Y
-        this.Dialog.ElementHeightDiv =
+        this.Dialog.BinHeightDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
             .css({'display':'table-row'});
-        this.Dialog.ElementHeightLabel =
+        this.Dialog.BinHeightLabel =
             $('<div>')
-            .appendTo(this.Dialog.ElementHeightDiv)
-            .text("Element Height:")
+            .appendTo(this.Dialog.BinHeightDiv)
+            .text("Bin Height:")
             .css({'display':'table-cell',
                   'text-align': 'left'});
-        this.Dialog.ElementHeightInput =
+        this.Dialog.BinHeightInput =
             $('<input>')
-            .appendTo(this.Dialog.ElementHeightDiv)
+            .appendTo(this.Dialog.BinHeightDiv)
             .css({'display':'table-cell'})
             .keypress(function(event) { return event.keyCode != 13; });
 
@@ -213,14 +213,20 @@
         this.Shape.OutlineColor = [0.0,0.0,0.0];
         this.Shape.SetOutlineColor('#0A0F7A');
         this.Shape.Length = 50.0*cam.Height/viewport[3];
-        this.Shape.Width = 30*cam.Height/viewport[3];
+        // Get the default bin size from the viewer scale bar.
+        if (viewer.ScaleWidget) {
+            this.Shape.BinWidth = viewer.ScaleWidget.LengthWorld;
+        } else {
+            this.Shape.BinWidth = 30*cam.Height/viewport[3];
+        }
+        this.Shape.BinHeight = this.Shape.BinWidth;
         this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
         this.Shape.FixedSize = false;
 
         this.Text = new Text();
         // Shallow copy is dangerous
         this.Text.Position = this.Shape.Origin;
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
         this.Text.UpdateBuffers();
@@ -258,8 +264,8 @@
     // gx, gy is the point in grid pixel coordinates offset from the corner.
     GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
         // Pick the upper left most corner to display the grid size text.
-        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
+        var xRadius = this.Shape.BinWidth * this.Shape.Dimensions[0] / 2;
+        var yRadius = this.Shape.BinHeight * this.Shape.Dimensions[1] / 2;
         xRadius += gx;
         yRadius += gy;
         var x = this.Shape.Origin[0];
@@ -296,8 +302,8 @@
         this.Shape.Draw(view);
 
         // Corner in grid pixel coordinates.
-        var x = - (this.Shape.Width * this.Shape.Dimensions[0] / 2);
-        var y = - (this.Shape.Height * this.Shape.Dimensions[1] / 2);
+        var x = - (this.Shape.BinWidth * this.Shape.Dimensions[0] / 2);
+        var y = - (this.Shape.BinHeight * this.Shape.Dimensions[1] / 2);
         this.Text.Anchor = [0,20];
         this.Text.Orientation = (this.Shape.Orientation -
                                  this.Viewer.GetCamera().GetRotation());
@@ -349,8 +355,8 @@
         obj.type = "grid";
         obj.origin = this.Shape.Origin;
         obj.outlinecolor = this.Shape.OutlineColor;
-        obj.width = this.Shape.Width;
-        obj.height = this.Shape.Height;
+        obj.bin_width = this.Shape.BinWidth;
+        obj.bin_height = this.Shape.BinHeight;
         obj.dimensions = this.Shape.Dimensions;
         obj.orientation = this.Shape.Orientation;
         obj.linewidth = this.Shape.LineWidth;
@@ -365,8 +371,10 @@
         this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
         this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
         this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-        this.Shape.Width = parseFloat(obj.width);
-        this.Shape.Height = parseFloat(obj.height);
+        if (obj.width)  { this.Shape.BinWidth = parseFloat(obj.width);}
+        if (obj.height) {this.Shape.BinHeight = parseFloat(obj.height);}
+        if (obj.bin_width)  { this.Shape.BinWidth = parseFloat(obj.bin_width);}
+        if (obj.bin_height) {this.Shape.BinHeight = parseFloat(obj.bin_height);}
         this.Shape.Dimensions[0] = parseInt(obj.dimensions[0]);
         this.Shape.Dimensions[1] = parseInt(obj.dimensions[1]);
         this.Shape.Orientation = parseFloat(obj.orientation);
@@ -374,7 +382,7 @@
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers();
 
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         // Shallow copy is dangerous
         this.Text.Position = this.Shape.Origin;
         this.Text.UpdateBuffers();
@@ -449,8 +457,8 @@
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
                 // convert from shape to integer grid indexes.
-                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
-                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
+                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.BinWidth);
+                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.BinHeight);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
                 // Change grid dimemsions
@@ -461,14 +469,14 @@
                     if (dx) {
                         this.Shape.Dimensions[0] = ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * dx * this.Shape.Width;
+                        dx = 0.5 * dx * this.Shape.BinWidth;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
                     if (ix) {
                         this.Shape.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * ix * this.Shape.Width;
+                        dx = 0.5 * ix * this.Shape.BinWidth;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
@@ -476,14 +484,14 @@
                     if (dy) {
                         this.Shape.Dimensions[1] = iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * dy * this.Shape.Height;
+                        dy = 0.5 * dy * this.Shape.BinHeight;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_TOP) {
                     if (iy) {
                         this.Shape.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * iy * this.Shape.Height;
+                        dy = 0.5 * iy * this.Shape.BinHeight;
                         changed = true;
                     }
                 }
@@ -523,7 +531,7 @@
                     this.Shape.Length = this.Shape.Length * ratio;
                 }
                 if(event.ctrlKey) {
-                    this.Shape.Width = this.Shape.Width * ratio;
+                    this.Shape.BinWidth = this.Shape.BinWidth * ratio;
                 }
                 if(!event.shiftKey && !event.ctrlKey) {
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
@@ -586,8 +594,8 @@
         var ry = c*y + s*x;
 
         // Convert to grid coordinates (0 -> dims)
-        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.Width);
-        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.Height);
+        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.BinWidth);
+        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.BinHeight);
         var ix = Math.round(x);
         var iy = Math.round(y);
         if (ix < 0 || ix > this.Shape.Dimensions[0] ||
@@ -597,8 +605,8 @@
         }
 
         // x,y get the residual in pixels.
-        x = (x - ix) * this.Shape.Width;
-        y = (y - iy) * this.Shape.Height;
+        x = (x - ix) * this.Shape.BinWidth;
+        y = (y - iy) * this.Shape.BinHeight;
 
         // Compute the screen pixel size for tollerance.
         var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
@@ -685,8 +693,8 @@
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
-        this.Dialog.ElementWidthInput.val(SA.DistanceToString(this.Shape.Width*0.25e-6));
-        this.Dialog.ElementHeightInput.val(SA.DistanceToString(this.Shape.Height*0.25e-6));
+        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Shape.BinWidth*0.25e-6));
+        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Shape.BinHeight*0.25e-6));
         this.Dialog.RotationInput.val(this.Shape.Orientation);
 
         this.Dialog.Show(true);
@@ -696,13 +704,13 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.Width = SA.StringToDistance(this.Dialog.ElementWidthInput.val())*4e6;
-        this.Shape.Height = SA.StringToDistance(this.Dialog.ElementHeightInput.val())*4e6;
+        this.Shape.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
+        this.Shape.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
         this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
         this.Shape.UpdateBuffers();
         this.SetActive(false);
 
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         this.Text.UpdateBuffers();
 
         RecordState();

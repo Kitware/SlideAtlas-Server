@@ -47987,13 +47987,12 @@ function WidgetPopup (widget) {
 }
 
 WidgetPopup.prototype.DeleteCallback = function() {
-  this.Widget.SetActive(false);
-  this.Hide();
-  // We need to remove an item from a list.
-  // shape list and widget list.
-  this.Widget.RemoveFromViewer();
-  this.Widget.Viewer.EventuallyRender(true);
-  RecordState();
+    this.Widget.SetActive(false);
+    this.Hide();
+    // This has to be called before the viewer is removed (next call).
+    this.Widget.Viewer.EventuallyRender(true);
+    this.Widget.RemoveFromViewer();
+    RecordState();
 }
 
 WidgetPopup.prototype.PropertiesCallback = function() {
@@ -50007,10 +50006,10 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     function Grid() {
         Shape.call(this);
-        // Dimension of grid element
-        this.Width = 20.0;
-        this.Height = 20.0;
-        // Number of grid elements in x and y
+        // Dimension of grid bin
+        this.BinWidth = 20.0;
+        this.BinHeight = 20.0;
+        // Number of grid bins in x and y
         this.Dimensions = [10,8];
         this.Orientation = 0; // Angle with respect to x axis ?
         this.Origin = [10000,10000]; // middle.
@@ -50030,7 +50029,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.PointBuffer = [];
 
         if (this.Dimensions[0] < 1 || this.Dimensions[1] < 1 ||
-            this.Width <= 0.0 || this.Height <= 0.0) {
+            this.BinWidth <= 0.0 || this.BinHeight <= 0.0) {
             return;
         }
 
@@ -50041,8 +50040,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         mat4.identity(this.Matrix);
         //mat4.rotateZ(this.Matrix, this.Orientation / 180.0 * 3.14159);
 
-        var totalWidth = this.Width * this.Dimensions[0];
-        var totalHeight = this.Height * this.Dimensions[1];
+        var totalWidth = this.BinWidth * this.Dimensions[0];
+        var totalHeight = this.BinHeight * this.Dimensions[1];
         var halfWidth = totalWidth / 2;
         var halfHeight = totalHeight / 2;
 
@@ -50059,7 +50058,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
-            y += this.Height;
+            y += this.BinHeight;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
@@ -50077,7 +50076,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
-            x += this.Width;
+            x += this.BinWidth;
             this.PointBuffer.push(x-halfWidth);
             this.PointBuffer.push(y-halfHeight);
             this.PointBuffer.push(0.0);
@@ -50097,35 +50096,35 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
         // Grid Size
         // X
-        this.Dialog.ElementWidthDiv =
+        this.Dialog.BinWidthDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
             .css({'display':'table-row'});
-        this.Dialog.ElementWidthLabel =
+        this.Dialog.BinWidthLabel =
             $('<div>')
-            .appendTo(this.Dialog.ElementWidthDiv)
-            .text("Element Width:")
+            .appendTo(this.Dialog.BinWidthDiv)
+            .text("Bin Width:")
             .css({'display':'table-cell',
                   'text-align': 'left'});
-        this.Dialog.ElementWidthInput =
+        this.Dialog.BinWidthInput =
             $('<input>')
-            .appendTo(this.Dialog.ElementWidthDiv)
+            .appendTo(this.Dialog.BinWidthDiv)
             .css({'display':'table-cell'})
             .keypress(function(event) { return event.keyCode != 13; });
         // Y
-        this.Dialog.ElementHeightDiv =
+        this.Dialog.BinHeightDiv =
             $('<div>')
             .appendTo(this.Dialog.Body)
             .css({'display':'table-row'});
-        this.Dialog.ElementHeightLabel =
+        this.Dialog.BinHeightLabel =
             $('<div>')
-            .appendTo(this.Dialog.ElementHeightDiv)
-            .text("Element Height:")
+            .appendTo(this.Dialog.BinHeightDiv)
+            .text("Bin Height:")
             .css({'display':'table-cell',
                   'text-align': 'left'});
-        this.Dialog.ElementHeightInput =
+        this.Dialog.BinHeightInput =
             $('<input>')
-            .appendTo(this.Dialog.ElementHeightDiv)
+            .appendTo(this.Dialog.BinHeightDiv)
             .css({'display':'table-cell'})
             .keypress(function(event) { return event.keyCode != 13; });
 
@@ -50203,14 +50202,20 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.OutlineColor = [0.0,0.0,0.0];
         this.Shape.SetOutlineColor('#0A0F7A');
         this.Shape.Length = 50.0*cam.Height/viewport[3];
-        this.Shape.Width = 30*cam.Height/viewport[3];
+        // Get the default bin size from the viewer scale bar.
+        if (viewer.ScaleWidget) {
+            this.Shape.BinWidth = viewer.ScaleWidget.LengthWorld;
+        } else {
+            this.Shape.BinWidth = 30*cam.Height/viewport[3];
+        }
+        this.Shape.BinHeight = this.Shape.BinWidth;
         this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
         this.Shape.FixedSize = false;
 
         this.Text = new Text();
         // Shallow copy is dangerous
         this.Text.Position = this.Shape.Origin;
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         this.Text.Color = [0.0, 0.0, 0.5];
         this.Text.Anchor = [0,0];
         this.Text.UpdateBuffers();
@@ -50248,8 +50253,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     // gx, gy is the point in grid pixel coordinates offset from the corner.
     GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
         // Pick the upper left most corner to display the grid size text.
-        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
+        var xRadius = this.Shape.BinWidth * this.Shape.Dimensions[0] / 2;
+        var yRadius = this.Shape.BinHeight * this.Shape.Dimensions[1] / 2;
         xRadius += gx;
         yRadius += gy;
         var x = this.Shape.Origin[0];
@@ -50286,8 +50291,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.Draw(view);
 
         // Corner in grid pixel coordinates.
-        var x = - (this.Shape.Width * this.Shape.Dimensions[0] / 2);
-        var y = - (this.Shape.Height * this.Shape.Dimensions[1] / 2);
+        var x = - (this.Shape.BinWidth * this.Shape.Dimensions[0] / 2);
+        var y = - (this.Shape.BinHeight * this.Shape.Dimensions[1] / 2);
         this.Text.Anchor = [0,20];
         this.Text.Orientation = (this.Shape.Orientation -
                                  this.Viewer.GetCamera().GetRotation());
@@ -50339,8 +50344,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         obj.type = "grid";
         obj.origin = this.Shape.Origin;
         obj.outlinecolor = this.Shape.OutlineColor;
-        obj.width = this.Shape.Width;
-        obj.height = this.Shape.Height;
+        obj.bin_width = this.Shape.BinWidth;
+        obj.bin_height = this.Shape.BinHeight;
         obj.dimensions = this.Shape.Dimensions;
         obj.orientation = this.Shape.Orientation;
         obj.linewidth = this.Shape.LineWidth;
@@ -50355,8 +50360,10 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.OutlineColor[0] = parseFloat(obj.outlinecolor[0]);
         this.Shape.OutlineColor[1] = parseFloat(obj.outlinecolor[1]);
         this.Shape.OutlineColor[2] = parseFloat(obj.outlinecolor[2]);
-        this.Shape.Width = parseFloat(obj.width);
-        this.Shape.Height = parseFloat(obj.height);
+        if (obj.width)  { this.Shape.BinWidth = parseFloat(obj.width);}
+        if (obj.height) {this.Shape.BinHeight = parseFloat(obj.height);}
+        if (obj.bin_width)  { this.Shape.BinWidth = parseFloat(obj.bin_width);}
+        if (obj.bin_height) {this.Shape.BinHeight = parseFloat(obj.bin_height);}
         this.Shape.Dimensions[0] = parseInt(obj.dimensions[0]);
         this.Shape.Dimensions[1] = parseInt(obj.dimensions[1]);
         this.Shape.Orientation = parseFloat(obj.orientation);
@@ -50364,7 +50371,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers();
 
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         // Shallow copy is dangerous
         this.Text.Position = this.Shape.Origin;
         this.Text.UpdateBuffers();
@@ -50439,8 +50446,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
                 // convert from shape to integer grid indexes.
-                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
-                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
+                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.BinWidth);
+                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.BinHeight);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
                 // Change grid dimemsions
@@ -50451,14 +50458,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     if (dx) {
                         this.Shape.Dimensions[0] = ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * dx * this.Shape.Width;
+                        dx = 0.5 * dx * this.Shape.BinWidth;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
                     if (ix) {
                         this.Shape.Dimensions[0] -= ix;
                         // Compute the change in the center point origin.
-                        dx = 0.5 * ix * this.Shape.Width;
+                        dx = 0.5 * ix * this.Shape.BinWidth;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
@@ -50466,14 +50473,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     if (dy) {
                         this.Shape.Dimensions[1] = iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * dy * this.Shape.Height;
+                        dy = 0.5 * dy * this.Shape.BinHeight;
                         changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_TOP) {
                     if (iy) {
                         this.Shape.Dimensions[1] -= iy;
                         // Compute the change in the center point origin.
-                        dy = 0.5 * iy * this.Shape.Height;
+                        dy = 0.5 * iy * this.Shape.BinHeight;
                         changed = true;
                     }
                 }
@@ -50513,7 +50520,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     this.Shape.Length = this.Shape.Length * ratio;
                 }
                 if(event.ctrlKey) {
-                    this.Shape.Width = this.Shape.Width * ratio;
+                    this.Shape.BinWidth = this.Shape.BinWidth * ratio;
                 }
                 if(!event.shiftKey && !event.ctrlKey) {
                     this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
@@ -50576,8 +50583,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var ry = c*y + s*x;
 
         // Convert to grid coordinates (0 -> dims)
-        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.Width);
-        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.Height);
+        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.BinWidth);
+        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.BinHeight);
         var ix = Math.round(x);
         var iy = Math.round(y);
         if (ix < 0 || ix > this.Shape.Dimensions[0] ||
@@ -50587,8 +50594,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         }
 
         // x,y get the residual in pixels.
-        x = (x - ix) * this.Shape.Width;
-        y = (y - iy) * this.Shape.Height;
+        x = (x - ix) * this.Shape.BinWidth;
+        y = (y - iy) * this.Shape.BinHeight;
 
         // Compute the screen pixel size for tollerance.
         var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
@@ -50675,8 +50682,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
         // convert 40x scan pixels into meters
-        this.Dialog.ElementWidthInput.val(SA.DistanceToString(this.Shape.Width*0.25e-6));
-        this.Dialog.ElementHeightInput.val(SA.DistanceToString(this.Shape.Height*0.25e-6));
+        this.Dialog.BinWidthInput.val(SA.DistanceToString(this.Shape.BinWidth*0.25e-6));
+        this.Dialog.BinHeightInput.val(SA.DistanceToString(this.Shape.BinHeight*0.25e-6));
         this.Dialog.RotationInput.val(this.Shape.Orientation);
 
         this.Dialog.Show(true);
@@ -50686,13 +50693,13 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.Width = SA.StringToDistance(this.Dialog.ElementWidthInput.val())*4e6;
-        this.Shape.Height = SA.StringToDistance(this.Dialog.ElementHeightInput.val())*4e6;
+        this.Shape.BinWidth = SA.StringToDistance(this.Dialog.BinWidthInput.val())*4e6;
+        this.Shape.BinHeight = SA.StringToDistance(this.Dialog.BinHeightInput.val())*4e6;
         this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
         this.Shape.UpdateBuffers();
         this.SetActive(false);
 
-        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.String = SA.DistanceToString(this.Shape.BinWidth*0.25e-6);
         this.Text.UpdateBuffers();
 
         RecordState();
@@ -50724,10 +50731,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     function Scale() {
         Shape.call(this);
         // Dimension of scale element
-        this.Length = 100.0; // unit length in pixels
-        this.TickSize = 6;
-        this.NumberOfUnits = 1;
-        //this.NumberOfSubdivisions = 10;
+        this.BinLength = 100.0; // unit length in screen pixels
+        this.TickSize = 6; // Screen pixels
+        this.NumberOfBins = 1;
         this.Orientation = 0; // 0 or 90
         this.Origin = [10000,10000]; // middle.
         this.OutlineColor = [0,0,0];
@@ -50763,8 +50769,8 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.PointBuffer.push(y);
         this.PointBuffer.push(0.0);
 
-        for (var i = 0; i < this.NumberOfUnits; ++i) {
-            x += this.Length;
+        for (var i = 0; i < this.NumberOfBins; ++i) {
+            x += this.BinLength;
             this.PointBuffer.push(x);
             this.PointBuffer.push(y);
             this.PointBuffer.push(0.0);
@@ -50791,7 +50797,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape = new Scale();
         this.Shape.OutlineColor = [0.0, 0.0, 0.0];
         this.Shape.Origin = [30,20];
-        this.Shape.Length = 200;
+        this.Shape.BinLength = 200;
         this.Shape.FixedSize = true;
 
         this.Text = new Text();
@@ -50799,7 +50805,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Text.Position = [30,5];
         this.Text.String = "";
         this.Text.Color = [0.0, 0.0, 0.0];
-        this.Text.Anchor = [0,0];
+        // I want the anchor to be the center of the text.
+        // This is a hackl estimate.
+        this.Text.Anchor = [20,0];
 
         this.Update(viewer.GetPixelsPerUnit());
 
@@ -50809,6 +50817,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     }
 
 
+    // Change the length of the scale based on the camera.
     ScaleWidget.prototype.Update = function() {
         // Compute the number of screen pixels in a meter.
         var scale = Math.round(4e6 * this.Viewer.GetPixelsPerUnit());
@@ -50819,9 +50828,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.PixelsPerMeter = scale;
         var target = 200; // pixels
         var e = 0;
-        var length = this.PixelsPerMeter;
-        while (length > target) {
-            length = length / 10;
+        // Note: this assumes max bin length is 1 meter.
+        var binLengthViewer = this.PixelsPerMeter;
+        // keep reducing the length until it is reasonable.
+        while (binLengthViewer > target) {
+            binLengthViewer = binLengthViewer / 10;
             --e;
         }
         // Now compute the units from e.
@@ -50847,16 +50858,28 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             this.Units = "km";
             factor = 1000;
         }
-        this.Shape.Length = length;
-        this.Shape.NumberOfUnits = Math.floor(target / length);
+        // Length is set to the viewer pixel length of a tick / unit.
+        this.Shape.BinLength = binLengthViewer;
+        // Now add bins to get close to the target length.
+        this.Shape.NumberOfBins = Math.floor(target / binLengthViewer);
+        // compute the length of entire scale bar (units: viewer pixels).
+        var scaleLengthViewer = binLengthViewer * this.Shape.NumberOfBins;
+        var scaleLengthMeters = scaleLengthViewer / this.PixelsPerMeter;
+        // Compute the label.
+        // The round should not change the value, only get rid of numerical error.
+        var labelNumber = Math.round(scaleLengthMeters / factor);
+        this.Label = labelNumber.toString() + this.Units;
 
-        this.Label = Math.round(length / (this.PixelsPerMeter *
-                                factor))*this.Shape.NumberOfUnits;
-        this.Label = this.Label.toString() + this.Units;
+        // Save the length of the scale bar in world units.
+        // World (highest res image) pixels default to 0.25e-6 meters.
+        this.LengthWorld = scaleLengthMeters * 4e6;
+
+        // Update the label text and position
         this.Text.String = this.Label;
         this.Text.UpdateBuffers();
+        this.Text.Position = [this.Shape.Origin[0]+(scaleLengthViewer/2),
+                              this.Shape.Origin[1]-15];
 
-        console.log(this.Label);
         this.Shape.UpdateBuffers();
     }
 
@@ -50996,7 +51019,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                     direction = -1;
                 }
                 if(event.shiftKey) {
-                    this.Shape.Length = this.Shape.Length * ratio;
+                    this.Shape.BinLength = this.Shape.BinLength * ratio;
                 }
                 if(event.ctrlKey) {
                     this.Shape.Width = this.Shape.Width * ratio;
