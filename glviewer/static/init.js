@@ -275,6 +275,80 @@ SlideAtlas.prototype.StringToDistance = function(lengthStr) {
     return length;
 }
 
+// TODO: These should be moved to viewer-utils so they can be used
+// separately from SlideAtlas.
+// Helper function.
+SlideAtlas.prototype.TagCompare = function (tag,text) {
+    return (tag.toUpperCase() == text.substring(0,tag.length).toUpperCase());
+}
+// Process HTML to add standard tags.
+// Returns the altered html.
+// I am writting this to be safe to call multiple times.
+// Depth first traversal of tree.
+SlideAtlas.prototype.AddHtmlTags = function(item) {
+    var container = undefined;
+
+    // Since text concatinates children,
+    // containers only have to consume siblings.
+    var children = item.children();
+    for (var i = 0; i < children.length; ++i) {
+        var child = $(children[i]);
+
+        // Look for an existing class from our set. 
+        // If we find one, terminate processing for the item and ites children.
+        // Terminate the container collecting items.
+        if (child.hasClass('sa-history')) {
+            container = undefined;
+            continue;
+        }
+        if (child.hasClass('sa-diagnosis')) {
+            container = undefined;
+            continue;
+        }
+        if (child.hasClass('sa-note')) {
+            container = undefined;
+            continue;
+        }
+
+        // Look for a keyword at the start of the text we recognize.
+        var text = child.text();
+        var tag = false;
+        if (this.TagCompare('History:', text)) {
+            tag = 'sa-history';
+        } else if (this.TagCompare('Diagnosis:', text)) {
+            tag = 'sa-diagnosis';
+        } else if (this.TagCompare('Notes:', text)) {
+            tag = 'sa-note';
+        } else if (this.TagCompare('Note:', text)) {
+            tag = 'sa-note';
+        }
+        if (tag) {
+            // If we find one, start a new container.
+            container = $('<div>')
+                .addClass(tag)
+                .insertBefore(child);
+            // Manipulating a list we are traversing is a pain.
+            ++i;
+        }
+
+        // If we have a container, it consumes all items after it.
+        if (container) {
+            // Remove the item and add it to the container.
+            child.remove();
+            child.appendTo(container);
+            children = item.children();
+            // Manipulating a list we are traversing is a pain.
+            --i;
+        }
+    }
+}
+
+
+
+
+
+
+
 
 
 var SA = SA || new SlideAtlas();

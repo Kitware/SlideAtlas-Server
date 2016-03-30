@@ -530,6 +530,9 @@ TextEditor.prototype.SetHtml = function(html) {
     this.Note = null; //??? Editing without a note
     this.EditOn();
     this.TextEntry.html(html);
+
+    // Not needed here long term.
+    SA.AddHtmlTags(this.TextEntry);
 }
 
 TextEditor.prototype.GetHtml = function() {
@@ -755,6 +758,44 @@ function NotesWidget(parent, display) {
     }
 
     // Now for the text tab:
+    if (SA.Edit) {
+        // TODO: Encapsulate this menu (used more than once)
+        this.QuizDiv = $('<div>')
+            .appendTo(this.TextDiv)
+        this.QuizMenu = $('<select name="quiz" id="quiz">')
+            .appendTo(this.QuizDiv)
+            .css({'float':'right',
+                  'margin':'3px'})
+            .change(function () {
+                if ( ! self.RootNote) { return; }
+                if (this.value == "review") {
+                    self.RootNote.Mode = "answer-show";
+                } else if (this.value == "hidden") {
+                    self.RootNote.Mode = "answer-hide";
+                } else if (this.value == "interactive") {
+                    self.RootNote.Mode = "answer-interactive";
+                }
+                self.UpdateQuestionMode();
+            });
+        this.QuizLabel = $('<div>')
+            .appendTo(this.TextDiv)
+            .css({'float':'right',
+                  'font-size':'small',
+                  'margin-top':'4px'})
+            .text("quiz");
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('review');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('hidden');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('interactive');
+        // Set the question mode
+        this.QuizMenu.val("review");
+    }
+
     this.TextEditor = new TextEditor(this.TextDiv, this.Display);
     if ( ! SA.Edit) {
         this.TextEditor.EditableOff();
@@ -770,6 +811,39 @@ function NotesWidget(parent, display) {
         function () {
             self.UserTextEditor.Note.Save();
         });
+}
+
+NotesWidget.prototype.UpdateQuestionMode = function() {
+    // Set the question mode
+    if ( ! this.RootNote) {
+        return;
+    }
+
+    if ( ! this.RootNote.Mode) {
+        this.RootNote.Mode = 'answer-show';
+    }
+
+    if (this.QuizMenu) {
+        if (this.RootNote.Mode == 'answer-hide') {
+            this.QuizMenu.val("hidden");
+        } else if (this.RootNote.Mode == 'answer-interactive') {
+            this.QuizMenu.val("interactive");
+        } else {
+            //this.RootNote.Mode = 'answer-show';
+            this.QuizMenu.val("review");
+        }
+    }
+
+    // make sure tags have been decoded.
+    SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+    if (this.RootNote.Mode == 'answer-show') {
+        $('.sa-note').show();
+        $('.sa-diagnosis').show();
+    } else {
+        $('.sa-note').hide();
+        $('.sa-diagnosis').hide();
+    }
 }
 
 NotesWidget.prototype.SetNavigationWidget = function(nav) {
@@ -900,6 +974,8 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
     if (rootNote.ViewerRecords.length > 0) {
         this.RequestUserNote(rootNote.ViewerRecords[0].Image._id);
     }
+
+    this.UpdateQuestionMode();
 }
 
 
@@ -934,6 +1010,9 @@ NotesWidget.prototype.EditOff = function() {
 }
 
 NotesWidget.prototype.SaveCallback = function(finishedCallback) {
+    // Process containers for diagnosis ....
+    SA.AddHtmlTags(this.TextEditor.TextEntry);
+
     // Lets try saving the camera for the current note.
     // This is a good comprise.  Do not record the camera
     // every time it moves, but do record it when the samve button
@@ -1232,4 +1311,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         this.UserTextEditor.EditOn();
     }
 }
+
+
+
 
