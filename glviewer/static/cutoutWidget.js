@@ -15,7 +15,7 @@ function CutoutWidget (parent, viewer) {
     this.Bounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
     this.DragBounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
 
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     //viewer.ActivateWidget(this):
     eventuallyRender();
 
@@ -155,12 +155,8 @@ CutoutWidget.prototype.DrawCenter = function(ctx, pt, cam, color) {
 
 // This needs to be put in the Viewer.
 CutoutWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -366,10 +362,7 @@ CutoutWidget.prototype.Deactivate = function() {
         return;
     }
     this.Viewer.DeactivateWidget(this);
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
-    }
+    this.Viewer.RemoveWidget(this);
 
     eventuallyRender();
 }

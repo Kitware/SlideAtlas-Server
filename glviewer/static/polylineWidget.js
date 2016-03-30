@@ -146,7 +146,7 @@ function PolylineWidget (viewer, newFlag) {
     var cam = viewer.MainView.Camera;
     var viewport = viewer.MainView.Viewport;
 
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     // Set line thickness using viewer. (5 pixels).
     // The Line width of the shape switches to 0 (single line)
@@ -295,15 +295,10 @@ PolylineWidget.prototype.Load = function(obj) {
 }
 
 PolylineWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
-
 
 PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
@@ -927,7 +922,7 @@ PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
 
 function DownloadTheano(widgetIdx, angleIdx) {
     EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
-    VIEWERS[0].WidgetList[widgetIdx].SampleEdge(
+    VIEWERS[0].GetWidget(widgetIdx).SampleEdge(
         64,4,EDGE_COUNT,
         function () {
             setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
@@ -941,7 +936,7 @@ function DownloadTheano2(widgetIdx, angleIdx) {
         angleIdx = 0;
         ++widgetIdx;
     }
-    if (widgetIdx < VIEWERS[0].WidgetList.length) {
+    if (widgetIdx < VIEWERS[0].GetNumberOfWidgets()) {
         DownloadTheano(widgetIdx, angleIdx);
     }
 }

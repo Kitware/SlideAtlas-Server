@@ -87,6 +87,19 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
 }
 
 
+// Get the current scale factor between pixels and world units.
+// Returns the size of a world pixel in screen pixels.
+// factor: screen/world
+// The default world pixel = 0.25e-6 meters
+View.prototype.GetPixelsPerUnit = function() {
+    // Determine the scale difference between the two coordinate systems.
+    var m = this.Camera.Matrix;
+
+    // Convert from world coordinate to view (-1->1);
+    return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+}
+
+
 // TODO: Get rid of these since the user can manipulate the parent / canvas
 // div which can be passed into the constructor.
 View.prototype.appendTo = function(j) {

@@ -217,6 +217,14 @@
         this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
         this.Shape.FixedSize = false;
 
+        this.Text = new Text();
+        // Shallow copy is dangerous
+        this.Text.Position = this.Shape.Origin;
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.Color = [0.0, 0.0, 0.5];
+        this.Text.Anchor = [0,0];
+        this.Text.UpdateBuffers();
+
         // Get default properties.
         if (localStorage.GridWidgetDefaults) {
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
@@ -230,7 +238,7 @@
             }
         }
 
-        this.Viewer.WidgetList.push(this);
+        this.Viewer.AddWidget(this);
 
         // Note: If the user clicks before the mouse is in the
         // canvas, this will behave odd.
@@ -245,46 +253,79 @@
 
     }
 
-    GridWidget.prototype.DistanceToString = function(length) {
-        length = length * 0.25; // microns per pixel.
-        var lengthStr = "";
-        if (length > 1000) {
-            lengthStr += (length/1000).toFixed(2) + " mm";
-        } else {
-            // Latin-1 00B5 is micro sign
-            lengthStr += length.toFixed(2) + " \xB5m";
-        }
-        return lengthStr;
-    }
 
-    GridWidget.prototype.StringToDistance = function(lengthStr) {
-        var length = 0;
-        lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
-        var len = lengthStr.length;
-        // Convert to microns
-        if (lengthStr.substring(len-2,len) == "\xB5m") {
-            length = parseFloat(lengthStr.substring(0,len-2));
-        } else if (lengthStr.substring(len-2,len) == "mm") { 
-            length = parseFloat(lengthStr.substring(0,len-2)) * 1000.0;
+    // sign specifies which corner is origin.
+    // gx, gy is the point in grid pixel coordinates offset from the corner.
+    GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
+        // Pick the upper left most corner to display the grid size text.
+        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
+        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
+        xRadius += gx;
+        yRadius += gy;
+        var x = this.Shape.Origin[0];
+        var y = this.Shape.Origin[1];
+        // Choose the corner from 0 to 90 degrees in the window.
+        var roll = (this.Viewer.GetCamera().GetRotation()-
+                    this.Shape.Orientation) / 90; // range 0-4
+        roll = Math.round(roll);
+        // Modulo that works with negative numbers;
+        roll = ((roll % 4) + 4) % 4;
+        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var dx , dy;
+        if (roll == 0) {
+            dx =  xSign*xRadius;
+            dy =  ySign*yRadius;
+        } else if (roll == 3) {
+            dx =  xSign*xRadius;
+            dy = -ySign*yRadius;
+        } else if (roll == 2) {
+            dx = -xSign*xRadius;
+            dy = -ySign*yRadius;
+        } else if (roll == 1) {
+            dx = -xSign*xRadius;
+            dy =  ySign*yRadius;
         }
-        // Convert to scan pixels
-        length = length / 0.25; // microns per pixel.
+        x = x + c*dx + s*dy;
+        y = y + c*dy - s*dx;
 
-        return length;
+        return [x,y];
     }
 
     GridWidget.prototype.Draw = function(view) {
         this.Shape.Draw(view);
+
+        // Corner in grid pixel coordinates.
+        var x = - (this.Shape.Width * this.Shape.Dimensions[0] / 2);
+        var y = - (this.Shape.Height * this.Shape.Dimensions[1] / 2);
+        this.Text.Anchor = [0,20];
+        this.Text.Orientation = (this.Shape.Orientation -
+                                 this.Viewer.GetCamera().GetRotation());
+        // Modulo that works with negative numbers;
+        this.Text.Orientation = ((this.Text.Orientation % 360) + 360) % 360;
+        // Do not draw text upside down.
+        if (this.Text.Orientation > 90 && this.Text.Orientation < 270) {
+            this.Text.Orientation -= 180.0;
+            this.Text.Anchor = [this.Text.PixelBounds[1],0];
+            //x += this.Text.PixelBounds[1]; // wrong units (want world
+            //pixels , this is screen pixels).
+        }
+        // Convert to world Coordinates.
+        var radians = this.Shape.Orientation * Math.PI / 180;
+        var c = Math.cos(radians);
+        var s = Math.sin(radians);
+        var wx = c*x + s*y;
+        var wy = c*y - s*x;
+        this.Text.Position = [this.Shape.Origin[0]+wx,this.Shape.Origin[1]+wy];
+
+                                 
+        this.Text.Draw(view);
     };
 
     // This needs to be put in the Viewer.
     GridWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer === null) {
-            return;
-        }
-        var idx = this.Viewer.WidgetList.indexOf(this);
-        if(idx!=-1) {
-            this.Viewer.WidgetList.splice(idx, 1);
+        if (this.Viewer) {
+            this.Viewer.RemoveWidget(this);
         }
     };
 
@@ -297,6 +338,7 @@
         // Place the widget over the mouse.
         // This would be better as an argument.
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
         eventuallyRender();
     };
@@ -331,6 +373,11 @@
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers();
+
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        // Shallow copy is dangerous
+        this.Text.Position = this.Shape.Origin;
+        this.Text.UpdateBuffers();
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -402,10 +449,8 @@
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
                 // convert from shape to integer grid indexes.
-                x = (0.5*this.Shape.Dimensions[0]) + (x /
-    this.Shape.Width);
-                y = (0.5*this.Shape.Dimensions[1]) + (y /
-    this.Shape.Height);
+                x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
+                y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
                 // Change grid dimemsions
@@ -627,35 +672,9 @@
 
     // This also shows the popup if it is not visible already.
     GridWidget.prototype.PlacePopup = function () {
-        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
-        var x = this.Shape.Origin[0];
-        var y = this.Shape.Origin[1];
-        // Choose the corner from 0 to 90 degrees in the window.
-        var roll = (this.Viewer.GetCamera().GetRotation()-
-                    this.Shape.Orientation) / 90; // range 0-4
-        roll = Math.round(roll);
-        // Modulo that works with negative numbers;
-        roll = ((roll % 4) + 4) % 4;
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
-        var dx , dy;
-        if (roll == 0) {
-            dx =  xRadius;
-            dy = -yRadius;
-        } else if (roll == 3) {
-            dx =  xRadius;
-            dy =  yRadius;
-        } else if (roll == 2) {
-            dx = -xRadius;
-            dy =  yRadius;
-        } else if (roll == 1) {
-            dx = -xRadius;
-            dy = -yRadius;
-        }
-        x = x + c*dx + s*dy;
-        y = y + c*dy - s*dx;
-        var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+        // Compute corner has its angle backwards.  I do not see how this works.
+        var pt = this.ComputeCorner(1, -1, 0, 0);
+        pt = this.Viewer.ConvertPointWorldToViewer(pt[0], pt[1]);
         this.Popup.Show(pt[0]+10,pt[1]-30);
     };
 
@@ -665,8 +684,9 @@
     GridWidget.prototype.ShowPropertiesDialog = function () {
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
-        this.Dialog.ElementWidthInput.val(this.DistanceToString(this.Shape.Width));
-        this.Dialog.ElementHeightInput.val(this.DistanceToString(this.Shape.Height));
+        // convert 40x scan pixels into meters
+        this.Dialog.ElementWidthInput.val(SA.DistanceToString(this.Shape.Width*0.25e-6));
+        this.Dialog.ElementHeightInput.val(SA.DistanceToString(this.Shape.Height*0.25e-6));
         this.Dialog.RotationInput.val(this.Shape.Orientation);
 
         this.Dialog.Show(true);
@@ -676,11 +696,15 @@
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.Width = this.StringToDistance(this.Dialog.ElementWidthInput.val());
-        this.Shape.Height = this.StringToDistance(this.Dialog.ElementHeightInput.val());
+        this.Shape.Width = SA.StringToDistance(this.Dialog.ElementWidthInput.val())*4e6;
+        this.Shape.Height = SA.StringToDistance(this.Dialog.ElementHeightInput.val())*4e6;
         this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
         this.Shape.UpdateBuffers();
         this.SetActive(false);
+
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.UpdateBuffers();
+
         RecordState();
         eventuallyRender();
 

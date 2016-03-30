@@ -100,8 +100,11 @@ function Viewer (parent) {
     
     this.AnnotationVisibility = ANNOTATION_ON;
     this.WidgetList = [];
+    this.ScaleWidget = new ScaleWidget(this, false);
+
     this.ActiveWidget = null;
-    
+
+
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -1029,6 +1032,14 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
+Viewer.prototype.GetNumberOfWidgets = function() {
+    return this.WidgetList.length;
+}
+
+
+Viewer.prototype.GetWidget = function(i) {
+    return this.WidgetList[i];
+}
 
 Viewer.prototype.AddWidget = function(widget) {
     widget.Viewer = this;
@@ -1160,6 +1171,9 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawOutline(true);
     }
     if (this.AnnotationVisibility) {
+        if (this.ScaleWidget) {
+            this.ScaleWidget.Draw(this.MainView);
+        }
         this.MainView.DrawShapes();
         for(i in this.WidgetList){
             this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
@@ -2226,13 +2240,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
-    // Determine the scale difference between the two coordinate systems.
-    var viewport = this.GetViewport();
-    var cam = this.MainView.Camera;
-    var m = cam.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+    return this.MainView.GetPixelsPerUnit();
 }
 
 // Covert a point from world coordiante system to viewer coordinate system (units pixels).

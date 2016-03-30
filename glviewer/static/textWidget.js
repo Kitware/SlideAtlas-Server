@@ -162,7 +162,7 @@ function TextWidget (viewer, string) {
     this.Arrow.ZOffset = 0.2;
     this.Arrow.UpdateBuffers();
 
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     this.ActiveReason = 1;
 
     // It is odd the way the Anchor is set.  Leave the above for now.
@@ -218,13 +218,10 @@ TextWidget.prototype.Draw = function(view, visibility) {
 }
 
 TextWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer == null) {
+        return;
+    }
+    this.Viewer.RemoveWidget(this);
 }
 
 

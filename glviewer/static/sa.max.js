@@ -12415,8 +12415,8 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // See if a SectionsWidget already exists.
     var widget = null;
-    for (var i = 0; i < this.Viewer.WidgetList.length && widget == null; ++i) {
-        var w = this.Viewer.WidgetList[i];
+    for (var i = 0; i < this.Viewer.GetNumberOfWidgets() && widget == null; ++i) {
+        var w = this.Viewer.GetWidget(i);
         //if (w instanceOf SectionsWidget) {
         if (w.Type == "sections") {
             widget = w;
@@ -12587,32 +12587,32 @@ ViewerRecord.prototype.Load = function(obj) {
 
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
-  var cache = viewer.GetCache();
-  if ( ! cache) {
-    this.Camera = null;
-    this.AnnotationVisibility = false;
+    var cache = viewer.GetCache();
+    if ( ! cache) {
+        this.Camera = null;
+        this.AnnotationVisibility = false;
+        this.Annotations = [];
+        return;
+    }
+
+
+    this.OverviewBounds = viewer.GetOverViewBounds();
+
+    this.Image = cache.Image;
+    this.Camera = viewer.GetCamera().Serialize();
+
+    this.AnnotationVisibility = viewer.GetAnnotationVisibility();
     this.Annotations = [];
-    return;
-  }
-
-
-  this.OverviewBounds = viewer.GetOverViewBounds();
-
-  this.Image = cache.Image;
-  this.Camera = viewer.GetCamera().Serialize();
-
-  this.AnnotationVisibility = viewer.GetAnnotationVisibility();
-  this.Annotations = [];
-  for (var i = 0; i < viewer.WidgetList.length; ++i) {
-    this.Annotations.push(viewer.WidgetList[i].Serialize());
-  }
+    for (var i = 0; i < viewer.GetNumberOfWidgets(); ++i) {
+        this.Annotations.push(viewer.GetWidget(i).Serialize());
+    }
 }
 
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    for (var i = 0; i < viewer.WidgetList.length; ++i) {
-        var o = viewer.WidgetList[i].Serialize();
+    for (var i = 0; i < viewer.GetNumberOfWidgets; ++i) {
+        var o = viewer.GetWidget(i).Serialize();
         if (o) {
             this.Annotations.push(o);
         }
@@ -12647,6 +12647,7 @@ ViewerRecord.prototype.Serialize = function () {
 
 
 ViewerRecord.prototype.Apply = function (viewer) {
+    viewer.Reset();
     // If a widget is active, then just inactivate it.
     // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
     if (viewer.ActiveWidget) {
@@ -12680,8 +12681,6 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (this.Annotations != undefined) {
         // TODO: Fix this.  Keep actual widgets in the records / notes.
         // For now lets just do the easy thing and recreate all the annotations.
-        viewer.WidgetList = [];
-        viewer.ShapeList = [];
         for (var i = 0; i < this.Annotations.length; ++i) {
             var widget = viewer.LoadWidget(this.Annotations[i]);
             // Until we do the above todo.  This is the messy way of removing
@@ -13892,7 +13891,7 @@ function StackSectionWidget (viewer) {
     this.Bounds = null;
     if (viewer) {
         this.Viewer = viewer;
-        this.Viewer.WidgetList.push(this);
+        this.Viewer.AddWidget(this);
     }
 }
 
@@ -14161,12 +14160,8 @@ StackSectionWidget.prototype.SetActive = function(flag) {
 }
 
 StackSectionWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -14461,7 +14456,7 @@ function SectionsWidget (viewer, newFlag) {
 
     this.Type = "sections";
     this.Viewer = viewer;
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     var self = this;
 
@@ -14866,12 +14861,8 @@ SectionsWidget.prototype.Deactivate = function() {
 
 
 SectionsWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -28275,6 +28266,19 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
 }
 
 
+// Get the current scale factor between pixels and world units.
+// Returns the size of a world pixel in screen pixels.
+// factor: screen/world
+// The default world pixel = 0.25e-6 meters
+View.prototype.GetPixelsPerUnit = function() {
+    // Determine the scale difference between the two coordinate systems.
+    var m = this.Camera.Matrix;
+
+    // Convert from world coordinate to view (-1->1);
+    return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+}
+
+
 // TODO: Get rid of these since the user can manipulate the parent / canvas
 // div which can be passed into the constructor.
 View.prototype.appendTo = function(j) {
@@ -28786,8 +28790,11 @@ function Viewer (parent) {
     
     this.AnnotationVisibility = ANNOTATION_ON;
     this.WidgetList = [];
+    this.ScaleWidget = new ScaleWidget(this, false);
+
     this.ActiveWidget = null;
-    
+
+
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -29715,6 +29722,14 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
+Viewer.prototype.GetNumberOfWidgets = function() {
+    return this.WidgetList.length;
+}
+
+
+Viewer.prototype.GetWidget = function(i) {
+    return this.WidgetList[i];
+}
 
 Viewer.prototype.AddWidget = function(widget) {
     widget.Viewer = this;
@@ -29846,6 +29861,9 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawOutline(true);
     }
     if (this.AnnotationVisibility) {
+        if (this.ScaleWidget) {
+            this.ScaleWidget.Draw(this.MainView);
+        }
         this.MainView.DrawShapes();
         for(i in this.WidgetList){
             this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
@@ -30912,13 +30930,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
-    // Determine the scale difference between the two coordinate systems.
-    var viewport = this.GetViewport();
-    var cam = this.MainView.Camera;
-    var m = cam.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+    return this.MainView.GetPixelsPerUnit();
 }
 
 // Covert a point from world coordiante system to viewer coordinate system (units pixels).
@@ -40642,6 +40654,19 @@ View.prototype.InitializeViewport = function(viewport, layer, hide) {
 }
 
 
+// Get the current scale factor between pixels and world units.
+// Returns the size of a world pixel in screen pixels.
+// factor: screen/world
+// The default world pixel = 0.25e-6 meters
+View.prototype.GetPixelsPerUnit = function() {
+    // Determine the scale difference between the two coordinate systems.
+    var m = this.Camera.Matrix;
+
+    // Convert from world coordinate to view (-1->1);
+    return 0.5*this.Viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+}
+
+
 // TODO: Get rid of these since the user can manipulate the parent / canvas
 // div which can be passed into the constructor.
 View.prototype.appendTo = function(j) {
@@ -41153,8 +41178,11 @@ function Viewer (parent) {
     
     this.AnnotationVisibility = ANNOTATION_ON;
     this.WidgetList = [];
+    this.ScaleWidget = new ScaleWidget(this, false);
+
     this.ActiveWidget = null;
-    
+
+
     this.DoubleClickX = 0;
     this.DoubleClickY = 0;
     
@@ -42082,6 +42110,14 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
+Viewer.prototype.GetNumberOfWidgets = function() {
+    return this.WidgetList.length;
+}
+
+
+Viewer.prototype.GetWidget = function(i) {
+    return this.WidgetList[i];
+}
 
 Viewer.prototype.AddWidget = function(widget) {
     widget.Viewer = this;
@@ -42213,6 +42249,9 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawOutline(true);
     }
     if (this.AnnotationVisibility) {
+        if (this.ScaleWidget) {
+            this.ScaleWidget.Draw(this.MainView);
+        }
         this.MainView.DrawShapes();
         for(i in this.WidgetList){
             this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
@@ -43279,13 +43318,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
-    // Determine the scale difference between the two coordinate systems.
-    var viewport = this.GetViewport();
-    var cam = this.MainView.Camera;
-    var m = cam.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+    return this.MainView.GetPixelsPerUnit();
 }
 
 // Covert a point from world coordiante system to viewer coordinate system (units pixels).
@@ -43857,7 +43890,7 @@ function CutoutWidget (parent, viewer) {
     this.Bounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
     this.DragBounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
 
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     //viewer.ActivateWidget(this):
     eventuallyRender();
 
@@ -43997,12 +44030,8 @@ CutoutWidget.prototype.DrawCenter = function(ctx, pt, cam, color) {
 
 // This needs to be put in the Viewer.
 CutoutWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -44208,10 +44237,7 @@ CutoutWidget.prototype.Deactivate = function() {
         return;
     }
     this.Viewer.DeactivateWidget(this);
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
-    }
+    this.Viewer.RemoveWidget(this);
 
     eventuallyRender();
 }
@@ -44311,39 +44337,40 @@ function TextError () {
 }
 
 function Text() {
-  // All text objects sare the same texture map.
-  //if (TEXT_TEXTURE == undefined ) {
-  //}
-  if (GL) {
-    this.TextureLoaded = false;
-    this.Texture = GL.createTexture();
-    this.Image = new Image();
-    this.Image.onload = GetTextureLoadedFunction(this);
-    //this.Image.onerror = TextError(); // Always fires for some reason.
-    // This starts the loading.
-    this.Image.src = SA.ImagePathUrl +"letters.gif";
-  }
-  this.Color = [0.5, 1.0, 1.0];
-  this.Size = 12; // Height in pixels
+    // All text objects sare the same texture map.
+    //if (TEXT_TEXTURE == undefined ) {
+    //}
+    if (GL) {
+        this.TextureLoaded = false;
+        this.Texture = GL.createTexture();
+        this.Image = new Image();
+        this.Image.onload = GetTextureLoadedFunction(this);
+        //this.Image.onerror = TextError(); // Always fires for some reason.
+        // This starts the loading.
+        this.Image.src = SA.ImagePathUrl +"letters.gif";
+    }
+    this.Color = [0.5, 1.0, 1.0];
+    this.Size = 12; // Height in pixels
 
-  // Position of the anchor in the world coordinate system.
-  this.Position = [100,100];
+    // Position of the anchor in the world coordinate system.
+    this.Position = [100,100];
+    this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
 
-  // The anchor point and position are the same point.
-  // Position is in world coordinates.
-  // Anchor is in pixel coordinates of text (buffers).
-  // In pixel(text) coordinate system
-  this.Anchor = [0,0];
-  this.Active = false;
+    // The anchor point and position are the same point.
+    // Position is in world coordinates.
+    // Anchor is in pixel coordinates of text (buffers).
+    // In pixel(text) coordinate system
+    this.Anchor = [0,0];
+    this.Active = false;
 
-  //this.String = "Hello World";
-  //this.String = "0123456789";
-  this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
+    //this.String = "Hello World";
+    //this.String = "0123456789";
+    this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
 
-  // Pixel bounds are in text box coordiante system.
-  this.PixelBounds = [0,0,0,0];
+    // Pixel bounds are in text box coordiante system.
+    this.PixelBounds = [0,0,0,0];
   
-  this.BackgroundFlag = false;
+    this.BackgroundFlag = false;
 };
 
 Text.prototype.destructor=function() {
@@ -44368,127 +44395,136 @@ Text.prototype.HandleLoadedTexture = function() {
 }
 
 Text.prototype.Draw = function (view) {
-  // Place the anchor of the text.
-  // First transform the world anchor to view.
-  var m = view.Camera.Matrix;
-  var x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
-  var y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
-  // convert view to pixels (view coordinate system).
-  x = view.Viewport[2]*(0.5*(1.0+x));
-  y = view.Viewport[3]*(0.5*(1.0-y));
+    // Place the anchor of the text.
+    // First transform the world anchor to view.
+    var x = this.Position[0];
+    var y = this.Position[1];
+    if (this.PositionCoordinateSystem != Shape.VIEWER) {
+        var m = view.Camera.Matrix;
+        x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
+        y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
+        // convert view to pixels (view coordinate system).
+        x = view.Viewport[2]*(0.5*(1.0+x));
+        y = view.Viewport[3]*(0.5*(1.0-y));
+    }
   
-  // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
-  if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
-    this.Anchor = [-50, 0];
-  }
-
-  if (GL) {
-    if (this.TextureLoaded == false) {
-      return;
+    // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
+    if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
+        this.Anchor = [-50, 0];
     }
-    if (this.Matrix == undefined) {
-      this.UpdateBuffers();
-      this.Matrix = mat4.create();
-      mat4.identity(this.Matrix);
-    }
-    var program = textProgram;
-    GL.useProgram(program);
 
-    //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
-    //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
-    //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-    //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-    GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-    GL.enable(GL.BLEND);
-    //GL.disable(GL.DEPTH_TEST);
+    if (GL) {
+        if (this.TextureLoaded == false) {
+            return;
+        }
+        if (this.Matrix == undefined) {
+            this.UpdateBuffers();
+            this.Matrix = mat4.create();
+            mat4.identity(this.Matrix);
+        }
+        var program = textProgram;
+        GL.useProgram(program);
 
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    GL.vertexAttribPointer(program.vertexPositionAttribute,
-                           this.VertexPositionBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);     // Texture coordinates
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    GL.vertexAttribPointer(program.textureCoordAttribute,
-                           this.VertexTextureCoordBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);
-    // Cell Connectivity
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
+        //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
+        //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
+        //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
+        GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+        GL.enable(GL.BLEND);
+        //GL.disable(GL.DEPTH_TEST);
 
-    // Color of text
-    if (this.Active) {
-      GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+        // These are the same for every tile.
+        // Vertex points (shifted by tiles matrix)
+        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+        // Needed for outline ??? For some reason, DrawOutline did not work
+        // without this call first.
+        GL.vertexAttribPointer(program.vertexPositionAttribute,
+                               this.VertexPositionBuffer.itemSize,
+                               GL.FLOAT, false, 0, 0);     // Texture coordinates
+        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        GL.vertexAttribPointer(program.textureCoordAttribute,
+                               this.VertexTextureCoordBuffer.itemSize,
+                               GL.FLOAT, false, 0, 0);
+        // Cell Connectivity
+        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+        // Color of text
+        if (this.Active) {
+            GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+        } else {
+            GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+        }
+        // Draw characters.
+        GL.viewport(view.Viewport[0], view.Viewport[1],
+                    view.Viewport[2], view.Viewport[3]);
+
+        var viewFrontZ = view.Camera.ZRange[0]+0.01;
+
+        // Lets use the camera to change coordinate system to pixels.
+        // TODO: Put this camera in the view or viewer to avoid creating one each render.
+        var camMatrix = mat4.create();
+        mat4.identity(camMatrix);
+        camMatrix[0] = 2.0 / view.Viewport[2];
+        camMatrix[12] = -1.0;
+        camMatrix[5] = -2.0 / view.Viewport[3];
+        camMatrix[13] = 1.0;
+        camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
+        GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+
+        // Translate the anchor to x,y
+        this.Matrix[12] = x - this.Anchor[0];
+        this.Matrix[13] = y - this.Anchor[1];
+        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+        GL.activeTexture(GL.TEXTURE0);
+        GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+        GL.uniform1i(program.samplerUniform, 0);
+
+        GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
     } else {
-      GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+        // (x,y) is the screen position of the text.
+        // Canvas text location is lower left of first letter.
+        var strArray = this.String.split("\n");
+        // Move (x,y) from tip of the arrow to the upper left of the text box.
+        var ctx = view.Context2d;
+        ctx.save();
+        var radians = this.Orientation * Math.PI / 180;
+        var s = Math.sin(radians);
+        var c = Math.cos(radians);
+        ctx.setTransform(c,-s,s,c,x,y);
+        x = - this.Anchor[0];
+        y = - this.Anchor[1];
+
+        ctx.font = this.Size+'pt Calibri';
+        var width = this.PixelBounds[1];
+        var height = this.PixelBounds[3];
+        // Draw the background text box.
+        if(this.BackgroundFlag){
+            //ctx.fillStyle = '#fff';
+            //ctx.strokeStyle = '#000';
+            //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
+            roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
+        }
+
+        // Choose the color for the text.
+        if (this.Active) {
+            ctx.fillStyle = '#FF0';
+        } else {
+            ctx.fillStyle = ConvertColorToHex(this.Color);
+        }
+
+        // Convert (x,y) from upper left of textbox to lower left of first character.
+        y = y + this.Size;
+        // Draw the lines of the text.
+        for (var i = 0; i < strArray.length; ++i) {
+            ctx.fillText(strArray[i], x, y)
+            // Move to the lower left of the next line.
+            y = y + this.Size*LINE_SPACING;
+        }
+
+        ctx.stroke();
+        ctx.restore();
     }
-    // Draw characters.
-    GL.viewport(view.Viewport[0], view.Viewport[1],
-                view.Viewport[2], view.Viewport[3]);
-
-    var viewFrontZ = view.Camera.ZRange[0]+0.01;
-
-    // Lets use the camera to change coordinate system to pixels.
-    // TODO: Put this camera in the view or viewer to avoid creating one each render.
-    var camMatrix = mat4.create();
-    mat4.identity(camMatrix);
-    camMatrix[0] = 2.0 / view.Viewport[2];
-    camMatrix[12] = -1.0;
-    camMatrix[5] = -2.0 / view.Viewport[3];
-    camMatrix[13] = 1.0;
-    camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-
-    // Translate the anchor to x,y
-    this.Matrix[12] = x - this.Anchor[0];
-    this.Matrix[13] = y - this.Anchor[1];
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-
-    GL.activeTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-    GL.uniform1i(program.samplerUniform, 0);
-
-    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
-  } else {
-    // Canvas text location is lower left of first letter.
-    var strArray = this.String.split("\n");
-    // Move (x,y) from tip of the arrow to the upper left of the text box.
-    x = x - this.Anchor[0];
-    y = y - this.Anchor[1];
-    var ctx = view.Context2d;
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.font = this.Size+'pt Calibri';
-    var width = this.PixelBounds[1];
-    var height = this.PixelBounds[3];
-    // Draw the background text box.
-    if(this.BackgroundFlag){
-      //ctx.fillStyle = '#fff';
-      //ctx.strokeStyle = '#000';
-      //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
-      roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
-    }
-
-    // Choose the color for the text.
-    if (this.Active) {
-      ctx.fillStyle = '#FF0';
-    } else {
-      ctx.fillStyle = ConvertColorToHex(this.Color);
-    }
-
-    // Convert (x,y) from upper left of textbox to lower left of first character.
-    y = y + this.Size;
-    // Draw the lines of the text.
-    for (var i = 0; i < strArray.length; ++i) {
-      ctx.fillText(strArray[i], x, y)
-      // Move to the lower left of the next line.
-      y = y + this.Size*LINE_SPACING;
-    }
-    
-    ctx.stroke();
-    ctx.restore();
-  }
 }
 
 function roundRect(ctx, x, y, width, height, radius) {
@@ -44807,7 +44843,7 @@ function TextWidget (viewer, string) {
     this.Arrow.ZOffset = 0.2;
     this.Arrow.UpdateBuffers();
 
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     this.ActiveReason = 1;
 
     // It is odd the way the Anchor is set.  Leave the above for now.
@@ -44863,13 +44899,10 @@ TextWidget.prototype.Draw = function(view, visibility) {
 }
 
 TextWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer == null) {
+        return;
+    }
+    this.Viewer.RemoveWidget(this);
 }
 
 
@@ -45813,7 +45846,7 @@ function PolylineWidget (viewer, newFlag) {
     var cam = viewer.MainView.Camera;
     var viewport = viewer.MainView.Viewport;
 
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     // Set line thickness using viewer. (5 pixels).
     // The Line width of the shape switches to 0 (single line)
@@ -45962,15 +45995,10 @@ PolylineWidget.prototype.Load = function(obj) {
 }
 
 PolylineWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
-
 
 PolylineWidget.prototype.CityBlockDistance = function(p0, p1) {
   return Math.abs(p1[0]-p0[0]) + Math.abs(p1[1]-p0[1]);
@@ -46594,7 +46622,7 @@ PolylineWidget.prototype.SampleEdge = function(dim, step, count, callback) {
 
 function DownloadTheano(widgetIdx, angleIdx) {
     EDGE_ANGLE = 2*Math.PI * angleIdx / 24;
-    VIEWERS[0].WidgetList[widgetIdx].SampleEdge(
+    VIEWERS[0].GetWidget(widgetIdx).SampleEdge(
         64,4,EDGE_COUNT,
         function () {
             setTimeout(function(){ DownloadTheano2(widgetIdx, angleIdx); }, 1000);
@@ -46608,7 +46636,7 @@ function DownloadTheano2(widgetIdx, angleIdx) {
         angleIdx = 0;
         ++widgetIdx;
     }
-    if (widgetIdx < VIEWERS[0].WidgetList.length) {
+    if (widgetIdx < VIEWERS[0].GetNumberOfWidgets()) {
         DownloadTheano(widgetIdx, angleIdx);
     }
 }
@@ -46694,7 +46722,7 @@ function PencilWidget (viewer, newFlag) {
 
     this.Viewer = viewer;
     this.Popup = new WidgetPopup(this);
-    this.Viewer.WidgetList.push(this);
+    this.AddWidget(this);
 
     var self = this;
     this.Shapes = [];
@@ -46914,13 +46942,9 @@ PencilWidget.prototype.SetActive = function(flag) {
 }
 
 PencilWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 // Can we bind the dialog apply callback to an objects method?
@@ -47063,7 +47087,7 @@ function FillWidget (viewer, newFlag) {
 
     this.Popup = new WidgetPopup(this);
     this.Viewer = viewer;
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     this.Cursor = $('<img>').appendTo('body')
         .addClass("sa-view-fill-cursor")
@@ -47289,12 +47313,8 @@ FillWidget.prototype.SetActive = function(flag) {
 }
 
 FillWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget();
     }
 }
 
@@ -47405,7 +47425,7 @@ function LassoWidget (viewer, newFlag) {
 
     this.Viewer = viewer;
     this.Popup = new WidgetPopup(this);
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     var self = this;
 
@@ -47632,13 +47652,9 @@ LassoWidget.prototype.SetActive = function(flag) {
 }
 
 LassoWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 // Can we bind the dialog apply callback to an objects method?
@@ -48037,303 +48053,340 @@ WidgetPopup.prototype.HideTimerCallback = function() {
 
 
 // TODO:
-// make a shape superclass.
+// Cleanup API for choosing coordinate systems.
+// Position (currently Origin) is in slide.
+//   I want to extend this to Viewer.
+//   Relative to corners or center and
+//   possibly relative to left, right of shape ... like css
+// Currently we use FixedSize to choose width and height units.
+
+// For the sort term I need an option to have position relative to upper
+// left of the viewer.
 
 
-function Shape() {
-  this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
-  this.Origin = [10000,10000]; // Anchor in world coordinates.
-  this.FixedSize = true;
-  this.FixedOrientation = true;
-  this.LineWidth = 0; // Line width has to be in same coordiantes as points.
-  this.Visibility = true; // An easy way to turn off a shape (with removing it from the shapeList).
-  this.Active = false;
-  this.ActiveColor = [1.0, 1.0, 0.0];
-  // Playing around with layering.  The anchor is being obscured by the text.
-  this.ZOffset = 0.1;
-  };
+(function () {
+    "use strict";
 
-Shape.prototype.destructor=function() {
-  // Get rid of the buffers?
-}
+    function Shape() {
+        this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
+        this.PositionCoordinateSystem = Shape.SLIDE;
+        // This is the position of the shape origin in the containing
+        // coordinate system. Probably better called position.
+        this.Origin = [10000,10000]; // Anchor in world coordinates.
+        // FixedSize => PointBuffer units in viewer pixels.
+        // otherwise
+        this.FixedSize = true;
+        this.FixedOrientation = true;
+        this.LineWidth = 0; // Line width has to be in same coordiantes as points.
+        this.Visibility = true; // An easy way to turn off a shape (with removing it from the shapeList).
+        this.Active = false;
+        this.ActiveColor = [1.0, 1.0, 0.0];
+        // Playing around with layering.  The anchor is being obscured by the text.
+        this.ZOffset = 0.1;
+    };
 
-Shape.prototype.Draw = function (view) {
-  if ( ! this.Visibility) {
-    return;
-  }
-  if (this.Matrix == undefined) {
-    this.UpdateBuffers();
-  }
+    // Coordinate Systems
+    Shape.SLIDE = 0; // Pixel of highest resolution level.
+    Shape.VIEWER = 1; // Pixel of viewer canvas.
 
-  if (GL) {
-    // Lets use the camera to change coordinate system to pixels.
-    // TODO: Put this camera in the view or viewer to avoid creating one each render.
-    var camMatrix = mat4.create();
-    mat4.identity(camMatrix);
-    if (this.FixedSize) {
-      var viewFrontZ = view.Camera.ZRange[0]+0.01;
-      // This camera matric changes pixel/ screen coordinate sytem to
-      // view [-1,1],[-1,1],z
-      camMatrix[0] = 2.0 / view.Viewport[2];
-      camMatrix[12] = -1.0;
-      camMatrix[5] = -2.0 / view.Viewport[3];
-      camMatrix[13] = 1.0;
-      camMatrix[14] = viewFrontZ; // In front of tiles in this view
+    Shape.prototype.destructor=function() {
+        // Get rid of the buffers?
     }
 
-    // The actor matrix that rotates to orientation and shift (0,0) to origin.
-    // Rotate based on ivar orientation.
-    var theta = this.Orientation * 3.1415926536 / 180.0;
-    this.Matrix[0] =  Math.cos(theta);
-    this.Matrix[1] = -Math.sin(theta);
-    this.Matrix[4] =  Math.sin(theta);
-    this.Matrix[5] =  Math.cos(theta);
-    // Place the origin of the shape.
-    x = this.Origin[0];
-    y = this.Origin[1];
-    if (this.FixedSize) {
-      // For fixed size, translation must be in view/pixel coordinates.
-      // First transform the world to view.
-      var m = view.Camera.Matrix;
-      var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
-      var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
-      // convert view to pixels (view coordinate ssytem).
-      x = view.Viewport[2]*(0.5*(1.0+x));
-      y = view.Viewport[3]*(0.5*(1.0-y));
-    }
-    // Translate to place the origin.
-    this.Matrix[12] = x;
-    this.Matrix[13] = y;
-    this.Matrix[14] = this.ZOffset;
-
-    var program = polyProgram;
-
-    GL.useProgram(program);
-    GL.disable(GL.BLEND);
-    GL.enable(GL.DEPTH_TEST);
-
-    // This does not work.
-    // I will need to make thick lines with polygons.
-    //GL.lineWidth(5);
-
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    GL.vertexAttribPointer(program.vertexPositionAttribute,
-                           this.VertexPositionBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);     // Texture coordinates
-    // Local view.
-    GL.viewport(view.Viewport[0], view.Viewport[1],
-                view.Viewport[2], view.Viewport[3]);
-
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-    if (this.FixedSize) {
-      GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-    } else {
-      // Use main views camera to convert world to view.
-      GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
-    }
-
-    // Fill color
-    if (this.FillColor != undefined) {
-      if (this.Active) {
-        GL.uniform3f(program.colorUniform, this.ActiveColor[0],
-                     this.ActiveColor[1], this.ActiveColor[2]);
-      } else {
-        GL.uniform3f(program.colorUniform, this.FillColor[0],
-                     this.FillColor[1], this.FillColor[2]);
-      }
-      // Cell Connectivity
-      GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-
-      GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
-                      GL.UNSIGNED_SHORT,0);
-    }
-
-    if (this.OutlineColor != undefined) {
-      if (this.Active) {
-        GL.uniform3f(program.colorUniform, this.ActiveColor[0],
-                     this.ActiveColor[1], this.ActiveColor[2]);
-      } else {
-        GL.uniform3f(program.colorUniform, this.OutlineColor[0],
-                     this.OutlineColor[1], this.OutlineColor[2]);
-      }
-
-      if (this.LineWidth == 0) {
-        if (this.WireFrame) {
-          GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
-          GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems,
-                      GL.UNSIGNED_SHORT,0);
-        } else {
-          // Outline. This only works for polylines
-          GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+    Shape.prototype.Draw = function (view) {
+        if ( ! this.Visibility) {
+            return;
         }
-      } else {
-        // Cell Connectivity
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
-        GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
-                        GL.UNSIGNED_SHORT,0);
-      }
-    }
-  } else { // 2d Canvas -----------------------------------------------
-    view.Context2d.save();
-    // Identity.
-    view.Context2d.setTransform(1,0,0,1,0,0);
-
-    var theta = (this.Orientation * 3.1415926536 / 180.0);
-    if ( ! this.FixedSize) {
-      theta -= view.Camera.Roll;
-    }
-    this.Matrix[0] =  Math.cos(theta);
-    this.Matrix[1] = -Math.sin(theta);
-    this.Matrix[4] =  Math.sin(theta);
-    this.Matrix[5] =  Math.cos(theta);
-    // Place the origin of the shape.
-    x = this.Origin[0];
-    y = this.Origin[1];
-    var scale = 1.0;
-    if ( ! this.FixedSize) {
-      // World need to be drawn in view coordinate system so the
-      scale = view.Viewport[3] / view.Camera.GetHeight();
-    }
-    // First transform the origin-world to view.
-    var m = view.Camera.Matrix;
-    var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
-    var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
-
-    // convert origin-view to pixels (view coordinate system).
-    x = view.Viewport[2]*(0.5*(1.0+x));
-    y = view.Viewport[3]*(0.5*(1.0-y));
-    view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);
-
-      // for debugging section alignmnet.
-      var x0 = this.PointBuffer[0];
-      var y0 = this.PointBuffer[1];
-      // For debugging gradient decent aligning contours.
-      // This could be put into the canvas transform, but it is only for debugging.
-      //if (this.Trans) {
-      //      var vx = x0-this.Trans.cx;
-      //      var vy = y0-this.Trans.cy;
-      //      var rx =  this.Trans.c*vx + this.Trans.s*vy;
-      //      var ry = -this.Trans.s*vx + this.Trans.c*vy;
-      //      x0 = x0 + (rx-vx) + this.Trans.sx;
-      //      y0 = y0 + (ry-vy) + this.Trans.sy;
-      //}
-
-      // This gets remove when the debug code is uncommented.
-      view.Context2d.beginPath();
-      view.Context2d.moveTo(x0*scale,y0*scale);
-
-    var i = 3;
-    while ( i < this.PointBuffer.length ) {
-        var x1 = this.PointBuffer[i];
-        var y1 = this.PointBuffer[i+1];
-        // For debugging.  Apply a trasformation and color by scalars.
-        //if (this.Trans) {
-        //    var vx = x1-this.Trans.cx;
-        //    var vy = y1-this.Trans.cy;
-        //    var rx =  this.Trans.c*vx + this.Trans.s*vy;
-        //    var ry = -this.Trans.s*vx + this.Trans.c*vy;
-        //    x1 = x1 + (rx-vx) + this.Trans.sx;
-        //    y1 = y1 + (ry-vy) + this.Trans.sy;
-        //}
-        //view.Context2d.beginPath();
-        //view.Context2d.moveTo(x0*scale,y0*scale);
-        // Also for debuggin
-        //if (this.DebugScalars) {
-        //    view.Context2d.strokeStyle=ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
-        //} else {
-        //    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
-        //}
-        //view.Context2d.stroke();
-        //x0 = x1;
-        //y0 = y1;
-
-        // This gets remove when the debug code is uncommented.
-        view.Context2d.lineTo(x1*scale,y1*scale);
-
-      i += 3;
-    }
-
-    if (this.OutlineColor != undefined) {
-        var width = this.LineWidth * scale;
-        if (width == 0) {
-            width = 1;
+        if (this.Matrix == undefined) {
+            this.UpdateBuffers();
         }
-        view.Context2d.lineWidth = width;
-        if (this.Active) {
-            view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
-        } else {
-            view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+
+        if (GL) {
+            // Lets use the camera to change coordinate system to pixels.
+            // TODO: Put this camera in the view or viewer to avoid creating one each render.
+            var camMatrix = mat4.create();
+            mat4.identity(camMatrix);
+            if (this.FixedSize) {
+                var viewFrontZ = view.Camera.ZRange[0]+0.01;
+                // This camera matric changes pixel/ screen coordinate sytem to
+                // view [-1,1],[-1,1],z
+                camMatrix[0] = 2.0 / view.Viewport[2];
+                camMatrix[12] = -1.0;
+                camMatrix[5] = -2.0 / view.Viewport[3];
+                camMatrix[13] = 1.0;
+                camMatrix[14] = viewFrontZ; // In front of tiles in this view
+            }
+
+            // The actor matrix that rotates to orientation and shift (0,0) to origin.
+            // Rotate based on ivar orientation.
+            var theta = this.Orientation * 3.1415926536 / 180.0;
+            this.Matrix[0] =  Math.cos(theta);
+            this.Matrix[1] = -Math.sin(theta);
+            this.Matrix[4] =  Math.sin(theta);
+            this.Matrix[5] =  Math.cos(theta);
+            // Place the origin of the shape.
+            x = this.Origin[0];
+            y = this.Origin[1];
+            if (this.FixedSize) {
+                // For fixed size, translation must be in view/pixel coordinates.
+                // First transform the world to view.
+                var m = view.Camera.Matrix;
+                var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
+                var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
+                // convert view to pixels (view coordinate ssytem).
+                x = view.Viewport[2]*(0.5*(1.0+x));
+                y = view.Viewport[3]*(0.5*(1.0-y));
+            }
+            // Translate to place the origin.
+            this.Matrix[12] = x;
+            this.Matrix[13] = y;
+            this.Matrix[14] = this.ZOffset;
+
+            var program = polyProgram;
+
+            GL.useProgram(program);
+            GL.disable(GL.BLEND);
+            GL.enable(GL.DEPTH_TEST);
+
+            // This does not work.
+            // I will need to make thick lines with polygons.
+            //GL.lineWidth(5);
+
+            // These are the same for every tile.
+            // Vertex points (shifted by tiles matrix)
+            GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+            // Needed for outline ??? For some reason, DrawOutline did not work
+            // without this call first.
+            GL.vertexAttribPointer(program.vertexPositionAttribute,
+                                   this.VertexPositionBuffer.itemSize,
+                                   GL.FLOAT, false, 0, 0);     // Texture coordinates
+            // Local view.
+            GL.viewport(view.Viewport[0], view.Viewport[1],
+                        view.Viewport[2], view.Viewport[3]);
+
+            GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+            if (this.FixedSize) {
+                GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+            } else {
+                // Use main views camera to convert world to view.
+                GL.uniformMatrix4fv(program.pMatrixUniform, false, view.Camera.Matrix);
+            }
+
+            // Fill color
+            if (this.FillColor != undefined) {
+                if (this.Active) {
+                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                                 this.ActiveColor[1], this.ActiveColor[2]);
+                } else {
+                    GL.uniform3f(program.colorUniform, this.FillColor[0],
+                                 this.FillColor[1], this.FillColor[2]);
+                }
+                // Cell Connectivity
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+                GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems,
+                                GL.UNSIGNED_SHORT,0);
+            }
+
+            if (this.OutlineColor != undefined) {
+                if (this.Active) {
+                    GL.uniform3f(program.colorUniform, this.ActiveColor[0],
+                                 this.ActiveColor[1], this.ActiveColor[2]);
+                } else {
+                    GL.uniform3f(program.colorUniform, this.OutlineColor[0],
+                                 this.OutlineColor[1], this.OutlineColor[2]);
+                }
+
+                if (this.LineWidth == 0) {
+                    if (this.WireFrame) {
+                        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+                        GL.drawElements(GL.LINE_LOOP, this.CellBuffer.numItems,
+                                        GL.UNSIGNED_SHORT,0);
+                    } else {
+                        // Outline. This only works for polylines
+                        GL.drawArrays(GL.LINE_STRIP, 0, this.VertexPositionBuffer.numItems);
+                    }
+                } else {
+                    // Cell Connectivity
+                    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.LineCellBuffer);
+                    GL.drawElements(GL.TRIANGLES, this.LineCellBuffer.numItems,
+                                    GL.UNSIGNED_SHORT,0);
+                }
+            }
+        } else { // 2d Canvas -----------------------------------------------
+            view.Context2d.save();
+            // Identity.
+            view.Context2d.setTransform(1,0,0,1,0,0);
+
+            if (this.PositionCoordinateSystem == Shape.SLIDE) {
+                var theta = (this.Orientation * 3.1415926536 / 180.0);
+                if ( ! this.FixedSize) {
+                    theta -= view.Camera.Roll;
+                }
+                this.Matrix[0] =  Math.cos(theta);
+                this.Matrix[1] = -Math.sin(theta);
+                this.Matrix[4] =  Math.sin(theta);
+                this.Matrix[5] =  Math.cos(theta);
+                // Place the origin of the shape.
+                x = this.Origin[0];
+                y = this.Origin[1];
+                var scale = 1.0;
+                if ( ! this.FixedSize) {
+                    // World need to be drawn in view coordinate system so the
+                    scale = view.Viewport[3] / view.Camera.GetHeight();
+                }
+                // First transform the origin-world to view.
+                var m = view.Camera.Matrix;
+                var x = (this.Origin[0]*m[0] + this.Origin[1]*m[4] + m[12])/m[15];
+                var y = (this.Origin[0]*m[1] + this.Origin[1]*m[5] + m[13])/m[15];
+
+                // convert origin-view to pixels (view coordinate system).
+                x = view.Viewport[2]*(0.5*(1.0+x));
+                y = view.Viewport[3]*(0.5*(1.0-y));
+                view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);
+            } else if (this.PositionCoordinateSystem == Shape.VIEWER) {
+                var theta = (this.Orientation * 3.1415926536 / 180.0);
+                this.Matrix[0] =  Math.cos(theta);
+                this.Matrix[1] = -Math.sin(theta);
+                this.Matrix[4] =  Math.sin(theta);
+                this.Matrix[5] =  Math.cos(theta);
+                // Place the origin of the shape.
+                x = this.Origin[0];
+                y = this.Origin[1];
+                var scale = 1.0;
+
+                view.Context2d.transform(this.Matrix[0],this.Matrix[1],this.Matrix[4],this.Matrix[5],x,y);                
+            }
+
+            // for debugging section alignmnet.
+            var x0 = this.PointBuffer[0];
+            var y0 = this.PointBuffer[1];
+            // For debugging gradient decent aligning contours.
+            // This could be put into the canvas transform, but it is only for debugging.
+            //if (this.Trans) {
+            //      var vx = x0-this.Trans.cx;
+            //      var vy = y0-this.Trans.cy;
+            //      var rx =  this.Trans.c*vx + this.Trans.s*vy;
+            //      var ry = -this.Trans.s*vx + this.Trans.c*vy;
+            //      x0 = x0 + (rx-vx) + this.Trans.sx;
+            //      y0 = y0 + (ry-vy) + this.Trans.sy;
+            //}
+
+            // This gets remove when the debug code is uncommented.
+            view.Context2d.beginPath();
+            view.Context2d.moveTo(x0*scale,y0*scale);
+
+            var i = 3;
+            while ( i < this.PointBuffer.length ) {
+                var x1 = this.PointBuffer[i];
+                var y1 = this.PointBuffer[i+1];
+                // For debugging.  Apply a trasformation and color by scalars.
+                //if (this.Trans) {
+                //    var vx = x1-this.Trans.cx;
+                //    var vy = y1-this.Trans.cy;
+                //    var rx =  this.Trans.c*vx + this.Trans.s*vy;
+                //    var ry = -this.Trans.s*vx + this.Trans.c*vy;
+                //    x1 = x1 + (rx-vx) + this.Trans.sx;
+                //    y1 = y1 + (ry-vy) + this.Trans.sy;
+                //}
+                //view.Context2d.beginPath();
+                //view.Context2d.moveTo(x0*scale,y0*scale);
+                // Also for debuggin
+                //if (this.DebugScalars) {
+                //    view.Context2d.strokeStyle=ConvertColorToHex([1,this.DebugScalars[i/3], 0]);
+                //} else {
+                //    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                //}
+                //view.Context2d.stroke();
+                //x0 = x1;
+                //y0 = y1;
+
+                // This gets remove when the debug code is uncommented.
+                view.Context2d.lineTo(x1*scale,y1*scale);
+
+                i += 3;
+            }
+
+            if (this.OutlineColor != undefined) {
+                var width = this.LineWidth * scale;
+                if (width == 0) {
+                    width = 1;
+                }
+                view.Context2d.lineWidth = width;
+                if (this.Active) {
+                    view.Context2d.strokeStyle=ConvertColorToHex(this.ActiveColor);
+                } else {
+                    view.Context2d.strokeStyle=ConvertColorToHex(this.OutlineColor);
+                }
+                // This gets remove when the debug code is uncommented.
+                view.Context2d.stroke();
+            }
+
+            if (this.FillColor != undefined) {
+                if (this.Active) {
+                    view.Context2d.fillStyle=ConvertColorToHex(this.ActiveColor);
+                } else {
+                    view.Context2d.fillStyle=ConvertColorToHex(this.FillColor);
+                }
+                view.Context2d.fill();
+            }
+
+            view.Context2d.restore();
         }
-        // This gets remove when the debug code is uncommented.
-        view.Context2d.stroke();
     }
 
-    if (this.FillColor != undefined) {
-      if (this.Active) {
-        view.Context2d.fillStyle=ConvertColorToHex(this.ActiveColor);
-      } else {
-        view.Context2d.fillStyle=ConvertColorToHex(this.FillColor);
-      }
-      view.Context2d.fill();
+    // Invert the fill color.
+    Shape.prototype.ChooseOutlineColor = function () {
+        if (this.FillColor) {
+            this.OutlineColor = [1.0-this.FillColor[0],
+                                 1.0-this.FillColor[1],
+                                 1.0-this.FillColor[2]];
+
+        }
     }
 
-    view.Context2d.restore();
-  }
-}
+    Shape.prototype.SetOutlineColor = function (c) {
+        this.OutlineColor = ConvertColor(c);
+    }
 
-// Invert the fill color.
-Shape.prototype.ChooseOutlineColor = function () {
-  if (this.FillColor) {
-    this.OutlineColor = [1.0-this.FillColor[0],
-                         1.0-this.FillColor[1],
-                         1.0-this.FillColor[2]];
+    Shape.prototype.SetFillColor = function (c) {
+        this.FillColor = ConvertColor(c);
+    }
 
-  }
-}
+    Shape.prototype.HandleMouseMove = function(event, dx,dy) {
+        // superclass does nothing
+        return false;
+    }
 
-Shape.prototype.SetOutlineColor = function (c) {
-  this.OutlineColor = ConvertColor(c);
-}
-
-Shape.prototype.SetFillColor = function (c) {
-  this.FillColor = ConvertColor(c);
-}
-
-Shape.prototype.HandleMouseMove = function(event, dx,dy) {
-  // superclass does nothing
-  return false;
-}
-
-//Shape.prototype.UpdateBuffers = function() {
+    //Shape.prototype.UpdateBuffers = function() {
     //    // The superclass does not implement this method.
-//}
+    //}
 
-Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
-  // make end0 the origin.
-  var x = pt[0] - end0[0];
-  var y = pt[1] - end0[1];
-  var vx = end1[0] - end0[0];
-  var vy = end1[1] - end0[1];
+    Shape.prototype.IntersectPointLine = function(pt, end0, end1, thickness) {
+        // make end0 the origin.
+        var x = pt[0] - end0[0];
+        var y = pt[1] - end0[1];
+        var vx = end1[0] - end0[0];
+        var vy = end1[1] - end0[1];
 
-  // Rotate so the edge lies on the x axis.
-  var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
-  vx = vx/length;
-  vy = -vy/length;
-  var newX = (x*vx - y*vy);
-  var newY = (x*vy + y*vx);
+        // Rotate so the edge lies on the x axis.
+        var length = Math.sqrt(vx*vx + vy*vy); // Avoid atan2 ... with clever use of complex numbers.
+        vx = vx/length;
+        vy = -vy/length;
+        var newX = (x*vx - y*vy);
+        var newY = (x*vy + y*vx);
 
-  if (newX >= 0.0 && newX <= length) {
-    if (Math.abs(newY) < (thickness *0.5)) {
-      return true;
+        if (newX >= 0.0 && newX <= length) {
+            if (Math.abs(newY) < (thickness *0.5)) {
+                return true;
+            }
+            return false;
+        }
     }
-  return false;
-  }
-}
 
+    window.Shape = Shape;
+
+})();
 // cross hairs was created as an anchor for text.
 // Just two lines that cross at a point.
 // I am not goint to support line width, or fillColor.
@@ -48598,7 +48651,7 @@ function ArrowWidget (viewer, newFlag) {
   this.TipOffset = [0,0];
 
   if (viewer) {
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     if (newFlag && viewer) {
       this.State = ARROW_WIDGET_NEW;
       this.Viewer.ActivateWidget(this);
@@ -48615,13 +48668,9 @@ ArrowWidget.prototype.Draw = function(view) {
 
 
 ArrowWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 ArrowWidget.prototype.Serialize = function() {
@@ -49127,7 +49176,7 @@ function CircleWidget (viewer, newFlag) {
     this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
     this.Shape.FixedSize = false;
 
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     // Note: If the user clicks before the mouse is in the
     // canvas, this will behave odd.
@@ -49147,13 +49196,9 @@ CircleWidget.prototype.Draw = function(view) {
 
 // This needs to be put in the Viewer.
 CircleWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
@@ -49599,7 +49644,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
       this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
       this.Shape.FixedSize = false;
 
-      this.Viewer.WidgetList.push(this);
+      this.Viewer.AddWidget(this);
 
       // Note: If the user clicks before the mouse is in the
       // canvas, this will behave odd.
@@ -49620,13 +49665,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     // This needs to be put in the Viewer.
     RectWidget.prototype.RemoveFromViewer = function() {
-      if (this.Viewer === null) {
-        return;
-      }
-      var idx = this.Viewer.WidgetList.indexOf(this);
-      if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
-      }
+        if (this.Viewer) {
+            this.Viewer.RemoveWidget(this);
+        }
     };
 
     RectWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
@@ -50166,6 +50207,14 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.LineWidth = 2.0*cam.Height/viewport[3];
         this.Shape.FixedSize = false;
 
+        this.Text = new Text();
+        // Shallow copy is dangerous
+        this.Text.Position = this.Shape.Origin;
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.Color = [0.0, 0.0, 0.5];
+        this.Text.Anchor = [0,0];
+        this.Text.UpdateBuffers();
+
         // Get default properties.
         if (localStorage.GridWidgetDefaults) {
             var defaults = JSON.parse(localStorage.GridWidgetDefaults);
@@ -50179,7 +50228,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
             }
         }
 
-        this.Viewer.WidgetList.push(this);
+        this.Viewer.AddWidget(this);
 
         // Note: If the user clicks before the mouse is in the
         // canvas, this will behave odd.
@@ -50194,46 +50243,79 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     }
 
-    GridWidget.prototype.DistanceToString = function(length) {
-        length = length * 0.25; // microns per pixel.
-        var lengthStr = "";
-        if (length > 1000) {
-            lengthStr += (length/1000).toFixed(2) + " mm";
-        } else {
-            // Latin-1 00B5 is micro sign
-            lengthStr += length.toFixed(2) + " \xB5m";
-        }
-        return lengthStr;
-    }
 
-    GridWidget.prototype.StringToDistance = function(lengthStr) {
-        var length = 0;
-        lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
-        var len = lengthStr.length;
-        // Convert to microns
-        if (lengthStr.substring(len-2,len) == "\xB5m") {
-            length = parseFloat(lengthStr.substring(0,len-2));
-        } else if (lengthStr.substring(len-2,len) == "mm") { 
-            length = parseFloat(lengthStr.substring(0,len-2)) * 1000.0;
+    // sign specifies which corner is origin.
+    // gx, gy is the point in grid pixel coordinates offset from the corner.
+    GridWidget.prototype.ComputeCorner = function(xSign, ySign, gx, gy) {
+        // Pick the upper left most corner to display the grid size text.
+        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
+        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
+        xRadius += gx;
+        yRadius += gy;
+        var x = this.Shape.Origin[0];
+        var y = this.Shape.Origin[1];
+        // Choose the corner from 0 to 90 degrees in the window.
+        var roll = (this.Viewer.GetCamera().GetRotation()-
+                    this.Shape.Orientation) / 90; // range 0-4
+        roll = Math.round(roll);
+        // Modulo that works with negative numbers;
+        roll = ((roll % 4) + 4) % 4;
+        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var dx , dy;
+        if (roll == 0) {
+            dx =  xSign*xRadius;
+            dy =  ySign*yRadius;
+        } else if (roll == 3) {
+            dx =  xSign*xRadius;
+            dy = -ySign*yRadius;
+        } else if (roll == 2) {
+            dx = -xSign*xRadius;
+            dy = -ySign*yRadius;
+        } else if (roll == 1) {
+            dx = -xSign*xRadius;
+            dy =  ySign*yRadius;
         }
-        // Convert to scan pixels
-        length = length / 0.25; // microns per pixel.
+        x = x + c*dx + s*dy;
+        y = y + c*dy - s*dx;
 
-        return length;
+        return [x,y];
     }
 
     GridWidget.prototype.Draw = function(view) {
         this.Shape.Draw(view);
+
+        // Corner in grid pixel coordinates.
+        var x = - (this.Shape.Width * this.Shape.Dimensions[0] / 2);
+        var y = - (this.Shape.Height * this.Shape.Dimensions[1] / 2);
+        this.Text.Anchor = [0,20];
+        this.Text.Orientation = (this.Shape.Orientation -
+                                 this.Viewer.GetCamera().GetRotation());
+        // Modulo that works with negative numbers;
+        this.Text.Orientation = ((this.Text.Orientation % 360) + 360) % 360;
+        // Do not draw text upside down.
+        if (this.Text.Orientation > 90 && this.Text.Orientation < 270) {
+            this.Text.Orientation -= 180.0;
+            this.Text.Anchor = [this.Text.PixelBounds[1],0];
+            //x += this.Text.PixelBounds[1]; // wrong units (want world
+            //pixels , this is screen pixels).
+        }
+        // Convert to world Coordinates.
+        var radians = this.Shape.Orientation * Math.PI / 180;
+        var c = Math.cos(radians);
+        var s = Math.sin(radians);
+        var wx = c*x + s*y;
+        var wy = c*y - s*x;
+        this.Text.Position = [this.Shape.Origin[0]+wx,this.Shape.Origin[1]+wy];
+
+                                 
+        this.Text.Draw(view);
     };
 
     // This needs to be put in the Viewer.
     GridWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer === null) {
-            return;
-        }
-        var idx = this.Viewer.WidgetList.indexOf(this);
-        if(idx!=-1) {
-            this.Viewer.WidgetList.splice(idx, 1);
+        if (this.Viewer) {
+            this.Viewer.RemoveWidget(this);
         }
     };
 
@@ -50246,6 +50328,7 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         // Place the widget over the mouse.
         // This would be better as an argument.
         this.Shape.Origin = [mouseWorldPt[0], mouseWorldPt[1]];
+        this.Text.Position = [mouseWorldPt[0], mouseWorldPt[1]];
 
         eventuallyRender();
     };
@@ -50280,6 +50363,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         this.Shape.LineWidth = parseFloat(obj.linewidth);
         this.Shape.FixedSize = false;
         this.Shape.UpdateBuffers();
+
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        // Shallow copy is dangerous
+        this.Text.Position = this.Shape.Origin;
+        this.Text.UpdateBuffers();
 
         // How zoomed in was the view when the annotation was created.
         if (obj.creation_camera !== undefined) {
@@ -50330,9 +50418,11 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         return true;
     };
 
+    // Orientation is a pain,  we need a world to shape transformation.
     GridWidget.prototype.HandleMouseMove = function(event) {
         if (event.which == 1) {
-            var world = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+            var world =
+    this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
             var dx, dy;
             if (this.State == GRID_WIDGET_DRAG) {
                 dx = world[0] - this.DragLast[0];
@@ -50341,44 +50431,59 @@ CircleWidget.prototype.DialogApplyCallback = function() {
                 this.Shape.Origin[0] += dx;
                 this.Shape.Origin[1] += dy;
             } else {
+                // convert mouse from world to Shape coordinate system.
                 dx = world[0] - this.Shape.Origin[0];
                 dy = world[1] - this.Shape.Origin[1];
                 var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
                 var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
                 var x = c*dx - s*dy;
                 var y = c*dy + s*dx;
+                // convert from shape to integer grid indexes.
                 x = (0.5*this.Shape.Dimensions[0]) + (x / this.Shape.Width);
                 y = (0.5*this.Shape.Dimensions[1]) + (y / this.Shape.Height);
                 var ix = Math.round(x);
                 var iy = Math.round(y);
+                // Change grid dimemsions
+                dx = dy = 0;
+                var changed = false;
                 if (this.State == GRID_WIDGET_DRAG_RIGHT) {
                     dx = ix - this.Shape.Dimensions[0];
                     if (dx) {
-                        this.Shape.Dimensions[0] += dx;
-                        this.Shape.Origin[0] += 0.5 * dx * this.Shape.Width;
-                        this.Shape.UpdateBuffers();
+                        this.Shape.Dimensions[0] = ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * dx * this.Shape.Width;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_LEFT) {
-                    dx = ix;
-                    if (dx) {
-                        this.Shape.Dimensions[0] -= dx;
-                        this.Shape.Origin[0] += 0.5 * dx * this.Shape.Width;
-                        this.Shape.UpdateBuffers();
+                    if (ix) {
+                        this.Shape.Dimensions[0] -= ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * ix * this.Shape.Width;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_BOTTOM) {
                     dy = iy - this.Shape.Dimensions[1];
                     if (dy) {
-                        this.Shape.Dimensions[1] += dy;
-                        this.Shape.Origin[1] += 0.5 * dy * this.Shape.Height;
-                        this.Shape.UpdateBuffers();
+                        this.Shape.Dimensions[1] = iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * dy * this.Shape.Height;
+                        changed = true;
                     }
                 } else if (this.State == GRID_WIDGET_DRAG_TOP) {
-                    dy = iy;
-                    if (dy) {
-                        this.Shape.Dimensions[1] -= dy;
-                        this.Shape.Origin[1] += 0.5 * dy * this.Shape.Height;
-                        this.Shape.UpdateBuffers();
+                    if (iy) {
+                        this.Shape.Dimensions[1] -= iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * iy * this.Shape.Height;
+                        changed = true;
                     }
+                }
+                if (changed) {
+                    // Rotate the translation and apply to the center.
+                    x = c*dx + s*dy;
+                    y = c*dy - s*dx;
+                    this.Shape.Origin[0] += x;
+                    this.Shape.Origin[1] += y;
+                    this.Shape.UpdateBuffers();
                 }
             }
             eventuallyRender();
@@ -50557,35 +50662,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 
     // This also shows the popup if it is not visible already.
     GridWidget.prototype.PlacePopup = function () {
-        var xRadius = this.Shape.Width * this.Shape.Dimensions[0] / 2;
-        var yRadius = this.Shape.Height * this.Shape.Dimensions[1] / 2;
-        var x = this.Shape.Origin[0];
-        var y = this.Shape.Origin[1];
-        // Choose the corner from 0 to 90 degrees in the window.
-        var roll = (this.Viewer.GetCamera().GetRotation()-
-                    this.Shape.Orientation) / 90; // range 0-4
-        roll = Math.round(roll);
-        // Modulo that works with negative numbers;
-        roll = ((roll % 4) + 4) % 4;
-        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
-        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
-        var dx , dy;
-        if (roll == 0) {
-            dx =  xRadius;
-            dy = -yRadius;
-        } else if (roll == 3) {
-            dx =  xRadius;
-            dy =  yRadius;
-        } else if (roll == 2) {
-            dx = -xRadius;
-            dy =  yRadius;
-        } else if (roll == 1) {
-            dx = -xRadius;
-            dy = -yRadius;
-        }
-        x = x + c*dx + s*dy;
-        y = y + c*dy - s*dx;
-        var pt = this.Viewer.ConvertPointWorldToViewer(x, y);
+        // Compute corner has its angle backwards.  I do not see how this works.
+        var pt = this.ComputeCorner(1, -1, 0, 0);
+        pt = this.Viewer.ConvertPointWorldToViewer(pt[0], pt[1]);
         this.Popup.Show(pt[0]+10,pt[1]-30);
     };
 
@@ -50595,8 +50674,9 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     GridWidget.prototype.ShowPropertiesDialog = function () {
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
         this.Dialog.LineWidthInput.val((this.Shape.LineWidth).toFixed(2));
-        this.Dialog.ElementWidthInput.val(this.DistanceToString(this.Shape.Width));
-        this.Dialog.ElementHeightInput.val(this.DistanceToString(this.Shape.Height));
+        // convert 40x scan pixels into meters
+        this.Dialog.ElementWidthInput.val(SA.DistanceToString(this.Shape.Width*0.25e-6));
+        this.Dialog.ElementHeightInput.val(SA.DistanceToString(this.Shape.Height*0.25e-6));
         this.Dialog.RotationInput.val(this.Shape.Orientation);
 
         this.Dialog.Show(true);
@@ -50606,11 +50686,15 @@ CircleWidget.prototype.DialogApplyCallback = function() {
         var hexcolor = this.Dialog.ColorInput.val();
         this.Shape.SetOutlineColor(hexcolor);
         this.Shape.LineWidth = parseFloat(this.Dialog.LineWidthInput.val());
-        this.Shape.Width = this.StringToDistance(this.Dialog.ElementWidthInput.val());
-        this.Shape.Height = this.StringToDistance(this.Dialog.ElementHeightInput.val());
+        this.Shape.Width = SA.StringToDistance(this.Dialog.ElementWidthInput.val())*4e6;
+        this.Shape.Height = SA.StringToDistance(this.Dialog.ElementHeightInput.val())*4e6;
         this.Shape.Orientation = parseFloat(this.Dialog.RotationInput.val());
         this.Shape.UpdateBuffers();
         this.SetActive(false);
+
+        this.Text.String = SA.DistanceToString(this.Shape.Width*0.25e-6);
+        this.Text.UpdateBuffers();
+
         RecordState();
         eventuallyRender();
 
@@ -50618,6 +50702,452 @@ CircleWidget.prototype.DialogApplyCallback = function() {
     };
 
     window.GridWidget = GridWidget;
+
+})();
+
+
+
+(function () {
+    "use strict";
+
+    var SCALE_WIDGET_NEW = 0;
+    var SCALE_WIDGET_WAITING = 3; // The normal (resting) state.
+    var SCALE_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var SCALE_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+
+    var SCALE_WIDGET_DRAG = 6;
+    var SCALE_WIDGET_DRAG_LEFT = 7;
+    var SCALE_WIDGET_DRAG_RIGHT = 8;
+
+    // Viewer coordinates.
+    // Horizontal or verticle
+    function Scale() {
+        Shape.call(this);
+        // Dimension of scale element
+        this.Length = 100.0; // unit length in pixels
+        this.TickSize = 6;
+        this.NumberOfUnits = 1;
+        //this.NumberOfSubdivisions = 10;
+        this.Orientation = 0; // 0 or 90
+        this.Origin = [10000,10000]; // middle.
+        this.OutlineColor = [0,0,0];
+        this.PointBuffer = [];
+        this.PositionCoordinateSystem = Shape.VIEWER;
+    };
+
+    Scale.prototype = new Shape();
+
+    Scale.prototype.destructor=function() {
+        // Get rid of the buffers?
+    };
+
+    Scale.prototype.UpdateBuffers = function() {
+        // TODO: Having a single poly line for a shape is to simple.
+        // Add cell arrays.
+        this.PointBuffer = [];
+
+        // Matrix is computed by the draw method in Shape superclass.
+        // TODO: Used to detect first initialization.
+        // Get this out of this method.
+        this.Matrix = mat4.create();
+        mat4.identity(this.Matrix);
+
+        // Draw all of the x lines.
+        var x = 0;
+        var y = this.TickSize;
+        this.PointBuffer.push(x);
+        this.PointBuffer.push(y);
+        this.PointBuffer.push(0.0);
+        y = 0;
+        this.PointBuffer.push(x);
+        this.PointBuffer.push(y);
+        this.PointBuffer.push(0.0);
+
+        for (var i = 0; i < this.NumberOfUnits; ++i) {
+            x += this.Length;
+            this.PointBuffer.push(x);
+            this.PointBuffer.push(y);
+            this.PointBuffer.push(0.0);
+            y = this.TickSize;
+            this.PointBuffer.push(x);
+            this.PointBuffer.push(y);
+            this.PointBuffer.push(0.0);
+            y = 0;
+            this.PointBuffer.push(x);
+            this.PointBuffer.push(y);
+            this.PointBuffer.push(0.0);
+        }
+    };
+
+    function ScaleWidget (viewer, newFlag) {
+        var self = this;
+
+        if (viewer === null) {
+            return;
+        }
+
+        this.Viewer = viewer;
+        this.PixelsPerMeter = 0;
+        this.Shape = new Scale();
+        this.Shape.OutlineColor = [0.0, 0.0, 0.0];
+        this.Shape.Origin = [30,20];
+        this.Shape.Length = 200;
+        this.Shape.FixedSize = true;
+
+        this.Text = new Text();
+        this.Text.PositionCoordinateSystem = Shape.VIEWER;
+        this.Text.Position = [30,5];
+        this.Text.String = "";
+        this.Text.Color = [0.0, 0.0, 0.0];
+        this.Text.Anchor = [0,0];
+
+        this.Update(viewer.GetPixelsPerUnit());
+
+        this.Viewer.AddWidget(this);
+
+        this.State = SCALE_WIDGET_WAITING;
+    }
+
+
+    ScaleWidget.prototype.Update = function() {
+        // Compute the number of screen pixels in a meter.
+        var scale = Math.round(4e6 * this.Viewer.GetPixelsPerUnit());
+        if (this.PixelsPerMeter == scale) {
+            return;
+        }
+        // Save the scale so we know when to regenerate.
+        this.PixelsPerMeter = scale;
+        var target = 200; // pixels
+        var e = 0;
+        var length = this.PixelsPerMeter;
+        while (length > target) {
+            length = length / 10;
+            --e;
+        }
+        // Now compute the units from e.
+        this.Units = "nm";
+        var factor = 1e-9;
+        if (e >= -6) {
+            this.Units = "\xB5m"
+            factor = 1e-6;
+        }
+        if (e >= -3) {
+            this.Units = "mm";
+            factor = 1e-3;
+        }
+        if (e >= -2) {
+            this.Units = "cm";
+            factor = 1e-2;
+        }
+        if (e >= 0) {
+            this.Units = "m";
+            factor = 1;
+        }
+        if (e >= 3) {
+            this.Units = "km";
+            factor = 1000;
+        }
+        this.Shape.Length = length;
+        this.Shape.NumberOfUnits = Math.floor(target / length);
+
+        this.Label = Math.round(length / (this.PixelsPerMeter *
+                                factor))*this.Shape.NumberOfUnits;
+        this.Label = this.Label.toString() + this.Units;
+        this.Text.String = this.Label;
+        this.Text.UpdateBuffers();
+
+        console.log(this.Label);
+        this.Shape.UpdateBuffers();
+    }
+
+    ScaleWidget.prototype.Draw = function(view) {
+        // Update the scale if zoom changed.
+        this.Update();
+        this.Shape.Draw(view);
+        this.Text.Draw(view);
+    };
+
+    // This needs to be put in the Viewer.
+    ScaleWidget.prototype.RemoveFromViewer = function() {
+        if (this.Viewer) {
+            this.RemoveWidget(this);
+        }
+    };
+
+    ScaleWidget.prototype.HandleKeyPress = function(keyCode, shift) {
+        return true;
+    };
+
+    ScaleWidget.prototype.HandleDoubleClick = function(event) {
+        return true;
+    };
+
+    ScaleWidget.prototype.HandleMouseDown = function(event) {
+        /*
+        if (event.which != 1) {
+            return true;
+        }
+        this.DragLast = this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+        */
+        return false;
+    };
+
+    // returns false when it is finished doing its work.
+    ScaleWidget.prototype.HandleMouseUp = function(event) {
+        /*
+        this.SetActive(false);
+        RecordState();
+        */
+        return true;
+    };
+
+    // Orientation is a pain,  we need a world to shape transformation.
+    ScaleWidget.prototype.HandleMouseMove = function(event) {
+        /*
+        if (event.which == 1) {
+            var world =
+                this.Viewer.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+            var dx, dy;
+            if (this.State == SCALE_WIDGET_DRAG) {
+                dx = world[0] - this.DragLast[0];
+                dy = world[1] - this.DragLast[1];
+                this.DragLast = world;
+                this.Shape.Origin[0] += dx;
+                this.Shape.Origin[1] += dy;
+            } else {
+                // convert mouse from world to Shape coordinate system.
+                dx = world[0] - this.Shape.Origin[0];
+                dy = world[1] - this.Shape.Origin[1];
+                var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
+                var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+                var x = c*dx - s*dy;
+                var y = c*dy + s*dx;
+                // convert from shape to integer scale indexes.
+                x = (0.5*this.Shape.Dimensions[0]) + (x /
+                  this.Shape.Width);
+                y = (0.5*this.Shape.Dimensions[1]) + (y /
+                  this.Shape.Height);
+                var ix = Math.round(x);
+                var iy = Math.round(y);
+                // Change scale dimemsions
+                dx = dy = 0;
+                var changed = false;
+                if (this.State == SCALE_WIDGET_DRAG_RIGHT) {
+                    dx = ix - this.Shape.Dimensions[0];
+                    if (dx) {
+                        this.Shape.Dimensions[0] = ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * dx * this.Shape.Width;
+                        changed = true;
+                    }
+                } else if (this.State == SCALE_WIDGET_DRAG_LEFT) {
+                    if (ix) {
+                        this.Shape.Dimensions[0] -= ix;
+                        // Compute the change in the center point origin.
+                        dx = 0.5 * ix * this.Shape.Width;
+                        changed = true;
+                    }
+                } else if (this.State == SCALE_WIDGET_DRAG_BOTTOM) {
+                    dy = iy - this.Shape.Dimensions[1];
+                    if (dy) {
+                        this.Shape.Dimensions[1] = iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * dy * this.Shape.Height;
+                        changed = true;
+                    }
+                } else if (this.State == SCALE_WIDGET_DRAG_TOP) {
+                    if (iy) {
+                        this.Shape.Dimensions[1] -= iy;
+                        // Compute the change in the center point origin.
+                        dy = 0.5 * iy * this.Shape.Height;
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    // Rotate the translation and apply to the center.
+                    x = c*dx + s*dy;
+                    y = c*dy - s*dx;
+                    this.Shape.Origin[0] += x;
+                    this.Shape.Origin[1] += y;
+                    this.Shape.UpdateBuffers();
+                }
+            }
+            eventuallyRender();
+            return
+        }
+
+        this.CheckActive(event);
+*/
+        return true;
+    };
+
+
+    ScaleWidget.prototype.HandleMouseWheel = function(event) {
+        /*
+        var x = event.offsetX;
+        var y = event.offsetY;
+
+        if (this.State == SCALE_WIDGET_ACTIVE) {
+            if(this.NormalizedActiveDistance < 0.5) {
+                var ratio = 1.05;
+                var direction = 1;
+                if(event.wheelDelta < 0) {
+                     ratio = 0.95;
+                    direction = -1;
+                }
+                if(event.shiftKey) {
+                    this.Shape.Length = this.Shape.Length * ratio;
+                }
+                if(event.ctrlKey) {
+                    this.Shape.Width = this.Shape.Width * ratio;
+                }
+                if(!event.shiftKey && !event.ctrlKey) {
+                    this.Shape.Orientation = this.Shape.Orientation + 3 * direction;
+                 }
+
+                this.Shape.UpdateBuffers();
+                this.PlacePopup();
+                eventuallyRender();
+            }
+        }
+        */
+    };
+
+
+    ScaleWidget.prototype.HandleTouchPan = function(event) {
+        /*
+          w0 = this.Viewer.ConvertPointViewerToWorld(EVENT_MANAGER.LastMouseX,
+          EVENT_MANAGER.LastMouseY);
+          w1 = this.Viewer.ConvertPointViewerToWorld(event.offsetX,event.offsetY);
+
+          // This is the translation.
+          var dx = w1[0] - w0[0];
+          var dy = w1[1] - w0[1];
+
+          this.Shape.Origin[0] += dx;
+          this.Shape.Origin[1] += dy;
+          eventuallyRender();
+        */
+        return true;
+    };
+
+
+    ScaleWidget.prototype.HandleTouchPinch = function(event) {
+        //this.Shape.UpdateBuffers();
+        //eventuallyRender();
+        return true;
+    };
+
+    ScaleWidget.prototype.HandleTouchEnd = function(event) {
+        this.SetActive(false);
+    };
+
+
+    ScaleWidget.prototype.CheckActive = function(event) {
+        /*
+        var x,y;
+        if (this.Shape.FixedSize) {
+            x = event.offsetX;
+            y = event.offsetY;
+            pixelSize = 1;
+        } else {
+            x = event.worldX;
+            y = event.worldY;
+        }
+        x = x - this.Shape.Origin[0];
+        y = y - this.Shape.Origin[1];
+        // Rotate to scale.
+        var c = Math.cos(3.14156* this.Shape.Orientation / 180.0);
+        var s = Math.sin(3.14156* this.Shape.Orientation / 180.0);
+        var rx = c*x - s*y;
+        var ry = c*y + s*x;
+
+        // Convert to scale coordinates (0 -> dims)
+        x = (0.5*this.Shape.Dimensions[0]) + (rx / this.Shape.Width);
+        y = (0.5*this.Shape.Dimensions[1]) + (ry / this.Shape.Height);
+        var ix = Math.round(x);
+        var iy = Math.round(y);
+        if (ix < 0 || ix > this.Shape.Dimensions[0] ||
+            iy < 0 || iy > this.Shape.Dimensions[1]) {
+            this.SetActive(false);
+            return false;
+        }
+
+        // x,y get the residual in pixels.
+        x = (x - ix) * this.Shape.Width;
+        y = (y - iy) * this.Shape.Height;
+
+        // Compute the screen pixel size for tollerance.
+        var tolerance = 5.0 / this.Viewer.GetPixelsPerUnit();
+
+        if (Math.abs(x) < tolerance || Math.abs(y) < tolerance) {
+            this.SetActive(true);
+            if (ix == 0) {
+                this.State = SCALE_WIDGET_DRAG_LEFT;
+                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (ix == this.Shape.Dimensions[0]) {
+                this.State = SCALE_WIDGET_DRAG_RIGHT;
+                this.Viewer.MainView.CanvasDiv.css({'cursor':'col-resize'});
+            } else if (iy == 0) {
+                this.State = SCALE_WIDGET_DRAG_TOP;
+                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+            } else if (iy == this.Shape.Dimensions[1]) {
+                this.State = SCALE_WIDGET_DRAG_BOTTOM;
+                this.Viewer.MainView.CanvasDiv.css({'cursor':'row-resize'});
+            } else {
+                this.State = SCALE_WIDGET_DRAG;
+                this.Viewer.MainView.CanvasDiv.css({'cursor':'move'});
+            }
+            return true;
+        }
+        */
+        this.SetActive(false);
+        return false;
+    };
+
+    // Multiple active states. Active state is a bit confusing.
+    ScaleWidget.prototype.GetActive = function() {
+        if (this.State == SCALE_WIDGET_WAITING) {
+            return false;
+        }
+        return true;
+    };
+
+
+    ScaleWidget.prototype.Deactivate = function() {
+        this.Viewer.MainView.CanvasDiv.css({'cursor':'default'});
+        this.Popup.StartHideTimer();
+        this.State = SCALE_WIDGET_WAITING;
+        this.Shape.Active = false;
+        this.Viewer.DeactivateWidget(this);
+        if (this.DeactivateCallback) {
+            this.DeactivateCallback();
+        }
+        eventuallyRender();
+    };
+
+    // Setting to active always puts state into "active".
+    // It can move to other states and stay active.
+    ScaleWidget.prototype.SetActive = function(flag) {
+        if (flag == this.GetActive()) {
+            return;
+        }
+
+        if (flag) {
+            this.State = SCALE_WIDGET_ACTIVE;
+            this.Shape.Active = true;
+            this.Viewer.ActivateWidget(this);
+            eventuallyRender();
+            // Compute the location for the pop up and show it.
+            this.PlacePopup();
+        } else {
+            this.Deactivate();
+        }
+        eventuallyRender();
+    };
+
+
+    window.ScaleWidget = ScaleWidget;
 
 })();
 
@@ -50637,7 +51167,7 @@ function CutoutWidget (parent, viewer) {
     this.Bounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
     this.DragBounds = [fp[0]-rad,fp[0]+rad, fp[1]-rad,fp[1]+rad];
 
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     //viewer.ActivateWidget(this):
     eventuallyRender();
 
@@ -50777,12 +51307,8 @@ CutoutWidget.prototype.DrawCenter = function(ctx, pt, cam, color) {
 
 // This needs to be put in the Viewer.
 CutoutWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -50988,10 +51514,7 @@ CutoutWidget.prototype.Deactivate = function() {
         return;
     }
     this.Viewer.DeactivateWidget(this);
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
-    }
+    this.Viewer.RemoveWidget(this);
 
     eventuallyRender();
 }
@@ -51310,6 +51833,45 @@ SlideAtlas.prototype.TriggerStartInteraction = function() {
         callback();
     }
 }
+
+// length units = meters
+SlideAtlas.prototype.DistanceToString = function(length) {
+    var lengthStr = "";
+    if (length < 0.001) {
+        // Latin-1 00B5 is micro sign
+        lengthStr += (length*1e6).toFixed(2) + " \xB5m";
+    } else if (length < 0.01) {
+        lengthStr += (length*1e3).toFixed(2) + " mm";
+    } else if (length < 1.0)  {
+        lengthStr += (length*1e2).toFixed(2) + " cm";
+    } else if (length < 1000) {
+        lengthStr += (length).toFixed(2) + " m";
+    } else {
+        lengthStr += (length).toFixed(2) + " km";
+    }
+    return lengthStr;
+}
+
+SlideAtlas.prototype.StringToDistance = function(lengthStr) {
+    var length = 0;
+    lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
+    var len = lengthStr.length;
+    // Convert to microns
+    if (lengthStr.substring(len-2,len) == "\xB5m") {
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
+    } else if (lengthStr.substring(len-2,len) == "mm") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
+    } else if (lengthStr.substring(len-2,len) == "cm") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
+    } else if (lengthStr.substring(len-2,len) == " m") { 
+        length = parseFloat(lengthStr.substring(0,len-2));
+    } else if (lengthStr.substring(len-2,len) == "km") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
+    }
+
+    return length;
+}
+
 
 
 var SA = SA || new SlideAtlas();

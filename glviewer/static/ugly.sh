@@ -73,6 +73,7 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc circleWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc rectWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc gridWidget.js >> sa.min.js 
+~/bin/uglifyjs -nc scaleWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc cutoutWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc imageAnnotation.js >> sa.min.js 
 ~/bin/uglifyjs -nc init.js >> sa.min.js 

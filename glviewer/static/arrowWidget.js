@@ -39,7 +39,7 @@ function ArrowWidget (viewer, newFlag) {
   this.TipOffset = [0,0];
 
   if (viewer) {
-    viewer.WidgetList.push(this);
+    viewer.AddWidget(this);
     if (newFlag && viewer) {
       this.State = ARROW_WIDGET_NEW;
       this.Viewer.ActivateWidget(this);
@@ -56,13 +56,9 @@ ArrowWidget.prototype.Draw = function(view) {
 
 
 ArrowWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 ArrowWidget.prototype.Serialize = function() {
