@@ -31,15 +31,15 @@ ThumbViewer.prototype.Draw = function() {
     
     this.MainView1.DrawTiles();
     
-    for(i in this.WidgetList){
-        this.WidgetList[i].Draw(this.MainView, this.AnnotationVisibility);
+    for(i in this.WidgetList1){
+        this.WidgetList1[i].Draw(this.MainView, this.AnnotationVisibility);
     }
 }
 
 // Makes the viewer clean to setup a new slide...
 ThumbViewer.prototype.Reset = function() {
     this.SetCache(null);
-    this.WidgetList = [];
+    this.WidgetList1 = [];
 }
 
 

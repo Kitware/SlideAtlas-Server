@@ -53,7 +53,7 @@ function FillWidget (viewer, newFlag) {
 
     this.Popup = new WidgetPopup(this);
     this.Viewer = viewer;
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     this.Cursor = $('<img>').appendTo('body')
         .addClass("sa-view-fill-cursor")
@@ -279,12 +279,8 @@ FillWidget.prototype.SetActive = function(flag) {
 }
 
 FillWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget();
     }
 }
 

@@ -75,39 +75,40 @@ function TextError () {
 }
 
 function Text() {
-  // All text objects sare the same texture map.
-  //if (TEXT_TEXTURE == undefined ) {
-  //}
-  if (GL) {
-    this.TextureLoaded = false;
-    this.Texture = GL.createTexture();
-    this.Image = new Image();
-    this.Image.onload = GetTextureLoadedFunction(this);
-    //this.Image.onerror = TextError(); // Always fires for some reason.
-    // This starts the loading.
-    this.Image.src = SA.ImagePathUrl +"letters.gif";
-  }
-  this.Color = [0.5, 1.0, 1.0];
-  this.Size = 12; // Height in pixels
+    // All text objects sare the same texture map.
+    //if (TEXT_TEXTURE == undefined ) {
+    //}
+    if (GL) {
+        this.TextureLoaded = false;
+        this.Texture = GL.createTexture();
+        this.Image = new Image();
+        this.Image.onload = GetTextureLoadedFunction(this);
+        //this.Image.onerror = TextError(); // Always fires for some reason.
+        // This starts the loading.
+        this.Image.src = SA.ImagePathUrl +"letters.gif";
+    }
+    this.Color = [0.5, 1.0, 1.0];
+    this.Size = 12; // Height in pixels
 
-  // Position of the anchor in the world coordinate system.
-  this.Position = [100,100];
+    // Position of the anchor in the world coordinate system.
+    this.Position = [100,100];
+    this.Orientation = 0.0; // in degrees, counter clockwise, 0 is left
 
-  // The anchor point and position are the same point.
-  // Position is in world coordinates.
-  // Anchor is in pixel coordinates of text (buffers).
-  // In pixel(text) coordinate system
-  this.Anchor = [0,0];
-  this.Active = false;
+    // The anchor point and position are the same point.
+    // Position is in world coordinates.
+    // Anchor is in pixel coordinates of text (buffers).
+    // In pixel(text) coordinate system
+    this.Anchor = [0,0];
+    this.Active = false;
 
-  //this.String = "Hello World";
-  //this.String = "0123456789";
-  this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
+    //this.String = "Hello World";
+    //this.String = "0123456789";
+    this.String = ",./<>?[]\{}|-=~!@#$%^&*()_+";
 
-  // Pixel bounds are in text box coordiante system.
-  this.PixelBounds = [0,0,0,0];
+    // Pixel bounds are in text box coordiante system.
+    this.PixelBounds = [0,0,0,0];
   
-  this.BackgroundFlag = false;
+    this.BackgroundFlag = false;
 };
 
 Text.prototype.destructor=function() {
@@ -132,127 +133,136 @@ Text.prototype.HandleLoadedTexture = function() {
 }
 
 Text.prototype.Draw = function (view) {
-  // Place the anchor of the text.
-  // First transform the world anchor to view.
-  var m = view.Camera.Matrix;
-  var x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
-  var y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
-  // convert view to pixels (view coordinate system).
-  x = view.Viewport[2]*(0.5*(1.0+x));
-  y = view.Viewport[3]*(0.5*(1.0-y));
+    // Place the anchor of the text.
+    // First transform the world anchor to view.
+    var x = this.Position[0];
+    var y = this.Position[1];
+    if (this.PositionCoordinateSystem != Shape.VIEWER) {
+        var m = view.Camera.Matrix;
+        x = (this.Position[0]*m[0] + this.Position[1]*m[4] + m[12])/m[15];
+        y = (this.Position[0]*m[1] + this.Position[1]*m[5] + m[13])/m[15];
+        // convert view to pixels (view coordinate system).
+        x = view.Viewport[2]*(0.5*(1.0+x));
+        y = view.Viewport[3]*(0.5*(1.0-y));
+    }
   
-  // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
-  if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
-    this.Anchor = [-50, 0];
-  }
-
-  if (GL) {
-    if (this.TextureLoaded == false) {
-      return;
+    // Hacky attempt to mitigate the bug that randomly sends the Anchor values into the tens of thousands.
+    if(Math.abs(this.Anchor[0]) > 1000 || Math.abs(this.Anchor[1]) > 1000){
+        this.Anchor = [-50, 0];
     }
-    if (this.Matrix == undefined) {
-      this.UpdateBuffers();
-      this.Matrix = mat4.create();
-      mat4.identity(this.Matrix);
-    }
-    var program = textProgram;
-    GL.useProgram(program);
 
-    //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
-    //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
-    //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
-    //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
-    GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-    GL.enable(GL.BLEND);
-    //GL.disable(GL.DEPTH_TEST);
+    if (GL) {
+        if (this.TextureLoaded == false) {
+            return;
+        }
+        if (this.Matrix == undefined) {
+            this.UpdateBuffers();
+            this.Matrix = mat4.create();
+            mat4.identity(this.Matrix);
+        }
+        var program = textProgram;
+        GL.useProgram(program);
 
-    // These are the same for every tile.
-    // Vertex points (shifted by tiles matrix)
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
-    // Needed for outline ??? For some reason, DrawOutline did not work
-    // without this call first.
-    GL.vertexAttribPointer(program.vertexPositionAttribute,
-                           this.VertexPositionBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);     // Texture coordinates
-    GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
-    GL.vertexAttribPointer(program.textureCoordAttribute,
-                           this.VertexTextureCoordBuffer.itemSize,
-                           GL.FLOAT, false, 0, 0);
-    // Cell Connectivity
-    GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+        //ZERO,ONE,SRC_COLOR,ONE_MINUS_SRC_COLOR,ONE_MINUS_DST_COLOR,
+        //SRC_ALPHA,ONE_MINUS_SRC_ALPHA,
+        //DST_ALPHA,ONE_MINUS_DST_ALHPA,GL_SRC_ALPHA_SATURATE
+        //GL.blendFunc(GL.SRC_ALPHA, GL.ONE);
+        GL.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+        GL.enable(GL.BLEND);
+        //GL.disable(GL.DEPTH_TEST);
 
-    // Color of text
-    if (this.Active) {
-      GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+        // These are the same for every tile.
+        // Vertex points (shifted by tiles matrix)
+        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexPositionBuffer);
+        // Needed for outline ??? For some reason, DrawOutline did not work
+        // without this call first.
+        GL.vertexAttribPointer(program.vertexPositionAttribute,
+                               this.VertexPositionBuffer.itemSize,
+                               GL.FLOAT, false, 0, 0);     // Texture coordinates
+        GL.bindBuffer(GL.ARRAY_BUFFER, this.VertexTextureCoordBuffer);
+        GL.vertexAttribPointer(program.textureCoordAttribute,
+                               this.VertexTextureCoordBuffer.itemSize,
+                               GL.FLOAT, false, 0, 0);
+        // Cell Connectivity
+        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.CellBuffer);
+
+        // Color of text
+        if (this.Active) {
+            GL.uniform3f(program.colorUniform, 1.0, 1.0, 0.0);
+        } else {
+            GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+        }
+        // Draw characters.
+        GL.viewport(view.Viewport[0], view.Viewport[1],
+                    view.Viewport[2], view.Viewport[3]);
+
+        var viewFrontZ = view.Camera.ZRange[0]+0.01;
+
+        // Lets use the camera to change coordinate system to pixels.
+        // TODO: Put this camera in the view or viewer to avoid creating one each render.
+        var camMatrix = mat4.create();
+        mat4.identity(camMatrix);
+        camMatrix[0] = 2.0 / view.Viewport[2];
+        camMatrix[12] = -1.0;
+        camMatrix[5] = -2.0 / view.Viewport[3];
+        camMatrix[13] = 1.0;
+        camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
+        GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
+
+        // Translate the anchor to x,y
+        this.Matrix[12] = x - this.Anchor[0];
+        this.Matrix[13] = y - this.Anchor[1];
+        GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
+
+        GL.activeTexture(GL.TEXTURE0);
+        GL.bindTexture(GL.TEXTURE_2D, this.Texture);
+        GL.uniform1i(program.samplerUniform, 0);
+
+        GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
     } else {
-      GL.uniform3f(program.colorUniform, this.Color[0], this.Color[1], this.Color[2]);
+        // (x,y) is the screen position of the text.
+        // Canvas text location is lower left of first letter.
+        var strArray = this.String.split("\n");
+        // Move (x,y) from tip of the arrow to the upper left of the text box.
+        var ctx = view.Context2d;
+        ctx.save();
+        var radians = this.Orientation * Math.PI / 180;
+        var s = Math.sin(radians);
+        var c = Math.cos(radians);
+        ctx.setTransform(c,-s,s,c,x,y);
+        x = - this.Anchor[0];
+        y = - this.Anchor[1];
+
+        ctx.font = this.Size+'pt Calibri';
+        var width = this.PixelBounds[1];
+        var height = this.PixelBounds[3];
+        // Draw the background text box.
+        if(this.BackgroundFlag){
+            //ctx.fillStyle = '#fff';
+            //ctx.strokeStyle = '#000';
+            //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
+            roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
+        }
+
+        // Choose the color for the text.
+        if (this.Active) {
+            ctx.fillStyle = '#FF0';
+        } else {
+            ctx.fillStyle = ConvertColorToHex(this.Color);
+        }
+
+        // Convert (x,y) from upper left of textbox to lower left of first character.
+        y = y + this.Size;
+        // Draw the lines of the text.
+        for (var i = 0; i < strArray.length; ++i) {
+            ctx.fillText(strArray[i], x, y)
+            // Move to the lower left of the next line.
+            y = y + this.Size*LINE_SPACING;
+        }
+
+        ctx.stroke();
+        ctx.restore();
     }
-    // Draw characters.
-    GL.viewport(view.Viewport[0], view.Viewport[1],
-                view.Viewport[2], view.Viewport[3]);
-
-    var viewFrontZ = view.Camera.ZRange[0]+0.01;
-
-    // Lets use the camera to change coordinate system to pixels.
-    // TODO: Put this camera in the view or viewer to avoid creating one each render.
-    var camMatrix = mat4.create();
-    mat4.identity(camMatrix);
-    camMatrix[0] = 2.0 / view.Viewport[2];
-    camMatrix[12] = -1.0;
-    camMatrix[5] = -2.0 / view.Viewport[3];
-    camMatrix[13] = 1.0;
-    camMatrix[14] = viewFrontZ; // In front of everything (no depth buffer anyway).
-    GL.uniformMatrix4fv(program.pMatrixUniform, false, camMatrix);
-
-    // Translate the anchor to x,y
-    this.Matrix[12] = x - this.Anchor[0];
-    this.Matrix[13] = y - this.Anchor[1];
-    GL.uniformMatrix4fv(program.mvMatrixUniform, false, this.Matrix);
-
-    GL.activeTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, this.Texture);
-    GL.uniform1i(program.samplerUniform, 0);
-
-    GL.drawElements(GL.TRIANGLES, this.CellBuffer.numItems, GL.UNSIGNED_SHORT,0);
-  } else {
-    // Canvas text location is lower left of first letter.
-    var strArray = this.String.split("\n");
-    // Move (x,y) from tip of the arrow to the upper left of the text box.
-    x = x - this.Anchor[0];
-    y = y - this.Anchor[1];
-    var ctx = view.Context2d;
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.font = this.Size+'pt Calibri';
-    var width = this.PixelBounds[1];
-    var height = this.PixelBounds[3];
-    // Draw the background text box.
-    if(this.BackgroundFlag){
-      //ctx.fillStyle = '#fff';
-      //ctx.strokeStyle = '#000';
-      //ctx.fillRect(x - 2, y - 2, this.PixelBounds[1] + 4, (this.PixelBounds[3] + this.Size/3)*1.4);
-      roundRect(ctx, x - 2, y - 2, width + 6, height + 2, this.Size / 2, true, false);
-    }
-
-    // Choose the color for the text.
-    if (this.Active) {
-      ctx.fillStyle = '#FF0';
-    } else {
-      ctx.fillStyle = ConvertColorToHex(this.Color);
-    }
-
-    // Convert (x,y) from upper left of textbox to lower left of first character.
-    y = y + this.Size;
-    // Draw the lines of the text.
-    for (var i = 0; i < strArray.length; ++i) {
-      ctx.fillText(strArray[i], x, y)
-      // Move to the lower left of the next line.
-      y = y + this.Size*LINE_SPACING;
-    }
-    
-    ctx.stroke();
-    ctx.restore();
-  }
 }
 
 function roundRect(ctx, x, y, width, height, radius) {

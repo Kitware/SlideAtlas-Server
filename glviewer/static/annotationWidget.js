@@ -303,8 +303,8 @@ AnnotationWidget.prototype.DetectSections = function() {
 
     // See if a SectionsWidget already exists.
     var widget = null;
-    for (var i = 0; i < this.Viewer.WidgetList.length && widget == null; ++i) {
-        var w = this.Viewer.WidgetList[i];
+    for (var i = 0; i < this.Viewer.GetNumberOfWidgets() && widget == null; ++i) {
+        var w = this.Viewer.GetWidget(i);
         //if (w instanceOf SectionsWidget) {
         if (w.Type == "sections") {
             widget = w;

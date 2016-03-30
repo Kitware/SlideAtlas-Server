@@ -85,32 +85,32 @@ ViewerRecord.prototype.Load = function(obj) {
 
 
 ViewerRecord.prototype.CopyViewer = function (viewer) {
-  var cache = viewer.GetCache();
-  if ( ! cache) {
-    this.Camera = null;
-    this.AnnotationVisibility = false;
+    var cache = viewer.GetCache();
+    if ( ! cache) {
+        this.Camera = null;
+        this.AnnotationVisibility = false;
+        this.Annotations = [];
+        return;
+    }
+
+
+    this.OverviewBounds = viewer.GetOverViewBounds();
+
+    this.Image = cache.Image;
+    this.Camera = viewer.GetCamera().Serialize();
+
+    this.AnnotationVisibility = viewer.GetAnnotationVisibility();
     this.Annotations = [];
-    return;
-  }
-
-
-  this.OverviewBounds = viewer.GetOverViewBounds();
-
-  this.Image = cache.Image;
-  this.Camera = viewer.GetCamera().Serialize();
-
-  this.AnnotationVisibility = viewer.GetAnnotationVisibility();
-  this.Annotations = [];
-  for (var i = 0; i < viewer.WidgetList.length; ++i) {
-    this.Annotations.push(viewer.WidgetList[i].Serialize());
-  }
+    for (var i = 0; i < viewer.GetNumberOfWidgets(); ++i) {
+        this.Annotations.push(viewer.GetWidget(i).Serialize());
+    }
 }
 
 // For stacks.  A reduced version of copy view. 
 ViewerRecord.prototype.CopyAnnotations = function (viewer) {
     this.Annotations = [];
-    for (var i = 0; i < viewer.WidgetList.length; ++i) {
-        var o = viewer.WidgetList[i].Serialize();
+    for (var i = 0; i < viewer.GetNumberOfWidgets; ++i) {
+        var o = viewer.GetWidget(i).Serialize();
         if (o) {
             this.Annotations.push(o);
         }
@@ -145,6 +145,7 @@ ViewerRecord.prototype.Serialize = function () {
 
 
 ViewerRecord.prototype.Apply = function (viewer) {
+    viewer.Reset();
     // If a widget is active, then just inactivate it.
     // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
     if (viewer.ActiveWidget) {
@@ -178,8 +179,6 @@ ViewerRecord.prototype.Apply = function (viewer) {
     if (this.Annotations != undefined) {
         // TODO: Fix this.  Keep actual widgets in the records / notes.
         // For now lets just do the easy thing and recreate all the annotations.
-        viewer.WidgetList = [];
-        viewer.ShapeList = [];
         for (var i = 0; i < this.Annotations.length; ++i) {
             var widget = viewer.LoadWidget(this.Annotations[i]);
             // Until we do the above todo.  This is the messy way of removing

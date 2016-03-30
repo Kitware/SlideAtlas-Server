@@ -17,7 +17,7 @@ function CrossWidget (viewer, newFlag) {
   var cam = viewer.MainView.Camera;
   var viewport = viewer.MainView.Viewport;
   this.Shape = new CrossHairs();
-  this.Viewer.WidgetList.push(this);
+  this.Viewer.AddWidget(this);
   this.Viewer.AddShape(this.Shape);
 
   // New flag => widget is created in drag state.
@@ -35,17 +35,9 @@ CrossWidget.prototype.Draw = function(view) {
 }
 
 CrossWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.ShapeList.indexOf(this.Shape);
-  if(idx!=-1) {
-    this.Viewer.ShapeList.splice(idx, 1);
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 CrossWidget.prototype.HandleKeyPress = function(keyCode, shift) {

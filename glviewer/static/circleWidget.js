@@ -104,7 +104,7 @@ function CircleWidget (viewer, newFlag) {
     this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
     this.Shape.FixedSize = false;
 
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     // Note: If the user clicks before the mouse is in the
     // canvas, this will behave odd.
@@ -124,13 +124,9 @@ CircleWidget.prototype.Draw = function(view) {
 
 // This needs to be put in the Viewer.
 CircleWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 CircleWidget.prototype.PasteCallback = function(data, mouseWorldPt) {

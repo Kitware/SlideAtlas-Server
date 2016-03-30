@@ -80,7 +80,7 @@ function LassoWidget (viewer, newFlag) {
 
     this.Viewer = viewer;
     this.Popup = new WidgetPopup(this);
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     var self = this;
 
@@ -307,13 +307,9 @@ LassoWidget.prototype.SetActive = function(flag) {
 }
 
 LassoWidget.prototype.RemoveFromViewer = function() {
-  if (this.Viewer == null) {
-    return;
-  }
-  var idx = this.Viewer.WidgetList.indexOf(this);
-  if(idx!=-1) {
-    this.Viewer.WidgetList.splice(idx, 1);
-  }
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
+    }
 }
 
 // Can we bind the dialog apply callback to an objects method?
