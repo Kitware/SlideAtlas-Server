@@ -408,7 +408,7 @@
                     {% set viewer_edit_url = url_for('glviewer.glview', sess=session.id, view=view_son.id, edit='true') %}
                     {% set viewer_url = viewer_edit_url if security.EditSessionRequirement(session).can() else viewer_view_url %}
                     <tr>
-                        <td>
+                        <td height=50px>
                             <a href="{{ viewer_url }}">
                                 <img src="{{ url_for('tile.thumb_query', db=view_son.image_store_id, img=view_son.image_id) }}"
                                      class="{% if view_son.Type == 'Stack' %}sa-view-stack{% endif %}"
