@@ -11615,9 +11615,15 @@ NotesWidget.prototype.UpdateQuestionMode = function() {
     if (this.RootNote.Mode == 'answer-show') {
         $('.sa-note').show();
         $('.sa-diagnosis').show();
+        $('.sa-differential-diagnosis').show();
+        $('.sa-teaching-points').show();
+        $('.sa-compare').show();
     } else {
         $('.sa-note').hide();
         $('.sa-diagnosis').hide();
+        $('.sa-differential-diagnosis').hide();
+        $('.sa-teaching-points').hide();
+        $('.sa-compare').hide();
     }
 }
 
@@ -52007,18 +52013,45 @@ SlideAtlas.prototype.AddHtmlTags = function(item) {
             container = undefined;
             continue;
         }
+        if (child.hasClass('sa-differential-diagnosis')) {
+            container = undefined;
+            continue;
+        }
+        if (child.hasClass('sa-teaching-points')) {
+            container = undefined;
+            continue;
+        }
         if (child.hasClass('sa-note')) {
+            container = undefined;
+            continue;
+        }
+        if (child.hasClass('sa-compare')) {
+            container = undefined;
+            continue;
+        }
+        if (child.hasClass('sa-ssc-title')) {
             container = undefined;
             continue;
         }
 
         // Look for a keyword at the start of the text we recognize.
         var text = child.text();
+        // treat the title as a single line.
+        if (this.TagCompare('SSC', text) && !child.hasClass('sa-ssc-title')) {
+            child.addClass('sa-ssc-title');
+        }
+        // These tags consume children followint the tag.
         var tag = false;
         if (this.TagCompare('History:', text)) {
             tag = 'sa-history';
         } else if (this.TagCompare('Diagnosis:', text)) {
             tag = 'sa-diagnosis';
+        } else if (this.TagCompare('Differential Diagnosis:', text)) {
+            tag = 'sa-differential-diagnosis';
+        } else if (this.TagCompare('Teaching Points:', text)) {
+            tag = 'sa-teaching-points';
+        } else if (this.TagCompare('Compare with', text)) {
+            tag = 'sa-compare';
         } else if (this.TagCompare('Notes:', text)) {
             tag = 'sa-note';
         } else if (this.TagCompare('Note:', text)) {
