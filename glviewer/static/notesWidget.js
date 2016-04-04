@@ -839,12 +839,14 @@ NotesWidget.prototype.UpdateQuestionMode = function() {
 
     if (this.RootNote.Mode == 'answer-show') {
         $('.sa-note').show();
+        $('.sa-notes').show();
         $('.sa-diagnosis').show();
         $('.sa-differential-diagnosis').show();
         $('.sa-teaching-points').show();
         $('.sa-compare').show();
     } else {
         $('.sa-note').hide();
+        $('.sa-notes').hide();
         $('.sa-diagnosis').hide();
         $('.sa-differential-diagnosis').hide();
         $('.sa-teaching-points').hide();

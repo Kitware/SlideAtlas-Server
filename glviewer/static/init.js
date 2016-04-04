@@ -277,16 +277,29 @@ SlideAtlas.prototype.StringToDistance = function(lengthStr) {
 
 // TODO: These should be moved to viewer-utils so they can be used
 // separately from SlideAtlas.
-// Helper function.
-SlideAtlas.prototype.TagCompare = function (tag,text) {
-    return (tag.toUpperCase() == text.substring(0,tag.length).toUpperCase());
+// Helper function: Looks for a key phase in the text.
+// first == true: Look only at the start. Returns true if found. 
+// first == false: return index of tag or -1;
+SlideAtlas.prototype.TagCompare = function (tag,text,first) {
+    if (first) {
+        return (tag.toUpperCase() ==
+                text.substring(0,tag.length).toUpperCase());
+    }
+    return text.toUpperCase().search(tag.toUpperCase());
 }
+
 // Process HTML to add standard tags.
 // Returns the altered html.
 // I am writting this to be safe to call multiple times.
 // Depth first traversal of tree.
 SlideAtlas.prototype.AddHtmlTags = function(item) {
     var container = undefined;
+    var tags = [{string:"History:",               class:"sa-history"},
+                {string:"Diagnosis:",             class:"sa-diagnosis"},
+                {string:"Differential Diagnosis:",class:"sa-differential-diagnosis"},
+                {string:"Teaching Points:",       class:"sa-teaching-points"},
+                {string:"Compare with:",          class:"sa-compare"},
+                {string:"Notes:",                 class:"sa-notes"}];
 
     // Since text concatinates children,
     // containers only have to consume siblings.
@@ -297,65 +310,78 @@ SlideAtlas.prototype.AddHtmlTags = function(item) {
         // Look for an existing class from our set. 
         // If we find one, terminate processing for the item and ites children.
         // Terminate the container collecting items.
-        if (child.hasClass('sa-history')) {
+        var foundTag = undefined;
+        for (var j = 0; j < tags.length; ++j) {
+            if (child.hasClass(tags[j].class)) {
+                foundTag = tags[j];
+            }
+        }
+        if (foundTag) {
             container = undefined;
             continue;
         }
-        if (child.hasClass('sa-diagnosis')) {
-            container = undefined;
-            continue;
-        }
-        if (child.hasClass('sa-differential-diagnosis')) {
-            container = undefined;
-            continue;
-        }
-        if (child.hasClass('sa-teaching-points')) {
-            container = undefined;
-            continue;
-        }
-        if (child.hasClass('sa-note')) {
-            container = undefined;
-            continue;
-        }
-        if (child.hasClass('sa-compare')) {
-            container = undefined;
-            continue;
-        }
+
+        // special  (one line tag)
         if (child.hasClass('sa-ssc-title')) {
             container = undefined;
             continue;
         }
 
-        // Look for a keyword at the start of the text we recognize.
+        // Look for a tag string inthe text
         var text = child.text();
-        // treat the title as a single line.
-        if (this.TagCompare('SSC', text) && !child.hasClass('sa-ssc-title')) {
+        // Special case: treat the title as a single line.
+        if (this.TagCompare('SSC', text, true) && !child.hasClass('sa-ssc-title')) {
             child.addClass('sa-ssc-title');
         }
-        // These tags consume children followint the tag.
-        var tag = false;
-        if (this.TagCompare('History:', text)) {
-            tag = 'sa-history';
-        } else if (this.TagCompare('Diagnosis:', text)) {
-            tag = 'sa-diagnosis';
-        } else if (this.TagCompare('Differential Diagnosis:', text)) {
-            tag = 'sa-differential-diagnosis';
-        } else if (this.TagCompare('Teaching Points:', text)) {
-            tag = 'sa-teaching-points';
-        } else if (this.TagCompare('Compare with', text)) {
-            tag = 'sa-compare';
-        } else if (this.TagCompare('Notes:', text)) {
-            tag = 'sa-note';
-        } else if (this.TagCompare('Note:', text)) {
-            tag = 'sa-note';
+
+        // Make sure tags are not grouped.
+        // This is a bit of a hack.  THere are too many ways html can be formatted.
+        if (child.children().length > 1) {
+            for (var j = 0; j < tags.length; ++j) {
+                tag = tags[j];
+                if (this.TagCompare(tag.string, text, false) > 0) {
+                    var grandChildren = child.children();
+                    grandChildren.remove();
+                    grandChildren.insertAfter(child);
+                    children = item.children();
+                    text = child.text();
+                    break;
+                }
+            }
         }
-        if (tag) {
-            // If we find one, start a new container.
-            container = $('<div>')
-                .addClass(tag)
-                .insertBefore(child);
-            // Manipulating a list we are traversing is a pain.
-            ++i;
+
+        // These tags consume children followint the tag.
+        var foundTag = false;
+        for (var j = 0; j < tags.length; ++j) {
+            tag = tags[j];
+            if (this.TagCompare(tag.string, text, true)) {
+                foundTag = tag;
+                break;
+            }
+        }
+
+        if (foundTag) {
+            // If the outer is a div,  reuse it for the container.
+            // There was a bug with diagnosis in the history container.
+            // This will ungroup multiple tags. However recursion may be
+            // needed.
+            if (child[0].tagName == 'DIV') {
+                var grandChildren = child.children();
+                child.empty();
+                grandChildren.insertAfter(child);
+                children = item.children();
+                container = child;
+                ++i;
+                child = $(children[i]);
+            } else {
+                // Start a new container.
+                container = $('<div>')
+                    .insertBefore(child);
+                children = item.children();
+                // Manipulating a list we are traversing is a pain.
+                ++i;
+            }
+            container.addClass(foundTag.class);
         }
 
         // If we have a container, it consumes all items after it.
