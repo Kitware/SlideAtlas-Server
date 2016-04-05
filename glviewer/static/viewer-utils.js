@@ -76,7 +76,7 @@
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
  
-jQuery.prototype.saElement = function(args) {
+jQuery.prototype.saElement = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saElement) {
             var helper = new saElement($(this[i]));
@@ -84,7 +84,7 @@ jQuery.prototype.saElement = function(args) {
             this[i].saElement = helper;
             $(this[i]).addClass('sa-element');
         }
-        this[i].saElement.ProcessArguments(args);
+        this[i].saElement.ProcessArguments(arguments);
     }
     return this;
 }
@@ -527,7 +527,23 @@ saElement.prototype.DialogApply = function() {
 
 
 saElement.prototype.ProcessArguments = function(args) {
-    args = args || {};
+    // aspect ratio does something even with no arguments.
+    if (args.length == 0) {
+        args.push({});
+    }
+
+    // No superclass
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+
+    // Handle the legacy behavior. 
+    // One argument: an object (like jqueryUI).
+    args = args[0];
     var self = this;
 
     // For questions.  We want the dialog to be filled before we create
@@ -1005,14 +1021,14 @@ saElement.prototype.ConvertToPercentages = function() {
 // Just editing options to a rectangle.  I could make the text editor a 
 // "subclass" of this rectangle object.
 
-jQuery.prototype.saRectangle = function(args) {
+jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saRectangle) {
             dom.saRectangle = new saRectangle($(dom));
         }
-        dom.saRectangle.ProcessArguments(args);
+        dom.saRectangle.ProcessArguments(arguments);
     }
 
     return this;
@@ -1096,7 +1112,17 @@ function saRectangle(div) {
 }
 
 saRectangle.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saElement.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saRectangle.prototype.DialogInitialize = function () {
@@ -1157,14 +1183,14 @@ saRectangle.prototype.DialogApply = function () {
 //==============================================================================
 // Text: dialog to set margin, text size, spacing, (font in the future)
 
-jQuery.prototype.saText = function(args) {
+jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saText) {
             dom.saText = new saText($(dom));
         }
-        dom.saText.ProcessArguments(args);
+        dom.saText.ProcessArguments(arguments);
     }
 
     return this;
@@ -1251,7 +1277,17 @@ function saText(div) {
 }
 
 saText.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saRectangle.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saText.prototype.DialogPaddingInitialize = function () {
@@ -1284,14 +1320,14 @@ saText.prototype.DialogPaddingApply = function () {
 //==============================================================================
 // Questions
 //
-jQuery.prototype.saQuestion = function(args) {
+jQuery.prototype.saQuestion = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saQuestion) {
             // Add the helper as an instance variable to the dom object.
             this[i].saQuestion = new saQuestion($(this[i]));;
             this[i].saElement.HideAccordionTab('Quiz');
         }
-        this[i].saQuestion.ProcessArguments(args);
+        this[i].saQuestion.ProcessArguments(arguments);
     }
 
     return this;
@@ -1350,7 +1386,7 @@ saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
         }
     }
 
-    // Answers are complicated enough that I ma going to have to break down
+    // Answers are complicated enough that I am going to have to break down
     // and create differt gui object.
     var answerObj = {Div   : answerDiv,
                      Check : check,
@@ -1360,7 +1396,17 @@ saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
 }
 
 saQuestion.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saText.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saQuestion.prototype.DialogInitialize = function () {
@@ -2098,7 +2144,7 @@ saTextEditor.prototype.SetPositionPixel = function(x, y) {
 //   Maybe push pin or camera icon to capture changes
 
 
-jQuery.prototype.saLightBox = function(args) {
+jQuery.prototype.saLightBox = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-light-box');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saLightBox) {
@@ -2106,7 +2152,7 @@ jQuery.prototype.saLightBox = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saLightBox = helper;
         }
-        this[i].saLightBox.ProcessArguments(args);
+        this[i].saLightBox.ProcessArguments(arguments);
     }
 
     return this;
@@ -2144,7 +2190,22 @@ function saLightBox(div) {
 }
 
 saLightBox.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div.saElement(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+
+    // Handle the legacy behavior. 
+    // One argument: an object (like jqueryUI).
+    args = args[0];
+
 
     if (args.aspectRatio !== undefined) {
         this.AspectRatio = args.aspectRatio;

@@ -112,6 +112,11 @@ function TextEditor(parent, display) {
                            document.execCommand('fontSize',false,'2');
                            self.ChangeBulletSize('0.9em');
                        });
+    // TODO: Get selected text to see if we can convert it into a question.
+    this.AddEditButton(SA.ImagePathUrl+"question.png", "add question", 
+                       function() {
+                           self.AddQuestion();
+                       });
 
     this.TextEntry = $('<div>')
         .appendTo(parent)
@@ -296,6 +301,27 @@ TextEditor.prototype.GetSelectionRange = function() {
     }
 
     return range;
+}
+
+TextEditor.prototype.AddQuestion = function() {
+    var bar = $('<div>')
+        .css({'position':'absolute',
+              'left':'2%',
+              'width':'92%',
+              'top':'75%',
+              'height':'22.5%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 1% 1% 1%', // top right bottom left
+              'z-index' :'1'})
+        .saScalableFont({scale:'0.03'})
+        .saQuestion({editable: SA.Edit});
+
+    // This is for interactive adding new question from the GUI / dialog.
+    // This is not the best api.  The question will rember the parent,
+    // but will delay appending the div until after the
+    // dialog has been applied
+    bar.saQuestion({'parent':this.TextEntry});
 }
 
 // execCommand fontSize does change bullet size.
