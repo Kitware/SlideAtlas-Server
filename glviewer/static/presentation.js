@@ -625,41 +625,9 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 //==============================================================================
 
 Presentation.prototype.UpdateQuestionMode = function() {
-    // Clear wrong answers selected by user.
-    $('.sa-answer').css({'color':'#000'});
 
     if ( ! this.RootNote) { return;}
-    if (this.RootNote.Mode == 'answer-show') {
-        $('.sa-quiz-hide').show();
-        $('.sa-true').css({'font-weight':'bold'});
-    } else {
-        $('.sa-quiz-hide').hide();
-        $('.sa-true').css({'font-weight':'normal'});
-    }
-
-    if (this.RootNote.Mode == 'answer-interactive') {
-        // Bind response to the user selecting an answer.
-        $('.sa-answer')
-            .css({'cursor':'pointer',
-                  'color':'#057'})
-            .hover(function(){$(this).css({'background':'#DDD'});},
-                   function(){$(this).css({'background':'#FFF'});})
-            .on('click.answer',
-                function () {
-                    if ($(this).hasClass('sa-true')) {
-                        $(this).css({'font-weight':'bold',
-                                     'color':'#000'});
-                    } else {
-                        $(this).css({'color':'#C00'});
-                    }
-                });
-    } else {
-        $('.sa-answer')
-            .css({'color':'#000'})
-            .css('cursor','')
-            .off('hover')
-            .off('click.answer');
-    }
+    $('.sa-question').saQuestion('SetMode', this.RootNote.Mode);
 
     // Do not hide the Title page title
     if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {

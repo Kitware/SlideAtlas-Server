@@ -1,4 +1,7 @@
 
+(function () {
+    "use strict";
+
 function Circle() {
   Shape.call(this);
   this.Radius = 10; // Radius in pixels
@@ -115,3 +118,7 @@ Circle.prototype.UpdateBuffers = function() {
         }
     }
 }
+
+    window.Circle = Circle;
+
+})();

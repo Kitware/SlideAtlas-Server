@@ -397,7 +397,74 @@ SlideAtlas.prototype.AddHtmlTags = function(item) {
 }
 
 
+// Useful utility to get selected text / the position of the cursor.
+// Get the selection in div.  Returns a range.
+// If not, the range is collapsed at the 
+// end of the text and a new line is added.
+// div is a jquery parent.
+SlideAtlas.prototype.GetSelectionRange = function(div) {
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
 
+    // Two conditions when we have to create a selection:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        // Something is selected
+        range = sel.getRangeAt(0);
+        range.noCursor = false;
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != div[0]) {
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
+            }
+        }
+    }
+    if ( ! parent) {
+        // When nothing is select, I am trying to make the cursor stay
+        // after the question inserted with the range we return.
+        // TODO: change this so that the div is added after the dialog
+        // apply. Cancel should leave div unchanged.(AddQuestion)
+        div[0].focus();
+        var container = $('<div><br></div>').appendTo(div);
+        range = document.createRange();
+        range.selectNodeContents(container[0]);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        /*
+        // Select everything in the editor.
+        range = document.createRange();
+        // I do not know why I had this.  I am trying to make sure the
+        // cursor is set to after the inserted question.
+        //range.noCursor = true;
+        range.selectNodeContents(div[0]);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // Collapse the range/cursor to the end (true == start).
+        range.collapse(false);
+        // Add a new line at the end of the editor content.
+        var br = document.createElement('br');
+        range.insertNode(br); // selectNode?
+        range.collapse(false);
+        // The collapse has no effect without this.
+        sel.removeAllRanges();
+        sel.addRange(range);
+        div[0].focus();
+        //console.log(sel.toString());
+        */
+    }
+
+    return range;
+}
 
 
 
