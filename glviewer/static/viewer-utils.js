@@ -10,7 +10,7 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Bug: Pasting into textEditor leaves edito buttons hanging around. 
+// Bug: Pasting into textEditor leaves edit buttons hanging around. 
 
 // Clean up the whole editable / clickable / lock state.
 //    Browser slides are completely passive.
@@ -76,7 +76,7 @@
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
  
-jQuery.prototype.saElement = function(args) {
+jQuery.prototype.saElement = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saElement) {
             var helper = new saElement($(this[i]));
@@ -84,7 +84,7 @@ jQuery.prototype.saElement = function(args) {
             this[i].saElement = helper;
             $(this[i]).addClass('sa-element');
         }
-        this[i].saElement.ProcessArguments(args);
+        this[i].saElement.ProcessArguments(arguments);
     }
     return this;
 }
@@ -93,6 +93,7 @@ jQuery.prototype.saElement = function(args) {
 function saElement(div) {
     var self = this;
 
+    this.Position = 'absolute';
     this.Editable = false;
     this.Interactive = true;
     this.Div = div;
@@ -519,22 +520,65 @@ saElement.prototype.DialogApply = function() {
     // text and selected apply.
     // If close is selected, it is never appended to the parent.
     if (this.DelayedParent) {
-        this.Div.appendTo(this.DelayedParent);
-        delete this.DelayedParent;
-        this.Div.trigger('resize');
+        if (this.Position == 'absolute') {
+            this.Div.appendTo(this.DelayedParent);
+            delete this.DelayedParent;
+            this.Div.trigger('resize');
+        } else {
+            // Replace or insert the text.
+            //if ( ! range.collapsed) {
+            //    // Remove the seelcted text.
+            //    range.extractContents(); // deleteContents(); // cloneContents
+            //    range.collapse(true);
+            //}
+            this.DelayedRange.insertNode(this.Div[0]);
+            this.DelayedRange.insertNode(document.createElement("p"));
+            this.DelayedRange.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(this.DelayedRange);
+            this.DelayedParent[0].focus();
+            //sel.collapseToEnd();
+        }
     }
 }
 
 
 saElement.prototype.ProcessArguments = function(args) {
-    args = args || {};
+    // No superclass
+
+    // aspect ratio does something even with no arguments.
+    if (args.length > 0) {
+        // generic method call. Give jquery ui access to all this objects methods.
+        if (typeof(this[args[0]]) == 'function') {
+            // first list item is the method name,
+            // the rest are arguments to the method.
+            return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+        }
+        // Handle the legacy behavior.
+        // One argument: an object (like jqueryUI).
+        args = args[0];
+    } else {
+        // looks like aspect processing wiht no args ...  Cannot just return?
+        args = {};
+    }
+
     var self = this;
+
+    if (args.position) {
+        this.Position = args.position;
+    }
 
     // For questions.  We want the dialog to be filled before we create
     // (append to parent) the div.  Cancel will leave nothing in the parent
     // html.
     if (args.parent) {
         this.DelayedParent = args.parent;
+        if (this.Position == 'static') {
+            // We need to save the cursor / selection because
+            // the dialog destroys it.
+            this.DelayedRange = SA.GetSelectionRange(this.DelayedParent);
+        }
         this.DialogOpenCallback();
     }
 
@@ -606,11 +650,13 @@ saElement.prototype.EditableOn = function() {
     // Just had to restart chrome. Delete key is oldschool anyway.
 
     // Manage the cursor for drag versus resize.
-    this.Div.on(
-        'mousemove.elementCursor',
-        function (event) {
-            return self.HandleMouseMoveCursor(event);
-        });
+    if (this.Position == 'absolute') {
+        this.Div.on(
+            'mousemove.elementCursor',
+            function (event) {
+                return self.HandleMouseMoveCursor(event);
+            });
+    }
 }
 
 saElement.prototype.EditableOff = function() {
@@ -644,7 +690,7 @@ saElement.prototype.HandleMouseDown = function(event) {
                 return self.HandleMouseUp(e);
             });
 
-        if (this.Editable) {
+        if (this.Editable && this.Position == "absolute") {
             // Setup dragging.
             this.DragLastX = event.screenX;
             this.DragLastY = event.screenY;
@@ -1005,14 +1051,14 @@ saElement.prototype.ConvertToPercentages = function() {
 // Just editing options to a rectangle.  I could make the text editor a 
 // "subclass" of this rectangle object.
 
-jQuery.prototype.saRectangle = function(args) {
+jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saRectangle) {
             dom.saRectangle = new saRectangle($(dom));
         }
-        dom.saRectangle.ProcessArguments(args);
+        dom.saRectangle.ProcessArguments(arguments);
     }
 
     return this;
@@ -1096,7 +1142,17 @@ function saRectangle(div) {
 }
 
 saRectangle.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saElement.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saRectangle.prototype.DialogInitialize = function () {
@@ -1157,14 +1213,14 @@ saRectangle.prototype.DialogApply = function () {
 //==============================================================================
 // Text: dialog to set margin, text size, spacing, (font in the future)
 
-jQuery.prototype.saText = function(args) {
+jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saText) {
             dom.saText = new saText($(dom));
         }
-        dom.saText.ProcessArguments(args);
+        dom.saText.ProcessArguments(arguments);
     }
 
     return this;
@@ -1251,7 +1307,17 @@ function saText(div) {
 }
 
 saText.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saRectangle.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saText.prototype.DialogPaddingInitialize = function () {
@@ -1284,14 +1350,14 @@ saText.prototype.DialogPaddingApply = function () {
 //==============================================================================
 // Questions
 //
-jQuery.prototype.saQuestion = function(args) {
+jQuery.prototype.saQuestion = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saQuestion) {
             // Add the helper as an instance variable to the dom object.
             this[i].saQuestion = new saQuestion($(this[i]));;
             this[i].saElement.HideAccordionTab('Quiz');
         }
-        this[i].saQuestion.ProcessArguments(args);
+        this[i].saQuestion.ProcessArguments(arguments);
     }
 
     return this;
@@ -1314,6 +1380,58 @@ function saQuestion(div) {
 
     this.DialogInitialize();
 }
+
+saQuestion.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
+    this.Div[0].saText.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+}
+
+saQuestion.prototype.SetMode = function(mode) {
+    // Clear wrong answers selected by user.
+    this.Div.find('.sa-answer').css({'color':'#000'});
+    if (mode == 'answer-show') {
+        this.Div.find('.sa-quiz-hide').show();
+        this.Div.find('.sa-true').css({'font-weight':'bold'});
+    } else {
+        this.Div.find('.sa-quiz-hide').hide();
+        this.Div.find('.sa-true').css({'font-weight':'normal'});
+    }
+
+    if (mode == 'answer-interactive') {
+        // Bind response to the user selecting an answer.
+        this.Div.find('.sa-answer')
+            .css({'cursor':'pointer',
+                  'color':'#057'})
+            .hover(function(){$(this).css({'background':'#DDD'});},
+                   function(){$(this).css({'background':'#FFF'});})
+            .on('click.answer',
+                function () {
+                    if ($(this).hasClass('sa-true')) {
+                        $(this).css({'font-weight':'bold',
+                                     'color':'#000'});
+                    } else {
+                        $(this).css({'color':'#C00'});
+                    }
+                });
+    } else {
+        this.Div.find('.sa-answer')
+            .css({'color':'#000'})
+            .css('cursor','')
+            .off('hover')
+            .off('click.answer');
+    }
+}
+
+
 
 saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
     var self = this;
@@ -1350,17 +1468,13 @@ saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
         }
     }
 
-    // Answers are complicated enough that I ma going to have to break down
+    // Answers are complicated enough that I am going to have to break down
     // and create differt gui object.
     var answerObj = {Div   : answerDiv,
                      Check : check,
                      Input : answer};
     answerList.push(answerObj);
     return answerObj;
-}
-
-saQuestion.prototype.ProcessArguments = function(args) {
-    this.Div[0].saText.ProcessArguments(args);
 }
 
 saQuestion.prototype.DialogInitialize = function () {
@@ -2098,7 +2212,7 @@ saTextEditor.prototype.SetPositionPixel = function(x, y) {
 //   Maybe push pin or camera icon to capture changes
 
 
-jQuery.prototype.saLightBox = function(args) {
+jQuery.prototype.saLightBox = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-light-box');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saLightBox) {
@@ -2106,7 +2220,7 @@ jQuery.prototype.saLightBox = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saLightBox = helper;
         }
-        this[i].saLightBox.ProcessArguments(args);
+        this[i].saLightBox.ProcessArguments(arguments);
     }
 
     return this;
@@ -2144,7 +2258,22 @@ function saLightBox(div) {
 }
 
 saLightBox.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div.saElement(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+
+    // Handle the legacy behavior. 
+    // One argument: an object (like jqueryUI).
+    args = args[0];
+
 
     if (args.aspectRatio !== undefined) {
         this.AspectRatio = args.aspectRatio;

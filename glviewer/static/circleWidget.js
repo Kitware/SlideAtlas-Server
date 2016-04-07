@@ -1,4 +1,7 @@
 
+(function () {
+    "use strict";
+
 //==============================================================================
 // Mouse down defined the center.
 // Drag defines the radius.
@@ -415,3 +418,6 @@ CircleWidget.prototype.DialogApplyCallback = function() {
 }
 
 
+    window.CircleWidget = CircleWidget;
+
+})();

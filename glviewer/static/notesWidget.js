@@ -112,6 +112,11 @@ function TextEditor(parent, display) {
                            document.execCommand('fontSize',false,'2');
                            self.ChangeBulletSize('0.9em');
                        });
+    // TODO: Get selected text to see if we can convert it into a question.
+    this.AddEditButton(SA.ImagePathUrl+"question.png", "add question", 
+                       function() {
+                           self.AddQuestion();
+                       });
 
     this.TextEntry = $('<div>')
         .appendTo(parent)
@@ -246,56 +251,24 @@ TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
     this.EditButtons.push(button);
 }
 
-// Get the selection in this editor.  Returns a range.
-// If not, the range is collapsed at the 
-// end of the text and a new line is added.
-TextEditor.prototype.GetSelectionRange = function() {
-    var sel = window.getSelection();
-    var range;
-    var parent = null;
+TextEditor.prototype.AddQuestion = function() {
+    var bar = $('<div>')
+        .css({'position':'relative',
+              'margin':'3%',
+              'width':'90%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 1% 1% 1%'}) // top right bottom left
+        .attr('contenteditable', 'false')
+        .saQuestion({editable: SA.Edit});
 
-    // Two conditions when we have to create a selection:
-    // nothing selected, and something selected in wrong parent.
-    // use parent as a flag.
-    if (sel.rangeCount > 0) {
-        // Something is selected
-        range = sel.getRangeAt(0);
-        range.noCursor = false;
-        // Make sure the selection / cursor is in this editor.
-        parent = range.commonAncestorContainer;
-        // I could use jquery .parents(), but I bet this is more efficient.
-        while (parent && parent != this.TextEntry[0]) {
-            //if ( ! parent) {
-                // I believe this happens when outside text is selected.
-                // We should we treat this case like nothing is selected.
-                //console.log("Wrong parent");
-                //return;
-            //}
-            if (parent) {
-                parent = parent.parentNode;
-            }
-        }
-    }
-    if ( ! parent) {
-        // Select everything in the editor.
-        range = document.createRange();
-        range.noCursor = true;
-        range.selectNodeContents(this.TextEntry[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        //console.log(sel.toString());
-    }
-
-    return range;
+    // This is for interactive adding new question from the GUI / dialog.
+    // This is not the best api.  The question will rember the parent,
+    // but will delay appending the div until after the
+    // dialog has been applied
+    bar.saQuestion({parent : this.TextEntry,
+                    position : 'static'});
+    self.Modified = true;
 }
 
 // execCommand fontSize does change bullet size.
@@ -304,7 +277,7 @@ TextEditor.prototype.ChangeBulletSize = function(sizeString) {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
     var listItems = $('li');
     for (var i = 0; i < listItems.length; ++i) {
         var item = listItems[i];
@@ -320,7 +293,7 @@ TextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
     var selectedText = sel.toString();
 
     if ( ! this.UrlDialog) {
@@ -404,9 +377,6 @@ TextEditor.prototype.InsertUrlLinkAccept = function() {
     link.href = this.UrlDialog.UrlInput.val();
     link.target = "_blank";
 
-    // It might be nice to have an id to get the href for modification.
-    //span.id = note.Id;
-
     // Replace or insert the text.
     if ( ! range.collapsed) {
         // Remove the seelcted text.
@@ -435,7 +405,7 @@ var LINKS_WITH_NO_NAME = 0;
 TextEditor.prototype.InsertCameraLink = function() {
     var self = this;
     var sel = window.getSelection();
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
 
     // Check if an existing link is selected.
     var dm = range.cloneContents();
@@ -531,7 +501,13 @@ TextEditor.prototype.SetHtml = function(html) {
     this.EditOn();
     this.TextEntry.html(html);
 
+    if (SA.Edit) {
+        var items = this.TextEntry.find('.sa-question');
+        items.saQuestion({editable:true});
+    }
+
     // Not needed here long term.
+    // this looks for keywords in text and makes tags.
     SA.AddHtmlTags(this.TextEntry);
 }
 
@@ -549,6 +525,14 @@ TextEditor.prototype.LoadNote = function(note) {
     }
     this.Note = note;
     this.TextEntry.html(note.Text);
+
+    // TODO: Hide this.  Maybe use saHtml.
+    if (SA.Edit) {
+        var items = this.TextEntry.find('.sa-question');
+        items.saQuestion({editable:true});
+    }
+
+    // TODO: Make the hyper link the same pattern as questions.
     for (var i = 0; i < note.Children.length; ++i) {
         note.Children[i].FormatHyperlink();
     }
@@ -852,6 +836,7 @@ NotesWidget.prototype.UpdateQuestionMode = function() {
         $('.sa-teaching-points').hide();
         $('.sa-compare').hide();
     }
+    $('.sa-question').saQuestion('SetMode', this.RootNote.Mode);
 }
 
 NotesWidget.prototype.SetNavigationWidget = function(nav) {
