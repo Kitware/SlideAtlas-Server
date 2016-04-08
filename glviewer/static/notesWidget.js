@@ -538,7 +538,7 @@ TextEditor.prototype.SetHtml = function(html) {
 
     if (SA.Edit) {
         var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true});
+        items.saQuestion({editable:true, position:'static'});
     }
 
     // Not needed here long term.
