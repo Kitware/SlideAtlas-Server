@@ -538,7 +538,8 @@ TextEditor.prototype.SetHtml = function(html) {
 
     if (SA.Edit) {
         var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true, position:'static'});
+        items.saQuestion({editable:true,
+                          position : 'static'});
     }
 
     // Not needed here long term.
@@ -564,7 +565,8 @@ TextEditor.prototype.LoadNote = function(note) {
     // TODO: Hide this.  Maybe use saHtml.
     if (SA.Edit) {
         var items = this.TextEntry.find('.sa-question');
-        items.saQuestion({editable:true});
+        items.saQuestion({editable:true,
+                          position : 'static'});
     }
 
     // TODO: Make the hyper link the same pattern as questions.
