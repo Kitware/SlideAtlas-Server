@@ -300,7 +300,7 @@ TextEditor.prototype.AddQuestion = function() {
             sel.removeAllRanges();
             sel.addRange(range);
             self.TextEntry[0].focus();
-            self.Modified = true;
+            self.UpdateNote();
         });
 }
 
