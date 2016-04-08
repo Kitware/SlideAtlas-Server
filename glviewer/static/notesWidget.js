@@ -260,15 +260,48 @@ TextEditor.prototype.AddQuestion = function() {
               'border':'1px solid #AAA',
               'padding':'1% 1% 1% 1%'}) // top right bottom left
         .attr('contenteditable', 'false')
-        .saQuestion({editable: SA.Edit});
+        .saQuestion({editable: SA.Edit,
+                     position : 'static'});
 
-    // This is for interactive adding new question from the GUI / dialog.
-    // This is not the best api.  The question will rember the parent,
-    // but will delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({parent : this.TextEntry,
-                    position : 'static'});
-    self.Modified = true;
+    // Need to get the range here because the dialog changes it.
+    var self = this;
+    var range = SA.GetSelectionRange(this.TextEntry);
+    // Try to initialize the dialog with the contents of the range.
+    var clone = range.cloneContents();
+    bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+    if (clone.childElementCount > 1) {
+        var answers = [];
+        var li = clone.querySelector('li');
+        if (li) {
+            answers = li.parent;
+        } else {
+            answers = clone.children[1];
+        }
+        for (var i = 0; i < answers.childElementCount; ++i) {
+            var answer = answers.children[i];
+            bar.saQuestion('AddAnswerText',
+                           answer.textContent,
+                           $(answer).find('b').length);
+        }
+    }
+
+    bar.saQuestion('OpenDialog',
+        function () {
+            if (range) {
+                range.deleteContents();
+                range.insertNode(document.createElement('br'));
+            } else {
+                range = SA.MakeSelectionRange(self.TextEntry);
+            }
+            range.insertNode(bar[0]);
+            // Some gymnasitcs to keep the cursor after the question.
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            self.TextEntry[0].focus();
+            self.Modified = true;
+        });
 }
 
 // execCommand fontSize does change bullet size.
@@ -278,6 +311,7 @@ TextEditor.prototype.ChangeBulletSize = function(sizeString) {
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
     var range = SA.GetSelectionRange(this.TextEntry);
+    range = range || SA.MakeSelectionRange(this.TextEntry);
     var listItems = $('li');
     for (var i = 0; i < listItems.length; ++i) {
         var item = listItems[i];
@@ -370,6 +404,7 @@ TextEditor.prototype.InsertUrlLink = function() {
 TextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
+    range = range || SA.MakeSelectionRange(this.TextEntry);
 
     // Simply put a span tag around the text with the id of the view.
     // It will be formated by the note hyperlink code.
@@ -494,7 +529,7 @@ TextEditor.prototype.Resize = function(width, height) {
 
 TextEditor.prototype.SetHtml = function(html) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = null; //??? Editing without a note
@@ -520,7 +555,7 @@ TextEditor.prototype.GetHtml = function() {
 // Or in the note.
 TextEditor.prototype.LoadNote = function(note) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = note;

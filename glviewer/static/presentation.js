@@ -2265,11 +2265,17 @@ HtmlPage.prototype.InsertQuestion = function() {
         .saQuestion({editable: SA.Edit});
 
     // This is for interactive adding new question from the GUI / dialog.
-    // This is not the best api.  The question will rember the parent,
-    // but will delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({'parent':this.Div});
+    // Do not apped the question until apply is selected.
+    var self = this;
+    bar.saQuestion('OpenDialog',
+                   function () {
+                       bar.appendTo(self.Div);
+                       bar.trigger('resize');
+                   });
 }
+
+
+
 
 
 // Should save the view as a child notes, or viewer record?
