@@ -270,18 +270,21 @@ TextEditor.prototype.AddQuestion = function() {
     var clone = range.cloneContents();
     bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
     if (clone.childElementCount > 1) {
+        //var answers = clone.querySelectorAll('li');
         var answers = [];
         var li = clone.querySelector('li');
         if (li) {
-            answers = li.parent;
+            answers = li.parentElement;
         } else {
             answers = clone.children[1];
         }
         for (var i = 0; i < answers.childElementCount; ++i) {
             var answer = answers.children[i];
+            var bold = (answer.style.fontWeight == "bold") ||
+                       ($(answer).find('b').length > 0);
             bar.saQuestion('AddAnswerText',
                            answer.textContent,
-                           $(answer).find('b').length);
+                           bold);
         }
     }
 
