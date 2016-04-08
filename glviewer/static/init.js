@@ -430,44 +430,31 @@ SlideAtlas.prototype.GetSelectionRange = function(div) {
         }
     }
     if ( ! parent) {
-        // When nothing is select, I am trying to make the cursor stay
-        // after the question inserted with the range we return.
-        // TODO: change this so that the div is added after the dialog
-        // apply. Cancel should leave div unchanged.(AddQuestion)
-        div[0].focus();
-        var container = $('<div><br></div>').appendTo(div);
-        range = document.createRange();
-        range.selectNodeContents(container[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        /*
-        // Select everything in the editor.
-        range = document.createRange();
-        // I do not know why I had this.  I am trying to make sure the
-        // cursor is set to after the inserted question.
-        //range.noCursor = true;
-        range.selectNodeContents(div[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        div[0].focus();
-        //console.log(sel.toString());
-        */
+        return null;
+        //return this.MakeSelectionRange(div);
     }
 
     return range;
 }
 
+// When we are inserting at the end and nothing is selected, we need to
+// add a div with a break at the end and select the break. This keeps the
+// cursor after the inserted item. This returns the range.
+SlideAtlas.prototype.MakeSelectionRange = function(div) {
+    // When nothing is select, I am trying to make the cursor stay
+    // after the question inserted with the range we return.
+    // TODO: change this so that the div is added after the dialog
+    // apply. Cancel should leave div unchanged.(AddQuestion)
+    var sel = window.getSelection();
 
-
+    div[0].focus();
+    var br = $('<br>').appendTo(div);
+    range = document.createRange();
+    range.selectNode(br[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return range;
+}
 
 
 

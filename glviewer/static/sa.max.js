@@ -11035,15 +11035,48 @@ TextEditor.prototype.AddQuestion = function() {
               'border':'1px solid #AAA',
               'padding':'1% 1% 1% 1%'}) // top right bottom left
         .attr('contenteditable', 'false')
-        .saQuestion({editable: SA.Edit});
+        .saQuestion({editable: SA.Edit,
+                     position : 'static'});
 
-    // This is for interactive adding new question from the GUI / dialog.
-    // This is not the best api.  The question will rember the parent,
-    // but will delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({parent : this.TextEntry,
-                    position : 'static'});
-    self.Modified = true;
+    // Need to get the range here because the dialog changes it.
+    var self = this;
+    var range = SA.GetSelectionRange(this.TextEntry);
+    // Try to initialize the dialog with the contents of the range.
+    var clone = range.cloneContents();
+    bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+    if (clone.childElementCount > 1) {
+        var answers = [];
+        var li = clone.querySelector('li');
+        if (li) {
+            answers = li.parent;
+        } else {
+            answers = clone.children[1];
+        }
+        for (var i = 0; i < answers.childElementCount; ++i) {
+            var answer = answers.children[i];
+            bar.saQuestion('AddAnswerText',
+                           answer.textContent,
+                           $(answer).find('b').length);
+        }
+    }
+
+    bar.saQuestion('OpenDialog',
+        function () {
+            if (range) {
+                range.deleteContents();
+                range.insertNode(document.createElement('br'));
+            } else {
+                range = SA.MakeSelectionRange(self.TextEntry);
+            }
+            range.insertNode(bar[0]);
+            // Some gymnasitcs to keep the cursor after the question.
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            self.TextEntry[0].focus();
+            self.Modified = true;
+        });
 }
 
 // execCommand fontSize does change bullet size.
@@ -11053,6 +11086,7 @@ TextEditor.prototype.ChangeBulletSize = function(sizeString) {
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
     var range = SA.GetSelectionRange(this.TextEntry);
+    range = range || SA.MakeSelectionRange(this.TextEntry);
     var listItems = $('li');
     for (var i = 0; i < listItems.length; ++i) {
         var item = listItems[i];
@@ -11145,6 +11179,7 @@ TextEditor.prototype.InsertUrlLink = function() {
 TextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
+    range = range || SA.MakeSelectionRange(this.TextEntry);
 
     // Simply put a span tag around the text with the id of the view.
     // It will be formated by the note hyperlink code.
@@ -11269,7 +11304,7 @@ TextEditor.prototype.Resize = function(width, height) {
 
 TextEditor.prototype.SetHtml = function(html) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = null; //??? Editing without a note
@@ -11295,7 +11330,7 @@ TextEditor.prototype.GetHtml = function() {
 // Or in the note.
 TextEditor.prototype.LoadNote = function(note) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = note;
@@ -15288,7 +15323,7 @@ saElement.prototype.ActiveOn = function () {
         this.MenuButton
             .on('mousedown',
                 function () {
-                    self.DialogOpenCallback();
+                    self.OpenDialog();
                     return false;
                 });
         this.DeleteButton
@@ -15535,7 +15570,7 @@ saElement.prototype.HideAccordionTab = function(title) {
     this.Div[0].saElement.Dialog.Body.children('[title=Quiz]').hide();
 }
 
-saElement.prototype.DialogOpenCallback = function() {
+saElement.prototype.OpenDialog = function(callback) {
     if ( ! this.DialogInitialized) {
         // Give 'subclasses' a chance to initialize their tabs.
         for (var i = 0; i < this.DialogInitializeFunctions.length; ++i) {
@@ -15543,6 +15578,8 @@ saElement.prototype.DialogOpenCallback = function() {
         }
         this.DialogInitialized = true;
     }
+    // Keep this onetime callback separate from DialogApplyCallbacks.
+    this.OpenDialogCallback = callback;
     this.Dialog.Show(true);
 }
 
@@ -15597,8 +15634,14 @@ saElement.prototype.DialogApplyCallback = function() {
     for (var i = 0; i < this.DialogApplyFunctions.length; ++i) {
         (this.DialogApplyFunctions[i])(this.Dialog);
     }
-}
 
+    // External callback
+    // I am not sure if I should put this here or in DialogApply.
+    if ( this.OpenDialogCallback) {
+        (this.OpenDialogCallback)(this);
+        delete this.OpenDialogCallback;
+    }
+}
 
 saElement.prototype.DialogApply = function() {
     // ActiveOff was setting border back after dialog changed it.
@@ -15628,32 +15671,6 @@ saElement.prototype.DialogApply = function() {
     } else {
         this.Div.css('box-shadow', '');
     }
-
-    // To delay showing the question div until after the user has entered
-    // text and selected apply.
-    // If close is selected, it is never appended to the parent.
-    if (this.DelayedParent) {
-        if (this.Position == 'absolute') {
-            this.Div.appendTo(this.DelayedParent);
-            delete this.DelayedParent;
-            this.Div.trigger('resize');
-        } else {
-            // Replace or insert the text.
-            //if ( ! range.collapsed) {
-            //    // Remove the seelcted text.
-            //    range.extractContents(); // deleteContents(); // cloneContents
-            //    range.collapse(true);
-            //}
-            this.DelayedRange.insertNode(this.Div[0]);
-            this.DelayedRange.insertNode(document.createElement("p"));
-            this.DelayedRange.collapse(false);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(this.DelayedRange);
-            this.DelayedParent[0].focus();
-            //sel.collapseToEnd();
-        }
-    }
 }
 
 
@@ -15680,19 +15697,6 @@ saElement.prototype.ProcessArguments = function(args) {
 
     if (args.position) {
         this.Position = args.position;
-    }
-
-    // For questions.  We want the dialog to be filled before we create
-    // (append to parent) the div.  Cancel will leave nothing in the parent
-    // html.
-    if (args.parent) {
-        this.DelayedParent = args.parent;
-        if (this.Position == 'static') {
-            // We need to save the cursor / selection because
-            // the dialog destroys it.
-            this.DelayedRange = SA.GetSelectionRange(this.DelayedParent);
-        }
-        this.DialogOpenCallback();
     }
 
     // It is important to set aspect ratio before EditOn is called.
@@ -15746,6 +15750,7 @@ saElement.prototype.ProcessArguments = function(args) {
 
     this.ConvertToPercentages();
 }
+
 
 // Not the best function name.  Editable => draggable, expandable and deletable.
 saElement.prototype.EditableOn = function() {
@@ -16494,6 +16499,38 @@ function saQuestion(div) {
     this.DialogInitialize();
 }
 
+// Meant to be acll externally.
+// Assumes multiple choice for now.
+saQuestion.prototype.SetQuestionText = function(text) {
+    var question = this.Div.find('.sa-q');
+    if (question.length == 0) {
+        question = $('<div>').addClass('sa-q').appendTo(this.Div);
+    }
+    question.text(text);
+    this.Div.attr('type','multiple-choice');
+}
+saQuestion.prototype.AddAnswerText = function(text, correct) {
+    var answerText = text;
+    // get rid of bullets
+    if (text[0] == '-') {
+        answerText = text.substring(1);
+    } else if (text[1] == '.' || text[1] == ':') {
+        answerText = text.substring(2);
+    }
+    // Get rid of whitespace
+    answerText = answerText.trim();
+
+    var answers = this.Div.find('ol');
+    if (answers.length == 0) {
+        answers = $('<ol>').appendTo(this.Div);
+    }
+    var answer = $('<li>').appendTo(answers).addClass('sa-answer');
+    answer.text(answerText);
+    if (correct) {
+        answer.addClass('sa-true');
+    }
+}
+
 saQuestion.prototype.ProcessArguments = function(args) {
     if (args.length == 0) { return; }
 
@@ -16544,9 +16581,7 @@ saQuestion.prototype.SetMode = function(mode) {
     }
 }
 
-
-
-saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
+saQuestion.prototype.AddAnswerTo = function(parent, answerList, text, checked) {
     var self = this;
 
     // Make a new answer box;
@@ -16649,8 +16684,8 @@ saQuestion.prototype.DialogInitialize = function () {
         .appendTo(panel)
         .hide();
     this.TrueFalseAnswers = [];
-    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "True");
-    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "False");
+    this.AddAnswerTo(this.TrueFalseDiv, this.TrueFalseAnswers, "True");
+    this.AddAnswerTo(this.TrueFalseDiv, this.TrueFalseAnswers, "False");
 
     this.MultipleChoiceDiv = $('<div>')
         .appendTo(panel);
@@ -16673,24 +16708,24 @@ saQuestion.prototype.DialogInitialize = function () {
             for (var i = 0; i < options.length; ++i) {
                 var item = $(options[i]);
                 var checked = item.hasClass('sa-true');
-                this.AddAnswer(this.MultipleChoiceDiv,
-                               this.MultipleChoiceAnswers,
-                               item.text(), checked);
+                this.AddAnswerTo(this.MultipleChoiceDiv,
+                                 this.MultipleChoiceAnswers,
+                                 item.text(), checked);
             }
         }
     }
 
     // Empty answer that adds another when it is filled.
-    this.AddMultipleChoiceAnswer();
+    this.AddBlankMultipleChoiceAnswer();
 }
 
-saQuestion.prototype.AddMultipleChoiceAnswer = function () {
+saQuestion.prototype.AddBlankMultipleChoiceAnswer = function () {
     var self = this;
-    var answerObj = this.AddAnswer(this.MultipleChoiceDiv,
+    var answerObj = this.AddAnswerTo(this.MultipleChoiceDiv,
                                    this.MultipleChoiceAnswers);
     answerObj.Input.on('focus.answer',
                        function() {
-                           self.AddMultipleChoiceAnswer();
+                           self.AddBlankMultipleChoiceAnswer();
                        });
 }
 
@@ -17092,7 +17127,7 @@ saTextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.Div);
     var selectedText = sel.toString();
 
     if ( ! this.UrlDialog) {
@@ -17169,6 +17204,9 @@ saTextEditor.prototype.InsertUrlLink = function() {
 saTextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
+    if ( ! range) {
+        range = SA.MakeSelectionRange(this.Div);
+    }
 
     // Simply put a span tag around the text with the id of the view.
     // It will be formated by the note hyperlink code.
@@ -17245,59 +17283,6 @@ saTextEditor.prototype.GetSelection = function() {
     //newNode.appendChild(range.extractContents()); 
     //range.insertNode(newNode)
     //return $(newNode);
-}
-
-// Get the selection in this editor.  Returns a range.
-// If not, the range is collapsed at the 
-// end of the text and a new line is added.
-// Returns the range of the selection.
-saTextEditor.prototype.GetSelectionRange = function() {
-    var sel = window.getSelection();
-    var range;
-    var parent = null;
-
-    // Two conditions when we have to create a selection:
-    // nothing selected, and something selected in wrong parent.
-    // use parent as a flag.
-    if (sel.rangeCount > 0) {
-        // Something is selected
-        range = sel.getRangeAt(0);
-        range.noCursor = false;
-        // Make sure the selection / cursor is in this editor.
-        parent = range.commonAncestorContainer;
-        // I could use jquery .parents(), but I bet this is more efficient.
-        while (parent && parent != this.Div[0]) {
-            //if ( ! parent) {
-                // I believe this happens when outside text is selected.
-                // We should we treat this case like nothing is selected.
-                //console.log("Wrong parent");
-                //return;
-            //}
-            if (parent) {
-                parent = parent.parentNode;
-            }
-        }
-    }
-    if ( ! parent) {
-        // Select everything in the editor.
-        range = document.createRange();
-        range.noCursor = true;
-        range.selectNodeContents(this.Div[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        //console.log(sel.toString());
-    }
-
-    return range;
 }
 
 // Set in position in pixels
@@ -21568,11 +21553,17 @@ HtmlPage.prototype.InsertQuestion = function() {
         .saQuestion({editable: SA.Edit});
 
     // This is for interactive adding new question from the GUI / dialog.
-    // This is not the best api.  The question will rember the parent,
-    // but will delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({'parent':this.Div});
+    // Do not apped the question until apply is selected.
+    var self = this;
+    bar.saQuestion('OpenDialog',
+                   function () {
+                       bar.appendTo(self.Div);
+                       bar.trigger('resize');
+                   });
 }
+
+
+
 
 
 // Should save the view as a child notes, or viewer record?
@@ -33926,11 +33917,17 @@ HtmlPage.prototype.InsertQuestion = function() {
         .saQuestion({editable: SA.Edit});
 
     // This is for interactive adding new question from the GUI / dialog.
-    // This is not the best api.  The question will rember the parent,
-    // but will delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({'parent':this.Div});
+    // Do not apped the question until apply is selected.
+    var self = this;
+    bar.saQuestion('OpenDialog',
+                   function () {
+                       bar.appendTo(self.Div);
+                       bar.trigger('resize');
+                   });
 }
+
+
+
 
 
 // Should save the view as a child notes, or viewer record?
@@ -52207,44 +52204,31 @@ SlideAtlas.prototype.GetSelectionRange = function(div) {
         }
     }
     if ( ! parent) {
-        // When nothing is select, I am trying to make the cursor stay
-        // after the question inserted with the range we return.
-        // TODO: change this so that the div is added after the dialog
-        // apply. Cancel should leave div unchanged.(AddQuestion)
-        div[0].focus();
-        var container = $('<div><br></div>').appendTo(div);
-        range = document.createRange();
-        range.selectNodeContents(container[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        /*
-        // Select everything in the editor.
-        range = document.createRange();
-        // I do not know why I had this.  I am trying to make sure the
-        // cursor is set to after the inserted question.
-        //range.noCursor = true;
-        range.selectNodeContents(div[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        div[0].focus();
-        //console.log(sel.toString());
-        */
+        return null;
+        //return this.MakeSelectionRange(div);
     }
 
     return range;
 }
 
+// When we are inserting at the end and nothing is selected, we need to
+// add a div with a break at the end and select the break. This keeps the
+// cursor after the inserted item. This returns the range.
+SlideAtlas.prototype.MakeSelectionRange = function(div) {
+    // When nothing is select, I am trying to make the cursor stay
+    // after the question inserted with the range we return.
+    // TODO: change this so that the div is added after the dialog
+    // apply. Cancel should leave div unchanged.(AddQuestion)
+    var sel = window.getSelection();
 
-
+    div[0].focus();
+    var br = $('<br>').appendTo(div);
+    range = document.createRange();
+    range.selectNode(br[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return range;
+}
 
 
 
