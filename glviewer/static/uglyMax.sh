@@ -67,11 +67,15 @@ cat fillWidget.js >> sa.max.js
 cat lassoWidget.js >> sa.max.js 
 cat widgetPopup.js >> sa.max.js 
 cat shape.js >> sa.max.js 
+cat shapeGroup.js >> sa.max.js 
 cat crossHairs.js >> sa.max.js 
 cat arrow.js >> sa.max.js 
 cat arrowWidget.js >> sa.max.js 
 cat circle.js >> sa.max.js 
 cat circleWidget.js >> sa.max.js 
+cat rectWidget.js >> sa.max.js 
+cat gridWidget.js >> sa.max.js 
+cat scaleWidget.js >> sa.max.js 
 cat cutoutWidget.js >> sa.max.js 
 cat imageAnnotation.js >> sa.max.js 
 cat init.js >> sa.max.js 

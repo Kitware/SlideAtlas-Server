@@ -625,41 +625,9 @@ UserNoteEditor.prototype.LoadUserNote = function(data, parentNoteId) {
 //==============================================================================
 
 Presentation.prototype.UpdateQuestionMode = function() {
-    // Clear wrong answers selected by user.
-    $('.sa-answer').css({'color':'#000'});
 
     if ( ! this.RootNote) { return;}
-    if (this.RootNote.Mode == 'answer-show') {
-        $('.sa-quiz-hide').show();
-        $('.sa-true').css({'font-weight':'bold'});
-    } else {
-        $('.sa-quiz-hide').hide();
-        $('.sa-true').css({'font-weight':'normal'});
-    }
-
-    if (this.RootNote.Mode == 'answer-interactive') {
-        // Bind response to the user selecting an answer.
-        $('.sa-answer')
-            .css({'cursor':'pointer',
-                  'color':'#057'})
-            .hover(function(){$(this).css({'background':'#DDD'});},
-                   function(){$(this).css({'background':'#FFF'});})
-            .on('click.answer',
-                function () {
-                    if ($(this).hasClass('sa-true')) {
-                        $(this).css({'font-weight':'bold',
-                                     'color':'#000'});
-                    } else {
-                        $(this).css({'color':'#C00'});
-                    }
-                });
-    } else {
-        $('.sa-answer')
-            .css({'color':'#000'})
-            .css('cursor','')
-            .off('hover')
-            .off('click.answer');
-    }
+    $('.sa-question').saQuestion('SetMode', this.RootNote.Mode);
 
     // Do not hide the Title page title
     if (this.RootNote.Mode == 'answer-hide' && this.Index != 0) {
@@ -2296,10 +2264,18 @@ HtmlPage.prototype.InsertQuestion = function() {
         .saScalableFont({scale:'0.03'})
         .saQuestion({editable: SA.Edit});
 
-    // This is not the best api.  Delay appending the div until after the
-    // dialog has been applied
-    bar.saQuestion({'parent':this.Div});
+    // This is for interactive adding new question from the GUI / dialog.
+    // Do not apped the question until apply is selected.
+    var self = this;
+    bar.saQuestion('OpenDialog',
+                   function () {
+                       bar.appendTo(self.Div);
+                       bar.trigger('resize');
+                   });
 }
+
+
+
 
 
 // Should save the view as a child notes, or viewer record?

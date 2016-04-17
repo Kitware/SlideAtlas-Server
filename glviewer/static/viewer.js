@@ -65,7 +65,7 @@ function Viewer (parent) {
     this.MainView.Camera.ZRange = [0,1];
     this.MainView.Camera.ComputeMatrix();
 
-    this.AnnotationLayer = new AnnotationLayer(this.Div, this.MainView.Camera);
+    this.AnnotationLayer = new SA.AnnotationLayer(this.Div, this.MainView.Camera);
 
     if (! MOBILE_DEVICE || MOBILE_DEVICE == "iPad") {
         this.OverViewVisibility = true;
@@ -1019,17 +1019,6 @@ Viewer.prototype.AnimateTransform = function(dx, dy, dRoll) {
     this.EventuallyRender(true);
 }
 
-// TODO: Get rid of this.
-//Viewer.prototype.AddWidget = function(widget) {
-//    if (this.AnnotationLayer) {
-//        this.AnnotationLayer.AddWidget(widget);
-//        if (SA.NotesWidget) {
-//            // Hack.
-//            SA.NotesWidget.MarkAsModified();
-//        }
-//    }
-//}
-
 Viewer.prototype.DegToRad = function(degrees) {
     return degrees * Math.PI / 180;
 }
@@ -1081,6 +1070,7 @@ Viewer.prototype.Draw = function() {
         this.OverView.DrawTiles();
         this.OverView.DrawOutline(true);
     }
+
     // This is not used anymore
     this.MainView.DrawShapes();
     this.AnnotationLayer.Draw();
@@ -1345,12 +1335,12 @@ Viewer.prototype.HandleTouchStart = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
     // Stuff from event manager
-    this.HandleTouch(e, true);
+    this.HandleTouch(event, true);
     if (this.StartTouchTime == 0) {
         this.StartTouchTime = this.Time;
     }
 
-    this.TriggerStartInteraction();
+    SA.TriggerStartInteraction();
 
     this.MomentumX = 0.0;
     this.MomentumY = 0.0;
@@ -1362,7 +1352,7 @@ Viewer.prototype.HandleTouchStart = function(event) {
     }
 
     // Four finger grab resets the view.
-    if ( event.Touches.length >= 4) {
+    if ( this.Touches.length >= 4) {
         var cam = this.GetCamera();
         var bds = this.MainView.Section.GetBounds();
         cam.SetFocalPoint( [(bds[0]+bds[1])*0.5, (bds[2]+bds[3])*0.5]);
@@ -1388,10 +1378,44 @@ Viewer.prototype.HandleTouchStart = function(event) {
     return false;
 }
 
+
+Viewer.prototype.HandleTouchMove = function(e) {
+    // Put a throttle on events
+    if ( ! this.HandleTouch(e, false)) { return; }
+
+    if (SA.DualDisplay.NavigationWidget && 
+        SA.DualDisplay.NavigationWidget.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        SA.DualDisplay.NavigationWidget.ToggleVisibility();
+    }
+
+    if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined" && 
+               MOBILE_ANNOTATION_WIDGET.Visibility) {
+        // No slide interaction with the interface up.
+        // I had bad interaction with events going to browser.
+        MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+    }
+
+    if (this.Touches.length == 1) {
+        this.HandleTouchPan(this);
+        return;
+    }
+    if (this.Touches.length == 2) {
+        this.HandleTouchPinch(this);
+        return
+    }
+    if (this.Touches.length == 3) {
+        this.HandleTouchRotate(this);
+        return
+    }
+}
+
+
 // Only one touch
 Viewer.prototype.HandleTouchPan = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    if (event.Touches.length != 1 || this.LastTouches.length != 1) {
+    if (this.Touches.length != 1 || this.LastTouches.length != 1) {
         // Sanity check.
         return;
     }
@@ -1423,8 +1447,11 @@ Viewer.prototype.HandleTouchPan = function(event) {
     var momentumX = dx/dt;
     var momentumY = dy/dt;
 
-    this.MomentumX = (this.MomentumX + momentumX) * 0.5;
-    this.MomentumY = (this.MomentumY + momentumY) * 0.5;
+    // Integrate momentum over a time period to avoid a fast event
+    // dominating behavior.
+    var k = Math.min(this.Time - this.LastTime, 250) / 250;
+    this.MomentumX += (momentumX-this.MomentumX)*k;
+    this.MomentumY += (momentumY-this.MomentumY)*k;
     this.MomentumRoll = 0.0;
     this.MomentumScale = 0.0;
 
@@ -1436,7 +1463,7 @@ Viewer.prototype.HandleTouchPan = function(event) {
 
 Viewer.prototype.HandleTouchRotate = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = event.Touches.length;
+    var numTouches = this.Touches.length;
     if (this.LastTouches.length != numTouches || numTouches  != 3) {
         // Sanity check.
         return;
@@ -1463,8 +1490,8 @@ Viewer.prototype.HandleTouchRotate = function(event) {
         x = this.LastTouches[i][0] - this.LastMouseX;
         y = this.LastTouches[i][1] - this.LastMouseY;
         var a1  = Math.atan2(y,x);
-        x = event.Touches[i][0] - this.MouseX;
-        y = event.Touches[i][1] - this.MouseY;
+        x = this.Touches[i][0] - this.MouseX;
+        y = this.Touches[i][1] - this.MouseY;
         a1 = a1 - Math.atan2(y,x);
         if (a1 > Math.PI) { a1 = a1 - (2*Math.PI); }
         if (a1 < -Math.PI) { a1 = a1 + (2*Math.PI); }
@@ -1504,7 +1531,7 @@ Viewer.prototype.HandleTouchRotate = function(event) {
 
 Viewer.prototype.HandleTouchPinch = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
-    var numTouches = event.Touches.length;
+    var numTouches = this.Touches.length;
     if (this.LastTouches.length != numTouches || numTouches  != 2) {
         // Sanity check.
         return;
@@ -1536,8 +1563,8 @@ Viewer.prototype.HandleTouchPinch = function(event) {
         x = this.LastTouches[i][0] - this.LastMouseX;
         y = this.LastTouches[i][1] - this.LastMouseY;
         s0 += Math.sqrt(x*x + y*y);
-        x = event.Touches[i][0] - this.MouseX;
-        y = event.Touches[i][1] - this.MouseY;
+        x = this.Touches[i][0] - this.MouseX;
+        y = this.Touches[i][1] - this.MouseY;
         s1 += Math.sqrt(x*x + y*y);
     }
     // This should not happen, but I am having trouble with NaN camera parameters.
@@ -1580,6 +1607,42 @@ Viewer.prototype.HandleTouchPinch = function(event) {
 Viewer.prototype.HandleTouchEnd = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
+    // Code from a conflict
+    var t = new Date().getTime();
+    this.LastTime = this.Time;
+    this.Time = t;
+
+    var k = Math.min(this.Time - this.LastTime, 250) / 250;
+
+    this.MomentumX = this.MomentumX*(1-k);
+    this.MomentumY = this.MomentumY*(1-k);
+    this.MomentumRoll = this.MomentumRoll*(1-k);
+    this.MomentumScale = this.MomentumScale*(1-k);
+
+    t = t - this.StartTouchTime;
+    if (event.targetTouches.length == 0 && MOBILE_DEVICE) {
+        this.StartTouchTime = 0;
+        if (t < 90) {
+            // We should not have a navigation widget on mobile
+            // devices. (maybe iPad?).
+            if (SA.DualDisplay && SA.DualDisplay.NavigationWidget) {
+                SA.DualDisplay.NavigationWidget.ToggleVisibility();
+            }
+            if (typeof(MOBILE_ANNOTATION_WIDGET) != "undefined") {
+                MOBILE_ANNOTATION_WIDGET.ToggleVisibility();
+            }
+            return;
+        }
+        if (this.ActiveWidget != null) {
+            this.ActiveWidget.HandleTouchEnd(event);
+            return;
+        }
+        //this.UpdateZoomGui();
+        this.HandleMomentum();
+    }
+    // end conflict
+
+
     // Forward the events to the widget if one is active.
     if (this.AnnotationLayer && 
         this.AnnotationLayer.GetVisibility() &&
@@ -1591,7 +1654,7 @@ Viewer.prototype.HandleTouchEnd = function(event) {
     this.HandleMomentum(event);
 }
 
-Viewer.prototype.HandleMomentum = function(event) {
+Viewer.prototype.HandleMomentum = function() {
     // I see an odd intermittent camera matrix problem
     // on the iPad that looks like a thread safety issue.
     if (this.MomentumTimerId) {
@@ -1602,14 +1665,14 @@ Viewer.prototype.HandleMomentum = function(event) {
     var t = new Date().getTime();
     if (t - this.LastTime < 50) {
         var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
         return;
     }
 
     // Integrate the momentum.
-    this.LastTime = event.Time;
-    event.Time = t;
-    var dt = event.Time - this.LastTime;
+    this.LastTime = this.Time;
+    this.Time = t;
+    var dt = this.Time - this.LastTime;
 
     var k = 200.0;
     var decay = Math.exp(-dt/k);
@@ -1649,7 +1712,7 @@ Viewer.prototype.HandleMomentum = function(event) {
         this.UpdateZoomGui();
     } else {
         var self = this;
-        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum(event);});
+        this.MomentumTimerId = requestAnimFrame(function () { self.HandleMomentum();});
     }
 }
 
@@ -1807,6 +1870,13 @@ Viewer.prototype.ComputeMouseWorld = function(event) {
 Viewer.prototype.HandleMouseMove = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
 
+    // The event position is relative to the target which can be a tab on
+    // top of the canvas.  Just skip these events.
+    if ($(event.target).width() != $(event.currentTarget).width()) {
+        return true;
+    }
+
+
     // TODO: Get rid of this. Should be done with image properties.
     //event.preventDefault(); // Keep browser from selecting images.
     if ( ! this.RecordMouseMove(event)) { return true; }
@@ -1939,7 +2009,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
     if ( ! this.InteractionEnabled) { return true; }
     if (event.keyCode == 83 && event.ctrlKey) { // control -s to save.
         if ( ! SAVING_IMAGE) {
-            SAVING_IMAGE = new Dialog();
+            SAVING_IMAGE = new SA.Dialog();
             SAVING_IMAGE.Title.text('Saving');
             SAVING_IMAGE.Body.css({'margin':'1em 2em'});
             SAVING_IMAGE.WaitingImage = $('<img>')
@@ -1969,21 +2039,30 @@ Viewer.prototype.HandleKeyDown = function(event) {
         // control-v for paste
 
         var clip = JSON.parse(localStorage.ClipBoard);
+        var camera;
+        if (clip.Camera) {
+            camera = new Camera();
+            camera.Load(clip.Camera);
+        }
         if (clip.Type == "CircleWidget") {
             var widget = new CircleWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "PolylineWidget") {
             var widget = new PolylineWidget(this, false);
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "TextWidget") {
             var widget = new TextWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
         if (clip.Type == "RectWidget") {
             var widget = new RectWidget(this, "");
-            widget.PasteCallback(clip.Data, this.MouseWorld);
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
+        }
+        if (clip.Type == "GridWidget") {
+            var widget = new GridWidget(this, "");
+            widget.PasteCallback(clip.Data, this.MouseWorld, camera);
         }
 
         return false;
@@ -2070,13 +2149,7 @@ Viewer.prototype.HandleKeyDown = function(event) {
 
 // Get the current scale factor between pixels and world units.
 Viewer.prototype.GetPixelsPerUnit = function() {
-    // Determine the scale difference between the two coordinate systems.
-    var viewport = this.GetViewport();
-    var cam = this.MainView.Camera;
-    var m = cam.Matrix;
-
-    // Convert from world coordinate to view (-1->1);
-    return 0.5*viewport[2] / (m[3] + m[15]); // m[3] for x, m[7] for height
+    return this.MainView.GetPixelsPerUnit();
 }
 
 // Convert a point from world coordiante system to viewer coordinate system (units pixels).

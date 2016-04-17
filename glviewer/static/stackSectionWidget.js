@@ -12,6 +12,10 @@
 // the viewerRecord.
 
 
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
 function StackSectionWidget (viewer) {
     var self = this;
 
@@ -26,7 +30,7 @@ function StackSectionWidget (viewer) {
     this.Bounds = null;
     if (viewer) {
         this.Viewer = viewer;
-        this.Viewer.WidgetList.push(this);
+        this.Viewer.AddWidget(this);
     }
 }
 
@@ -295,12 +299,8 @@ StackSectionWidget.prototype.SetActive = function(flag) {
 }
 
 StackSectionWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -562,5 +562,8 @@ StackSectionWidget.prototype.Decimate = function() {
 }
 
 
+    SA.StackSectionWidget = StackSectionWidget;
+
+})();
 
 

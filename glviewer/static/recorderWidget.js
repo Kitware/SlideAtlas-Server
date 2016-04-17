@@ -95,6 +95,7 @@ ViewerRecord.prototype.CopyViewer = function (viewer) {
 
     this.OverviewBounds = viewer.GetOverViewBounds();
 
+    this.OverviewBounds = viewer.GetOverViewBounds();
     this.Image = cache.Image;
     this.Camera = viewer.GetCamera().Serialize();
 
@@ -147,6 +148,7 @@ ViewerRecord.prototype.Serialize = function () {
 
 
 ViewerRecord.prototype.Apply = function (viewer) {
+    viewer.Reset();
     // If a widget is active, then just inactivate it.
     // It would be nice to undo pencil strokes in the middle, but this feature will have to wait.
     if (viewer.ActiveWidget) {

@@ -56,7 +56,7 @@ function MobileAnnotationWidget() {
     this.Visibility = false;
 
     var self = this;
-    SA.OnStartInteraction( function () { self.SetVisibility(false);} );
+    //SA.OnStartInteraction( function () { self.SetVisibility(false);} );
 }
 
 

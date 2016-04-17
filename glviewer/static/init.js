@@ -67,6 +67,7 @@ function SlideAtlas() {
 
     this.Caches = [];
 
+    this.StartInteractionListeners = [];
 }
 
 SlideAtlas.prototype.PushProgress = function() {
@@ -243,6 +244,226 @@ SlideAtlas.prototype.TriggerStartInteraction = function() {
         callback();
     }
 }
+
+// length units = meters
+SlideAtlas.prototype.DistanceToString = function(length) {
+    var lengthStr = "";
+    if (length < 0.001) {
+        // Latin-1 00B5 is micro sign
+        lengthStr += (length*1e6).toFixed(2) + " \xB5m";
+    } else if (length < 0.01) {
+        lengthStr += (length*1e3).toFixed(2) + " mm";
+    } else if (length < 1.0)  {
+        lengthStr += (length*1e2).toFixed(2) + " cm";
+    } else if (length < 1000) {
+        lengthStr += (length).toFixed(2) + " m";
+    } else {
+        lengthStr += (length).toFixed(2) + " km";
+    }
+    return lengthStr;
+}
+
+SlideAtlas.prototype.StringToDistance = function(lengthStr) {
+    var length = 0;
+    lengthStr = lengthStr.trim(); // remove leading and trailing spaces.
+    var len = lengthStr.length;
+    // Convert to microns
+    if (lengthStr.substring(len-2,len) == "\xB5m") {
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e6;
+    } else if (lengthStr.substring(len-2,len) == "mm") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e3;
+    } else if (lengthStr.substring(len-2,len) == "cm") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) / 1e2;
+    } else if (lengthStr.substring(len-2,len) == " m") { 
+        length = parseFloat(lengthStr.substring(0,len-2));
+    } else if (lengthStr.substring(len-2,len) == "km") { 
+        length = parseFloat(lengthStr.substring(0,len-2)) * 1e3;
+    }
+
+    return length;
+}
+
+// TODO: These should be moved to viewer-utils so they can be used
+// separately from SlideAtlas.
+// Helper function: Looks for a key phase in the text.
+// first == true: Look only at the start. Returns true if found. 
+// first == false: return index of tag or -1;
+SlideAtlas.prototype.TagCompare = function (tag,text,first) {
+    if (first) {
+        return (tag.toUpperCase() ==
+                text.substring(0,tag.length).toUpperCase());
+    }
+    return text.toUpperCase().search(tag.toUpperCase());
+}
+
+// Process HTML to add standard tags.
+// Returns the altered html.
+// I am writting this to be safe to call multiple times.
+// Depth first traversal of tree.
+SlideAtlas.prototype.AddHtmlTags = function(item) {
+    var container = undefined;
+    var tags = [{string:"History:",               class:"sa-history"},
+                {string:"Diagnosis:",             class:"sa-diagnosis"},
+                {string:"Differential Diagnosis:",class:"sa-differential-diagnosis"},
+                {string:"Teaching Points:",       class:"sa-teaching-points"},
+                {string:"Compare with:",          class:"sa-compare"},
+                {string:"Notes:",                 class:"sa-notes"}];
+
+    // Since text concatinates children,
+    // containers only have to consume siblings.
+    var children = item.children();
+    for (var i = 0; i < children.length; ++i) {
+        var child = $(children[i]);
+
+        // Look for an existing class from our set. 
+        // If we find one, terminate processing for the item and ites children.
+        // Terminate the container collecting items.
+        var foundTag = undefined;
+        for (var j = 0; j < tags.length; ++j) {
+            if (child.hasClass(tags[j].class)) {
+                foundTag = tags[j];
+            }
+        }
+        if (foundTag) {
+            container = undefined;
+            continue;
+        }
+
+        // special  (one line tag)
+        if (child.hasClass('sa-ssc-title')) {
+            container = undefined;
+            continue;
+        }
+
+        // Look for a tag string inthe text
+        var text = child.text();
+        // Special case: treat the title as a single line.
+        if (this.TagCompare('SSC', text, true) && !child.hasClass('sa-ssc-title')) {
+            child.addClass('sa-ssc-title');
+        }
+
+        // Make sure tags are not grouped.
+        // This is a bit of a hack.  THere are too many ways html can be formatted.
+        if (child.children().length > 1) {
+            for (var j = 0; j < tags.length; ++j) {
+                tag = tags[j];
+                if (this.TagCompare(tag.string, text, false) > 0) {
+                    var grandChildren = child.children();
+                    grandChildren.remove();
+                    grandChildren.insertAfter(child);
+                    children = item.children();
+                    text = child.text();
+                    break;
+                }
+            }
+        }
+
+        // These tags consume children followint the tag.
+        var foundTag = false;
+        for (var j = 0; j < tags.length; ++j) {
+            tag = tags[j];
+            if (this.TagCompare(tag.string, text, true)) {
+                foundTag = tag;
+                break;
+            }
+        }
+
+        if (foundTag) {
+            // If the outer is a div,  reuse it for the container.
+            // There was a bug with diagnosis in the history container.
+            // This will ungroup multiple tags. However recursion may be
+            // needed.
+            if (child[0].tagName == 'DIV') {
+                var grandChildren = child.children();
+                child.empty();
+                grandChildren.insertAfter(child);
+                children = item.children();
+                container = child;
+                ++i;
+                child = $(children[i]);
+            } else {
+                // Start a new container.
+                container = $('<div>')
+                    .insertBefore(child);
+                children = item.children();
+                // Manipulating a list we are traversing is a pain.
+                ++i;
+            }
+            container.addClass(foundTag.class);
+        }
+
+        // If we have a container, it consumes all items after it.
+        if (container) {
+            // Remove the item and add it to the container.
+            child.remove();
+            child.appendTo(container);
+            children = item.children();
+            // Manipulating a list we are traversing is a pain.
+            --i;
+        }
+    }
+}
+
+
+// Useful utility to get selected text / the position of the cursor.
+// Get the selection in div.  Returns a range.
+// If not, the range is collapsed at the 
+// end of the text and a new line is added.
+// div is a jquery parent.
+SlideAtlas.prototype.GetSelectionRange = function(div) {
+    var sel = window.getSelection();
+    var range;
+    var parent = null;
+
+    // Two conditions when we have to create a selection:
+    // nothing selected, and something selected in wrong parent.
+    // use parent as a flag.
+    if (sel.rangeCount > 0) {
+        // Something is selected
+        range = sel.getRangeAt(0);
+        range.noCursor = false;
+        // Make sure the selection / cursor is in this editor.
+        parent = range.commonAncestorContainer;
+        // I could use jquery .parents(), but I bet this is more efficient.
+        while (parent && parent != div[0]) {
+            //if ( ! parent) {
+                // I believe this happens when outside text is selected.
+                // We should we treat this case like nothing is selected.
+                //console.log("Wrong parent");
+                //return;
+            //}
+            if (parent) {
+                parent = parent.parentNode;
+            }
+        }
+    }
+    if ( ! parent) {
+        return null;
+        //return this.MakeSelectionRange(div);
+    }
+
+    return range;
+}
+
+// When we are inserting at the end and nothing is selected, we need to
+// add a div with a break at the end and select the break. This keeps the
+// cursor after the inserted item. This returns the range.
+SlideAtlas.prototype.MakeSelectionRange = function(div) {
+    // When nothing is select, I am trying to make the cursor stay
+    // after the question inserted with the range we return.
+    // TODO: change this so that the div is added after the dialog
+    // apply. Cancel should leave div unchanged.(AddQuestion)
+    var sel = window.getSelection();
+
+    div[0].focus();
+    var br = $('<br>').appendTo(div);
+    range = document.createRange();
+    range.selectNode(br[0]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return range;
+}
+
 
 
 var SA = SA || new SlideAtlas();
@@ -627,7 +848,6 @@ var CANVAS;
 var CONFERENCE_WIDGET;
 var FAVORITES_WIDGET;
 var MOBILE_ANNOTATION_WIDGET;
-var SAVE_BUTTON;
 
 //==============================================================================
 
@@ -667,14 +887,14 @@ function cancelContextMenu(e) {
 
 // Call back from NotesWidget.
 function NotesModified() {
-    if (SA.Edit) {
-        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save.png");
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save.png");
     }
 }
 
 function NotesNotModified() {
-    if (SA.Edit) {
-        SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
+    if (SA.Edit && SA.SaveButton) {
+        SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
     }
 }
 
@@ -684,7 +904,7 @@ function SaveCallback() {
     SA.NotesWidget.SaveCallback(
         function () {
             // finished
-            SAVE_BUTTON.attr('src',SA.ImagePathUrl+"save22.png");
+            SA.SaveButton.attr('src',SA.ImagePathUrl+"save22.png");
         });
 }
 
@@ -725,7 +945,7 @@ function Main(rootNote) {
     }
 
     // TODO: Get rid of this global variable.
-    if (MOBILE_DEVICE) {
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET = new MobileAnnotationWidget();
     }
 
@@ -751,7 +971,9 @@ function Main(rootNote) {
     // Navigation widget keeps track of which note is current.
     // Notes widget needs to access and change this.
     SA.NotesWidget.SetNavigationWidget(SA.DualDisplay.NavigationWidget);
-    SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+    if (SA.DualDisplay.NavigationWidget) {
+      SA.DualDisplay.NavigationWidget.SetInteractionEnabled(true);
+    }
 
     new RecorderWidget(SA.DualDisplay);
 
@@ -762,8 +984,8 @@ function Main(rootNote) {
     if (SA.User != "" && ! MOBILE_DEVICE) {
         if ( SA.Edit) {
             // Put a save button here when editing.
-            SAVE_BUTTON = $('<img>')
-                .appendTo(SA.MainDiv)
+            SA.SaveButton = $('<img>')
+                .appendTo(SA.ResizePanel.MainDiv)
                 .css({'position':'absolute',
                       'bottom':'4px',
                       'left':'10px',
@@ -788,7 +1010,7 @@ function Main(rootNote) {
         SA.DualDisplay.NavigationWidget) {
         SA.DualDisplay.NavigationWidget.SetVisibility(false);
     }
-    if (MOBILE_DEVICE) {
+    if (MOBILE_DEVICE && MOBILE_ANNOTATION_WIDGET) {
         MOBILE_ANNOTATION_WIDGET.SetVisibility(false);
     }
 

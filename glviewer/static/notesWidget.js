@@ -106,6 +106,11 @@ function TextEditor(parent, display) {
                            document.execCommand('fontSize',false,'2');
                            self.ChangeBulletSize('0.9em');
                        });
+    // TODO: Get selected text to see if we can convert it into a question.
+    this.AddEditButton(SA.ImagePathUrl+"question.png", "add question", 
+                       function() {
+                           self.AddQuestion();
+                       });
 
     this.TextEntry = $('<div>')
         .appendTo(parent)
@@ -240,56 +245,60 @@ TextEditor.prototype.AddEditButton = function(src, tooltip, callback) {
     this.EditButtons.push(button);
 }
 
-// Get the selection in this editor.  Returns a range.
-// If not, the range is collapsed at the 
-// end of the text and a new line is added.
-TextEditor.prototype.GetSelectionRange = function() {
-    var sel = window.getSelection();
-    var range;
-    var parent = null;
+TextEditor.prototype.AddQuestion = function() {
+    var bar = $('<div>')
+        .css({'position':'relative',
+              'margin':'3%',
+              'width':'90%',
+              'background':'#FFF',
+              'border':'1px solid #AAA',
+              'padding':'1% 1% 1% 1%'}) // top right bottom left
+        .attr('contenteditable', 'false')
+        .saQuestion({editable: SA.Edit,
+                     position : 'static'});
 
-    // Two conditions when we have to create a selection:
-    // nothing selected, and something selected in wrong parent.
-    // use parent as a flag.
-    if (sel.rangeCount > 0) {
-        // Something is selected
-        range = sel.getRangeAt(0);
-        range.noCursor = false;
-        // Make sure the selection / cursor is in this editor.
-        parent = range.commonAncestorContainer;
-        // I could use jquery .parents(), but I bet this is more efficient.
-        while (parent && parent != this.TextEntry[0]) {
-            //if ( ! parent) {
-                // I believe this happens when outside text is selected.
-                // We should we treat this case like nothing is selected.
-                //console.log("Wrong parent");
-                //return;
-            //}
-            if (parent) {
-                parent = parent.parentNode;
-            }
+    // Need to get the range here because the dialog changes it.
+    var self = this;
+    var range = SA.GetSelectionRange(this.TextEntry);
+    // Try to initialize the dialog with the contents of the range.
+    var clone = range.cloneContents();
+    bar.saQuestion('SetQuestionText', clone.firstChild.textContent);
+    if (clone.childElementCount > 1) {
+        //var answers = clone.querySelectorAll('li');
+        var answers = [];
+        var li = clone.querySelector('li');
+        if (li) {
+            answers = li.parentElement;
+        } else {
+            answers = clone.children[1];
+        }
+        for (var i = 0; i < answers.childElementCount; ++i) {
+            var answer = answers.children[i];
+            var bold = (answer.style.fontWeight == "bold") ||
+                       ($(answer).find('b').length > 0);
+            bar.saQuestion('AddAnswerText',
+                           answer.textContent,
+                           bold);
         }
     }
-    if ( ! parent) {
-        // Select everything in the editor.
-        range = document.createRange();
-        range.noCursor = true;
-        range.selectNodeContents(this.TextEntry[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        //console.log(sel.toString());
-    }
 
-    return range;
+    bar.saQuestion('OpenDialog',
+        function () {
+            if (range) {
+                range.deleteContents();
+                range.insertNode(document.createElement('br'));
+            } else {
+                range = SA.MakeSelectionRange(self.TextEntry);
+            }
+            range.insertNode(bar[0]);
+            // Some gymnasitcs to keep the cursor after the question.
+            range.collapse(false);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            self.TextEntry[0].focus();
+            self.UpdateNote();
+        });
 }
 
 // execCommand fontSize does change bullet size.
@@ -298,7 +307,8 @@ TextEditor.prototype.ChangeBulletSize = function(sizeString) {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
+    range = range || SA.MakeSelectionRange(this.TextEntry);
     var listItems = $('li');
     for (var i = 0; i < listItems.length; ++i) {
         var item = listItems[i];
@@ -314,7 +324,7 @@ TextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
     var selectedText = sel.toString();
 
     if ( ! this.UrlDialog) {
@@ -391,15 +401,13 @@ TextEditor.prototype.InsertUrlLink = function() {
 TextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
+    range = range || SA.MakeSelectionRange(this.TextEntry);
 
     // Simply put a span tag around the text with the id of the view.
     // It will be formated by the note hyperlink code.
     var link = document.createElement("a");
     link.href = this.UrlDialog.UrlInput.val();
     link.target = "_blank";
-
-    // It might be nice to have an id to get the href for modification.
-    //span.id = note.Id;
 
     // Replace or insert the text.
     if ( ! range.collapsed) {
@@ -429,7 +437,7 @@ var LINKS_WITH_NO_NAME = 0;
 TextEditor.prototype.InsertCameraLink = function() {
     var self = this;
     var sel = window.getSelection();
-    var range = this.GetSelectionRange();
+    var range = SA.GetSelectionRange(this.TextEntry);
 
     // Check if an existing link is selected.
     var dm = range.cloneContents();
@@ -518,12 +526,22 @@ TextEditor.prototype.Resize = function(width, height) {
 
 TextEditor.prototype.SetHtml = function(html) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = null; //??? Editing without a note
     this.EditOn();
     this.TextEntry.html(html);
+
+    if (SA.Edit) {
+        var items = this.TextEntry.find('.sa-question');
+        items.saQuestion({editable:true,
+                          position : 'static'});
+    }
+
+    // Not needed here long term.
+    // this looks for keywords in text and makes tags.
+    SA.AddHtmlTags(this.TextEntry);
 }
 
 TextEditor.prototype.GetHtml = function() {
@@ -535,11 +553,20 @@ TextEditor.prototype.GetHtml = function() {
 // Or in the note.
 TextEditor.prototype.LoadNote = function(note) {
     if (this.UpdateTimer) {
-        clearTimeout(this.UpdateTimer());
+        clearTimeout(this.UpdateTimer);
         this.Update();
     }
     this.Note = note;
     this.TextEntry.html(note.Text);
+
+    // TODO: Hide this.  Maybe use saHtml.
+    if (SA.Edit) {
+        var items = this.TextEntry.find('.sa-question');
+        items.saQuestion({editable:true,
+                          position : 'static'});
+    }
+
+    // TODO: Make the hyper link the same pattern as questions.
     for (var i = 0; i < note.Children.length; ++i) {
         note.Children[i].FormatHyperlink();
     }
@@ -680,6 +707,44 @@ function NotesWidget(parent, display) {
     }
 
     // Now for the text tab:
+    if (SA.Edit) {
+        // TODO: Encapsulate this menu (used more than once)
+        this.QuizDiv = $('<div>')
+            .appendTo(this.TextDiv)
+        this.QuizMenu = $('<select name="quiz" id="quiz">')
+            .appendTo(this.QuizDiv)
+            .css({'float':'right',
+                  'margin':'3px'})
+            .change(function () {
+                if ( ! self.RootNote) { return; }
+                if (this.value == "review") {
+                    self.RootNote.Mode = "answer-show";
+                } else if (this.value == "hidden") {
+                    self.RootNote.Mode = "answer-hide";
+                } else if (this.value == "interactive") {
+                    self.RootNote.Mode = "answer-interactive";
+                }
+                self.UpdateQuestionMode();
+            });
+        this.QuizLabel = $('<div>')
+            .appendTo(this.TextDiv)
+            .css({'float':'right',
+                  'font-size':'small',
+                  'margin-top':'4px'})
+            .text("quiz");
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('review');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('hidden');
+        $('<option>')
+            .appendTo(this.QuizMenu)
+            .text('interactive');
+        // Set the question mode
+        this.QuizMenu.val("review");
+    }
+
     this.TextEditor = new TextEditor(this.TextDiv, this.Display);
     if ( ! SA.Edit) {
         this.TextEditor.EditableOff();
@@ -695,6 +760,48 @@ function NotesWidget(parent, display) {
         function () {
             self.UserTextEditor.Note.Save();
         });
+}
+
+NotesWidget.prototype.UpdateQuestionMode = function() {
+    // Set the question mode
+    if ( ! this.RootNote) {
+        return;
+    }
+
+    if ( ! this.RootNote.Mode) {
+        this.RootNote.Mode = 'answer-show';
+    }
+
+    if (this.QuizMenu) {
+        if (this.RootNote.Mode == 'answer-hide') {
+            this.QuizMenu.val("hidden");
+        } else if (this.RootNote.Mode == 'answer-interactive') {
+            this.QuizMenu.val("interactive");
+        } else {
+            //this.RootNote.Mode = 'answer-show';
+            this.QuizMenu.val("review");
+        }
+    }
+
+    // make sure tags have been decoded.
+    SA.AddHtmlTags(this.TextEditor.TextEntry);
+
+    if (this.RootNote.Mode == 'answer-show') {
+        $('.sa-note').show();
+        $('.sa-notes').show();
+        $('.sa-diagnosis').show();
+        $('.sa-differential-diagnosis').show();
+        $('.sa-teaching-points').show();
+        $('.sa-compare').show();
+    } else {
+        $('.sa-note').hide();
+        $('.sa-notes').hide();
+        $('.sa-diagnosis').hide();
+        $('.sa-differential-diagnosis').hide();
+        $('.sa-teaching-points').hide();
+        $('.sa-compare').hide();
+    }
+    $('.sa-question').saQuestion('SetMode', this.RootNote.Mode);
 }
 
 NotesWidget.prototype.SetNavigationWidget = function(nav) {
@@ -831,14 +938,16 @@ NotesWidget.prototype.SetRootNote = function(rootNote) {
     if (SA.ResizePanel) {
         SA.ResizePanel.SetVisibility(rootNote.NotesPanelOpen, 0.0);
     }
+
+    this.UpdateQuestionMode();
 }
 
 
 // TODO:
 // Hmmmm.  I do not think this is used yet.
-// SAVE_BUTTON setup should not be here though.
+// SA.SaveButton setup should not be here though.
 NotesWidget.prototype.EditOn = function() {
-    SAVE_BUTTON
+    SA.SaveButton
         .prop('title', "save to database")
         .attr('src',SA.ImagePathUrl+"save22.png")
         .click(function(){self.SaveCallback();});
@@ -847,7 +956,7 @@ NotesWidget.prototype.EditOn = function() {
 }
 
 NotesWidget.prototype.EditOff = function() {
-    SAVE_BUTTON
+    SA.SaveButton
         .prop('title', "edit view")
         .attr('src',SA.ImagePathUrl+"text_edit.png")
         .click(function(){self.EditOn();});
@@ -865,6 +974,9 @@ NotesWidget.prototype.EditOff = function() {
 }
 
 NotesWidget.prototype.SaveCallback = function(finishedCallback) {
+    // Process containers for diagnosis ....
+    SA.AddHtmlTags(this.TextEditor.TextEntry);
+
     // Lets try saving the camera for the current note.
     // This is a good comprise.  Do not record the camera
     // every time it moves, but do record it when the samve button
@@ -896,7 +1008,7 @@ NotesWidget.prototype.SaveCallback = function(finishedCallback) {
 //------------------------------------------------------------------------------
 
 NotesWidget.prototype.GetCurrentNote = function() {
-    return this.NavigationWidget.GetNote();
+    return this.Display.GetNote();
 }
 
 
@@ -916,7 +1028,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
         var image = this.Display.GetViewer(0).GetCache().Image;
         src = "/thumb?db=" + image.database + "&img=" + image._id + "";
     } else {
-        var thumb = CreateThumbnailImage(110);
+        var thumb = SA.DualDisplay.CreateThumbnailImage(110);
         src = thumb.src;
     }
 
@@ -930,7 +1042,7 @@ NotesWidget.prototype.SaveBrownNote = function() {
                "type": "Favorite"},//"favorites"
         success: function(data,status) {
             note.Id = data;
-            LoadFavorites();
+            FAVORITES_WIDGET.FavoritesBar.LoadFavorites();
         },
         error: function() {
             saDebug( "AJAX - error() : saveusernote 2" );
@@ -1064,4 +1176,7 @@ NotesWidget.prototype.LoadUserNote = function(data, imageId) {
         this.UserTextEditor.EditOn();
     }
 }
+
+
+
 

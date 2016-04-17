@@ -13,7 +13,7 @@
 <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
 
 
-<link rel="stylesheet" href="{{url_for('glviewer.static', filename='css/main.css') }}"></script>
+<link rel="stylesheet" href="{{url_for('glviewer.static', filename='css/sa.css') }}"></script>
 
 <!-- TODO: use common jquery for entire project avoiding duplication-->
 
@@ -31,107 +31,19 @@
 <script type="text/javascript" src="/static/thirdparty/webgl-utils/webgl-utils.js"></script>
 
 <!-- Edit menu, right click -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='init.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cookies.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewEditMenu.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewBrowser.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dualViewWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='tabbedDiv.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='note.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='notesWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='tab.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='annotationWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='conferenceWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='recorderWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='navigationWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='favoritesBar.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='mobileAnnotationWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='stackSectionWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='sectionsWidget.js') }}"></script>
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer-utils.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='presentation.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='loader.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='camera.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutout.js') }}"></script>
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='seedContour.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='align.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('glviewer.static', filename='sa.max.js') }}"></script>
 
 <!-- Body tag with ID, dialog code -->
 <body id="body">
 </body>
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='dialog.js') }}"></script>
-
-<!-- Actor for tile -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='tile.js') }}"></script>
-
-<!-- Source and cache for the viewer
-Manages the list, and gives to camera, either lowres, or appropriate tiles
--->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cache.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='section.js') }}"></script>
-
-<!-- Single view, view interacts with the cache -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='view.js') }}"></script>
-
-<!-- Has two views -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='viewer.js') }}"></script>
-
-<!-- 1 Global, decides which viewer gets the event, viewer decides which is active widget to forward to, or else handle itself, sometimes forwards to change camera -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='eventManager.js') }}"></script>
 
 <!-- Stuff for downloading the image -->
 <script type="text/javascript" src="/static/thirdparty/blob/g7246d68/Blob.js"></script>
 <script type="text/javascript" src="/static/thirdparty/canvas-toblob/g911df56/canvas-toBlob.js"></script>
 <script type="text/javascript" src="/static/thirdparty/filesaver/g4d049e9/FileSaver.js"></script>
 
-<!-- For 3d pathology -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pairTransformation.js') }}"></script>
 
-
-<!-- Widgets
-
-Different widgets have show dialog method,
-hardcoded to the divs
-
-Widgets have serialize method which creates an object
-
--->
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='cutoutWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrowWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circleWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='textWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polylineWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='pencilWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='fillWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='lassoWidget.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='widgetPopup.js') }}"></script>
-
-<!-- Shapes starting with superclass
-
-Viewer contains shape list
-shape has visibility and
-
--->
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='shape.js') }}"></script>
-
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='crossHairs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='arrow.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='circle.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='polyline.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='imageAnnotation.js') }}"></script>
-
-<!-- Text uses texture map and not superclass shape, shares same API -->
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='text.js') }}"></script>
-
-<!-- For websockets -->
 <script type="text/javascript" src="/static/thirdparty/bson/0.2.9/bson.js"></script>
-<script type="text/javascript" src="{{ url_for('glviewer.static', filename='websocket.js') }}"></script>
 
 <!-- Import of the SlideAtlas CSS file -->
 
@@ -219,22 +131,24 @@ shape has visibility and
   }
 </script> <!---->
 <script type="text/javascript">
-  SA.Template = "view.html";
-  SA.User = "{{user}}";
-  // A view has the same structure as a note.
-  SA.ViewId = "{{view}}";
-  SA.SessionId = "{{sess}}";
-  SA.Edit = {{edit}}; // Temporary way to hide editing.
-  SA.SessionUrl = "{{url_for('session.sessions_view')}}";
-  SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
-
 
   //********************************************************
 
   $(document).ready(function() {
       //This is to solve the scroll-bar causing problems when an element is off the right or bottom sides of the page.
       $("body").css({'overflow-x': 'hidden', 'overflow-y': 'hidden'});
-      Main();
+
+      SA = new SlideAtlas();
+      SA.ViewId = "{{view}}";
+      SA.Template = "view.html";
+      SA.User = "{{user}}";
+      // A view has the same structure as a note.
+      SA.Edit = {{edit}}; // Temporary way to hide editing.
+      SA.SessionUrl = "{{url_for('session.sessions_view')}}";
+      SA.ImagePathUrl = "{{ url_for('glviewer.static', filename='') }}";
+
+      SA.SessionId = "{{sess}}";
+      SA.Run();
   });
 
 </script>

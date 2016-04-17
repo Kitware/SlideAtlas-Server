@@ -36,6 +36,9 @@
         this.ActiveWidget = null;
 
         this.Visibility = true;
+        // Scale widget is unique. Deal with it separately so it is not
+        // saved with the notes.
+        this.ScaleWidget = new SA.ScaleWidget(this, false);
     }
 
     // Try to remove all global references to this viewer.
@@ -68,6 +71,11 @@
     AnnotationLayer.prototype.GetCanvasDiv = function () {
         return this.AnnotationView.CanvasDiv;
     }
+    // Get the current scale factor between pixels and world units.
+    AnnotationLayer.prototype.GetPixelsPerUnit = function() {
+        return this.AnnotationView.GetPixelsPerUnit();
+    }
+
 
     // the view arg is necessary for rendering into a separate canvas for
     // saving large images.
@@ -78,6 +86,9 @@
         for(var i = 0; i < this.WidgetList.length; ++i) {
             // The last parameter is obsolete (visiblity mode)
             this.WidgetList[i].Draw(view, 2);
+        }
+        if (this.ScaleWidget) {
+            this.ScaleWidget.Draw(view);
         }
     }
 
@@ -94,49 +105,36 @@
         }
     }
     
-    AnnotationLayer.prototype.AddWidget = function(widget) {
-        if ( ! widget) { return; }
-        widget.Layer = this;
-        this.WidgetList.push(widget);
-    }
-    AnnotationLayer.prototype.RemoveWidget = function(widget) {
-        // widget.Layer = null;
-        var idx = this.WidgetList.indexOf(widget);
-        if(idx!=-1) {
-            this.WidgetList.splice(idx, 1);
-        }
-    }
-    AnnotationLayer.prototype.GetWidgets = function() {
-        return this.WidgetList;
-    }
-
     // Load a widget from a json object (origin MongoDB).
     AnnotationLayer.prototype.LoadWidget = function(obj) {
         var widget;
         switch(obj.type){
         case "lasso":
-            widget = new LassoWidget(this, false);
+            widget = new SA.LassoWidget(this, false);
             break;
         case "pencil":
-            widget = new PencilWidget(this, false);
+            widget = new SA.PencilWidget(this, false);
             break;
         case "text":
-            widget = new TextWidget(this, "");
+            widget = new SA.TextWidget(this, "");
             break;
         case "circle":
-            widget = new CircleWidget(this, false);
+            widget = new SA.CircleWidget(this, false);
             break;
         case "polyline":
-            widget = new PolylineWidget(this, false);
+            widget = new SA.PolylineWidget(this, false);
             break;
         case "stack_section":
-            widget = new StackSectionWidget(this);
+            widget = new SA.StackSectionWidget(this);
             break;
         case "sections":
-            widget = new SectionsWidget(this);
+            widget = new SA.SectionsWidget(this);
             break;
         case "rect":
-            widget = new RectWidget(this, false);
+            widget = new SA.RectWidget(this, false);
+            break;
+        case "grid":
+            widget = new SA.GridWidget(this, false);
             break;
         }
         widget.Load(obj);
@@ -161,13 +159,17 @@
             return;
         }
         this.ActiveWidget = widget;
+        widget.SetActive(true);
     }
     AnnotationLayer.prototype.DeactivateWidget = function(widget) {
         if (this.ActiveWidget != widget || widget == null) {
             // Do nothing if the widget is not active.
             return;
         }
+        // Incase the widget changed the cursor.  Change it back.
+        this.GetCanvasDiv().css({'cursor':'default'});
         this.ActiveWidget = null;
+        widget.SetActive(false);
     }
     AnnotationLayer.prototype.GetActiveWidget = function() {
         return this.ActiveWidget;
@@ -179,7 +181,26 @@
     }
 
     // TODO: Try to get rid of the viewer argument.
-    AnnotationLayer.prototype.HandleTouchStart = function(event, viewer) {
+    AnnotationLayer.prototype.HandleTouchStart = function(event) {
+        // Code from a conflict
+        // Touch was not activating widgets on the ipad.
+        // Show text on hover.
+        if (this.Visibility) {
+            for (var touchIdx = 0; touchIdx < this.Touches.length; ++touchIdx) {
+                this.MouseX = this.Touches[touchIdx][0];
+                this.MouseY = this.Touches[touchIdx][1];
+                this.ComputeMouseWorld(event);
+                for (var i = 0; i < this.WidgetList.length; ++i) {
+                    if ( ! this.WidgetList[i].GetActive() &&
+                         this.WidgetList[i].CheckActive(event)) {
+                        this.ActivateWidget(this.WidgetList[i]);
+                        return true;
+                    }
+                }
+            }
+        }
+        // end conflict
+
         for (var touchIdx = 0; touchIdx < event.Touches.length; ++touchIdx) {
             for (var i = 0; i < this.WidgetList.length; ++i) {
                 if ( ! this.WidgetList[i].GetActive() &&
@@ -211,6 +232,7 @@
 
     // TODO: Get rid of the viewer argument.
     AnnotationLayer.prototype.HandleTouchEnd = function(event, viewer) {
+
         if (this.ActiveWidget && this.ActiveWidget.HandleTouchEnd) {
             return this.ActiveWidget.HandleTouchEnd(event, viewer);
         }
@@ -247,13 +269,16 @@
 
     // TODO: Get rid of the viewer argument.
     AnnotationLayer.prototype.HandleMouseMove = function(event, viewer) {
-        //if (event.which == 0) { // Firefox does not set which for motion events.
-        if ( ! viewer.FireFoxWhich) {
-            this.CheckActive(event);
+        if (this.ActiveWidget) {
+            if (this.ActiveWidget.HandleMouseMove) {
+                this.ActiveWidget.HandleMouseMove(event, viewer);
+            }
+        } else {
+            if ( ! viewer.FireFoxWhich) {
+                this.CheckActive(event);
+            }
         }
-        if (this.ActiveWidget && this.ActiveWidget.HandleMouseMove) {
-            this.ActiveWidget.HandleMouseMove(event, viewer);
-        }
+
         // An active widget should stop propagation even if it does not
         // respond to the event.
         return ! this.ActiveWidget;
@@ -293,6 +318,44 @@
         return false;
     }
 
-    window.AnnotationLayer = AnnotationLayer;
+    AnnotationLayer.prototype.GetNumberOfWidgets = function() {
+        return this.WidgetList.length;
+    }
+
+
+    AnnotationLayer.prototype.GetWidget = function(i) {
+        return this.WidgetList[i];
+    }
+
+    // Legacy
+    AnnotationLayer.prototype.GetWidgets = function() {
+        return this.WidgetList;
+    }
+
+    AnnotationLayer.prototype.AddWidget = function(widget) {
+        widget.Layer = this;
+        this.WidgetList.push(widget);
+        if (SA.NotesWidget) {
+            // Hack.
+            SA.NotesWidget.MarkAsModified();
+        }
+    }
+
+    AnnotationLayer.prototype.RemoveWidget = function(widget) {
+        if (widget.Layer == null) {
+            return;
+        }
+        widget.Layer = null;
+        var idx = this.WidgetList.indexOf(widget);
+        if(idx!=-1) {
+            this.WidgetList.splice(idx, 1);
+        }
+        if (SA.NotesWidget) {
+            // Hack.
+            SA.NotesWidget.MarkAsModified();
+        }
+    }
+
+    SA.AnnotationLayer = AnnotationLayer;
 })();
 

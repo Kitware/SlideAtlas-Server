@@ -65,6 +65,14 @@ function AnnotationWidget (layer) {
         .prop('title', "Rectangle")
         .click(function(){self.NewRect();});
     */
+    this.GridButton = $('<img>')
+        .appendTo(this.Tab.Panel)
+        .addClass("sa-view-annotation-button sa-flat-button-active")
+        .addClass('sa-active')
+        .attr('type','image')
+        .attr('src',SA.ImagePathUrl+"grid.png")
+        .prop('title', "Grid")
+        .click(function(){self.NewGrid();});
     this.PolylineButton = $('<img>')
         .appendTo(this.Tab.Panel)
         .addClass("sa-view-annotation-button sa-flat-button-active")
@@ -196,22 +204,22 @@ AnnotationWidget.prototype.NewText = function() {
 // Probably want a singleton pencil.
 AnnotationWidget.prototype.NewPencil = function() {
     var button = this.PencilButton;
-    var widget = this.ActivateButton(button, PencilWidget);
+    var widget = this.ActivateButton(button, SA.PencilWidget);
 }
 
 AnnotationWidget.prototype.NewLasso = function() {
     var button = this.LassoButton;
-    var widget = this.ActivateButton(button, LassoWidget);
+    var widget = this.ActivateButton(button, SA.LassoWidget);
 }
 
 AnnotationWidget.prototype.NewPolyline = function() {
     var button = this.PolylineButton;
-    var widget = this.ActivateButton(button, PolylineWidget);
+    var widget = this.ActivateButton(button, SA.PolylineWidget);
 }
 
 AnnotationWidget.prototype.NewCircle = function() {
     var button = this.CircleButton;
-    var widget = this.ActivateButton(button, CircleWidget);
+    var widget = this.ActivateButton(button, SA.CircleWidget);
     // Use the mouse position to place the circle.
     // Mouse in under button.  Should we put the cirlce in the middle?
     widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
@@ -219,26 +227,40 @@ AnnotationWidget.prototype.NewCircle = function() {
         this.Layer.LastMouseY);
 }
 
-
 AnnotationWidget.prototype.NewRect = function() {
     var button = this.RectButton;
-    var widget = this.ActivateButton(button, RectWidget);
+    var widget = this.ActivateButton(button, SA.RectWidget);
     // DJ: Make sure the rect is around the circle
     widget.Shape.Origin = this.Layer.GetCamera().ConvertPointViewerToWorld(
         this.Layer.LastMouseX,
         this.Layer.LastMouseY);
 };
 
+AnnotationWidget.prototype.NewGrid = function() {
+    var button = this.GridButton;
+    var widget = this.ActivateButton(button, SA.GridWidget);
+    var cam = this.Layer.GetCamera();
+    var fp = cam.GetFocalPoint();
+    // Square grid elements determined by height
+    var height = cam.GetHeight() * 0.75;
+    var yDim = 5;
+    var size = height / yDim;
+    var width = cam.GetWidth() * 0.75;
+    var xDim = Math.floor(width/size);
+    widget.Grid.Origin = [fp[0], fp[1], 0.0];
+    widget.Grid.Orientation = cam.GetRotation();
+    this.Layer.DeactivateWidget(widget);
+};
 
 AnnotationWidget.prototype.NewFill = function() {
     var button = this.FillButton;
-    var widget = this.ActivateButton(button, FillWidget);
+    var widget = this.ActivateButton(button, SA.FillWidget);
     widget.Initialize();
 }
 
 
 // Boilerplate code that was in every "newWidget" method.
-AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
+AnnotationWidget.prototype.ActivateButton = function(button, WidgetFunction) {
     var widget = this.Layer.ActiveWidget;
     if ( widget ) {
         if  (button.Pressed) {
@@ -253,7 +275,7 @@ AnnotationWidget.prototype.ActivateButton = function(button, WidgetType) {
     button.addClass("sa-active");
 
     this.SetVisibility(ANNOTATION_ON);
-    widget = new WidgetType(this.Layer, true);
+    widget = new WidgetFunction(this.Layer, true);
     this.Layer.ActivateWidget(widget);
 
     // Button remains "pressed" until the circle deactivates.

@@ -10,7 +10,7 @@
 // Abstracting the question.  It will not be editable text, but can be
 // changed from a properties dialog. Subclass of rectangle.
 // TODO:
-// Bug: Pasting into textEditor leaves edito buttons hanging around. 
+// Bug: Pasting into textEditor leaves edit buttons hanging around. 
 
 // Clean up the whole editable / clickable / lock state.
 //    Browser slides are completely passive.
@@ -76,7 +76,7 @@
 //         aspectRatio: false}
 // args = "dialog" => open the dialog.
  
-jQuery.prototype.saElement = function(args) {
+jQuery.prototype.saElement = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saElement) {
             var helper = new saElement($(this[i]));
@@ -84,7 +84,7 @@ jQuery.prototype.saElement = function(args) {
             this[i].saElement = helper;
             $(this[i]).addClass('sa-element');
         }
-        this[i].saElement.ProcessArguments(args);
+        this[i].saElement.ProcessArguments(arguments);
     }
     return this;
 }
@@ -93,6 +93,7 @@ jQuery.prototype.saElement = function(args) {
 function saElement(div) {
     var self = this;
 
+    this.Position = 'absolute';
     this.Editable = false;
     this.Interactive = true;
     this.Div = div;
@@ -174,7 +175,7 @@ saElement.prototype.ActiveOn = function () {
         this.MenuButton
             .on('mousedown',
                 function () {
-                    self.DialogOpenCallback();
+                    self.OpenDialog();
                     return false;
                 });
         this.DeleteButton
@@ -200,7 +201,7 @@ saElement.prototype.ActiveOff = function () {
 
 saElement.prototype.InitializeDialog = function () {
     var self = this;
-    this.Dialog = new Dialog(function () {self.DialogApplyCallback();});
+    this.Dialog = new SA.Dialog(function () {self.DialogApplyCallback();});
     this.Dialog.Title.text('Properties');
     // Open callbacks allow default values to be set in the dialog.
     this.DialogInitializeFunctions = [];
@@ -421,7 +422,7 @@ saElement.prototype.HideAccordionTab = function(title) {
     this.Div[0].saElement.Dialog.Body.children('[title=Quiz]').hide();
 }
 
-saElement.prototype.DialogOpenCallback = function() {
+saElement.prototype.OpenDialog = function(callback) {
     if ( ! this.DialogInitialized) {
         // Give 'subclasses' a chance to initialize their tabs.
         for (var i = 0; i < this.DialogInitializeFunctions.length; ++i) {
@@ -429,6 +430,8 @@ saElement.prototype.DialogOpenCallback = function() {
         }
         this.DialogInitialized = true;
     }
+    // Keep this onetime callback separate from DialogApplyCallbacks.
+    this.OpenDialogCallback = callback;
     this.Dialog.Show(true);
 }
 
@@ -483,8 +486,14 @@ saElement.prototype.DialogApplyCallback = function() {
     for (var i = 0; i < this.DialogApplyFunctions.length; ++i) {
         (this.DialogApplyFunctions[i])(this.Dialog);
     }
-}
 
+    // External callback
+    // I am not sure if I should put this here or in DialogApply.
+    if ( this.OpenDialogCallback) {
+        (this.OpenDialogCallback)(this);
+        delete this.OpenDialogCallback;
+    }
+}
 
 saElement.prototype.DialogApply = function() {
     // ActiveOff was setting border back after dialog changed it.
@@ -514,28 +523,32 @@ saElement.prototype.DialogApply = function() {
     } else {
         this.Div.css('box-shadow', '');
     }
-
-    // To delay showing the question div until after the user has entered
-    // text and selected apply.
-    // If close is selected, it is never appended to the parent.
-    if (this.DelayedParent) {
-        this.Div.appendTo(this.DelayedParent);
-        delete this.DelayedParent;
-        this.Div.trigger('resize');
-    }
 }
 
 
 saElement.prototype.ProcessArguments = function(args) {
-    args = args || {};
+    // No superclass
+
+    // aspect ratio does something even with no arguments.
+    if (args.length > 0) {
+        // generic method call. Give jquery ui access to all this objects methods.
+        if (typeof(this[args[0]]) == 'function') {
+            // first list item is the method name,
+            // the rest are arguments to the method.
+            return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+        }
+        // Handle the legacy behavior.
+        // One argument: an object (like jqueryUI).
+        args = args[0];
+    } else {
+        // looks like aspect processing wiht no args ...  Cannot just return?
+        args = {};
+    }
+
     var self = this;
 
-    // For questions.  We want the dialog to be filled before we create
-    // (append to parent) the div.  Cancel will leave nothing in the parent
-    // html.
-    if (args.parent) {
-        this.DelayedParent = args.parent;
-        this.DialogOpenCallback();
+    if (args.position) {
+        this.Position = args.position;
     }
 
     // It is important to set aspect ratio before EditOn is called.
@@ -590,6 +603,7 @@ saElement.prototype.ProcessArguments = function(args) {
     this.ConvertToPercentages();
 }
 
+
 // Not the best function name.  Editable => draggable, expandable and deletable.
 saElement.prototype.EditableOn = function() {
     this.Editable = true;
@@ -606,11 +620,13 @@ saElement.prototype.EditableOn = function() {
     // Just had to restart chrome. Delete key is oldschool anyway.
 
     // Manage the cursor for drag versus resize.
-    this.Div.on(
-        'mousemove.elementCursor',
-        function (event) {
-            return self.HandleMouseMoveCursor(event);
-        });
+    if (this.Position == 'absolute') {
+        this.Div.on(
+            'mousemove.elementCursor',
+            function (event) {
+                return self.HandleMouseMoveCursor(event);
+            });
+    }
 }
 
 saElement.prototype.EditableOff = function() {
@@ -644,7 +660,7 @@ saElement.prototype.HandleMouseDown = function(event) {
                 return self.HandleMouseUp(e);
             });
 
-        if (this.Editable) {
+        if (this.Editable && this.Position == "absolute") {
             // Setup dragging.
             this.DragLastX = event.screenX;
             this.DragLastY = event.screenY;
@@ -1005,14 +1021,14 @@ saElement.prototype.ConvertToPercentages = function() {
 // Just editing options to a rectangle.  I could make the text editor a 
 // "subclass" of this rectangle object.
 
-jQuery.prototype.saRectangle = function(args) {
+jQuery.prototype.saRectangle = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-presentation-rectangle');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saRectangle) {
             dom.saRectangle = new saRectangle($(dom));
         }
-        dom.saRectangle.ProcessArguments(args);
+        dom.saRectangle.ProcessArguments(arguments);
     }
 
     return this;
@@ -1096,7 +1112,17 @@ function saRectangle(div) {
 }
 
 saRectangle.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saElement.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name,
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saRectangle.prototype.DialogInitialize = function () {
@@ -1157,14 +1183,14 @@ saRectangle.prototype.DialogApply = function () {
 //==============================================================================
 // Text: dialog to set margin, text size, spacing, (font in the future)
 
-jQuery.prototype.saText = function(args) {
+jQuery.prototype.saText = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-text');
     for (var i = 0; i < this.length; ++i) {
         dom = this[i];
         if ( ! dom.saText) {
             dom.saText = new saText($(dom));
         }
-        dom.saText.ProcessArguments(args);
+        dom.saText.ProcessArguments(arguments);
     }
 
     return this;
@@ -1251,7 +1277,17 @@ function saText(div) {
 }
 
 saText.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div[0].saRectangle.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
 }
 
 saText.prototype.DialogPaddingInitialize = function () {
@@ -1284,14 +1320,14 @@ saText.prototype.DialogPaddingApply = function () {
 //==============================================================================
 // Questions
 //
-jQuery.prototype.saQuestion = function(args) {
+jQuery.prototype.saQuestion = function(arg1) { // 'arguments' handles extras.
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saQuestion) {
             // Add the helper as an instance variable to the dom object.
             this[i].saQuestion = new saQuestion($(this[i]));;
             this[i].saElement.HideAccordionTab('Quiz');
         }
-        this[i].saQuestion.ProcessArguments(args);
+        this[i].saQuestion.ProcessArguments(arguments);
     }
 
     return this;
@@ -1315,7 +1351,89 @@ function saQuestion(div) {
     this.DialogInitialize();
 }
 
-saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
+// Meant to be acll externally.
+// Assumes multiple choice for now.
+saQuestion.prototype.SetQuestionText = function(text) {
+    var question = this.Div.find('.sa-q');
+    if (question.length == 0) {
+        question = $('<div>').addClass('sa-q').appendTo(this.Div);
+    }
+    question.text(text);
+    this.Div.attr('type','multiple-choice');
+}
+saQuestion.prototype.AddAnswerText = function(text, correct) {
+    var answerText = text;
+    // get rid of bullets
+    if (text[0] == '-') {
+        answerText = text.substring(1);
+    } else if (text[1] == '.' || text[1] == ':') {
+        answerText = text.substring(2);
+    }
+    // Get rid of whitespace
+    answerText = answerText.trim();
+
+    var answers = this.Div.find('ol');
+    if (answers.length == 0) {
+        answers = $('<ol>').appendTo(this.Div);
+    }
+    var answer = $('<li>').appendTo(answers).addClass('sa-answer');
+    answer.text(answerText);
+    if (correct) {
+        answer.addClass('sa-true');
+    }
+}
+
+saQuestion.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
+    this.Div[0].saText.ProcessArguments(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+}
+
+saQuestion.prototype.SetMode = function(mode) {
+    // Clear wrong answers selected by user.
+    this.Div.find('.sa-answer').css({'color':'#000'});
+    if (mode == 'answer-show') {
+        this.Div.find('.sa-quiz-hide').show();
+        this.Div.find('.sa-true').css({'font-weight':'bold'});
+    } else {
+        this.Div.find('.sa-quiz-hide').hide();
+        this.Div.find('.sa-true').css({'font-weight':'normal'});
+    }
+
+    if (mode == 'answer-interactive') {
+        // Bind response to the user selecting an answer.
+        this.Div.find('.sa-answer')
+            .css({'cursor':'pointer',
+                  'color':'#057'})
+            .hover(function(){$(this).css({'background':'#DDD'});},
+                   function(){$(this).css({'background':'#FFF'});})
+            .on('click.answer',
+                function () {
+                    if ($(this).hasClass('sa-true')) {
+                        $(this).css({'font-weight':'bold',
+                                     'color':'#000'});
+                    } else {
+                        $(this).css({'color':'#C00'});
+                    }
+                });
+    } else {
+        this.Div.find('.sa-answer')
+            .css({'color':'#000'})
+            .css('cursor','')
+            .off('hover')
+            .off('click.answer');
+    }
+}
+
+saQuestion.prototype.AddAnswerTo = function(parent, answerList, text, checked) {
     var self = this;
 
     // Make a new answer box;
@@ -1350,17 +1468,13 @@ saQuestion.prototype.AddAnswer = function(parent, answerList, text, checked) {
         }
     }
 
-    // Answers are complicated enough that I ma going to have to break down
+    // Answers are complicated enough that I am going to have to break down
     // and create differt gui object.
     var answerObj = {Div   : answerDiv,
                      Check : check,
                      Input : answer};
     answerList.push(answerObj);
     return answerObj;
-}
-
-saQuestion.prototype.ProcessArguments = function(args) {
-    this.Div[0].saText.ProcessArguments(args);
 }
 
 saQuestion.prototype.DialogInitialize = function () {
@@ -1422,8 +1536,8 @@ saQuestion.prototype.DialogInitialize = function () {
         .appendTo(panel)
         .hide();
     this.TrueFalseAnswers = [];
-    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "True");
-    this.AddAnswer(this.TrueFalseDiv, this.TrueFalseAnswers, "False");
+    this.AddAnswerTo(this.TrueFalseDiv, this.TrueFalseAnswers, "True");
+    this.AddAnswerTo(this.TrueFalseDiv, this.TrueFalseAnswers, "False");
 
     this.MultipleChoiceDiv = $('<div>')
         .appendTo(panel);
@@ -1446,24 +1560,24 @@ saQuestion.prototype.DialogInitialize = function () {
             for (var i = 0; i < options.length; ++i) {
                 var item = $(options[i]);
                 var checked = item.hasClass('sa-true');
-                this.AddAnswer(this.MultipleChoiceDiv,
-                               this.MultipleChoiceAnswers,
-                               item.text(), checked);
+                this.AddAnswerTo(this.MultipleChoiceDiv,
+                                 this.MultipleChoiceAnswers,
+                                 item.text(), checked);
             }
         }
     }
 
     // Empty answer that adds another when it is filled.
-    this.AddMultipleChoiceAnswer();
+    this.AddBlankMultipleChoiceAnswer();
 }
 
-saQuestion.prototype.AddMultipleChoiceAnswer = function () {
+saQuestion.prototype.AddBlankMultipleChoiceAnswer = function () {
     var self = this;
-    var answerObj = this.AddAnswer(this.MultipleChoiceDiv,
+    var answerObj = this.AddAnswerTo(this.MultipleChoiceDiv,
                                    this.MultipleChoiceAnswers);
     answerObj.Input.on('focus.answer',
                        function() {
-                           self.AddMultipleChoiceAnswer();
+                           self.AddBlankMultipleChoiceAnswer();
                        });
 }
 
@@ -1865,12 +1979,12 @@ saTextEditor.prototype.InsertUrlLink = function() {
     var self = this;
     var sel = window.getSelection();
     // This call will clear the selected text if it is not in this editor.
-    var range = this.GetSelectionge();
+    var range = SA.GetSelectionRange(this.Div);
     var selectedText = sel.toString();
 
     if ( ! this.UrlDialog) {
         var self = this;
-        var dialog = new Dialog(
+        var dialog = new SA.Dialog(
             function() {
                 self.InsertUrlLinkAccept();
             });
@@ -1942,6 +2056,9 @@ saTextEditor.prototype.InsertUrlLink = function() {
 saTextEditor.prototype.InsertUrlLinkAccept = function() {
     var sel = window.getSelection();
     var range = this.UrlDialog.SelectionRange;
+    if ( ! range) {
+        range = SA.MakeSelectionRange(this.Div);
+    }
 
     // Simply put a span tag around the text with the id of the view.
     // It will be formated by the note hyperlink code.
@@ -2020,59 +2137,6 @@ saTextEditor.prototype.GetSelection = function() {
     //return $(newNode);
 }
 
-// Get the selection in this editor.  Returns a range.
-// If not, the range is collapsed at the 
-// end of the text and a new line is added.
-// Returns the range of the selection.
-saTextEditor.prototype.GetSelectionRange = function() {
-    var sel = window.getSelection();
-    var range;
-    var parent = null;
-
-    // Two conditions when we have to create a selection:
-    // nothing selected, and something selected in wrong parent.
-    // use parent as a flag.
-    if (sel.rangeCount > 0) {
-        // Something is selected
-        range = sel.getRangeAt(0);
-        range.noCursor = false;
-        // Make sure the selection / cursor is in this editor.
-        parent = range.commonAncestorContainer;
-        // I could use jquery .parents(), but I bet this is more efficient.
-        while (parent && parent != this.Div[0]) {
-            //if ( ! parent) {
-                // I believe this happens when outside text is selected.
-                // We should we treat this case like nothing is selected.
-                //console.log("Wrong parent");
-                //return;
-            //}
-            if (parent) {
-                parent = parent.parentNode;
-            }
-        }
-    }
-    if ( ! parent) {
-        // Select everything in the editor.
-        range = document.createRange();
-        range.noCursor = true;
-        range.selectNodeContents(this.Div[0]);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Collapse the range/cursor to the end (true == start).
-        range.collapse(false);
-        // Add a new line at the end of the editor content.
-        var br = document.createElement('br');
-        range.insertNode(br); // selectNode?
-        range.collapse(false);
-        // The collapse has no effect without this.
-        sel.removeAllRanges();
-        sel.addRange(range);
-        //console.log(sel.toString());
-    }
-
-    return range;
-}
-
 // Set in position in pixels
 saTextEditor.prototype.SetPositionPixel = function(x, y) {
     if (this.Percentage) {
@@ -2098,7 +2162,7 @@ saTextEditor.prototype.SetPositionPixel = function(x, y) {
 //   Maybe push pin or camera icon to capture changes
 
 
-jQuery.prototype.saLightBox = function(args) {
+jQuery.prototype.saLightBox = function(arg1) { // 'arguments' handles extras.
     this.addClass('sa-light-box');
     for (var i = 0; i < this.length; ++i) {
         if ( ! this[i].saLightBox) {
@@ -2106,7 +2170,7 @@ jQuery.prototype.saLightBox = function(args) {
             // Add the helper as an instance variable to the dom object.
             this[i].saLightBox = helper;
         }
-        this[i].saLightBox.ProcessArguments(args);
+        this[i].saLightBox.ProcessArguments(arguments);
     }
 
     return this;
@@ -2144,7 +2208,22 @@ function saLightBox(div) {
 }
 
 saLightBox.prototype.ProcessArguments = function(args) {
+    if (args.length == 0) { return; }
+
+    // Superclass
     this.Div.saElement(args);
+
+    // generic method call. Give jquery ui access to all this objects methods.
+    if (typeof(this[args[0]]) == 'function') {
+        // first list item is the method name, 
+        // the rest are arguments to the method.
+        return this[args[0]].apply(this, Array.prototype.slice.call(args,1));
+    }
+
+    // Handle the legacy behavior. 
+    // One argument: an object (like jqueryUI).
+    args = args[0];
+
 
     if (args.aspectRatio !== undefined) {
         this.AspectRatio = args.aspectRatio;
@@ -2359,7 +2438,7 @@ jQuery.prototype.saLightBoxViewer = function(args) {
 // Internal helper.
 function saGetDialog(domElement, showCallback, applyCallback) {
     if ( ! domElement.saDialog) {
-        var helper = new Dialog(function () {saDialogApplyCallback(domElement);});
+        var helper = new SA.Dialog(function () {saDialogApplyCallback(domElement);});
         if ( ! helper.ShowCallbacks) { helper.ShowCallbacks = []; }
         if ( ! helper.ApplyCallbacks) { helper.ApplyCallbacks = []; }
         saAddButton(domElement, SA.ImagePathUrl+"Menu.jpg", "properties",

@@ -6,16 +6,16 @@
     // Depends on the CIRCLE widget
     "use strict";
 
-    var RECT_WIDGET_NEW = 0;
-    var RECT_WIDGET_DRAG = 1; // The whole arrow is being dragged.
-    var RECT_WIDGET_DRAG_RADIUS = 2;
-    var RECT_WIDGET_WAITING = 3; // The normal (resting) state.
-    var RECT_WIDGET_ACTIVE = 4; // Mouse is over the widget and it is receiving events.
-    var RECT_WIDGET_PROPERTIES_DIALOG = 5; // Properties dialog is up
+    var NEW = 0;
+    var DRAG = 1; // The whole arrow is being dragged.
+    var DRAG_RADIUS = 2;
+    var WAITING = 3; // The normal (resting) state.
+    var ACTIVE = 4; // Mouse is over the widget and it is receiving events.
+    var PROPERTIES_DIALOG = 5; // Properties dialog is up
 
 
     function Rect() {
-        Shape.call(this);
+        SA.Shape.call(this);
 
         this.Width = 20.0;
         this.Length = 50.0;
@@ -26,7 +26,7 @@
         this.PointBuffer = [];
     }
 
-    Rect.prototype = new Shape();
+    Rect.prototype = new SA.Shape();
 
     Rect.prototype.destructor=function() {
         // Get rid of the buffers?
@@ -63,7 +63,7 @@
 
 
     function RectWidget (viewer, newFlag) {
-      this.Dialog = new Dialog(this);
+      this.Dialog = new SA.Dialog(this);
       // Customize dialog for a circle.
       this.Dialog.Title.text('Rect Annotation Editor');
       // Color
@@ -142,7 +142,7 @@
       this.CreationCamera = viewer.GetCamera().Serialize();
 
       this.Viewer = viewer;
-      this.Popup = new WidgetPopup(this);
+      this.Popup = new SA.WidgetPopup(this);
       var cam = viewer.MainView.Camera;
       var viewport = viewer.MainView.Viewport;
       this.Shape = new Rect();
@@ -155,18 +155,18 @@
       this.Shape.LineWidth = 5.0*cam.Height/viewport[3];
       this.Shape.FixedSize = false;
 
-      this.Viewer.WidgetList.push(this);
+      this.Viewer.AddWidget(this);
 
       // Note: If the user clicks before the mouse is in the
       // canvas, this will behave odd.
 
       if (newFlag) {
-        this.State = RECT_WIDGET_NEW;
+        this.State = NEW;
         this.Viewer.ActivateWidget(this);
         return;
       }
 
-      this.State = RECT_WIDGET_WAITING;
+      this.State = WAITING;
 
     }
 
@@ -176,13 +176,9 @@
 
     // This needs to be put in the Viewer.
     RectWidget.prototype.RemoveFromViewer = function() {
-      if (this.Viewer === null) {
-        return;
-      }
-      var idx = this.Viewer.WidgetList.indexOf(this);
-      if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
-      }
+        if (this.Viewer) {
+            this.Viewer.RemoveWidget(this);
+        }
     };
 
     RectWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
@@ -231,7 +227,7 @@
 
     RectWidget.prototype.HandleKeyPress = function(keyCode, shift) {
       // The dialog consumes all key events.
-      if (this.State == RECT_WIDGET_PROPERTIES_DIALOG) {
+      if (this.State == PROPERTIES_DIALOG) {
           return false;
       }
 
@@ -256,22 +252,22 @@
         if (event.which != 1) {
             return false;
         }
-        if (this.State == RECT_WIDGET_NEW) {
+        if (this.State == NEW) {
             // We need the viewer position of the circle center to drag radius.
             this.OriginViewer =
                 this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0],
                                                       this.Shape.Origin[1]);
-            this.State = RECT_WIDGET_DRAG_RADIUS;
+            this.State = DRAG_RADIUS;
         }
-        if (this.State == RECT_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             // Determine behavior from active radius.
             if (this.NormalizedActiveDistance < 0.5) {
-                this.State = RECT_WIDGET_DRAG;
+                this.State = DRAG;
             } else {
                 this.OriginViewer =
                     this.Viewer.ConvertPointWorldToViewer(this.Shape.Origin[0],
                                                           this.Shape.Origin[1]);
-                this.State = RECT_WIDGET_DRAG_RADIUS;
+                this.State = DRAG_RADIUS;
             }
         }
         return true;
@@ -279,7 +275,7 @@
 
     // returns false when it is finished doing its work.
     RectWidget.prototype.HandleMouseUp = function(event) {
-        if ( this.State == RECT_WIDGET_DRAG || this.State == RECT_WIDGET_DRAG_RADIUS) {
+        if ( this.State == DRAG || this.State == DRAG_RADIUS) {
             this.SetActive(false);
             RecordState();
         }
@@ -289,18 +285,18 @@
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (event.which === 0 && this.State == RECT_WIDGET_ACTIVE) {
+        if (event.which === 0 && this.State == ACTIVE) {
             this.CheckActive(event);
             return;
         }
 
-        if (this.State == RECT_WIDGET_NEW || this.State == RECT_WIDGET_DRAG) {
+        if (this.State == NEW || this.State == DRAG) {
             this.Shape.Origin = this.Viewer.ConvertPointViewerToWorld(x, y);
             this.PlacePopup();
             eventuallyRender();
         }
 
-        if (this.State == RECT_WIDGET_DRAG_RADIUS) {
+        if (this.State == DRAG_RADIUS) {
             var viewport = this.Viewer.GetViewport();
             var cam = this.Viewer.MainView.Camera;
             var dx = x-this.OriginViewer[0];
@@ -312,7 +308,7 @@
             eventuallyRender();
         }
 
-        if (this.State == RECT_WIDGET_WAITING) {
+        if (this.State == WAITING) {
             this.CheckActive(event);
         }
     };
@@ -323,7 +319,7 @@
         var x = event.offsetX;
         var y = event.offsetY;
 
-        if (this.State == RECT_WIDGET_ACTIVE) {
+        if (this.State == ACTIVE) {
             if(this.NormalizedActiveDistance < 0.5) {
                 var ratio = 1.05;
                 var direction = 1;
@@ -411,7 +407,7 @@
 
     // Multiple active states. Active state is a bit confusing.
     RectWidget.prototype.GetActive = function() {
-      if (this.State == RECT_WIDGET_WAITING) {
+      if (this.State == WAITING) {
         return false;
       }
       return true;
@@ -420,7 +416,7 @@
 
     RectWidget.prototype.Deactivate = function() {
         this.Popup.StartHideTimer();
-        this.State = RECT_WIDGET_WAITING;
+        this.State = WAITING;
         this.Shape.Active = false;
         this.Viewer.DeactivateWidget(this);
         if (this.DeactivateCallback) {
@@ -437,7 +433,7 @@
       }
 
       if (flag) {
-        this.State = RECT_WIDGET_ACTIVE;
+        this.State = ACTIVE;
         this.Shape.Active = true;
         this.Viewer.ActivateWidget(this);
         eventuallyRender();
@@ -461,7 +457,7 @@
     };
 
     // Can we bind the dialog apply callback to an objects method?
-    var RECT_WIDGET_DIALOG_SELF;
+    var DIALOG_SELF;
 
     RectWidget.prototype.ShowPropertiesDialog = function () {
       this.Dialog.ColorInput.val(ConvertColorToHex(this.Shape.OutlineColor));
@@ -500,6 +496,6 @@
       localStorage.RectWidgetDefaults = JSON.stringify({Color: hexcolor, LineWidth: this.Shape.LineWidth});
     };
 
-    window.RectWidget = RectWidget;
+    SA.RectWidget = RectWidget;
 
 })();

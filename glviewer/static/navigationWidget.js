@@ -28,6 +28,12 @@ function NavigationWidget(parent,display) {
                   'left': '50px',
                   'bottom': '20px',
                   'z-index': '5'});
+        var panel = this.Tab.Panel;
+        this.Tab.show = function () {panel.show();}
+        this.Tab.hide = function () {
+            panel.hide();
+        }
+        //SA.OnStartInteraction( function () { panel.hide();} );
     } else {
         this.Tab = new Tab(parent,SA.ImagePathUrl+"nav.png", "navigationTab");
         this.Tab.Div.prop('title', "Navigation");

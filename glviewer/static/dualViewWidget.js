@@ -64,7 +64,7 @@ function DualViewWidget(parent) {
     this.AnimationDuration = 0;
     this.AnimationTarget = 0;
 
-    if ( ! MOBILE_DEVICE) {
+    if ( ! MOBILE_DEVICE || MOBILE_DEVICE == 'iPad') {
         // Todo: Make the button become more opaque when pressed.
         $('<img>')
             .appendTo(this.ViewerDivs[0])

@@ -20,6 +20,12 @@
 // I do not like the following behavior:
 // Real widgets are always in the viewer.
 // Widgets waiting in notes are serialized.
+
+
+(function () {
+    // Depends on the CIRCLE widget
+    "use strict";
+
 function SectionsWidget (viewer, newFlag) {
     if (viewer == null) {
         return;
@@ -29,7 +35,7 @@ function SectionsWidget (viewer, newFlag) {
 
     this.Type = "sections";
     this.Viewer = viewer;
-    this.Viewer.WidgetList.push(this);
+    this.Viewer.AddWidget(this);
 
     var self = this;
 
@@ -434,12 +440,8 @@ SectionsWidget.prototype.Deactivate = function() {
 
 
 SectionsWidget.prototype.RemoveFromViewer = function() {
-    if (this.Viewer == null) {
-        return;
-    }
-    var idx = this.Viewer.WidgetList.indexOf(this);
-    if(idx!=-1) {
-        this.Viewer.WidgetList.splice(idx, 1);
+    if (this.Viewer) {
+        this.Viewer.RemoveWidget(this);
     }
 }
 
@@ -613,3 +615,6 @@ SectionsWidget.prototype.MergeCloseSections = function(dist) {
     }
 }
 
+    SA.SectionsWidget = SectionsWidget;
+
+})();
