@@ -21,7 +21,6 @@ cat note.js >> sa.max.js
 cat notesWidget.js >> sa.max.js 
 cat tab.js >> sa.max.js 
 cat annotationWidget.js >> sa.max.js 
-cat conferenceWidget.js >> sa.max.js 
 cat recorderWidget.js >> sa.max.js 
 cat navigationWidget.js >> sa.max.js 
 cat favoritesWidget.js >> sa.max.js 

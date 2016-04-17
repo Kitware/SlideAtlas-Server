@@ -21,7 +21,6 @@ cat ../../slideatlas/static/thirdparty/spectrum/spectrum.css >> css/sa.css
 ~/bin/uglifyjs -nc notesWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc tab.js >> sa.min.js 
 ~/bin/uglifyjs -nc annotationWidget.js >> sa.min.js 
-~/bin/uglifyjs -nc conferenceWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc recorderWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc navigationWidget.js >> sa.min.js 
 ~/bin/uglifyjs -nc favoritesWidget.js >> sa.min.js 
