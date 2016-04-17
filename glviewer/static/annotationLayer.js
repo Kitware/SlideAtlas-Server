@@ -158,6 +158,13 @@
         if (this.ActiveWidget == widget) {
             return;
         }
+        // Make sure only one popup is visible at a time.
+        for (var i = 0; i < this.WidgetList.length; ++i) {
+            if (this.WidgetList[i].Popup) {
+                this.WidgetList[i].Popup.Hide();
+            }
+        }
+
         this.ActiveWidget = widget;
         widget.SetActive(true);
     }

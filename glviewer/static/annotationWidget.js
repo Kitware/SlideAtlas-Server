@@ -196,7 +196,7 @@ AnnotationWidget.prototype.TogglePanel = function() {
 // First slide the arrow, then pop up the dialog to set text.
 AnnotationWidget.prototype.NewText = function() {
     var button = this.TextButton;
-    var widget = this.ActivateButton(button, TextWidget);
+    var widget = this.ActivateButton(button, SA.TextWidget);
     // The dialog is used to set the initial text.
     widget.ShowPropertiesDialog();
 }

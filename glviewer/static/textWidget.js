@@ -20,12 +20,12 @@
 
     var DEBUG;
 
-    var TEXT_WIDGET_WAITING = 0;
-    var TEXT_WIDGET_ACTIVE = 1;
-    var TEXT_WIDGET_ACTIVE_TEXT = 2;
-    var TEXT_WIDGET_DRAG = 3; // Drag text with position
-    var TEXT_WIDGET_DRAG_TEXT = 4; // Drag text but leave the position the same.
-    var TEXT_WIDGET_PROPERTIES_DIALOG = 5;
+    var WAITING = 0;
+    var ACTIVE = 1;
+    var ACTIVE_TEXT = 2;
+    var DRAG = 3; // Drag text with position
+    var DRAG_TEXT = 4; // Drag text but leave the position the same.
+    var PROPERTIES_DIALOG = 5;
 
     function TextWidget (layer, string) {
         DEBUG = this;
@@ -128,7 +128,6 @@
         this.Dialog.BackgroundInput =
             $('<input type="checkbox">')
             .appendTo(this.Dialog.BackgroundDiv)
-        //.text("Background")
             .attr('checked', 'true')
             .css({'display': 'table-cell'});
 
@@ -137,7 +136,7 @@
         this.Popup = new SA.WidgetPopup(this);
         // Text widgets are created with the dialog open (to set the string).
         // I do not think we have to do this because ShowPropertiesDialog is called after constructor.
-        this.State = TEXT_WIDGET_WAITING;
+        this.State = WAITING;
         this.CursorLocation = 0; // REMOVE
 
         var cam = this.Layer.GetCamera();
@@ -212,20 +211,13 @@
             this.Arrow.Draw(view);
         }
         if (visibility == ANNOTATION_ON) {
-            if (this.VisibilityMode != 1 || this.State != TEXT_WIDGET_WAITING) {
+            if (this.VisibilityMode != 1 || this.State != WAITING) {
                 this.Text.Draw(view);
                 this.Text.Visibility = true;
             } else {
                 this.Text.Visibility = false;
             }
         }
-    }
-
-    TextWidget.prototype.RemoveFromViewer = function() {
-        if (this.Viewer == null) {
-            return;
-        }
-        this.Viewer.RemoveWidget(this);
     }
 
     TextWidget.prototype.PasteCallback = function(data, mouseWorldPt) {
@@ -382,7 +374,7 @@
 
     TextWidget.prototype.HandleKeyDown = function(event) {
         // The dialog consumes all key events.
-        if (this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
+        if (this.State == PROPERTIES_DIALOG) {
             return false;
         }
 
@@ -406,10 +398,15 @@
 
     TextWidget.prototype.HandleMouseDown = function(event) {
         if (event.which == 1) {
-            if (this.State == TEXT_WIDGET_ACTIVE) {
-                this.State = TEXT_WIDGET_DRAG;
-            } else if (this.State == TEXT_WIDGET_ACTIVE_TEXT) {
-                this.State = TEXT_WIDGET_DRAG_TEXT;
+            // LastMouse necessary for dragging.
+            var x = event.offsetX;
+            var y = event.offsetY;
+            var cam = this.Layer.GetCamera();
+            this.LastMouse = [x,y];
+            if (this.State == ACTIVE) {
+                this.State = DRAG;
+            } else if (this.State == ACTIVE_TEXT) {
+                this.State = DRAG_TEXT;
             }
             return false;
         }
@@ -419,24 +416,24 @@
     // returns false when it is finished doing its work.
     TextWidget.prototype.HandleMouseUp = function(event) {
         if (event.which == 1) {
-            if (this.State == TEXT_WIDGET_DRAG) {
-                this.State = TEXT_WIDGET_ACTIVE;
+            if (this.State == DRAG) {
+                this.State = ACTIVE;
                 RecordState();
-            } else if (this.State == TEXT_WIDGET_DRAG_TEXT) {
-                this.State = TEXT_WIDGET_ACTIVE_TEXT;
+            } else if (this.State == DRAG_TEXT) {
+                this.State = ACTIVE_TEXT;
                 RecordState();
             }
             return false;
         }
 
         if (event.which == 3) {
-            if (this.State == TEXT_WIDGET_ACTIVE ||
-                this.State == TEXT_WIDGET_ACTIVE_TEXT) {
+            if (this.State == ACTIVE ||
+                this.State == ACTIVE_TEXT) {
                 // Right mouse was pressed.
                 // Pop up the properties dialog.
                 // Which one should we popup?
                 // Add a ShowProperties method to the widget. (With the magic of javascript).
-                this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+                this.State = PROPERTIES_DIALOG;
                 this.ShowPropertiesDialog();
                 return false;
             }
@@ -459,37 +456,38 @@
         return [x,y];
     }
 
-    TextWidget.prototype.HandleMouseMove = function(event, viewer) {
-        if (this.State == TEXT_WIDGET_DRAG) {
+    TextWidget.prototype.HandleMouseMove = function(event) {
+        if (this.State == DRAG) {
             if (SA.NotesWidget) {
                 // Hack.
                 SA.NotesWidget.MarkAsModified();
             }
             var cam = this.Layer.GetCamera();
-            // TODO: Get rid of viewer depenancy.
-            w0 = cam.ConvertPointViewerToWorld(viewer.LastMouseX,
-                                               viewer.LastMouseY);
-            w1 = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
-            // This is the translation.
-            var dx = w1[0] - w0[0];
-            var dy = w1[1] - w0[1];
-
-            this.Text.Position[0] += dx;
-            this.Text.Position[1] += dy;
+            var w0 = cam.ConvertPointViewerToWorld(this.LastMouse[0], this.LastMouse[1]);
+            var w1 = cam.ConvertPointViewerToWorld(event.offsetX, event.offsetY);
+            var wdx = w1[0] - w0[0];
+            var wdy = w1[1] - w0[1];
+            this.LastMouse = [event.offsetX, event.offsetY];
+            this.Text.Position[0] += wdx;
+            this.Text.Position[1] += wdy;
             this.Arrow.Origin = this.Text.Position;
             this.PlacePopup();
             if (SA.NotesWidget) { SA.NotesWidget.MarkAsModified(); } // Hack
             this.Layer.EventuallyDraw();
             return false;
         }
-        if (this.State == TEXT_WIDGET_DRAG_TEXT) { // Just the text not the anchor glyph
+        if (this.State == DRAG_TEXT) { // Just the text not the anchor glyph
             if (SA.NotesWidget) {
                 // Hack.
                 SA.NotesWidget.MarkAsModified();
             }
+            var dx = event.offsetX - this.LastMouse[0];
+            var dy = event.offsetY - this.LastMouse[1];
+            this.LastMouse = [event.offsetX, event.offsetY];
+
             // TODO: Get the Mouse Deltas out of the layer.
-            this.Text.Anchor[0] -= viewer.MouseDeltaX;
-            this.Text.Anchor[1] -= viewer.MouseDeltaY;
+            this.Text.Anchor[0] -= dx; 
+            this.Text.Anchor[1] -= dy;
             this.UpdateArrow();
             this.PlacePopup();
             this.Layer.EventuallyDraw();
@@ -497,7 +495,7 @@
             return false;
         }
         // We do not want to deactivate the widget while the properties dialog is showing.
-        if (this.State != TEXT_WIDGET_PROPERTIES_DIALOG) {
+        if (this.State != PROPERTIES_DIALOG) {
             return this.CheckActive(event);
         }
         return true;
@@ -506,10 +504,10 @@
     TextWidget.prototype.HandleTouchPan = function(event, viewer) {
         // We should probably have a handle touch start too.
         // Touch start calls CheckActive() ...
-        if (this.State == TEXT_WIDGET_ACTIVE) {
-            this.State = TEXT_WIDGET_DRAG;
-        } else if (this.State == TEXT_WIDGET_ACTIVE_TEXT) {
-            this.State = TEXT_WIDGET_DRAG_TEXT;
+        if (this.State == ACTIVE) {
+            this.State = DRAG;
+        } else if (this.State == ACTIVE_TEXT) {
+            this.State = DRAG_TEXT;
         }
 
         // TODO: Get rid of viewer dependency
@@ -520,7 +518,7 @@
     }
 
     TextWidget.prototype.HandleTouchEnd = function(event) {
-        this.State = TEXT_WIDGET_ACTIVE;
+        this.State = ACTIVE;
         this.SetActive(false);
         return false;
     }
@@ -535,14 +533,14 @@
             // Doulbe hack. // Does not get highlighted because widget already active.
             this.Arrow.Active = true;
             this.Layer.EventuallyDraw();
-            this.SetActive(true, TEXT_WIDGET_ACTIVE);
+            this.SetActive(true, ACTIVE);
             return true;
         }
         if (this.Text.Visibility) {
             // Only check the text if it is visible.
             if (tMouse[0] > this.Text.PixelBounds[0] && tMouse[0] < this.Text.PixelBounds[1] &&
                 tMouse[1] > this.Text.PixelBounds[2] && tMouse[1] < this.Text.PixelBounds[3]) {
-                this.SetActive(true, TEXT_WIDGET_ACTIVE_TEXT);
+                this.SetActive(true, ACTIVE_TEXT);
                 return true;
             }
         }
@@ -552,7 +550,7 @@
     }
 
     TextWidget.prototype.GetActive = function() {
-        if (this.State == TEXT_WIDGET_ACTIVE || this.State == TEXT_WIDGET_PROPERTIES_DIALOG) {
+        if (this.State == ACTIVE || this.State == PROPERTIES_DIALOG) {
             return true;
         }
         return false;
@@ -560,7 +558,7 @@
 
     TextWidget.prototype.Deactivate = function() {
         this.Popup.StartHideTimer();
-        this.State = TEXT_WIDGET_WAITING;
+        this.State = WAITING;
         this.Text.Active = false;
         this.Arrow.Active = false;
         this.Layer.DeactivateWidget(this);
@@ -571,9 +569,9 @@
     }
 
     TextWidget.prototype.SetActive = function(flag, reason) {
-        reason = reason || TEXT_WIDGET_ACTIVE;
+        reason = reason || ACTIVE;
         if ( ! flag) {
-            reason = TEXT_WIDGET_WAITING;
+            reason = WAITING;
         }
 
         if (reason == this.State) {
@@ -582,19 +580,19 @@
 
         this.State = reason;
 
-        if (reason == TEXT_WIDGET_ACTIVE) {
+        if (reason == ACTIVE) {
             this.Text.Active = false;
             this.Arrow.Active = true;
             this.Layer.ActivateWidget(this);
             this.PlacePopup();
             this.Layer.EventuallyDraw();
-        } else if (reason == TEXT_WIDGET_ACTIVE_TEXT) {
+        } else if (reason == ACTIVE_TEXT) {
             this.Text.Active = true;
             this.Arrow.Active = false;
             this.Layer.ActivateWidget(this);
             this.PlacePopup();
             this.Layer.EventuallyDraw();
-        } else if (reason == TEXT_WIDGET_WAITING) {
+        } else if (reason == WAITING) {
             this.Deactivate();
         }
     }
@@ -613,13 +611,14 @@
 
     // Can we bind the dialog apply callback to an objects method?
     TextWidget.prototype.ShowPropertiesDialog = function () {
+        this.Popup.Hide();
         this.Dialog.ColorInput.val(ConvertColorToHex(this.Text.Color));
         this.Dialog.FontInput.val(this.Text.Size.toFixed(0));
         this.Dialog.BackgroundInput.prop('checked', this.Text.BackgroundFlag);
         this.Dialog.TextInput.val(this.Text.String);
         this.Dialog.VisibilityModeInputs[this.VisibilityMode].attr("checked", true);
 
-        this.State = TEXT_WIDGET_PROPERTIES_DIALOG;
+        this.State = PROPERTIES_DIALOG;
 
         this.Dialog.Show(true);
         this.Dialog.TextInput.focus();
@@ -627,6 +626,7 @@
 
     TextWidget.prototype.DialogApplyCallback = function () {
         this.SetActive(false);
+        this.Popup.Hide();
         this.ApplyLineBreaks();
 
         var string = this.Dialog.TextInput.val();
